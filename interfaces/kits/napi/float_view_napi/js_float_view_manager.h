@@ -20,6 +20,7 @@
 #include "floating_ball_option.h"
 #include "js_fb_window_controller.h"
 #include "js_float_view_controller.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {

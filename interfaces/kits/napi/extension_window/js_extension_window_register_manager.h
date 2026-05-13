@@ -54,6 +54,7 @@ private:
         KEYBOARD_DID_SHOW_CB,
         KEYBOARD_DID_HIDE_CB,
         KEYBOARD_HEIGHT_CHANGE_CB,
+        WINDOW_STATUS_CHANGE_CB,
     };
 
     bool IsCallbackRegistered(napi_env env, std::string type, napi_value jsListenerObject);
@@ -80,6 +81,8 @@ private:
     WmErrorCode ProcessKeyboardDidHideRegister(const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, bool isRegister);
     WmErrorCode ProcessOccupiedAreaChangeRegister(const sptr<JsExtensionWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister);
+    WmErrorCode ProcessWindowStatusChangeRegister(const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, bool isRegister);
     WmErrorCode ProcessRegister(CaseType caseType, const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, const std::string& type, bool isRegister);

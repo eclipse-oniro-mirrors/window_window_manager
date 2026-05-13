@@ -12,27 +12,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #include "mock_collaborator_dll_manager.h"
 #include "collaborator_dll_manager.h"
- 
+
 namespace OHOS::Rosen {
 namespace {
 int32_t g_callerTypeForAnco = 0;
 }
- 
+
 void MockCollaboratorDllManager::MockPreHandleStartAbility(int32_t callerTypeForAnco)
 {
     g_callerTypeForAnco = callerTypeForAnco;
 }
- 
-void CollaboratorDllManager::PreHandleStartAbility(AAFwk::Want& want, sptr<AAFwk::SessionInfo>& sessionInfo,
-    int32_t userId)
+
+__attribute__((weak)) void CollaboratorDllManager::PreHandleStartAbility(AAFwk::Want& want,
+    sptr<AAFwk::SessionInfo>& sessionInfo, int32_t userId)
 {
     sessionInfo->callerTypeForAnco = g_callerTypeForAnco;
 }
- 
-CollaboratorDllWrapper& CollaboratorDllManager::GetCollaboratorDllWrapper()
+
+__attribute__((weak)) CollaboratorDllWrapper& CollaboratorDllManager::GetCollaboratorDllWrapper()
 {
     static CollaboratorDllWrapper dll;
     return dll;

@@ -213,16 +213,17 @@ WSError KeyboardSession::Disconnect(bool isFromClient, const std::string& identi
 }
 
 WSError KeyboardSession::NotifyClientToUpdateRect(const std::string& updateReason,
-    std::shared_ptr<RSTransaction> rsTransaction)
+                                                  std::optional<WSRect> updateRect,
+                                                  std::shared_ptr<RSTransaction> rsTransaction)
 {
-    PostTask([weakThis = wptr(this), rsTransaction, updateReason]() {
+    PostTask([weakThis = wptr(this), updateReason, updateRect, rsTransaction] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_KEYBOARD, "Session is null");
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
 
-        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, rsTransaction);
+        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, updateRect, rsTransaction);
         return ret;
     }, "NotifyClientToUpdateRect");
     return WSError::WS_OK;
@@ -249,7 +250,7 @@ void KeyboardSession::SetCallingSessionId(uint32_t callingSessionId)
         uint32_t curCallingId = session->GetCallingSessionId();
         TLOGI(WmsLogTag::WMS_KEYBOARD, "CurId: %{public}d, newId: %{public}d", curCallingId, callingSessionId);
         // When the keyboard is shown, if the callingId changes, restore the cur calling session.
-        if (curCallingId != INVALID_WINDOW_ID && callingSessionId != curCallingId && session->IsSessionForeground()) {
+        if (curCallingId != INVALID_WINDOW_ID && callingSessionId != curCallingId && session->IsLifecycleForeground()) {
             session->RestoreCallingSession(curCallingId, nullptr);
             sptr<SceneSession> callingSession = session->GetSceneSession(curCallingId);
             WSRect panelRect = session->GetPanelRect();
@@ -292,7 +293,7 @@ bool KeyboardSession::isNeedProcessKeyboardOccupiedAreaInfo(
         lastParams.LandscapePanelRect_ != params.LandscapePanelRect_ ||
         lastParams.PortraitPanelRect_ != params.PortraitPanelRect_);
     
-    return IsSessionForeground() && lastParams != params && !isKeyboardRectsChanged &&
+    return IsLifecycleForeground() && lastParams != params && !isKeyboardRectsChanged &&
         lastParams.isValidAvoidHeight() && params.isValidAvoidHeight();
 }
 
@@ -313,7 +314,7 @@ WSError KeyboardSession::AdjustKeyboardLayout(const KeyboardLayoutParams& params
             session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_FLOAT);
             session->SetWindowAnimationFlag(false);
         } else {
-            if (session->IsSessionForeground()) {
+            if (session->IsLifecycleForeground()) {
                 session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM);
             }
             session->SetWindowAnimationFlag(true);
@@ -547,7 +548,7 @@ bool KeyboardSession::RaiseCallingSession(const sptr<SceneSession>& callingSessi
             GetKeyboardGravity());
         return false;
     }
-    if (!IsSessionForeground()) {
+    if (!IsLifecycleForeground()) {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Keyboard is not foreground, sessionState: %{public}d", GetSessionState());
         return false;
     }
@@ -797,12 +798,10 @@ void KeyboardSession::OpenKeyboardSyncTransaction()
             TLOGNI(WmsLogTag::WMS_KEYBOARD, "Keyboard sync transaction is already open");
             return WSError::WS_OK;
         }
-        TLOGNI(WmsLogTag::WMS_KEYBOARD, "Open keyboard sync");
+        TLOGNI(WmsLogTag::WMS_KEYBOARD, "Open keyboard sync, screenId:%{public}" PRIu64, session->GetScreenId());
         session->isKeyboardSyncTransactionOpen_ = true;
-        auto transactionController = RSSyncTransactionController::GetInstance();
-        if (transactionController) {
-            transactionController->OpenSyncTransaction(session->GetEventHandler());
-        }
+        session->syncTransRSUIContext_ = session->GetRSUIContext();
+        RSSyncTransactionAdapter::OpenSyncTransaction(session->syncTransRSUIContext_, session->GetEventHandler());
         session->PostKeyboardAnimationSyncTimeoutTask();
         return WSError::WS_OK;
     };
@@ -854,7 +853,7 @@ void KeyboardSession::CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRe
                 session->ProcessKeyboardOccupiedAreaInfo(callingId, true, true);
                 session->stateChanged_ = false;
             }
-            if (session->IsSessionForeground() && session->GetCallingSessionId() == INVALID_WINDOW_ID &&
+            if (session->IsLifecycleForeground() && session->GetCallingSessionId() == INVALID_WINDOW_ID &&
                 !animationInfo.isGravityChanged) {
                 session->GetSessionProperty()->SetCallingSessionId(callingId);
             }
@@ -884,10 +883,9 @@ void KeyboardSession::CloseRSTransaction()
         TLOGI(WmsLogTag::WMS_KEYBOARD, "cancelled");
         handler->RemoveTask(KEYBOARD_ANIM_SYNC_EVENT_NAME);
     }
-    auto transactionController = RSSyncTransactionController::GetInstance();
-    if (transactionController) {
-        transactionController->CloseSyncTransaction(GetEventHandler());
-    }
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "Close keyboard sync, screenId: %{public}" PRIu64, GetScreenId());
+    RSSyncTransactionAdapter::CloseSyncTransaction(syncTransRSUIContext_, handler);
+    syncTransRSUIContext_ = nullptr;
 }
 
 std::shared_ptr<RSTransaction> KeyboardSession::GetRSTransaction()

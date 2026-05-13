@@ -144,6 +144,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetWindowStyleType(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_PROCESS_WATERMARK):
             return HandleSetProcessWatermark(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RECOVER_PROCESS_WATERMARK):
+            return HandleRecoverProcessWatermark(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_TERMINATE_SESSION_BY_PERSISTENT_ID):
             return HandleTerminateSessionByPersistentId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_CLOSE_TARGET_FLOAT_WINDOW):
@@ -222,6 +224,9 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetMainWindowInfoByToken(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY):
             return HandleNotifyAppUseControlDisplay(data, reply);
+        case static_cast<uint32_t>(
+            SceneSessionManagerLiteMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
+            return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1378,6 +1383,26 @@ int SceneSessionManagerLiteStub::HandleSetProcessWatermark(MessageParcel& data, 
     return ERR_NONE;
 }
 
+int SceneSessionManagerLiteStub::HandleRecoverProcessWatermark(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t pid = INVALID_PID;
+    if (!data.ReadInt32(pid)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to readInt32 pid");
+        return ERR_INVALID_DATA;
+    }
+    std::string watermarkName;
+    if (!data.ReadString(watermarkName)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to readString watermarkName");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = RecoverProcessWatermark(pid, watermarkName);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerLiteStub::HandleTerminateSessionByPersistentId(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "In!");
@@ -2011,6 +2036,42 @@ int SceneSessionManagerLiteStub::HandleUnregisterPipChgListener(MessageParcel& d
     WMError ret = UnregisterPipChgListenerByScreenId(screenId);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply)
+{
+    ApplicationInfo appInfo;
+    if (!data.ReadString(appInfo.bundleName)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read bundleName failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadInt32(appInfo.appIndex)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read appIndex failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadString(appInfo.appInstanceKey)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read appInstanceKey failed");
+        return ERR_INVALID_DATA;
+    }
+    std::vector<AppWindowShowingInfo> windowInfos;
+    WMError ret = GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_MAIN, "write ret failed");
+        return ERR_INVALID_DATA;
+    }
+    if (ret == WMError::WM_OK) {
+        if (!reply.WriteInt32(static_cast<int32_t>(windowInfos.size()))) {
+            TLOGE(WmsLogTag::WMS_MAIN, "write size failed");
+            return ERR_INVALID_DATA;
+        }
+        for (const auto& info : windowInfos) {
+            if (!reply.WriteParcelable(&info)) {
+                TLOGE(WmsLogTag::WMS_MAIN, "write AppWindowShowingInfo failed");
+                return ERR_INVALID_DATA;
+            }
+        }
     }
     return ERR_NONE;
 }

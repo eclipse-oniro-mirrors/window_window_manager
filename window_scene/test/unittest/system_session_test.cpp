@@ -147,7 +147,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect01, TestSize.Level1)
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     systemSession_->sessionStage_ = mockSessionStage;
-    auto ret = systemSession_->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    auto ret = systemSession_->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 
@@ -678,12 +678,12 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect02, TestSize.Level1)
 
     sysSession->dirtyFlags_ = 0;
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
-    sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(sysSession->GetSizeChangeReason(), SizeChangeReason::UNDEFINED);
 
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(sysSession->GetSizeChangeReason(), SizeChangeReason::DRAG);
 }
@@ -712,7 +712,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sysSession->specificCallback_ = specificCallback;
     sysSession->specificCallback_->onUpdateAvoidArea_ = nullptr;
     sysSession->GetLayoutController()->SetSessionRect({ 0, 0, 800, 800 });
-    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     EXPECT_EQ(res, WSError::WS_OK);
 
@@ -720,7 +720,7 @@ HWTEST_F(SystemSessionTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sysSession->SetScbCoreEnabled(true);
     sysSession->Session::UpdateSizeChangeReason(SizeChangeReason::MAXIMIZE);
     sysSession->specificCallback_->onUpdateAvoidArea_ = [](const int32_t& persistentId) {};
-    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", nullptr);
+    res = sysSession->NotifyClientToUpdateRect("SystemSessionTest", std::nullopt, nullptr);
     usleep(WAIT_ASYNC_US);
     EXPECT_EQ(sysSession->dirtyFlags_, static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA));
     EXPECT_EQ(res, WSError::WS_OK);
@@ -898,7 +898,7 @@ HWTEST_F(SystemSessionTest, UpdateFloatingBall, Function | SmallTest | Level2)
     EXPECT_EQ(systemSession->UpdateFloatingBall(fbTemplateInfo), WMError::WM_OK);
 
     FloatingBallTemplateBaseInfo fbBaseTmpInfo (
-        static_cast<uint32_t>(FloatingBallTemplate::STATIC), "", "", "", 0, false, 0, true, "test");
+        static_cast<uint32_t>(FloatingBallTemplate::STATIC), "", "", "", "", "", 0, false, 0, true, "test");
     FloatingBallTemplateInfo fbTmpInfo {fbBaseTmpInfo, nullptr};
     systemSession->SetFbTemplateInfo(fbTmpInfo);
     EXPECT_EQ(systemSession->UpdateFloatingBall(fbTemplateInfo), WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED);
@@ -1063,9 +1063,10 @@ HWTEST_F(SystemSessionTest, NotifyUpdateFloatingBall, Function | SmallTest | Lev
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
 
-    FloatingBallTemplateBaseInfo fbBaseTmpInfo {1, "fb", "fb_content", "red", 0, false, 0, true, "test"};
+    FloatingBallTemplateBaseInfo fbBaseTmpInfo {1, "fb", "fb_content", "red", "", "", 0, false, 0, true, "test"};
     FloatingBallTemplateInfo fbTemplateInfo {fbBaseTmpInfo, nullptr};
-    FloatingBallTemplateBaseInfo newFbBaseTmpInfo {2, "fb_new", "fb_content_new", "red", 0, false, 0, true, "test"};
+    FloatingBallTemplateBaseInfo newFbBaseTmpInfo {2, "fb_new", "fb_content_new", "red", "", "", 0, false, 0, true,
+        "test"};
     FloatingBallTemplateInfo newFbTemplateInfo {newFbBaseTmpInfo, nullptr};
     systemSession->SetFloatingBallUpdateCallback(nullptr);
     systemSession->NotifyUpdateFloatingBall(newFbTemplateInfo);
@@ -1494,7 +1495,7 @@ HWTEST_F(SystemSessionTest, SyncFloatViewLimits, Function | SmallTest | Level2)
     SessionInfo info;
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
 
-    FloatViewLimits limits;
+    std::map<uint32_t, FloatViewLimits> limits;
     systemSession->sessionStage_ = nullptr;
     EXPECT_EQ(systemSession->SyncFloatViewLimits(limits), WSError::WS_ERROR_NULLPTR);
 

@@ -53,7 +53,7 @@ int32_t RsMockImpl::SetScreenChangeCallback(const ScreenChangeCallback& callback
 void RsMockImpl::TriggerScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
 {
     if (screenChangeCallback_ != nullptr) {
-        screenChangeCallback_(screenId, screenEvent, reason);
+        screenChangeCallback_(screenId, screenEvent, reason, nullptr);
     }
 }
 

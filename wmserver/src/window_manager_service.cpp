@@ -205,7 +205,17 @@ void WindowManagerService::InitWithRanderServiceAdded()
     auto windowVisibilityChangeCb =
         [this](std::shared_ptr<RSOcclusionData> occlusionData) { this->WindowVisibilityChangeCallback(occlusionData); };
     WLOGI("RegisterWindowVisibilityChangeCallback");
-    if (rsInterface_.RegisterOcclusionChangeCallback(windowVisibilityChangeCb) != WM_OK) {
+    auto rsUICtx = rsUiDirector_->GetRSUIContext();
+    if (rsUICtx == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no rsUICtx");
+        return;
+    }
+    auto rsInterface = rsUICtx->GetRSRenderInterface();
+    if (rsInterface == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        return;
+    }
+    if (rsInterface->RegisterOcclusionChangeCallback(windowVisibilityChangeCb) != WM_OK) {
         WLOGFE("RegisterWindowVisibilityChangeCallback failed");
     }
 }
@@ -1098,6 +1108,32 @@ AvoidArea WindowManagerService::GetAvoidAreaByType(uint32_t windowId, AvoidAreaT
     return PostSyncTask(task, "GetAvoidAreaByType");
 }
 
+WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+{
+    auto task = [this, persistentId, &winStateSnapshotJsonStr]() {
+        if (winStateSnapshotJsonStr.empty()) {
+            winStateSnapshotJsonStr = "{}";
+        }
+        nlohmann::json winStateSnapshotJson = nlohmann::json::parse(winStateSnapshotJsonStr, nullptr, false);
+        if (winStateSnapshotJson.is_discarded()) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "parse json error: winId=%{public}d, winStateSnapshot=%{public}s",
+                persistentId, winStateSnapshotJsonStr.c_str());
+            return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+        }
+        std::string systemUiVisible(4, '0');
+        auto IsSystemUiVisible = [this](WindowType type) {
+            auto systemUiNode = this->windowRoot_->GetWindowNodeByWindowType(type);
+            return systemUiNode && systemUiNode->currentVisibility_ ? '1' : '0';
+        };
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR);
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+        winStateSnapshotJsonStr = winStateSnapshotJson.dump();
+        return WMError::WM_OK;
+    };
+    return PostSyncTask(task, "GetWindowStateSnapshot");
+}
+
 WMError WindowManagerService::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
@@ -1674,7 +1710,7 @@ void WindowManagerService::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Displa
 
 void WindowManagerService::InitRSUIDirector()
 {
-    rsUiDirector_ = RSUIDirector::Create();
+    rsUiDirector_ = RSUIDirector::Create(nullptr);
     if (!rsUiDirector_) {
         TLOGE(WmsLogTag::WMS_SCB, "Failed to create RSUIDirector");
         return;
@@ -1689,7 +1725,6 @@ void WindowManagerService::InitRSUIDirector()
     rsUiDirector_->SetUITaskRunner([this](const std::function<void()>& task, uint32_t delay) {
             PostAsyncTask(task, "WindowManagerService:cacheGuard", delay);
         }, instanceId, useMultiInstance);
-    rsUiDirector_->Init(false, useMultiInstance);
     TLOGI(WmsLogTag::WMS_SCB, "Create RSUIDirector: %{public}s",
           RSAdapterUtil::RSUIDirectorToStr(rsUiDirector_).c_str());
 }

@@ -29,9 +29,17 @@ using namespace AbilityRuntime;
 AniFvWindowListener::~AniFvWindowListener()
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]~AniFvWindowListener destroyed");
-    ani_status ret = ANI_OK;
-    if (env_ == nullptr || aniCallback_ == nullptr) {
+    if (aniCallback_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]env_ or aniCallback_ is nullptr,skip");
+        return;
+    }
+    if (!vm_) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "vm is null");
+        return;
+    }
+    ani_status ret = vm_->GetEnv(ANI_VERSION_1, &env_);
+    if (ret != ANI_OK || env_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "GetEnv failed, ret:%{public}u", ret);
         return;
     }
     if ((ret = env_->GlobalReference_Delete(aniCallback_)) != ANI_OK) {

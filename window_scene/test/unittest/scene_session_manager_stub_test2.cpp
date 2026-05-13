@@ -105,6 +105,7 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverWindowPropertyChangeFlag01, 
     MessageParcel data;
     MessageParcel reply;
 
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
     auto res = stub_->HandleRecoverWindowPropertyChangeFlag(data, reply);
     EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
 
@@ -406,6 +407,38 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleGetRootUIContentRemoteObj01, TestSi
 }
 
 /**
+ * @tc.name: HandleRecoverProcessWatermark
+ * @tc.desc: test HandleRecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverProcessWatermark, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInt32(123);
+    data.WriteString("RecoverProcessWatermarkName");
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_RECOVER_PROCESS_WATERMARK);
+    auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_NE(res, ERR_NULL_OBJECT);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    EXPECT_NE(stub_->HandleRecoverProcessWatermark(data, reply), ERR_NULL_OBJECT);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    MessageParcel data2;
+    data2.WriteInt32(2);
+    MockMessageParcel::SetReadStringErrorFlag(true);
+    EXPECT_NE(stub_->HandleRecoverProcessWatermark(data2, reply), ERR_NULL_OBJECT);
+    MockMessageParcel::SetReadStringErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+
+/**
  * @tc.name: HandleUpdateOutline
  * @tc.desc: test HandleUpdateOutline
  * @tc.type: FUNC
@@ -475,24 +508,37 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleUpdateOutline02, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerStubTest2, HandleGetFloatViewLimits, Function | SmallTest | Level2)
 {
-    MessageParcel data;
     MessageParcel reply;
-    
-    // WriteInt32 failed
+
+    // ReadUint32 failed
     MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
+    MessageParcel data;
+    data.WriteUint32(0);
     int res = stub_->HandleGetFloatViewLimits(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
+    // WriteInt32 failed
+    MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data1;
+    data1.WriteUint32(0);
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    res = stub_->HandleGetFloatViewLimits(data1, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
     // WriteParcelable failed
     MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data2;
+    data2.WriteUint32(0);
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
-    res = stub_->HandleGetFloatViewLimits(data, reply);
+    res = stub_->HandleGetFloatViewLimits(data2, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
     // success
     MockMessageParcel::ClearAllErrorFlag();
-    res = stub_->HandleGetFloatViewLimits(data, reply);
+    MessageParcel data3;
+    data3.WriteUint32(0);
+    res = stub_->HandleGetFloatViewLimits(data3, reply);
     EXPECT_EQ(res, ERR_NONE);
 }
 } // namespace

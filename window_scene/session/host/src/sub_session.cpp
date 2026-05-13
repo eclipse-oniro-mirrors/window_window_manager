@@ -88,6 +88,10 @@ WSError SubSession::Show(sptr<WindowSessionProperty> property)
             sessionProperty->SetAnimationFlag(static_cast<uint32_t>(WindowAnimation::CUSTOM));
             session->NotifyIsCustomAnimationPlaying(true);
         }
+        if (session->IsLoosenedWithFreeMultiMode()) {
+            TLOGND(WmsLogTag::WMS_SUB, "raise sub session when show, id: %{public}d", session->GetPersistentId());
+            session->RaiseAppMainWindowToTop();
+        }
         auto ret = session->SceneSession::Foreground(property);
         return ret;
     }, "Show");
@@ -133,7 +137,7 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
         return;
     }
 
-    if (IsSessionForeground() && (reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE)) {
+    if (IsLifecycleForeground() && (reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE)) {
         SetOriPosYBeforeRaisedByKeyboard(0);
         const WSRect& winRect = GetSessionRect();
         if (reason == SizeChangeReason::MOVE && (rect.posX_ != winRect.posX_ || rect.posY_ != winRect.posY_)) {

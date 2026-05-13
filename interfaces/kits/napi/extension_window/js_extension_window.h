@@ -144,6 +144,7 @@ private:
     napi_value OnSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSnapshotSync(napi_env env, napi_callback_info info);
     napi_value OnSnapshotIgnorePrivacy(napi_env env, napi_callback_info info);
+    napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
 
     static napi_value GetProperties(napi_env env, napi_callback_info info);
 

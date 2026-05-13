@@ -31,6 +31,7 @@
 #include "dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
+#include "wm_layout_common.h"
 #include "wm_math.h"
 #include "wm_type.h"
 
@@ -217,6 +218,15 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_FB,
     WINDOW_MODE_FV,
     END = WINDOW_MODE_FV,
+};
+
+/**
+ * @brief Enumerates type of split ratio preference.
+ */
+enum class SplitRatioPreference : uint32_t {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2
 };
 
 /**
@@ -2039,26 +2049,17 @@ struct PiPTemplateInfo : public Parcelable {
 
 struct FloatViewWindowInfo : public Parcelable {
     Rect windowRect_ {};
-    Rect titleBarRect_ {};
+    AvoidArea avoidArea_ {};
     float scale_ {1.0f};
 
     FloatViewWindowInfo() {}
 
-    static inline bool WriteRectParcel(Parcel& parcel, const Rect& rect)
-    {
-        return parcel.WriteInt32(rect.posX_) && parcel.WriteInt32(rect.posY_) &&
-            parcel.WriteUint32(rect.width_) && parcel.WriteUint32(rect.height_);
-    }
-
-    static inline bool ReadRectParcel(Parcel& parcel, Rect& rect)
-    {
-        return parcel.ReadInt32(rect.posX_) && parcel.ReadInt32(rect.posY_) &&
-            parcel.ReadUint32(rect.width_) && parcel.ReadUint32(rect.height_);
-    }
-
     bool Marshalling(Parcel& parcel) const override
     {
-        if (!WriteRectParcel(parcel, windowRect_) || !WriteRectParcel(parcel, titleBarRect_)) {
+        if (!windowRect_.Marshalling(parcel)) {
+            return false;
+        }
+        if (!avoidArea_.Marshalling(parcel)) {
             return false;
         }
         if (!parcel.WriteFloat(scale_)) {
@@ -2070,11 +2071,13 @@ struct FloatViewWindowInfo : public Parcelable {
     static FloatViewWindowInfo* Unmarshalling(Parcel& parcel)
     {
         auto* floatViewWindowInfo = new FloatViewWindowInfo();
-        if (!ReadRectParcel(parcel, floatViewWindowInfo->windowRect_) ||
-            !ReadRectParcel(parcel, floatViewWindowInfo->titleBarRect_)) {
+        floatViewWindowInfo->windowRect_.Unmarshalling(parcel);
+        std::shared_ptr<AvoidArea> avoidArea = std::shared_ptr<AvoidArea>(AvoidArea::Unmarshalling(parcel));
+        if (avoidArea == nullptr) {
             delete floatViewWindowInfo;
             return nullptr;
         }
+        floatViewWindowInfo->avoidArea_ = *avoidArea;
         if (!parcel.ReadFloat(floatViewWindowInfo->scale_)) {
             delete floatViewWindowInfo;
             return nullptr;
@@ -2086,10 +2089,8 @@ struct FloatViewWindowInfo : public Parcelable {
     {
         constexpr int precision = 6; // Print float with precision of 6 decimal places.
         std::ostringstream oss;
-        oss << "window rect [" << windowRect_.posX_ << " " << windowRect_.posY_ << " "
-            << windowRect_.width_ << " " << windowRect_.height_ << "]"
-            << " titleBar rect [" << titleBarRect_.posX_ << " " << titleBarRect_.posY_ << " "
-            << titleBarRect_.width_ << " " << titleBarRect_.height_ << "]"
+        oss << "window rect " << windowRect_.ToString()
+            << " avoidArea " << avoidArea_.ToString()
             << " scale [" << std::fixed << std::setprecision(precision) << scale_ << "]";
         return oss.str();
     }
@@ -2100,7 +2101,7 @@ struct FloatViewLimits : public Parcelable {
     uint32_t maxHeight_ {0};
     uint32_t minWidth_ {0};
     uint32_t minHeight_ {0};
-    std::vector<std::pair<float, float>> ratioLimits_ {};
+    std::vector<std::pair<double, double>> ratioLimits_ {};
     FloatViewLimits() {}
 
     bool Marshalling(Parcel& parcel) const override
@@ -2113,7 +2114,7 @@ struct FloatViewLimits : public Parcelable {
             return false;
         }
         for (const auto& ratioLimit : ratioLimits_) {
-            if (!parcel.WriteFloat(ratioLimit.first) || !parcel.WriteFloat(ratioLimit.second)) {
+            if (!parcel.WriteDouble(ratioLimit.first) || !parcel.WriteDouble(ratioLimit.second)) {
                 return false;
             }
         }
@@ -2141,7 +2142,7 @@ struct FloatViewLimits : public Parcelable {
         }
         floatViewLimits->ratioLimits_.resize(limitsCount);
         for (auto& ratioLimit : floatViewLimits->ratioLimits_) {
-            if (!parcel.ReadFloat(ratioLimit.first) || !parcel.ReadFloat(ratioLimit.second)) {
+            if (!parcel.ReadDouble(ratioLimit.first) || !parcel.ReadDouble(ratioLimit.second)) {
                 delete floatViewLimits;
                 return nullptr;
             }
@@ -2184,6 +2185,14 @@ enum class FloatingBallTextUpdateAnimationType : uint32_t {
     ANIMATION_END = 2,
 };
 
+/**
+ * @brief Enumerates floating ball update mode.
+ */
+enum class FloatingBallUpdateMode : uint32_t {
+    DEFAULT = 1,
+    VISIBLE_IN_APP = 2,
+};
+
 struct PiPWindowSize {
     uint32_t width;
     uint32_t height;
@@ -2212,7 +2221,7 @@ enum class FloatViewState : uint32_t {
     FV_IN_FLOATING_BALL = 5,
     FV_ERROR = 6,
 };
- 
+
 /**
  * @brief Enumerates float view template.
  */
@@ -2401,6 +2410,26 @@ struct AttachLimitOptions {
         return !this->operator==(other);
     }
 };
+
+/**
+ * @enum DragActivateSource
+ *
+ * @brief Bit flags identifying the caller source for drag activation.
+ * Each source owns one bit. AND semantics: all registered sources must agree for drag to be activated.
+ */
+enum class DragActivateSource : uint32_t {
+    FOLLOW_PARENT_LAYOUT = 1 << 0,
+    FOLLOW_PARENT_POSITION = 1 << 1,
+    APP_LOCK = 1 << 2,
+    MID_SCENE_TO_PC_MODE = 1 << 3,
+    // Extend as needed, use 1 << N
+};
+
+constexpr uint32_t DRAG_ACTIVATE_ALL_MASK =
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT) |
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_POSITION) |
+    static_cast<uint32_t>(DragActivateSource::APP_LOCK) |
+    static_cast<uint32_t>(DragActivateSource::MID_SCENE_TO_PC_MODE);
 
 /**
  * @struct TitleButtonRect
@@ -3460,6 +3489,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -3667,6 +3697,66 @@ struct RecentSessionInfo : public Parcelable {
     int32_t appIndex = 0;
     WindowType windowType = WindowType::APP_MAIN_WINDOW_BASE;
     RecentSessionState sessionState = RecentSessionState::DISCONNECT;
+};
+
+struct ApplicationInfo : public Parcelable {
+    ApplicationInfo() = default;
+    ApplicationInfo(const std::string& bundleName, int32_t appIndex = 0, const std::string& appInstanceKey = "")
+        : bundleName(bundleName), appIndex(appIndex), appInstanceKey(appInstanceKey) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteString(bundleName) &&
+               parcel.WriteInt32(appIndex) &&
+               parcel.WriteString(appInstanceKey);
+    }
+
+    static ApplicationInfo* Unmarshalling(Parcel& parcel)
+    {
+        ApplicationInfo* info = new ApplicationInfo();
+        if (!parcel.ReadString(info->bundleName) ||
+            !parcel.ReadInt32(info->appIndex) ||
+            !parcel.ReadString(info->appInstanceKey)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    std::string bundleName;
+    int32_t appIndex = 0;
+    std::string appInstanceKey;
+};
+
+struct AppWindowShowingInfo : public Parcelable {
+    AppWindowShowingInfo() = default;
+    AppWindowShowingInfo(int32_t persistentId) : persistentId(persistentId) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteInt32(persistentId) &&
+               parcel.WriteString(windowName) &&
+               parcel.WriteUint32(sessionState) &&
+               parcel.WriteBool(isShowOnDock);
+    }
+
+    static AppWindowShowingInfo* Unmarshalling(Parcel& parcel)
+    {
+        AppWindowShowingInfo* info = new AppWindowShowingInfo();
+        if (!parcel.ReadInt32(info->persistentId) ||
+            !parcel.ReadString(info->windowName) ||
+            !parcel.ReadUint32(info->sessionState) ||
+            !parcel.ReadBool(info->isShowOnDock)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    int32_t persistentId = -1;
+    std::string windowName;
+    uint32_t sessionState = 0;
+    bool isShowOnDock = false;
 };
 
 /**
@@ -3961,6 +4051,17 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
+
+/**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::UNSPECIFIED;
+    SnapshotAnimationConfig snapshotAnimationConfig;
 };
 
 /**

@@ -66,9 +66,14 @@ public:
      * @param identityToken identity token of sceneSession
      * @return the error code of window
      */
-    WMError Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
-        sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option, const sptr<IRemoteObject>& iSession,
-        const std::string& identityToken = "", bool isModuleAbilityHookEnd = false);
+    WMError Init(DisplayId displayId, 
+                 const std::shared_ptr<AbilityRuntime::Context>& context,
+                 sptr<IWindowLifeCycle>& listener,
+                 sptr<WindowOption> option,
+                 const sptr<IRemoteObject>& iSession,
+                 const std::string& identityToken = "",
+                 bool isModuleAbilityHookEnd = false,
+                 sptr<IRemoteObject> renderSession = nullptr);
 
     /**
      * Create a window instance based on the parameters windowName and option.

@@ -1458,6 +1458,282 @@ HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName003, TestSize.Level
     LOG_SetCallback(nullptr);
     ssm_->DestroyVirtualScreen(screenId);
 }
+
+
+/**
+ * @tc.name: SetOrientationWithOptions01
+ * @tc.desc: SetOrientation with options permission denied
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_NE(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
 }
+
+/**
+ * @tc.name: SetOrientationWithOptions02
+ * @tc.desc: SetOrientation with options invalid orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    Orientation orientation = static_cast<Orientation>(100);
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions03
+ * @tc.desc: SetOrientation with options screenSession nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 99999;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions04
+ * @tc.desc: SetOrientation overload1 call
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen3", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    Orientation orientation = Orientation::VERTICAL;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions05
+ * @tc.desc: SetOrientation overload2 call
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen4", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    Orientation orientation = Orientation::REVERSE_VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = true;
+    bool isFromNapi = false;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions06
+ * @tc.desc: SetOrientation with different orientation values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen5", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    std::vector<Orientation> orientations = {
+        Orientation::UNSPECIFIED, Orientation::VERTICAL,
+        Orientation::HORIZONTAL, Orientation::REVERSE_VERTICAL, Orientation::REVERSE_HORIZONTAL
+    };
+
+    for (auto orientation : orientations) {
+        DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+        EXPECT_EQ(ret, DMError::DM_OK);
+    }
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangeWithOptions01
+ * @tc.desc: OnScreenOrientationChangeWithOptions - clientProxy is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto originalProxy = ssm_->clientProxy_;
+    ssm_->clientProxy_ = nullptr;
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    ssm_->OnScreenOrientationChangeWithOptions(screenOrientation, options, screenId);
+    EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") != std::string::npos);
+
+    ssm_->clientProxy_ = originalProxy;
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangeWithOptions02
+ * @tc.desc: OnScreenOrientationChangeWithOptions - normal case with valid clientProxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    ssm_->OnScreenOrientationChangeWithOptions(screenOrientation, options, screenId);
+    EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") == std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_ValidScale
+ * @tc.desc: Verify SetScreenSessionScale sets cast scale properties with valid scale values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_ValidScale, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleValid", screenId);
+    float scaleX = 1920.0f / 1080.0f;
+    float scaleY = 1080.0f / 720.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleZero
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleZero, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleZero", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 0.0f, 1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleNegative
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is negative
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleNegative, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNeg", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 1.0f, -1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_WithDisplayNode
+ * @tc.desc: Verify SetScreenSessionScale applies scale on displayNode when it is not null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNode", screenId);
+    // Create displayNode first so GetDisplayNode returns non-null
+    RSDisplayNodeConfig rsConfig;
+    rsConfig.screenId = screenId;
+    rsConfig.isMirrored = false;
+    screenSession->CreateDisplayNode(rsConfig);
+    ASSERT_NE(screenSession->GetDisplayNode(), nullptr);
+    float scaleX = 1.5f;
+    float scaleY = 2.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode end";
+}
+} // namespace
 } // namespace Rosen
 } // namespace OHOS

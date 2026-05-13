@@ -521,7 +521,7 @@ void MainSession::NotifySubAndDialogFollowRectChange(const WSRect& rect, bool is
 void MainSession::SetSubWindowBoundsDuringCross(const WSRect& parentRect, bool isGlobal, bool needFlush)
 {
     for (const auto& subSession : GetSubSession()) {
-        if (subSession && subSession->GetWindowAnchorInfo().isAnchorEnabled_ && subSession->IsSessionForeground()) {
+        if (subSession && subSession->GetWindowAnchorInfo().isAnchorEnabled_ && subSession->IsLifecycleForeground()) {
             WSRect subRect = subSession->GetSessionRect();
             subSession->CalcSubWindowRectByAnchor(parentRect, subRect);
             subSession->UpdateSizeChangeReason(SizeChangeReason::UNDEFINED);
@@ -545,7 +545,7 @@ void MainSession::NotifySubSessionRectChangeByAnchor(const WSRect& parentRect,
 void MainSession::HandleSubSessionSurfaceNodeByWindowAnchor(SizeChangeReason reason, DisplayId displayId)
 {
     for (const auto& subSession : GetSubSession()) {
-        if (subSession && subSession->GetWindowAnchorInfo().isAnchorEnabled_ && subSession->IsSessionForeground()) {
+        if (subSession && subSession->GetWindowAnchorInfo().isAnchorEnabled_ && subSession->IsLifecycleForeground()) {
             subSession->HandleCrossSurfaceNodeByWindowAnchor(reason, displayId);
         }
     }

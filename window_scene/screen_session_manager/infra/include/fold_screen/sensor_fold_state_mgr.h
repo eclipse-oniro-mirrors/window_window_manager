@@ -20,7 +20,6 @@
 #include "iapplication_state_observer.h"
 #include "fold_screen_common.h"
 #include "task_scheduler.h"
-
 namespace OHOS {
 namespace Rosen {
 class TaskSequenceProcess;
@@ -45,6 +44,7 @@ public:
 
 protected:
     SensorFoldStateMgr();
+    virtual ~SensorFoldStateMgr();
     FoldStatus GetNextFoldStatus(const SensorStatus& sensorStatus);
     virtual FoldStatus GetNextFoldStatusByAxis(
         const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy);
@@ -74,7 +74,8 @@ private:
     void SetDeviceStatusAndParam(uint32_t deviceStatus);
 
     std::vector<int32_t> foldAlgorithmStrategy_;
-    std::recursive_mutex statusMutex_;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
     FoldStatus globalFoldStatus_ = FoldStatus::UNKNOWN;
     TaskSequenceProcess* taskProcess_;
 };

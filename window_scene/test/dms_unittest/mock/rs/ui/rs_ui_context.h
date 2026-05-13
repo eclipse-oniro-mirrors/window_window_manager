@@ -25,6 +25,7 @@
 #include "transaction/rs_sync_transaction_handler.h"
 #include "rs_node.h"
 #include "pipeline/rs_node_map.h"
+#include "transaction/rs_render_interface.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -65,10 +66,16 @@ public:
         return nodeMap_;
     }
 
+    std::shared_ptr<RSRenderInterface> GetRSRenderInterface()
+    {
+        return rsRenderInterface_;
+    }
+
     uint64_t token_;
     std::shared_ptr<RSTransactionHandler> rsTransactionHandler_;
     std::shared_ptr<RSSyncTransactionHandler> rsSyncTransactionHandler_;
     RSNodeMapV2 nodeMap_;
+    std::shared_ptr<RSRenderInterface> rsRenderInterface_;
 };
 
 }  // namespace Rosen

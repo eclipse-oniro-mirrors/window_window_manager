@@ -39,7 +39,7 @@ enum class EnvironmentType {
 
 class WindowExtensionSessionImpl : public WindowSessionImpl {
 public:
-    explicit WindowExtensionSessionImpl(const sptr<WindowOption>& option);
+    explicit WindowExtensionSessionImpl(const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession = nullptr);
     ~WindowExtensionSessionImpl();
 
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
@@ -214,6 +214,7 @@ public:
     WMError SetStatusBarColorForExtension(uint32_t color) override;
     WMError SetStatusBarColorForExtensionInner(uint32_t color);
     bool IsBlockSubwindow() const override;
+    WMError GetWindowStatus(WindowStatus& windowStatus) override;
 
 protected:
     NotifyTransferComponentDataFunc notifyTransferComponentDataFunc_;
@@ -260,6 +261,7 @@ private:
     WMError OnHostStatusBarContentColorChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnHostRectChangeInGlobalDisplay(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnRecover(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
+    WMError OnHostWindowStatusChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
 
     /*
      * Compatible Mode
@@ -294,6 +296,7 @@ private:
     std::vector<sptr<IKeyboardDidHideListener>> keyboardDidHideListenerList_;
     std::vector<sptr<IOccupiedAreaChangeListener>> occupiedAreaChangeListenerList_;
     std::vector<sptr<IRectChangeInGlobalDisplayListener>> hostRectChangeInGlobalDisplayListenerList_;
+    WindowStatus hostWindowStatus_ = WindowStatus::WINDOW_STATUS_UNDEFINED;
     uint32_t hostStatusBarContentColor_ { 0 };
     int64_t startModalExtensionTimeStamp_ = -1;
     std::atomic<bool> transparentUIExtensionFlag_ { false };

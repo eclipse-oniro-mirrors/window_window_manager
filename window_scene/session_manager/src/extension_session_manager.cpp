@@ -23,6 +23,7 @@
 #include "singleton_container.h"
 
 #include "session/host/include/extension_session.h"
+#include "transaction/rs_interfaces.h"
 #include "perform_reporter.h"
 
 namespace OHOS::Rosen {
@@ -59,6 +60,7 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     abilitySessionInfo->density = sessionInfo.config_.density_;
     abilitySessionInfo->orientation = sessionInfo.config_.orientation_;
     abilitySessionInfo->isDensityFollowHost = sessionInfo.config_.isDensityFollowHost_;
+    abilitySessionInfo->renderSession = sessionInfo.connectToRenderToken_;
     if (sessionInfo.want != nullptr) {
         abilitySessionInfo->want = sessionInfo.GetWantSafely();
     }

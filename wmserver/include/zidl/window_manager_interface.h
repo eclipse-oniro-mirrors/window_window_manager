@@ -102,6 +102,7 @@ public:
         TRANS_ID_SET_IMAGE_FOR_RECENT_PIXELMAP,
         TRANS_ID_REMOVE_IMAGE_FOR_RECENT,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
     };
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& property,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode,
@@ -262,7 +263,8 @@ public:
     virtual WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject> token = nullptr) { return WSError::WS_OK; }
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        sptr<IRemoteObject> token = nullptr) { return WSError::WS_OK; }
     virtual WSError RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, sptr<ISession>& session, sptr<IRemoteObject> token = nullptr)
@@ -359,6 +361,10 @@ public:
     virtual WMError SkipSnapshotForAppProcess(int32_t pid, bool skip) { return WMError::WM_OK; }
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName,
         bool isEnabled) { return WMError::WM_OK; }
+    virtual WMError RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetWindowIdsByCoordinate(DisplayId displayId, int32_t windowNumber,
         int32_t x, int32_t y, std::vector<int32_t>& windowIds) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError UpdateScreenLockStatusForApp(
@@ -429,7 +435,7 @@ public:
     /*
      * Float view
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits& limits)
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

@@ -196,6 +196,15 @@ enum class WindowMode : uint32_t {
 };
 
 /**
+ * @brief Split ratio preference of window.
+ */
+enum class SplitRatioPreference : int32_t {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2,
+};
+
+/**
  * @brief Enumerates global mode of window.
  */
 enum class GlobalWindowMode : uint32_t {
@@ -1462,6 +1471,26 @@ struct AttachLimitOptions {
 };
 
 /**
+ * @enum DragActivateSource
+ *
+ * @brief Bit flags identifying the caller source for drag activation.
+ * Each source owns one bit. AND semantics: all registered sources must agree for drag to be activated.
+ */
+enum class DragActivateSource : uint32_t {
+    FOLLOW_PARENT_LAYOUT = 1 << 0,
+    FOLLOW_PARENT_POSITION = 1 << 1,
+    APP_LOCK = 1 << 2,
+    MID_SCENE_TO_PC_MODE = 1 << 3,
+    // Extend as needed, use 1 << N
+};
+
+constexpr uint32_t DRAG_ACTIVATE_ALL_MASK =
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT) |
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_POSITION) |
+    static_cast<uint32_t>(DragActivateSource::APP_LOCK) |
+    static_cast<uint32_t>(DragActivateSource::MID_SCENE_TO_PC_MODE);
+
+/**
  * @struct TitleButtonRect
  *
  * @brief An area of title buttons relative to the upper right corner of the window.
@@ -2012,6 +2041,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -2173,6 +2203,16 @@ enum class ScreenshotEventType : int32_t {
 };
 
 /**
+ * @struct SnapshotAnimationConfig
+ * @brief Configuration for snapshot animation duration and delay.
+ */
+struct SnapshotAnimationConfig {
+    static constexpr int64_t UNSET = -1;  // Use system default
+    int64_t duration = UNSET;  // Animation duration in ms
+    int64_t delay = UNSET;     // Animation delay in ms
+};
+
+/**
  * @enum WaterfallResidentState
  * @brief Represents the resident (persistent) state control of the waterfall layout.
  */
@@ -2185,6 +2225,50 @@ enum class WaterfallResidentState : uint32_t {
 
     /** Disable the resident state and exit the waterfall layout. */
     CLOSE = 2,
+};
+
+/**
+ * Enum for across-display policy used when maximizing in the half-folded state of a foldable 2-in-1 device.
+ */
+enum class AcrossDisplayPresentation : uint32_t {
+    /**
+     * Indicates following the current acrossDisplayPresentation.
+     * If the acrossDisplayPresentation has not been set, the default system policy applies:
+     * In the half-folded state of the device, the window enters single-screen maximization
+     * (i.e., when maximized, the window is displayed only on the upper or lower half of the screen).
+     * In the expanded state, the window is maximized and remains across-display mode
+     * (i.e., spanning across both the upper and lower displays) when folded back to the half-folded state.
+     */
+    FOLLOW_ACROSS_DISPLAY_SETTING = 0,
+
+    /**
+     * In the half-folded state of the device, the window could directly enter the across-display mode.
+     * In the expanded state, the window is maximized and remains across-display mode
+     * when folded back to the half-folded state.
+     */
+    ENTER_ACROSS_DISPLAY_MODE = 1,
+
+    /**
+     * In the half-folded state of the device, the window exits across-display mode and enters
+     * single-screen maximization.
+     * In the expanded state, the window is maximized and will exit across-display mode upon
+     * re-entering half-folded.
+     */
+    EXIT_ACROSS_DISPLAY_MODE = 2,
+
+    /** Internal sentinel indicating the user did not specify this parameter. */
+    UNSPECIFIED = UINT32_MAX,
+};
+
+/**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::UNSPECIFIED;
+    SnapshotAnimationConfig snapshotAnimationConfig;
 };
 
 struct StateChangeOption {

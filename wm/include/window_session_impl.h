@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ using IKBWillHideListener = IKeyboardWillHideListener;
 class WindowSessionImpl : public Window, public virtual SessionStageStub {
 public:
     explicit WindowSessionImpl(const sptr<WindowOption>& option,
-        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr, sptr<IRemoteObject> renderSession = nullptr);
     ~WindowSessionImpl();
 
     static sptr<Window> Find(const std::string& name);
@@ -430,7 +430,7 @@ public:
     WMError GetPiPSettingSwitchStatus(bool& switchStatus) const override;
     WMError SetPipParentWindowId(uint32_t windowId) const override;
     WMError IsPiPActive(bool& status) override;
-
+    WMError UpdateFloatingBallForVisible(bool isVisible) override;
     WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
         const std::shared_ptr<Media::PixelMap>& icon) override;
     void NotifyPrepareCloseFloatingBall() override;
@@ -452,7 +452,7 @@ public:
     void NotifyPrepareCloseFloatView() override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
-    WSError SyncFvLimits(const FloatViewLimits& limits) override;
+    WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
 
@@ -542,7 +542,7 @@ public:
      * Window Layout
      */
     WMError EnableDrag(bool enableDrag) override;
-    WSError SetDragActivated(bool dragActivated) override;
+    WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetEnableDragBySystem(bool enableDrag) override;
     bool IsWindowDraggable();
     CrossAxisState GetCrossAxisState() override;
@@ -568,6 +568,8 @@ public:
         { return WSError::WS_DO_NOTHING; }
     void SetNotifySizeChangeFlag(bool flag);
     Rect GetGlobalScaledRectLocal() const;
+    WSError SetIsStartMoving(bool isStartMoving) override;
+    bool IsStartMoving() override { return isStartMoving_; }
 
     /*
      * Free Multi Window
@@ -694,10 +696,6 @@ public:
      * Window LifeCycle
      */
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
-
-    /*
-     * Window LifeCycle
-     */
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     void NotifyAfterLifecycleForeground();
@@ -705,6 +703,8 @@ public:
     void NotifyAfterLifecycleResumed(bool isGamePreLaunch = false);
     void NotifyAfterLifecyclePaused();
     void SetNavDestinationInfo(const std::string& navDestinationInfo) override;
+    bool IsLoosenedWithPcOrFreeMultiMode() const;
+
     /*
      * Window Lifecycle and mode Record
      */
@@ -714,6 +714,7 @@ public:
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
 
 protected:
+    RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
     WMError Connect();
     bool IsWindowSessionInvalid() const;
     void NotifyWindowAfterUnfocused();
@@ -766,10 +767,14 @@ protected:
         return UnregisterListener(listenerMap[persistentId], listener);
     }
     void ClearListenersById(int32_t persistentId);
+    void ClearParentWindowListeners(int32_t persistentId);
     void NotifyDmsDisplayMove(DisplayId to);
     void DestroyExistUIContent();
     void RecordLifeCycleExceptionEvent(WMError retCode,
             WMErrorReason errCode, const std::string& reason) const;
+
+    template<typename T>
+    EnableIfSame<T, IWindowStatusChangeListener, std::vector<sptr<IWindowStatusChangeListener>>> GetListeners();
 
     /*
      * Free Multi Window
@@ -865,7 +870,6 @@ protected:
     void GetSubWindows(int32_t parentPersistentId, std::vector<sptr<WindowSessionImpl>>& subWindows);
     void RemoveSubWindow(int32_t parentPersistentId);
     bool IsZLevelAboveParentLoosened() const override;
-    bool IsLoosenedWithPcOrFreeMultiMode() const;
 
     sptr<WindowOption> windowOption_;
     sptr<ISession> hostSession_;
@@ -1067,6 +1071,18 @@ protected:
     bool isDecorHiddenByApp_ = false;
     bool isMaximizeInvoked_ = false;
 
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIDirector> rsUIDirector_;
+    std::shared_ptr<RSUIContext> rsUIContext_;
+
+    /**
+     * RS Multi Process
+     */
+    sptr<IRemoteObject> renderSession_;
+    bool needCreateCompleteSurfaceNode_ = false;
+
     /**
      * Game Prelaunch flag
      */
@@ -1120,8 +1136,6 @@ private:
     template<typename T> void ClearUselessListeners(std::map<int32_t, T>& listeners, int32_t persistentId);
     template<typename T> void ClearUselessListeners(std::unordered_map<int32_t, T>& listeners, int32_t persistentId);
     RSSurfaceNode::SharedPtr CreateSurfaceNode(const std::string& name, WindowType type);
-    template<typename T>
-    EnableIfSame<T, IWindowStatusChangeListener, std::vector<sptr<IWindowStatusChangeListener>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IWindowStatusDidChangeListener, std::vector<sptr<IWindowStatusDidChangeListener>>> GetListeners();
     template<typename T>
@@ -1338,7 +1352,7 @@ private:
     std::atomic_bool windowSizeChanged_ = false;
     std::atomic_bool enableFrameLayoutFinishCb_ = false;
     bool hasNotifyPrelaunchStartingWindow_ = false;
-    std::atomic_bool dragActivated_ = true;
+    std::atomic<uint32_t> dragActivatedBitmap_{DRAG_ACTIVATE_ALL_MASK};
     WindowSizeChangeReason lastSizeChangeReason_ = WindowSizeChangeReason::END;
     std::atomic<bool> postTaskDone_ = false;
     Transform layoutTransform_;
@@ -1355,6 +1369,7 @@ private:
     std::atomic<bool> isFirstValidLayoutUpdate_ = true;
     mutable std::mutex globalScaledRectMutex_;
     Rect globalScaledRect_;
+    std::atomic<bool> isStartMoving_ = false;
 
     /*
      * Window Decor
@@ -1421,11 +1436,6 @@ private:
     void NotifyRotationChangeResult(RotationChangeResult rotationChangeResult) override;
     void NotifyRotationChangeResultInner(const RotationChangeInfo& rotationChangeInfo);
     DisplayOrientation windowOrientation_ = DisplayOrientation::UNKNOWN;
-
-    /*
-     * RS Client Multi Instance
-     */
-    std::shared_ptr<RSUIDirector> rsUIDirector_;
 };
 } // namespace Rosen
 } // namespace OHOS

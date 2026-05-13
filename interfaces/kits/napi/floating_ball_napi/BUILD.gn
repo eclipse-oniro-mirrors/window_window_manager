@@ -18,7 +18,8 @@ config("fb_config") {
   visibility = [ ":*" ]
   include_dirs = [
     "../../../../wm/include",
-    "../common"
+    "../common",
+    "../../../../utils/include",
   ]
 }
 
@@ -72,6 +73,10 @@ ohos_shared_library("floatingball_kit") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   version_script = "libfloatingball_kit.map"
 }
@@ -117,4 +122,12 @@ ohos_shared_library("floatingball_napi") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [
+        "api_metrics:histogrammanager",
+        "hilog:libhilog"
+     ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
 }

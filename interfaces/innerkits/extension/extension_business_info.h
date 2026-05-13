@@ -56,6 +56,7 @@ constexpr const char* const EXTENSION_SECURE_LIMIT_CHANGE = "extensionSecureLimi
 constexpr const char* const HOST_STATUS_BAR_CONTENT_COLOR = "hostStatusBarContentColor";
 constexpr const char* const GRAVITY = "gravity";
 constexpr const char* const ISSHOWING = "isShowing";
+constexpr const char* const HOST_WINDOW_STATUS_FIELD = "hostWindowStatus";
 
 enum class Businesscode : uint32_t {
     SYNC_HOST_WINDOW_MODE = 0,  // Synchronize the host's window mode
@@ -73,6 +74,7 @@ enum class Businesscode : uint32_t {
     SYNC_HOST_STATUS_BAR_CONTENT_COLOR,
     NOTIFY_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY,
     RECOVER_EXTENSION,
+    SYNC_HOST_WINDOW_STATUS,
 
     // send to host
     OCCUPY_EVENTS = 1001,

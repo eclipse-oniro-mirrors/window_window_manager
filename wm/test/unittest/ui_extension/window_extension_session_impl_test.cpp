@@ -3881,6 +3881,101 @@ HWTEST_F(WindowExtensionSessionImplTest, GetAvoidAreaByType, TestSize.Level1)
     window->floatNavigationAvoidAreaEnabled_ = false;
     EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
 }
+
+/**
+ * @tc.name: OnHostWindowStatusChange
+ * @tc.desc: OnHostWindowStatusChange Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChange, TestSize.Level1)
+{
+    window_->property_->SetIsAtomicService(true);
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply;
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FULLSCREEN));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want), reply));
+    WindowStatus windowStatus;
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, windowStatus);
+
+    AAFwk::Want want2;
+    want2.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FULLSCREEN));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want2), reply));
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, windowStatus);
+}
+
+/**
+ * @tc.name: GetWindowStatus
+ * @tc.desc: GetWindowStatus Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetWindowStatus, TestSize.Level1)
+{
+    WindowStatus windowStatus;
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_UNDEFINED, windowStatus);
+
+    window_->property_->SetIsAtomicService(true);
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply;
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_MAXIMIZE));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want), reply));
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MAXIMIZE, windowStatus);
+}
+
+/**
+ * @tc.name: OnResyncExtensionConfigWithWindowStatus
+ * @tc.desc: OnResyncExtensionConfig with windowStatus Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnResyncExtensionConfigWithWindowStatus, TestSize.Level3)
+{
+    window_->property_->SetIsAtomicService(true);
+    AAFwk::Want want;
+    AAFwk::WantParams configParam;
+    AAFwk::WantParams wantParam;
+    configParam.SetParam(Extension::CROSS_AXIS_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::WATERFALL_MODE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        AAFwk::Integer::Box(static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FLOATING)));
+    configParam.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::COMPAT_SCALE_X_FIELD, AAFwk::Float::Box(1.0f));
+    configParam.SetParam(Extension::COMPAT_SCALE_Y_FIELD, AAFwk::Float::Box(1.0f));
+    wantParam.SetParam(Extension::UIEXTENSION_CONFIG_FIELD, AAFwk::WantParamWrapper::Box(configParam));
+    want.SetParams(wantParam);
+
+    std::optional<AAFwk::Want> reply;
+    EXPECT_EQ(WMError::WM_OK, window_->OnResyncExtensionConfig(std::move(want), reply));
+}
+
+/**
+ * @tc.name: OnHostWindowStatusChangeWithListener
+ * @tc.desc: OnHostWindowStatusChange with listener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChangeWithListener, TestSize.Level1)
+{
+    window_->property_->SetIsAtomicService(true);
+    sptr<IWindowStatusChangeListener> listener = sptr<IWindowStatusChangeListener>::MakeSptr();
+    EXPECT_EQ(WMError::WM_OK, window_->RegisterWindowStatusChangeListener(listener));
+
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply;
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_MINIMIZE));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want), reply));
+    WindowStatus windowStatus;
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MINIMIZE, windowStatus);
+    EXPECT_EQ(WMError::WM_OK, window_->UnregisterWindowStatusChangeListener(listener));
+}
 }
 } // namespace Rosen
 } // namespace OHOS

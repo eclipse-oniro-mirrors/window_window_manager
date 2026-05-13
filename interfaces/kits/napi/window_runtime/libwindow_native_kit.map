@@ -350,6 +350,7 @@
             OHOS::Rosen::JsWindowRegisterManager::UnregisterListener*;
             OHOS::Rosen::MappingWmErrorCodeSafely*;
             OHOS::Rosen::MaximizePresentationInit*;
+            OHOS::Rosen::AcrossDisplayPresentationInit*;
             OHOS::Rosen::ModalityTypeInit*;
             OHOS::Rosen::NapiGetUndefined*;
             OHOS::Rosen::NapiIsCallable*;
@@ -383,6 +384,7 @@
             OHOS::Rosen::WindowEventTypeInit*;
             OHOS::Rosen::WindowLayoutModeInit*;
             OHOS::Rosen::WindowModeInit*;
+            OHOS::Rosen::SplitRatioPreferenceInit*;
             OHOS::Rosen::WindowOcclusionStateInit*;
             OHOS::Rosen::WindowStageEventTypeInit*;
             OHOS::Rosen::WindowStageLifecycleEventTypeInit*;

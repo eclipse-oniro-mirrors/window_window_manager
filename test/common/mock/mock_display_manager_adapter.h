@@ -47,8 +47,8 @@ public:
         Rotation rotation));
     MOCK_METHOD2(GetAvailableArea, DMError(DisplayId displayId, DMRect& area));
     MOCK_METHOD2(HasImmersiveWindow, DMError(ScreenId screenId, bool& immersive));
-    MOCK_METHOD4(GetDisplayHDRSnapshot, std::vector<std::shared_ptr<Media::PixelMap>>(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen));
+    MOCK_METHOD5(GetDisplayHDRSnapshot, std::vector<std::shared_ptr<Media::PixelMap>>(DisplayId displayId,
+        DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent));
     MOCK_METHOD2(GetDisplayHDRSnapshotWithOption, std::vector<std::shared_ptr<Media::PixelMap>>(
         const CaptureOption& captureOption, DmErrorCode& errorCode));
     MOCK_METHOD1(GetAllDisplayIds, std::vector<DisplayId>(int32_t userId));

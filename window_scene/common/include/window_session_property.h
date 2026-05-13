@@ -308,6 +308,8 @@ public:
     HookWindowInfo GetHookWindowInfo() const;
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    void GetDragDisabledAreas(std::vector<Rect>& areas);
 
     /*
      * Window Lifecycle
@@ -707,9 +709,11 @@ private:
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
     bool isMobileAppInPadLayoutFullScreen_ = false;
-    mutable std::mutex isForceSplitEnabledMutex_;
-    bool isForceSplitEnabled_ = false;
+    std::atomic<bool> isForceSplitEnabled_ = false;
     bool isRotationLock_ = false;
+    
+    mutable std::mutex dragDisabledAreasMutex_;
+    std::vector<Rect> dragDisabledAreas_;
 
     /*
      * Window Focus

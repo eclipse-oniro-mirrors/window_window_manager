@@ -65,7 +65,8 @@ public:
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId,
         DmErrorCode* errorCode = nullptr, bool isUseDma = false, bool isCaptureFullOfScreen = false);
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false);
+        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false,
+        DisplayIntentType displayIntent = DisplayIntentType::CANONICAL);
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect, DmErrorCode* errorCode = nullptr);
     virtual DMError HasImmersiveWindow(ScreenId screenId, bool& immersive);
     virtual DMError HasPrivateWindow(DisplayId displayId, bool& hasPrivateWindow);
@@ -161,6 +162,8 @@ public:
     virtual bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason);
     virtual ScreenPowerState GetScreenPower(ScreenId dmsScreenId);
     virtual DMError SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi);
+    virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi);
     virtual sptr<ScreenGroupInfo> GetScreenGroupInfoById(ScreenId screenId);
     virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, ScreenId& screenGroupId,
@@ -186,7 +189,8 @@ public:
     virtual DMError SetDefaultDensityDpi(ScreenId screenId, float virtualPixelRatio);
     virtual DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height, float virtualPixelRatio);
     virtual DMError GetDensityInCurResolution(ScreenId screenId, float& virtualPixelRatio);
-    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height);
+    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth, uint32_t renderHeight);
     virtual DMError SetScreenRotationLocked(bool isLocked);
     virtual DMError SetScreenRotationLockedFromJs(bool isLocked);
     virtual DMError IsScreenRotationLocked(bool& isLocked);

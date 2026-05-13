@@ -645,6 +645,12 @@ bool DisplayManagerLite::SuspendEnd()
     return SingletonContainer::Get<DisplayManagerAdapterLite>().SuspendEnd();
 }
 
+DMError DisplayManagerLite::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
+{
+    TLOGI(WmsLogTag::DMS, "[UL_POWER] start");
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().SetScreenSwitchState(screenClosedState, isScreenOn);
+}
+
 ScreenId DisplayManagerLite::GetInternalScreenId()
 {
     TLOGD(WmsLogTag::DMS, "[UL_POWER]GetInternalScreenId start");

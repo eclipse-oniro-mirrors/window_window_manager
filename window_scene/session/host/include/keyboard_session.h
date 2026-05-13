@@ -57,8 +57,10 @@ public:
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
 
     void BindKeyboardPanelSession(sptr<SceneSession> panelSession) override;
     sptr<SceneSession> GetKeyboardPanelSession() const override;
@@ -133,6 +135,7 @@ private:
     WMError IsLandscape(uint64_t screenId, bool& isLandscape);
     void PrintRectsInfo(const std::vector<Rect>& rects, const std::string& infoTag);
     CallingWindowInfoData callingWindowInfoData_;
+    std::shared_ptr<RSUIContext> syncTransRSUIContext_ = nullptr;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_KEYBOARD_SESSION_H

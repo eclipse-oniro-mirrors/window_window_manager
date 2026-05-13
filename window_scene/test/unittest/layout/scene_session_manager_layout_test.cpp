@@ -144,6 +144,13 @@ HWTEST_F(SceneSessionManagerLayoutTest, NotifySingleHandInfoChange_TestWindowNam
     ssm_->NotifySingleHandInfoChange(singleHandScreenInfo, originRect, singleHandRect);
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_NE(singleHandScreenInfo.scaleRatio, sceneSession->singleHandTransform_.scaleX);
+
+    sceneSession->sessionInfo_.bundleName_ = "someApp_testWindow";
+    sceneSession->sessionInfo_.abilityName_ = "someApp_testWindow";
+    sceneSession->property_->SetWindowName("someApp_testWindow");
+    ssm_->NotifySingleHandInfoChange(singleHandScreenInfo, originRect, singleHandRect);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(singleHandScreenInfo.scaleRatio, sceneSession->singleHandTransform_.scaleX);
 }
 
 /**
@@ -175,7 +182,7 @@ HWTEST_F(SceneSessionManagerLayoutTest, NotifySingleHandInfoChange_TestDisplayId
     ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
     ssm_->NotifySingleHandInfoChange(singleHandScreenInfo, originRect, singleHandRect);
     usleep(WAIT_SYNC_IN_NS);
-    EXPECT_NE(singleHandScreenInfo.scaleRatio, sceneSession->singleHandTransform_.scaleX);
+    EXPECT_EQ(singleHandScreenInfo.scaleRatio, sceneSession->singleHandTransform_.scaleX);
 
     sceneSession->GetSessionProperty()->SetDisplayId(0);
     ssm_->NotifySingleHandInfoChange(singleHandScreenInfo, originRect, singleHandRect);
@@ -226,6 +233,38 @@ HWTEST_F(SceneSessionManagerLayoutTest, NotifySingleHandInfoChange_TestMode, Tes
     EXPECT_EQ(0, ssm_->singleHandTransform_.posY);
     EXPECT_EQ(0, ssm_->singleHandTransform_.posX);
     ssm_->singleHandTransform_ = singleHandTransform;
+}
+
+/**
+ * @tc.name: NotifySingleHandInfoChange_TestNullSession
+ * @tc.desc: test function : NotifySingleHandInfoChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, NotifySingleHandInfoChange_TestNullSession, TestSize.Level1)
+{
+    SingleHandTransform singleHandTransform;
+    ssm_->singleHandTransform_ = singleHandTransform;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(0, screenSession));
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "NotifySingleHandInfoChange_TestNullSession";
+    sessionInfo.abilityName_ = "NotifySingleHandInfoChange_TestNullSession";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), nullptr });
+
+    SingleHandScreenInfo singleHandScreenInfo;
+    WSRect originRect, singleHandRect;
+    originRect = { 0, 0, 400, 600 };
+    singleHandRect = { 0, 100, 200, 300 };
+    singleHandScreenInfo.scaleRatio = SINGLE_HAND_SCALE;
+    singleHandScreenInfo.mode = SingleHandMode::LEFT;
+    ssm_->NotifySingleHandInfoChange(singleHandScreenInfo, originRect, singleHandRect);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(ssm_->sceneSessionMap_[0], nullptr);
 }
 
 /**
@@ -451,6 +490,23 @@ HWTEST_F(SceneSessionManagerLayoutTest, TestRunAfterNVsyncs, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestRegisterUpdateAppHookDisplayInfoFunc
+ * @tc.desc: Verify RegisterUpdateAppHookDisplayInfoFunc behavior
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, TestRegisterUpdateAppHookDisplayInfoFunc, TestSize.Level1)
+{
+    // Case 1: sceneSession is nullptr
+    ssm_->RegisterUpdateAppHookDisplayInfoFunc(nullptr);
+
+    // Case 2: valid sceneSession
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ssm_->RegisterUpdateAppHookDisplayInfoFunc(session);
+    EXPECT_NE(session->updateAppHookDisplayInfoFunc_, nullptr);
+}
+
+/**
  * @tc.name: GetAllWindowLayoutInfo
  * @tc.desc: test function : GetAllWindowLayoutInfo
  * @tc.type: FUNC
@@ -593,6 +649,107 @@ HWTEST_F(SceneSessionManagerLayoutTest, RecoverCachedSubSession_WithAnchorInfo, 
     subSession->parentSession_ = nullptr;
     ssm_->sceneSessionMap_.erase(200);
     ssm_->createSubSessionFuncMap_.erase(200);
+}
+
+/**
+ * @tc.name: SetParentWindowInner_AnchorRebind01
+ * @tc.desc: SetParentWindowInner with no anchor binding → anchor rebind not triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "AnchorRebind01";
+    sessionInfo.abilityName_ = "AnchorRebind01";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    oldParentSession->property_->SetSubWindowLevel(10);
+    oldParentSession->persistentId_ = 10;
+    newParentSession->property_->SetSubWindowLevel(1);
+    newParentSession->persistentId_ = 1;
+    subSession->persistentId_ = 100;
+
+    // isAnchorEnabled_ defaults to false → anchor rebind should not trigger
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+
+    ssm_->SetParentWindowInner(subSession, oldParentSession, newParentSession);
+
+    // Verify anchor state unchanged
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+}
+
+/**
+ * @tc.name: SetParentWindowInner_AnchorRebind02
+ * @tc.desc: SetParentWindowInner with attach binding → reset and notify triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "AnchorRebind02";
+    sessionInfo.abilityName_ = "AnchorRebind02";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    oldParentSession->property_->SetSubWindowLevel(10);
+    oldParentSession->persistentId_ = 10;
+    newParentSession->property_->SetSubWindowLevel(1);
+    newParentSession->persistentId_ = 1;
+    subSession->persistentId_ = 100;
+
+    // Set attach binding state
+    subSession->windowAnchorInfo_.isAnchorEnabled_ = true;
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    subSession->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    subSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+    subSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+
+    ssm_->SetParentWindowInner(subSession, oldParentSession, newParentSession);
+
+    // Verify anchor state is reset
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchoredByAttach_);
+    EXPECT_TRUE(subSession->GetWindowAnchorInfo().isFromAttachOrDetach_);
+}
+
+/**
+ * @tc.name: SetParentWindowInner_AnchorRebind03
+ * @tc.desc: SetParentWindowInner with relativePosition binding (isAnchoredByAttach_=false) → reset triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "AnchorRebind03";
+    sessionInfo.abilityName_ = "AnchorRebind03";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    oldParentSession->property_->SetSubWindowLevel(10);
+    oldParentSession->persistentId_ = 10;
+    newParentSession->property_->SetSubWindowLevel(1);
+    newParentSession->persistentId_ = 1;
+    subSession->persistentId_ = 100;
+
+    // Set relativePosition binding state
+    subSession->windowAnchorInfo_.isAnchorEnabled_ = true;
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = false;
+
+    ssm_->SetParentWindowInner(subSession, oldParentSession, newParentSession);
+
+    // Verify anchor state is reset
+    EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
+    EXPECT_TRUE(subSession->GetWindowAnchorInfo().isFromAttachOrDetach_);
 }
 
 } // namespace

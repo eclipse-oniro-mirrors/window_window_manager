@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
-#define OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
+#ifndef OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H
+#define OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H
 
 #include <iremote_proxy.h>
 #include <transaction/rs_transaction.h>
@@ -80,6 +80,7 @@ public:
     WSError SyncAllAttachedLimitsToChild(
         const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
         const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
+    WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId) override;
     WSError NotifyDialogStateChange(bool isForeground) override;
     WSError SetPipActionEvent(const std::string& action, int32_t status) override;
     WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -110,7 +111,7 @@ public:
     WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
 
-    WSError SetDragActivated(bool dragActivated) override;
+    WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetSplitButtonVisible(bool isVisible) override;
     WSError SetEnableDragBySystem(bool dragEnable) override;
     WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
@@ -137,7 +138,7 @@ public:
     WSError SendFbActionEvent(const std::string& action) override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
-    WSError SyncFvLimits(const FloatViewLimits& limits) override;
+    WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
     WSError AddSidebarBlur() override;
@@ -149,9 +150,10 @@ public:
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
+    WSError SetIsStartMoving(bool isStartMoving) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;
 };
 } // namespace OHOS::Rosen
-#endif // OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
+#endif // OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H

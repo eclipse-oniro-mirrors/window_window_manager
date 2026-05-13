@@ -53,6 +53,8 @@ public:
         PowerStateChangeReason reason) {}
     virtual void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
     virtual void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) {}
+    virtual void OnScreenOrientationChangeWithOptions(float screenOrientation,
+        const OrientationOptions& options, ScreenId screenId) {}
     virtual void OnScreenRotationLockedChange(bool isLocked, ScreenId screenId) {}
     virtual void OnScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId) {}
     virtual void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId extendScreenId) {}
@@ -86,6 +88,7 @@ struct ScreenSessionConfig {
     std::string innerName = "UNKNOWN";
     ScreenProperty property;
     std::shared_ptr<RSDisplayNode> displayNode;
+    sptr<IRemoteObject> renderSession = nullptr;
 };
 
 enum class ScreenSessionReason : int32_t {
@@ -340,6 +343,11 @@ public:
     void CameraBackSelfieChange(bool isCameraBackSelfie);
     void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode, bool isFromNapi);
     void ScreenOrientationChange(float orientation);
+    void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode,
+        const OrientationOptions& options, bool isFromNapi);
+    void ScreenOrientationChange(float orientation, const OrientationOptions& options);
+    float GetScreenOrientation(Orientation orientation,
+        FoldDisplayMode foldDisplayMode, bool isFromNapi);
     void ScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId);
     DMRect GetAvailableArea();
     DMRect GetExpandAvailableArea();
@@ -427,6 +435,8 @@ public:
     uint32_t GetScreenAreaWidth() const;
     void SetScreenAreaHeight(uint32_t screenAreaHeight);
     uint32_t GetScreenAreaHeight() const;
+    void SetRenderSession(sptr<IRemoteObject> renderSession);
+    sptr<IRemoteObject> GetRenderSession();
 
     void UpdateMirrorWidth(uint32_t mirrorWidth);
     void UpdateMirrorHeight(uint32_t mirrorHeight);
@@ -538,6 +548,7 @@ private:
     int32_t uniqueRotation_ { 0 };
     mutable std::shared_mutex rotationMapMutex_;
     std::map<int32_t, int32_t> uniqueRotationOrientationMap_;
+    sptr<IRemoteObject> renderSession_ = nullptr;
 
     /*
      * RS Client Multi Instance

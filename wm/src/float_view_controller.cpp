@@ -75,6 +75,11 @@ FvWindowState FloatViewController::GetCurState()
     return curState_;
 }
 
+FloatViewTemplate FloatViewController::GetTemplateType() const
+{
+    return static_cast<FloatViewTemplate>(option_.GetTemplate());
+}
+
 void FloatViewController::ChangeState(const FvWindowState &newState)
 {
     std::lock_guard<std::mutex> lock(controllerMutex_);
@@ -191,16 +196,12 @@ WMError FloatViewController::StartFloatViewInner()
         errCode = SetFloatViewContext();
         if (errCode != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Set fv window content failed, err: %{public}u", errCode);
-            (void)window_->Destroy();
-            window_ = nullptr;
             return errCode;
         }
     }
     auto errCode = window_->Show(0, false);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Show fv window failed, err: %{public}u", errCode);
-        (void)window_->Destroy();
-        window_ = nullptr;
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     return WMError::WM_OK;
@@ -279,8 +280,9 @@ WMError FloatViewController::StopFloatViewFromClientSingle()
             TLOGE(WmsLogTag::WMS_SYSTEM, "Repeat stop request, curState: %{public}u", curState_);
             return WMError::WM_ERROR_FV_REPEAT_OPERATION;
         }
-        if (!IsStateWithWindow(curState_)) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "curState cannot stop: %{public}u", curState_);
+        if (curState_ == FvWindowState::FV_STATE_UNDEFINED ||
+            curState_ == FvWindowState::FV_STATE_STARTING) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "float view not started: curState:%{public}u", curState_);
             return WMError::WM_ERROR_FV_INVALID_STATE;
         }
         if (window_ == nullptr) {
@@ -407,6 +409,10 @@ WMError FloatViewController::SetUIContextInner()
         auto contentUrl = option_.GetUIPath();
         ani_object storage = option_.GetAniStorage();
         ani_env* env = GetEnv();
+        if (env == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "get env failed");
+            return WMError::WM_ERROR_INVALID_WINDOW;
+        }
         auto errCode = window_->AniSetUIContent(contentUrl, env, storage, BackupAndRestoreType::NONE);
         if (errCode != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Set fv window content failed, err: %{public}u", errCode);
@@ -427,7 +433,7 @@ ani_env* FloatViewController::GetEnv() const
     ani_env* env_ = nullptr;
     ani_status ret = vm_->GetEnv(ANI_VERSION_1, &env_);
     if (ret != ANI_OK || !env_) {
-        TLOGE(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni Get Env failed ret:%{public}u", ret);
+        TLOGE(WmsLogTag::WMS_PIP, "FloatViewController Get Env failed ret:%{public}u", ret);
     }
     return env_;
 }
@@ -502,9 +508,10 @@ void FloatViewController::SyncWindowInfo(uint32_t windowId, const FloatViewWindo
     OnRectChange(windowInfo.windowRect_, windowInfo.scale_, reason);
 }
 
-void FloatViewController::SyncLimits(uint32_t windowId, const FloatViewLimits& limits)
+void FloatViewController::SyncLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& fvLimits)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncLimits called, id: %{public}s", id_.c_str());
+    FloatViewLimits limits;
     {
         std::lock_guard<std::mutex> lock(controllerMutex_);
         if (window_ == nullptr) {
@@ -516,6 +523,12 @@ void FloatViewController::SyncLimits(uint32_t windowId, const FloatViewLimits& l
             "windowId: %{public}u, infoWindowId: %{public}u", window_->GetWindowId(), windowId);
             return;
         }
+        auto it = fvLimits.find(option_.GetTemplate());
+        if (it == fvLimits.end()) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "template dont have limit.");
+            return;
+        }
+        limits = it->second;
     }
     OnLimitsChange(limits);
 }

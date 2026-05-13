@@ -224,6 +224,20 @@ public:
     }
 
     /**
+     * Notify client to rebind attach relationship after parent window changed.
+     * Called when a sub-window switches parent via SetParentWindow. The server has already
+     * cleaned up the old attach state; the client re-evaluates whether to re-attach to the
+     * new parent (only valid when new parent is a main window) or fully detach.
+     *
+     * @param newParentWindowId persistentId of the new parent window
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId)
+    {
+        return WSError::WS_OK;
+    }
+
+    /**
      * @brief Set pip event to client.
      *
      * Set the pip event to client. Such as close, restore, destroy events.
@@ -329,7 +343,7 @@ public:
 
     virtual WSError SetEnableDragBySystem(bool dragEnable) = 0;
 
-    virtual WSError SetDragActivated(bool dragActivated) = 0;
+    virtual WSError SetDragActivated(uint32_t dragActivatedBitmap) = 0;
 
     virtual WSError SetFullScreenWaterfallMode(bool isWaterfallMode) { return WSError::WS_DO_NOTHING; }
     virtual WSError SetSupportEnterWaterfallMode(bool isSupportEnter) { return WSError::WS_DO_NOTHING; }
@@ -467,7 +481,7 @@ public:
      * @param limits Indicates the float view limits info.
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
-    virtual WSError SyncFvLimits(const FloatViewLimits& limits) = 0;
+    virtual WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) = 0;
 
     /**
      * @brief Hide SubWindow whose zLevel above parent loosened.
@@ -486,6 +500,14 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError ShowSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
+
+    /**
+     * @brief Set isStartMoving flag to client.
+     *
+     * @param isStartMoving Indicates whether start moving window.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError SetIsStartMoving(bool isStartMoving) { return WSError::WS_OK; }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_INTERFACE_H

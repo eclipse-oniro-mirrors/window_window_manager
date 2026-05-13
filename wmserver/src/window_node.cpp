@@ -18,6 +18,7 @@
 #include "rs_adapter.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
+#include "window_inner_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -442,16 +443,8 @@ bool WindowNode::GetTouchable() const
 std::shared_ptr<RSUIContext> WindowNode::GetRSUIContext() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
-    std::shared_ptr<RSUIContext> rsUIContext;
-    for (const auto& node : {surfaceNode_, leashWinSurfaceNode_, startingWinSurfaceNode_, closeWinSurfaceNode_}) {
-        if (node) {
-            rsUIContext = node->GetRSUIContext();
-            if (rsUIContext) {
-                break;
-            }
-        }
-    }
-    TLOGD(WmsLogTag::WMS_SCB, "%{public}s",
+    std::shared_ptr<RSUIContext> rsUIContext = WindowInnerManager::GetInstance().GetRSUIContext();
+    TLOGI(WmsLogTag::WMS_SCB, "%{public}s",
           RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
     return rsUIContext;
 }

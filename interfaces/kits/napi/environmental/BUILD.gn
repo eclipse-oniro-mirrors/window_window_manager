@@ -16,33 +16,41 @@ import("//build/templates/abc/ohos_abc.gni")
 name_mapping = [
   {
     js_file = "$target_out_dir/engine/WindowSizeEnv.js"
+    ts_file = "src/WindowSizeEnv.ts"
     abc_name = "windowsizeenv"
   },
   {
     js_file = "$target_out_dir/engine/WindowAvoidAreaEnv.js"
+    ts_file = "src/WindowAvoidAreaEnv.ts"
     abc_name = "windowavoidareaenv"
   },
   {
     js_file = "$target_out_dir/engine/WindowFocusEnv.js"
+    ts_file = "src/WindowFocusEnv.ts"
     abc_name = "windowfocusenv"
   },
   {
     js_file = "$target_out_dir/engine/SystemDensityEnv.js"
+    ts_file = "src/SystemDensityEnv.ts"
     abc_name = "systemdensityenv"
   },
   {
     js_file = "$target_out_dir/engine/DisplayIdEnv.js"
+    ts_file = "src/DisplayIdEnv.ts"
     abc_name = "displayidenv"
   }
 ]
 
+ts_inputs = [ "src/common.d.ts" ]
 js_outputs = []
 foreach(mapping, name_mapping) {
   js_outputs += [ mapping.js_file ]
+  ts_inputs += [ mapping.ts_file ]
 }
 
 action("run_window_env_build") {
   script = "build.py"
+  inputs = ts_inputs
   outputs = js_outputs
   args = [
     rebase_path("//foundation/window/window_manager/interfaces/kits/napi/environmental"),

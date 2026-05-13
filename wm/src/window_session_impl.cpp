@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -331,11 +331,13 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
     } while (false)
 
 WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
-    const std::shared_ptr<RSUIContext>& rsUIContext)
+    const std::shared_ptr<RSUIContext>& rsUIContext, sptr<IRemoteObject> renderSession)
 {
     WLOGFD("[WMSCom] Constructor");
     property_ = sptr<WindowSessionProperty>::MakeSptr();
     windowOption_ = option;
+    rsUIContext_ = rsUIContext;
+    renderSession_ = renderSession;
     handler_ = std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::GetMainEventRunner());
 
     WindowType optionWindowType = option->GetWindowType();
@@ -347,11 +349,20 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
     isIgnoreSafeArea_ = WindowHelper::IsSubWindow(optionWindowType);
     followCreatorLifecycle_ = option->IsFollowCreatorLifecycle();
 
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, true, true, rsUIContext);
     if (WindowHelper::IsSubWindow(GetType())) {
         property_->SetDecorEnable(option->GetSubWindowDecorEnable());
     }
-    surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+    TLOGD(WmsLogTag::WMS_LIFE, "renderSession is %{public}p", renderSession.GetRefPtr());
+    if (IsSceneBoardEnabled()) {
+        if (renderSession) {
+            RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext);
+        }
+        surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+    } else {
+        needCreateCompleteSurfaceNode_ = true;
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext);
+        surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+    }
     if (surfaceNode_ != nullptr) {
         vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
     }
@@ -514,10 +525,8 @@ void WindowSessionImpl::SetSubWindowZLevelToProperty()
     }
 }
 
-RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string& name, WindowType type)
+RSSurfaceNodeType WindowSessionImpl::GetRSSurfaceNodeType(WindowType type)
 {
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    rsSurfaceNodeConfig.SurfaceNodeName = name;
     RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
     switch (type) {
         case WindowType::WINDOW_TYPE_BOOT_ANIMATION:
@@ -545,11 +554,22 @@ RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string&
             rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
             break;
     }
-    auto surfaceNode = RSSurfaceNode::Create(
-        rsSurfaceNodeConfig, rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext());
-    RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
-    TLOGD(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
-          RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), name.c_str());
+    return rsSurfaceNodeType;
+}
+
+RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string& name, WindowType type)
+{
+    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
+    rsSurfaceNodeConfig.SurfaceNodeName = name;
+    RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(type);
+    auto surfaceNode = (renderSession_ || needCreateCompleteSurfaceNode_) ? RSSurfaceNode::Create(rsSurfaceNodeConfig,
+        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext())
+        : RSSurfaceNode::CreateSurfaceNode(rsSurfaceNodeConfig, true);
+    if (renderSession_ || needCreateCompleteSurfaceNode_) {
+        RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
+    }
+    TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
+        RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), name.c_str());
     return surfaceNode;
 }
 
@@ -1231,16 +1251,26 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
     if (preRect.width_ != wmRect.width_ || preRect.height_ != wmRect.height_) {
         windowSizeChanged_ = true;
     }
+
+    // Rect anomaly detection
+    if (wmRect.width_ == 0 || wmRect.height_ == 0) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowRectUpdate:RectCheck] ZeroSize id:%{public}d, rect=%{public}s, reason:%{public}u",
+            GetPersistentId(), wmRect.ToString().c_str(), static_cast<uint32_t>(wmReason));
+    }
+
     property_->SetWindowRect(wmRect);
     property_->SetRequestRect(wmRect);
 
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
-        "id:%{public}d name:%{public}s rect:%{public}s->%{public}s reason:%{public}u displayId:%{public}"
-        PRIu64, GetPersistentId(), GetWindowName().c_str(), preRect.ToString().c_str(), rect.ToString().c_str(),
+        "[WindowRectUpdate:ClientRecv] UpdateRect id:%{public}d name:%{public}s, preRect=%{public}s, "
+        "newRect=%{public}s, reason:%{public}u displayId:%{public}" PRIu64,
+        GetPersistentId(), GetWindowName().c_str(), preRect.ToString().c_str(), wmRect.ToString().c_str(),
         wmReason, property_->GetDisplayId());
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "WindowSessionImpl::UpdateRect id: %d [%d, %d, %u, %u] reason: %u hasRSTransaction: %u", GetPersistentId(),
-        wmRect.posX_, wmRect.posY_, wmRect.width_, wmRect.height_, wmReason, config.rsTransaction_ != nullptr);
+        "WMS::WindowRectUpdate::ClientRecv::UpdateRect id=%d [%d,%d,%u,%u] reason=%u hasRSTransaction=%u",
+        GetPersistentId(), wmRect.posX_, wmRect.posY_, wmRect.width_, wmRect.height_,
+        wmReason, config.rsTransaction_ != nullptr);
     if (handler_ != nullptr && (wmReason == WindowSizeChangeReason::ROTATION ||
         wmReason == WindowSizeChangeReason::SNAPSHOT_ROTATION)) {
         postTaskDone_ = false;
@@ -1478,6 +1508,12 @@ void WindowSessionImpl::UpdateRectForOtherReasonTask(const Rect& wmRect, const R
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     bool exceptedTrue = true;
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowRectUpdate:ClientRecv] UpdateRectForOtherReasonTask id:%{public}d, "
+        "rectChanged:%{public}d reasonChanged:%{public}d postTaskDone:%{public}d "
+        "notifyFlag:%{public}d compatibleMode:%{public}d",
+        GetPersistentId(), wmRect != preRect, wmReason != lastSizeChangeReason_, postTaskDone_.load(),
+        notifySizeChangeFlag_.load(), notifySizeChangeInCompatibleMode_.load());
     if ((wmRect != preRect) || (wmReason != lastSizeChangeReason_) || !postTaskDone_ ||
         notifySizeChangeFlag_ || notifySizeChangeInCompatibleMode_.compare_exchange_strong(exceptedTrue, false)) {
         NotifySizeChange(wmRect, wmReason);
@@ -1517,6 +1553,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
         bool ifNeedCommitRsTransaction = window->CheckIfNeedCommitRsTransaction(wmReason);
         if (rsTransaction && ifNeedCommitRsTransaction) {
             RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
+            RSAdapterUtil::SetRSTransactionHandler(rsTransaction, window->GetRSUIContext());
             rsTransaction->Begin();
         }
         if (wmReason == WindowSizeChangeReason::DRAG) {
@@ -2010,6 +2047,13 @@ Rect WindowSessionImpl::GetGlobalScaledRectLocal() const
     return globalScaledRect_;
 }
 
+WSError WindowSessionImpl::SetIsStartMoving(bool isStartMoving)
+{
+    isStartMoving_ = isStartMoving;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, isStartMoving: %{public}d", GetPersistentId(), isStartMoving);
+    return WSError::WS_OK;
+}
+
 WMError WindowSessionImpl::GetVirtualPixelRatio(float& vpr)
 {
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
@@ -2416,6 +2460,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
                 uiContent->SetIntentParam(intentParam_, std::move(loadPageCallback_), isIntentColdStart_);
                 intentParam_ = "";
             }
+            // adapter navDestinationInfo_
             if (!navDestinationInfo_.empty()) {
                 uiContent->RestoreNavDestinationInfo(navDestinationInfo_, true);
             }
@@ -4056,8 +4101,22 @@ std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
     if (IsWindowSessionInvalid()) {
         return nullptr;
     }
+    if (surfaceNode_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        return nullptr;
+    }
+    auto rsUICtx = surfaceNode_->GetRSUIContext();
+    if (rsUICtx == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        return nullptr;
+    }
+    auto rsInterface = rsUICtx->GetRSRenderInterface();
+    if (rsInterface == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        return nullptr;
+    }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode_, callback);
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
     if (!isSucceeded) {
         WLOGFE("Failed to TakeSurfaceCapture!");
         return nullptr;
@@ -4081,8 +4140,22 @@ WMError WindowSessionImpl::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap)
             GetPersistentId(), state_);
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    if (surfaceNode_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    auto rsUICtx = surfaceNode_->GetRSUIContext();
+    if (rsUICtx == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    auto rsInterface = rsUICtx->GetRSRenderInterface();
+    if (rsInterface == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode_, callback);
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
     if (!isSucceeded) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to TakeSurfaceCapture", GetPersistentId());
         return WMError::WM_ERROR_INVALID_OPERATION;
@@ -4102,8 +4175,22 @@ WMError WindowSessionImpl::SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    if (surfaceNode_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    auto rsUICtx = surfaceNode_->GetRSUIContext();
+    if (rsUICtx == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    auto rsInterface = rsUICtx->GetRSRenderInterface();
+    if (rsInterface == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = RSInterfaces::GetInstance().TakeSelfSurfaceCapture(surfaceNode_, callback);
+    auto isSucceeded = rsInterface->TakeSelfSurfaceCapture(surfaceNode_, callback);
     if (!isSucceeded) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowId:%{public}u, Failed to TakeSelfSurfaceCapture!", GetWindowId());
         return WMError::WM_ERROR_INVALID_OPERATION;
@@ -4134,6 +4221,7 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
     }
     uiContent->SetContainerModalTitleVisible(isVisible, true);
     isDecorHiddenByApp_ = !isVisible;
+    UpdateDecorEnable(true);
     handler_->PostTask([weakWindow = wptr(this), isVisible, where = __func__] {
         auto window = weakWindow.promote();
         if (window == nullptr) {
@@ -5444,6 +5532,18 @@ void WindowSessionImpl::ClearListenersById(int32_t persistentId)
     }
     ClearSwitchFreeMultiWindowListenersById(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Clear success, id: %{public}d.", GetPersistentId());
+}
+
+void WindowSessionImpl::ClearParentWindowListeners(int32_t persistentId)
+{
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(parentWindowSizeChangeListenerMutex_);
+        ClearUselessListeners(parentWindowSizeChangeListeners_, persistentId);
+    }
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(parentWindowStatusChangeListenerMutex_);
+        ClearUselessListeners(parentWindowStatusChangeListeners_, persistentId);
+    }
 }
 
 void WindowSessionImpl::ClearSwitchFreeMultiWindowListenersById(int32_t persistentId)
@@ -6821,11 +6921,10 @@ WSError WindowSessionImpl::SyncFvWindowInfo(const FloatViewWindowInfo& windowInf
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SyncFvLimits(const FloatViewLimits& limits)
+WSError WindowSessionImpl::SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits)
 {
     auto windowId = GetWindowId();
-    TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvLimits, windowId: %{public}u, limits %{public}s", windowId,
-        limits.ToString().c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvLimits, windowId: %{public}u", windowId);
     auto task = [limits, windowId]() {
         FloatViewManager::SyncFvLimits(windowId, limits);
     };
@@ -8172,6 +8271,9 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         }
         if (rsTransaction) {
             RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
+            if(auto rsUIContext = window->GetRSUIContext()){
+                rsTransaction->SetTransactionHandler(rsUIContext->GetRSTransaction());
+            }
             rsTransaction->Begin();
         }
         window->NotifyOccupiedAreaChangeInfoInner(info);
@@ -8337,7 +8439,8 @@ void WindowSessionImpl::NotifyKeyboardAnimationWillBegin(const KeyboardAnimation
         }
 
         if (rsTransaction != nullptr) {
-            RSTransaction::FlushImplicitTransaction();
+            RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
+            RSAdapterUtil::SetRSTransactionHandler(rsTransaction, window->GetRSUIContext());
             rsTransaction->Begin();
         }
         if (keyboardAnimationInfo.isShow) {
@@ -8454,6 +8557,21 @@ void WindowSessionImpl::UpdatePiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
         hostSession->UpdatePiPTemplateInfo(pipTemplateInfo);
     }
 }
+WMError WindowSessionImpl::UpdateFloatingBallForVisible(bool isVisible)
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "session is invalid");
+        return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
+    }
+    FloatingBallTemplateInfo fbTemplateInfo = GetProperty()->GetFbTemplateInfo();
+    fbTemplateInfo.isVisibleInApp_ = isVisible;
+    fbTemplateInfo.updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::VISIBLE_IN_APP);
+    GetProperty()->SetFbTemplateInfo(fbTemplateInfo);
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_FB_STATE_ABNORMALLY);
+    return hostSession->UpdateFloatingBall(fbTemplateInfo);
+}
+
 
 WMError WindowSessionImpl::UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
     const std::shared_ptr<Media::PixelMap>& icon)
@@ -8462,7 +8580,6 @@ WMError WindowSessionImpl::UpdateFloatingBall(const FloatingBallTemplateBaseInfo
         TLOGE(WmsLogTag::WMS_SYSTEM, "session is invalid");
         return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
     }
-
     if (GetProperty()->GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
         return WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
@@ -8475,6 +8592,7 @@ WMError WindowSessionImpl::UpdateFloatingBall(const FloatingBallTemplateBaseInfo
     }
     FloatingBallTemplateInfo fbTemplateInfo = FloatingBallTemplateInfo(fbTemplateBaseInfo, icon);
     GetProperty()->SetFbTemplateInfo(fbTemplateInfo);
+    fbTemplateInfo.updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::DEFAULT);
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_FB_STATE_ABNORMALLY);
     return hostSession->UpdateFloatingBall(fbTemplateInfo);
@@ -8643,6 +8761,12 @@ void WindowSessionImpl::NotifyWindowStatusChange(WindowMode mode)
         if (ret) {
             TLOGW(WmsLogTag::WMS_FOCUS, "write event fail, WINDOW_STATUS_CHANGE, ret=%{public}d", ret);
         }
+    }
+    if (auto uiContent = GetUIContentSharedPtr()) {
+        AAFwk::Want want;
+        want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD, static_cast<int32_t>(windowStatus));
+        uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::SYNC_HOST_WINDOW_STATUS),
+            want, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
     }
 }
 
@@ -9150,18 +9274,19 @@ WSError WindowSessionImpl::SetEnableDragBySystem(bool enableDrag)
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SetDragActivated(bool dragActivated)
+WSError WindowSessionImpl::SetDragActivated(uint32_t dragActivatedBitmap)
 {
-    dragActivated_ = dragActivated;
+    dragActivatedBitmap_.store(dragActivatedBitmap);
     return WSError::WS_OK;
 }
 
 bool WindowSessionImpl::IsWindowDraggable()
 {
     bool isDragEnabled = GetProperty()->GetDragEnabled();
+    bool isDragActivated = (dragActivatedBitmap_.load() & DRAG_ACTIVATE_ALL_MASK) == DRAG_ACTIVATE_ALL_MASK;
     TLOGD(WmsLogTag::WMS_LAYOUT, "PersistentId: %{public}d, dragEnabled: %{public}d, dragActivate: %{public}d",
-        GetPersistentId(), isDragEnabled, dragActivated_.load());
-    return isDragEnabled && dragActivated_.load();
+        GetPersistentId(), isDragEnabled, isDragActivated);
+    return isDragEnabled && isDragActivated;
 }
 
 void WindowSessionImpl::SetTargetAPIVersion(uint32_t targetAPIVersion)
@@ -9311,6 +9436,9 @@ void WindowSessionImpl::GetExtensionConfig(AAFwk::WantParams& want) const
     bool gestureBackEnable = true;
     GetGestureBackEnabled(gestureBackEnable);
     want.SetParam(Extension::GESTURE_BACK_ENABLED, AAFwk::Integer::Box(static_cast<int32_t>(gestureBackEnable)));
+    auto windowStatus = lastWindowStatus_.load();
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        AAFwk::Integer::Box(static_cast<int32_t>(windowStatus)));
 }
 
 WMError WindowSessionImpl::OnExtensionMessage(uint32_t code, int32_t persistentId, const AAFwk::Want& data)

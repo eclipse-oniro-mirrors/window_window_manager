@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1057,9 +1057,12 @@ public:
      * @param identityToken identity token of sceneSession
      * @return sptr<Window> If create window success, return window instance; Otherwise, return nullptr
      */
-    static sptr<Window> Create(sptr<WindowOption>& option, const std::shared_ptr<AbilityRuntime::Context>& context,
-        const sptr<IRemoteObject>& iSession, WMError& errCode = DefaultCreateErrCode,
-        const std::string& identityToken = "", bool isModuleAbilityHookEnd = false);
+    static sptr<Window> Create(sptr<WindowOption>& option,
+                               const std::shared_ptr<AbilityRuntime::Context>& context,
+                               const sptr<IRemoteObject>& iSession, WMError& errCode = DefaultCreateErrCode,
+                               const std::string& identityToken = "", 
+                               bool isModuleAbilityHookEnd = false,
+                               sptr<IRemoteObject> renderSession = nullptr);
 
     /**
      * @brief get and verify windowType, include sub_window/system_window
@@ -2856,6 +2859,20 @@ public:
     }
 
     /**
+     * @brief Maximize window with presentation, across-display presentation, and snapshot animation config.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param acrossDisplayPresentation The across-display presentation to apply when maximizing.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError MaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation acrossDisplayPresentation, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief maximize the main window according to MaximizeMode. called by ACE when maximize button is clicked.
      *
      * @return WMError
@@ -3971,6 +3988,18 @@ public:
     virtual WMError Recover(uint32_t reason) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Recovery the main window with snapshot animation config.
+     *
+     * @param reason Reason of update.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Set to automatically save the window rect.
      *
      * @param enabled Enable the window rect auto-save if true, otherwise means the opposite.
@@ -4106,6 +4135,11 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -5131,6 +5165,16 @@ public:
         return WMError::WM_OK;
     }
  
+    /**
+     * @brief update the floating ball visibility.
+     *
+     * @param isVisible the visibility status of the floating-ball.
+     */
+    virtual WMError UpdateFloatingBallForVisible(bool isVisible)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief get windowId of floating-ball
      *

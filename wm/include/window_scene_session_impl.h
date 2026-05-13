@@ -33,7 +33,7 @@ class WindowSceneSessionImpl : public WindowSessionImpl {
 public:
     using WindowSessionImpl::GetVirtualPixelRatio;
     explicit WindowSceneSessionImpl(const sptr<WindowOption>& option,
-        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr, sptr<IRemoteObject> renderSession = nullptr);
     ~WindowSceneSessionImpl();
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
@@ -52,7 +52,6 @@ public:
     void SetDefaultProperty();
     WMError Minimize() override;
     void StartMove() override;
-    bool IsStartMoving() override;
     WindowMode GetWindowMode() const override;
     WMError SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName) override;
     class WindowScreenListener : public ScreenManager::IScreenListener {
@@ -90,6 +89,7 @@ public:
     WSError SyncAllAttachedLimitsToChild(
         const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
         const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
+    WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId) override;
 
     /*
      * Window Hierarchy
@@ -211,6 +211,7 @@ public:
      * PC Window
      */
     WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask) override;
+    WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight) override;
     WMError ClearWindowMask() override;
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
@@ -233,8 +234,11 @@ public:
     WMError Maximize() override;
     WMError Maximize(MaximizePresentation presentation) override;
     WMError Maximize(MaximizePresentation presentation, WaterfallResidentState state) override;
+    WMError MaximizeWithOptions(MaximizePresentation presentation, AcrossDisplayPresentation state,
+        const SnapshotAnimationConfig& snapshotAnimationConfig) override;
     WMError Recover() override;
     WMError Recover(uint32_t reason) override;
+    WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig) override;
     WSError UpdateMaximizeMode(MaximizeMode mode) override;
     WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
         bool grayOutMaximizeButton = false) override;
@@ -400,6 +404,7 @@ public:
 
 protected:
     WMError CreateAndConnectSpecificSession();
+    void PostInitSurfaceNode(sptr<IRemoteObject> renderSession);
     WMError CreateSystemWindow(WindowType type);
     sptr<WindowSessionImpl> FindParentSessionByParentId(uint32_t parentId);
     bool IsSessionMainWindow(uint32_t parentId);
@@ -527,6 +532,7 @@ private:
     WindowLimits ConvertBaseLimitsToTargetUnit(const WindowLimits& srcLimits, PixelUnit targetPixelUnit);
     void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    WMError ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config);
     void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable = false);
@@ -546,6 +552,9 @@ private:
     bool HandlePointDownEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const MMI::PointerEvent::PointerItem& pointerItem);
     std::unique_ptr<Media::PixelMap> HandleWindowMask(const std::vector<std::vector<uint32_t>>& windowMask);
+    std::shared_ptr<Media::PixelMap> HandleWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth,
+        uint32_t maskHeight);
+    WMError ApplyWindowMask(const std::shared_ptr<Media::PixelMap>& mask);
     void NotifyDisplayInfoChange(const sptr<DisplayInfo>& info = nullptr);
     void UpdateDensityInner(const sptr<DisplayInfo>& info = nullptr);
     sptr<DisplayInfo> GetDisplayInfo() const;
@@ -596,8 +605,13 @@ private:
     /*
      * PC Window Layout
      */
-    bool CheckWaterfallResidentState(WaterfallResidentState state) const;
+    bool CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const;
     void ApplyMaximizePresentation(MaximizePresentation presentation);
+    WMError CheckMaximizePreConditions(AcrossDisplayPresentation state);
+    WMError ExecuteMaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation state, const SnapshotAnimationConfig& snapshotAnimationConfig);
+    WMError CheckRecoverPreConditions();
+    WMError ExecuteRecover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig);
     std::shared_ptr<MMI::PointerEvent> lastPointerEvent_ = nullptr;
     bool IsFullScreenSizeWindow(uint32_t width, uint32_t height);
     std::atomic<bool> isResizedByLimit_ = false;

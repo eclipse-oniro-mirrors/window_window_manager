@@ -76,6 +76,7 @@ private:
     int HandleUpdateAttachedWindowLimits(MessageParcel& data, MessageParcel& reply);
     int HandleRemoveAttachedWindowLimits(MessageParcel& data, MessageParcel& reply);
     int HandleSyncAllAttachedLimitsToChild(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyRebindAttachAfterParentChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyDialogStateChange(MessageParcel& data, MessageParcel& reply);
     int HandleSetPipActionEvent(MessageParcel& data, MessageParcel& reply);
     int HandleSetPiPControlEvent(MessageParcel& data, MessageParcel& reply);
@@ -134,6 +135,7 @@ private:
     int HandleSyncFvLimits(MessageParcel& data, MessageParcel& reply);
     int HandleHideSubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
     int HandleShowSubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
+    int HandleSetIsStartMoving(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_STUB_H

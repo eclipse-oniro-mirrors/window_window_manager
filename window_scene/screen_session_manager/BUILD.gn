@@ -142,6 +142,7 @@ ohos_shared_library("screen_session_manager") {
     "input:libmmi-napi",
     "ipc:ipc_core",
     "libxml2:libxml2",
+    "json:nlohmann_json_static",
     "os_account:os_account_innerkits",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",

@@ -320,6 +320,7 @@ ohos_shared_library("scene_session") {
   external_deps = [
     "ability_base:base",
     "ability_base:configuration",
+    "ability_base:session_info",
     "ability_base:want",
     "ability_runtime:ability_manager",
     "ability_runtime:ability_start_setting",
@@ -344,6 +345,7 @@ ohos_shared_library("scene_session") {
     "image_framework:image_native",
     "init:libbegetutil",
     "input:libmmi-client",
+    "input:libmmi-napi",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "zlib:shared_libz",
@@ -352,10 +354,7 @@ ohos_shared_library("scene_session") {
   if (!(host_os == "linux" && host_cpu == "arm64")) {
     external_deps += [ "preferences:native_preferences" ]
   }
-  public_external_deps = [
-    "ability_base:session_info",
-    "input:libmmi-napi",
-  ]
+  
   defines = []
 
   if (defined(global_parts_info) &&

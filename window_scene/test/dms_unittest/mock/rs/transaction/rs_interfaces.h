@@ -55,7 +55,7 @@ struct EventInfo {
     std::string description;  // the extend description for eventName，e.g."SCENE_APP_START_ANIMATION"
 };
 
-using ScreenChangeCallback = std::function<void(ScreenId, ScreenEvent, ScreenChangeReason)>;
+using ScreenChangeCallback = std::function<void(ScreenId, ScreenEvent, ScreenChangeReason, sptr<IRemoteObject>)>;
 using ScreenSwitchingNotifyCallback = std::function<void(bool)>;
 using BrightnessInfoChangeCallback = std::function<void(ScreenId, BrightnessInfo)>;
 using HgmRefreshRateUpdateCallback = std::function<void(int32_t)>;

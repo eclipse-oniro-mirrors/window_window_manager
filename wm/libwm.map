@@ -66,6 +66,7 @@
             OHOS::Rosen::FloatViewController::SetWindowSize*;
             OHOS::Rosen::FloatViewController::RestoreMainWindow*;
             OHOS::Rosen::FloatViewController::GetController*;
+            OHOS::Rosen::FloatViewController::GetTemplateType*;
             OHOS::Rosen::FloatViewManager::isSupportFloatView*;
             OHOS::Rosen::FloatWindowManager::Bind*;
             OHOS::Rosen::FloatWindowManager::UnBind*;

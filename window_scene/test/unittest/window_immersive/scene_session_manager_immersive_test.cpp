@@ -632,6 +632,39 @@ HWTEST_F(SceneSessionManagerImmersiveTest, CheckAvoidAreaForAINavigationBar, Tes
     avoidArea.bottomRect_ = { 0, 1, 1, 1 };
     EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
 }
+
+/*
+ * @tc.name: GetWindowStateSnapshot
+ * @tc.desc: GetWindowStateSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, GetWindowStateSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    int32_t persistentId = 1;
+    std::string winStateSnapshotJsonStr;
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr), WMError::WM_OK);
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = persistentId;
+    sessionInfo.screenId_ = 0;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
+    std::string winStateSnapshotJsonStr1;
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr1), WMError::WM_OK);
+    sessionInfo.persistentId_ = 100;
+    sptr<SceneSession> statusBarSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> navigationBarSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    statusBarSession->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
+    navigationBarSession->property_->SetWindowType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
+    ssm_->sceneSessionMap_.insert(std::make_pair(100, statusBarSession));
+    ssm_->sceneSessionMap_.insert(std::make_pair(101, navigationBarSession));
+    std::string winStateSnapshotJsonStr2;
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr2), WMError::WM_OK);
+    winStateSnapshotJsonStr = "{";
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    ssm_->sceneSessionMap_.clear();
+}
 }
 }
 }

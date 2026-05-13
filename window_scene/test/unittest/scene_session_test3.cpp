@@ -31,6 +31,7 @@
 #undef protected
 #include "session/host/include/sub_session.h"
 #include "session/host/include/system_session.h"
+#include "transaction/rs_transaction.h"
 #include "ui/rs_surface_node.h"
 #include "window_helper.h"
 #include "wm_common.h"
@@ -89,7 +90,7 @@ HWTEST_F(SceneSessionTest3, NotifyClientToUpdateRectTask, TestSize.Level1)
 
     sceneSession->SetSessionProperty(property);
     sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
-    auto result = sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", nullptr);
+    auto result = sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, nullptr);
     ASSERT_EQ(result, WSError::WS_OK);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
@@ -98,24 +99,24 @@ HWTEST_F(SceneSessionTest3, NotifyClientToUpdateRectTask, TestSize.Level1)
     sceneSession->state_ = SessionState::STATE_FOREGROUND;
     sceneSession->isScbCoreEnabled_ = false;
     sceneSession->SetSessionRect({ 0, 0, 800, 800 });
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", nullptr));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, nullptr));
 
     property->SetWindowType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
     sceneSession->SetSessionProperty(property);
     sceneSession->isKeyboardPanelEnabled_ = true;
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", nullptr));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, nullptr));
 
-    std::shared_ptr<RSTransaction> rs;
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    std::shared_ptr<RSTransaction> rs = std::make_shared<RSTransaction>();
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 
     sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 
     sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 
     sceneSession->UpdateSizeChangeReason(SizeChangeReason::ROTATION);
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 }
 
 /**

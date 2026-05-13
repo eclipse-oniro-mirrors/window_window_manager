@@ -72,6 +72,7 @@ public:
     virtual bool WakeUpEnd();
     virtual bool SuspendBegin(PowerStateChangeReason reason);
     virtual bool SuspendEnd();
+    virtual DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
     virtual ScreenId GetInternalScreenId();
     virtual bool SetScreenPowerById(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason);
     virtual bool SetDisplayState(DisplayState state);

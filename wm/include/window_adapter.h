@@ -44,7 +44,7 @@ public:
 
     using SessionRecoverCallbackFunc = std::function<WMError()>;
     using UIEffectRecoverCallbackFunc = std::function<WMError()>;
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     using OutlineRecoverCallbackFunc = std::function<WMError()>;
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& windowProperty,
         std::shared_ptr<RSSurfaceNode> surfaceNode, uint32_t& windowId, const sptr<IRemoteObject>& token);
@@ -133,7 +133,7 @@ public:
     virtual void CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject> token = nullptr);
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, sptr<IRemoteObject> token = nullptr);
     virtual WMError DestroyAndDisconnectSpecificSession(const int32_t persistentId);
     virtual WMError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
         const sptr<IRemoteObject>& callback);
@@ -167,6 +167,7 @@ public:
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType);
     virtual WMError SkipSnapshotForAppProcess(int32_t pid, bool skip);
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled);
+    virtual WMError RecoverProcessWatermark();
     virtual WMError GetWindowIdsByCoordinate(DisplayId displayId, int32_t windowNumber,
         int32_t x, int32_t y, std::vector<int32_t>& windowIds);
     virtual WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
@@ -263,7 +264,7 @@ public:
     /**
      * Float View
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits &limits);
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits);
 
 private:
     friend class sptr<WindowAdapter>;
@@ -291,6 +292,9 @@ private:
     void RecoverSpecificZIndexSetByApp();
     WMError RecoverWindowPropertyChangeFlag();
     void RegisterRecoverCallback();
+    mutable std::mutex processWatermarkMutex_;
+    int32_t processWatermarkPid_ = 0;
+    std::string processWatermarkName_;
     std::string appWatermarkName_;
     std::string screenWatermarkBundleName_;
     uint32_t screenWatermarkPriority_ = 0;

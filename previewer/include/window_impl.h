@@ -263,6 +263,12 @@ public:
     WMError SetFloatNavigationAvoidAreaEnabled(bool enable) override;
     WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const override;
 
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIContext> GetRSUIContext() const override;
+    std::shared_ptr<RSUIDirector> GetRSUIDirector() const override { return rsUIDirector_; }
+
 private:
     static sptr<Window> FindWindowById(uint32_t windowId);
     template<typename T1, typename T2, typename Ret>
@@ -349,6 +355,11 @@ private:
         { AvoidAreaType::TYPE_NAVIGATION_INDICATOR, new AvoidArea() },
     };
     std::atomic<bool> floatNavigationAvoidAreaEnabled_ = false;
+
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIDirector> rsUIDirector_;
 };
 } // namespace Rosen
 } // namespace OHOS

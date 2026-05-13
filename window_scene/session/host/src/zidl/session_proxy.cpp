@@ -617,6 +617,14 @@ WSError SessionProxy::PendingSessionActivation(sptr<AAFwk::SessionInfo> abilityS
         TLOGE(WmsLogTag::WMS_LIFE, "Write hostBundleName failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
+    if (!data.WriteBool(abilitySessionInfo->nativeHideWindow)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write nativeHideWindow failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(abilitySessionInfo->splitRatioPreference)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write splitRatioPreference failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         WLOGFE("remote is null");
@@ -912,6 +920,16 @@ bool WriteEventParam(MessageParcel& data, SessionEvent event, const SessionEvent
         }
         if (!data.WriteUint32(param.titleButtonEventType_)) {
             TLOGE(WmsLogTag::WMS_EVENT, "Failed to write titleButtonEventType_");
+            return false;
+        }
+    }
+    if (event == SessionEvent::EVENT_MAXIMIZE || event == SessionEvent::EVENT_RECOVER) {
+        if (!data.WriteInt64(param.snapshotAnimationConfig_.duration)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write snapshotAnimationConfig duration");
+            return false;
+        }
+        if (!data.WriteInt64(param.snapshotAnimationConfig_.delay)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write snapshotAnimationConfig delay");
             return false;
         }
     } else if (event == SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE) {

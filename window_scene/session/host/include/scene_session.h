@@ -138,7 +138,7 @@ using GetStatusBarConstantlyShowFunc = std::function<void(DisplayId displayId, b
 using NotifySetWindowCornerRadiusFunc = std::function<void(float cornerRadius)>;
 using GetNextAvoidAreaRectInfoFunc = std::function<WSError(DisplayId displayId, AvoidAreaType type,
     std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo)>;
-using GetFloatNavagationInfoFunc = std::function<WSError(DisplayId displayId,
+using GetFloatNavigationInfoFunc = std::function<WSError(DisplayId displayId,
     std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)>;
 using GetLSStateFunc = std::function<bool()>;
 using NotifyFollowParentRectFunc = std::function<void(bool isFollow)>;
@@ -211,7 +211,7 @@ public:
         NotifySessionTouchOutsideCallback onSessionTouchOutside_;
         GetAINavigationBarArea onGetAINavigationBarArea_;
         GetNextAvoidAreaRectInfoFunc onGetNextAvoidAreaRectInfo_;
-        GetFloatNavagationInfoFunc onGetFloatNavagationInfo_;
+        GetFloatNavigationInfoFunc onGetFloatNavigationInfo_;
         GetLSStateFunc onGetLSState_;
         OnOutsideDownEvent onOutsideDownEvent_;
         HandleSecureSessionShouldHideCallback onHandleSecureSessionShouldHide_;
@@ -309,8 +309,22 @@ public:
     WSRect GetSessionGlobalRectWithSingleHandScale();
     WSRect GetMoveRectForWindowDrag();
     void UpdateSessionState(SessionState state) override;
-    virtual WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+
+    /**
+     * @brief Asynchronously notify client to update window rectangle.
+     *
+     * Posts a task to execute the update in NotifyClientToUpdateRectTask().
+     *
+     * @param updateReason Reason for the update.
+     * @param updateRect Optional target rectangle.
+     * @param rsTransaction RS transaction for synchronized rendering.
+     *
+     * @return Always returns WSError::WS_OK.
+     */
+    WSError NotifyClientToUpdateRect(const std::string& updateReason,
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void SetWinRectWhenUpdateRect(const WSRect& rect);
     void RegisterNotifySurfaceBoundsChangeFunc(int32_t sessionId, NotifySurfaceBoundsChangeFunc&& func) override;
     void UnregisterNotifySurfaceBoundsChangeFunc(int32_t sessionId) override;
@@ -429,7 +443,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
-    virtual WSError SyncFloatViewLimits(const FloatViewLimits &limits) { return WSError::WS_OK; };
+    virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
      * Float Window
@@ -439,7 +453,7 @@ public:
     /*
      * Window Layout
      */
-    WMError ActivateDragBySystem(bool activateDrag);
+    WMError ActivateDragBySystem(DragActivateSource source, bool activateDrag);
     WMError SetSystemWindowEnableDrag(bool enableDrag) override;
     WMError SetWindowEnableDragBySystem(bool enableDrag);
     WSError OnDefaultDensityEnabled(bool isDefaultDensityEnabled) override;
@@ -480,6 +494,7 @@ public:
     virtual WSError SetSubWindowZLevel(int32_t zLevel) { return WSError::WS_ERROR_INVALID_CALLING; }
     virtual int32_t GetSubWindowZLevel() const { return 0; }
     void SetMainWindowTopmostChangeCallback(NotifyMainWindowTopmostChangeFunc&& func);
+    WSError RaiseAppMainWindowToTop() override;
 
     /*
      * Compatible Mode
@@ -553,6 +568,8 @@ public:
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
     void RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
     WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    std::vector<Rect> GetDragDisabledAreas() const;
 
     /*
      * Window Immersive
@@ -616,6 +633,7 @@ public:
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
+    WSRect GetParentSessionRectSync();
     int32_t GetMainSessionId();
     int32_t GetMainSessionOrLoosenedSessionId();
     virtual int32_t GetMissionId() const { return persistentId_; };
@@ -627,6 +645,8 @@ public:
     SubWindowModalType GetSubWindowModalType() const;
     int32_t GetOriPosYBeforeRaisedByKeyboard() const;
     std::string GetClientIdentityToken() const;
+    void SetIsShowOnDock(bool isShowOnDock);
+    bool GetIsShowOnDock() const;
 
     /*
      * Window Watermark
@@ -658,7 +678,7 @@ public:
     bool CheckTouchOutsideCallbackRegistered();
     void UpdateNativeVisibility(bool visible);
     void DumpSessionElementInfo(const std::vector<std::string>& params);
-    void NotifyForceHideChange(bool hide);
+    void NotifyForceHideChange(bool hide) override;
     WSError BindDialogSessionTarget(const sptr<SceneSession>& sceneSession);
     void DumpSessionInfo(std::vector<std::string>& info) const;
     bool AddSubSession(const sptr<SceneSession>& subSession);
@@ -903,6 +923,7 @@ public:
     bool IsDragMoving() const override;
     bool IsDragZooming() const override;
     bool IsCrossDisplayDragSupported() const;
+    
     // KeyFrame
     WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) override;
@@ -979,10 +1000,12 @@ public:
     void SetWindowAnchorInfoChangeFunc(NotifyWindowAnchorInfoChangeFunc&& func);
     WSError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
     WindowAnchorInfo GetWindowAnchorInfo() const { return windowAnchorInfo_; }
+    void ResetAttachBindingState();
     void CalcSubWindowRectByAnchor(const WSRect& parentRect, WSRect& subRect);
     void NotifyRelatedWindowsAttachStateChange(const sptr<Session>& parentSession,
         bool wasAttached, bool isAttached, bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit);
     void SyncAllAttachedLimitsToAttachingChild(const sptr<Session>& parentSession);
+    void NotifyRebindAttachAfterParentChange(int32_t newParentWindowId);
     WSError NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits) override;
     void NotifyRelatedWindowsOnDestruction();
 
@@ -1127,7 +1150,20 @@ public:
 protected:
     void NotifyIsCustomAnimationPlaying(bool isPlaying);
     std::string GetRatioPreferenceKey();
-    WSError NotifyClientToUpdateRectTask(const std::string& updateReason, std::shared_ptr<RSTransaction> rsTransaction);
+
+    /**
+     * @brief Perform notifying client to update window rectangle.
+     *
+     * @param updateReason Reason for the update.
+     * @param updateRect Optional target rectangle; nullopt means use current rect.
+     * @param rsTransaction RS transaction for synchronized rendering.
+     *
+     * @return WSError::WS_OK on success, or an appropriate error code on failure.
+     */
+    WSError NotifyClientToUpdateRectTask(const std::string& updateReason,
+                                         std::optional<WSRect> updateRect,
+                                         std::shared_ptr<RSTransaction> rsTransaction);
+
     bool CheckPermissionWithPropertyAnimation(const sptr<WindowSessionProperty>& property) const;
 
     std::string GetRectInfo(const WSRect& rect)
@@ -1427,7 +1463,6 @@ private:
     void RotateDragWindow(std::shared_ptr<RSTransaction> rsTransaction);
 #endif // DEVICE_STATUS_ENABLE
     void NotifyPropertyWhenConnect();
-    WSError RaiseAppMainWindowToTop() override;
     void UpdateWinRectForSystemBar(WSRect& rect);
     bool IsMovableWindowType() const;
     bool IsFullScreenMovable() const;
@@ -1627,6 +1662,11 @@ private:
      * Multi User
      */
     bool isMinimizedByUserSwitch_ { false };
+
+    /*
+     * Dock
+     */
+    bool isShowOnDock_ = false;
 
     /*
      * Window ZOrder: PC

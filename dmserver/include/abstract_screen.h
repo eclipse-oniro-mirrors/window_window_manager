@@ -39,7 +39,11 @@ class AbstractScreenGroup;
 class AbstractScreenController;
 class AbstractScreen : public RefBase {
 public:
-    AbstractScreen(sptr<AbstractScreenController>, const std::string& name, ScreenId dmsId, ScreenId rsId);
+    AbstractScreen(sptr<AbstractScreenController>,
+                   const std::string& name,
+                   ScreenId dmsId,
+                   ScreenId rsId,
+                   sptr<IRemoteObject> connectToRenderToken = nullptr);
     AbstractScreen() = delete;
     WM_DISALLOW_COPY_AND_MOVE(AbstractScreen);
     ~AbstractScreen();
@@ -79,6 +83,7 @@ public:
     void SetPhyHeight(uint32_t phyHeight);
     uint32_t GetPhyWidth() const;
     uint32_t GetPhyHeight() const;
+    sptr<IRemoteObject> GetConnectToRenderToken() const;
 
     /*
      * RS Client Multi Instance
@@ -116,6 +121,7 @@ private:
     uint32_t phyWidth_ { UINT32_MAX };
     uint32_t phyHeight_ { UINT32_MAX };
     mutable std::recursive_mutex mutex_;
+    sptr<IRemoteObject> connectToRenderToken_;
 
     /*
      * RS Client Multi Instance
@@ -125,8 +131,12 @@ private:
 
 class AbstractScreenGroup : public AbstractScreen {
 public:
-    AbstractScreenGroup(sptr<AbstractScreenController>, ScreenId dmsId, ScreenId rsId, std::string name,
-        ScreenCombination combination);
+    AbstractScreenGroup(sptr<AbstractScreenController>,
+                        ScreenId dmsId,
+                        ScreenId rsId,
+                        std::string name,
+                        ScreenCombination combination,
+                        sptr<IRemoteObject> connectToRenderToken = nullptr);
     AbstractScreenGroup() = delete;
     WM_DISALLOW_COPY_AND_MOVE(AbstractScreenGroup);
     ~AbstractScreenGroup();

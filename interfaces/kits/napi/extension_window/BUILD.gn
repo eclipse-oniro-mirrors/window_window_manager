@@ -14,6 +14,7 @@
 import("//build/ohos.gni")
 import("//build/ohos/ace/ace.gni")
 import("//build/templates/abc/ohos_abc.gni")
+import("../../../../windowmanager_aafwk.gni")
 
 es2abc_gen_abc("gen_extension_window_abc") {
   src_js = rebase_path("extension_window.js")
@@ -124,6 +125,10 @@ ohos_shared_library("extensionwindow_napi") {
   subsystem_name = "window"
 
   defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }

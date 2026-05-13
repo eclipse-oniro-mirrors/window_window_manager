@@ -18,6 +18,7 @@
 
 #include <list>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <vector>
 
@@ -52,7 +53,6 @@ namespace OHOS::Rosen {
 class RSSurfaceNode;
 class RSUIContext;
 class RSTransaction;
-class RSSyncTransactionController;
 class Session;
 using NotifySessionRectChangeFunc = std::function<void(const WSRect& rect,
     SizeChangeReason reason, DisplayId displayId)>;
@@ -127,6 +127,7 @@ using OutlineParamsChangeCallbackFunc = std::function<void(bool enabled, const O
 using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t callingPid)>;
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
+using UpdateAppHookDisplayInfoFunc = std::function<WMError(int32_t uid, const HookInfo& hookInfo, bool enable)>;
 using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
 using SaveStartWindowFunc = std::function<void(std::string, std::string)>;
 
@@ -306,8 +307,19 @@ public:
         bool needNotifyClient = true, bool isExecuteDelayRaise = false);
     virtual WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent);
 
+    /**
+     * @brief Notify client to update window rectangle.
+     *
+     * @param updateReason Reason for the update.
+     * @param updateRect Optional target rectangle.
+     * @param rsTransaction RS transaction for synchronized rendering.
+     *
+     * @return WSError::WS_OK on success, or an appropriate error code on failure.
+     */
     virtual WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) { return WSError::WS_OK; }
+                                             std::optional<WSRect> updateRect,
+                                             std::shared_ptr<RSTransaction> rsTransaction) { return WSError::WS_OK; }
+
     WSError TransferBackPressedEventForConsumed(bool& isConsumed);
     WSError TransferKeyEventForConsumed(const std::shared_ptr<MMI::KeyEvent>& keyEvent, bool& isConsumed,
         bool isPreImeEvent = false);
@@ -376,10 +388,31 @@ public:
     /*
      * Window Scene Snapshot
      */
+    struct SnapshotOptions {
+        // Run snapshot capture in FFRT task with a longer timeout.
+        bool runInFfrt = false;
+        // Snapshot scale value; non-positive values use the session default scale.
+        float scaleParam = 0.0f;
+        // Capture the current window surface instead of the default surface node content.
+        bool useCurWindow = false;
+        // Capture the snapshot synchronously when supported by the render service.
+        bool windowSync = false;
+        // Skip blur processing for SceneBoard UI animation snapshots.
+        // Only for SceneBoard UI animation, cannot use with privacy window.
+        bool disableBlur = false;
+    };
+
     std::shared_ptr<Media::PixelMap> GetSnapshot() const;
     std::shared_ptr<Media::PixelMap> GetPreloadSnapshot() const;
-    std::shared_ptr<Media::PixelMap> Snapshot(
-        bool runInFfrt = false, float scaleParam = 0.0f, bool useCurWindow = false) const;
+    /**
+     * @brief Get the snapshot pixelMap.
+     *
+     * @param options Snapshot capture options.
+     *
+     * @return PixelMap of this window.
+     */
+    std::shared_ptr<Media::PixelMap> Snapshot() const;
+    std::shared_ptr<Media::PixelMap> Snapshot(const SnapshotOptions& options) const;
     void ResetSnapshot();
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
@@ -502,6 +535,8 @@ public:
     bool GetRestartInSameProcess() const;
     void SetRestartCallerPersistentId(int32_t restartCallerPersistentId);
     int32_t GetRestartCallerPersistentId() const;
+    void SetNativeHideWindow(bool nativeHideWindow);
+    bool GetNativeHideWindow() const;
 
     virtual WSError SetActive(bool active);
     virtual WSError UpdateSizeChangeReason(SizeChangeReason reason);
@@ -604,6 +639,7 @@ public:
     virtual void SetSystemTouchable(bool touchable);
     bool GetSystemTouchable() const;
     bool GetWindowTouchableForMMI(DisplayId displayId) const;
+    bool GetSessionTouchable() const;
     virtual WSError SetRSVisible(bool isVisible);
     bool GetRSVisible() const;
     WSError SetVisibilityState(WindowVisibilityState state);
@@ -681,7 +717,7 @@ public:
     bool IsSystemActive() const;
     bool IsSystemSession() const;
     bool IsTerminated() const;
-    bool IsSessionForeground() const;
+    bool IsLifecycleForeground() const;
     bool IsSessionNotBackground() const;
     virtual bool IsAnco() const { return false; }
     virtual void SetBlank(bool isAddBlank) {}
@@ -834,7 +870,8 @@ public:
     void SetClientRect(const WSRect& rect);
     WSRect GetClientRect() const;
     void ResetDirtyFlags();
-    void SetDragActivated(bool dragActivated);
+    void SetDragActivated(DragActivateSource source, bool activated);
+    uint32_t GetDragActivatedBitmap() const { return dragActivatedBitmap_; }
     void SetClientDragEnable(bool dragEnable);
     std::optional<bool> GetClientDragEnable() const;
     std::shared_ptr<AppExecFwk::EventHandler> GetEventHandler() const;
@@ -875,6 +912,7 @@ public:
     virtual WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
     void NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason reason);
     void SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func);
+    void SetUpdateAppHookDisplayInfoFunc(const UpdateAppHookDisplayInfoFunc& func);
     WSError UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
                                  const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
                                  const std::shared_ptr<RSTransaction>& rsTransaction);
@@ -919,7 +957,6 @@ public:
     void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
-    SessionState GetRealSessionState();
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
 
@@ -945,6 +982,7 @@ public:
     bool HasSnapshotFreeMultiWindow();
     bool HasSnapshot(SnapshotStatus key);
     bool HasSnapshot();
+    virtual void NotifyForceHideChange(bool hide) {};
     virtual void RecoverSnapshotPersistence(const SessionInfo& info) {};
     virtual void ClearSnapshotPersistence() {};
     virtual void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) {};
@@ -1157,6 +1195,7 @@ protected:
     NotifyStopFloatingBallFunc stopFloatingBallFunc_;
     NotifyRestoreFloatingBallMainWindowFunc restoreFloatingBallMainWindowFunc_;
     GetRsCmdBlockingCountFunc getRsCmdBlockingCountFunc_;
+    UpdateAppHookDisplayInfoFunc updateAppHookDisplayInfoFunc_;
     NotifyRestoreFloatMainWindowFunc restoreFloatMainWindowFunc_;
     NotifyStopFloatViewFunc stopFloatViewFunc_;
     NotifyUpdateFloatViewFunc updateFloatViewFunc_;
@@ -1382,8 +1421,39 @@ private:
     /*
      * Window Layout
      */
+
+    /**
+     * @brief Get prelayout context for window creation.
+     *
+     * Pre-calculates window and display parameters to optimize the initial
+     * layout and rendering. Currently enabled only for game prelaunch scenarios.
+     *
+     * @return PrelayoutContext containing predicted window rect and display info.
+     */
+    PrelayoutContext GetPrelayoutContext();
+
+    /**
+     * @brief Apply initial window rect during session connect.
+     *
+     * For UIExtension windows, directly updates the current rect without prelayout.
+     * Otherwise, uses prelayout rect if enabled, or falls back to current session rect.
+     *
+     * @param ctx Prelayout context containing optional initial rect.
+     */
+    void HandleInitialRect(const PrelayoutContext& ctx);
+
+    /**
+     * @brief Apply prelayout display info to application via hook.
+     *
+     * Updates display parameters (size, density, rotation) when prelayout is enabled
+     * and hook function is available.
+     *
+     * @param ctx Prelayout context containing display info.
+     */
+    void HandleHookDisplay(const PrelayoutContext& ctx);
+
     std::optional<bool> clientDragEnable_;
-    bool dragActivated_ = true;
+    uint32_t dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     SingleHandTransform singleHandTransform_;
     bool singleHandModeFlag_ = false;
     SingleHandScreenInfo singleHandScreenInfo_;

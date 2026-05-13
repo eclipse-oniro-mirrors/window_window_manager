@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,9 @@ public:
     WSError ProcessBackEvent() override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void RectCheck(float curWidth, float curHeight, const ScreenMetrics& screenMetrics) override;
     WSError SetDialogSessionBackGestureEnabled(bool isEnabled) override;
     int32_t GetSubWindowZLevel() const override;
@@ -70,7 +72,7 @@ public:
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters) override;
     void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) override;
-    WSError SyncFloatViewLimits(const FloatViewLimits &limits) override;
+    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     /*
      * Float Window
@@ -101,6 +103,7 @@ protected:
     void NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters);
     void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
 private:
+    WMError IsFloatingBallValid(const FloatingBallTemplateInfo& fbTemplateInfo) const;
     void UpdateCameraWindowStatus(bool isShowing);
     bool NeedSystemPermission(WindowType type);
     void UpdatePiPWindowStateChanged(bool isForeground);

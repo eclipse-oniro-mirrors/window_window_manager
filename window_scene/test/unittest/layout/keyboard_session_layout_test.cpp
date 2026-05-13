@@ -76,7 +76,7 @@ HWTEST_F(KeyboardSessionLayoutTest, NotifyClientToUpdateRect01, TestSize.Level1)
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     keyboardSession->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
     keyboardSession->sessionStage_ = mockSessionStage;
-    auto ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", nullptr);
+    auto ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(ret, WSError::WS_OK);
 }
 
@@ -99,7 +99,7 @@ HWTEST_F(KeyboardSessionLayoutTest, NotifyClientToUpdateRect02, TestSize.Level1)
     sptr<WindowSessionProperty> windowSessionProperty = sptr<WindowSessionProperty>::MakeSptr();
     windowSessionProperty->SetWindowType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
     keyboardSession->SetSessionProperty(windowSessionProperty);
-    auto ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", nullptr);
+    auto ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(ret, WSError::WS_OK);
 }
 
@@ -118,19 +118,19 @@ HWTEST_F(KeyboardSessionLayoutTest, NotifyClientToUpdateRect03, TestSize.Level1)
     sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, specificCb, keyboardCb);
 
     // NotifyClientToUpdateRectTask return not ok
-    WSError ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", nullptr);
+    WSError ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(ret, WSError::WS_OK);
 
     // NotifyClientToUpdateRectTask return ok and GetSizeChangeReason() is UNDEFINED
     keyboardSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
     keyboardSession->state_ = SessionState::STATE_CONNECT;
-    ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", nullptr);
+    ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(ret, WSError::WS_OK);
 
     // NotifyClientToUpdateRectTask return ok and GetSizeChangeReason() is DRAG
     keyboardSession->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG);
     keyboardSession->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
-    ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", nullptr);
+    ret = keyboardSession->NotifyClientToUpdateRect("KeyboardSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(ret, WSError::WS_OK);
 }
 } // namespace

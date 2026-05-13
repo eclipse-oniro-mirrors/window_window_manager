@@ -26,6 +26,7 @@ config("display_config") {
 ## Build display_napi.so {{{
 ohos_shared_library("display_napi") {
   branch_protector_ret = "pac_ret"
+  defines = []
   sanitize = {
     cfi = true
     cfi_cross_dso = true
@@ -65,11 +66,15 @@ ohos_shared_library("display_napi") {
     "napi:ace_napi",
   ]
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   relative_install_dir = "module"
   part_name = "window_manager"
   subsystem_name = "window"
 
-  defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
@@ -79,6 +84,7 @@ ohos_shared_library("display_napi") {
 
 ohos_shared_library("display_kit") {
   branch_protector_ret = "pac_ret"
+  defines = []
   sanitize = {
     cfi = true
     cfi_cross_dso = true
@@ -110,6 +116,11 @@ ohos_shared_library("display_kit") {
     "hitrace:hitrace_meter",
     "napi:ace_napi",
   ]
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]

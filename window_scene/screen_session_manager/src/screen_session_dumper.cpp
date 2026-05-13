@@ -42,6 +42,9 @@ constexpr int LINE_WIDTH = 30;
 constexpr int DUMPER_PARAM_INDEX_ONE = 1;
 constexpr int DUMPER_PARAM_INDEX_TWO = 2;
 constexpr int DUMPER_PARAM_INDEX_THREE = 3;
+constexpr int DUMPER_PARAM_INDEX_FOUR = 4;
+constexpr int DUMPER_PARAM_INDEX_FIVE = 5;
+constexpr int DUMPER_PARAM_INDEX_SIX = 6;
 constexpr int MAX_DUMPER_PARAM_NUMBER = 10;
 const std::string ARG_DUMP_HELP = "-h";
 const std::string ARG_DUMP_ALL = "-a";
@@ -81,6 +84,7 @@ const std::string ANGLE_STR = "angle";
 const std::string HALL_STR = "hall";
 const std::string ARG_SET_LANDSCAPE_LOCK = "-landscapelock";
 const std::string ARG_SET_DURINGCALL_STATE = "-duringcallstate";
+const std::string ARG_SET_POS = "-setPos";
 const ScreenId SCREEN_ID_FULL = 0;
 const ScreenId SCREEN_ID_MAIN = 5;
 #ifdef FOLD_ABILITY_ENABLE
@@ -111,6 +115,48 @@ static std::string GetProcessNameByPid(int32_t pid)
     std::getline(infile, processName);
     infile.close();
     return processName;
+}
+
+void ScreenSessionDumper::DumpCreaseRectsToOss(std::ostringstream& oss,
+    const std::string& label, const std::vector<DMRect>& rects)
+{
+    oss << std::left << std::setw(LINE_WIDTH) << label;
+    if (rects.empty()) {
+        oss << "empty" << std::endl;
+        return;
+    }
+    for (size_t i = 0; i < rects.size(); i++) {
+        if (i != 0) {
+            oss << std::left << std::setw(LINE_WIDTH) << "";
+        }
+        oss << "[" << rects[i].posX_ << ", " << rects[i].posY_ << ", "
+            << rects[i].width_ << ", " << rects[i].height_ << "]" << std::endl;
+    }
+}
+
+static void DumpScreenPropertyBounds(std::ostringstream& oss, ScreenProperty& prop)
+{
+    oss << std::left << std::setw(LINE_WIDTH) << "Bounds<L,T,W,H>: "
+        << prop.GetBounds().rect_.GetLeft() << ", "
+        << prop.GetBounds().rect_.GetTop() << ", "
+        << prop.GetBounds().rect_.GetWidth() << ", "
+        << prop.GetBounds().rect_.GetHeight() << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyBounds<L,T,W,H>: "
+        << prop.GetPhyBounds().rect_.GetLeft() << ", "
+        << prop.GetPhyBounds().rect_.GetTop() << ", "
+        << prop.GetPhyBounds().rect_.GetWidth() << ", "
+        << prop.GetPhyBounds().rect_.GetHeight() << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "AvailableArea<X,Y,W,H> "
+        << prop.GetAvailableArea().posX_ << ", "
+        << prop.GetAvailableArea().posY_ << ", "
+        << prop.GetAvailableArea().width_ << ", "
+        << prop.GetAvailableArea().height_ << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DefaultDeviceRotationOffset "
+        << prop.GetDefaultDeviceRotationOffset() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DisplayGroupId "
+        << prop.GetDisplayGroupId() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "MainDisplayIdOfGroup "
+        << prop.GetMainDisplayIdOfGroup() << std::endl;
 }
 
 ScreenSessionDumper::ScreenSessionDumper(int fd, const std::vector<std::u16string>& args)
@@ -317,6 +363,8 @@ void ScreenSessionDumper::ExecuteInjectCmd2()
         SetLandscapeLock(params_[0]);
     } else if (params_[0].find(ARG_SET_DURINGCALL_STATE) != std::string::npos) {
         SetDuringCallState(params_[0]);
+    } else if (params_[0].find(ARG_SET_POS) != std::string::npos) {
+        SetMultiScreenRelativePositionCmd(params_[0]);
     }
 }
 
@@ -398,7 +446,10 @@ void ScreenSessionDumper::ShowHelpInfo()
         .append(" -publishcastevent        ")
         .append("|publish cast event\n")
         .append(" -registerhall        ")
-        .append("|set hall register, 0 to unregister, 1 to register\n");
+        .append("|set hall register, 0 to unregister, 1 to register\n")
+        .append(" -setPos        ")
+        .append("|set multi screen relative position, "
+            "eg. -setPos,0,0,0,1,1920,0\n");
 }
 
 void ScreenSessionDumper::ShowAllScreenInfo()
@@ -494,10 +545,17 @@ void ScreenSessionDumper::DumpFoldCreaseRegion()
         TLOGE(WmsLogTag::DMS, "current crease region is null");
         return;
     }
-    oss << std::left << std::setw(LINE_WIDTH) << "CurrentCreaseRects<X, Y, W, H>: "
-        << creaseRects[0].posX_ << ", " << creaseRects[0].posY_ << ", "
-        << creaseRects[0].width_ << ", " << creaseRects[0].height_ << std::endl;
+    DumpCreaseRectsToOss(oss, "CurrentCreaseRects<X, Y, W, H>: ", creaseRects);
     dumpInfo_.append(oss.str());
+
+    FoldCreaseRegion liveRegion;
+    DMError ret = ScreenSessionManager::GetInstance().GetLiveCreaseRegion(liveRegion);
+    if (ret != DMError::DM_OK) {
+        return;
+    }
+    std::ostringstream liveOss;
+    DumpCreaseRectsToOss(liveOss, "LiveCreaseRects<X, Y, W, H>: ", liveRegion.GetCreaseRects());
+    dumpInfo_.append(liveOss.str());
 }
 
 void ScreenSessionDumper::DumpScreenSessionById(ScreenId id)
@@ -535,8 +593,6 @@ void ScreenSessionDumper::DumpScreenSessionById(ScreenId id)
         << static_cast<int32_t>(screenSession->GetSourceMode()) << std::endl;
     oss << std::left << std::setw(LINE_WIDTH) << "ScreenCombination: "
         << static_cast<int32_t>(screenSession->GetScreenCombination()) << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "Orientation: "
-        << static_cast<int32_t>(screenSession->GetOrientation()) << std::endl;
     oss << std::left << std::setw(LINE_WIDTH) << "Rotation: "
         << static_cast<int32_t>(screenSession->GetRotation()) << std::endl;
     oss << std::left << std::setw(LINE_WIDTH) << "ScreenRequestedOrientation: "
@@ -741,27 +797,7 @@ void ScreenSessionDumper::DumpScreenPropertyById(ScreenId id)
         << ", " << screenProperty.GetOffsetY() << std::endl;
     oss << std::left << std::setw(LINE_WIDTH) << "StartPosition<X, Y>: " << screenProperty.GetStartX()
         << ", " << screenProperty.GetStartY() << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "Bounds<L,T,W,H>: "
-        << screenProperty.GetBounds().rect_.GetLeft() << ", "
-        << screenProperty.GetBounds().rect_.GetTop() << ", "
-        << screenProperty.GetBounds().rect_.GetWidth() << ", "
-        << screenProperty.GetBounds().rect_.GetHeight() << ", " << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "PhyBounds<L,T,W,H>: "
-        << screenProperty.GetPhyBounds().rect_.GetLeft() << ", "
-        << screenProperty.GetPhyBounds().rect_.GetTop() << ", "
-        << screenProperty.GetPhyBounds().rect_.GetWidth() << ", "
-        << screenProperty.GetPhyBounds().rect_.GetHeight() << ", " << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "AvailableArea<X,Y,W,H> "
-        << screenProperty.GetAvailableArea().posX_ << ", "
-        << screenProperty.GetAvailableArea().posY_ << ", "
-        << screenProperty.GetAvailableArea().width_ << ", "
-        << screenProperty.GetAvailableArea().height_ << ", " << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "DefaultDeviceRotationOffset "
-        << screenProperty.GetDefaultDeviceRotationOffset() << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "DisplayGroupId "
-        << screenProperty.GetDisplayGroupId() << std::endl;
-    oss << std::left << std::setw(LINE_WIDTH) << "MainDisplayIdOfGroup "
-        << screenProperty.GetMainDisplayIdOfGroup() << std::endl;
+    DumpScreenPropertyBounds(oss, screenProperty);
     dumpInfo_.append(oss.str());
 }
 
@@ -1252,6 +1288,100 @@ void ScreenSessionDumper::SetDuringCallState(std::string input)
         TLOGI(WmsLogTag::DMS, "SetDuringCallState: %{public}d", value);
     }
 #endif
+}
+
+void ScreenSessionDumper::SetMultiScreenRelativePositionCmd(std::string input)
+{
+    std::ostringstream oss;
+    oss << "-------------- SET MULTI SCREEN RELATIVE POSITION --------------" << std::endl;
+    size_t pos = input.find(ARG_SET_POS);
+    if (pos == std::string::npos) {
+        oss << std::left << "[error]: the command is invalid" << std::endl;
+        dumpInfo_.append(oss.str());
+        return;
+    }
+    std::string valueStr = input.substr(pos + ARG_SET_POS.length());
+    std::string firstGroup;
+    std::string secondGroup;
+    if (!ExtractPositionGroups(valueStr, firstGroup, secondGroup)) {
+        oss << std::left << "[error]: invalid format, expected id,x,y,id,x,y" << std::endl;
+        dumpInfo_.append(oss.str());
+        return;
+    }
+    MultiScreenPositionOptions mainScreenOptions;
+    MultiScreenPositionOptions secondScreenOptions;
+    if (!ParsePositionGroup(firstGroup, mainScreenOptions)) {
+        oss << std::left << "[error]: main screen params invalid, expected id,x,y" << std::endl;
+        dumpInfo_.append(oss.str());
+        return;
+    }
+    if (!ParsePositionGroup(secondGroup, secondScreenOptions)) {
+        oss << std::left << "[error]: second screen params invalid, expected id,x,y" << std::endl;
+        dumpInfo_.append(oss.str());
+        return;
+    }
+    DMError ret = ScreenSessionManager::GetInstance().SetMultiScreenRelativePosition(
+        mainScreenOptions, secondScreenOptions);
+    if (ret != DMError::DM_OK) {
+        oss << std::left << "[error]: SetMultiScreenRelativePosition failed, error: "
+            << static_cast<int32_t>(ret) << std::endl;
+    } else {
+        oss << std::left << "[success]: main(id=" << mainScreenOptions.screenId_
+            << ", x=" << mainScreenOptions.startX_
+            << ", y=" << mainScreenOptions.startY_ << "), "
+            << "second(id=" << secondScreenOptions.screenId_
+            << ", x=" << secondScreenOptions.startX_
+            << ", y=" << secondScreenOptions.startY_ << ")" << std::endl;
+    }
+    TLOGI(WmsLogTag::DMS, "SetMultiScreenRelativePosition: mID=%{public}" PRIu64
+        ", mX=%{public}u, mY=%{public}u, sID=%{public}" PRIu64
+        ", sX=%{public}u, sY=%{public}u, ret=%{public}d",
+        mainScreenOptions.screenId_, mainScreenOptions.startX_, mainScreenOptions.startY_,
+        secondScreenOptions.screenId_, secondScreenOptions.startX_, secondScreenOptions.startY_,
+        static_cast<int32_t>(ret));
+    dumpInfo_.append(oss.str());
+}
+
+bool ScreenSessionDumper::ExtractPositionGroups(const std::string& valueStr,
+    std::string& firstGroup, std::string& secondGroup)
+{
+    std::vector<std::string> values;
+    std::istringstream ss(valueStr);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        if (!token.empty()) {
+            values.push_back(token);
+        }
+    }
+    if (values.size() != static_cast<size_t>(DUMPER_PARAM_INDEX_SIX)) {
+        return false;
+    }
+    firstGroup = values[0] + "," + values[DUMPER_PARAM_INDEX_ONE] + "," + values[DUMPER_PARAM_INDEX_TWO];
+    secondGroup = values[DUMPER_PARAM_INDEX_THREE] + "," + values[DUMPER_PARAM_INDEX_FOUR]
+        + "," + values[DUMPER_PARAM_INDEX_FIVE];
+    return true;
+}
+
+bool ScreenSessionDumper::ParsePositionGroup(const std::string& group, MultiScreenPositionOptions& opts)
+{
+    std::vector<std::string> values;
+    std::istringstream ss(group);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        values.push_back(token);
+    }
+    if (values.size() != static_cast<size_t>(DUMPER_PARAM_INDEX_THREE)) {
+        return false;
+    }
+    for (const auto& v : values) {
+        if (!IsNumber(v)) {
+            return false;
+        }
+    }
+    opts.screenId_ = static_cast<ScreenId>(std::stoull(values[0]));
+    opts.startX_ = static_cast<uint32_t>(std::stoul(values[DUMPER_PARAM_INDEX_ONE]));
+    opts.startY_ = static_cast<uint32_t>(std::stoul(values[DUMPER_PARAM_INDEX_TWO]));
+    return true;
 }
 
 #ifdef FOLD_ABILITY_ENABLE

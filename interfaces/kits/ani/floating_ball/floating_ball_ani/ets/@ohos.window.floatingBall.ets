@@ -38,6 +38,7 @@ export default namespace floatingBall {
     onStateChange(callback: Callback<FloatingBallState>): void;
     offClick(callback?: Callback<void>): void;
     offStateChange(callback?: Callback<FloatingBallState>): void;
+    setFloatingBallVisibilityInApp(params: boolean): Promise<void>;
   }
 
   export interface FloatingBallWindowInfo {
@@ -126,6 +127,19 @@ export default namespace floatingBall {
         return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
             taskpool.execute((): void => {
                 this.startFloatingBallNative(this.nativeObj, params);
+            }).then((ret: Any) :void => {
+                resolve(undefined);
+            }).catch((err: Any) :void => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public native SetInApplicationVisibleNative(nativeObj: long, params: boolean): void;
+    public setFloatingBallVisibilityInApp(params: boolean): Promise<void> {
+        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+            taskpool.execute((): void => {
+                this.SetInApplicationVisibleNative(this.nativeObj, params);
             }).then((ret: Any) :void => {
                 resolve(undefined);
             }).catch((err: Any) :void => {

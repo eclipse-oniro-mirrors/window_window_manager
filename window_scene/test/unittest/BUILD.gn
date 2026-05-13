@@ -90,17 +90,20 @@ group("unittest") {
       ":ws_scene_session_manager_kiosk_test",
       ":ws_scene_session_manager_lifecycle_test",
       ":ws_scene_session_manager_lifecycle_test2",
+      ":ws_scene_session_manager_lite_proxy_test_1",
       ":ws_scene_session_manager_lite_stub_test",
       ":ws_scene_session_manager_one_test",
       ":ws_scene_session_manager_proxy_lifecycle_test",
       ":ws_scene_session_manager_proxy_test",
       ":ws_scene_session_manager_stub_test",
       ":ws_scene_session_manager_stub_test2",
+      ":ws_scene_session_manager_three_test",
       ":ws_scene_session_manager_outline_test",
       ":ws_scene_session_manager_test",
       ":ws_scene_session_manager_two_test",
       ":ws_scene_session_test",
       ":ws_session_lifecycle_test",
+      ":ws_session_lifecycle_listener_proxy_test",
       ":ws_session_listener_controller_test",
       ":ws_session_manager_lite_test",
       ":ws_session_manager_service_recover_proxy_test",
@@ -715,6 +718,40 @@ ohos_unittest("ws_scene_session_manager_two_test") {
   ]
 }
 
+ohos_unittest("ws_scene_session_manager_three_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock",
+    "${window_base_path}/window_scene/session/host/include/",
+  ]
+
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "scene_session_manager_test13.cpp",
+  ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:configuration",
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
+    "ability_runtime:app_context",
+    "ability_runtime:mission_info",
+    "ability_runtime:runtime",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+    "eventhandler:libeventhandler",
+    "safwk:system_ability_fwk",
+  ]
+}
+
 ohos_unittest("ws_scene_session_manager_outline_test") {
   module_out_path = module_out_path
 
@@ -989,6 +1026,10 @@ ohos_unittest("ws_scene_session_manager_stub_test2") {
     "scene_session_manager_stub_test2.cpp",
   ]
 
+  defines = [
+    "ENABLE_MOCK_READ_UINT32",
+  ]
+
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
@@ -996,11 +1037,11 @@ ohos_unittest("ws_scene_session_manager_stub_test2") {
 
 ohos_unittest("ws_scene_session_manager_supplement_test") {
   module_out_path = module_out_path
-  include_dirs = [ 
+  include_dirs = [
     "${window_base_path}/test/common/utils/include/",
     "${window_base_path}/window_scene/test/mock"
   ]
-  sources = [ 
+  sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
     "scene_session_manager_supplement_test.cpp"
     ]
@@ -1529,6 +1570,21 @@ ohos_unittest("ws_scene_session_manager_lite_stub_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("ws_scene_session_manager_lite_proxy_test_1") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "../mock" ]
+
+  sources = [
+    "../mock/mock_message_parcel.cpp",
+    "scene_session_manager_lite_proxy_test_1.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ohos_unittest("ws_session_manager_service_recover_proxy_test") {
   module_out_path = module_out_path
 
@@ -1658,7 +1714,7 @@ ohos_static_library("ws_unittest_common") {
 
   deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/intention_event/service:intention_event_anr_manager",
@@ -1674,7 +1730,7 @@ ohos_static_library("ws_unittest_common") {
   ]
 
   public_deps = [
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
   ]
 
@@ -1880,17 +1936,17 @@ ohos_unittest("ws_compatible_mode_session_stub_test") {
 
 ohos_unittest("ws_collaborator_dll_manager_test") {
   module_out_path = module_out_path
- 
+
   include_dirs = [
     "${window_base_path}/utils/include/",
   ]
- 
+
   sources = [
   "${window_base_path}/window_scene/test/unittest/collaborator_dll_manager_test.cpp"
   ]
- 
+
   deps = [ ":ws_unittest_common" ]
- 
+
   external_deps = [
   "ability_base:configuration",
   "ability_base:session_info",
@@ -1905,4 +1961,18 @@ ohos_unittest("ws_collaborator_dll_manager_test") {
   "c_utils:utils",
   ]
 }
+
+ohos_unittest("ws_session_lifecycle_listener_proxy_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "../mock/mock_message_parcel.cpp",
+    "session_lifecycle_listener_proxy_test.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ## Build ws_unittest_common.a }}}

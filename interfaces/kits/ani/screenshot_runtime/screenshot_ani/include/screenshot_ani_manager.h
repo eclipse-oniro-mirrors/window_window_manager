@@ -32,6 +32,7 @@ struct Option {
     bool isNeedNotify = true;
     bool isNeedPointer = true;
     bool isCaptureFullOfScreen = true;
+    DisplayIntentType displayIntent = DisplayIntentType::CANONICAL;
 };
  
 struct Param {

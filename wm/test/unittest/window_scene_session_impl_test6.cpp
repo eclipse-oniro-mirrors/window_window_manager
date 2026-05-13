@@ -1254,6 +1254,107 @@ HWTEST_F(WindowSceneSessionImplTest6, ApplyForcibleLimitsMinAlreadySmaller, Test
 }
 
 /**
+ * @tc.name: PostInitSurfaceNode01
+ * @tc.desc: Test PostInitSurfaceNode with null renderSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, PostInitSurfaceNode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("PostInitSurfaceNode01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+
+    sptr<IRemoteObject> renderSession = nullptr;
+    window->PostInitSurfaceNode(renderSession);
+    EXPECT_NE(window->rsUIDirector_, nullptr);
+}
+
+/**
+ * @tc.name: PostInitSurfaceNode02
+ * @tc.desc: Test PostInitSurfaceNode with APP_MAIN_WINDOW type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, PostInitSurfaceNode02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("PostInitSurfaceNode02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+
+    sptr<IRemoteObject> renderSession = nullptr;
+    window->PostInitSurfaceNode(renderSession);
+    EXPECT_NE(window->rsUIDirector_, nullptr);
+}
+
+/**
+ * @tc.name: PostInitSurfaceNode03
+ * @tc.desc: Test PostInitSurfaceNode with PIP window type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, PostInitSurfaceNode03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("PostInitSurfaceNode03");
+    option->SetWindowType(WindowType::WINDOW_TYPE_PIP);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+
+    sptr<IRemoteObject> renderSession = nullptr;
+    window->PostInitSurfaceNode(renderSession);
+    EXPECT_NE(window->rsUIDirector_, nullptr);
+}
+
+/**
+ * @tc.name: PostInitSurfaceNode04
+ * @tc.desc: Test PostInitSurfaceNode with BOOT_ANIMATION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, PostInitSurfaceNode04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("PostInitSurfaceNode04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_BOOT_ANIMATION);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+
+    sptr<IRemoteObject> renderSession = nullptr;
+    window->PostInitSurfaceNode(renderSession);
+    EXPECT_NE(window->rsUIDirector_, nullptr);
+}
+
+/**
+ * @tc.name: PostInitSurfaceNode05
+ * @tc.desc: Test PostInitSurfaceNode with UI_EXTENSION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, PostInitSurfaceNode05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("PostInitSurfaceNode05");
+    option->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::MODAL);
+    sptr<IRemoteObject> renderSession = nullptr;
+    window->PostInitSurfaceNode(renderSession);
+    EXPECT_NE(window->rsUIDirector_, nullptr);
+}
+
+/**
  * @tc.name: ConfigDockAutoHide
  * @tc.desc: ConfigDockAutoHide
  * @tc.type: FUNC

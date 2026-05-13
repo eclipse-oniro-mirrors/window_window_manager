@@ -26,7 +26,9 @@ public:
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void PresentFocusIfPointDown() override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     WSError UpdateFocus(bool isFocused) override;

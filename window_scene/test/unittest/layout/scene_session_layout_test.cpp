@@ -220,7 +220,7 @@ HWTEST_F(SceneSessionLayoutTest, UpdateRect04, TestSize.Level0)
     sceneSession->SetClientRect(sessionRect);
     auto mockRsTx = std::shared_ptr<RSTransaction>(nullptr);
     // NotifyClientToUpdateRect is expected to be called once
-    EXPECT_CALL(*sceneSession, NotifyClientToUpdateRect("SceneSessionLayoutTest", mockRsTx))
+    EXPECT_CALL(*sceneSession, NotifyClientToUpdateRect("SceneSessionLayoutTest", _, mockRsTx))
         .Times(1);
     EXPECT_EQ(sceneSession->UpdateRect(requestRect, reason, "SceneSessionLayoutTest", mockRsTx), WSError::WS_OK);
 }
@@ -246,7 +246,7 @@ HWTEST_F(SceneSessionLayoutTest, UpdateRect05, TestSize.Level0)
     sceneSession->SetClientRect(sessionRect);
     auto mockRsTx = std::shared_ptr<RSTransaction>(nullptr);
     // NotifyClientToUpdateRect is expected to be called 0 times
-    EXPECT_CALL(*sceneSession, NotifyClientToUpdateRect("SceneSessionLayoutTest", mockRsTx))
+    EXPECT_CALL(*sceneSession, NotifyClientToUpdateRect("SceneSessionLayoutTest", _, mockRsTx))
         .Times(0);
     EXPECT_EQ(sceneSession->UpdateRect(requestRect, reason, "SceneSessionLayoutTest", mockRsTx), WSError::WS_OK);
 }
@@ -266,7 +266,7 @@ HWTEST_F(SceneSessionLayoutTest, NotifyClientToUpdateRect01, TestSize.Level0)
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     sceneSession->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
     sceneSession->sessionStage_ = mockSessionStage;
-    auto ret = sceneSession->NotifyClientToUpdateRect("SceneSessionLayoutTest", nullptr);
+    auto ret = sceneSession->NotifyClientToUpdateRect("SceneSessionLayoutTest", std::nullopt, nullptr);
     ASSERT_EQ(ret, WSError::WS_OK);
 }
 
@@ -366,14 +366,14 @@ HWTEST_F(SceneSessionLayoutTest, NotifyClientToUpdateRect, TestSize.Level1)
     session->Session::SetSessionState(SessionState::STATE_CONNECT);
     session->specificCallback_ = nullptr;
     session->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    EXPECT_EQ(WSError::WS_OK, session->NotifyClientToUpdateRect("SceneSessionLayoutTest", nullptr));
+    EXPECT_EQ(WSError::WS_OK, session->NotifyClientToUpdateRect("SceneSessionLayoutTest", std::nullopt, nullptr));
 
     UpdateAvoidAreaCallback func = [](const int32_t& persistentId) { return; };
     auto specificCallback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     specificCallback->onUpdateAvoidArea_ = func;
     session->specificCallback_ = specificCallback;
     session->Session::UpdateSizeChangeReason(SizeChangeReason::RECOVER);
-    EXPECT_EQ(WSError::WS_OK, session->NotifyClientToUpdateRect("SceneSessionLayoutTest", nullptr));
+    EXPECT_EQ(WSError::WS_OK, session->NotifyClientToUpdateRect("SceneSessionLayoutTest", std::nullopt, nullptr));
 }
 
 /**
@@ -395,20 +395,20 @@ HWTEST_F(SceneSessionLayoutTest, NotifyClientToUpdateRectTask, TestSize.Level0)
 
     session->Session::UpdateSizeChangeReason(SizeChangeReason::UNDEFINED);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
     session->Session::UpdateSizeChangeReason(SizeChangeReason::MOVE);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
     session->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
     session->Session::UpdateSizeChangeReason(SizeChangeReason::RESIZE);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
     session->Session::UpdateSizeChangeReason(SizeChangeReason::RECOVER);
     EXPECT_EQ(session->GetSizeChangeReason(), SizeChangeReason::RECOVER);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
 
     session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
     session->moveDragController_->isStartDrag_ = true;
@@ -417,23 +417,23 @@ HWTEST_F(SceneSessionLayoutTest, NotifyClientToUpdateRectTask, TestSize.Level0)
     session->isKeyboardPanelEnabled_ = true;
     info.windowType_ = static_cast<uint32_t>(WindowType::ABOVE_APP_SYSTEM_WINDOW_BASE);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
     info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
 
     session->Session::UpdateSizeChangeReason(SizeChangeReason::UNDEFINED);
-    EXPECT_EQ(WSError::WS_ERROR_REPEAT_OPERATION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+    EXPECT_EQ(WSError::WS_DO_NOTHING,
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
 
     session->Session::UpdateSizeChangeReason(SizeChangeReason::MOVE);
     info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
     session->Session::UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
     info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION,
-              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", nullptr));
+              session->NotifyClientToUpdateRectTask("SceneSessionLayoutTest", std::nullopt, nullptr));
 }
 
 /**
@@ -781,7 +781,7 @@ HWTEST_F(SceneSessionLayoutTest, ActivateDragBySystem, TestSize.Level1)
     info.abilityName_ = "ActivateDragBySystem";
     info.bundleName_ = "ActivateDragBySystem";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    auto ret = sceneSession->ActivateDragBySystem(true);
+    auto ret = sceneSession->ActivateDragBySystem(DragActivateSource::FOLLOW_PARENT_LAYOUT, true);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 
@@ -804,14 +804,14 @@ HWTEST_F(SceneSessionLayoutTest, CheckDragActivatedSettings, TestSize.Level1)
     info.bundleName_ = "CheckDragActivatedSettings";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
 
-    sceneSession->ActivateDragBySystem(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
     ASSERT_EQ(true, sceneSession->IsDragAccessible());
 
     sceneSession->GetSessionProperty()->SetDragEnabled(false);
     ASSERT_EQ(false, sceneSession->IsDragAccessible());
 
-    sceneSession->ActivateDragBySystem(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
     ASSERT_EQ(false, sceneSession->IsDragAccessible());
 
@@ -927,7 +927,7 @@ HWTEST_F(SceneSessionLayoutTest, IsDraggable, TestSize.Level1)
     sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
 
     sceneSession->moveDragController_ = nullptr;
     EXPECT_EQ(sceneSession->IsDraggable(), false);
@@ -2868,6 +2868,151 @@ HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild05, TestSi
         .Times(1).WillOnce(testing::Return(WSError::WS_OK));
 
     childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
+}
+
+/**
+ * @tc.name: ResetAttachBindingState01
+ * @tc.desc: Reset attach state and verify all fields are cleared
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ResetAttachBindingState01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ResetAttachBindingState01";
+    info.bundleName_ = "ResetAttachBindingState01";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    // Set anchor state
+    session->windowAnchorInfo_.isAnchorEnabled_ = true;
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    session->windowAnchorInfo_.isFromAttachOrDetach_ = true;
+    session->windowAnchorInfo_.windowAnchor_ = WindowAnchor::BOTTOM_END;
+    session->windowAnchorInfo_.offsetX_ = 100;
+    session->windowAnchorInfo_.offsetY_ = 200;
+    session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+    session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+
+    session->ResetAttachBindingState();
+
+    EXPECT_FALSE(session->windowAnchorInfo_.isAnchorEnabled_);
+    EXPECT_FALSE(session->windowAnchorInfo_.isAnchoredByAttach_);
+    EXPECT_TRUE(session->windowAnchorInfo_.isFromAttachOrDetach_);
+    EXPECT_EQ(session->windowAnchorInfo_.windowAnchor_, WindowAnchor::TOP_START);
+    EXPECT_EQ(session->windowAnchorInfo_.offsetX_, 0);
+    EXPECT_EQ(session->windowAnchorInfo_.offsetY_, 0);
+    EXPECT_FALSE(session->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit);
+    EXPECT_FALSE(session->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit);
+}
+
+/**
+ * @tc.name: ResetAttachBindingState02
+ * @tc.desc: ResetAttachBindingState triggers onWindowAnchorInfoChangeFunc_ callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, ResetAttachBindingState02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "ResetAttachBindingState02";
+    info.bundleName_ = "ResetAttachBindingState02";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    session->windowAnchorInfo_.isAnchorEnabled_ = true;
+    session->windowAnchorInfo_.isAnchoredByAttach_ = true;
+
+    std::shared_ptr<bool> callbackFired = std::make_shared<bool>(false);
+    session->onWindowAnchorInfoChangeFunc_ = [callbackFired](const WindowAnchorInfo& info) {
+        *callbackFired = true;
+        EXPECT_FALSE(info.isAnchorEnabled_);
+        EXPECT_FALSE(info.isAnchoredByAttach_);
+        EXPECT_TRUE(info.isFromAttachOrDetach_);
+    };
+
+    session->ResetAttachBindingState();
+    EXPECT_TRUE(*callbackFired);
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange01
+ * @tc.desc: NotifyRebindAttachAfterParentChange with null sessionStage_ → early return
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRebindAttachAfterParentChange01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRebindAttachAfterParentChange01";
+    info.bundleName_ = "NotifyRebindAttachAfterParentChange01";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    // sessionStage_ is null by default → should return early without crash
+    session->NotifyRebindAttachAfterParentChange(100);
+}
+
+/**
+ * @tc.name: NotifyRebindAttachAfterParentChange02
+ * @tc.desc: NotifyRebindAttachAfterParentChange calls sessionStage_ IPC
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, NotifyRebindAttachAfterParentChange02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRebindAttachAfterParentChange02";
+    info.bundleName_ = "NotifyRebindAttachAfterParentChange02";
+    sptr<SubSession> session = sptr<SubSession>::MakeSptr(info, nullptr);
+
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = mockStage;
+
+    EXPECT_CALL(*mockStage, NotifyRebindAttachAfterParentChange(200))
+        .Times(1).WillOnce(testing::Return(WSError::WS_OK));
+
+    session->NotifyRebindAttachAfterParentChange(200);
+}
+
+/**
+ * @tc.name: GetParentSessionRectSync01
+ * @tc.desc: GetParentSessionRectSync with no parent session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, GetParentSessionRectSync01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetParentSessionRectSync01";
+    info.bundleName_ = "GetParentSessionRectSync01";
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->handler_ = nullptr;
+
+    WSRect rect = session->GetParentSessionRectSync();
+    EXPECT_EQ(0, rect.posX_);
+    EXPECT_EQ(0, rect.posY_);
+    EXPECT_EQ(0, rect.width_);
+    EXPECT_EQ(0, rect.height_);
+}
+
+/**
+ * @tc.name: GetParentSessionRectSync02
+ * @tc.desc: GetParentSessionRectSync with parent session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, GetParentSessionRectSync02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetParentSessionRectSync02";
+    info.bundleName_ = "GetParentSessionRectSync02";
+    auto parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    WSRect parentRect = { 100, 200, 800, 600 };
+    parentSession->SetSessionRect(parentRect);
+    parentSession->handler_ = nullptr;
+
+    auto childSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    childSession->parentSession_ = parentSession;
+    childSession->handler_ = nullptr;
+
+    WSRect rect = childSession->GetParentSessionRectSync();
+    EXPECT_EQ(parentRect.posX_, rect.posX_);
+    EXPECT_EQ(parentRect.posY_, rect.posY_);
+    EXPECT_EQ(parentRect.width_, rect.width_);
+    EXPECT_EQ(parentRect.height_, rect.height_);
 }
 
 } // namespace

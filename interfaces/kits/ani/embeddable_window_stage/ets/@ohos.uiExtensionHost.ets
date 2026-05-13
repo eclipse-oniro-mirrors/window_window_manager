@@ -35,7 +35,7 @@ namespace uiExtensionHost {
   const WMS_UIEXT_TAG: string = "WMSUiext";
   const WINDOW_SIZE_CHANGE_CB: string = "windowSizeChange";
   const AVOID_AREA_CHANGE_CB: string = "avoidAreaChange";
-  const enum WmErrorCode {
+  enum WmErrorCode {
     WM_OK = 0,
     WM_ERROR_INVALID_PARAM = 401
   }
