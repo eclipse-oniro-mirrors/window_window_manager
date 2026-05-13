@@ -216,6 +216,8 @@ public:
     ani_object SetSpecificSystemBarEnabled(ani_env* env, ani_string name, ani_boolean enable,
         ani_object enableAnimation);
     ani_object SetDragKeyFramePolicy(ani_env* env, ani_object aniKeyFramePolicy);
+    static void SetSupportedWindowModes(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object aniSupportedWindowModes);
     ani_object Snapshot(ani_env* env);
     ani_object SnapshotSync(ani_env* env);
     void HideNonSystemFloatingWindows(ani_env* env, ani_boolean shouldHide);
@@ -385,6 +387,7 @@ private:
     void OnStartMoving(ani_env* env);
     void OnStartMoveWindowWithCoordinate(ani_env* env, ani_int offsetX, ani_int offsetY);
     void OnStopMoving(ani_env* env);
+    void OnSetSupportedWindowModes(ani_env* env, ani_object aniSupportedWindowModes);
 
     /*
      * Window animation

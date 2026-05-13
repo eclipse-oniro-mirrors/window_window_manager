@@ -60,8 +60,6 @@ public:
     bool IsModal() const override;
     bool IsApplicationModal() const override;
     WSError NotifyMainModalTypeChange(bool isModal) override;
-    WSError NotifySupportWindowModesChange(
-        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     WSError UpdateFlag(const std::string& flag) override;
 
     /*
