@@ -1335,6 +1335,11 @@ void WindowSceneSessionImpl::ResetSuperFoldDisplayY(const std::shared_ptr<MMI::P
                 pointerId, pointerItem.GetDisplayXPos(), pointerItem.GetDisplayYPos());
         }
     }
+    if (MMI::PointerEvent::POINTER_ACTION_AXIS_UPDATE == pointerEvent->GetPointerAction()) {
+        pointerEvent->SetTargetDisplayId(DISPLAY_ID_C);
+        TLOGD(WmsLogTag::WMS_EVENT, "Reset targetDisplayId, InputId:%{public}d, ac:%{public}d", pointerEvent->GetId(),
+            pointerEvent->GetPointerAction());
+    }
 }
 
 void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
