@@ -9950,6 +9950,11 @@ static void SetWindowMaskWithAlphaAsyncTask(wptr<Window> weakToken,
 
 napi_value JsWindow::OnSetWindowMaskWithAlpha(napi_env env, napi_callback_info info)
 {
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "windowToken is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowMaskWithAlpha]msg: The window is not created or destroyed");
+    }
     size_t argc = THREE_PARAMS_SIZE;
     napi_value argv[THREE_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
