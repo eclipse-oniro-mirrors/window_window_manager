@@ -2551,6 +2551,80 @@ HWTEST_F(SceneSessionTest, GetDragDisabledAreas02, TestSize.Level1)
     EXPECT_EQ(result[1], areas[1]);
     EXPECT_EQ(result[2], areas[2]);
 }
+
+/**
+ * @tc.name: OnSessionEventWithCreateWindowWhenDragging01
+ * @tc.desc: Test EVENT_CREATE_WINDOW_WHEN_DRAGGING with null moveDragController
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventWithCreateWindowWhenDragging01";
+    info.bundleName_ = "OnSessionEventWithCreateWindowWhenDragging01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->moveDragController_ = nullptr;
+    SessionEventParam param;
+    auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: OnSessionEventWithCreateWindowWhenDragging02
+ * @tc.desc: Test EVENT_CREATE_WINDOW_WHEN_DRAGGING updates event param with drag position
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventWithCreateWindowWhenDragging02";
+    info.bundleName_ = "OnSessionEventWithCreateWindowWhenDragging02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->InitMoveDragProperty();
+
+    int32_t capturedGlobalPosX = -1;
+    int32_t capturedGlobalPosY = -1;
+    uint32_t capturedEventId = 0;
+    sceneSession->RegisterSessionEventCallback(
+        [&capturedEventId, &capturedGlobalPosX, &capturedGlobalPosY](uint32_t eventId, const SessionEventParam& param) {
+            capturedEventId = eventId;
+            capturedGlobalPosX = param.windowGlobalPosX_;
+            capturedGlobalPosY = param.windowGlobalPosY_;
+        });
+
+    SessionEventParam param;
+    auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(capturedEventId, static_cast<uint32_t>(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING));
+    EXPECT_EQ(capturedGlobalPosX, 0);
+    EXPECT_EQ(capturedGlobalPosY, 0);
+}
+
+/**
+ * @tc.name: OnSessionEventWithCreateWindowWhenDragging03
+ * @tc.desc: Test EVENT_CREATE_WINDOW_WHEN_DRAGGING without registered callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventWithCreateWindowWhenDragging03";
+    info.bundleName_ = "OnSessionEventWithCreateWindowWhenDragging03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->InitMoveDragProperty();
+
+    SessionEventParam param;
+    auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
