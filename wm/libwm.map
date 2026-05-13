@@ -43,7 +43,7 @@
             OHOS::Rosen::FloatingBallController::UpdateFloatingBall*;
             OHOS::Rosen::FloatingBallController::UpdateMainWindow*;
             OHOS::Rosen::FloatingBallManager::IsActiveController*;
-            OHOS::Rosen::FloatingBallManager::IsSupportFloatingBall*;
+            OHOS::Rosen::FloatingBallManager::isSupportFloatingBall_*;
             OHOS::Rosen::FloatingBallManager::RemoveActiveController*;
             OHOS::Rosen::FloatingBallManager::SetActiveController*;
             OHOS::Rosen::FloatingBallController::SetInApplicationVisible*;

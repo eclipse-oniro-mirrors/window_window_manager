@@ -84,7 +84,7 @@ napi_value JsFbWindowManager::NapiSendTask(napi_env env, void* contextPtr)
         if (errCodePtr == nullptr) {
             return;
         }
-        if (!FloatingBallManager::IsSupportFloatingBall()) {
+        if (!FloatingBallManager::isSupportFloatingBall_) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Device is not phone or pad, do not support floating ball");
             *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
@@ -143,14 +143,13 @@ napi_value JsFbWindowManager::IsFbEnabled(napi_env env, napi_callback_info info)
 napi_value JsFbWindowManager::OnIsFbEnabled(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_SYSTEM, "OnIsFbEnabled called");
-    bool isSupportFloatingBall = FloatingBallManager::IsSupportFloatingBall();
-    if (!isSupportFloatingBall) {
+    if (!FloatingBallManager::isSupportFloatingBall_) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED,
                                          WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
     } else {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED, WmErrorCode::WM_OK);
     }
-    return CreateJsValue(env, isSupportFloatingBall);
+    return CreateJsValue(env, FloatingBallManager::isSupportFloatingBall_);
 }
 
 napi_value JsFbWindowManagerInit(napi_env env, napi_value exportObj)

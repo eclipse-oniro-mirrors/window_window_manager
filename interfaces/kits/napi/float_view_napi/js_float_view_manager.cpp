@@ -335,7 +335,7 @@ napi_value JsFloatViewManager::BindTask(napi_env env, const sptr<FloatViewContro
         if (errCodePtr == nullptr) {
             return;
         }
-        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
+        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Device do not support float view");
             *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
@@ -427,7 +427,7 @@ napi_value JsFloatViewManager::UnBindTask(napi_env env, const sptr<FloatViewCont
         if (errCodePtr == nullptr) {
             return;
         }
-        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
+        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Device do not support float view");
             *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_UNBIND, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);

@@ -827,6 +827,7 @@ WMError WindowSessionImpl::Connect()
         RegisterWindowScaleCallback();
     }
     FloatViewManager::isSupportFloatView_ = windowSystemConfig_.supportCreateFloatView_;
+    FloatingBallManager::isSupportFloatingBall_ = windowSystemConfig_.supportCreateFloatingBall_;
     SetAppHookWindowInfo(property_->GetHookWindowInfo());
     return static_cast<WMError>(ret);
 }
