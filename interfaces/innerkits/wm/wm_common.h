@@ -4080,6 +4080,12 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_2_3 = 4,
     // split aspect ratio
     LANDSCAPE_SPLIT = 5,
+    // 3:2 aspect ratio
+    LANDSCAPE_3_2 = 20,
+    // 4:3 aspect ratio
+    LANDSCAPE_4_3 = 21,
+    // 16:9 aspect ratio
+    LANDSCAPE_16_9 = 22,
 };
 
 enum class WindowManagerAgentType : uint32_t {
