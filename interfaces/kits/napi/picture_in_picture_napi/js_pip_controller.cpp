@@ -266,7 +266,8 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnUpdateContentNode") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
             "[PiPWindow][updateContentNode]msg: Send event failed"));
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
+            WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, WmErrorCode::WM_OK);
     return result;
