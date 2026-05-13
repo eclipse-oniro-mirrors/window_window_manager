@@ -89,7 +89,7 @@ WMError WindowProxy::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
         WLOGFE("Write windowMode failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    if (!data.WriteInt32(static_cast<int32_t>(windowModeInfo.splitStyle))) {
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.splitStyle))) {
         WLOGFE("Write splitStyle failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }

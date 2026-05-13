@@ -96,8 +96,8 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 return ERR_INVALID_DATA;
             }
             windowModeInfo.windowMode = static_cast<WindowMode>(windowMode);
-            int32_t splitStyle = 0;
-            if (!data.ReadInt32(splitStyle)) {
+            uint32_t splitStyle = 0;
+            if (!data.ReadUint32(splitStyle)) {
                 TLOGE(WmsLogTag::WMS_LAYOUT, "read splitStyle failed");
                 return ERR_INVALID_DATA;
             }

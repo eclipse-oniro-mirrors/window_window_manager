@@ -23,10 +23,10 @@
 
 #include "js_window_animation_utils.h"
 #include "property/rs_properties_def.h"
-#include "window_helper.h"
 #include "root_scene.h"
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "window_visibility_info.h"
 #include "process_options.h"
@@ -1755,12 +1755,12 @@ bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo&
     napi_value splitStyleValue = nullptr;
     napi_get_named_property(env, value, "splitStyle", &splitStyleValue);
     if (GetType(env, splitStyleValue) != napi_undefined) {
-        int32_t splitStyle = 0;
+        uint32_t splitStyle = 0;
         if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
-            if (splitStyle >= 0 && splitStyle <= static_cast<int32_t>(SplitStyle::THREE_WINDOW_HORIZONTAL)) {
+            if (splitStyle <= static_cast<uint32_t>(SplitStyle::THREE_WINDOW_HORIZONTAL)) {
                 windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
             } else {
-                TLOGE(WmsLogTag::WMS_LAYOUT, "invalid splitStyle: %{public}d", splitStyle);
+                TLOGE(WmsLogTag::WMS_LAYOUT, "invalid splitStyle: %{public}u", splitStyle);
             }
         } else {
             TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert splitStyle");

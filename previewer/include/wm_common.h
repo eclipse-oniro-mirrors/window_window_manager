@@ -209,7 +209,7 @@ enum class SplitRatioPreference : int32_t {
 /**
  * @brief Enumerates split style of window.
  */
-enum class SplitStyle : int32_t {
+enum class SplitStyle : uint32_t {
     TWO_WINDOW_HORIZONTAL = 0,
     TWO_WINDOW_VERTICAL,
     THREE_WINDOW_HORIZONTAL,

@@ -644,11 +644,17 @@ int SessionStageStub::HandleNotifySecureLimitChange(MessageParcel& data, Message
 
 int SessionStageStub::HandleUpdateWindowMode(MessageParcel& data, MessageParcel& reply)
 {
-    WLOGFD("HandleUpdateWindowMode!");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "HandleUpdateWindowMode!");
     WindowModeInfo windowModeInfo;
-    windowModeInfo.windowMode = static_cast<WindowMode>(data.ReadUint32());
-    windowModeInfo.splitStyle = static_cast<SplitStyle>(data.ReadInt32());
-    windowModeInfo.splitIndex = data.ReadInt32();
+    uint32_t windowMode = 0;
+    data.ReadUint32(windowMode);
+    windowModeInfo.windowMode = static_cast<WindowMode>(windowMode);
+    uint32_t splitStyle = 0;
+    data.ReadUint32(splitStyle);
+    windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+    int32_t splitIndex = 0;
+    data.ReadInt32(splitIndex);
+    windowModeInfo.splitIndex = splitIndex;
     WSError errCode = UpdateWindowMode(windowModeInfo);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
