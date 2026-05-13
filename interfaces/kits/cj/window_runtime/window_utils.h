@@ -211,7 +211,8 @@ enum class ApiWindowMode : uint32_t {
     PRIMARY,
     SECONDARY,
     FLOATING,
-    MODE_END = FLOATING
+    SPLIT,
+    MODE_END = SPLIT
 };
 
 const std::map<ApiWindowMode, WindowMode> CJ_TO_NATIVE_WINDOW_MODE_MAP {
@@ -220,6 +221,7 @@ const std::map<ApiWindowMode, WindowMode> CJ_TO_NATIVE_WINDOW_MODE_MAP {
     {ApiWindowMode::PRIMARY,    WindowMode::WINDOW_MODE_SPLIT_PRIMARY   },
     {ApiWindowMode::SECONDARY,  WindowMode::WINDOW_MODE_SPLIT_SECONDARY },
     {ApiWindowMode::FLOATING,   WindowMode::WINDOW_MODE_FLOATING        },
+    {ApiWindowMode::SPLIT,      WindowMode::WINDOW_MODE_SPLIT,          },
 };
 
 const std::map<WindowType, ApiWindowType> CJ_TO_WINDOW_TYPE_MAP {

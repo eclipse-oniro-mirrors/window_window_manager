@@ -328,6 +328,54 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediately, TestSize.Leve
 }
 
 /**
+ * @tc.name: UpdateWindowModeImmediatelySplitMaximizeMode
+ * @tc.desc: Verify UpdateWindowModeImmediately restores MaximizeMode to MODE_RECOVER in SPLIT mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediatelySplitMaximizeMode, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateWindowModeImmediatelySplitMaximizeMode");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "SplitMaxModeTestBundle", "SplitMaxModeTestModule", "SplitMaxModeTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    window->hostSession_ = session;
+
+    // Set window to SHOWN state with a non-RECOVER maximize mode
+    window->state_ = WindowState::STATE_SHOWN;
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    ASSERT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+
+    // SPLIT_PRIMARY should restore maximize mode to MODE_RECOVER
+    WindowModeInfo splitPrimaryInfo = { WindowMode::WINDOW_MODE_SPLIT_PRIMARY };
+    auto ret = window->UpdateWindowModeImmediately(splitPrimaryInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
+
+    // Set to non-split mode — maximize mode should NOT be changed
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    WindowModeInfo floatingInfo = { WindowMode::WINDOW_MODE_FLOATING };
+    ret = window->UpdateWindowModeImmediately(floatingInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+
+    // SPLIT_SECONDARY should also restore maximize mode
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_FULL_FILL);
+    WindowModeInfo splitSecondaryInfo = { WindowMode::WINDOW_MODE_SPLIT_SECONDARY };
+    ret = window->UpdateWindowModeImmediately(splitSecondaryInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
+
+    // WINDOW_MODE_SPLIT (generic) should also restore maximize mode
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_FULL_FILL);
+    WindowModeInfo splitGenericInfo = { WindowMode::WINDOW_MODE_SPLIT };
+    ret = window->UpdateWindowModeImmediately(splitGenericInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
+}
+
+/**
  * @tc.name: AdjustWindowAnimationFlag
  * @tc.desc: AdjustWindowAnimationFlag
  * @tc.type: FUNC
@@ -1348,6 +1396,100 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode03, TestSize.Level1)
     subWindow->property_->SetWindowModeSupportType(1);
     auto ret = subWindow->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode04
+ * @tc.desc: SetWindowMode with WINDOW_MODE_SPLIT_PRIMARY triggers EVENT_SPLIT_PRIMARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1008);
+    SessionInfo sessionInfo = { "SetWindowMode04Bundle", "SetWindowMode04Module", "SetWindowMode04Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SPLIT_PRIMARY, _))
+        .Times(1)
+        .WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode05
+ * @tc.desc: SetWindowMode with WINDOW_MODE_SPLIT_SECONDARY triggers EVENT_SPLIT_SECONDARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode05");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1009);
+    SessionInfo sessionInfo = { "SetWindowMode05Bundle", "SetWindowMode05Module", "SetWindowMode05Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_SECONDARY | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SPLIT_SECONDARY, _))
+        .Times(1)
+        .WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode06
+ * @tc.desc: SetWindowMode with WINDOW_MODE_SPLIT triggers EVENT_SPLIT_PRIMARY (PC scenario)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode06");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1010);
+    SessionInfo sessionInfo = { "SetWindowMode06Bundle", "SetWindowMode06Module", "SetWindowMode06Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SPLIT_PRIMARY, _))
+        .Times(1)
+        .WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode07
+ * @tc.desc: SetWindowMode with FULLSCREEN does not trigger split events
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode07");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1011);
+    SessionInfo sessionInfo = { "SetWindowMode07Bundle", "SetWindowMode07Module", "SetWindowMode07Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    // OnSessionEvent should NOT be called for FULLSCREEN mode
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    EXPECT_EQ(WMError::WM_OK, ret);
 }
 
 /**

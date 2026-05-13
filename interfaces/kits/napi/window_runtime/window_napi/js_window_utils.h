@@ -125,7 +125,7 @@ enum class ApiWindowMode : uint32_t {
     SECONDARY,
     FLOATING,
     SPLIT,
-    MODE_END = FLOATING
+    MODE_END = SPLIT
 };
 
 extern const std::map<WindowMode, ApiWindowMode> NATIVE_TO_JS_WINDOW_MODE_MAP;

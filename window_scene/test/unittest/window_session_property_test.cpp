@@ -2712,6 +2712,101 @@ HWTEST_F(WindowSessionPropertyTest, MarshallingUnmarshallingWithHookWindowInfo, 
     ASSERT_EQ(targetProperty->GetHookWindowInfo().drawableRectHook, true);
     ASSERT_EQ(targetProperty->GetForceSplitEnable(), true);
 }
+
+/**
+ * @tc.name: GetWindowModeCompat001
+ * @tc.desc: Non-SPLIT mode returns original window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat001, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_FULLSCREEN);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_FLOATING);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat002
+ * @tc.desc: SPLIT mode with TWO_WINDOW_HORIZONTAL and PRIMARY index maps to SPLIT_PRIMARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat002, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = SPLIT_INDEX_PRIMARY;
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat003
+ * @tc.desc: SPLIT mode with TWO_WINDOW_VERTICAL and SECONDARY index maps to SPLIT_SECONDARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat003, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_VERTICAL;
+    splitInfo.splitIndex = SPLIT_INDEX_SECONDARY;
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat004
+ * @tc.desc: SPLIT mode with non-TWO_WINDOW style returns original mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat004, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::THREE_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = SPLIT_INDEX_PRIMARY;
+    property->SetWindowModeInfo(splitInfo);
+    // THREE_WINDOW_HORIZONTAL is not TWO_WINDOW_HORIZONTAL/VERTICAL, return original
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat005
+ * @tc.desc: SPLIT mode with invalid splitIndex returns original mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat005, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = 99; // Invalid index
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

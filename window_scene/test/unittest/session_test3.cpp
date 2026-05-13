@@ -1301,6 +1301,119 @@ HWTEST_F(WindowSessionTest3, NotifyClick1, TestSize.Level1)
     EXPECT_EQ(callbackCount, 1);
 }
 
+/**
+ * @tc.name: UpdateWindowModeWithSplitGravity
+ * @tc.desc: Verify UpdateWindowMode sets correct gravity for SPLIT modes under PC window config
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, UpdateWindowModeWithSplitGravity, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session_->sessionStage_ = mockSessionStage;
+    session_->state_ = SessionState::STATE_CONNECT;
+
+    // WINDOW_MODE_SPLIT_PRIMARY should trigger gravity LEFT via UpdateGravityWhenUpdateWindowMode
+    auto result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(session_->property_->maximizeMode_, MaximizeMode::MODE_RECOVER);
+
+    // WINDOW_MODE_SPLIT_SECONDARY should trigger gravity RIGHT
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_SECONDARY });
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(session_->property_->maximizeMode_, MaximizeMode::MODE_RECOVER);
+}
+
+/**
+ * @tc.name: UpdateWindowModeWithGenericSplitGravity
+ * @tc.desc: Verify WINDOW_MODE_SPLIT uses SPLIT_PRIMARY behavior (gravity LEFT) in PC scenario
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, UpdateWindowModeWithGenericSplitGravity, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session_->sessionStage_ = mockSessionStage;
+    session_->state_ = SessionState::STATE_CONNECT;
+
+    // WINDOW_MODE_SPLIT (generic) should also set maximizeMode to RECOVER and use LEFT gravity
+    auto result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT });
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(session_->property_->maximizeMode_, MaximizeMode::MODE_RECOVER);
+}
+
+/**
+ * @tc.name: UpdateWindowModeWithFloatingGravity
+ * @tc.desc: Verify FLOATING and FULLSCREEN modes use RESIZE gravity under PC window config
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, UpdateWindowModeWithFloatingGravity, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session_->sessionStage_ = mockSessionStage;
+    session_->state_ = SessionState::STATE_CONNECT;
+
+    // FLOATING mode should set gravity to RESIZE
+    auto result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    // FULLSCREEN mode should set gravity to RESIZE
+    result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateWindowModeNonPCNoGravity
+ * @tc.desc: Verify gravity is not set for non-PC, non-free-multi-window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, UpdateWindowModeNonPCNoGravity, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    // Phone window — gravity should NOT be applied
+    session_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session_->systemConfig_.freeMultiWindowEnable_ = false;
+    session_->systemConfig_.freeMultiWindowSupport_ = false;
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session_->sessionStage_ = mockSessionStage;
+    session_->state_ = SessionState::STATE_CONNECT;
+
+    // Should still succeed without crash even though gravity is skipped
+    auto result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(session_->property_->maximizeMode_, MaximizeMode::MODE_RECOVER);
+}
+
+/**
+ * @tc.name: UpdateWindowModeSplitMaximizeModeRestore
+ * @tc.desc: Verify all split modes restore MaximizeMode to MODE_RECOVER
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest3, UpdateWindowModeSplitMaximizeModeRestore, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, mockSessionStage);
+    session_->sessionStage_ = mockSessionStage;
+    session_->state_ = SessionState::STATE_CONNECT;
+
+    // Set a non-RECOVER maximize mode first
+    session_->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+
+    // WINDOW_MODE_SPLIT should restore to MODE_RECOVER
+    auto result = session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT });
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(session_->property_->maximizeMode_, MaximizeMode::MODE_RECOVER);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
