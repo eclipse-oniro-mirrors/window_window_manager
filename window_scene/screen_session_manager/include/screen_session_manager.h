@@ -505,8 +505,6 @@ public:
     void SwitchScrollParam(FoldDisplayMode displayMode);
     void OnScreenChange(ScreenId screenId, ScreenEvent screenEvent,
         ScreenChangeReason reason = ScreenChangeReason::DEFAULT, sptr<IRemoteObject> connectToRenderToken = nullptr);
-    void OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent,
-        ScreenChangeReason reason = ScreenChangeReason::DEFAULT, sptr<IRemoteObject> connectToRenderToken = nullptr);
     void OnScreenChangeDefault(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason,
         sptr<IRemoteObject> connectToRenderToken = nullptr);
     void OnScreenChangeForPC(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason,
@@ -735,6 +733,8 @@ private:
     void RecoverScreenActiveMode(ScreenId rsScreenId);
     void CheckAndNotifyRefreshRate(uint32_t refreshRate, sptr<ScreenSession> updateScreenSession);
     void CheckAndNotifyChangeMode(const RRect& bounds, sptr<ScreenSession> updateScreenSession);
+    void WaitForDefaultDisplayReady();
+    void ClearAllVirtualScreens();
     void CreateScreenForBoot();
     sptr<ScreenSession> CreateDefaultVirtualScreen(ScreenSessionReason reason);
     int32_t CountRealPhysicalScreens();

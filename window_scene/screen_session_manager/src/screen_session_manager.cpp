@@ -174,6 +174,7 @@ constexpr uint32_t ONE_K_HEIGHT = 1080;
 constexpr uint32_t DEFAULT_PHY_WIDTH = 530;
 constexpr uint32_t DEFAULT_PHY_HEIGHT = 290;
 constexpr uint32_t DEFAULT_ONE_K_DENSITY = 1;
+constexpr uint32_t WAIT_FOR_DEFAULT_DISPLAY_TIMEOUT_MS = 10000; 
 
 const int32_t ROTATE_POLICY = system::GetIntParameter("const.window.device.rotate_policy", 0);
 const int32_t DESKTOPPCTYPE = system::GetIntParameter("const.product.has_buildin_screen", 1);
@@ -639,8 +640,31 @@ void ScreenSessionManager::Init()
     }
     ScreenSessionPublish::GetInstance().InitPublishEvents();
     screenEventTracker_.RecordEvent("Dms init end.");
-    CreateScreenForBoot();
+    WaitForDefaultDisplayReady();
 }
+
+void ScreenSessionManager::WaitForDefaultDisplayReady()
+{
+    if (HasInternalScreen()) {
+        TLOGNFI(WmsLogTag::DMS, "has build in screen, no need to wait");
+        return;
+    }
+    auto timeout = std::chrono::milliseconds(WAIT_FOR_DEFAULT_DISPLAY_TIMEOUT_MS);
+    auto startTime = std::chrono::steady_clock::now();
+    TLOGNFI(WmsLogTag::DMS, "waiting for physical screen to be detected");
+    while (!HasRealScreenConnect() && virtualScreenCount_ == 0 && !g_isVirtualScreenBoot) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime);
+        
+        if (elapsed >= timeout) {
+            TLOGNFW(WmsLogTag::DMS, "timeout waiting for default display");
+            OnScreenChange(INVALID_SCREEN_ID ,ScreenEvent::CONNECTED);
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } 
+}
+
 
 void ScreenSessionManager::CreateScreenForBoot()
 {
@@ -1629,34 +1653,43 @@ void ScreenSessionManager::SetRogToRs(ScreenId screenId, const RogResolution& ro
     }
 }
 
+void ScreenSessionManager::ClearAllVirtualScreens()
+{
+    TLOGNFI(WmsLogTag::DMS, "Enter");
+    std::map<ScreenId, sptr<ScreenSession>> screenSessionMap;
+    {
+        std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+        screenSessionMap = screenSessionMap_;
+    }
+    for (const auto& sessionIt : screenSessionMap) {
+        sptr<ScreenSession> screenSession = sessionIt.second;
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr, ScreenId: %{public}" PRIu64,
+                sessionIt.first);
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+            DestroyVirtualScreen(screenSession->GetScreenId());
+            TLOGNFI(WmsLogTag::DMS, "destory screenId: %{public}" PRIu64, screenSession->GetScreenId());
+        }
+    }
+}
+
 void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason,
     sptr<IRemoteObject> connectToRenderToken)
 {
- 	if (screenEvent == ScreenEvent::DISCONNECTED) {
- 	    auto screenSession = GetScreenSessionByRsId(screenId);
- 	    if (screenSession != nullptr && screenSession->GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
- 	        OnScreenChangeInner(screenId, screenEvent, reason, connectToRenderToken);
- 	        return;
- 	    }
- 	}
- 	if (!IsDefaultMirrorMode(screenId)) {
- 	    OnScreenChangeInner(screenId, screenEvent, reason, connectToRenderToken);
- 	    return;
- 	}
- 	auto task = [=] {
- 	    screenConnectTaskStage_ = SCREEN_CONNECT_STAGE_DEFAULT;
- 	    OnScreenChangeInner(screenId, screenEvent, reason, connectToRenderToken);
-        if (screenConnectTaskStage_ == SCREEN_CONNECT_STAGE_DEFAULT) {
-            TLOGNFW(WmsLogTag::DMS, "Screen connect task is interrupted");
-            screenConnectTaskGroup_->FinishTask();
+    if(screenId == INVALID_SCREEN_ID && screenEvent == ScreenEvent::CONNECTED) {
+        if (!g_isVirtualScreenBoot && reason == ScreenChangeReason::DEFAULT){
+            TLOGNFW(WmsLogTag::DMS, "manual active CreateScreenForBoot");
+            CreateScreenForBoot();
         }
-    };
- 	screenConnectTaskGroup_->AddTask(task);
-}
-
-void ScreenSessionManager::OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason,
-    sptr<IRemoteObject> connectToRenderToken)
-{
+        if (reason == ScreenChangeReason::HWCDEAD){
+            ClearAllVirtualScreens();
+            g_isVirtualScreenBoot = false;
+            CreateScreenForBoot();
+            return;
+        }
+    } 
     if (reason == ScreenChangeReason::HWCDEAD && screenEvent == ScreenEvent::DISCONNECTED) {
         TLOGNFW(WmsLogTag::DMS, "composer dead, ignore");
         return;
