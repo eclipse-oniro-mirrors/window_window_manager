@@ -671,19 +671,7 @@ void ScreenSessionManager::CreateScreenForBoot()
 
 sptr<ScreenSession> ScreenSessionManager::CreateDefaultVirtualScreen(ScreenSessionReason reason)
 {
-    sptr<IConsumerSurface> csurface_ = nullptr; // consumer surface
     sptr<Surface> psurface_ = nullptr; // producer surface
-    csurface_ = IConsumerSurface::Create();
-    if (csurface_ == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "csurface create failed");
-        return nullptr;
-    }
-    auto psurface = csurface_->GetProducer();
-    psurface_ = Surface::CreateSurfaceAsProducer(psurface);
-    if (psurface_ == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "psurface create failed");
-        return nullptr;
-    }
     ScreenId defaultRSScreenId = rsInterface_.CreateVirtualScreen("PCVirtualScreen", ONE_K_WIDTH,
         ONE_K_HEIGHT, psurface_, SCREEN_ID_INVALID, 0, {});
     if (defaultRSScreenId == SCREEN_ID_INVALID) {
