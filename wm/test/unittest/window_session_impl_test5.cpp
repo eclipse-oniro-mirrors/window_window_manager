@@ -2283,7 +2283,7 @@ HWTEST_F(WindowSessionImplTest5, TestNotifyGlobalDisplayRectChange, TestSize.Lev
     {
         std::lock_guard<std::mutex> lock(window->rectChangeInGlobalDisplayListenerMutex_);
         window->rectChangeInGlobalDisplayListeners_[window->GetPersistentId()] = {
-            listener1, nullListener, listener2
+            {listener1, false}, {nullListener, false}, {listener2, false}
         };
     }
 

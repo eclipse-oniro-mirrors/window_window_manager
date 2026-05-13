@@ -2003,9 +2003,9 @@ WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
 }
 
 WMError WindowManager::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-    const WindowInfoOptions& option) const
+    const WindowInfoOptions& option, bool useHookedSize) const
 {
-    WMError ret = WindowAdapter::GetInstance(userId_).GetAllWindowLayoutInfo(displayId, infos, option);
+    WMError ret = WindowAdapter::GetInstance(userId_).GetAllWindowLayoutInfo(displayId, infos, option, useHookedSize);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed");
     }
@@ -2069,9 +2069,10 @@ WMError WindowManager::CleanScreenWatermarkImage(const std::shared_ptr<Media::Pi
     return WindowAdapter::GetInstance(userId_).CleanScreenWatermarkImage(pixelMap);
 }
 
-WMError WindowManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const
+WMError WindowManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize) const
 {
-    WMError ret = WindowAdapter::GetInstance(userId_).GetVisibilityWindowInfo(infos);
+    WMError ret = WindowAdapter::GetInstance(userId_).GetVisibilityWindowInfo(infos, useHookedSize);
     if (ret != WMError::WM_OK) {
         WLOGFE("get window visibility info failed");
     }
