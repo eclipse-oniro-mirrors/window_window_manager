@@ -3984,7 +3984,8 @@ void Session::NotifySessionStateChange(const SessionState& state)
             session->keyboardStateChangeFunc_) {
             const sptr<WindowSessionProperty>& property = session->GetSessionProperty();
             session->keyboardStateChangeFunc_(
-                state, property->GetKeyboardEffectOption(), property->GetCallingSessionId(), property->GetDisplayId());
+                state, property->GetKeyboardEffectOption(), property->GetCallingSessionId(),
+                property->GetKeyboardTargetDisplayId());
         } else if (session->sessionStateChangeFunc_) {
             session->sessionStateChangeFunc_(state);
         } else {

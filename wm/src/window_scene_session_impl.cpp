@@ -2300,7 +2300,7 @@ WMError WindowSceneSessionImpl::ShowKeyboard(
     property_->SetKeyboardEffectOption(effectOption);
     if (property_->GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_STATUS_BAR) {
         property_->SetCallingSessionId(callingWindowId);
-        property_->SetDisplayId(tgtDisplayId);
+        property_->SetKeyboardTargetDisplayId(tgtDisplayId);
     }
     return Show();
 }
