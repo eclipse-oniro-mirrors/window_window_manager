@@ -110,7 +110,7 @@ export default namespace floatingBall {
   }
 
   export native function fbControllerFinalizerCallback(nativeObj: long): void;
-  let fbControllerFinalizerRegister = new FinalizationRegistry<long>(fbControllerFinalizerCallback);
+  let fbControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(fbControllerFinalizerCallback);
 
   export class FbControllerInternal implements FloatingBallController {
     private nativeObj: long = 0;
