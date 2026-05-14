@@ -16,7 +16,8 @@
 #include "screen_session_manager/include/screen_session_manager.h"
 
 #include <csignal>
-#include <charconv>
+#include <cerrno>
+#include <cstdlib>
 #include <cstdint>
 #include <ctime>
 #include <iomanip>
@@ -5155,9 +5156,10 @@ static std::vector<int> GetDeviceRadiusFormConfig(float dpi)
     std::string radiusStr(REAL_DEVICE_RADIUS);
     std::vector<std::string> radius = FoldScreenStateInternel::StringSplit(radiusStr, ',');
     for (const auto& item : radius) {
-        float value = 0.0f;
-        auto [ptr, ec] = std::from_chars(item.data(), item.data() + item.size(), value);
-        if (ec != std::errc() || ptr != item.data() + item.size()) {
+        char* end = nullptr;
+        errno = 0;
+        float value = std::strtof(item.c_str(), &end);
+        if (end == item.c_str() || end != item.c_str() + item.size() || errno == ERANGE) {
             TLOGNW(WmsLogTag::DMS, "Invalid radius value: %{public}s", item.c_str());
             break;
         }
