@@ -43,7 +43,6 @@ namespace {
     const char* ARKUI_WINDOW_PIP_ONISPIPACTIVE = "ArkUI.window.pip.onIsPiPActive";
     const char* ARKUI_WINDOW_PIP_ONREGISTERCALLBACK = "ArkUI.window.pip.onRegisterCallback";
     const char* ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK = "ArkUI.window.pip.onUnregisterCallback";
-    const char* ARKUI_WINDOW_PIP_ISPIPSUPPORTED = "ArkUI.window.pip.isPiPSupported";
 }
 
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
@@ -877,7 +876,6 @@ napi_value JsPipController::OnPictureInPicturePossible(napi_env env, napi_callba
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
             "PiP internal error."));
         TLOGE(WmsLogTag::WMS_PIP, "error, controller is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ISPIPSUPPORTED, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
         return CreateJsValue(env, isPiPSupported);
     }
     pipController_->GetPipPossible(isPiPSupported);
