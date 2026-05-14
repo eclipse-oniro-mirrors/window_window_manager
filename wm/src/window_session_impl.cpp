@@ -1190,6 +1190,8 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d Destroy, state:%{public}u, needNotifyServer:%{public}d, "
         "needClearListener:%{public}d, reason:%{public}u", GetPersistentId(), state_, needNotifyServer,
         needClearListener, reason);
+    surfaceNode_ = nullptr;
+    RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
     if (IsWindowSessionInvalid()) {
         WLOGFW("session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
