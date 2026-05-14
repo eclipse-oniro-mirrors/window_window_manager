@@ -16541,5 +16541,35 @@ std::shared_ptr<RSUIContext> ScreenSessionManager::GetRsUIContextByScreenId(Scre
     }
     return screenSession->GetRSUIContext();
 }
+
+DMError ScreenSessionManager::GetScreenCapability(ScreenId screenId, ScreenCapability& capability)
+{
+#ifdef WM_MULTI_SCREEN_ENABLE
+    TLOGNFI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64, screenId);
+    if (screenId == SCREEN_ID_INVALID) {
+        TLOGNFE(WmsLogTag::DMS, "screenId invalid");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "screensession is null");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+ 
+    struct BaseEdid edid;
+    ScreenId rsScreenId = screenIdManager_.ConvertToRsScreenId(screenSession->GetScreenId());
+    if (GetEdid(rsScreenId, edid)) {
+        capability.colorBitDepth_ = edid.bitsPerPrimaryColor_;
+    } else {
+        TLOGW(WmsLogTag::DMS, "GetEdid failed, bpc remains 0.");
+    }
+    screenSession->GetScreenCapability(capability);
+    TLOGI(WmsLogTag::DMS, "GetScreenCapability success. screenId %{public}" PRIu64 ", "
+        "width %{public}u, height %{public}u, interfaceType %{public}u, colorBitDepth %{public}u",
+        screenId, capability.phyWidth_, capability.phyHeight_, 
+        static_cast<uint32_t>(capability.interfaceType_), capability.colorBitDepth_);
+#endif
+    return DMError::DM_OK;
+}
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen

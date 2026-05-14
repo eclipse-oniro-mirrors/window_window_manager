@@ -179,6 +179,11 @@ public:
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type) { return DMError::DM_OK; }
     virtual DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,

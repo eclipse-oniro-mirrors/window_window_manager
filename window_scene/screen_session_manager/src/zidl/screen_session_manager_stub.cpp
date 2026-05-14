@@ -1715,6 +1715,12 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY: {
+            if (!ProcGetScreenCapability(data, reply)) {
+                return ERR_INVALID_DATA;
+            }
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1973,5 +1979,37 @@ IPCPriority ScreenSessionManagerStub::GetIPCPriority(uint32_t code)
         return IPCPriority::LOW;
     }
     return it->second;
+}
+
+bool ScreenSessionManagerStub::ProcGetScreenCapability(MessageParcel& data, MessageParcel& reply)
+{
+    ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+    ScreenCapability capability;
+    DMError ret = GetScreenCapability(screenId, capability);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::DMS, "Write ret failed.");
+        return false;
+    }
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "Ret %{public}d", static_cast<int32_t>(ret));
+        return true;
+    }
+    if (!reply.WriteUint32(capability.phyWidth_)) {
+        TLOGE(WmsLogTag::DMS, "Write phyWidth failed.");
+        return false;
+    }
+    if (!reply.WriteUint32(capability.phyHeight_)) {
+        TLOGE(WmsLogTag::DMS, "Write phyHeight failed.");
+        return false;
+    }
+    if (!reply.WriteUint32(capability.interfaceType_)) {
+        TLOGE(WmsLogTag::DMS, "Write interfaceType failed.");
+        return false;
+    }
+    if (!reply.WriteUint8(capability.colorBitDepth_)) {
+        TLOGE(WmsLogTag::DMS, "Write colorBitDepth failed.");
+        return false;
+    }
+    return true;
 }
 } // namespace OHOS::Rosen

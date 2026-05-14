@@ -5427,4 +5427,39 @@ DMError ScreenSessionManagerProxy::SyncScreenPropertyChangedToServer(ScreenId sc
     }
     return static_cast<DMError>(ret);
 }
+
+DMError ScreenSessionManagerProxy::GetScreenCapability(ScreenId screenId, ScreenCapability& capability)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+ 
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGW(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(screenId))) {
+        TLOGW(WmsLogTag::DMS, "WriteUint64 screenId failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    DMError ret = static_cast<DMError>(reply.ReadInt32());
+    if (ret != DMError::DM_OK) {
+        return ret;
+    }
+    capability.phyWidth_ = static_cast<uint32_t>(reply.ReadUint32());
+    capability.phyHeight_ = static_cast<uint32_t>(reply.ReadUint32());
+    capability.interfaceType_ = static_cast<ScreenInterfaceType>(reply.ReadUint32());
+    capability.colorBitDepth_ = static_cast<uint8_t>(reply.ReadUint8());
+    return ret;
+}
 } // namespace OHOS::Rosen

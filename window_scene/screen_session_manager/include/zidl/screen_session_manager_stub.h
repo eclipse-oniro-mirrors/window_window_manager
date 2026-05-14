@@ -49,6 +49,7 @@ private:
     void ProcSetPrimaryDisplaySystemDpi(MessageParcel& data, MessageParcel& reply);
     void ProcSetVirtualScreenAutoRotation(MessageParcel& data, MessageParcel& reply);
     IPCPriority GetIPCPriority(uint32_t code);
+    bool ProcGetScreenCapability(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace Rosen
 } // namespace OHOS
