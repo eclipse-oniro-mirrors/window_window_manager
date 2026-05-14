@@ -1935,7 +1935,6 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionFromBlackListInfoSet01, TestSize
     ssm_->sessionRSBlackListConfigSet_.clear();
     ssm_->sessionBlackListInfoMap_.clear();
 }
-
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
