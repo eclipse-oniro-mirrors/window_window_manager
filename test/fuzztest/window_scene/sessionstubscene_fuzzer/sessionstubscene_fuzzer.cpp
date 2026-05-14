@@ -131,6 +131,22 @@ void SessionStubTestSetCode(sptr<Session> sessionStub, MessageParcel& parcel)
     return;
 }
 
+void SessionStubTestCompatibleMode(sptr<Session> sessionStub, MessageParcel& parcel)
+{
+    MessageParcel reply;
+    MessageOption option;
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>(Rosen::SessionInterfaceCode::TRANS_ID_GET_SELECT_MODE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(
+        static_cast<uint32_t>(Rosen::SessionInterfaceCode::TRANS_ID_NOTIFY_SPLIT_RATIO_CHANGED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>(Rosen::SessionInterfaceCode::TRANS_ID_NOTIFY_PAGE_ENABLE),
+        parcel, reply, option);
+}
+
 bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
 {
     if (data == nullptr || size < DATA_MIN_SIZE) {
@@ -152,6 +168,7 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
 
     SessionStubTestUpdateCode(sessionStub, parcel);
     SessionStubTestSetCode(sessionStub, parcel);
+    SessionStubTestCompatibleMode(sessionStub, parcel);
     return true;
 }
 } // namespace.OHOS

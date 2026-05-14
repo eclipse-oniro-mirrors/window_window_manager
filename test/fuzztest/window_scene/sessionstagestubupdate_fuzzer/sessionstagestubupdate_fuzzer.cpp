@@ -82,6 +82,9 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_FOLLOW_HOST),
         parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_APP_HOOK_WINDOW_INFO),
+        parcel, reply, option);
     return true;
 }
 } // namespace OHOS
