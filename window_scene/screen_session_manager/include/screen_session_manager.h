@@ -366,6 +366,8 @@ public:
     bool GetIsOuterOnlyModeBeforePowerOff();
     void SetIsOuterOnlyModeBeforePowerOff(bool isOuterOnlyModeBeforePowerOff);
     void OnVerticalChangeBoundsWhenSwitchUser(sptr<ScreenSession>& screenSession, FoldDisplayMode oldScbDisplayMode);
+    void HandleFoldStatusChangeWhenSwitchUser(sptr<ScreenSession>& screenSession, FoldDisplayMode oldScbDisplayMode);
+    void HandleMotionSensorRotationWhenSwitchUser(sptr<ScreenSession>& screenSession);
 
     bool SetScreenPower(ScreenPowerStatus status, PowerStateChangeReason reason);
     void SetScreenPowerForFold(ScreenPowerStatus status);

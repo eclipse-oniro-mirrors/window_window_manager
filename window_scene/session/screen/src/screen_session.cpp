@@ -1180,7 +1180,7 @@ void ScreenSession::SmartSensorRotationChange(float sensorRotation, bool isSwitc
     }
     for (auto& listener : screenChangeListenerList_) {
         if (!listener) {
-            TLOGE(WmsLogTag::DMS, "screenChangeListener is null.");
+            TLOGE(WmsLogTag::WMS_ROTATION, "screenChangeListener is null.");
             continue;
         }
         listener->OnSmartSensorRotationChange(sensorRotation, screenId_, isSwitchUser);

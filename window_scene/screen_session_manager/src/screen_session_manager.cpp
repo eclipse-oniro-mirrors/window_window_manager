@@ -11705,10 +11705,10 @@ void ScreenSessionManager::OnPowerStatusChange(DisplayPowerEvent event, EventSta
 
 void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser)
 {
-    TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " sensorRotation: %{public}f", screenId, sensorRotation);
+    TLOGNFI(WmsLogTag::WMS_ROTATION, "screenId: %{public}" PRIu64 " sensorRotation: %{public}f", screenId, sensorRotation);
     auto clientProxy = GetClientProxy();
     if (!clientProxy) {
-        TLOGNFI(WmsLogTag::DMS, "clientProxy_ is null");
+        TLOGNFI(WmsLogTag::WMS_ROTATION, "clientProxy_ is null");
         return;
     }
     clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
@@ -11716,11 +11716,11 @@ void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId
 
 void ScreenSessionManager::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser)
 {
-    TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " smartSensorRotation: %{public}f isSwitchUser: %{public}d",
+    TLOGNFI(WmsLogTag::WMS_ROTATION, "screenId: %{public}" PRIu64 " smartSensorRotation: %{public}f isSwitchUser: %{public}d",
         screenId, sensorRotation, isSwitchUser);
     auto clientProxy = GetClientProxy();
     if (!clientProxy) {
-        TLOGNFI(WmsLogTag::DMS, "clientProxy_ is null");
+        TLOGNFI(WmsLogTag::WMS_ROTATION, "clientProxy_ is null");
         return;
     }
     clientProxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
@@ -11953,6 +11953,78 @@ FoldDisplayMode ScreenSessionManager::FindPidInDisplayModeMap(int32_t newScbPid)
     return oldScbDisplayMode;
 }
 
+void ScreenSessionManager::HandleFoldStatusChangeWhenSwitchUser(
+    sptr<ScreenSession>& screenSession, FoldDisplayMode oldScbDisplayMode)
+{
+#ifdef WM_MULTI_USR_ABILITY_ENABLE
+    auto foldStatus = GetFoldStatus();
+    TLOGNFE(WmsLogTag::DMS, "old mode: %{public}u, cur mode: %{public}u", oldScbDisplayMode, GetFoldDisplayMode());
+    
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        screenSession->UpdatePropertyByFoldControl(screenSession->GetScreenProperty());
+        OnVerticalChangeBoundsWhenSwitchUser(screenSession, oldScbDisplayMode);
+        ScreenPropertyChangeReason reason = FoldDisplayMode::MAIN == GetFoldDisplayMode() ?
+            ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING :
+            ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER;
+        screenSession->PropertyChange(screenSession->GetScreenProperty(), reason);
+        return;
+    }
+    
+    if (foldStatus == FoldStatus::EXPAND || foldStatus == FoldStatus::HALF_FOLD) {
+        screenSession->UpdatePropertyByFoldControl(GetPhyScreenProperty(SCREEN_ID_FULL));
+        OnBeforeScreenPropertyChange(foldStatus);
+        screenSession->PropertyChange(screenSession->GetScreenProperty(),
+            ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER);
+        return;
+    }
+    
+    if (foldStatus == FoldStatus::FOLDED) {
+        screenSession->UpdatePropertyByFoldControl(GetPhyScreenProperty(SCREEN_ID_MAIN));
+        OnBeforeScreenPropertyChange(foldStatus);
+        screenSession->PropertyChange(screenSession->GetScreenProperty(),
+            ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING_SWITCH_USER);
+        return;
+    }
+    
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        ScreenId screenId = screenSession->GetScreenId();
+        SuperFoldStatus status = SuperFoldStateManager::GetInstance().GetCurrentStatus();
+        OnSuperFoldStatusChange(screenId, status);
+        TLOGNFI(WmsLogTag::DMS, "foldStatus: %{public}u", status);
+        return;
+    }
+#endif
+    
+    TLOGNFE(WmsLogTag::DMS, "unsupport foldStatus: %{public}u", foldStatus);
+#endif
+}
+
+void ScreenSessionManager::HandleMotionSensorRotationWhenSwitchUser(sptr<ScreenSession>& screenSession)
+{
+#ifdef WM_MULTI_USR_ABILITY_ENABLE
+    bool deviceMotionNeeded = MotionManager::GetInstance().NeedMotionSensorSubscribe(
+        MotionType::DEVICE_MOTION_TYPE);
+    bool smartMotionNeeded = MotionManager::GetInstance().NeedMotionSensorSubscribe(
+        MotionType::SMART_MOTION_TYPE) ||
+        MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_ENHANCE_TYPE);
+    
+    TLOGNFI(WmsLogTag::WMS_ROTATION, "deviceMotionNeeded: %{public}d, smartMotionNeeded: %{public}d",
+        deviceMotionNeeded, smartMotionNeeded);
+    
+    if (deviceMotionNeeded && smartMotionNeeded) {
+        screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
+        screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
+    } else if (deviceMotionNeeded) {
+        screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
+    } else if (smartMotionNeeded) {
+        screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
+    } else {
+        screenSession->UpdateValidRotationToScb();
+    }
+#endif
+}
+
 void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid)
 {
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
@@ -11965,60 +12037,19 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
         NotifyFoldStatusChanged(GetFoldStatus());
         NotifyDisplayModeChanged(GetFoldDisplayMode());
     }
+    
     int64_t delayTime = 0;
     FoldDisplayMode oldScbDisplayMode = FindPidInDisplayModeMap(newScbPid);
-    if (g_foldScreenFlag && oldScbDisplayMode != GetFoldDisplayMode() &&
-        !FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
+    bool needHandleFoldChange = g_foldScreenFlag && oldScbDisplayMode != GetFoldDisplayMode() &&
+        !FoldScreenStateInternel::IsDualDisplayFoldDevice();
+    
+    if (needHandleFoldChange) {
         delayTime = SWITCH_USER_DISPLAYMODE_CHANGE_DELAY;
-        auto foldStatus = GetFoldStatus();
-        TLOGNFE(WmsLogTag::DMS, "old mode: %{public}u, cur mode: %{public}u", oldScbDisplayMode, GetFoldDisplayMode());
-        if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-            screenSession->UpdatePropertyByFoldControl(screenSession->GetScreenProperty());
-            OnVerticalChangeBoundsWhenSwitchUser(screenSession, oldScbDisplayMode);
-            screenSession->PropertyChange(screenSession->GetScreenProperty(),
-                FoldDisplayMode::MAIN == GetFoldDisplayMode() ? ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING :
-                ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER);
-        } else if (foldStatus == FoldStatus::EXPAND || foldStatus == FoldStatus::HALF_FOLD) {
-            screenSession->UpdatePropertyByFoldControl(GetPhyScreenProperty(SCREEN_ID_FULL));
-            OnBeforeScreenPropertyChange(foldStatus);
-            screenSession->PropertyChange(screenSession->GetScreenProperty(),
-                ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND_SWITCH_USER);
-        } else if (foldStatus == FoldStatus::FOLDED) {
-            screenSession->UpdatePropertyByFoldControl(GetPhyScreenProperty(SCREEN_ID_MAIN));
-            OnBeforeScreenPropertyChange(foldStatus);
-            screenSession->PropertyChange(screenSession->GetScreenProperty(),
-                ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING_SWITCH_USER);
-        } else if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-#ifdef FOLD_ABILITY_ENABLE
-            ScreenId screenId = screenSession->GetScreenId();
-            SuperFoldStatus status = SuperFoldStateManager::GetInstance().GetCurrentStatus();
-            OnSuperFoldStatusChange(screenId, status);
-            TLOGNFI(WmsLogTag::DMS, "foldStatus: %{public}u", status);
-#endif
-        } else {
-            TLOGNFE(WmsLogTag::DMS, "unsupport foldStatus: %{public}u", foldStatus);
-        }
+        HandleFoldStatusChangeWhenSwitchUser(screenSession, oldScbDisplayMode);
     } else {
-            bool deviceMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
-                MotionType::DEVICE_MOTION_TYPE);
-            bool smartMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
-                MotionType::SMART_MOTION_TYPE) ||
-                MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::SMART_MOTION_ENHANCE_TYPE);
-            
-            TLOGNFI(WmsLogTag::DMS, "deviceMotionSubscribe: %{public}d, smartMotionNeeded: %{public}d",
-                deviceMotionNeeded, smartMotionNeeded);
-            
-            if (deviceMotionNeeded && smartMotionNeeded) {
-                screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-                screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
-            } else if (deviceMotionNeeded) {
-                screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-            } else if (smartMotionNeeded) {
-                screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
-            } else {
-                screenSession->UpdateValidRotationToScb();
-            }
+        HandleMotionSensorRotationWhenSwitchUser(screenSession);
     }
+    
     auto task = [=] {
         auto clientProxy = GetClientProxy();
         if (!clientProxy) {
@@ -16606,19 +16637,19 @@ DMError ScreenSessionManager::GetScreenCapability(ScreenId screenId, ScreenCapab
 
 void ScreenSessionManager::SubscribeMotionSensor(int32_t motionType)
 {
-    TLOGI(WmsLogTag::DMS, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
     MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
 }
 
 void ScreenSessionManager::UnsubscribeMotionSensor(int32_t motionType)
 {
-    TLOGI(WmsLogTag::DMS, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
     MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
 }
 
 void ScreenSessionManager::OnMotionRotationChanged(float sensorRotation)
 {
-    TLOGI(WmsLogTag::DMS, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
     auto screenSession = GetDefaultScreenSession();
     if (!screenSession) {
         TLOGW(WmsLogTag::DMS, "screenSession is null");

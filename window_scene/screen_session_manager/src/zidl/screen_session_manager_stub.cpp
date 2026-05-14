@@ -1724,7 +1724,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR: {
             int32_t motionType = 0;
             if (!data.ReadInt32(motionType)) {
-                TLOGE(WmsLogTag::DMS, "Read motionType failed");
+                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
                 return ERR_INVALID_DATA;
             }
             SubscribeMotionSensor(motionType);
@@ -1733,7 +1733,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR: {
             int32_t motionType = 0;
             if (!data.ReadInt32(motionType)) {
-                TLOGE(WmsLogTag::DMS, "Read motionType failed");
+                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
                 return ERR_INVALID_DATA;
             }
             UnsubscribeMotionSensor(motionType);

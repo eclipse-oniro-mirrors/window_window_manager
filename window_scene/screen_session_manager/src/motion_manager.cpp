@@ -284,10 +284,8 @@ void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
     std::lock_guard<std::mutex> lock(mutex_);
     
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
-        lastMotionRotation_ = rotation;
         HandleDeviceSensorRotation(rotation);
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
-        lastSmartMotionRotation_ = rotation;
         HandleSmartSensorRotation(rotation);
     }
 }
@@ -302,6 +300,7 @@ void MotionManager::HandleDeviceSensorRotation(float rotation)
         return;
     }
     if (lastMotionRotation_ == rotation) {
+        TLOGD(WmsLogTag::WMS_ROTATION, "rotation unchanged, skip notification");
         return;
     }
     lastMotionRotation_ = rotation;

@@ -35,7 +35,7 @@ namespace Rosen {
 enum MotionType : int32_t {
     DEVICE_MOTION_TYPE = 700,
     SMART_MOTION_TYPE = 701,
-    SMART_MOTION_ENHANCE_TYPE = 702,
+    SMART_MOTION_ENHANCE_TYPE = 703,
 };
 
 enum MotionAction : int32_t {

@@ -380,7 +380,8 @@ void ScreenSessionManagerClient::OnSensorRotationChanged(ScreenId screenId, floa
     screenSession->SensorRotationChange(sensorRotation, isSwitchUser);
 }
 
-void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser)
+void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
 {
     auto screenSession = GetScreenSession(screenId);
     if (!screenSession) {
@@ -1648,13 +1649,13 @@ void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
 
 void ScreenSessionManagerClient::SubscribeMotionSensor(int32_t motionType)
 {
-    TLOGI(WmsLogTag::DMS, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
     screenSessionManager_->SubscribeMotionSensor(motionType);
 }
 
 void ScreenSessionManagerClient::UnsubscribeMotionSensor(int32_t motionType)
 {
-    TLOGI(WmsLogTag::DMS, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
     screenSessionManager_->UnsubscribeMotionSensor(motionType);
 }
 

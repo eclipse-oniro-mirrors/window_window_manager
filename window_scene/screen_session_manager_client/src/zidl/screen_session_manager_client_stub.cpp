@@ -386,7 +386,7 @@ int ScreenSessionManagerClientStub::HandleOnPowerStatusChanged(MessageParcel& da
 
 int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::WMS_ROTATION, "enter");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto sensorRotation = data.ReadFloat();
     auto isSwitchUser = data.ReadBool();
@@ -396,7 +396,7 @@ int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel&
 
 int ScreenSessionManagerClientStub::HandleOnSmartSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::WMS_ROTATION, "enter");
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto sensorRotation = data.ReadFloat();
     auto isSwitchUser = data.ReadBool();

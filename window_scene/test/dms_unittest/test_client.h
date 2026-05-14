@@ -31,7 +31,7 @@ public:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override {};
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override {};
-    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation) override {};
+    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override {};
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override {};
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override {};
     void OnScreenOrientationChangedWithOptions(ScreenId screenId,

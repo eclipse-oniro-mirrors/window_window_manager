@@ -209,7 +209,7 @@ napi_value JsScreenUtils::CreateJsMotionType(napi_env env)
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
     if (objValue == nullptr) {
-        TLOGE(WmsLogTag::DMS, "Failed to create object!");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Failed to create object!");
         return NapiGetUndefined(env);
     }
 

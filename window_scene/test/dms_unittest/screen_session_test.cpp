@@ -56,7 +56,7 @@ public:
     MOCK_METHOD(void, OnSensorRotationChange,
         (float sensorRotation, ScreenId screenId, bool isSwitchUser), (override));
     MOCK_METHOD(void, OnSmartSensorRotationChange,
-        (float sensorRotation, ScreenId screenId), (override));
+        (float sensorRotation, ScreenId screenId, bool isSwitchUser), (override));
     MOCK_METHOD(void, OnScreenOrientationChange, (float screenOrientation, ScreenId screenId), (override));
     MOCK_METHOD(void, OnScreenRotationLockedChange, (bool isLocked, ScreenId screenId), (override));
     MOCK_METHOD(void, OnScreenExtendChange, (ScreenId mainScreenId, ScreenId extendScreenId), (override));
