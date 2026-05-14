@@ -1190,10 +1190,9 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d Destroy, state:%{public}u, needNotifyServer:%{public}d, "
         "needClearListener:%{public}d, reason:%{public}u", GetPersistentId(), state_, needNotifyServer,
         needClearListener, reason);
-    surfaceNode_ = nullptr;
-    RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
     if (IsWindowSessionInvalid()) {
         WLOGFW("session is invalid");
+        ReleaseSurfaceNode();
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (auto hostSession = GetHostSession()) {
@@ -1223,12 +1222,21 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
         context.reset();
     }
     ClearVsyncStation();
+    ReleaseSurfaceNode();
     return WMError::WM_OK;
 }
 
 WMError WindowSessionImpl::Destroy(uint32_t reason)
 {
     return Destroy(true, true, reason);
+}
+
+void WindowSessionImpl::ReleaseSurfaceNode()
+{
+    if (surfaceNode_ != nullptr) {
+        surfaceNode_ = nullptr;
+        RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
+    }
 }
 
 WSError WindowSessionImpl::SetActive(bool active)
