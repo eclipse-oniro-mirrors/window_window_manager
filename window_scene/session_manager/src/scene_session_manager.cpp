@@ -15814,8 +15814,7 @@ void SceneSessionManager::PostProcessFocus()
 
         TLOGD(WmsLogTag::WMS_PIPELINE,
             "id: %{public}d, isFocused: %{public}d, reason: %{public}d, focusableOnShow: %{public}d",
-            persistentId, processFocusState.isFocused_,
-            processFocusState.reason_, session->IsFocusableOnShow());
+            persistentId, processFocusState.isFocused_, processFocusState.reason_, session->IsFocusableOnShow());
         if (focusChangedSet.find(displayGroupId) != focusChangedSet.end()) {
             session->ResetPostProcessFocusState();
             continue;
