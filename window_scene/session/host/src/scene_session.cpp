@@ -3303,7 +3303,10 @@ void SceneSession::GetCutoutAvoidArea(WSRect& rect, AvoidArea& avoidArea)
         uint32_t rotation = MIN_ROTATION_VALUE;
         auto property = PreCalcWindowProperty();
         ConvertRotationToOrientation(property.rotation, property.width, property.height, rotation);
-        cutoutInfo = DisplayManager::GetInstance().GetCutoutInfoWithRotation(static_cast<Rotation>(rotation));
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d rotation %{public}d to %{public}d, wh [%{public}d, %{public}d]",
+            GetPersistentId(), property.rotation, rotation, property.width, property.height);
+        cutoutInfo = DisplayManager::GetInstance().GetCutoutInfoWithRotation(
+            static_cast<Rotation>(rotation), property.width, property.height);
     } else {
         auto display = DisplayManager::GetInstance().GetDisplayById(GetSessionProperty()->GetDisplayId());
         cutoutInfo = display ? display->GetCutoutInfo() : nullptr;
