@@ -104,6 +104,7 @@ ohos_source_set("mock_session_manager_service_stub") {
   external_deps = [
     "hilog:libhilog",
     "ipc:ipc_core",
+    "icu:shared_icuuc"
   ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -125,6 +126,7 @@ ohos_source_set("mock_session_manager_service_proxy") {
   external_deps = [
     "hilog:libhilog",
     "ipc:ipc_core",
+    "icu:shared_icuuc"
   ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -186,6 +188,7 @@ ohos_static_library("sms_static") {
     "os_account:os_account_innerkits",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "icu:shared_icuuc"
   ]
 
   if (window_manager_use_sceneboard) {
@@ -237,6 +240,7 @@ ohos_shared_library("sms") {
     "os_account:os_account_innerkits",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "icu:shared_icuuc"
   ]
 
   public_external_deps = [
@@ -362,6 +366,7 @@ if (window_manager_use_sceneboard) {
       "resource_management:global_resmgr",
       "safwk:system_ability_fwk",
       "samgr:samgr_proxy",
+      "icu:shared_icuuc"
     ]
 
     if (defined(global_parts_info) &&
