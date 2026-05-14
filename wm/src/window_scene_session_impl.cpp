@@ -4418,6 +4418,22 @@ WMError WindowSceneSessionImpl::ValidateSnapshotAnimationConfig(const SnapshotAn
     constexpr int64_t MAX_DURATION = 400;
     constexpr int64_t MAX_DELAY = 350;
     constexpr int64_t USE_DEFAULT = -1;
+
+    // Sub-window restriction: each field must be UNSET (system default) or zero (no animation)
+    if (WindowHelper::IsSubWindow(GetType())) {
+        auto isUnsetOrZero = [USE_DEFAULT](int64_t value) {
+            return value == USE_DEFAULT || value == 0;
+        };
+        if (!isUnsetOrZero(config.duration) || !isUnsetOrZero(config.delay)) {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "Sub-window does not support setting snapshot animation config: "
+                "duration=%{public}" PRId64 ", delay=%{public}" PRId64,
+                config.duration, config.delay);
+            return WMError::WM_ERROR_INVALID_CALLING;
+        }
+        return WMError::WM_OK;
+    }
+
+    // General range validation for non-sub-windows
     auto isValid = [](int64_t value, int64_t max) {
         return value == USE_DEFAULT || (value >= 0 && value <= max);
     };
