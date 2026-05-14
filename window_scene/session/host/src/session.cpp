@@ -3158,6 +3158,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         .useCurWindow = options.useCurWindow,
         .windowSync = options.windowSync,
         .backGroundColor = GetBackgroundColor(),
+        .needErrorCode = true,
     };
     auto rsUICtx = surfaceNode->GetRSUIContext();
     if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
@@ -3180,6 +3181,11 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
     auto pixelMap = callback->GetResult(options.runInFfrt ? FFRT_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_TIMEOUT_MS);
+    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Capture privacy or special layer failed %{public}d", persistentId_);
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+        return nullptr;
+    }
     if (pixelMap != nullptr) {
         bool isCropped = CropSnapshotPixelMap(pixelMap, lastLayoutRect_, scaleValue);
         TLOGI(WmsLogTag::WMS_PATTERN, "Save snapshot WxH=%{public}dx%{public}d, "

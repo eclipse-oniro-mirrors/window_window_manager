@@ -4113,13 +4113,21 @@ std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
         return nullptr;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback, config);
     if (!isSucceeded) {
         WLOGFE("Failed to TakeSurfaceCapture!");
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return nullptr;
     }
     std::shared_ptr<Media::PixelMap> pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
+    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+        WLOGFE("Failed to capture privacy or special layer");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+        return nullptr;
+    }
     if (pixelMap != nullptr) {
         WLOGFD("Snapshot succeed, save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
@@ -4159,13 +4167,22 @@ WMError WindowSessionImpl::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap)
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback, config);
     if (!isSucceeded) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to TakeSurfaceCapture", GetPersistentId());
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
+    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, failed to capture privacy or special layer",
+            GetPersistentId());
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to get pixelmap", GetPersistentId());
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");

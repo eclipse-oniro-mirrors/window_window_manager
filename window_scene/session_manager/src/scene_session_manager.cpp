@@ -11876,6 +11876,7 @@ WMError SceneSessionManager::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap
             .scaleX = config.scaleX,
             .scaleY = config.scaleY,
             .useCurWindow = config.useCurWindow,
+            .needErrorCode = true,
         };
         auto rsUICtx = surfaceNode->GetRSUIContext();
         if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
@@ -11883,12 +11884,18 @@ WMError SceneSessionManager::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap
             ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
-        if (!rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode, callback, rsConfig)) {
+        bool isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode, callback, rsConfig);
+        if (!isSucceeded) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "TakeSurfaceCapture failed: %{public}d", persistentId);
             ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
         pixelMap = callback->GetResult(SNAPSHOT_INNER_TIMEOUT_MS);
+        if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+            ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_TAKE_CAPTURE,
+                "capture privacy or special layer failed");
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
         if (pixelMap == nullptr) {
             ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
             return WMError::WM_ERROR_TIMEOUT;

@@ -1011,12 +1011,20 @@ std::shared_ptr<Media::PixelMap> WindowImpl::Snapshot()
         reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return nullptr;
     }
-    auto isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode_, callback, config);
     std::shared_ptr<Media::PixelMap> pixelMap;
     if (isSucceeded) {
         pixelMap = callback->GetResult(2000); // wait for <= 2000ms
     } else {
         pixelMap = SingletonContainer::Get<WindowAdapter>().GetSnapshot(property_->GetWindowId());
+    }
+    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+        WLOGFE("Failed to capture privacy or special layer");
+        reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+        return nullptr;
     }
     if (pixelMap != nullptr) {
         WLOGFD("WMS-Client Save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
