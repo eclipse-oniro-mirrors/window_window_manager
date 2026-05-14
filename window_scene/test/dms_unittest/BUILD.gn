@@ -88,6 +88,7 @@ group("unittest") {
       ":ws_single_display_sensor_pocket_fold_state_manager_test",
       ":ws_super_fold_sensor_manager_test",
       ":ws_super_fold_state_manager_test",
+      ":ws_super_fold_policy_test",
       ":ws_screen_sensor_mgr_test",
       ":ws_sensor_fold_state_mgr_test",
       ":ws_fold_screen_base_policy_test",
@@ -1210,6 +1211,22 @@ if (window_manager_fold_ability) {
     module_out_path = module_out_path
 
     sources = [ "single_display_fold_policy_test.cpp" ]
+
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+
+    deps = [ ":ws_unittest_common" ]
+
+    external_deps = test_external_deps
+  }
+
+  ohos_unittest("ws_super_fold_policy_test") {
+    module_out_path = module_out_path
+
+    sources = [ "super_fold_policy_test.cpp" ]
 
     sanitize = {
       cfi = true

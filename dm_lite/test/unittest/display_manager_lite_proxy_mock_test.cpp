@@ -97,6 +97,162 @@ HWTEST_F(DisplayManagerLiteProxyMockTest, SetResolution, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetScreenSwitchState01
+ * @tc.desc: SetScreenSwitchState with remote nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenSwitchState01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    bool isScreenOn = false;
+    DMError ret = proxy->SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSwitchState02
+ * @tc.desc: SetScreenSwitchState with WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenSwitchState02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    bool isScreenOn = false;
+    DMError ret = proxy->SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSwitchState03
+ * @tc.desc: SetScreenSwitchState with WriteUint32 screenClosedState failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenSwitchState03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ScreenClosedState screenClosedState = ScreenClosedState::OPEN;
+    bool isScreenOn = true;
+    DMError ret = proxy->SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_DATA_FAILED);
+    EXPECT_TRUE(logMsg.find("Write screenClosedState failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSwitchState04
+ * @tc.desc: SetScreenSwitchState with WriteBool isScreenOn failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenSwitchState04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    bool isScreenOn = false;
+    DMError ret = proxy->SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_DATA_FAILED);
+    EXPECT_TRUE(logMsg.find("Write isScreenOn failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSwitchState05
+ * @tc.desc: SetScreenSwitchState with SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenSwitchState05, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ScreenClosedState screenClosedState = ScreenClosedState::OPEN;
+    bool isScreenOn = true;
+    DMError ret = proxy->SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSwitchState06
+ * @tc.desc: SetScreenSwitchState successfully with CLOSE state and screen off
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenSwitchState06, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    bool isScreenOn = false;
+    DMError ret = proxy->SetScreenSwitchState(screenClosedState, isScreenOn);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: IsOnboardDisplay
  * @tc.desc: IsOnboardDisplay
  * @tc.type: FUNC

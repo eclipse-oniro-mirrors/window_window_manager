@@ -529,6 +529,40 @@ bool DisplayManagerLiteProxy::SuspendEnd()
 #endif
 }
 
+DMError DisplayManagerLiteProxy::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER]remote is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER]WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(screenClosedState))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER]Write screenClosedState failed");
+        return DMError::DM_ERROR_WRITE_DATA_FAILED;
+    }
+    if (!data.WriteBool(isScreenOn)) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER]Write isScreenOn failed");
+        return DMError::DM_ERROR_WRITE_DATA_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER]SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadUint32());
+#else
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+#endif
+}
+
 ScreenId DisplayManagerLiteProxy::GetInternalScreenId()
 {
 #ifdef SCENE_BOARD_ENABLED

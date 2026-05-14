@@ -1444,6 +1444,11 @@ void WindowSceneSessionImpl::ConsumePointerEvent(const std::shared_ptr<MMI::Poin
 
 bool WindowSceneSessionImpl::PreNotifyKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent)
 {
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
+        property_->GetDisplayId() == DISPLAY_ID_C &&
+        DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
+        keyEvent->SetTargetDisplayId(DISPLAY_ID_C);
+    }
     bool isConsumed = false;
     if (auto uiContent = GetUIContentSharedPtr()) {
         isConsumed = uiContent->ProcessKeyEvent(keyEvent, true);
@@ -1736,13 +1741,27 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
 
     customizedLimits = userLimitsSet_ ? property_->GetUserWindowLimits() : property_->GetConfigWindowLimitsVP();
 
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] CalcByLimits id:%{public}d, display=%{public}ux%{public}u vpr=%{public}f, "
+        "sys[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u], "
+        "user[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] unit:%{public}u userSet:%{public}d",
+        GetPersistentId(), displayWidth, displayHeight, virtualPixelRatio,
+        systemLimits.minWidth_, systemLimits.minHeight_, systemLimits.maxWidth_, systemLimits.maxHeight_,
+        customizedLimits.minWidth_, customizedLimits.minHeight_,
+        customizedLimits.maxWidth_, customizedLimits.maxHeight_,
+        customizedLimits.pixelUnit_, userLimitsSet_.load());
+
     newLimits = systemLimits;
     newLimitsVP = systemLimitsVP;
 
     // Processing limits based on the pixel unit type
     if (customizedLimits.pixelUnit_ == PixelUnit::VP) {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowLimitsUpdate:CalcLimits] id:%{public}d, process VP path", GetPersistentId());
         ProcessVirtualPixelLimits(newLimits, newLimitsVP, customizedLimits, systemLimitsVP, virtualPixelRatio);
     } else {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowLimitsUpdate:CalcLimits] id:%{public}d, process PX path", GetPersistentId());
         ProcessPhysicalPixelLimits(newLimits, newLimitsVP, customizedLimits, systemLimits, virtualPixelRatio);
     }
 }
@@ -1761,6 +1780,12 @@ void WindowSceneSessionImpl::ProcessVirtualPixelLimits(WindowLimits& newLimits, 
     newLimitsVP.maxHeight_ = SafeBoundAssign(customizedLimits.maxHeight_, sysMinH, sysMaxH, sysMaxH);
     newLimitsVP.minWidth_ = SafeBoundAssign(customizedLimits.minWidth_, sysMinW, newLimitsVP.maxWidth_, sysMinW);
     newLimitsVP.minHeight_ = SafeBoundAssign(customizedLimits.minHeight_, sysMinH, newLimitsVP.maxHeight_, sysMinH);
+
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] ProcessVP id:%{public}d, "
+        "result[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+        GetPersistentId(), newLimitsVP.minWidth_, newLimitsVP.minHeight_,
+        newLimitsVP.maxWidth_, newLimitsVP.maxHeight_);
 
     // Convert virtual pixels to physical pixels
     RecalculatePxLimitsByVp(newLimitsVP, newLimits, virtualPixelRatio);
@@ -1786,6 +1811,12 @@ void WindowSceneSessionImpl::ProcessPhysicalPixelLimits(WindowLimits& newLimits,
     newLimits.minWidth_ = SafeBoundAssign(customizedLimits.minWidth_, sysMinW, newLimits.maxWidth_, sysMinW);
     newLimits.minHeight_ = SafeBoundAssign(customizedLimits.minHeight_, sysMinH, newLimits.maxHeight_, sysMinH);
 
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] ProcessPX id:%{public}d, "
+        "result[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] forceAdjust:%{public}d",
+        GetPersistentId(), newLimits.minWidth_, newLimits.minHeight_,
+        newLimits.maxWidth_, newLimits.maxHeight_, needAdjustMinBound);
+
     // Convert physical pixel to virtual pixels
     RecalculateVpLimitsByPx(newLimits, newLimitsVP, virtualPixelRatio);
 }
@@ -1808,6 +1839,12 @@ void WindowSceneSessionImpl::CalculateNewLimitsByRatio(WindowLimits& newLimits,
 
     // Apply customized ratio constraints if they are within feasible range
     ApplyCustomRatioConstraints(customizedLimits, maxRatio, minRatio);
+
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] CalcByRatio id:%{public}d, "
+        "maxRatio=%{public}f minRatio=%{public}f customMaxRatio=%{public}f customMinRatio=%{public}f",
+        GetPersistentId(), maxRatio, minRatio,
+        customizedLimits.maxRatio_, customizedLimits.minRatio_);
 
     // Recalculate size limits using the final ratio values
     RecalculateSizeLimitsWithRatios(newLimits, newLimitsVP, maxRatio, minRatio, customizedLimits.pixelUnit_);
@@ -1865,6 +1902,8 @@ void WindowSceneSessionImpl::RecalculateSizeLimitsWithRatios(WindowLimits& limit
 /** @note @window.layout */
 void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowLimitsUpdate::CalcLimits id=%d", GetPersistentId());
     WindowLimits customizedLimits;
     WindowLimits newLimits;
     WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
@@ -1872,13 +1911,29 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
 
     CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
     if (MathHelper::NearZero(virtualPixelRatio)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, virtual pixel ratio is zero",
-            GetWindowId());
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowLimitsUpdate:CalcLimits] vpr is zero, id:%{public}u", GetWindowId());
         return;
     }
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] AfterByLimits id:%{public}d, "
+        "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] "
+        "vp[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] vpr=%{public}f",
+        GetPersistentId(), newLimits.minWidth_, newLimits.minHeight_,
+        newLimits.maxWidth_, newLimits.maxHeight_,
+        newLimitsVP.minWidth_, newLimitsVP.minHeight_,
+        newLimitsVP.maxWidth_, newLimitsVP.maxHeight_, virtualPixelRatio);
     newLimits.vpRatio_ = virtualPixelRatio;
     newLimitsVP.vpRatio_ = virtualPixelRatio;
     CalculateNewLimitsByRatio(newLimits, newLimitsVP, customizedLimits);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] AfterByRatio id:%{public}d, "
+        "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] "
+        "vp[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+        GetPersistentId(), newLimits.minWidth_, newLimits.minHeight_,
+        newLimits.maxWidth_, newLimits.maxHeight_,
+        newLimitsVP.minWidth_, newLimitsVP.minHeight_,
+        newLimitsVP.maxWidth_, newLimitsVP.maxHeight_);
 
     // When the system window has not been set with 'setWindowLimits',
     // manually change its minimum width and height limit to 1 px.
@@ -1904,6 +1959,14 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     // Calculate intersection with attached windows' limits if configured
     CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
 
+    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetPersistentId(), WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:CalcLimits] SaveLimits id:%{public}d, "
+        "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] "
+        "vp[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] vpr=%{public}f",
+        GetPersistentId(), newLimits.minWidth_, newLimits.minHeight_,
+        newLimits.maxWidth_, newLimits.maxHeight_,
+        newLimitsVP.minWidth_, newLimitsVP.minHeight_,
+        newLimitsVP.maxWidth_, newLimitsVP.maxHeight_, virtualPixelRatio);
     property_->SetWindowLimits(newLimits);
     property_->SetWindowLimitsVP(newLimitsVP);
     property_->SetLastLimitsVpr(virtualPixelRatio);
@@ -1998,8 +2061,11 @@ WindowSceneSessionImpl::WinIntersectResult WindowSceneSessionImpl::CalcSingleWin
 /** @note @window.layout */
 void WindowSceneSessionImpl::NotifySessionSideLimitsChanged(const WindowLimits& limitsToNotify)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowLimitsUpdate::NotifySession id=%d", GetPersistentId());
     if (GetHostSession() == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Id:%{public}u hostSession is null", GetWindowId());
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowLimitsUpdate:NotifySession] hostSession is null, id:%{public}u", GetWindowId());
         return;
     }
 
@@ -2673,6 +2739,8 @@ void WindowSceneSessionImpl::CheckMoveConfiguration(MoveConfiguration& moveConfi
 /** @note @window.layout */
 WMError WindowSceneSessionImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfiguration moveConfiguration)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::ClientReq::MoveTo id=%d [%d,%d]", property_->GetPersistentId(), x, y);
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
         "Id:%{public}d MoveTo:(%{public}d %{public}d) global:%{public}d cfg:%{public}s",
         property_->GetPersistentId(), x, y, isMoveToGlobal, moveConfiguration.ToString().c_str());
@@ -2992,8 +3060,12 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height)
         reason = SizeChangeReason::RESIZE_BY_LIMIT;
         isResizedByLimit_ = false;
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d resize %{public}u %{public}u",
-        property_->GetPersistentId(), width, height);
+    const auto& preRect = GetRect();
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowRectUpdate::ClientReq::Resize id=%d [%u,%u]", property_->GetPersistentId(), width, height);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowRectUpdate:ClientReq] Resize id:%{public}d, preRect=%{public}s, size=%{public}ux%{public}u",
+        property_->GetPersistentId(), preRect.ToString().c_str(), width, height);
 
     if (CheckAndModifyWindowRect(width, height) != WMError::WM_OK) {
         return WMError::WM_ERROR_INVALID_OPERATION;
@@ -4608,7 +4680,14 @@ WMError WindowSceneSessionImpl::ExecuteRecover(uint32_t reason, const SnapshotAn
 {
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
-    if (!WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
+    bool onlySupportFloating = WindowHelper::IsSubWindow(GetType()) &&
+        WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
+        !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FULLSCREEN);
+    bool isSubWindowMaxSupported = IsSubWindowMaximizeSupported();
+    TLOGI(WmsLogTag::WMS_LAYOUT, "ExecuteRecover: onlySupportFloating=%{public}d, isSubWindowMaxSupported=%{public}d",
+        onlySupportFloating, isSubWindowMaxSupported);
+    
+    if (!onlySupportFloating && !WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "recovery is invalid on sub window");
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
@@ -4724,27 +4803,37 @@ WMError WindowSceneSessionImpl::IsWindowRectAutoSave(bool& enabled)
 WMError WindowSceneSessionImpl::SetSupportedWindowModes(
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes, bool grayOutMaximizeButton)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowSupportModes::ClientReq::SetSupportedWindowModes id=%d modes=%zu",
+        GetPersistentId(), supportedWindowModes.size());
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:ClientReq] SetSupportedWindowModes id:%{public}u, "
+        "modes=%{public}zu grayOut:%{public}d",
+        GetWindowId(), supportedWindowModes.size(), grayOutMaximizeButton);
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-
     if (IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is PcAppInpad, not supported");
         return WMError::WM_OK;
     }
-
     if (!(windowSystemConfig_.IsPcWindow() || windowSystemConfig_.freeMultiWindowSupport_)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Neither is Pc nor support free multi window, invalid calling");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-
-    if (!WindowHelper::IsMainWindow(GetType())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is not main window, not supported");
+    bool isMainWindow = WindowHelper::IsMainWindow(GetType());
+    bool isSubWindow = WindowHelper::IsSubWindow(GetType());
+    if (!isMainWindow && !isSubWindow) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is not main window or sub window, not supported");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-
-    if (grayOutMaximizeButton) {
+    if (isSubWindow && std::find(supportedWindowModes.begin(), supportedWindowModes.end(),
+        AppExecFwk::SupportWindowMode::SPLIT) != supportedWindowModes.end()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Sub window does not support split mode");
+        return WMError::WM_ERROR_ILLEGAL_PARAM;
+    }
+    if (isMainWindow && grayOutMaximizeButton) {
         size_t size = supportedWindowModes.size();
         if (size == 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
             TLOGE(WmsLogTag::WMS_LAYOUT_PC, "mode param is invalid");
@@ -4756,7 +4845,7 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
             return WMError::WM_ERROR_ILLEGAL_PARAM;
         }
         GrayOutMaximizeButton(true);
-    } else if (grayOutMaximizeButton_) {
+    } else if (isMainWindow && grayOutMaximizeButton_) {
         GrayOutMaximizeButton(false);
     }
 
@@ -4776,14 +4865,26 @@ WMError WindowSceneSessionImpl::GrayOutMaximizeButton(bool isGrayOut)
     }
     grayOutMaximizeButton_ = isGrayOut;
     uiContent->OnContainerModalEvent(WINDOW_GRAY_OUT_MAXIMIZE_EVENT, isGrayOut ? "true" : "false");
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC,
+        "[WindowSupportModes:GrayOut] GrayOutMaximizeButton id:%{public}u, isGrayOut:%{public}d",
+        GetWindowId(), isGrayOut);
     return WMError::WM_OK;
 }
 
 void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowSupportModes::ModeChange id=%d type=%u", GetPersistentId(), windowModeSupportType);
     bool onlySupportFullScreen =
         WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
         !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    bool onlySupportFloating =
+        !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
+        WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:ModeChange] id:%{public}d, type:0x%{public}x, "
+        "onlyFullScreen:%{public}d onlyFloating:%{public}d",
+        GetPersistentId(), windowModeSupportType, onlySupportFullScreen, onlySupportFloating);
     bool disableFullScreen = property_->IsFullScreenDisabled();
     if (onlySupportFullScreen && !property_->IsLayoutFullScreen() && !disableFullScreen) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d IsLayoutFullScreen:%{public}d",
@@ -4792,9 +4893,6 @@ void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t wind
         return;
     }
 
-    bool onlySupportFloating =
-        !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
-        WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
     if (onlySupportFloating) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFloating:%{public}d", onlySupportFloating);
         Recover(REASON_MAXIMIZE_MODE_CHANGE);
@@ -4804,6 +4902,8 @@ void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t wind
 WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes)
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowSupportModes::SetInner id=%d", GetPersistentId());
     auto size = supportedWindowModes.size();
     if (size <= 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "mode param is invalid");
@@ -4824,6 +4924,9 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "winId: %{public}u, windowModeSupportType: %{public}u",
         GetWindowId(), windowModeSupportType);
+    TLOGD(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:SetInner] supportType=0x%{public}x, id:%{public}u",
+        windowModeSupportType, GetWindowId());
 
     // update windowModeSupportType to server
     auto hostSession = GetHostSession();
@@ -4831,7 +4934,8 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     hostSession->NotifySupportWindowModesChange(supportedWindowModes);
     if (!IsPcOrPadFreeMultiWindowMode()) {
         pendingWindowModeSupportType_ = windowModeSupportType;
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "pending update, winId: %{public}u, windowModeSupportType: %{public}u",
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowSupportModes:SetInner] pending (not free multi window), id:%{public}u, type:%{public}u",
             GetWindowId(), windowModeSupportType);
         return WMError::WM_OK;
     }
@@ -4840,6 +4944,9 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     property_->SetWindowModeSupportType(windowModeSupportType);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
     UpdateTitleButtonVisibility();
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowSupportModes:SetInner] saved id:%{public}u, type:%{public}u, updateModeChange",
+        GetWindowId(), windowModeSupportType);
     UpdateWindowModeWhenSupportTypeChange(windowModeSupportType);
     return WMError::WM_OK;
 }
@@ -6696,8 +6803,8 @@ void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindo
 
     // update windowModeSupportType to server
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
-    UpdateTitleButtonVisibility();
     haveSetSupportedWindowModes_ = true;
+    UpdateTitleButtonVisibility();
 
     // update window mode immediately when pending window support type take effect
     maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
@@ -6713,6 +6820,14 @@ void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScree
     if (onlySupportFullScreen && !disableFullScreen) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "only support fullscreen, enter immersive");
         Maximize(MaximizePresentation::ENTER_IMMERSIVE);
+    }
+    bool onlySupportFloating =
+        !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
+        WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    if (onlySupportFloating && GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING) {
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "only support floating, switch to floating, id: %{public}d",
+            GetPersistentId());
+        Recover(REASON_MAXIMIZE_MODE_CHANGE);
     }
 }
 
@@ -6897,8 +7012,11 @@ WMError WindowSceneSessionImpl::GetWindowLimits(WindowLimits& windowLimits, bool
 
 void WindowSceneSessionImpl::UpdateNewSize()
 {
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowLimitsUpdate::UpdateSize id=%d", GetPersistentId());
     if (GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING || property_->IsWindowLimitDisabled()) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "fullscreen or compatible mode could not update new size, Id: %{public}u",
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "[WindowLimitsUpdate:UpdateSize] skip: not floating or limit disabled, id:%{public}d",
             GetPersistentId());
         return;
     }
@@ -6907,8 +7025,8 @@ void WindowSceneSessionImpl::UpdateNewSize()
     if (windowRect.IsUninitializedSize()) {
         windowRect = GetRect();
         if (windowRect.IsUninitializedSize()) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "The sizes of requestRect and rect are uninitialized. winId: %{public}u",
-                GetWindowId());
+            TLOGW(WmsLogTag::WMS_LAYOUT,
+                "[WindowLimitsUpdate:UpdateSize] skip: uninitialized size, id:%{public}u", GetWindowId());
             return;
         }
     }
@@ -6939,9 +7057,13 @@ void WindowSceneSessionImpl::UpdateNewSize()
         if (IsPcOrPadFreeMultiWindowMode()) {
             isResizedByLimit_ = true;
         }
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowLimitsUpdate:UpdateSize] ResizeByLimits id:%{public}u, "
+            "preSize=%{public}ux%{public}u, newSize=%{public}ux%{public}u, "
+            "limits[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+            GetWindowId(), windowRect.width_, windowRect.height_, width, height,
+            newLimits.minWidth_, newLimits.minHeight_, newLimits.maxWidth_, newLimits.maxHeight_);
         Resize(width, height);
-        TLOGI(WmsLogTag::WMS_LAYOUT, "Resize window by limits. Id: %{public}u, width: %{public}u,"
-            " height: %{public}u", GetWindowId(), width, height);
     }
 }
 
@@ -7005,9 +7127,17 @@ WindowLimits WindowSceneSessionImpl::GetCustomizedLimitsForSetWindowLimits(
 
 WMError WindowSceneSessionImpl::SetWindowLimits(WindowLimits& windowLimits, bool isForcible)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}u, minW:%{public}u, minH:%{public}u, "
-        "maxW:%{public}u, maxH:%{public}u, pixelUnit:%{public}u, isForcible:%{public}u", GetWindowId(),
-        windowLimits.minWidth_, windowLimits.minHeight_, windowLimits.maxWidth_, windowLimits.maxHeight_,
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
+        "WMS::WindowLimitsUpdate::ClientReq::SetWindowLimits id=%d", GetPersistentId());
+    auto preLimits = property_->GetWindowLimits();
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:ClientReq] SetWindowLimits id:%{public}u, "
+        "req[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] "
+        "pre[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] "
+        "unit:%{public}u forcible:%{public}u",
+        GetWindowId(), windowLimits.minWidth_, windowLimits.minHeight_,
+        windowLimits.maxWidth_, windowLimits.maxHeight_,
+        preLimits.minWidth_, preLimits.minHeight_, preLimits.maxWidth_, preLimits.maxHeight_,
         windowLimits.pixelUnit_, isForcible);
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "session is invalid");
@@ -7063,9 +7193,11 @@ void WindowSceneSessionImpl::FillWindowLimits(WindowLimits& windowLimits, PixelU
     windowLimits.maxWidth_ = newLimits.maxWidth_;
     windowLimits.maxHeight_ = newLimits.maxHeight_;
     windowLimits.pixelUnit_ = newLimits.pixelUnit_;
-    TLOGI(WmsLogTag::WMS_LAYOUT, "success! Id:%{public}u, minW:%{public}u, minH:%{public}u, "
-        "maxW:%{public}u, maxH:%{public}u, pixelUnit:%{public}u", GetWindowId(), windowLimits.minWidth_,
-        windowLimits.minHeight_, windowLimits.maxWidth_, windowLimits.maxHeight_, windowLimits.pixelUnit_);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowLimitsUpdate:Result] FillWindowLimits id:%{public}u, "
+        "final[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u] unit:%{public}u",
+        GetWindowId(), windowLimits.minWidth_, windowLimits.minHeight_,
+        windowLimits.maxWidth_, windowLimits.maxHeight_, windowLimits.pixelUnit_);
 }
 
 WSError WindowSceneSessionImpl::NotifyDialogStateChange(bool isForeground)

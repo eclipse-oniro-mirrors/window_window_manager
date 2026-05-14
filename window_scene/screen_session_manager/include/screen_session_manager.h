@@ -78,6 +78,7 @@ public:
     // inner interface of multimodal-input
     void NotifyScreenModeChange(ScreenId disconnectedScreenId = INVALID_SCREEN_ID);
     void NotifyTentModeChange(TentMode tentMode);
+    void NotifyScreenClosedStateChange(ScreenClosedState screenClosedState);
     void NotifyAbnormalScreenConnectChange(ScreenId screenId);
     DMError SetPrimaryDisplaySystemDpi(float dpi) override;
 
@@ -292,6 +293,7 @@ public:
     bool WakeUpBegin(PowerStateChangeReason reason) override;
     bool DoWakeUpBegin(PowerStateChangeReason reason);
     bool WakeUpEnd() override;
+    DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn) override;
     bool SuspendBegin(PowerStateChangeReason reason) override;
     bool DoSuspendBegin(PowerStateChangeReason reason);
     bool SuspendEnd() override;
@@ -381,6 +383,7 @@ public:
 
     void TriggerFoldStatusChange(FoldStatus foldStatus);
     void NotifyFoldStatusChanged(FoldStatus foldStatus);
+    void NotifyFoldStatusChangedInner(FoldStatus foldStatus);
     void NotifyFoldAngleChanged(std::vector<float> foldAngles);
     int NotifyFoldStatusChanged(const std::string& statusParam);
     void NotifyDisplayModeChanged(FoldDisplayMode displayMode);
@@ -1237,6 +1240,7 @@ private:
 
     void AddSecondaryDisplaySuperCapability(std::vector<std::string> specialOrientation,
         nlohmann::ordered_json& jsonDisplayCapabilityList);
+    void HandleSuperMultiFoldScreenPowerInit();
 
     // mirror screen
     bool SetResolutionEffect(ScreenId screenId,  uint32_t width, uint32_t height);
@@ -1244,6 +1248,8 @@ private:
     void SetResolutionEffectFromSettingData();
     void RegisterSettingOsSwitchStatusObserver();
     void HandleOsSwitchStatusChange();
+    void HandleOsSwitchResolutionStatusChange(const std::string& status);
+    void HandlePhySessionWhenSwitchToPCMode();
     void HandleResolutionEffectAfterSwitchUser();
     void SetInternalScreenResolutionEffect(const sptr<ScreenSession>& internalSession, DMRect& toRect);
     void SetExternalScreenResolutionEffect(const sptr<ScreenSession>& externalSession, DMRect& toRect);

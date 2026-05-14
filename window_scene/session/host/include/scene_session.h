@@ -521,6 +521,8 @@ public:
     void RegisterMainModalTypeChangeCallback(NotifyMainModalTypeChangeFunc&& func);
     void CloneWindow(NodeId surfaceNodeId, bool needOffScreen);
     void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
+    WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     void AddSidebarBlur();
     void SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimation);
     void SaveLastDensity();
@@ -633,6 +635,7 @@ public:
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
+    WSRect GetParentSessionRectSync();
     int32_t GetMainSessionId();
     int32_t GetMainSessionOrLoosenedSessionId();
     virtual int32_t GetMissionId() const { return persistentId_; };

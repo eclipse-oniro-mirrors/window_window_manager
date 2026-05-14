@@ -7438,7 +7438,7 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
         if (auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(currScreenId)) {
             sourceMode = screenSession->GetSourceMode();
         }
-        bool shouldLock = requireLock && IsSessionVisibleForeground(sceneSession) &&
+        bool shouldLock = requireLock && IsSessionVisibleAndRealForeground(sceneSession) &&
             sourceMode != ScreenSourceMode::SCREEN_UNIQUE;
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "keep screen on: winName=%{public}s, sessionState=%{public}d, "
             "isVisible=%{public}d, requireLock=%{public}d, shouldLock=%{public}d, screenId=%{public}" PRIu64
@@ -7773,12 +7773,20 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
 
 WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
-    return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
+            ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
+        return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+    }, __func__);
 }
 
 WSError SceneSessionManager::RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
-    return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
+    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
+            ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
+        return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
+    }, __func__);
 }
 
 WSError SceneSessionManager::SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
@@ -8078,6 +8086,25 @@ bool SceneSessionManager::IsSessionVisibleForeground(const sptr<SceneSession>& s
         return session->IsVisibleForeground();
     }
     return IsSessionVisible(session);
+}
+
+bool SceneSessionManager::IsSessionVisibleAndRealForeground(const sptr<SceneSession>& session)
+{
+    if (session == nullptr) {
+        return false;
+    }
+    if (!Session::IsScbCoreEnabled()) {
+        return IsSessionVisible(session);
+    }
+    auto state = GetRealSessionState(session);
+    if (session->IsVisible() && (state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND)) {
+        TLOGD(WmsLogTag::WMS_LIFE, "Window is visible and real foreground, id: %{public}d",
+            session->GetPersistentId());
+        return true;
+    }
+    TLOGD(WmsLogTag::WMS_LIFE, "Window is not visible or real background, id: %{public}d",
+        session->GetPersistentId());
+    return false;
 }
 
 void SceneSessionManager::DumpSessionInfo(const sptr<SceneSession>& session, std::ostringstream& oss)
@@ -19186,7 +19213,7 @@ WMError SceneSessionManager::RelockScreenLockForApp(const std::string& bundleNam
             if (screenSession) {
                 sourceMode = screenSession->GetSourceMode();
             }
-            if (sceneSession->IsKeepScreenOn() && IsSessionVisibleForeground(sceneSession) &&
+            if (sceneSession->IsKeepScreenOn() && IsSessionVisibleAndRealForeground(sceneSession) &&
                 sourceMode != ScreenSourceMode::SCREEN_UNIQUE && sceneSession->keepScreenLock_ != nullptr) {
                 auto res = sceneSession->keepScreenLock_->Lock();
                 TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "relock screenlock, window: [%{public}d, %{public}s], res:%{public}d",

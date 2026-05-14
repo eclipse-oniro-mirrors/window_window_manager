@@ -135,7 +135,7 @@ ani_boolean AniFvWindow::IsFloatViewEnabledAni(ani_env* env)
     return static_cast<ani_boolean>(FloatViewManager::isSupportFloatView_);
 }
 
-ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env, ani_int templateType)
+ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env, ani_object templateType)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]GetFloatViewLimitsAni start");
     if (!FloatViewManager::isSupportFloatView_) {
@@ -143,9 +143,15 @@ ani_object AniFvWindow::GetFloatViewLimitsAni(ani_env* env, ani_int templateType
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device does not support float view.");
     }
-    uint32_t templateType_ = static_cast<uint32_t>(templateType);
+    ani_int ret;
+    ani_status res = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(templateType), &ret);
+    if (res != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Template type is invalid");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM, "Template type is invalid.");
+    }
+    uint32_t templateType_ = static_cast<uint32_t>(ret);
     if (templateType_ >= static_cast<uint32_t>(FloatViewTemplate::END)) {
-        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "template type is invalid");
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_ILLEGAL_PARAM, "Template type is out of range.");
     }
     FloatViewLimits limits;
     WMError errCode = SingletonContainer::Get<WindowManager>().GetFloatViewLimits(templateType_, limits);

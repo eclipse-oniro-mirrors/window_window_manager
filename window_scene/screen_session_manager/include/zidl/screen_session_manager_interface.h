@@ -197,6 +197,10 @@ public:
     virtual bool WakeUpEnd() { return false; }
     virtual bool SuspendBegin(PowerStateChangeReason reason) { return false; }
     virtual bool SuspendEnd() { return false; }
+    virtual DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual ScreenId GetInternalScreenId() { return SCREEN_ID_INVALID; }
     virtual bool SetScreenPowerById(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason)
     {

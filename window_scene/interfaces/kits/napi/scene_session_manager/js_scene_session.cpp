@@ -637,6 +637,7 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "setIsMidScene", moduleName, JsSceneSession::SetIsMidScene);
     BindNativeFunction(env, objValue, "setScale", moduleName, JsSceneSession::SetScale);
     BindNativeFunction(env, objValue, "setWindowLastSafeRect", moduleName, JsSceneSession::SetWindowLastSafeRect);
+    BindNativeFunction(env, objValue, "getParentWindowRect", moduleName, JsSceneSession::GetParentWindowRect);
     BindNativeFunction(env, objValue, "setMovable", moduleName, JsSceneSession::SetMovable);
     BindNativeFunction(env, objValue, "setSplitButtonVisible", moduleName, JsSceneSession::SetSplitButtonVisible);
     BindNativeFunction(env, objValue, "setOffset", moduleName, JsSceneSession::SetOffset);
@@ -3067,6 +3068,13 @@ napi_value JsSceneSession::SetNeedSyncSessionRect(napi_env env, napi_callback_in
     TLOGD(WmsLogTag::WMS_PIPELINE, "[NAPI]");
     JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
     return (me != nullptr) ? me->OnSetNeedSyncSessionRect(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::GetParentWindowRect(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnGetParentWindowRect(env, info) : nullptr;
 }
 
 napi_value JsSceneSession::SetLabel(napi_env env, napi_callback_info info)
@@ -8066,6 +8074,17 @@ napi_value JsSceneSession::OnSetNeedSyncSessionRect(napi_env env, napi_callback_
     }
     session->SetNeedSyncSessionRect(needSync);
     return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnGetParentWindowRect(napi_env env, napi_callback_info info)
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    WSRect rect = session->GetParentSessionRectSync();
+    return CreateJsSessionRect(env, rect);
 }
 
 void JsSceneSession::ProcessSetWindowRectAutoSaveRegister()
