@@ -11908,6 +11908,8 @@ void SceneSessionManager::ReportPrivacyWindowSnapshotFail(const sptr<SceneSessio
     const std::string& errorMsg)
 {
     if (sceneSession == nullptr || (!sceneSession->GetIsPrivacyMode() && !sceneSession->GetSnapshotPrivacyMode())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "skip privacy snapshot fail report, session null: %{public}d",
+            sceneSession == nullptr);
         return;
     }
     const auto& sessionInfo = sceneSession->GetSessionInfo();
@@ -11941,6 +11943,9 @@ void SceneSessionManager::ReportPrivacyWindowSnapshotFail(const sptr<SceneSessio
     if (ret != 0) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write HiSysEvent error, ret: %{public}d", ret);
     }
+    TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacy snapshot fail event ret: %{public}d, bundle: %{public}s, "
+        "ability: %{public}s, windowId: %{public}d, errorCode: %{public}d",
+        ret, reportInfo.bundleName.c_str(), reportInfo.abilityName.c_str(), reportInfo.windowId, errorCode);
 }
 
 WSError SceneSessionManager::GetUIContentRemoteObj(int32_t persistentId, sptr<IRemoteObject>& uiContentRemoteObj)

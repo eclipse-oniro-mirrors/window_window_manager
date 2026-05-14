@@ -3205,6 +3205,9 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
 void Session::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const
 {
     if (!GetIsPrivacyMode() && !GetSnapshotPrivacyMode()) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "skip privacy snapshot fail report, privacy: %{public}d, "
+            "snapshotPrivacy: %{public}d, id: %{public}d",
+            GetIsPrivacyMode(), GetSnapshotPrivacyMode(), persistentId_);
         return;
     }
     auto sessionRect = GetSessionRect();
@@ -3237,6 +3240,9 @@ void Session::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::stri
     if (ret != 0) {
         TLOGE(WmsLogTag::WMS_PATTERN, "write HiSysEvent error, ret: %{public}d", ret);
     }
+    TLOGE(WmsLogTag::WMS_PATTERN, "write privacy snapshot fail event ret: %{public}d, bundle: %{public}s, "
+        "ability: %{public}s, windowId: %{public}d, errorCode: %{public}d",
+        ret, reportInfo.bundleName.c_str(), reportInfo.abilityName.c_str(), reportInfo.windowId, errorCode);
 }
 
 bool Session::CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
