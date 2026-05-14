@@ -434,7 +434,8 @@ HWTEST_F(WindowSceneSessionImplTest2, UpdateWindowMode02, TestSize.Level1)
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
               windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
     windowSceneSession->property_->SetPersistentId(1);
-    ASSERT_EQ(WSError::WS_OK, windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
+    ASSERT_EQ(WSError::WS_OK, 
+        windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
 }
 
 /**

@@ -4436,10 +4436,6 @@ void Session::InitVsyncCallbackForModeChangeAndRequestNextVsync()
 WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     WindowMode mode = windowModeInfo.windowMode;
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
-        "WMS::WindowModeUpdate::ServerRecv::UpdateWindowMode id=%d mode=%d splitStyle=%d splitIndex=%d",
-        GetPersistentId(), static_cast<int32_t>(mode),
-        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
     auto preMode = GetWindowMode();
     TLOGI(WmsLogTag::WMS_LAYOUT,
         "[WindowModeUpdate:ServerRecv] id:%{public}d, preMode:%{public}d, mode:%{public}d, "
