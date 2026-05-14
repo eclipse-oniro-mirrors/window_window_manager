@@ -1270,7 +1270,14 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
         session->HandleSessionDragEvent(event);
         session->ApplySessionEventParam(event, param);
         if (session->onSessionEvent_) {
-            session->onSessionEvent_(static_cast<uint32_t>(event), session->sessionEventParam_);
+            auto eventParam = session->sessionEventParam_;
+            if (event == SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING) {
+                auto currentDragRect =
+                    session->moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
+                eventParam.windowGlobalPosX_ = currentDragRect.posX_;
+                eventParam.windowGlobalPosY_ = currentDragRect.posY_;
+            }
+            session->onSessionEvent_(static_cast<uint32_t>(event), eventParam);
         }
         return WSError::WS_OK;
     }, std::string(__func__) + ":" + std::to_string(static_cast<uint32_t>(event)));
