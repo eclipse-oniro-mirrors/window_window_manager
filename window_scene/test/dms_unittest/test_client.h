@@ -73,6 +73,7 @@ public:
     void OnTentModeChange(TentMode tentMode) override {};
     void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override {};
     void OnTransRSEvent(const sptr<RSEventDataBase>& param) override {};
+    void OnScreenClosedStateChange(ScreenClosedState screenClosedState) override {};
     sptr<IRemoteObject> testPtr;
 };
 }

@@ -76,6 +76,13 @@ public:
 
     void SetPivotY(float pivotY);
     float GetPivotY() const;
+    
+    void SetNeedCastScale(bool SetNeedCastScale);
+    bool GetNeedCastScale() const;
+    void SetCastScaleX(float scaleX);
+    float GetCastScaleX() const;
+    void SetCastScaleY(float scaleY);
+    float GetCastScaleY() const;
 
     void SetTranslateX(float translateX);
     float GetTranslateX() const;
@@ -332,6 +339,10 @@ private:
     float pivotY_ { 0.5f };
     float translateX_ { 0.0f };
     float translateY_ { 0.0f };
+
+    bool needCastScale_ = false;
+    float castScaleX_{ 1.0f };
+    float castScaleY_{ 1.0f };
 
     uint32_t phyWidth_ { UINT32_MAX };
     uint32_t phyHeight_ { UINT32_MAX };

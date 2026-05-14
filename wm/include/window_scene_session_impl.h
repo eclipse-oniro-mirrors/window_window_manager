@@ -248,7 +248,6 @@ public:
     WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
-    bool haveSetSupportedWindowModes_ = false;
     uint32_t pendingWindowModeSupportType_ { WindowModeSupport::WINDOW_MODE_SUPPORT_ALL };
 
     /*
@@ -530,8 +529,8 @@ private:
     bool HasIntersectedAttachLimits() const;
     WindowLimits GetCustomizedLimitsForSetWindowLimits(const WindowLimits& windowLimits);
     WindowLimits ConvertBaseLimitsToTargetUnit(const WindowLimits& srcLimits, PixelUnit targetPixelUnit);
-    void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
-    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() override;
+    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() override;
     WMError ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config);
     void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,

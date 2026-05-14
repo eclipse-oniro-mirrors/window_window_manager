@@ -61,6 +61,7 @@ public:
     bool WakeUpEnd();
     bool SuspendBegin(PowerStateChangeReason reason);
     bool SuspendEnd();
+    DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
     ScreenId GetInternalScreenId();
     bool SetScreenPowerById(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason);
     bool SetSpecifiedScreenPower(ScreenId, ScreenPowerState, PowerStateChangeReason);

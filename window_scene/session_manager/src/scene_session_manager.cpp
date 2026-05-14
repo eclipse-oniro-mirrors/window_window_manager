@@ -2324,9 +2324,9 @@ sptr<SceneSession::SpecificSessionCallback> SceneSessionManager::CreateSpecificS
         DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
         return this->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
     };
-    specificCb->onGetFloatNavagationInfo_ = [this](
+    specificCb->onGetFloatNavigationInfo_ = [this](
         DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo) {
-        return this->GetFloatNavagationInfo(displayId, floatNavagationInfo);
+        return this->GetFloatNavigationInfo(displayId, floatNavagationInfo);
     };
     specificCb->onGetLSState_ = [this]() {
         return this->GetLSState();
@@ -7438,7 +7438,7 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
         if (auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(currScreenId)) {
             sourceMode = screenSession->GetSourceMode();
         }
-        bool shouldLock = requireLock && IsSessionVisibleForeground(sceneSession) &&
+        bool shouldLock = requireLock && IsSessionVisibleAndRealForeground(sceneSession) &&
             sourceMode != ScreenSourceMode::SCREEN_UNIQUE;
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "keep screen on: winName=%{public}s, sessionState=%{public}d, "
             "isVisible=%{public}d, requireLock=%{public}d, shouldLock=%{public}d, screenId=%{public}" PRIu64
@@ -7773,12 +7773,20 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
 
 WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
-    return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
+            ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
+        return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+    }, __func__);
 }
 
 WSError SceneSessionManager::RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
 {
-    return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
+    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+        TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
+            ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
+        return windowFocusController_->RemoveFocusGroup(displayGroupId, displayId);
+    }, __func__);
 }
 
 WSError SceneSessionManager::SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
@@ -8078,6 +8086,25 @@ bool SceneSessionManager::IsSessionVisibleForeground(const sptr<SceneSession>& s
         return session->IsVisibleForeground();
     }
     return IsSessionVisible(session);
+}
+
+bool SceneSessionManager::IsSessionVisibleAndRealForeground(const sptr<SceneSession>& session)
+{
+    if (session == nullptr) {
+        return false;
+    }
+    if (!Session::IsScbCoreEnabled()) {
+        return IsSessionVisible(session);
+    }
+    auto state = GetRealSessionState(session);
+    if (session->IsVisible() && (state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND)) {
+        TLOGD(WmsLogTag::WMS_LIFE, "Window is visible and real foreground, id: %{public}d",
+            session->GetPersistentId());
+        return true;
+    }
+    TLOGD(WmsLogTag::WMS_LIFE, "Window is not visible or real background, id: %{public}d",
+        session->GetPersistentId());
+    return false;
 }
 
 void SceneSessionManager::DumpSessionInfo(const sptr<SceneSession>& session, std::ostringstream& oss)
@@ -9940,6 +9967,28 @@ WSError SceneSessionManager::SendTouchEvent(const std::shared_ptr<MMI::PointerEv
 }
 
 WSError SceneSessionManager::SendAxisEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (!pointerEvent) {
+        TLOGE(WmsLogTag::WMS_EVENT, "pointerEvent is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+    MMI::PointerEvent::PointerItem pointerItem;
+    if (!pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to get pointerItem");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+#ifdef SECURITY_COMPONENT_MANAGER_ENABLE
+    FillSecCompEnhanceData(pointerEvent, pointerItem);
+#endif
+    TLOGI(WmsLogTag::WMS_EVENT, "eid=%{public}d,ac=%{public}d,deviceId=%{public}d,zIndex=%{public}f",
+        pointerEvent->GetPointerId(), pointerEvent->GetPointerAction(), pointerEvent->GetDeviceId(),
+        pointerEvent->GetZOrder());
+    pointerEvent->AddFlag(MMI::PointerEvent::EVENT_FLAG_REDISPATCH);
+    MMI::InputManager::GetInstance()->RedispatchInputEvent(pointerEvent);
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::RedispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
 {
     if (!pointerEvent) {
         TLOGE(WmsLogTag::WMS_EVENT, "pointerEvent is null");
@@ -14307,7 +14356,7 @@ WSError SceneSessionManager::NotifyFloatNavigationInfo(DisplayId displayId, bool
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::GetFloatNavagationInfo(
+WSError SceneSessionManager::GetFloatNavigationInfo(
     DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)
 {
     std::lock_guard<std::mutex> lock(floatNavagationInfoMapMutex_);
@@ -14426,6 +14475,24 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     winStateSnapshotJson["showInLandscapeMode"] = appWindowSceneConfig_.systemUIStatusBarConfig_.showInLandscapeMode_;
+    auto session = GetSceneSession(persistentId);
+    if (session) {
+        auto IsSystemUiVisible = [this](WindowType type, DisplayId displayId) {
+            auto systemUiVector = this->GetSceneSessionVectorByTypeAndDisplayId(type, displayId);
+            for (auto& systemUi : systemUiVector) {
+                return systemUi->IsVisible() ? '1' : '0';
+            }
+            return '0';
+        };
+        std::string systemUiVisible(4, '0');
+        auto displayId = session->GetSessionProperty()->GetDisplayId();
+        systemUiVisible[0] = IsSystemUiVisible(WindowType::WINDOW_TYPE_STATUS_BAR, displayId);
+        systemUiVisible[2] = IsSystemUiVisible(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION, displayId);
+        systemUiVisible[1] = systemUiVisible[2] == '1' ? '0' :
+            (GetAINavigationBarArea(displayId, false) != WSRect::EMPTY_RECT ? '1' : '0');
+        systemUiVisible[3] = IsSystemUiVisible(WindowType::WINDOW_TYPE_NAVIGATION_BAR, displayId);
+        winStateSnapshotJson["systemUiVisible"] = systemUiVisible;
+    }
     winStateSnapshotJsonStr = winStateSnapshotJson.dump();
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, winStateSnapshot=%{public}s",
         persistentId, winStateSnapshotJsonStr.c_str());
@@ -19146,7 +19213,7 @@ WMError SceneSessionManager::RelockScreenLockForApp(const std::string& bundleNam
             if (screenSession) {
                 sourceMode = screenSession->GetSourceMode();
             }
-            if (sceneSession->IsKeepScreenOn() && IsSessionVisibleForeground(sceneSession) &&
+            if (sceneSession->IsKeepScreenOn() && IsSessionVisibleAndRealForeground(sceneSession) &&
                 sourceMode != ScreenSourceMode::SCREEN_UNIQUE && sceneSession->keepScreenLock_ != nullptr) {
                 auto res = sceneSession->keepScreenLock_->Lock();
                 TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "relock screenlock, window: [%{public}d, %{public}s], res:%{public}d",

@@ -177,6 +177,9 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_SET_DISPLAY_NODE_RS_SCREEN_ID] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnSetDisplayNodeRSScreenId(data, reply);
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_CLOSED_STATE_CHANGE] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleScreenClosedStateChange(data, reply);
     };
 }
 
@@ -735,5 +738,13 @@ sptr<RSEventDataBase> ScreenSessionManagerClientStub::ReadRSEventFromParcel(Mess
     }
 
     return event;
+}
+
+int ScreenSessionManagerClientStub::HandleScreenClosedStateChange(MessageParcel& data, MessageParcel& reply)
+{
+    auto screenClosedState = static_cast<ScreenClosedState>(data.ReadUint32());
+    TLOGD(WmsLogTag::DMS, "begin, screenClosedState = %{public}" PRIu32, static_cast<uint32_t>(screenClosedState));
+    OnScreenClosedStateChange(screenClosedState);
+    return ERR_NONE;
 }
 } // namespace OHOS::Rosen

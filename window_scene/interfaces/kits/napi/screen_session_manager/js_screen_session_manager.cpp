@@ -42,6 +42,7 @@ constexpr int32_t INVALID_ID = -1;
 namespace {
 const std::string ON_SCREEN_CONNECTION_CHANGE_CALLBACK = "screenConnectChange";
 const std::string ON_TENT_MODE_CHANGE_CALLBACK = "tentModeChange";
+const std::string ON_SCREEN_CLOSED_STATE_CHANGE_CALLBACK = "screenClosedStateChange";
 const std::string ON_EXT_SCREEN_UNSUPPORT_CALLBACK = "extScreenUnsupport";
 const std::map<ScbScreenPowerState, ScreenPowerState> POWER_STATE_MAP {
     { ScbScreenPowerState::POWER_OFF,                  ScreenPowerState::POWER_OFF },
@@ -543,6 +544,42 @@ void JsScreenSessionManager::OnTentModeChange(const TentMode tentMode)
     }
 }
 
+void JsScreenSessionManager::OnScreenClosedStateChange(const ScreenClosedState screenClosedState)
+{
+    std::vector<std::shared_ptr<NativeReference>> screenClosedStateChangeCallback;
+    {
+        std::shared_lock<std::shared_mutex> lock(screenClosedStateChangeCallbackMutex_);
+        screenClosedStateChangeCallback = screenClosedStateChangeCallback_;
+    }
+    if (screenClosedStateChangeCallback.empty()) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]screenClosedStateChangeCallback is nullptr");
+        return;
+    }
+    TLOGD(WmsLogTag::DMS, "[NAPI]begin");
+    for (auto& callback : screenClosedStateChangeCallback) {
+        TLOGD(WmsLogTag::DMS, "native call, change screen closed state to");
+        auto asyncTask = [this, callback, screenClosedState, env = env_]() {
+            HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenSessionManager::OnScreenClosedStateChange");
+            napi_value screenClosedStateNapiVal = CreateJsValue(env, static_cast<std::uint32_t>(screenClosedState));
+            napi_value argv[] = { screenClosedStateNapiVal };
+            napi_value method = callback->GetNapiValue();
+            if (method == nullptr) {
+                TLOGNE(WmsLogTag::DMS, "Failed to get method callback from object!");
+                return;
+            }
+            napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
+        };
+        if (env_ != nullptr) {
+            napi_status ret = napi_send_event(env_, asyncTask, napi_eprio_vip, "OnScreenClosedStateChange");
+            if (ret != napi_status::napi_ok) {
+                TLOGE(WmsLogTag::DMS, "Failed to SendEvent.");
+            }
+        } else {
+            TLOGE(WmsLogTag::DMS, "env is nullptr");
+        }
+    }
+}
+
 void JsScreenSessionManager::RegisterTransRSEventCallback(napi_env env, napi_ref& callback, RSExposedEventType type)
 {
     TLOGI(WmsLogTag::DMS, "[NAPI]Register, type:%{public}u", static_cast<uint32_t>(type));
@@ -832,6 +869,8 @@ napi_value JsScreenSessionManager::OnRegisterCallback(napi_env env, const napi_c
         RegisterScreenConnectionCallback(env, callbackRef);
     } else if (callbackType == ON_TENT_MODE_CHANGE_CALLBACK) {
         RegisterTentModeCallback(env, callbackRef);
+    } else if (callbackType == ON_SCREEN_CLOSED_STATE_CHANGE_CALLBACK) {
+        RegisterScreenClosedStateChangeCallback(env, callbackRef);
     } else if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
         RegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
     } else {
@@ -850,7 +889,9 @@ napi_value JsScreenSessionManager::OnUnRegisterCallback(napi_env env, const napi
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
-    if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
+    if (callbackType == ON_SCREEN_CLOSED_STATE_CHANGE_CALLBACK) {
+        UnRegisterScreenClosedStateChangeCallback(env, callbackRef);
+    } else if (callbackType == ON_EXT_SCREEN_UNSUPPORT_CALLBACK) {
         UnRegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
     } else {
         TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
@@ -880,6 +921,41 @@ void JsScreenSessionManager::RegisterTentModeCallback(napi_env env, napi_ref& ca
         tentModeChangeCallback_.emplace_back(callbackRef);
     }
     ScreenSessionManagerClient::GetInstance().RegisterTentModeChangeListener(this);
+}
+
+void JsScreenSessionManager::RegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callback)
+{
+    TLOGI(WmsLogTag::DMS, "[NAPI] begin");
+    std::shared_ptr<NativeReference> callbackRef(reinterpret_cast<NativeReference*>(callback));
+    {
+        std::unique_lock<std::shared_mutex> lock(screenClosedStateChangeCallbackMutex_);
+        screenClosedStateChangeCallback_.emplace_back(callbackRef);
+    }
+    ScreenSessionManagerClient::GetInstance().RegisterScreenClosedStateChangeListener(this);
+}
+
+void JsScreenSessionManager::UnRegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callback)
+{
+    std::unique_lock<std::shared_mutex> lock(screenClosedStateChangeCallbackMutex_);
+    if (screenClosedStateChangeCallback_.empty()) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] No callbacks registered");
+        return;
+    }
+    auto iter = std::find_if(screenClosedStateChangeCallback_.begin(), screenClosedStateChangeCallback_.end(),
+        [&](std::shared_ptr<NativeReference> callbackItem) {
+            if (!callbackItem) return false;
+            napi_value callbackNapi;
+            napi_get_reference_value(env, callback, &callbackNapi);
+            bool isEquals = false;
+            napi_strict_equals(env, callbackItem->GetNapiValue(), callbackNapi, &isEquals);
+            return isEquals;
+        });
+    if (iter != screenClosedStateChangeCallback_.end()) {
+        screenClosedStateChangeCallback_.erase(iter);
+        TLOGI(WmsLogTag::DMS, "[NAPI] Unregistered callback");
+    } else {
+        TLOGE(WmsLogTag::DMS, "[NAPI] Callback not registered");
+    }
 }
 
 bool JsScreenSessionManager::ObtainCallBackInfo(napi_env env, const napi_callback_info info,

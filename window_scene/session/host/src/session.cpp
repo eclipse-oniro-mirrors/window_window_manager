@@ -1109,10 +1109,18 @@ bool Session::GetWindowTouchableForMMI(DisplayId displayId) const
     bool isTouchable = true;
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(displayId);
     if (screenSession != nullptr) {
-        if (!screenSession->IsTouchEnabled() || !GetSystemTouchable() ||
-            !GetForegroundInteractiveStatus()) {
+        if (!screenSession->IsTouchEnabled() || !GetSessionTouchable()) {
             isTouchable = false;
         }
+    }
+    return isTouchable;
+}
+
+bool Session::GetSessionTouchable() const
+{
+    bool isTouchable = true;
+    if (!GetSystemTouchable() || !GetForegroundInteractiveStatus()) {
+        isTouchable = false;
     }
     return isTouchable;
 }
@@ -4531,6 +4539,8 @@ void Session::RectSizeCheckProcess(float curWidth, float curHeight, uint32_t min
 
     const bool needReportException = isSizeAboveMax ||
                                      (!isSystemWindowButNotDialog && isSizeBelowMin && isSizeBelowScreen);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "RectCheck sessionID: %{public}d rect %{public}s isReportException %{public}d",
+        GetPersistentId(), GetSessionRect().ToString().c_str(), needReportException);
 
     if (needReportException) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "RectCheck err sessionID: %{public}d rect %{public}s",

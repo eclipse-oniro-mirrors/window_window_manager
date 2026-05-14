@@ -36,6 +36,7 @@ namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "JsSceneUtils" };
 constexpr int32_t US_PER_NS = 1000;
 constexpr int32_t INVALID_VAL = -9999;
+constexpr int32_t MAX_DRAG_DISABLED_AREAS = 50;
 
 const std::unordered_map<int32_t, ThrowSlipMode> FINGERS_TO_THROWSLIPMODE_MAP = {
     { 3, ThrowSlipMode::THREE_FINGERS_SWIPE },
@@ -1569,6 +1570,35 @@ bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect
         }
         displayRect.height_ = height;
     }
+    return true;
+}
+
+bool ConvertDragDisabledAreasFromJsValue(napi_env env, napi_value nativeArray,
+    std::vector<Rect>& dragDisabledAreas)
+{
+    // get array size from js
+    uint32_t size = 0;
+    napi_get_array_length(env, nativeArray, &size);
+    if (size > MAX_DRAG_DISABLED_AREAS) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Over the maximum limit");
+        return false;
+    }
+    // parse array
+    for (uint32_t i = 0; i < size; i++) {
+        napi_value jsObject = nullptr;
+        napi_get_element(env, nativeArray, i, &jsObject);
+        if (jsObject == nullptr) {
+            TLOGE(WmsLogTag::WMS_EVENT, "Failed to get element");
+            return false;
+        }
+        Rect dragDisabledArea;
+        if (!ConvertRectFromJsValue(env, jsObject, dragDisabledArea)) {
+            return false;
+        }
+        // the multimodal will verify the non-draggable areas
+        dragDisabledAreas.emplace_back(dragDisabledArea);
+    }
+    TLOGD(WmsLogTag::WMS_EVENT, "success");
     return true;
 }
 

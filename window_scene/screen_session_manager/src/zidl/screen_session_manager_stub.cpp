@@ -100,6 +100,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteBool(SuspendEnd());
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE: {
+            ScreenClosedState screenClosedState = static_cast<ScreenClosedState>(data.ReadUint32());
+            bool isScreenOn = data.ReadBool();
+            DMError ret = SetScreenSwitchState(screenClosedState, isScreenOn);
+            reply.WriteUint32(static_cast<uint32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_INTERNAL_SCREEN_ID: {
             reply.WriteUint64(GetInternalScreenId());
             break;

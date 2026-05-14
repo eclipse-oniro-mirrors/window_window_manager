@@ -73,6 +73,7 @@ public:
     MOCK_METHOD1(IsFreeMultiWindowMode, WMError(bool& isFreeMultiWindow));
     MOCK_METHOD1(IsPcOrPadFreeMultiWindowMode, WMError(bool& IsPcOrPadFreeMultiWindowMode));
     MOCK_METHOD2(UpdateOutline, WMError(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams));
+    MOCK_METHOD2(GetWindowStateSnapshot, WMError(int32_t persistentId, std::string& winStateSnapshotJsonStr));
 };
 }
 } // namespace OHOS

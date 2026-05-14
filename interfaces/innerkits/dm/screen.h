@@ -182,6 +182,23 @@ public:
     DMError SetOrientation(Orientation orientation) const;
 
     /**
+     * @brief Set orientation for the screen.
+     *
+     * @param orientation Orientation for the screen.
+     * @return DM_OK means set success, others means set failed.
+     */
+    DMError SetScreenOrientation(Orientation orientation) const;
+
+    /**
+     * @brief Set orientation for the screen with orientationOptions.
+     *
+     * @param orientation Orientation for the screen.
+     * @param options Orientation options for the screen.
+     * @return DM_OK means set success, others means set failed.
+     */
+    DMError SetOrientation(Orientation orientation, const OrientationOptions& options) const;
+
+    /**
      * @brief Set orientation for the screen with orientationOptions.
      *
      * @param orientation Orientation for the screen.
@@ -189,14 +206,6 @@ public:
      * @return DM_OK means set success, others means set failed.
      */
     DMError SetScreenOrientation(Orientation orientation, const OrientationOptions& options) const;
- 
-    /**
-     * @brief Set orientation for the screen.
-     *
-     * @param orientation Orientation for the screen.
-     * @return DM_OK means set success, others means set failed.
-     */
-    DMError SetScreenOrientation(Orientation orientation) const;
 
     /**
      * @brief Set the density dpi of the screen.

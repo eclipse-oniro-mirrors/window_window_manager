@@ -102,6 +102,7 @@ public:
         TRANS_ID_SET_IMAGE_FOR_RECENT_PIXELMAP,
         TRANS_ID_REMOVE_IMAGE_FOR_RECENT,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
     };
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& property,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode,

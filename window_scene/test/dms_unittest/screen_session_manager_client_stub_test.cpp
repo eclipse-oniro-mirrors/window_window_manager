@@ -1258,5 +1258,22 @@ HWTEST_F(ScreenSessionManagerClientStubTest, OnRemoteRequestOnScreenOrientationC
     int res = screenSessionManagerClientStub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
 }
+
+/**
+ * @tc.name: HandleScreenClosedStateChange
+ * @tc.desc: HandleScreenClosedStateChange test with CLOSE state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleScreenClosedStateChange, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    data.WriteUint32(static_cast<uint32_t>(screenClosedState));
+
+    int res = screenSessionManagerClientStub_->HandleScreenClosedStateChange(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
 } // namespace Rosen
 } // namespace OHOS

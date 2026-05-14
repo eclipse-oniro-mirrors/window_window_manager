@@ -3199,6 +3199,8 @@ export class WindowInternal implements Window {
     private native setForbidSplitMove(nativeObj: long, isForbidSplitMove: boolean): void;
     private native setFollowParentWindowLayoutEnabled(nativeObj: long, enabled: boolean): void;
     private native setFollowParentMultiScreenPolicy(nativeObj: long, enabled: boolean): void;
+    private native setSupportedWindowModes(nativeObj: long,
+      supportedWindowModes: Array<bundleManager.SupportWindowMode>): void;
     private native moveWindowToGlobalDisplay(nativeObj: long, x: int, y: int): void;
     private native clientToGlobalDisplay(nativeObj: long, winX: int, winY: int): Position;
     private native globalDisplayToClient(nativeObj: long, globalDisplayX: int, globalDisplayY: int): Position;
@@ -5307,6 +5309,18 @@ export class WindowInternal implements Window {
       });
     }
 
+    public setSupportedWindowModes(supportedWindowModes: Array<bundleManager.SupportWindowMode>): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+        taskpool.execute(() => {
+          this.setSupportedWindowModes(this.nativeObj, supportedWindowModes);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public moveWindowToGlobalDisplay(x: int, y: int): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute(() => {
@@ -5678,6 +5692,7 @@ export interface Window {
     setForbidSplitMove(isForbidSplitMove: boolean): Promise<void>;
     setFollowParentWindowLayoutEnabled(enabled: boolean): Promise<void>;
     setFollowParentMultiScreenPolicy(enabled: boolean): Promise<void>;
+    setSupportedWindowModes(supportedWindowModes: Array<bundleManager.SupportWindowMode>): Promise<void>;
     moveWindowToGlobalDisplay(x: int, y: int): Promise<void>;
     clientToGlobalDisplay(winX: int, winY: int): Position;
     globalDisplayToClient(globalDisplayX: int, globalDisplayY: int): Position;
