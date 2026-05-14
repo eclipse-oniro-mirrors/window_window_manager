@@ -796,8 +796,6 @@ public:
     bool SendKeyEventToUI(std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent = false);
     bool IsStartMoving() override;
     void SetIsStartMoving(bool startMoving);
-    bool IsSystemSpecificSession() const;
-    void SetIsSystemSpecificSession(bool isSystemSpecificSession);
     void SetShouldHideNonSecureWindows(bool shouldHide);
     void UpdateExtWindowFlags(int32_t extPersistentId, const ExtensionWindowFlags& extWindowFlags,
         const ExtensionWindowFlags& extWindowActions);
@@ -1566,7 +1564,6 @@ private:
     SessionEventParam sessionEventParam_ = { 0, 0, 0, 0, 0 };
     std::atomic_bool isStartMoving_ { false };
     std::atomic_bool isVisibleForAccessibility_ { true };
-    bool isSystemSpecificSession_ { false };
 
     /**
      * Keyboard(private)

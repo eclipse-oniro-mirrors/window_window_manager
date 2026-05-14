@@ -4841,7 +4841,6 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         property->SetSystemCalling(isSystemCalling);
         auto errCode = newSession->ConnectInner(
             sessionStage, eventChannel, surfaceNode, systemConfig_, property, token, pid, uid);
-        newSession->SetIsSystemSpecificSession(isSystemCalling);
         systemConfig = systemConfig_;
         persistentId = property->GetPersistentId();
 
@@ -16915,7 +16914,7 @@ void SceneSessionManager::HideNonSecureSubWindows(const sptr<SceneSession>& scen
             continue;
         }
         if (SessionHelper::IsNonSecureToUIExtension(sessionProperty->GetWindowType()) &&
-            !session->IsSystemSpecificSession()) {
+            !sessionProperty->GetSystemCalling()) {
             session->NotifyForceHideChange(shouldHide);
             TLOGI(WmsLogTag::WMS_UIEXT, "name=%{public}s, persistentId=%{public}d, shouldHide=%{public}u",
                 session->GetWindowName().c_str(), session->GetPersistentId(), shouldHide);
