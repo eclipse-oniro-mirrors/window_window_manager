@@ -121,7 +121,6 @@ public:
     virtual void OnTransRSEvent(const sptr<RSEventDataBase>& param) = 0;
     virtual void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) = 0;
     virtual void OnScreenClosedStateChange(ScreenClosedState screenClosedState) = 0;
-
 };
 } // namespace OHOS::Rosen
 
