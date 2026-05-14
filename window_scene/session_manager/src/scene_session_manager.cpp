@@ -15775,34 +15775,34 @@ void SceneSessionManager::ProcessFocusZOrderChange(uint32_t dirty)
 void SceneSessionManager::PostProcessFocus()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::PostProcessFocus");
-    std::vector<sptr<SceneSession>> processingSessions;
+    // priority process focus requests from top to bottom
+    std::vector<std::pair<int32_t, sptr<SceneSession>>> processingSessions;
     {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        for (const auto& [persistentId, session] : sceneSessionMap_) {
-            if (session == nullptr) {
+        for (auto& iter : sceneSessionMap_) {
+            auto session = iter.second;
+            if (session == nullptr || !session->GetPostProcessFocusState().enabled_) {
                 continue;
             }
-            const auto& state = session->GetPostProcessFocusState();
-            if (!state.enabled_) {
+            if (session->GetPostProcessFocusState().isFocused_ && !session->IsVisible()) {
                 continue;
             }
-            if (state.isFocused_ && !session->IsVisible()) {
-                continue;
-            }
-            processingSessions.push_back(session);
+            processingSessions.push_back(iter);
         }
     }
-    auto cmp = [](const sptr<SceneSession>& lhs, const sptr<SceneSession>& rhs) {
-        bool focusCmp = lhs->GetPostProcessFocusState().isFocused_ &&
-            !rhs->GetPostProcessFocusState().isFocused_;
-        uint32_t lhsZOrder = lhs != nullptr ? lhs->GetZOrder() : 0;
-        uint32_t rhsZOrder = rhs != nullptr ? rhs->GetZOrder() : 0;
+    CmpFunc cmp = [](std::pair<int32_t, sptr<SceneSession>>& lhs, std::pair<int32_t, sptr<SceneSession>>& rhs) {
+        bool focusCmp = lhs.second->GetPostProcessFocusState().isFocused_ &&
+            !rhs.second->GetPostProcessFocusState().isFocused_;
+        uint32_t lhsZOrder = lhs.second != nullptr ? lhs.second->GetZOrder() : 0;
+        uint32_t rhsZOrder = rhs.second != nullptr ? rhs.second->GetZOrder() : 0;
         return focusCmp || lhsZOrder > rhsZOrder;
     };
     std::sort(processingSessions.begin(), processingSessions.end(), cmp);
 
-    std::unordered_set<DisplayGroupId> focusChangedSet;
-    for (const auto& session : processingSessions) {
+    // only change focus one time
+    std::unordered_set<DisplayId> focusChangedSet;
+    for (auto iter = processingSessions.begin(); iter != processingSessions.end(); ++iter) {
+        auto session = iter->second;
         if (session == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "session is nullptr");
             continue;
