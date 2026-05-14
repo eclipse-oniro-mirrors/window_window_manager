@@ -875,6 +875,7 @@ napi_value JsScreenSessionManager::OnRegisterCallback(napi_env env, const napi_c
         RegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
     } else {
         TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
+        napi_delete_reference(env, callbackRef);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
     }
     return NapiGetUndefined(env);
