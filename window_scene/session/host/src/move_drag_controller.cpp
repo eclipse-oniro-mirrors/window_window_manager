@@ -1721,19 +1721,21 @@ void MoveDragController::CalcFirstMoveTargetRect(const WSRect& windowRect, bool 
     int32_t offsetY = moveTempProperty_.lastMovePointerPosY_ - moveTempProperty_.lastDownPointerPosY_;
     WSRect targetRect = originalRect.WithOffset(offsetX, offsetY);
     bool isSpecifyMoveStart = false;
+    DisplayId specifyMoveStartDisplayId = DISPLAY_ID_INVALID;
     {
         std::lock_guard<std::mutex> lock(specifyMoveStartMutex_);
         isSpecifyMoveStart = isSpecifyMoveStart_;
+        specifyMoveStartDisplayId = specifyMoveStartDisplayId_;
     }
     if (isSpecifyMoveStart) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "specify start display:%{public}" PRIu64, specifyMoveStartDisplayId_);
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "specify start display:%{public}" PRIu64, specifyMoveStartDisplayId);
         moveDragProperty_.originalRect_.posX_ = moveTempProperty_.lastDownPointerPosX_ -
             moveTempProperty_.lastDownPointerWindowX_ - parentRect_.posX_;
         moveDragProperty_.originalRect_.posY_ = moveTempProperty_.lastDownPointerPosY_ -
             moveTempProperty_.lastDownPointerWindowY_ - parentRect_.posY_;
         targetRect.posX_ = moveDragProperty_.originalRect_.posX_ + offsetX;
         targetRect.posY_ = moveDragProperty_.originalRect_.posY_ + offsetY;
-        targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId_);
+        targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId);
     }
     UpdateTargetRect(SizeChangeReason::DRAG_MOVE, targetRect);
     isAdaptToProportionalScale_ = useWindowRect;
