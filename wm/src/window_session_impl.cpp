@@ -4123,16 +4123,18 @@ std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
         return nullptr;
     }
     std::shared_ptr<Media::PixelMap> pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
-    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
         WLOGFE("Failed to capture privacy or special layer");
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
-        return nullptr;
     }
     if (pixelMap != nullptr) {
         WLOGFD("Snapshot succeed, save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
         WLOGFE("Failed to get pixelmap, return nullptr!");
-        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        if (!hasCaptureError) {
+            ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        }
     }
     return pixelMap;
 }
@@ -4177,15 +4179,17 @@ WMError WindowSessionImpl::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap)
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
-    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, failed to capture privacy or special layer",
             GetPersistentId());
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
-        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to get pixelmap", GetPersistentId());
-        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        if (!hasCaptureError) {
+            ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        }
         return WMError::WM_ERROR_TIMEOUT;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d snapshot end, WxH=%{public}dx%{public}d",

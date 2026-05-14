@@ -3181,10 +3181,10 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
     auto pixelMap = callback->GetResult(options.runInFfrt ? FFRT_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_TIMEOUT_MS);
-    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Capture privacy or special layer failed %{public}d", persistentId_);
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
-        return nullptr;
     }
     if (pixelMap != nullptr) {
         bool isCropped = CropSnapshotPixelMap(pixelMap, lastLayoutRect_, scaleValue);
@@ -3198,7 +3198,9 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         return pixelMap;
     }
     TLOGE(WmsLogTag::WMS_PATTERN, "Save snapshot failed, id: %{public}d", persistentId_);
-    ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+    if (!hasCaptureError) {
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+    }
     return nullptr;
 }
 

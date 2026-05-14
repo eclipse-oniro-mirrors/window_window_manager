@@ -1021,18 +1021,18 @@ std::shared_ptr<Media::PixelMap> WindowImpl::Snapshot()
     } else {
         pixelMap = SingletonContainer::Get<WindowAdapter>().GetSnapshot(property_->GetWindowId());
     }
-    if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
         WLOGFE("Failed to capture privacy or special layer");
         reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
-        return nullptr;
     }
     if (pixelMap != nullptr) {
         WLOGFD("WMS-Client Save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
         WLOGFE("Failed to get pixelmap, return nullptr!");
-        if (isSucceeded) {
+        if (isSucceeded && !hasCaptureError) {
             reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
-        } else {
+        } else if (!isSucceeded) {
             reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         }
     }

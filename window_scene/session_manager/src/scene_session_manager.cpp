@@ -11891,13 +11891,15 @@ WMError SceneSessionManager::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
         pixelMap = callback->GetResult(SNAPSHOT_INNER_TIMEOUT_MS);
-        if (callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK) {
+        bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+        if (hasCaptureError) {
             ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_TAKE_CAPTURE,
                 "capture privacy or special layer failed");
-            return WMError::WM_ERROR_INVALID_OPERATION;
         }
         if (pixelMap == nullptr) {
-            ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+            if (!hasCaptureError) {
+                ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+            }
             return WMError::WM_ERROR_TIMEOUT;
         }
         return WMError::WM_OK;
