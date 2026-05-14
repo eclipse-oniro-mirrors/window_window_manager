@@ -1913,7 +1913,6 @@ int SessionStub::HandleGetFloatingBallWindowId(MessageParcel& data, MessageParce
     }
     return ERR_NONE;
 }
-// LCOV_EXCL_STOP
 
 int SessionStub::HandleStopFloatView(MessageParcel& data, MessageParcel& reply)
 {
@@ -1925,6 +1924,7 @@ int SessionStub::HandleStopFloatView(MessageParcel& data, MessageParcel& reply)
     }
     return ERR_NONE;
 }
+// LCOV_EXCL_STOP
 
 int SessionStub::HandleUpdateFloatView(MessageParcel& data, MessageParcel& reply)
 {
