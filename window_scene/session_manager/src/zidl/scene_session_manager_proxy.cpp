@@ -117,6 +117,12 @@ WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISe
         return WSError::WS_ERROR_IPC_FAILED;
     }
     property->SetWindowType(static_cast<WindowType>(windowType));
+    bool isSystemCalling = false;
+    if (!reply.ReadBool(isSystemCalling)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isSystemCalling failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    property->SetSystemCalling(isSystemCalling);
     int32_t ret = reply.ReadInt32();
     return static_cast<WSError>(ret);
 }
