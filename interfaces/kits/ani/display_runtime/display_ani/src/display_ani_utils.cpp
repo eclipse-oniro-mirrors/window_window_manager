@@ -814,6 +814,12 @@ ani_status DisplayAniUtils::CvtBrightnessInfo(ani_env* env, ani_object obj, Scre
         TLOGE(WmsLogTag::DMS, "[ANI]Set maxHeadroom failed, ret: %{public}u", ret);
         return ret;
     }
+    ret = env->Object_SetFieldByName_Float(
+        obj, Builder::BuildPropertyName("brightnessPosition").c_str(), brightnessInfo.brightnessPosition);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI]Set brightnessPosition failed, ret: %{public}u", ret);
+        return ret;
+    }
     return ret;
 }
 

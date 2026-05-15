@@ -304,7 +304,7 @@ void AbstractScreenController::ProcessDefaultScreenReconnected(ScreenId rsScreen
         // Recover default screen, set power state again
         SetScreenPowerForAll(powerState_, PowerStateChangeReason::POWER_BUTTON, false);
         const uint32_t level = 165;
-        RSInterfaces::GetInstance().SetScreenBacklight(rsScreenId, level);
+        RSInterfaces::GetInstance().SetScreenBacklight(RsScreenBrightnessData(rsScreenId, level));
     } else {
         TLOGE(WmsLogTag::DMS, "can't find screen in dmsScreenMap, dmsScreenId: %{public}" PRIu64"", dmsScreenId);
     }

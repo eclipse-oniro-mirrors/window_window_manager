@@ -118,7 +118,7 @@ public:
     bool SetScreenPowerByIdDefault(ScreenId screenId, ScreenPowerState state);
     bool DealMultiScreenOff(ScreenId screenId, ScreenPowerStatus status);
     DisplayState GetDisplayState(DisplayId displayId) override;
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level) override;
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData) override;
     uint32_t GetScreenBrightness(uint64_t screenId) override;
     bool SetSpecifiedScreenPower(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason) override;
     void ForceSkipScreenOffAnimation();

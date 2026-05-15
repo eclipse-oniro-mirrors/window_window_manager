@@ -2403,6 +2403,10 @@ DMError ScreenSessionManagerProxy::GetBrightnessInfo(DisplayId displayId, Screen
         TLOGE(WmsLogTag::DMS, "Read sdrNits failed!");
         return DMError::DM_ERROR_IPC_FAILED;
     }
+    if (!reply.ReadFloat(brightnessInfo.brightnessPosition)) {
+        TLOGE(WmsLogTag::DMS, "Read brightnessPosition failed!");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
     return DMError::DM_OK;
 }
 

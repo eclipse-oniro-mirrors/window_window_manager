@@ -893,7 +893,7 @@ bool DisplayManagerLiteProxy::TryToCancelScreenOff()
 #endif
 }
 
-bool DisplayManagerLiteProxy::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManagerLiteProxy::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
 #ifdef SCENE_BOARD_ENABLED
     sptr<IRemoteObject> remote = Remote();
@@ -908,12 +908,8 @@ bool DisplayManagerLiteProxy::SetScreenBrightness(uint64_t screenId, uint32_t le
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return false;
     }
-    if (!data.WriteUint64(screenId)) {
-        TLOGE(WmsLogTag::DMS, "Write screenId failed");
-        return false;
-    }
-    if (!data.WriteUint64(level)) {
-        TLOGE(WmsLogTag::DMS, "Write level failed");
+    if (!brightnessData.Marshalling(data)) {
+        TLOGE(WmsLogTag::DMS, "Write brightnessData failed");
         return false;
     }
     if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_BRIGHTNESS),
@@ -924,7 +920,7 @@ bool DisplayManagerLiteProxy::SetScreenBrightness(uint64_t screenId, uint32_t le
     return reply.ReadBool();
 #else
     bool isSucc = false;
-    SetScreenBrightness(screenId, level, isSucc);
+    SetScreenBrightness(brightnessData, isSucc);
     return isSucc;
 #endif
 }

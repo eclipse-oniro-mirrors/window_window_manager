@@ -214,7 +214,7 @@ public:
     virtual bool SetDisplayState(DisplayState state) { return false; }
     virtual DisplayState GetDisplayState(DisplayId displayId) {return DisplayState::UNKNOWN; }
     virtual bool TryToCancelScreenOff() { return false; }
-    virtual bool SetScreenBrightness(uint64_t screenId, uint32_t level) { return false; }
+    virtual bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData) { return false; }
     virtual uint32_t GetScreenBrightness(uint64_t screenId) { return 0; }
     virtual std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT)
     {

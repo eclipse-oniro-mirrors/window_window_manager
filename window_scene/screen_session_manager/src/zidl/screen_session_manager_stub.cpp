@@ -164,9 +164,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_BRIGHTNESS: {
-            uint64_t screenId = data.ReadUint64();
-            uint32_t level = data.ReadUint64();
-            reply.WriteBool(SetScreenBrightness(screenId, level));
+            DmsScreenBrightnessData* brightnessDataPtr = DmsScreenBrightnessData::Unmarshalling(data);
+            if (brightnessDataPtr == nullptr) {
+                reply.WriteBool(false);
+            } else {
+                reply.WriteBool(SetScreenBrightness(*brightnessDataPtr));
+                delete brightnessDataPtr;
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_SCREEN_BRIGHTNESS: {
@@ -269,6 +273,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             if (!reply.WriteFloat(brightnessInfo.sdrNits)) {
                 TLOGE(WmsLogTag::DMS, "write sdrNits failed!");
+                break;
+            }
+            if (!reply.WriteFloat(brightnessInfo.brightnessPosition)) {
+                TLOGE(WmsLogTag::DMS, "write brightnessPosition failed!");
                 break;
             }
             break;

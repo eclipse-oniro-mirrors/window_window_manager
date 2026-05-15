@@ -430,10 +430,9 @@ public:
     /**
      * @brief Set the brightness level of the target screen.
      *
-     * @param screenId Target screen.
-     * @param level Brightness level.
+     * @param brightnessData Brightness data including screenId, level, and brightnessPosition.
      */
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
 
     /**
      * @brief Get the brightness level of the target screen.

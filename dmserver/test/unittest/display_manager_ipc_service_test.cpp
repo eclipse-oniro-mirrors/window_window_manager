@@ -117,7 +117,7 @@ HWTEST_F(DisplayManagerIpcServiceTest, GetScreenInfoById01, TestSize.Level1)
 HWTEST_F(DisplayManagerIpcServiceTest, SetScreenBrightness, TestSize.Level1)
 {
     bool isSucc = true;
-    ASSERT_EQ(ERR_OK, dms_->SetScreenBrightness(0, 100, isSucc));
+    ASSERT_EQ(ERR_OK, dms_->SetScreenBrightness(DmsScreenBrightnessData(0, 100), isSucc));
     EXPECT_TRUE(isSucc);
 }
 
