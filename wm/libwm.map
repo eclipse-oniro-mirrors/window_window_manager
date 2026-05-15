@@ -473,6 +473,7 @@
             OHOS::Rosen::WindowSceneSessionImpl::WindowSceneSessionImpl*;
             OHOS::Rosen::WindowSessionImpl::GetHostSession*;
             OHOS::Rosen::WindowSessionImpl::WindowSessionImpl*;
+            OHOS::Rosen::*SetPrivacyMode*;
 
             guard?variable?for?OHOS::Rosen::Window::GetTransform*;
             guard?variable?for?OHOS::Rosen::Window::GetWindowName*;
