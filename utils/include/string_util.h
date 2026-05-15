@@ -16,7 +16,9 @@
 #ifndef WM_STRING_UTIL_H
 #define WM_STRING_UTIL_H
 
-#include <charconv>
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
 #include <string>
 
 #include "dm_common.h"
@@ -62,6 +64,17 @@ public:
     {
         auto res = std::from_chars(str.data(), str.data() + str.size(), num);
         if (res.ec != std::errc()) {
+            return false;
+        }
+        return true;
+    }
+
+    static inline bool ConvertStringToFloat(const std::string& str, float& num)
+    {
+        char* end = nullptr;
+        errno = 0;
+        num = std::strtof(str.c_str(), &end);
+        if (end == str.c_str() || errno == ERANGE || !std::isfinite(num)) {
             return false;
         }
         return true;
