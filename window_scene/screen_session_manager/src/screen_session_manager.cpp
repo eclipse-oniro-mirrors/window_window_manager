@@ -5159,7 +5159,7 @@ static std::vector<int> GetDeviceRadiusFormConfig(float dpi)
         char* end = nullptr;
         errno = 0;
         float value = std::strtof(item.c_str(), &end);
-        if (end == item.c_str() || end != item.c_str() + item.size() || errno == ERANGE) {
+        if (end == item.c_str() || end != item.c_str() + item.size() || errno == ERANGE || !std::isfinite(value)) {
             TLOGNW(WmsLogTag::DMS, "Invalid radius value: %{public}s", item.c_str());
             break;
         }
