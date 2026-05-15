@@ -152,6 +152,39 @@ Ace::ViewportConfig FillViewportConfig(
     config.SetDisplayId(displayId);
     return config;
 }
+
+const std::map<Orientation, const char*> ORIENTATION_NAME_MAP {
+    {Orientation::UNSPECIFIED, "UNSPECIFIED"},
+    {Orientation::VERTICAL, "VERTICAL"},
+    {Orientation::HORIZONTAL, "HORIZONTAL"},
+    {Orientation::REVERSE_VERTICAL, "REVERSE_VERTICAL"},
+    {Orientation::REVERSE_HORIZONTAL, "REVERSE_HORIZONTAL"},
+    {Orientation::SENSOR, "SENSOR"},
+    {Orientation::SENSOR_VERTICAL, "SENSOR_VERTICAL"},
+    {Orientation::SENSOR_HORIZONTAL, "SENSOR_HORIZONTAL"},
+    {Orientation::AUTO_ROTATION_RESTRICTED, "AUTO_ROTATION_RESTRICTED"},
+    {Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED, "AUTO_ROTATION_PORTRAIT_RESTRICTED"},
+    {Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED, "AUTO_ROTATION_LANDSCAPE_RESTRICTED"},
+    {Orientation::LOCKED, "LOCKED"},
+    {Orientation::FOLLOW_RECENT, "FOLLOW_RECENT"},
+    {Orientation::AUTO_ROTATION_UNSPECIFIED, "AUTO_ROTATION_UNSPECIFIED"},
+    {Orientation::USER_ROTATION_PORTRAIT, "USER_ROTATION_PORTRAIT"},
+    {Orientation::USER_ROTATION_LANDSCAPE, "USER_ROTATION_LANDSCAPE"},
+    {Orientation::USER_ROTATION_PORTRAIT_INVERTED, "USER_ROTATION_PORTRAIT_INVERTED"},
+    {Orientation::USER_ROTATION_LANDSCAPE_INVERTED, "USER_ROTATION_LANDSCAPE_INVERTED"},
+    {Orientation::FOLLOW_DESKTOP, "FOLLOW_DESKTOP"},
+    {Orientation::USER_PAGE_ROTATION_PORTRAIT, "USER_PAGE_ROTATION_PORTRAIT"},
+    {Orientation::USER_PAGE_ROTATION_LANDSCAPE, "USER_PAGE_ROTATION_LANDSCAPE"},
+    {Orientation::USER_PAGE_ROTATION_PORTRAIT_INVERTED, "USER_PAGE_ROTATION_PORTRAIT_INVERTED"},
+    {Orientation::USER_PAGE_ROTATION_LANDSCAPE_INVERTED, "USER_PAGE_ROTATION_LANDSCAPE_INVERTED"},
+    {Orientation::INVALID, "INVALID"},
+};
+
+const char* OrientationToString(Orientation orientation)
+{
+    auto iter = ORIENTATION_NAME_MAP.find(orientation);
+    return iter == ORIENTATION_NAME_MAP.end() ? "UNKNOWN" : iter->second;
+}
 }
 
 std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> WindowSessionImpl::lifecycleListeners_;
@@ -3587,8 +3620,11 @@ WMError WindowSessionImpl::HandleSetOrientationCommon(Orientation orientation, b
         TLOGE(WmsLogTag::WMS_ROTATION, "window is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "id:%{public}u lastReqOrientation:%{public}u target:%{public}u state:%{public}u",
-          GetPersistentId(), property_->GetRequestedOrientation(), orientation, state_);
+    Orientation lastReqOrientation = property_->GetRequestedOrientation();
+    TLOGI(WmsLogTag::WMS_ROTATION, "id:%{public}u lastReqOrientation:%{public}u(%{public}s) "
+        "target:%{public}u(%{public}s) state:%{public}u",
+        GetPersistentId(), static_cast<uint32_t>(lastReqOrientation), OrientationToString(lastReqOrientation),
+        static_cast<uint32_t>(orientation), OrientationToString(orientation), state_);
     if (!isNeededForciblySetOrientation(orientation) && needAnimation) {
         TLOGW(WmsLogTag::WMS_ROTATION, "winId: %{public}d policy has taken effect", GetPersistentId());
         return WMError::WM_DO_NOTHING;
