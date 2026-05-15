@@ -129,7 +129,6 @@ const std::map<WindowMode, ApiWindowMode> NATIVE_TO_JS_WINDOW_MODE_MAP {
     { WindowMode::WINDOW_MODE_SPLIT_PRIMARY,   ApiWindowMode::PRIMARY    },
     { WindowMode::WINDOW_MODE_SPLIT_SECONDARY, ApiWindowMode::SECONDARY  },
     { WindowMode::WINDOW_MODE_FLOATING,        ApiWindowMode::FLOATING   },
-    { WindowMode::WINDOW_MODE_SPLIT,           ApiWindowMode::SPLIT      },
 };
 
 const std::map<ApiWindowMode, WindowMode> JS_TO_NATIVE_WINDOW_MODE_MAP {
@@ -138,7 +137,6 @@ const std::map<ApiWindowMode, WindowMode> JS_TO_NATIVE_WINDOW_MODE_MAP {
     {ApiWindowMode::PRIMARY,    WindowMode::WINDOW_MODE_SPLIT_PRIMARY   },
     {ApiWindowMode::SECONDARY,  WindowMode::WINDOW_MODE_SPLIT_SECONDARY },
     {ApiWindowMode::FLOATING,   WindowMode::WINDOW_MODE_FLOATING        },
-    {ApiWindowMode::SPLIT,      WindowMode::WINDOW_MODE_SPLIT,          },
 };
 
 const std::map<ApiOrientation, Orientation> JS_TO_NATIVE_ORIENTATION_MAP {

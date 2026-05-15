@@ -1760,6 +1760,7 @@ bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo&
                 windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
             } else {
                 TLOGE(WmsLogTag::WMS_LAYOUT, "invalid splitStyle: %{public}u", splitStyle);
+                return false;
             }
         }
     }

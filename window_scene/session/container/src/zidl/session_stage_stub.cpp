@@ -645,16 +645,26 @@ int SessionStageStub::HandleNotifySecureLimitChange(MessageParcel& data, Message
 int SessionStageStub::HandleUpdateWindowMode(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "HandleUpdateWindowMode!");
-    WindowModeInfo windowModeInfo;
     uint32_t windowMode = 0;
-    data.ReadUint32(windowMode);
-    windowModeInfo.windowMode = static_cast<WindowMode>(windowMode);
+    if (!data.ReadUint32(windowMode)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read windowMode");
+        return ERR_INVALID_DATA;
+    }
     uint32_t splitStyle = 0;
-    data.ReadUint32(splitStyle);
-    windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+    if (!data.ReadUint32(splitStyle)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read splitStyle");
+        return ERR_INVALID_DATA;
+    }
     int32_t splitIndex = 0;
-    data.ReadInt32(splitIndex);
-    windowModeInfo.splitIndex = splitIndex;
+    if (!data.ReadInt32(splitIndex)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read splitIndex");
+        return ERR_INVALID_DATA;
+    }
+    WindowModeInfo windowModeInfo = {
+        static_cast<WindowMode>(windowMode),
+        static_cast<SplitStyle>(splitStyle),
+        splitIndex,
+    };
     WSError errCode = UpdateWindowMode(windowModeInfo);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;

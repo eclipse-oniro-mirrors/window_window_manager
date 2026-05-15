@@ -2435,7 +2435,6 @@ HWTEST_F(WindowSessionImplTest, GetOwnWindowStatus01, TestSize.Level1)
 
     // case3:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
     EXPECT_CALL(*window, GetImmersiveModeEnabledState())
-    .Times(1)
     .WillRepeatedly(Return(true));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->targetAPIVersion_ = 14;
@@ -2444,7 +2443,6 @@ HWTEST_F(WindowSessionImplTest, GetOwnWindowStatus01, TestSize.Level1)
 
     // case4:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
     EXPECT_CALL(*window, GetImmersiveModeEnabledState())
-    .Times(1)
     .WillRepeatedly(Return(false));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->targetAPIVersion_ = 14;
