@@ -3030,6 +3030,7 @@ HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChangeWithoutListene
 HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor01, TestSize.Level1)
 {
     screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
 }
 
 /**
@@ -3040,6 +3041,7 @@ HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor01, TestSize.Level
 HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor02, TestSize.Level1)
 {
     screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
 }
 
 /**
@@ -3049,7 +3051,9 @@ HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor02, TestSize.Level
  */
 HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor01, TestSize.Level1)
 {
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
     screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
 }
 
 /**
@@ -3059,7 +3063,9 @@ HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor01, TestSize.Lev
  */
 HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor02, TestSize.Level1)
 {
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
     screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
 }
 } // namespace Rosen
 } // namespace OHOS

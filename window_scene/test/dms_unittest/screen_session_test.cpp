@@ -393,8 +393,15 @@ HWTEST_F(ScreenSessionTest, HandleSmartRotation, TestSize.Level1)
     sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
         ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
     EXPECT_NE(nullptr, screenSession);
+    
+    MockScreenChangeListener* listener = new MockScreenChangeListener();
+    screenSession->RegisterScreenChangeListener(listener);
+    
     float sensorRotation = 90.0f;
+    EXPECT_CALL(*listener, OnSmartSensorRotationChange(sensorRotation, config.screenId, false)).Times(1);
     screenSession->HandleSmartRotation(sensorRotation);
+    
+    EXPECT_EQ(screenSession->GetValidSmartSensorRotation(), sensorRotation);
     GTEST_LOG_(INFO) << "HandleSmartRotation end";
 }
 
@@ -414,8 +421,15 @@ HWTEST_F(ScreenSessionTest, SmartSensorRotationChange, TestSize.Level1)
     sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
         ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
     EXPECT_NE(nullptr, screenSession);
+    
+    MockScreenChangeListener* listener = new MockScreenChangeListener();
+    screenSession->RegisterScreenChangeListener(listener);
+    
     float sensorRotation = 180.0f;
+    EXPECT_CALL(*listener, OnSmartSensorRotationChange(sensorRotation, config.screenId, false)).Times(1);
     screenSession->SmartSensorRotationChange(sensorRotation);
+    
+    EXPECT_EQ(screenSession->GetValidSmartSensorRotation(), sensorRotation);
     GTEST_LOG_(INFO) << "SmartSensorRotationChange end";
 }
 

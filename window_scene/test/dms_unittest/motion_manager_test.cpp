@@ -100,6 +100,7 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(true);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
@@ -112,6 +113,7 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(true);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::SMART_MOTION_TYPE);
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
@@ -137,6 +139,7 @@ HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
     MotionManager::GetInstance().SetScreenOnState(true);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
@@ -148,6 +151,7 @@ HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
 HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
 {
     MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
