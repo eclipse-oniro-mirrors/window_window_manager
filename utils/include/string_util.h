@@ -16,6 +16,7 @@
 #ifndef WM_STRING_UTIL_H
 #define WM_STRING_UTIL_H
 
+#include <charconv>
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
