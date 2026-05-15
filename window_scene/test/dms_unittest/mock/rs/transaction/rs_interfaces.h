@@ -26,7 +26,7 @@
 #include "transaction/rs_render_service_client.h"
 #include "screen_manager/rs_screen_mode_info.h"
 #include "common/rs_event_def.h"
-#include "iconsumer_surface.h"
+
 
 namespace OHOS {
 namespace Rosen {
