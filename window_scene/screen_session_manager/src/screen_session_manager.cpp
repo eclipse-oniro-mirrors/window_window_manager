@@ -5931,55 +5931,6 @@ bool ScreenSessionManager::DealMultiScreenOff(ScreenId screenId, ScreenPowerStat
     return false;
 }
 
-void ScreenSessionManager::SetLastScreenMode(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession)
-{
-#ifdef WM_MULTI_SCREEN_ENABLE
-    if (firstSession == nullptr || secondarySession == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "first or second screen is null");
-        return;
-    }
-
-    ScreenId mainScreenId = SCREEN_ID_INVALID;
-    MultiScreenMode secondaryScreenMode = MultiScreenMode::SCREEN_MIRROR;
-    {
-        std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
-        for (auto sessionIt : screenSessionMap_) {
-            auto screenSession = sessionIt.second;
-            if (screenSession == nullptr) {
-                TLOGNFW(WmsLogTag::DMS, "screenSession is nullptr!");
-                continue;
-            }
-            if (screenSession != firstSession && screenSession != secondarySession) {
-                continue;
-            }
-            if (!screenSession->GetIsCurrentInUse()) {
-                TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
-                continue;
-            }
-            ScreenCombination screenCombination = screenSession->GetScreenCombination();
-            if (screenCombination == ScreenCombination::SCREEN_MAIN) {
-                mainScreenId = sessionIt.first;
-                TLOGNFI(WmsLogTag::DMS, "found main screen");
-            } else if (screenCombination == ScreenCombination::SCREEN_MIRROR) {
-                secondaryScreenMode = MultiScreenMode::SCREEN_MIRROR;
-                TLOGNFI(WmsLogTag::DMS, "found mirror screen");
-            } else if (screenCombination == ScreenCombination::SCREEN_EXTEND) {
-                secondaryScreenMode = MultiScreenMode::SCREEN_EXTEND;
-                TLOGNFI(WmsLogTag::DMS, "found extend screen");
-            } else {
-                TLOGNFE(WmsLogTag::DMS, "screen id or screen mode error");
-            }
-        }
-    }
-
-    if (mainScreenId == SCREEN_ID_INVALID) {
-        TLOGNFE(WmsLogTag::DMS, "param error!");
-        return;
-    }
-    MultiScreenManager::GetInstance().SetLastScreenMode(mainScreenId, secondaryScreenMode);
-#endif
-}
-
 bool ScreenSessionManager::IsPreBrightAuthFail(void)
 {
     return lastWakeUpReason_ == PowerStateChangeReason::
