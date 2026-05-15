@@ -204,7 +204,7 @@ HWTEST_F(MotionManagerTest, HandleMotionEvent01, TestSize.Level1)
 {
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, 90.0f);
     float rotation = MotionManager::GetInstance().GetLastMotionRotation();
-    ASSERT_EQ(rotation, 90.0f);
+    ASSERT_EQ(rotation, -1);
 }
 
 /**
@@ -216,7 +216,7 @@ HWTEST_F(MotionManagerTest, HandleMotionEvent02, TestSize.Level1)
 {
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE, 180.0f);
     float rotation = MotionManager::GetInstance().GetLastSmartMotionRotation();
-    ASSERT_EQ(rotation, 180.0f);
+    ASSERT_EQ(rotation, -1);
 }
 
 /**

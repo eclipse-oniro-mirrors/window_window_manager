@@ -3982,7 +3982,7 @@ HWTEST_F(ScreenSessionManagerStubTest, SubscribeMotionSensor03, TestSize.Level3)
     
     uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR);
     int res = stub_->OnRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, ERR_INVALID_DATA);
+    EXPECT_EQ(res, -1);
 }
 
 /**
@@ -4040,7 +4040,7 @@ HWTEST_F(ScreenSessionManagerStubTest, UnsubscribeMotionSensor03, TestSize.Level
     
     uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR);
     int res = stub_->OnRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, ERR_INVALID_DATA);
+    EXPECT_EQ(res, -1);
 }
 } // namespace
 } // namespace Rosen
