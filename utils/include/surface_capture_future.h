@@ -43,6 +43,24 @@ public:
         }
         conditionVariable_.notify_one();
     }
+
+    void OnSurfaceCaptureWithErrorCode(std::shared_ptr<Media::PixelMap> pixelmap,
+        std::shared_ptr<Media::PixelMap> pixelmapHDR, CaptureError captureErrorCode) override
+    {
+        std::unique_lock <std::mutex> lock(mutex_);
+        if (!flag_) {
+            pixelMap_ = pixelmap;
+            hdrPixelMap_ = pixelmapHDR;
+            captureErrorCode_ = captureErrorCode;
+            flag_ = true;
+        }
+        conditionVariable_.notify_one();
+    }
+
+    CaptureError GetCaptureErrorCode() const
+    {
+        return captureErrorCode_;
+    }
  
     std::vector<std::shared_ptr<Media::PixelMap>> GetHDRResult(long timeOut)
     {
@@ -74,6 +92,7 @@ private:
     bool flag_ = false;
     std::shared_ptr<Media::PixelMap> pixelMap_ = nullptr;
     std::shared_ptr<Media::PixelMap> hdrPixelMap_ = nullptr;
+    CaptureError captureErrorCode_ = CaptureError::CAPTURE_OK;
 };
 } // Rosen
 } // OHOS

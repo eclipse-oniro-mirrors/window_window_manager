@@ -88,6 +88,10 @@ constexpr int32_t MIN_ROTATION_VALUE = 0;
 constexpr int32_t MAX_ROTATION_VALUE = 3;
 constexpr int32_t DISPLAY_ID_C = 999;
 constexpr uint32_t SNAPSHOT_TIMEOUT = 2000; // MS
+constexpr int32_t SNAPSHOT_ERROR_INVALID_WINDOW = -1;
+constexpr int32_t SNAPSHOT_ERROR_RENDER_CONTEXT = -2;
+constexpr int32_t SNAPSHOT_ERROR_TAKE_CAPTURE = -3;
+constexpr int32_t SNAPSHOT_ERROR_EMPTY_PIXELMAP = -4;
 
 /*
  * DFX
@@ -4114,33 +4118,49 @@ WMError WindowSessionImpl::UnregisterParentWindowStatusChangeListener(const
 std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
 {
     if (IsWindowSessionInvalid()) {
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "window session is invalid");
         return nullptr;
     }
     if (surfaceNode_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "surface node is null");
         return nullptr;
     }
     auto rsUICtx = surfaceNode_->GetRSUIContext();
     if (rsUICtx == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return nullptr;
     }
     auto rsInterface = rsUICtx->GetRSRenderInterface();
     if (rsInterface == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs render interface is null");
         return nullptr;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback, config);
     if (!isSucceeded) {
         WLOGFE("Failed to TakeSurfaceCapture!");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return nullptr;
     }
     std::shared_ptr<Media::PixelMap> pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
+        WLOGFE("Failed to capture privacy or special layer");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+    }
     if (pixelMap != nullptr) {
         WLOGFD("Snapshot succeed, save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
         WLOGFE("Failed to get pixelmap, return nullptr!");
+        if (!hasCaptureError) {
+            ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        }
     }
     return pixelMap;
 }
@@ -4148,41 +4168,98 @@ std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
 WMError WindowSessionImpl::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap)
 {
     if (IsWindowSessionInvalid()) {
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "window session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (state_ < WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d bounds not init, state: %{public}u",
             GetPersistentId(), state_);
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "window is not shown");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (surfaceNode_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "surface node is null");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     auto rsUICtx = surfaceNode_->GetRSUIContext();
     if (rsUICtx == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     auto rsInterface = rsUICtx->GetRSRenderInterface();
     if (rsInterface == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs render interface is null");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback, config);
     if (!isSucceeded) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to TakeSurfaceCapture", GetPersistentId());
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, failed to capture privacy or special layer",
+            GetPersistentId());
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+    }
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to get pixelmap", GetPersistentId());
+        if (!hasCaptureError) {
+            ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        }
         return WMError::WM_ERROR_TIMEOUT;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d snapshot end, WxH=%{public}dx%{public}d",
         GetPersistentId(), pixelMap->GetWidth(), pixelMap->GetHeight());
     return WMError::WM_OK;
+}
+
+void WindowSessionImpl::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const
+{
+    if (property_ == nullptr || (!property_->GetPrivacyMode() && !property_->GetSystemPrivacyMode())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "skip privacy snapshot fail report, property null: %{public}d",
+            property_ == nullptr);
+        return;
+    }
+    const auto& sessionInfo = property_->GetSessionInfo();
+    PrivacyWindowSnapshotInfo reportInfo;
+    reportInfo.bundleName = sessionInfo.bundleName_;
+    reportInfo.abilityName = sessionInfo.abilityName_;
+    reportInfo.windowId = GetPersistentId();
+    reportInfo.windowType = property_->GetWindowType();
+    reportInfo.windowMode = property_->GetWindowMode();
+    reportInfo.rect = property_->GetWindowRect();
+    reportInfo.errorCode = errorCode;
+    reportInfo.errorMsg = errorMsg;
+    int32_t ret = HiSysEventWrite(
+        HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, "PRIVACY_WINDOW_SNAPSHOT_FAIL",
+        HiviewDFX::HiSysEvent::EventType::FAULT,
+        "BUNDLE_NAME", reportInfo.bundleName,
+        "ABILITY_NAME", reportInfo.abilityName,
+        "WINDOW_ID", reportInfo.windowId,
+        "WINDOW_TYPE", static_cast<int32_t>(reportInfo.windowType),
+        "WINDOW_MODE", static_cast<int32_t>(reportInfo.windowMode),
+        "POS_X", reportInfo.rect.posX_,
+        "POS_Y", reportInfo.rect.posY_,
+        "WIDTH", static_cast<int32_t>(reportInfo.rect.width_),
+        "HEIGHT", static_cast<int32_t>(reportInfo.rect.height_),
+        "ERROR_CODE", reportInfo.errorCode,
+        "ERROR_MSG", reportInfo.errorMsg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write HiSysEvent error, ret: %{public}d", ret);
+    }
+    TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacy snapshot fail event ret: %{public}d, bundle: %{public}s, "
+        "ability: %{public}s, windowId: %{public}d, errorCode: %{public}d",
+        ret, reportInfo.bundleName.c_str(), reportInfo.abilityName.c_str(), reportInfo.windowId, errorCode);
 }
 
 WMError WindowSessionImpl::SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap>& pixelMap)
