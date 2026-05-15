@@ -702,7 +702,12 @@ protected:
     sptr<ScreenSession> GetOrCreatePhysicalScreenSession(ScreenId screenId,
         sptr<IRemoteObject> connectToRenderToken = nullptr);
     void DestroyExtendVirtualScreen();
+    void HandleDisconnectEventDefault(sptr<ScreenSession> screenSession, ScreenId screenId,
+        ScreenEvent screenEvent, ScreenChangeReason reason);
+    void HandleDisconnectEventInner(sptr<ScreenSession> screenSession, ScreenId screenId,
+        ScreenEvent screenEvent, bool phyMirrorEnable);
     void HandleScreenDisconnectEvent(sptr<ScreenSession> screenSession, ScreenId screenId, ScreenEvent screenEvent);
+    void HandleProcessDisconnectEvent(sptr<ScreenSession> screenSession, ScreenId screenId, ScreenEvent screenEvent);
     void HandleScreenConnectEvent(sptr<ScreenSession> screenSession, ScreenId screenId, ScreenEvent screenEvent);
     void ScreenConnectionChanged(sptr<ScreenSession>& screenSession, ScreenId screenId,
         ScreenEvent screenEvent, bool phyMirrorEnable);
