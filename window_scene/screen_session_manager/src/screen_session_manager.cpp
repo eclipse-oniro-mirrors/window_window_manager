@@ -5153,6 +5153,7 @@ DMError ScreenSessionManager::GetBundleName(DisplayId displayId, std::string& bu
 static std::vector<int> GetDeviceRadiusFormConfig(float dpi)
 {
     std::vector<int> result;
+    std::string token;
     std::string radiusStr(REAL_DEVICE_RADIUS);
     std::vector<std::string> radius = FoldScreenStateInternel::StringSplit(radiusStr, ',');
     for (const auto& item : radius) {
