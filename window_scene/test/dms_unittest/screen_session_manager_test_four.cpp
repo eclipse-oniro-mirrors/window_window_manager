@@ -15,7 +15,12 @@
 
 #include <gtest/gtest.h>
 
+#define private public
+#define protected public
 #include "screen_session_manager/include/screen_session_manager.h"
+#include "screen_scene_config.h"
+#undef private
+#undef protected
 #include "display_manager_agent_default.h"
 #include "iconsumer_surface.h"
 #include "connection/screen_cast_connection.h"
@@ -44,7 +49,6 @@ constexpr uint32_t SLEEP_TIME_IN_US = 100000; // 100ms
 constexpr int32_t CAST_WIRED_PROJECTION_START = 1005;
 constexpr int32_t CAST_WIRED_PROJECTION_STOP = 1007;
 bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
-const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
 std::string g_logMsg;
 void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
     const char *msg)
@@ -1183,6 +1187,200 @@ HWTEST_F(ScreenSessionManagerTest, GetFakePhysicalScreenSession, Function | Smal
     } else {
         ASSERT_EQ(nullptr, ret);
     }
+}
+
+/**
+ * @tc.name: HandleDisconnectEventDefault01
+ * @tc.desc: Test HandleDisconnectEventDefault with PROCESS_DISCONNECTED and VIRTUAL screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventDefault01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = true;
+    ScreenId screenId = 100;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::VIRTUAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+    ssm_->connectScreenNumber_ = 1;
+
+    ssm_->HandleDisconnectEventDefault(screenSession, screenId, ScreenEvent::DISCONNECTED,
+        ScreenChangeReason::PROCESS_DISCONNECTED);
+
+    auto session = ssm_->GetScreenSession(screenId);
+    ASSERT_EQ(session, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = false;
+}
+
+/**
+ * @tc.name: HandleDisconnectEventDefault02
+ * @tc.desc: Test HandleDisconnectEventDefault with PROCESS_DISCONNECTED and REAL screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventDefault02, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = true;
+    ScreenId screenId = 101;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+    ssm_->connectScreenNumber_ = 1;
+
+    ssm_->HandleDisconnectEventDefault(screenSession, screenId, ScreenEvent::DISCONNECTED,
+        ScreenChangeReason::PROCESS_DISCONNECTED);
+
+    ScreenSceneConfig::isConcurrentUser_ = false;
+    ssm_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: HandleDisconnectEventDefault03
+ * @tc.desc: Test HandleDisconnectEventDefault with DEFAULT reason
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventDefault03, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = false;
+    ScreenId screenId = 102;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+    ssm_->connectScreenNumber_ = 1;
+
+    ssm_->HandleDisconnectEventDefault(screenSession, screenId, ScreenEvent::DISCONNECTED,
+        ScreenChangeReason::DEFAULT);
+
+    ssm_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: HandleDisconnectEventDefault04
+ * @tc.desc: Test HandleDisconnectEventDefault with PROCESS_DISCONNECTED but not ConcurrentUser
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventDefault04, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = false;
+    ScreenId screenId = 103;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+    ssm_->connectScreenNumber_ = 1;
+
+    ssm_->HandleDisconnectEventDefault(screenSession, screenId, ScreenEvent::DISCONNECTED,
+        ScreenChangeReason::PROCESS_DISCONNECTED);
+
+    ssm_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: HandleDisconnectEventInner01
+ * @tc.desc: Test HandleDisconnectEventInner with nullptr screenSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventInner01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 104;
+    sptr<ScreenSession> screenSession = nullptr;
+    bool phyMirrorEnable = false;
+
+    ssm_->HandleDisconnectEventInner(screenSession, screenId, ScreenEvent::DISCONNECTED, phyMirrorEnable);
+}
+
+/**
+ * @tc.name: HandleDisconnectEventInner02
+ * @tc.desc: Test HandleDisconnectEventInner with valid screenSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventInner02, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 105;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+    bool phyMirrorEnable = false;
+
+    ssm_->HandleDisconnectEventInner(screenSession, screenId, ScreenEvent::DISCONNECTED, phyMirrorEnable);
+
+    ssm_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: HandleScreenDisconnectEvent01
+ * @tc.desc: Test HandleScreenDisconnectEvent with valid screenSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleScreenDisconnectEvent01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 106;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    ssm_->HandleScreenDisconnectEvent(screenSession, screenId, ScreenEvent::DISCONNECTED);
+
+    ssm_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: HandleProcessDisconnectEvent01
+ * @tc.desc: Test HandleProcessDisconnectEvent with valid screenSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleProcessDisconnectEvent01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = true;
+    ScreenId screenId = 107;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    ssm_->HandleProcessDisconnectEvent(screenSession, screenId, ScreenEvent::DISCONNECTED);
+
+    ScreenSceneConfig::isConcurrentUser_ = false;
+    ssm_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: HandleProcessDisconnectEvent02
+ * @tc.desc: Test HandleProcessDisconnectEvent with not ConcurrentUser
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleProcessDisconnectEvent02, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenSceneConfig::isConcurrentUser_ = false;
+    ScreenId screenId = 108;
+    ScreenProperty property;
+    property.SetScreenType(ScreenType::REAL);
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
+    ASSERT_NE(screenSession, nullptr);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    ssm_->HandleProcessDisconnectEvent(screenSession, screenId, ScreenEvent::DISCONNECTED);
+
+    ssm_->screenSessionMap_.erase(screenId);
 }
 }
 } // namespace Rosen

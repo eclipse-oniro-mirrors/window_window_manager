@@ -2267,6 +2267,10 @@ void ScreenSessionManager::HandleDisconnectEventInner(sptr<ScreenSession> screen
 void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> screenSession,
     ScreenId screenId, ScreenEvent screenEvent)
 {
+    if (!screenSession) {
+       TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
+       return;
+    }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandleDisconnectEventInner(screenSession, screenId, screenEvent, phyMirrorEnable);
     if (phyMirrorEnable || (IsConcurrentUser() && screenId != SCREEN_ID_DEFAULT)) {
@@ -2282,6 +2286,10 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
 void ScreenSessionManager::HandleProcessDisconnectEvent(sptr<ScreenSession> screenSession,
     ScreenId screenId, ScreenEvent screenEvent)
 {
+    if (!screenSession) {
+       TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
+       return;
+    }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandleDisconnectEventInner(screenSession, screenId, screenEvent, phyMirrorEnable);
     if (phyMirrorEnable || IsConcurrentUser()) {
