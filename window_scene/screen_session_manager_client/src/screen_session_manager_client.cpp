@@ -1430,6 +1430,55 @@ void ScreenSessionManagerClient::SetScreenCombination(ScreenId mainScreenId, Scr
     screenSession->SetScreenCombination(extendCombination);
 }
  
+void ScreenSessionManagerClient::DumpClientScreenProperty(std::ostringstream& oss,
+    const ScreenProperty& prop)
+{
+    oss << std::left << std::setw(LINE_WIDTH) << "Rotation: " << prop.GetRotation() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Density: " << prop.GetDensity() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DensityInCurResolution: "
+        << prop.GetDensityInCurResolution() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyWidth: " << prop.GetPhyWidth() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyHeight: " << prop.GetPhyHeight() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "RefreshRate: " << prop.GetRefreshRate() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "VirtualPixelRatio: "
+        << prop.GetVirtualPixelRatio() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Orientation: "
+        << static_cast<int32_t>(prop.GetOrientation()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DisplayOrientation: "
+        << static_cast<int32_t>(prop.GetDisplayOrientation()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "ScreenType: "
+        << static_cast<int32_t>(prop.GetScreenType()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "ReqOrientation: "
+        << static_cast<int32_t>(prop.GetScreenRequestedOrientation()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DPI<X, Y>: "
+        << prop.GetXDpi() << ", " << prop.GetYDpi() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Offset<X, Y>: "
+        << prop.GetOffsetX() << ", " << prop.GetOffsetY() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "StartPosition<X, Y>: "
+        << prop.GetStartX() << ", " << prop.GetStartY() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Bounds<L,T,W,H>: "
+        << prop.GetBounds().rect_.GetLeft() << ", "
+        << prop.GetBounds().rect_.GetTop() << ", "
+        << prop.GetBounds().rect_.GetWidth() << ", "
+        << prop.GetBounds().rect_.GetHeight() << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyBounds<L,T,W,H>: "
+        << prop.GetPhyBounds().rect_.GetLeft() << ", "
+        << prop.GetPhyBounds().rect_.GetTop() << ", "
+        << prop.GetPhyBounds().rect_.GetWidth() << ", "
+        << prop.GetPhyBounds().rect_.GetHeight() << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "AvailableArea<X,Y,W,H>: "
+        << prop.GetAvailableArea().posX_ << ", "
+        << prop.GetAvailableArea().posY_ << ", "
+        << prop.GetAvailableArea().width_ << ", "
+        << prop.GetAvailableArea().height_ << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DefaultDeviceRotationOffset: "
+        << prop.GetDefaultDeviceRotationOffset() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DisplayGroupId: "
+        << prop.GetDisplayGroupId() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "MainDisplayIdOfGroup: "
+        << prop.GetMainDisplayIdOfGroup() << std::endl;
+}
+
 std::string ScreenSessionManagerClient::OnDumperClientScreenSessions()
 {
     std::ostringstream oss;
@@ -1437,74 +1486,25 @@ std::string ScreenSessionManagerClient::OnDumperClientScreenSessions()
     {
         std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
         for (const auto& iter : screenSessionMap_) {
-        if (iter.second == nullptr) {
-            oss << std::left << std::setw(LINE_WIDTH) << "session: " << "nullptr" << std::endl;
-            continue;
+            if (iter.second == nullptr) {
+                oss << std::left << std::setw(LINE_WIDTH) << "session: " << "nullptr" << std::endl;
+                continue;
+            }
+            oss << std::left << std::setw(LINE_WIDTH) << "Name: " << iter.second->GetName() << std::endl;
+            oss << std::left << std::setw(LINE_WIDTH) << "ScreenId: " << iter.second->GetScreenId() << std::endl;
+            oss << std::left << std::setw(LINE_WIDTH) << "RSScreenId: " << iter.second->GetRSScreenId() << std::endl;
+            if (iter.second->GetDisplayNode() != nullptr) {
+                oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: "
+                    << iter.second->GetDisplayNode()->GetId() << std::endl;
+            } else {
+                oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: " << "nullptr" << std::endl;
+            }
+            oss << std::left << std::setw(LINE_WIDTH) << "ScreenCombination: "
+                << static_cast<int32_t>(iter.second->GetScreenCombination()) << std::endl;
+            oss << std::left << std::setw(LINE_WIDTH) << "isExtend: "
+                << (iter.second->GetIsExtend() ? "true" : "false") << std::endl;
+            DumpClientScreenProperty(oss, iter.second->GetScreenProperty());
         }
-        ScreenProperty screenProperty = iter.second->GetScreenProperty();
-        oss << std::left << std::setw(LINE_WIDTH) << "Name: " << iter.second->GetName() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "ScreenId: " << iter.second->GetScreenId() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "RSScreenId: " << iter.second->GetRSScreenId() << std::endl;
-        if (iter.second->GetDisplayNode() != nullptr) {
-            oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: "
-                << iter.second->GetDisplayNode()->GetId() << std::endl;
-        } else {
-            oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: " << "nullptr" << std::endl;
-        }
-        oss << std::left << std::setw(LINE_WIDTH) << "ScreenCombination: "
-            << static_cast<int32_t>(iter.second->GetScreenCombination()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "isExtend: "
-            << (iter.second->GetIsExtend() ? "true" : "false") << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Rotation: "
-            << screenProperty.GetRotation() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Density: "
-            << screenProperty.GetDensity() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "DensityInCurResolution: "
-            << screenProperty.GetDensityInCurResolution() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "PhyWidth: "
-            << screenProperty.GetPhyWidth() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "PhyHeight: "
-            << screenProperty.GetPhyHeight() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "RefreshRate: "
-            << screenProperty.GetRefreshRate() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "VirtualPixelRatio: "
-            << screenProperty.GetVirtualPixelRatio() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Orientation: "
-            << static_cast<int32_t>(screenProperty.GetOrientation()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "DisplayOrientation: "
-            << static_cast<int32_t>(screenProperty.GetDisplayOrientation()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "ScreenType: "
-            << static_cast<int32_t>(screenProperty.GetScreenType()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "ReqOrientation: "
-            << static_cast<int32_t>(screenProperty.GetScreenRequestedOrientation()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "DPI<X, Y>: "
-            << screenProperty.GetXDpi() << ", " << screenProperty.GetYDpi() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Offset<X, Y>: "
-            << screenProperty.GetOffsetX() << ", " << screenProperty.GetOffsetY() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "StartPosition<X, Y>: "
-            << screenProperty.GetStartX() << ", " << screenProperty.GetStartY() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Bounds<L,T,W,H>: "
-            << screenProperty.GetBounds().rect_.GetLeft() << ", "
-            << screenProperty.GetBounds().rect_.GetTop() << ", "
-            << screenProperty.GetBounds().rect_.GetWidth() << ", "
-            << screenProperty.GetBounds().rect_.GetHeight() << ", " << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "PhyBounds<L,T,W,H>: "
-            << screenProperty.GetPhyBounds().rect_.GetLeft() << ", "
-            << screenProperty.GetPhyBounds().rect_.GetTop() << ", "
-            << screenProperty.GetPhyBounds().rect_.GetWidth() << ", "
-            << screenProperty.GetPhyBounds().rect_.GetHeight() << ", " << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "AvailableArea<X,Y,W,H>: "
-            << screenProperty.GetAvailableArea().posX_ << ", "
-            << screenProperty.GetAvailableArea().posY_ << ", "
-            << screenProperty.GetAvailableArea().width_ << ", "
-            << screenProperty.GetAvailableArea().height_ << ", " << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "DefaultDeviceRotationOffset: "
-            << screenProperty.GetDefaultDeviceRotationOffset() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "DisplayGroupId: "
-            << screenProperty.GetDisplayGroupId() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "MainDisplayIdOfGroup: "
-            << screenProperty.GetMainDisplayIdOfGroup() << std::endl;
-    }
     }
     auto screenInfos = oss.str();
     TLOGW(WmsLogTag::DMS, "%{public}s", screenInfos.c_str());
