@@ -14,13 +14,8 @@
  */
 
 #include <gtest/gtest.h>
-
-#define private public
-#define protected public
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "screen_scene_config.h"
-#undef private
-#undef protected
 #include "display_manager_agent_default.h"
 #include "iconsumer_surface.h"
 #include "connection/screen_cast_connection.h"
