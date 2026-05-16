@@ -468,6 +468,8 @@ void ScreenSessionDumper::ShowAllScreenInfo()
         DumpScreenPropertyById(screenId);
         DumpFoldCreaseRegion();
     }
+    AppendSectionLine();
+    ShowClientScreenInfo();
 }
 
 void ScreenSessionDumper::ShowClientScreenInfo()
