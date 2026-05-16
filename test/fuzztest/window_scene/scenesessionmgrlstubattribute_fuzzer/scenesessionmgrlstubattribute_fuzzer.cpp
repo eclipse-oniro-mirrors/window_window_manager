@@ -53,6 +53,10 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
         static_cast<uint32_t>(ISceneSessionManagerLite::
             SceneSessionManagerLiteMessage::TRANS_ID_LIST_WINDOW_INFO),
         parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManagerLite::GetInstance().OnRemoteRequest(static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY),
+        parcel, reply, option);
     return true;
 }
 } // namespace OHOS
