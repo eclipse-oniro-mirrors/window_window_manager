@@ -117,12 +117,14 @@ HWTEST_F(SessionStubTest, ProcessRemoteRequestTest01, TestSize.Level1)
 
     data.WriteBool(true);
     data.WriteString("");
+    data.WriteBool(false);
     res = session_->ProcessRemoteRequest(
         static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKGROUND), data, reply, option);
     ASSERT_EQ(ERR_NONE, res);
 
     data.WriteBool(true);
     data.WriteString("");
+    data.WriteBool(false);
     res = session_->ProcessRemoteRequest(
         static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DISCONNECT), data, reply, option);
     ASSERT_EQ(ERR_NONE, res);
