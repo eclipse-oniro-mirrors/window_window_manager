@@ -755,62 +755,62 @@ namespace window {
   }
 
 //enum WMError {
-    const WMError_WM_OK = 0
-    const WMError_WM_DO_NOTHING = 1
-    const WMError_WM_ERROR_NO_MEM = 2
-    const WMError_WM_ERROR_DESTROYED_OBJECT = 3
-    const WMError_WM_ERROR_INVALID_WINDOW = 4
-    const WMError_WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE = 5
-    const WMError_WM_ERROR_INVALID_OPERATION = 6
-    const WMError_WM_ERROR_INVALID_PERMISSION = 7
-    const WMError_WM_ERROR_NOT_SYSTEM_APP = 8
-    const WMError_WM_ERROR_NO_REMOTE_ANIMATION = 9
-    const WMError_WM_ERROR_INVALID_DISPLAY = 10
-    const WMError_WM_ERROR_INVALID_PARENT = 11
-    const WMError_WM_ERROR_OPER_FULLSCREEN_FAILED = 12
-    const WMError_WM_ERROR_REPEAT_OPERATION = 13
-    const WMError_WM_ERROR_INVALID_SESSION = 14
-    const WMError_WM_ERROR_INVALID_CALLING = 15
-    const WMError_WM_ERROR_SYSTEM_ABNORMALLY = 16
+    const WMError_WM_OK: int = 0
+    const WMError_WM_DO_NOTHING: int = 1
+    const WMError_WM_ERROR_NO_MEM: int = 2
+    const WMError_WM_ERROR_DESTROYED_OBJECT: int = 3
+    const WMError_WM_ERROR_INVALID_WINDOW: int = 4
+    const WMError_WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE: int = 5
+    const WMError_WM_ERROR_INVALID_OPERATION: int = 6
+    const WMError_WM_ERROR_INVALID_PERMISSION: int = 7
+    const WMError_WM_ERROR_NOT_SYSTEM_APP: int = 8
+    const WMError_WM_ERROR_NO_REMOTE_ANIMATION: int = 9
+    const WMError_WM_ERROR_INVALID_DISPLAY: int = 10
+    const WMError_WM_ERROR_INVALID_PARENT: int = 11
+    const WMError_WM_ERROR_OPER_FULLSCREEN_FAILED: int = 12
+    const WMError_WM_ERROR_REPEAT_OPERATION: int = 13
+    const WMError_WM_ERROR_INVALID_SESSION: int = 14
+    const WMError_WM_ERROR_INVALID_CALLING: int = 15
+    const WMError_WM_ERROR_SYSTEM_ABNORMALLY: int = 16
 
-    const WMError_WM_ERROR_DEVICE_NOT_SUPPORT = 801 // the value do not change.It is defined on all system
+    const WMError_WM_ERROR_DEVICE_NOT_SUPPORT: int = 801 // the value do not change.It is defined on all system
 
-    const WMError_WM_ERROR_NEED_REPORT_BASE = 1000 // error code > 1000 means need report
-    const WMError_WM_ERROR_NULLPTR = 1001
-    const WMError_WM_ERROR_INVALID_TYPE = 1002
-    const WMError_WM_ERROR_INVALID_PARAM = 1003
-    const WMError_WM_ERROR_SAMGR = 1004
-    const WMError_WM_ERROR_IPC_FAILED = 1005
-    const WMError_WM_ERROR_NEED_REPORT_END = 1006
-    const WMError_WM_ERROR_START_ABILITY_FAILED = 1007
-    const WMError_WM_ERROR_PIP_DESTROY_FAILED = 1008
-    const WMError_WM_ERROR_PIP_STATE_ABNORMALLY = 1009
-    const WMError_WM_ERROR_PIP_CREATE_FAILED = 1010
-    const WMError_WM_ERROR_PIP_INTERNAL_ERROR = 1011
-    const WMError_WM_ERROR_PIP_REPEAT_OPERATION = 1012
+    const WMError_WM_ERROR_NEED_REPORT_BASE: int = 1000 // error code > 1000 means need report
+    const WMError_WM_ERROR_NULLPTR: int = 1001
+    const WMError_WM_ERROR_INVALID_TYPE: int = 1002
+    const WMError_WM_ERROR_INVALID_PARAM: int = 1003
+    const WMError_WM_ERROR_SAMGR: int = 1004
+    const WMError_WM_ERROR_IPC_FAILED: int = 1005
+    const WMError_WM_ERROR_NEED_REPORT_END: int = 1006
+    const WMError_WM_ERROR_START_ABILITY_FAILED: int = 1007
+    const WMError_WM_ERROR_PIP_DESTROY_FAILED: int = 1008
+    const WMError_WM_ERROR_PIP_STATE_ABNORMALLY: int = 1009
+    const WMError_WM_ERROR_PIP_CREATE_FAILED: int = 1010
+    const WMError_WM_ERROR_PIP_INTERNAL_ERROR: int = 1011
+    const WMError_WM_ERROR_PIP_REPEAT_OPERATION: int = 1012
 //}
 
 //enum WmErrorCode {
-    const WmErrorCode_WM_OK = 0
-    const WmErrorCode_WM_ERROR_NO_PERMISSION = 201
-    const WmErrorCode_WM_ERROR_NOT_SYSTEM_APP = 202
-    const WmErrorCode_WM_ERROR_INVALID_PARAM = 401
-    const WmErrorCode_WM_ERROR_DEVICE_NOT_SUPPORT = 801
-    const WmErrorCode_WM_ERROR_REPEAT_OPERATION = 1300001
-    const WmErrorCode_WM_ERROR_STATE_ABNORMALLY = 1300002
-    const WmErrorCode_WM_ERROR_SYSTEM_ABNORMALLY = 1300003
-    const WmErrorCode_WM_ERROR_INVALID_CALLING = 1300004
-    const WmErrorCode_WM_ERROR_STAGE_ABNORMALLY = 1300005
-    const WmErrorCode_WM_ERROR_CONTEXT_ABNORMALLY = 1300006
-    const WmErrorCode_WM_ERROR_START_ABILITY_FAILED = 1300007
-    const WmErrorCode_WM_ERROR_INVALID_DISPLAY = 1300008
-    const WmErrorCode_WM_ERROR_INVALID_PARENT = 1300009
-    const WmErrorCode_WM_ERROR_OPER_FULLSCREEN_FAILED = 1300010
-    const WmErrorCode_WM_ERROR_PIP_DESTROY_FAILED = 1300011
-    const WmErrorCode_WM_ERROR_PIP_STATE_ABNORMALLY = 1300012
-    const WmErrorCode_WM_ERROR_PIP_CREATE_FAILED = 1300013
-    const WmErrorCode_WM_ERROR_PIP_INTERNAL_ERROR = 1300014
-    const WmErrorCode_WM_ERROR_PIP_REPEAT_OPERATION = 1300015
+    const WmErrorCode_WM_OK: int = 0
+    const WmErrorCode_WM_ERROR_NO_PERMISSION: int = 201
+    const WmErrorCode_WM_ERROR_NOT_SYSTEM_APP: int = 202
+    const WmErrorCode_WM_ERROR_INVALID_PARAM: int = 401
+    const WmErrorCode_WM_ERROR_DEVICE_NOT_SUPPORT: int = 801
+    const WmErrorCode_WM_ERROR_REPEAT_OPERATION: int = 1300001
+    const WmErrorCode_WM_ERROR_STATE_ABNORMALLY: int = 1300002
+    const WmErrorCode_WM_ERROR_SYSTEM_ABNORMALLY: int = 1300003
+    const WmErrorCode_WM_ERROR_INVALID_CALLING: int = 1300004
+    const WmErrorCode_WM_ERROR_STAGE_ABNORMALLY: int = 1300005
+    const WmErrorCode_WM_ERROR_CONTEXT_ABNORMALLY: int = 1300006
+    const WmErrorCode_WM_ERROR_START_ABILITY_FAILED: int = 1300007
+    const WmErrorCode_WM_ERROR_INVALID_DISPLAY: int = 1300008
+    const WmErrorCode_WM_ERROR_INVALID_PARENT: int = 1300009
+    const WmErrorCode_WM_ERROR_OPER_FULLSCREEN_FAILED: int = 1300010
+    const WmErrorCode_WM_ERROR_PIP_DESTROY_FAILED: int = 1300011
+    const WmErrorCode_WM_ERROR_PIP_STATE_ABNORMALLY: int = 1300012
+    const WmErrorCode_WM_ERROR_PIP_CREATE_FAILED: int = 1300013
+    const WmErrorCode_WM_ERROR_PIP_INTERNAL_ERROR: int = 1300014
+    const WmErrorCode_WM_ERROR_PIP_REPEAT_OPERATION: int = 1300015
 //}
 
 export enum ColorSpace {
@@ -1649,7 +1649,7 @@ export interface TransitionController {
 }
 
 export native function transContextFinalizerCallback(nativeObj: long): void;
-let transContextFinalizerRegister = new FinalizationRegistry<long>(transContextFinalizerCallback);
+let transContextFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(transContextFinalizerCallback);
 export class TransitionContextInternal implements TransitionContext {
     toWindow: Window;
     private nativeObj: long = 0;
@@ -1670,7 +1670,7 @@ export class TransitionContextInternal implements TransitionContext {
 }
 
 export native function transControllerFinalizerCallback(nativeObj: long): void;
-let transControllerFinalizerRegister = new FinalizationRegistry<long>(transControllerFinalizerCallback);
+let transControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(transControllerFinalizerCallback);
 export class TransitionControllerInternal implements TransitionController {
     static { loadLibrary('windowstageani_module.z') }
     private nativeObj: long = 0;
@@ -2422,7 +2422,7 @@ export interface ExtensionWindowConfig {
 }
 
 export native function destroyAniExtConfig(nativeObj: long): void;
-let extConfigRegister = new FinalizationRegistry<long>(destroyAniExtConfig);
+let extConfigRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(destroyAniExtConfig);
 
 export class ExtensionWindowConfigInternal implements ExtensionWindowConfig {
   static { loadLibrary('windowstageani_module.z') }
@@ -3033,7 +3033,7 @@ export interface WindowStage {
 }
 
 export class WindowInternal implements Window {
-    static readonly DEFAULT_RET_VAL = 1;
+    static readonly DEFAULT_RET_VAL: int = 1;
     static { loadLibrary('windowstageani_module.z') }
     private nativeObj: long;
     private static nextPromiseId_: int = 0;
@@ -3999,7 +3999,7 @@ export class WindowInternal implements Window {
       this.offSync(this.nativeObj, 'displayIdChange', callback);
     }
 
-    public onWindowVisibilityChange(callback: Callback<boolean>) {
+    public onWindowVisibilityChange(callback: Callback<boolean>): void {
       this.onSync(this.nativeObj, 'windowVisibilityChange', callback);
     }
 
@@ -5001,7 +5001,7 @@ export class WindowInternal implements Window {
       return this.getWindowLimitsVP(this.nativeObj);
     }
 
-    public setAspectRatio(ratio: double, callback: AsyncCallback<void>) {
+    public setAspectRatio(ratio: double, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setAspectRatio(this.nativeObj, ratio);
       }).then((ret: Any) => {
@@ -5023,7 +5023,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public resetAspectRatio(callback: AsyncCallback<void>) {
+    public resetAspectRatio(callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.resetAspectRatio(this.nativeObj);
       }).then((ret: Any) => {
@@ -5159,7 +5159,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public setResizeByDragEnabled(enable: boolean, callback: AsyncCallback<void>) {
+    public setResizeByDragEnabled(enable: boolean, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setResizeByDragEnabled(this.nativeObj, enable);
       }).then((ret: Any) => {
@@ -5241,7 +5241,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public setWindowMode(mode: WindowMode, callback: AsyncCallback<void>) {
+    public setWindowMode(mode: WindowMode, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setWindowMode(this.nativeObj, mode);
       }).then((ret: Any) => {
@@ -5263,7 +5263,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public setForbidSplitMove(isForbidSplitMove: boolean, callback: AsyncCallback<void>) {
+    public setForbidSplitMove(isForbidSplitMove: boolean, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setForbidSplitMove(this.nativeObj, isForbidSplitMove);
       }).then((ret: Any) => {

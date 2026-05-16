@@ -88,6 +88,10 @@ constexpr int32_t MIN_ROTATION_VALUE = 0;
 constexpr int32_t MAX_ROTATION_VALUE = 3;
 constexpr int32_t DISPLAY_ID_C = 999;
 constexpr uint32_t SNAPSHOT_TIMEOUT = 2000; // MS
+constexpr int32_t SNAPSHOT_ERROR_INVALID_WINDOW = -1;
+constexpr int32_t SNAPSHOT_ERROR_RENDER_CONTEXT = -2;
+constexpr int32_t SNAPSHOT_ERROR_TAKE_CAPTURE = -3;
+constexpr int32_t SNAPSHOT_ERROR_EMPTY_PIXELMAP = -4;
 
 /*
  * DFX
@@ -147,6 +151,39 @@ Ace::ViewportConfig FillViewportConfig(
     config.SetTransformHint(transformHint);
     config.SetDisplayId(displayId);
     return config;
+}
+
+const std::map<Orientation, const char*> ORIENTATION_NAME_MAP {
+    {Orientation::UNSPECIFIED, "UNSPECIFIED"},
+    {Orientation::VERTICAL, "VERTICAL"},
+    {Orientation::HORIZONTAL, "HORIZONTAL"},
+    {Orientation::REVERSE_VERTICAL, "REVERSE_VERTICAL"},
+    {Orientation::REVERSE_HORIZONTAL, "REVERSE_HORIZONTAL"},
+    {Orientation::SENSOR, "SENSOR"},
+    {Orientation::SENSOR_VERTICAL, "SENSOR_VERTICAL"},
+    {Orientation::SENSOR_HORIZONTAL, "SENSOR_HORIZONTAL"},
+    {Orientation::AUTO_ROTATION_RESTRICTED, "AUTO_ROTATION_RESTRICTED"},
+    {Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED, "AUTO_ROTATION_PORTRAIT_RESTRICTED"},
+    {Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED, "AUTO_ROTATION_LANDSCAPE_RESTRICTED"},
+    {Orientation::LOCKED, "LOCKED"},
+    {Orientation::FOLLOW_RECENT, "FOLLOW_RECENT"},
+    {Orientation::AUTO_ROTATION_UNSPECIFIED, "AUTO_ROTATION_UNSPECIFIED"},
+    {Orientation::USER_ROTATION_PORTRAIT, "USER_ROTATION_PORTRAIT"},
+    {Orientation::USER_ROTATION_LANDSCAPE, "USER_ROTATION_LANDSCAPE"},
+    {Orientation::USER_ROTATION_PORTRAIT_INVERTED, "USER_ROTATION_PORTRAIT_INVERTED"},
+    {Orientation::USER_ROTATION_LANDSCAPE_INVERTED, "USER_ROTATION_LANDSCAPE_INVERTED"},
+    {Orientation::FOLLOW_DESKTOP, "FOLLOW_DESKTOP"},
+    {Orientation::USER_PAGE_ROTATION_PORTRAIT, "USER_PAGE_ROTATION_PORTRAIT"},
+    {Orientation::USER_PAGE_ROTATION_LANDSCAPE, "USER_PAGE_ROTATION_LANDSCAPE"},
+    {Orientation::USER_PAGE_ROTATION_PORTRAIT_INVERTED, "USER_PAGE_ROTATION_PORTRAIT_INVERTED"},
+    {Orientation::USER_PAGE_ROTATION_LANDSCAPE_INVERTED, "USER_PAGE_ROTATION_LANDSCAPE_INVERTED"},
+    {Orientation::INVALID, "INVALID"},
+};
+
+const char* OrientationToString(Orientation orientation)
+{
+    auto iter = ORIENTATION_NAME_MAP.find(orientation);
+    return iter == ORIENTATION_NAME_MAP.end() ? "UNKNOWN" : iter->second;
 }
 }
 
@@ -1192,6 +1229,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
         needClearListener, reason);
     if (IsWindowSessionInvalid()) {
         WLOGFW("session is invalid");
+        ReleaseSurfaceNode();
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (auto hostSession = GetHostSession()) {
@@ -1221,12 +1259,21 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
         context.reset();
     }
     ClearVsyncStation();
+    ReleaseSurfaceNode();
     return WMError::WM_OK;
 }
 
 WMError WindowSessionImpl::Destroy(uint32_t reason)
 {
     return Destroy(true, true, reason);
+}
+
+void WindowSessionImpl::ReleaseSurfaceNode()
+{
+    if (surfaceNode_ != nullptr) {
+        surfaceNode_ = nullptr;
+        RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
+    }
 }
 
 WSError WindowSessionImpl::SetActive(bool active)
@@ -3573,8 +3620,11 @@ WMError WindowSessionImpl::HandleSetOrientationCommon(Orientation orientation, b
         TLOGE(WmsLogTag::WMS_ROTATION, "window is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "id:%{public}u lastReqOrientation:%{public}u target:%{public}u state:%{public}u",
-          GetPersistentId(), property_->GetRequestedOrientation(), orientation, state_);
+    Orientation lastReqOrientation = property_->GetRequestedOrientation();
+    TLOGI(WmsLogTag::WMS_ROTATION, "id:%{public}u lastReqOrientation:%{public}u(%{public}s) "
+        "target:%{public}u(%{public}s) state:%{public}u",
+        GetPersistentId(), static_cast<uint32_t>(lastReqOrientation), OrientationToString(lastReqOrientation),
+        static_cast<uint32_t>(orientation), OrientationToString(orientation), state_);
     if (!isNeededForciblySetOrientation(orientation) && needAnimation) {
         TLOGW(WmsLogTag::WMS_ROTATION, "winId: %{public}d policy has taken effect", GetPersistentId());
         return WMError::WM_DO_NOTHING;
@@ -4104,33 +4154,49 @@ WMError WindowSessionImpl::UnregisterParentWindowStatusChangeListener(const
 std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
 {
     if (IsWindowSessionInvalid()) {
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "window session is invalid");
         return nullptr;
     }
     if (surfaceNode_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "surface node is null");
         return nullptr;
     }
     auto rsUICtx = surfaceNode_->GetRSUIContext();
     if (rsUICtx == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return nullptr;
     }
     auto rsInterface = rsUICtx->GetRSRenderInterface();
     if (rsInterface == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs render interface is null");
         return nullptr;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback, config);
     if (!isSucceeded) {
         WLOGFE("Failed to TakeSurfaceCapture!");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return nullptr;
     }
     std::shared_ptr<Media::PixelMap> pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
+        WLOGFE("Failed to capture privacy or special layer");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+    }
     if (pixelMap != nullptr) {
         WLOGFD("Snapshot succeed, save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
         WLOGFE("Failed to get pixelmap, return nullptr!");
+        if (!hasCaptureError) {
+            ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        }
     }
     return pixelMap;
 }
@@ -4138,41 +4204,98 @@ std::shared_ptr<Media::PixelMap> WindowSessionImpl::Snapshot()
 WMError WindowSessionImpl::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap)
 {
     if (IsWindowSessionInvalid()) {
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "window session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (state_ < WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d bounds not init, state: %{public}u",
             GetPersistentId(), state_);
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "window is not shown");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (surfaceNode_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "surface node is null");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     auto rsUICtx = surfaceNode_->GetRSUIContext();
     if (rsUICtx == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     auto rsInterface = rsUICtx->GetRSRenderInterface();
     if (rsInterface == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs render interface is null");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
-    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsInterface->TakeSurfaceCapture(surfaceNode_, callback, config);
     if (!isSucceeded) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to TakeSurfaceCapture", GetPersistentId());
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT);
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, failed to capture privacy or special layer",
+            GetPersistentId());
+        ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+    }
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d, Failed to get pixelmap", GetPersistentId());
+        if (!hasCaptureError) {
+            ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        }
         return WMError::WM_ERROR_TIMEOUT;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}d snapshot end, WxH=%{public}dx%{public}d",
         GetPersistentId(), pixelMap->GetWidth(), pixelMap->GetHeight());
     return WMError::WM_OK;
+}
+
+void WindowSessionImpl::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const
+{
+    if (property_ == nullptr || (!property_->GetPrivacyMode() && !property_->GetSystemPrivacyMode())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "skip privacy snapshot fail report, property null: %{public}d",
+            property_ == nullptr);
+        return;
+    }
+    const auto& sessionInfo = property_->GetSessionInfo();
+    PrivacyWindowSnapshotInfo reportInfo;
+    reportInfo.bundleName = sessionInfo.bundleName_;
+    reportInfo.abilityName = sessionInfo.abilityName_;
+    reportInfo.windowId = GetPersistentId();
+    reportInfo.windowType = property_->GetWindowType();
+    reportInfo.windowMode = property_->GetWindowMode();
+    reportInfo.rect = property_->GetWindowRect();
+    reportInfo.errorCode = errorCode;
+    reportInfo.errorMsg = errorMsg;
+    int32_t ret = HiSysEventWrite(
+        HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, "PRIVACY_WINDOW_SNAPSHOT_FAIL",
+        HiviewDFX::HiSysEvent::EventType::FAULT,
+        "BUNDLE_NAME", reportInfo.bundleName,
+        "ABILITY_NAME", reportInfo.abilityName,
+        "WINDOW_ID", reportInfo.windowId,
+        "WINDOW_TYPE", static_cast<int32_t>(reportInfo.windowType),
+        "WINDOW_MODE", static_cast<int32_t>(reportInfo.windowMode),
+        "POS_X", reportInfo.rect.posX_,
+        "POS_Y", reportInfo.rect.posY_,
+        "WIDTH", static_cast<int32_t>(reportInfo.rect.width_),
+        "HEIGHT", static_cast<int32_t>(reportInfo.rect.height_),
+        "ERROR_CODE", reportInfo.errorCode,
+        "ERROR_MSG", reportInfo.errorMsg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write HiSysEvent error, ret: %{public}d", ret);
+    }
+    TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write privacy snapshot fail event ret: %{public}d, bundle: %{public}s, "
+        "ability: %{public}s, windowId: %{public}d, errorCode: %{public}d",
+        ret, reportInfo.bundleName.c_str(), reportInfo.abilityName.c_str(), reportInfo.windowId, errorCode);
 }
 
 WMError WindowSessionImpl::SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap>& pixelMap)

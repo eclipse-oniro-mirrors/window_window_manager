@@ -1308,6 +1308,7 @@ protected:
 private:
     void HandleDialogForeground();
     void HandleDialogBackground();
+    void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     WSError HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise = false);
 
     template<typename T>

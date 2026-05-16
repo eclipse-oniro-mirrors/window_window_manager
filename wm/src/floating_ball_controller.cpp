@@ -178,7 +178,7 @@ WMError FloatingBallController::StartFloatingBall(sptr<FbOption>& option)
     TLOGI(WmsLogTag::WMS_SYSTEM, "StartFloatingBall called, bindState_ %{public}d, id: %{public}s", bindState_,
         id_.c_str());
     if (IsBind()) {
-        return FloatWindowManager::StartBindFloatingBall(weakRef_, option_);
+        return FloatWindowManager::StartBindFloatingBall(weakRef_, option);
     }
     return StartFloatingBallSingle(option);
 }

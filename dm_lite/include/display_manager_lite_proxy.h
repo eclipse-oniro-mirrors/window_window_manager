@@ -72,7 +72,7 @@ public:
     bool SetDisplayState(DisplayState state);
     DisplayState GetDisplayState(DisplayId displayId);
     bool TryToCancelScreenOff();
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
     uint32_t GetScreenBrightness(uint64_t screenId);
     std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     DMError GetPhysicalScreenIds(std::vector<ScreenId>& screenIds);
@@ -172,7 +172,7 @@ private:
     ErrCode GetAllDisplayIds(std::vector<uint64_t>& displayIds);
     ErrCode GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, int32_t& dmError);
     ErrCode GetScreenInfoById(uint64_t screenId, sptr<ScreenInfo>& screenInfo);
-    ErrCode SetScreenBrightness(uint64_t screenId, uint32_t level, bool& isSucc);
+    ErrCode SetScreenBrightness(const DmsScreenBrightnessData& brightnessData, bool& isSucc);
     ErrCode GetScreenBrightness(uint64_t screenId, uint32_t& level);
 #endif
 };

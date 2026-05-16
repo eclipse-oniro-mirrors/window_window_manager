@@ -131,7 +131,6 @@
             OHOS::Rosen::SceneSession::ResetPostProcessFocusState*;
             OHOS::Rosen::SceneSession::SetFingerPointerDownStatus*;
             OHOS::Rosen::SceneSession::SetIsAncoForFloatingWindow*;
-            OHOS::Rosen::SceneSession::SetIsSystemSpecificSession*;
             OHOS::Rosen::SceneSession::SetNotifyVisibleChangeFunc*;
             OHOS::Rosen::SceneSession::SetSystemSceneForceUIFirst*;
             OHOS::Rosen::SceneSession::UpdateLifecyclePausedInner*;
@@ -330,7 +329,6 @@
             OHOS::Rosen::SceneSession::IsFloatingWindowAppType*;
             OHOS::Rosen::SceneSession::IsMinimizedByUserSwitch*;
             OHOS::Rosen::SceneSession::IsSystemSessionAboveApp*;
-            OHOS::Rosen::SceneSession::IsSystemSpecificSession*;
             OHOS::Rosen::SceneSession::GetPostProcessFocusState*;
             OHOS::Rosen::SceneSession::IsAppOrLowerSystemSession*;
             OHOS::Rosen::SceneSession::IsPcOrPadEnableActivation*;

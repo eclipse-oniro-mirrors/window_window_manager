@@ -68,8 +68,8 @@ constexpr double MAX_GRAY_SCALE = 1.0;
 static std::mutex g_aniWindowMap_mutex;
 static std::map<std::string, ani_ref> g_aniWindowMap;
 
-AniWindow::AniWindow(const sptr<Window>& window, ani_env* env)
-    : windowToken_(window), registerManager_(std::make_unique<AniWindowRegisterManager>()), env_(env)
+AniWindow::AniWindow(const sptr<Window>& window, ani_vm* vm)
+    : windowToken_(window), registerManager_(std::make_unique<AniWindowRegisterManager>()), vm_(vm)
 {
     NotifyNativeWinDestroyFunc func = [this](const std::string& windowName) {
         {
@@ -312,7 +312,12 @@ void AniWindow::NotifyOrientationExecutionResultResult(uint32_t promiseId, uint3
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] promiseId:%{public}u result:%{public}u",
         promiseId, result);
-    auto env = env_;
+    if (vm_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] vm is null");
+        return;
+    }
+    auto aniVm = AniVm(vm_);
+    auto env = aniVm.GetAniEnv();
     if (env == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] env is null");
         return;
@@ -2496,7 +2501,9 @@ __attribute__((no_sanitize("cfi")))
         TLOGE(WmsLogTag::DEFAULT, "[ANI] null env %{public}u", ret);
         return nullptr;
     }
-    std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, env);
+    ani_vm* vm = nullptr;
+    env->GetVM(&vm);
+    std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, vm);
  
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
@@ -5902,7 +5909,9 @@ __attribute__((no_sanitize("cfi")))
         return cls;
     }
 
-    std::unique_ptr<AniWindow> uniqueWindow = std::make_unique<AniWindow>(window, env);
+    ani_vm* vm = nullptr;
+    env->GetVM(&vm);
+    std::unique_ptr<AniWindow> uniqueWindow = std::make_unique<AniWindow>(window, vm);
 
     ani_field contextField;
     if ((ret = env->Class_FindField(cls, "nativeObj", &contextField)) != ANI_OK) {

@@ -270,7 +270,7 @@ WMError FloatViewController::StopFloatViewFromClient()
     return StopFloatViewFromClientSingle();
 }
 
-WMError FloatViewController::StopFloatViewFromClientSingle()
+WMError FloatViewController::StopFloatViewFromClientSingle(bool isForceStop)
 {
     {
         std::lock_guard<std::mutex> lock(controllerMutex_);
@@ -280,10 +280,12 @@ WMError FloatViewController::StopFloatViewFromClientSingle()
             TLOGE(WmsLogTag::WMS_SYSTEM, "Repeat stop request, curState: %{public}u", curState_);
             return WMError::WM_ERROR_FV_REPEAT_OPERATION;
         }
-        if (curState_ == FvWindowState::FV_STATE_UNDEFINED ||
-            curState_ == FvWindowState::FV_STATE_STARTING) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "float view not started: curState:%{public}u", curState_);
-            return WMError::WM_ERROR_FV_INVALID_STATE;
+        if (!isForceStop) {
+            if (curState_ == FvWindowState::FV_STATE_UNDEFINED ||
+                curState_ == FvWindowState::FV_STATE_STARTING) {
+                TLOGE(WmsLogTag::WMS_SYSTEM, "float view not started: curState:%{public}u", curState_);
+                return WMError::WM_ERROR_FV_INVALID_STATE;
+            }
         }
         if (window_ == nullptr) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "window is nullptr when stop fv");
