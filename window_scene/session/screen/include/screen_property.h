@@ -355,7 +355,7 @@ private:
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
 
-    bool isInternal_ = true;
+    bool isInternal_ = false;
 
     ScreenPropertyChangeReason propertyChangeReason_;
 

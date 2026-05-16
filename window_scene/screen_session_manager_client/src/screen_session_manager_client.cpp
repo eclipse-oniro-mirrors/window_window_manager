@@ -1209,6 +1209,10 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
         screenSession->SetScreenProperty(config.property);
         screenSession->SetDisplayNode(config.displayNode);
     }
+    if (config.displayNode != nullptr) {
+        config.displayNode->SetScreenId(option.rsId_);
+        RSTransactionAdapter::FlushImplicitTransaction({config.displayNode});
+    }
     screenSession->SetScreenCombination(screenSessionManager_->GetScreenCombination(option.screenId_));
     screenSession->SetIsExtend(option.isExtend_);
     screenSession->SetIsRealScreen(screenSessionManager_->GetIsRealScreen(option.screenId_));
