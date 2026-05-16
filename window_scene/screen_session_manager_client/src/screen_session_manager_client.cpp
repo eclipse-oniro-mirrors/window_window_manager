@@ -1430,8 +1430,7 @@ void ScreenSessionManagerClient::SetScreenCombination(ScreenId mainScreenId, Scr
     screenSession->SetScreenCombination(extendCombination);
 }
  
-void ScreenSessionManagerClient::DumpClientScreenProperty(std::ostringstream& oss,
-    const ScreenProperty& prop)
+void ScreenSessionManagerClient::DumpClientScreenProperty(std::ostringstream& oss, ScreenProperty prop)
 {
     oss << std::left << std::setw(LINE_WIDTH) << "Rotation: " << prop.GetRotation() << std::endl;
     oss << std::left << std::setw(LINE_WIDTH) << "Density: " << prop.GetDensity() << std::endl;
