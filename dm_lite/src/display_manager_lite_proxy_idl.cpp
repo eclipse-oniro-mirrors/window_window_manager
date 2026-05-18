@@ -946,8 +946,8 @@ ErrCode DisplayManagerLiteProxy::SetScreenBrightness(const DmsScreenBrightnessDa
         return ERR_INVALID_VALUE;
     }
 
-    if (!brightnessData.Marshalling(data)) {
-        TLOGE(WmsLogTag::DMS, "Write [brightnessData] failed");
+    if (!data.WriteParcelable(&brightnessData)) {
+        TLOGE(WmsLogTag::DMS, "Write [brightnessData] failed!");
         return ERR_INVALID_DATA;
     }
 
