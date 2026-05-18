@@ -49,6 +49,17 @@ void SceneSessionManagerFocusTest::SetUp() {}
 void SceneSessionManagerFocusTest::TearDown() {}
 
 namespace {
+/**
+ * @tc.name: RemoveFocusGroup
+ * @tc.desc: RemoveFocusGroup_Invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, RemoveFocusGroup_Invalid, Function | SmallTest | Level2)
+{
+    ASSERT_NE(nullptr, ssm_);
+    WSError ret = ssm_->RemoveFocusGroup(0, 0);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
 
 /**
  * @tc.name: AddFocusGroup
@@ -59,18 +70,6 @@ HWTEST_F(SceneSessionManagerFocusTest, AddFocusGroup, Function | SmallTest | Lev
 {
     ASSERT_NE(nullptr, ssm_);
     WSError ret = ssm_->AddFocusGroup(0, 0);
-    EXPECT_EQ(ret, WSError::WS_OK);
-}
-
-/**
- * @tc.name: RemoveFocusGroup
- * @tc.desc: RemoveFocusGroup_Invalid
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerFocusTest, RemoveFocusGroup_Invalid, Function | SmallTest | Level2)
-{
-    ASSERT_NE(nullptr, ssm_);
-    WSError ret = ssm_->RemoveFocusGroup(0, 0);
     EXPECT_EQ(ret, WSError::WS_OK);
 }
 
@@ -229,7 +228,7 @@ HWTEST_F(SceneSessionManagerFocusTest, IsBlockingFocusWindowType_HotAreasCheck, 
  * @tc.desc: test function : PostProcessFocus
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.emplace(0, nullptr);
     ssm_->PostProcessFocus();
@@ -266,7 +265,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus, TestSize.Level1)
  * @tc.desc: test function : PostProcessFocus with focusableOnShow
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus01, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus01, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -296,7 +295,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus01, TestSize.Level1)
  * @tc.desc: test function : PostProcessFocus
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus03, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus03, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
 
@@ -327,7 +326,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus03, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with multiple sessions sorted by ZOrder
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus04, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus04, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -369,7 +368,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus04, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with isFocused but not visible
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus05, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus05, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -397,7 +396,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus05, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with SCB_START_APP and DelayFocusChange
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus06, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus06, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -411,7 +410,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus06, TestSize.Level1)
     sceneSession->SetFocusedOnShow(true);
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession->isVisible_ = true;
-    sceneSession->SetDelayFocusChange(true);
+    sceneSession->SetHidingStartingWindow(true);
     PostProcessFocusState state = { true, true, true, FocusChangeReason::SCB_START_APP };
     sceneSession->SetPostProcessFocusState(state);
     ssm_->sceneSessionMap_.emplace(1, sceneSession);
@@ -426,7 +425,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus06, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with SCB_START_APP without DelayFocusChange
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus07, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus07, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -440,7 +439,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus07, TestSize.Level1)
     sceneSession->SetFocusedOnShow(true);
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession->isVisible_ = true;
-    sceneSession->SetDelayFocusChange(false);
+    sceneSession->SetHidingStartingWindow(false);
     PostProcessFocusState state = { true, true, true, FocusChangeReason::SCB_START_APP };
     sceneSession->SetPostProcessFocusState(state);
     ssm_->sceneSessionMap_.emplace(1, sceneSession);
@@ -455,7 +454,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus07, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with RECENT reason
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus08, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus08, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -483,7 +482,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus08, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with isFocused false (unfocus)
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus09, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus09, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -511,7 +510,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus09, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with same displayGroupId only one focus changed
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus10, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus10, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
@@ -555,7 +554,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus10, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with non-default displayGroupId
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus11, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus11, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     DisplayGroupId testGroupId = 100;
@@ -589,7 +588,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus11, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with multiple displayGroupIds
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus12, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus12, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     DisplayGroupId testGroupId1 = 100;
@@ -643,7 +642,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus12, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with nullptr session in processingSessions
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus13, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus13, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     ssm_->sceneSessionMap_.emplace(0, nullptr);
@@ -674,7 +673,7 @@ HWTEST_F(SceneSessionManagerTest8, PostProcessFocus13, TestSize.Level1)
  * @tc.desc: test PostProcessFocus with focusCmp sorting (isFocused priority)
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus14, TestSize.Level1)
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus14, TestSize.Level1)
 {
     ssm_->sceneSessionMap_.clear();
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
