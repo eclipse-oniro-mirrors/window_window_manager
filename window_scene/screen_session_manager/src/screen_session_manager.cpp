@@ -4561,9 +4561,9 @@ void ScreenSessionManager::CreateScreenProperty(ScreenId screenId, ScreenPropert
 void ScreenSessionManager::InitDeviceRotationOffset(ScreenId screenId, ScreenProperty& screenProperty)
 {
     if (screenId == SCREEN_ID_MAIN) {
-        property.SetDefaultDeviceRotationOffset(subDeviceRotationOffset_);
+        screenProperty.SetDefaultDeviceRotationOffset(subDeviceRotationOffset_);
     } else if (screenId == SCREEN_ID_FULL) {
-        property.SetDefaultDeviceRotationOffset(defaultDeviceRotationOffset_);
+        screenProperty.SetDefaultDeviceRotationOffset(defaultDeviceRotationOffset_);
     }
 }
 
