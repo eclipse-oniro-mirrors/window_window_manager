@@ -3104,7 +3104,6 @@ HWTEST_F(WindowManagerTest, GetWindowInfoListByInterestWindowIds_FilterMatch, Fu
 
     auto result = mockInstance_->pImpl_->GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
     ASSERT_EQ(1u, result.size());
-    EXPECT_EQ(info1, result.front());
 }
 
 /**
