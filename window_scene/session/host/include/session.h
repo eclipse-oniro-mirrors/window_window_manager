@@ -735,6 +735,8 @@ public:
     void SetAbilityToken(sptr<IRemoteObject> token);
     sptr<IRemoteObject> GetAbilityToken() const;
     WindowMode GetWindowMode() const;
+    WindowModeInfo GetWindowModeInfo() const;
+    WindowMode GetWindowModeCompat() const;
     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
 
     /*

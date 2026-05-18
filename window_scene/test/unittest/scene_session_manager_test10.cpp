@@ -990,12 +990,19 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
     windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
 
     ssm_->sceneSessionMap_.emplace(sceneSession->GetPersistentId(), sceneSession);
     windowManagerAgent->propertyDirtyFlags_ = 0;
     windowManagerAgent->windowInfoListSize_ = 0;
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
     EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
 
     EXPECT_EQ(WMError::WM_OK,
@@ -1032,6 +1039,12 @@ HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, Te
     windowManagerAgent->windowInfoListSize_ = 0;
     EXPECT_EQ(WSError::WS_OK, ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    EXPECT_EQ(WSError::WS_OK,
+        ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE_INFO));
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
     EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
 
     EXPECT_EQ(WMError::WM_OK,
@@ -1585,6 +1598,8 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
     sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
     sceneSession->GetSessionProperty()->SetWindowName("listWindowInfoTest");
     sceneSession->GetSessionProperty()->SetDisplayId(defaultDisplay->GetId());
+    sceneSession->UpdateWindowMode({ WindowMode::WINDOW_MODE_SPLIT, SplitStyle::TWO_WINDOW_VERTICAL,
+        SPLIT_INDEX_SECONDARY });
     ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
 
     WindowInfoOption windowInfoOption;
@@ -1596,6 +1611,9 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
     ASSERT_EQ(infos.size(), 1);
     ASSERT_NE(infos[0], nullptr);
     EXPECT_EQ(infos[0]->windowMetaInfo.windowName, "listWindowInfoTest");
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.windowMode, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_VERTICAL);
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitIndex, SPLIT_INDEX_SECONDARY);
     EXPECT_EQ(infos[0]->windowDisplayInfo.displayId, defaultDisplay->GetId());
     EXPECT_EQ(infos[0]->windowDisplayInfo.displayName, defaultDisplay->GetName());
 }

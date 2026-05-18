@@ -46,7 +46,7 @@ struct SystemBarRegionTint {
 using SystemBarRegionTints = std::vector<SystemBarRegionTint>;
 using GetJSWindowObjFunc = std::function<void*(const std::string& windowName)>;
 using WindowChangeInfoType = std::variant<int32_t, uint32_t, int64_t, uint64_t, std::string, float, Rect, WindowMode,
-    WindowVisibilityState, bool>;
+    WindowModeInfo, WindowVisibilityState, bool>;
 using WindowInfoList = std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>;
 
 struct VisibleWindowNumInfo {
@@ -1665,6 +1665,8 @@ private:
     WMError UnregisterGlobalRectChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);

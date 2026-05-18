@@ -1982,19 +1982,23 @@ HWTEST_F(WindowManagerTest, ProcessRegisterWindowInfoChangeCallback, Function | 
     observedInfo = WindowInfoKey::WINDOW_MODE;
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
 
-    // branch 5: case FLOATING_SCALE
+    // branch 5: case WINDOW_MODE_INFO
+    observedInfo = WindowInfoKey::WINDOW_MODE_INFO;
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+
+    // branch 6: case FLOATING_SCALE
     observedInfo = WindowInfoKey::FLOATING_SCALE;
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
 
-    // branch 6: case MID_SCENE
+    // branch 7: case MID_SCENE
     observedInfo = WindowInfoKey::MID_SCENE;
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
 
-    // branch 7: case WINDOW_GLOBAL_RECT
+    // branch 8: case WINDOW_GLOBAL_RECT
     observedInfo = WindowInfoKey::WINDOW_GLOBAL_RECT;
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
 
-    // branch 8: default
+    // branch 9: default
     observedInfo = static_cast<WindowInfoKey>(-1);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM,
               instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
@@ -2023,6 +2027,9 @@ HWTEST_F(WindowManagerTest, ProcessUnregisterWindowInfoChangeCallback01, Functio
     EXPECT_EQ(WMError::WM_OK, ret);
     ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, nullptr);
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+    observedInfo = WindowInfoKey::WINDOW_MODE_INFO;
+    ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
+    EXPECT_EQ(WMError::WM_OK, ret);
     observedInfo = WindowInfoKey::BUNDLE_NAME;
     ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);

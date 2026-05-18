@@ -1147,12 +1147,16 @@ HWTEST_F(SceneSessionManagerTest8, PackWindowPropertyChangeInfo01, TestSize.Leve
     sceneSession1->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession1->GetSessionProperty()->SetDisplayId(0);
     sceneSession1->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sceneSession1->GetSessionProperty()->SetWindowModeInfo(
+        WindowModeInfo { WindowMode::WINDOW_MODE_FULLSCREEN, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY });
     sceneSession1->SetFloatingScale(1.0f);
     sceneSession1->SetIsMidScene(true);
 
     std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
     ssm_->PackWindowPropertyChangeInfo(sceneSession1, windowPropertyChangeInfo);
-    EXPECT_EQ(windowPropertyChangeInfo.size(), 11);
+    EXPECT_EQ(windowPropertyChangeInfo.size(), 12);
+    EXPECT_EQ(std::get<WindowModeInfo>(windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE_INFO]).windowMode,
+        WindowMode::WINDOW_MODE_FULLSCREEN);
 }
 
 /**
