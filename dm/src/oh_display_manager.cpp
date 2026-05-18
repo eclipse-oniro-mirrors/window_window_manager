@@ -728,7 +728,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterFoldDisplayModeCh
 {
     HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] register fold display mode change listener.");
-    if (displayModeChangeCallback == NULL || listenerIndex == NULL) {
+    if (displayModeChangeCallback == nullptr || listenerIndex == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] input params null.");
         HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterFoldDisplayModeChangeListener",
             NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);
@@ -821,7 +821,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_RegisterDisplayChangeList
 {
     HISTOGRAM_BOOLEAN("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener.Count", 1);
     TLOGI(WmsLogTag::DMS, "[DMNDK] register display change listener.");
-    if (displayChangeCallback == NULL || listenerIndex == NULL) {
+    if (displayChangeCallback == nullptr || listenerIndex == nullptr) {
         TLOGE(WmsLogTag::DMS, "[DMNDK] register fail(input params null).");
         HISTOGRAM_ENUMERATION_C_ERROR_CODE("ArkUI.NativeDisplayManager.RegisterDisplayChangeListener",
             NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_INVALID_PARAM);

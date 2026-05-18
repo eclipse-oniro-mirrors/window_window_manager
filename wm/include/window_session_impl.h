@@ -108,12 +108,15 @@ public:
     /*
      * inherits from window
      */
-    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Hide(uint32_t reason = 0, bool withAnimation = false, bool isFromInnerkits = true) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
-    WMError Destroy(uint32_t reason = 0) override;
-    virtual WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0);
+    WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) override;
+    virtual WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0,
+        bool isFromInnerkits = false);
     WMError NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
         BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability) override;
     WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
@@ -268,7 +271,7 @@ public:
     bool IsFocused() const override;
     WMError RequestFocus() const override;
     WMError RequestFocusByClient(bool isFocused) const override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override { return WSError::WS_OK; }
     WSError HandleBackEvent() override;
     KeyboardAnimationConfig GetKeyboardAnimationConfig() override;
@@ -781,8 +784,11 @@ protected:
      */
     void ClearSwitchFreeMultiWindowListenersById(int32_t persistentId);
     void NotifySwitchFreeMultiWindow(bool enable);
+    virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
+    virtual void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() {}
 
     void ClearVsyncStation();
+    void ReleaseSurfaceNode();
     WMError WindowSessionCreateCheck();
     void UpdateDecorEnableToAce(bool isDecorEnable);
     bool NeedShowDecorInOtherDisplay(bool decorVisible);
@@ -821,9 +827,12 @@ protected:
     WMError UnregisterExtensionAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener);
 
     void RefreshNoInteractionTimeoutMonitor();
-    WindowStatus GetWindowStatusInner(WindowMode mode, bool isGetParentStatus = false,
-        MaximizeMode maximizeMode = MaximizeMode::MODE_AVOID_SYSTEM_BAR,
-        bool isLayoutFullScreen = false);
+    // Convert WindowMode to WindowStatus based on maximize mode and immersive mode
+    WindowStatus ConvertWindowModeToStatus(WindowMode mode, MaximizeMode maximizeMode, bool immersiveModeEnabled);
+    // Get window status for the current session using its own properties
+    WindowStatus GetOwnWindowStatus(WindowMode mode);
+    // Get window status using externally provided parameters
+    WindowStatus GetWindowStatusWithExternalState(WindowMode mode, MaximizeMode maximizeMode, bool isLayoutFullScreen);
 
     /*
      * PC Event Filter
@@ -872,6 +881,7 @@ protected:
     bool IsZLevelAboveParentLoosened() const override;
 
     sptr<WindowOption> windowOption_;
+    bool haveSetSupportedWindowModes_ = false;
     sptr<ISession> hostSession_;
     mutable std::mutex hostSessionMutex_;
     std::shared_ptr<Ace::UIContent> uiContent_;
@@ -881,6 +891,7 @@ protected:
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
 
     sptr<WindowSessionProperty> property_;
+    WindowModeInfo windowModeInfo_;
     SystemSessionConfig windowSystemConfig_;
     NotifyNativeWinDestroyFunc notifyNativeFunc_;
 
@@ -1089,6 +1100,7 @@ protected:
     bool isGamePreLaunch_ = false;
 private:
     void InitPropertyFromOption(const sptr<WindowOption>& option);
+    void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     //Trans between colorGamut and colorSpace
     static ColorSpace GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut);
     static GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace);

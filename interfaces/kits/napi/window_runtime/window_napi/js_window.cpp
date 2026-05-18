@@ -1424,6 +1424,13 @@ napi_value JsWindow::SetDragKeyFramePolicy(napi_env env, napi_callback_info info
     return (me != nullptr) ? me->OnSetDragKeyFramePolicy(env, info) : nullptr;
 }
 
+napi_value JsWindow::SetSupportedWindowModes(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnSetSupportedWindowModes(env, info) : nullptr;
+}
+
 napi_value JsWindow::SetRelativePositionToParentWindowEnabled(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_SUB, "[NAPI]");
@@ -9950,6 +9957,11 @@ static void SetWindowMaskWithAlphaAsyncTask(wptr<Window> weakToken,
 
 napi_value JsWindow::OnSetWindowMaskWithAlpha(napi_env env, napi_callback_info info)
 {
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "windowToken is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowMaskWithAlpha]msg: The window is not created or destroyed");
+    }
     size_t argc = THREE_PARAMS_SIZE;
     napi_value argv[THREE_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -11213,6 +11225,49 @@ napi_value JsWindow::OnSetDragKeyFramePolicy(napi_env env, napi_callback_info in
     return result;
 }
 
+napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info info)
+{
+    size_t argc = FOUR_PARAMS_SIZE;
+    napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARG_COUNT_ONE || GetType(env, argv[INDEX_ZERO]) != napi_object) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc or type is invalid");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setSupportedWindowModes]msg: Invalid parameters"));
+        return NapiGetUndefined(env);
+    }
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    if (!ConvertNativeValueToVector(env, argv[INDEX_ZERO], supportedWindowModes)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "ConvertNativeValueToVector failed");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setSupportedWindowModes]msg: Failed to convert parameter"));
+        return NapiGetUndefined(env);
+    }
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [weakWindow = wptr(windowToken_), supportedWindowModes = std::move(supportedWindowModes),
+        grayOutMaximizeButton = false, env, task = napiAsyncTask] {
+        auto window = weakWindow.promote();
+        if (window == nullptr) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR),
+                "The window is not created or destoryed."));
+            return;
+        }
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(
+            supportedWindowModes, grayOutMaximizeButton));
+        if (ret != WmErrorCode::WM_OK) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setSupportedWindowModes]"));
+        } else {
+            task->Resolve(env, NapiGetUndefined(env));
+        }
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetSupportedWindowModes") != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][setSupportedWindowModes]msg: Failed to send event"));
+    }
+    return result;
+}
+
 napi_value JsWindow::OnSetRelativePositionToParentWindowEnabled(napi_env env, napi_callback_info info)
 {
     size_t argc = FOUR_PARAMS_SIZE;
@@ -11861,6 +11916,7 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "setExclusivelyHighlighted", moduleName, JsWindow::SetExclusivelyHighlighted);
     BindNativeFunction(env, object, "isWindowHighlighted", moduleName, JsWindow::IsWindowHighlighted);
     BindNativeFunction(env, object, "setDragKeyFramePolicy", moduleName, JsWindow::SetDragKeyFramePolicy);
+    BindNativeFunction(env, object, "setSupportedWindowModes", moduleName, JsWindow::SetSupportedWindowModes);
     BindNativeFunction(env, object, "setRelativePositionToParentWindowEnabled", moduleName,
         JsWindow::SetRelativePositionToParentWindowEnabled);
     BindNativeFunction(env, object, "setFollowParentWindowLayoutEnabled", moduleName,

@@ -42,6 +42,8 @@ public:
     virtual DMError GetScreenGamutMap(ScreenId screenId, ScreenGamutMap& gamutMap) override;
     virtual DMError SetScreenGamutMap(ScreenId screenId, ScreenGamutMap gamutMap) override;
     virtual DMError SetScreenColorTransform(ScreenId screenId) override;
+    
+    virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability) override;
 
     DMError GetPixelFormat(ScreenId screenId, GraphicPixelFormat& pixelFormat) override;
     DMError SetPixelFormat(ScreenId screenId, GraphicPixelFormat pixelFormat) override;

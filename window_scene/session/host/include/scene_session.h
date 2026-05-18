@@ -252,11 +252,14 @@ public:
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     WSError BackgroundTask(const bool isSaveSnapshot = true,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError DisconnectTask(bool isFromClient = false, bool isSaveSnapshot = true);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT,
+        bool isFromInnerkits = false);
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError DisconnectTask(bool isFromClient = false, bool isSaveSnapshot = true, bool isFromInnerkits = false);
     void SetClientIdentityToken(const std::string& clientIdentityToken);
     virtual void BindKeyboardPanelSession(sptr<SceneSession> panelSession) {};
     virtual sptr<SceneSession> GetKeyboardPanelSession() const { return nullptr; };
@@ -521,6 +524,8 @@ public:
     void RegisterMainModalTypeChangeCallback(NotifyMainModalTypeChangeFunc&& func);
     void CloneWindow(NodeId surfaceNodeId, bool needOffScreen);
     void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
+    WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     void AddSidebarBlur();
     void SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimation);
     void SaveLastDensity();
@@ -633,6 +638,7 @@ public:
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
+    WSRect GetParentSessionRectSync();
     int32_t GetMainSessionId();
     int32_t GetMainSessionOrLoosenedSessionId();
     virtual int32_t GetMissionId() const { return persistentId_; };
@@ -798,8 +804,6 @@ public:
     bool SendKeyEventToUI(std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent = false);
     bool IsStartMoving() override;
     void SetIsStartMoving(bool startMoving);
-    bool IsSystemSpecificSession() const;
-    void SetIsSystemSpecificSession(bool isSystemSpecificSession);
     void SetShouldHideNonSecureWindows(bool shouldHide);
     void UpdateExtWindowFlags(int32_t extPersistentId, const ExtensionWindowFlags& extWindowFlags,
         const ExtensionWindowFlags& extWindowActions);
@@ -1569,7 +1573,6 @@ private:
     SessionEventParam sessionEventParam_ = { 0, 0, 0, 0, 0 };
     std::atomic_bool isStartMoving_ { false };
     std::atomic_bool isVisibleForAccessibility_ { true };
-    bool isSystemSpecificSession_ { false };
 
     /**
      * Keyboard(private)

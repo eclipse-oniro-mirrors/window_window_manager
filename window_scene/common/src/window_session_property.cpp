@@ -685,11 +685,41 @@ WindowLimits WindowSessionProperty::GetWindowLimitsVP() const
 void WindowSessionProperty::SetWindowMode(WindowMode mode)
 {
     windowMode_ = mode;
+    windowModeInfo_ = {mode, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY};
 }
 
 WindowMode WindowSessionProperty::GetWindowMode() const
 {
     return windowMode_;
+}
+
+WindowMode WindowSessionProperty::GetWindowModeCompat() const
+{
+    if (windowModeInfo_.windowMode != WindowMode::WINDOW_MODE_SPLIT) {
+        return windowMode_;
+    }
+    if (windowModeInfo_.splitStyle != SplitStyle::TWO_WINDOW_HORIZONTAL &&
+        windowModeInfo_.splitStyle != SplitStyle::TWO_WINDOW_VERTICAL) {
+        return windowMode_;
+    }
+    if (windowModeInfo_.splitIndex == SPLIT_INDEX_PRIMARY) {
+        return WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
+    }
+    if (windowModeInfo_.splitIndex == SPLIT_INDEX_SECONDARY) {
+        return WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+    }
+    return windowMode_;
+}
+
+void WindowSessionProperty::SetWindowModeInfo(const WindowModeInfo& windowModeInfo)
+{
+    windowMode_ = windowModeInfo.windowMode;
+    windowModeInfo_ = windowModeInfo;
+}
+
+WindowModeInfo WindowSessionProperty::GetWindowModeInfo() const
+{
+    return windowModeInfo_;
 }
 
 WindowState WindowSessionProperty::GetWindowState() const

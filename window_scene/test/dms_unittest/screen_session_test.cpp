@@ -5564,6 +5564,27 @@ HWTEST_F(ScreenSessionTest, ScreenOrientationChangeFloatWithOptions02, TestSize.
     delete listener2;
     GTEST_LOG_(INFO) << "ScreenOrientationChangeFloatWithOptions03 end";
 }
+
+/**
+ * @tc.name: GetScreenCapability
+ * @tc.desc: normal function, real screen with physical rsId
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenCapability, TestSize.Level1)
+{
+    ScreenSessionConfig config = {
+        .screenId = 1001,
+        .rsId = 1001,
+        .name = "PhysicalScreen",
+    };
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    ASSERT_NE(screenSession, nullptr);
+    ScreenCapability capability;
+    DMError ret = screenSession->GetScreenCapability(capability);
+    ASSERT_EQ(capability.phyWidth_, 0);
+    ASSERT_EQ(capability.phyHeight_, 0);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

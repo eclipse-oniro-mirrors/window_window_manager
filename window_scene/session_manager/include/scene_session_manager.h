@@ -370,7 +370,7 @@ public:
     void SetSpecificWindowZIndexListener(const NotifySetSpecificWindowZIndexFunc& func);
     void SetMoveMainWindowToTargetDisplayListener(NotifyMoveMainWindowToTargetDisplayFunc&& func);
 
-    WSError UpdateWindowMode(int32_t persistentId, int32_t windowMode);
+    WSError UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo);
     WSError SendTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, uint32_t zIndex);
     WSError RaiseWindowToTop(int32_t persistentId) override;
     void SetScreenLocked(const bool isScreenLocked);
@@ -899,6 +899,7 @@ public:
     std::shared_ptr<AAFwk::Want> GetRequestWantFromTaskInfoMap(int32_t persistentId, int32_t requestId);
     void RemoveRequestTaskInfo(int32_t persistentId, int32_t requestId);
     void ClearRequestTaskInfo(int32_t persistentId);
+    int32_t GenerateScbRequestId();
     void NotifyAmsPendingSessionWhenFail(uint32_t resultCode, std::string resultMessage,
         int32_t requestId, int32_t persistentId);
     WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId, bool shouldBackToCaller = true);
@@ -1117,6 +1118,8 @@ private:
     std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>> allAppUseControlMap_;
     std::unordered_map<int32_t, std::shared_ptr<RequestTaskInfo>> requestTaskInfoMap;
     std::mutex requestTaskInfoMapMutex_;
+    int32_t currentScbRequestId_ = SCB_REQUEST_ID_START;
+    std::mutex scbRequestIdMutex_;
     sptr<SceneSession> GetSceneSessionBySessionInfo(const SessionInfo& sessionInfo);
     void CreateRootSceneSession();
     void RegisterRootSceneSession();
@@ -1292,7 +1295,8 @@ private:
 
     void PerformRegisterInRequestSceneSession(sptr<SceneSession>& sceneSession);
     WSError RequestSceneSessionActivationInner(sptr<SceneSession>& sceneSession, bool isNewActive,
-        bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID) REQUIRES(SCENE_GUARD);
+        bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID,
+        int32_t scbRequestId = DEFAULT_REQUEST_FROM_SCB_ID) REQUIRES(SCENE_GUARD);
     WSError SetBrightness(const sptr<SceneSession>& sceneSession, float brightness);
     void PostBrightnessTask(float brightness);
     WSError UpdateBrightness(int32_t persistentId);
@@ -1696,6 +1700,8 @@ private:
      */
     void SetSessionSnapshotSkipForAppProcess(const sptr<SceneSession>& sceneSession) REQUIRES(SCENE_GUARD);
     void SetSessionSnapshotSkipForAppBundleName(const sptr<SceneSession>& sceneSession) REQUIRES(SCENE_GUARD);
+    void ReportPrivacyWindowSnapshotFail(const sptr<SceneSession>& sceneSession, int32_t errorCode,
+        const std::string& errorMsg);
 
     void HandleSpecialExtWindowFlagsChange(int32_t persistentId, ExtensionWindowFlags extWindowFlags,
         ExtensionWindowFlags extWindowActions);
@@ -1887,6 +1893,7 @@ private:
     WMError FlushSessionBlackListInfoMapWhenRemove(ScreenId screenId);
     void UpdateVirtualScreenBlackList(ScreenId screenId);
     void AddSkipSurfaceNodeWhenAttach(int32_t windowId, const std::string& bundleName, uint64_t surfaceNodeId);
+    bool IsSessionVisibleAndRealForeground(const sptr<SceneSession>& session);
     SessionState GetRealSessionState(const sptr<SceneSession>& session);
     std::unordered_map<std::string, std::unordered_set<std::string>> bundleRSBlackListConfigMap_;
     inline static const std::string WMS_DEFAULT = "WMS_DEFAULT";

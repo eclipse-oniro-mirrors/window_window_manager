@@ -228,7 +228,7 @@ HWTEST_F(DisplayPowerUnitTest, suspend_end_001, TestSize.Level1)
  */
 HWTEST_F(DisplayPowerUnitTest, set_screen_brightness_001, TestSize.Level1)
 {
-    bool ret = DisplayManager::GetInstance().SetScreenBrightness(defaultId_, brightnessLevel_);
+    bool ret = DisplayManager::GetInstance().SetScreenBrightness(DmsScreenBrightnessData(defaultId_, brightnessLevel_));
     ASSERT_EQ(true, ret);
 }
 

@@ -85,7 +85,7 @@ namespace uiExtensionHost {
   }
 
   export native function destroyWindowProxy(nativeObj: long): void;
-  let windowProxyRegister = new FinalizationRegistry<long>(destroyWindowProxy);
+  let windowProxyRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(destroyWindowProxy);
 
   // API implementation
   export class UIExtensionHostInternal implements UIExtensionHostWindowProxy {

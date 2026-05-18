@@ -3905,6 +3905,26 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetOrientationWithOptions,
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
 }
+
+/**
+ * @tc.name: OnRemoteRequest_GetScreenCapability
+ * @tc.desc: TRANS_ID_GET_SCREEN_CAPABILITY normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+    DMError ret = static_cast<DMError>(reply.ReadInt32());
+    EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

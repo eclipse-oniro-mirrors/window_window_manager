@@ -38,12 +38,15 @@ public:
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
-    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError ShowKeyboard(uint32_t callingWindowId, uint64_t tgtDisplayId, KeyboardEffectOption effectOption) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
-    WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0) override;
+    WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0,
+        bool isFromInnerkits = false) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
@@ -53,6 +56,7 @@ public:
     WMError Minimize() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
+    WindowModeInfo GetWindowModeInfo() const override;
     WMError SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName) override;
     class WindowScreenListener : public ScreenManager::IScreenListener {
     public:
@@ -161,7 +165,7 @@ public:
     WMError UpdateSurfaceNodeAfterCustomAnimation(bool isAdd) override;
     WMError SetAlpha(float alpha) override;
     void DumpSessionElementInfo(const std::vector<std::string>& params) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError UpdateTitleInTargetPos(bool isShow, int32_t height) override;
     void NotifySessionForeground(uint32_t reason, bool withAnimation) override;
@@ -248,7 +252,6 @@ public:
     WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
-    bool haveSetSupportedWindowModes_ = false;
     uint32_t pendingWindowModeSupportType_ { WindowModeSupport::WINDOW_MODE_SUPPORT_ALL };
 
     /*
@@ -515,7 +518,7 @@ protected:
     void RegisterWindowRecoverStateChangeListener();
 
 private:
-    WMError DestroyInner(bool needNotifyServer);
+    WMError DestroyInner(bool needNotifyServer, bool isFromInnerkits = false);
     WMError MainWindowCloseInner();
     WMError SyncDestroyAndDisconnectSpecificSession(int32_t persistentId);
     bool IsValidSystemWindowType(const WindowType& type);
@@ -523,15 +526,15 @@ private:
     void TransformSurfaceNode(const Transform& trans);
     void AdjustWindowAnimationFlag(bool withAnimation = false);
     WMError UpdateAnimationFlagProperty(bool withAnimation);
-    WMError UpdateWindowModeImmediately(WindowMode mode);
+    WMError UpdateWindowModeImmediately(const WindowModeInfo& windowModeInfo);
     void UpdateWindowState();
     void UpdateNewSize();
     void FillWindowLimits(WindowLimits& windowLimits, PixelUnit pixelUnit);
     bool HasIntersectedAttachLimits() const;
     WindowLimits GetCustomizedLimitsForSetWindowLimits(const WindowLimits& windowLimits);
     WindowLimits ConvertBaseLimitsToTargetUnit(const WindowLimits& srcLimits, PixelUnit targetPixelUnit);
-    void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
-    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() override;
+    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() override;
     WMError ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config);
     void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,

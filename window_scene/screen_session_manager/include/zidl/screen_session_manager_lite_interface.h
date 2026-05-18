@@ -65,6 +65,7 @@ public:
         TRANS_ID_GET_CUTOUT_INFO,
         TRANS_ID_GET_SCREEN_POWER_AUTO,
         TRANS_ID_SET_RESOLUTION,
+        TRANS_ID_SET_SCREEN_SWITCH_STATE,
     };
 
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,

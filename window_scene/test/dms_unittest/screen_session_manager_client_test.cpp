@@ -102,6 +102,18 @@ public:
     sptr<RSEventDataBase> eventData_;
 };
 
+class MockScreenClosedStateListener : public IScreenClosedStateListener {
+public:
+    void OnScreenClosedStateChange(const ScreenClosedState screenClosedState) override
+    {
+        WLOGFI("OnScreenClosedStateChange has triggered, state: %{public}u", static_cast<uint32_t>(screenClosedState));
+        lastScreenClosedState_ = screenClosedState;
+        callCount_++;
+    }
+    ScreenClosedState lastScreenClosedState_ = ScreenClosedState::UNKNOWN;
+    int callCount_ = 0;
+};
+
 void ScreenSessionManagerClientTest::SetUp()
 {
     screenSessionManagerClient_ = &ScreenSessionManagerClient::GetInstance();
@@ -2916,6 +2928,67 @@ HWTEST_F(ScreenSessionManagerClientTest, OnScreenOrientationChangedWithOptions02
     screenSessionManagerClient_->screenSessionMap_.clear();
     logMsg.clear();
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RegisterScreenClosedStateChangeListener01
+ * @tc.desc: RegisterScreenClosedStateChangeListener test with null listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterScreenClosedStateChangeListener01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    IScreenClosedStateListener* listener = nullptr;
+    screenSessionManagerClient_->RegisterScreenClosedStateChangeListener(listener);
+    EXPECT_TRUE(logMsg.find("Failed to register screen closed state listener, listener is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RegisterScreenClosedStateChangeListener02
+ * @tc.desc: RegisterScreenClosedStateChangeListener test with valid listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterScreenClosedStateChangeListener02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockScreenClosedStateListener* listener = new MockScreenClosedStateListener();
+    screenSessionManagerClient_->RegisterScreenClosedStateChangeListener(listener);
+    EXPECT_TRUE(logMsg.find("Success to register screen closed state listener") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenClosedStateChange
+ * @tc.desc: OnScreenClosedStateChange test with CLOSE state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChange, TestSize.Level1)
+{
+    MockScreenClosedStateListener* listener = new MockScreenClosedStateListener();
+    screenSessionManagerClient_->RegisterScreenClosedStateChangeListener(listener);
+
+    ScreenClosedState state = ScreenClosedState::CLOSE;
+    screenSessionManagerClient_->OnScreenClosedStateChange(state);
+    EXPECT_EQ(listener->lastScreenClosedState_, state);
+    EXPECT_GT(listener->callCount_, 0);
+}
+
+/**
+ * @tc.name: OnScreenClosedStateChangeWithoutListener
+ * @tc.desc: OnScreenClosedStateChange test without listener registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChangeWithoutListener, TestSize.Level1)
+{
+    screenSessionManagerClient_->screenClosedStateListener_ = nullptr;
+    ScreenClosedState state = ScreenClosedState::CLOSE;
+    screenSessionManagerClient_->OnScreenClosedStateChange(state);
+    EXPECT_EQ(screenSessionManagerClient_->screenClosedState_, state);
 }
 } // namespace Rosen
 } // namespace OHOS

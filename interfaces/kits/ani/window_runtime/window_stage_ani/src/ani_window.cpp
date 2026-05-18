@@ -68,8 +68,8 @@ constexpr double MAX_GRAY_SCALE = 1.0;
 static std::mutex g_aniWindowMap_mutex;
 static std::map<std::string, ani_ref> g_aniWindowMap;
 
-AniWindow::AniWindow(const sptr<Window>& window, ani_env* env)
-    : windowToken_(window), registerManager_(std::make_unique<AniWindowRegisterManager>()), env_(env)
+AniWindow::AniWindow(const sptr<Window>& window, ani_vm* vm)
+    : windowToken_(window), registerManager_(std::make_unique<AniWindowRegisterManager>()), vm_(vm)
 {
     NotifyNativeWinDestroyFunc func = [this](const std::string& windowName) {
         {
@@ -312,7 +312,12 @@ void AniWindow::NotifyOrientationExecutionResultResult(uint32_t promiseId, uint3
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] promiseId:%{public}u result:%{public}u",
         promiseId, result);
-    auto env = env_;
+    if (vm_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] vm is null");
+        return;
+    }
+    auto aniVm = AniVm(vm_);
+    auto env = aniVm.GetAniEnv();
     if (env == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] env is null");
         return;
@@ -2496,7 +2501,9 @@ __attribute__((no_sanitize("cfi")))
         TLOGE(WmsLogTag::DEFAULT, "[ANI] null env %{public}u", ret);
         return nullptr;
     }
-    std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, env);
+    ani_vm* vm = nullptr;
+    env->GetVM(&vm);
+    std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, vm);
  
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
@@ -3978,6 +3985,38 @@ ani_object AniWindow::SetDragKeyFramePolicy(ani_env* env, ani_object aniKeyFrame
         "[ANI] success, windowId: %{public}u, keyFramePolicy: %{public}s",
         windowToken_->GetWindowId(), keyFramePolicy.ToString().c_str());
     return AniWindowUtils::CreateKeyFramePolicy(env, keyFramePolicy);
+}
+
+void AniWindow::SetSupportedWindowModes(ani_env* env, ani_object obj, ani_long nativeObj,
+    ani_object aniSupportedWindowModes)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] windowToken is null");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnSetSupportedWindowModes(env, aniSupportedWindowModes);
+}
+
+void AniWindow::OnSetSupportedWindowModes(ani_env* env, ani_object aniSupportedWindowModes)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] windowToken is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    auto supportedWindowModes =
+        AniWindowUtils::ExtractEnumValues<AppExecFwk::SupportWindowMode>(env, aniSupportedWindowModes);
+    WMError ret = windowToken_->SetSupportedWindowModes(supportedWindowModes);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
+              windowToken_->GetWindowId(), static_cast<int32_t>(ret));
+        AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
+        return;
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI] Success, windowId: %{public}u", windowToken_->GetWindowId());
 }
 
 ani_object AniWindow::Snapshot(ani_env* env)
@@ -5870,7 +5909,9 @@ __attribute__((no_sanitize("cfi")))
         return cls;
     }
 
-    std::unique_ptr<AniWindow> uniqueWindow = std::make_unique<AniWindow>(window, env);
+    ani_vm* vm = nullptr;
+    env->GetVM(&vm);
+    std::unique_ptr<AniWindow> uniqueWindow = std::make_unique<AniWindow>(window, vm);
 
     ani_field contextField;
     if ((ret = env->Class_FindField(cls, "nativeObj", &contextField)) != ANI_OK) {
@@ -7640,6 +7681,8 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
         ani_native_function {"setDragKeyFramePolicy",
             "lC{@ohos.window.window.KeyFramePolicy}:C{@ohos.window.window.KeyFramePolicy}",
             reinterpret_cast<void *>(WindowSetDragKeyFramePolicy)},
+        ani_native_function {"setSupportedWindowModes", "lC{std.core.Array}:",
+            reinterpret_cast<void *>(AniWindow::SetSupportedWindowModes)},
         ani_native_function {"snapshot", "l:C{@ohos.multimedia.image.image.PixelMap}",
             reinterpret_cast<void *>(Snapshot)},
         ani_native_function {"snapshotSync", "l:C{@ohos.multimedia.image.image.PixelMap}",

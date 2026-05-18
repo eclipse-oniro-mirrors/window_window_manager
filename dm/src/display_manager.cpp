@@ -2643,10 +2643,12 @@ bool DisplayManager::TryToCancelScreenOff()
     return SingletonContainer::Get<DisplayManagerAdapter>().TryToCancelScreenOff();
 }
 
-bool DisplayManager::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManager::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
-    TLOGI(WmsLogTag::DMS, "[UL_POWER]ScreenId:%{public}" PRIu64", level:%{public}u,", screenId, level);
-    RSInterfaces::GetInstance().SetScreenBacklight(screenId, level);
+    RsScreenBrightnessData data{brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition};
+    TLOGI(WmsLogTag::DMS, "[UL_POWER]ScreenId:%{public}" PRIu64", level:%{public}u, brightnessPosition:%{public}.4f",
+        data.screenId, data.level, data.brightnessPosition);
+    RSInterfaces::GetInstance().SetScreenBacklight(data);
     return true;
 }
 

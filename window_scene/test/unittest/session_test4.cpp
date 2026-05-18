@@ -1106,7 +1106,7 @@ HWTEST_F(WindowSessionTest4, GetWindowMetaInfoForWindowInfo01, TestSize.Level1)
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->callingPid_ = 123;
-    sceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
     sceneSession->isMidScene_ = true;
     sceneSession->isFocused_ = true;
     SessionInfo sessionInfo1;

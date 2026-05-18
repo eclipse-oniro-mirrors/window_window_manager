@@ -366,6 +366,18 @@ DMError ScreenManagerAdapter::GetSupportedColorSpaces(ScreenId screenId, std::ve
     return ret;
 }
 
+DMError ScreenManagerAdapter::GetScreenCapability(ScreenId screenId, ScreenCapability& capability)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+ 
+    TLOGI(WmsLogTag::DMS, "enter");
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->GetScreenCapability(screenId, capability);
+    }
+ 
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
     const sptr<IDisplayManagerAgent>& displayManagerAgent)
 {

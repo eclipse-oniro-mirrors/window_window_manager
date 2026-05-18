@@ -54,6 +54,10 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowI
 const std::string PARAM_DUMP_HELP = "-h";
 const uint32_t API_VERSION_MOD = 1000;
 constexpr int32_t API_VERSION_18 = 18;
+constexpr int32_t SNAPSHOT_ERROR_INVALID_WINDOW = -1;
+constexpr int32_t SNAPSHOT_ERROR_RENDER_CONTEXT = -2;
+constexpr int32_t SNAPSHOT_ERROR_TAKE_CAPTURE = -3;
+constexpr int32_t SNAPSHOT_ERROR_EMPTY_PIXELMAP = -4;
 
 Ace::ContentInfoType GetAceContentInfoType(BackupAndRestoreType type)
 {
@@ -978,27 +982,74 @@ ColorSpace WindowImpl::GetColorSpace()
 
 std::shared_ptr<Media::PixelMap> WindowImpl::Snapshot()
 {
+    auto reportPrivacyWindowSnapshotFail = [this](int32_t errorCode, const std::string& errorMsg) {
+        if (property_ == nullptr || (!property_->GetPrivacyMode() && !property_->GetSystemPrivacyMode())) {
+            return;
+        }
+        auto abilityInfo = property_->GetAbilityInfo();
+        PrivacyWindowSnapshotInfo reportInfo;
+        reportInfo.bundleName = abilityInfo.bundleName_;
+        reportInfo.abilityName = abilityInfo.abilityName_;
+        reportInfo.windowId = static_cast<int32_t>(property_->GetWindowId());
+        reportInfo.windowType = property_->GetWindowType();
+        reportInfo.windowMode = property_->GetWindowMode();
+        reportInfo.rect = property_->GetWindowRect();
+        reportInfo.errorCode = errorCode;
+        reportInfo.errorMsg = errorMsg;
+        int32_t ret = HiSysEventWrite(
+            HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, "PRIVACY_WINDOW_SNAPSHOT_FAIL",
+            HiviewDFX::HiSysEvent::EventType::FAULT,
+            "BUNDLE_NAME", reportInfo.bundleName,
+            "ABILITY_NAME", reportInfo.abilityName,
+            "WINDOW_ID", reportInfo.windowId,
+            "WINDOW_TYPE", static_cast<int32_t>(reportInfo.windowType),
+            "WINDOW_MODE", static_cast<int32_t>(reportInfo.windowMode),
+            "POS_X", reportInfo.rect.posX_,
+            "POS_Y", reportInfo.rect.posY_,
+            "WIDTH", static_cast<int32_t>(reportInfo.rect.width_),
+            "HEIGHT", static_cast<int32_t>(reportInfo.rect.height_),
+            "ERROR_CODE", reportInfo.errorCode,
+            "ERROR_MSG", reportInfo.errorMsg);
+        if (ret != 0) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write HiSysEvent error, ret: %{public}d", ret);
+        }
+    };
     if (!IsWindowValid() || surfaceNode_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid window");
+        reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_WINDOW, "invalid window or surface node");
         return nullptr;
     }
     std::shared_ptr<SurfaceCaptureFuture> callback = std::make_shared<SurfaceCaptureFuture>();
     auto rsUICtx = surfaceNode_->GetRSUIContext();
     if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_RENDER_CONTEXT, "rs ui context is null");
         return nullptr;
     }
-    auto isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode_, callback);
+    RSSurfaceCaptureConfig config = {
+        .needErrorCode = true,
+    };
+    auto isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode_, callback, config);
     std::shared_ptr<Media::PixelMap> pixelMap;
     if (isSucceeded) {
         pixelMap = callback->GetResult(2000); // wait for <= 2000ms
     } else {
         pixelMap = SingletonContainer::Get<WindowAdapter>().GetSnapshot(property_->GetWindowId());
     }
+    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    if (hasCaptureError) {
+        WLOGFE("Failed to capture privacy or special layer");
+        reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
+    }
     if (pixelMap != nullptr) {
         WLOGFD("WMS-Client Save WxH=%{public}dx%{public}d", pixelMap->GetWidth(), pixelMap->GetHeight());
     } else {
         WLOGFE("Failed to get pixelmap, return nullptr!");
+        if (isSucceeded && !hasCaptureError) {
+            reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
+        } else if (!isSucceeded) {
+            reportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
+        }
     }
     return pixelMap;
 }
@@ -1789,7 +1840,7 @@ void WindowImpl::ClearVsyncStation()
     }
 }
 
-WMError WindowImpl::Destroy(uint32_t reason)
+WMError WindowImpl::Destroy(uint32_t reason, bool isFromInnerkits)
 {
     return Destroy(true, true, reason);
 }
@@ -1943,12 +1994,14 @@ bool WindowImpl::IsShowWithOptions() const
     return showWithOptions_;
 }
 
-WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus)
+WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus,
+    int32_t requestId, int32_t scbRequestId)
 {
-    return Show(reason, withAnimation, withFocus, false);
+    return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach)
+WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, __PRETTY_FUNCTION__);
     WLOGFD("Window Show [name:%{public}s, id:%{public}u, mode: %{public}u], reason:%{public}u, "
@@ -4074,7 +4127,7 @@ void WindowImpl::RestoreSplitWindowMode(uint32_t mode)
         return;
     }
     auto windowMode = static_cast<WindowMode>(mode);
-    if (windowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || windowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+    if (WindowHelper::IsSplitWindowMode(windowMode)) {
         UpdateMode(windowMode);
     }
 }

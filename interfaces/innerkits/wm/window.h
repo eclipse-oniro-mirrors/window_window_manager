@@ -1276,6 +1276,13 @@ public:
     virtual WindowMode GetWindowMode() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
 
     /**
+     * @brief Get the window mode info.
+     *
+     * @return WindowModeInfo of window.
+     */
+    virtual WindowModeInfo GetWindowModeInfo() const { return WindowModeInfo{}; }
+
+    /**
      * @brief Get alpha of window.
      *
      * @return Alpha of window.
@@ -1644,7 +1651,7 @@ public:
      *
      * @return WMError
      */
-    virtual WMError Destroy(uint32_t reason = 0) { return WMError::WM_OK; }
+    virtual WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) { return WMError::WM_OK; }
 
     /**
      * @brief Set a flag to distinguish whether the window is shown with options.
@@ -1669,7 +1676,8 @@ public:
      * @return WM_OK means window show success, others means failed.
      */
     virtual WMError Show(uint32_t reason = 0, bool withAnimation = false,
-                         bool withFocus = true) { return WMError::WM_OK; }
+                         bool withFocus = true, int32_t requestId = INVALID_REQUEST_ID,
+                         int32_t scbRequestId = INVALID_REQUEST_ID) { return WMError::WM_OK; }
 
     /**
      * @brief Show window
@@ -1681,7 +1689,8 @@ public:
      * @return WM_OK means window show success, others means failed.
      */
     virtual WMError Show(uint32_t reason, bool withAnimation,
-                         bool withFocus, bool waitAttach) { return WMError::WM_OK; }
+                         bool withFocus, bool waitAttach, int32_t requestId = INVALID_REQUEST_ID,
+                         int32_t scbRequestId = INVALID_REQUEST_ID) { return WMError::WM_OK; }
 
     /**
      * @brief Resume window
