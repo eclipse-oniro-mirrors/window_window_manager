@@ -4555,7 +4555,7 @@ void ScreenSessionManager::CreateScreenProperty(ScreenId screenId, ScreenPropert
     if (property.GetMainDisplayIdOfGroup() == SCREEN_ID_INVALID) {
         property.SetMainDisplayIdOfGroup(mainDisplayId);
     }
-    InitDeviceRotationOffset(screenId, screenProperty);
+    InitDeviceRotationOffset(screenId, property);
 }
 
 void ScreenSessionManager::InitDeviceRotationOffset(ScreenId screenId, ScreenProperty& screenProperty)
