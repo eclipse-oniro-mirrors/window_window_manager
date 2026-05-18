@@ -3688,8 +3688,7 @@ int32_t Session::DecodeSnapShotRecoverValue(int32_t snapShotRecoverValue, SnapSh
 
 bool Session::IsExitSplitOnBackgroundRecover()
 {
-    return GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-           GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+    return WindowHelper::IsSplitWindowMode(GetWindowMode()) ||
            IsExitSplitOnBackground();
 }
 
@@ -4415,13 +4414,17 @@ void Session::SetRequestNextVsyncWhenModeChangeFunc(RequestNextVsyncWhenModeChan
 WSError Session::RequestNextVsyncWhenModeChange()
 {
     if (!hasRequestedVsyncFunc_) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "id:%{public}d, func is null", GetPersistentId());
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:VsyncWait] skip: hasRequestedVsyncFunc is null, id:%{public}d", GetPersistentId());
         return WSError::WS_ERROR_NULLPTR;
     }
     isWindowModeDirty_.store(true);
     bool hasRequestedVsync = false;
     hasRequestedVsyncFunc_(hasRequestedVsync);
     timesToWaitForVsync_.store(hasRequestedVsync ? TIMES_TO_WAIT_FOR_VSYNC_TWICE : TIMES_TO_WAIT_FOR_VSYNC_ONECE);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:VsyncWait] start waiting, id:%{public}d, hasRequestedVsync:%{public}d, "
+        "waitTimes:%{public}d", GetPersistentId(), hasRequestedVsync, timesToWaitForVsync_.load());
     InitVsyncCallbackForModeChangeAndRequestNextVsync();
     return WSError::WS_OK;
 }
@@ -4436,27 +4439,35 @@ void Session::OnVsyncReceivedAfterModeChanged()
             return;
         }
         if (!session->isWindowModeDirty_.load()) {
-            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: windowMode is not dirty, nothing to do, id:%{public}d",
+            TLOGND(WmsLogTag::WMS_LAYOUT,
+                "[WindowModeUpdate:VsyncWait] %{public}s: not dirty, skip, id:%{public}d",
                 funcName, session->GetPersistentId());
             return;
         }
         session->timesToWaitForVsync_.fetch_sub(1);
-        TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: id:%{public}d, mode:%{public}d, waitVsyncTimes:%{public}d",
-            funcName, session->GetPersistentId(), session->GetWindowMode(), session->timesToWaitForVsync_.load());
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:VsyncWait] %{public}s: id:%{public}d, mode:%{public}d, waitTimes:%{public}d",
+            funcName, session->GetPersistentId(), static_cast<int32_t>(session->GetWindowMode()),
+            session->timesToWaitForVsync_.load());
         bool isWindowModeDirty = true;
         if (session->timesToWaitForVsync_.load() > 0) {
             session->InitVsyncCallbackForModeChangeAndRequestNextVsync();
         } else if (session->timesToWaitForVsync_.load() < 0) {
-            TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s: id:%{public}d, waitVsyncTimes:%{public}d",
+            TLOGNW(WmsLogTag::WMS_LAYOUT,
+                "[WindowModeUpdate:VsyncWait] %{public}s: abnormal waitTimes, id:%{public}d, waitTimes:%{public}d",
                 funcName, session->GetPersistentId(), session->timesToWaitForVsync_.load());
             session->timesToWaitForVsync_.store(0);
             session->isWindowModeDirty_.store(false);
         } else if (session->timesToWaitForVsync_.load() == 0 && session->sessionStage_ &&
                    session->isWindowModeDirty_.compare_exchange_strong(isWindowModeDirty, false)) {
+            TLOGI(WmsLogTag::WMS_LAYOUT,
+                "[WindowModeUpdate:VsyncWait] %{public}s: layout done, notify client, id:%{public}d, mode:%{public}d",
+                funcName, session->GetPersistentId(), static_cast<int32_t>(session->GetWindowMode()));
             session->sessionStage_->NotifyLayoutFinishAfterWindowModeChange(session->GetWindowMode());
             session->NotifySubSessionParentStatusChange(session->GetWindowMode());
         } else {
-            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: id:%{public}d, sessionStage is null or mode is not dirty",
+            TLOGD(WmsLogTag::WMS_LAYOUT,
+                "[WindowModeUpdate:VsyncWait] %{public}s: skip: stage null or not dirty, id:%{public}d",
                 funcName, session->GetPersistentId());
             session->isWindowModeDirty_.store(false);
         }
@@ -4481,43 +4492,59 @@ void Session::InitVsyncCallbackForModeChangeAndRequestNextVsync()
     requestNextVsyncWhenModeChangeFunc_(nextVsyncCallback);
 }
 
-WSError Session::UpdateWindowMode(WindowMode mode)
+WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
-    WLOGFD("Session update window mode, id: %{public}d, mode: %{public}d", GetPersistentId(),
-        static_cast<int32_t>(mode));
+    WindowMode mode = windowModeInfo.windowMode;
+    auto preMode = GetWindowMode();
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "[WindowModeUpdate:ServerRecv] id:%{public}d, preMode:%{public}d, mode:%{public}d, "
+        "splitStyle:%{public}d, splitIndex:%{public}d",
+        GetPersistentId(), static_cast<int32_t>(preMode), static_cast<int32_t>(mode),
+        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
     auto property = GetSessionProperty();
     if (property == nullptr) {
-        WLOGFD("id: %{public}d property is nullptr", persistentId_);
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:ServerRecv] skip: property is null, id:%{public}d", GetPersistentId());
         return WSError::WS_ERROR_NULLPTR;
     }
     if (state_ == SessionState::STATE_END) {
-        WLOGFI("session is already destroyed or property is nullptr! id: %{public}d state: %{public}u",
-            GetPersistentId(), GetSessionState());
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:ServerRecv] skip: session destroyed, id:%{public}d, state:%{public}u",
+            GetPersistentId(), static_cast<uint32_t>(GetSessionState()));
         return WSError::WS_ERROR_INVALID_SESSION;
     } else if (state_ == SessionState::STATE_DISCONNECT) {
-        property->SetWindowMode(mode);
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:ServerRecv] state=DISCONNECT, pending update, id:%{public}d, mode:%{public}d",
+            GetPersistentId(), static_cast<int32_t>(mode));
+        property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
         property->SetIsNeedUpdateWindowMode(true);
         UpdateGestureBackEnabled();
     } else {
-        property->SetWindowMode(mode);
+        property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
         RequestNextVsyncWhenModeChange();
-        if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
         }
         UpdateGestureBackEnabled();
-        UpdateGravityWhenUpdateWindowMode(mode);
+        UpdateGravityWhenUpdateWindowMode(windowModeInfo);
         if (!sessionStage_) {
+            TLOGE(WmsLogTag::WMS_LAYOUT,
+                "[WindowModeUpdate:ServerRecv] skip: sessionStage is null, id:%{public}d", GetPersistentId());
             return WSError::WS_ERROR_NULLPTR;
         }
-        return sessionStage_->UpdateWindowMode(mode);
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:ServerRecv] send to client, id:%{public}d, mode:%{public}d",
+            GetPersistentId(), static_cast<int32_t>(mode));
+        return sessionStage_->UpdateWindowMode(windowModeInfo);
     }
     return WSError::WS_OK;
 }
 
-void Session::UpdateGravityWhenUpdateWindowMode(WindowMode mode)
+void Session::UpdateGravityWhenUpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
+    WindowMode mode = windowModeInfo.windowMode;
     auto surfaceNode = GetSurfaceNode();
     if ((systemConfig_.IsPcWindow() || systemConfig_.IsFreeMultiWindowMode()) && surfaceNode != nullptr) {
         if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY) {
@@ -4526,6 +4553,9 @@ void Session::UpdateGravityWhenUpdateWindowMode(WindowMode mode)
             surfaceNode->SetFrameGravity(Gravity::RIGHT);
         } else if (mode == WindowMode::WINDOW_MODE_FLOATING || mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
             surfaceNode->SetFrameGravity(Gravity::RESIZE);
+        } else if (mode == WindowMode::WINDOW_MODE_SPLIT) {
+            // PC-specific scenario, use SPLIT_PRIMARY behavior
+            surfaceNode->SetFrameGravity(Gravity::LEFT);
         }
     }
 }

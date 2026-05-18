@@ -3160,6 +3160,79 @@ HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck06, TestSi
 }
 
 /**
+ * @tc.name: ShouldSkipSupportWindowModeCheck07
+ * @tc.desc: Verify WINDOW_MODE_SPLIT and WINDOW_MODE_SUPPORT_SPLIT are handled correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck07");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // WINDOW_MODE_SUPPORT_SPLIT with FLOATING mode: should skip (has split support but no fullscreen)
+    uint32_t windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT;
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, true);
+
+    // WINDOW_MODE_SUPPORT_SPLIT with SPLIT mode itself
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck08
+ * @tc.desc: Verify WINDOW_MODE_SPLIT mode on phone/pad without free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck08");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+
+    uint32_t windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY;
+    // WINDOW_MODE_SPLIT is a split mode — should skip on phone without free multi window
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, true);
+
+    // FLOATING mode with split support on phone — should also skip
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, true);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck09
+ * @tc.desc: Verify WINDOW_MODE_SUPPORT_SPLIT combined with other support types
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck09, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck09");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // SPLIT + FULLSCREEN both supported — FLOATING should NOT skip (has fullscreen)
+    uint32_t windowModeSupportType =
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN;
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, false);
+
+    // SPLIT mode with SPLIT + FULLSCREEN support
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, false);
+}
+
+/**
  * @tc.name: SetForceSplitConfigEnable01
  * @tc.desc: Test SetForceSplitConfigEnable when window type is not main window
  * @tc.type: FUNC

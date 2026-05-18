@@ -397,10 +397,10 @@ HWTEST_F(SceneSessionManagerTest6, UpdateWindowMode, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession));
     ASSERT_NE(nullptr, ssm_);
-    auto ret = ssm_->UpdateWindowMode(0, 0);
+    auto ret = ssm_->UpdateWindowMode(0, WindowModeInfo{ static_cast<WindowMode>(0) });
     EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, ret);
     ASSERT_NE(nullptr, ssm_);
-    ret = ssm_->UpdateWindowMode(2, 0);
+    ret = ssm_->UpdateWindowMode(2, WindowModeInfo{ static_cast<WindowMode>(0) });
     EXPECT_EQ(WSError::WS_OK, ret);
 }
 

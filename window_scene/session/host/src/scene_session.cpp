@@ -3162,17 +3162,15 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
     }
     WindowMode windowMode = Session::GetWindowMode();
     bool isWindowFloatingOrSplit = windowMode == WindowMode::WINDOW_MODE_FLOATING ||
-                                   windowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-                                   windowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+        WindowHelper::IsSplitWindowMode(windowMode);
     WindowType windowType = Session::GetWindowType();
     bool isAvailableSystemWindow = WindowHelper::IsSystemWindow(windowType) &&
         (GetSessionProperty()->GetAvoidAreaOption() & static_cast<uint32_t>(AvoidAreaOption::ENABLE_SYSTEM_WINDOW));
     bool isAvailableAppSubWindow = WindowHelper::IsSubWindow(windowType) &&
         (GetSessionProperty()->GetAvoidAreaOption() & static_cast<uint32_t>(AvoidAreaOption::ENABLE_APP_SUB_WINDOW));
+    auto parentMode = GetParentSession() != nullptr ? GetParentSession()->GetWindowMode() : WindowMode::WINDOW_MODE_UNDEFINED;
     bool isParentFloatingOrSplit = SessionHelper::IsNonSecureToUIExtension(windowType) &&
-        GetParentSession() != nullptr && (GetParentSession()->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING ||
-        GetParentSession()->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        GetParentSession()->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+        (parentMode == WindowMode::WINDOW_MODE_FLOATING || WindowHelper::IsSplitWindowMode(parentMode));
     bool isAvailableWindowType = WindowHelper::IsMainWindow(windowType) || isAvailableSystemWindow ||
                                  isAvailableAppSubWindow || isParentFloatingOrSplit;
     bool isAvailableDevice = (systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) &&
@@ -4284,8 +4282,7 @@ bool SceneSession::IsMovableWindowType() const
 bool SceneSession::IsSplitMovable() const
 {
     auto property = GetSessionProperty();
-    return (property->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        property->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) &&
+    return WindowHelper::IsSplitWindowMode(property->GetWindowMode()) &&
         WindowHelper::IsWindowModeSupported(property->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING);
 }
 

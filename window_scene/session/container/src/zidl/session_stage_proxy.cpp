@@ -928,29 +928,37 @@ WSError SessionStageProxy::NotifyWindowOcclusionState(const WindowVisibilityStat
     return static_cast<WSError>(errCode);
 }
 
-WSError SessionStageProxy::UpdateWindowMode(WindowMode mode)
+WSError SessionStageProxy::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option(MessageOption::TF_ASYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        WLOGFE("WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteUint32(static_cast<uint32_t>(mode))) {
-        WLOGFE("Write mode failed");
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.windowMode))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write windowMode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.splitStyle))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write splitStyle failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(windowModeInfo.splitIndex)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write splitIndex failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        WLOGFE("remote is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "remote is null");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_WINDOW_MODE_CHANGE),
         data, reply, option) != ERR_NONE) {
-        WLOGFE("SendRequest failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     int32_t ret = reply.ReadInt32();

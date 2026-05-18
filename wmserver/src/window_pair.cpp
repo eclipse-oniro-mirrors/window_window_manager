@@ -211,7 +211,7 @@ void WindowPair::Clear()
             primary_->GetWindowProperty()->ResumeLastWindowMode();
             // when change mode, need to reset shadow and radius
             WindowSystemEffect::SetWindowEffect(primary_);
-            primary_->GetWindowToken()->UpdateWindowMode(primary_->GetWindowMode());
+            primary_->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ primary_->GetWindowMode() });
         }
     }
     if (secondary_ != nullptr && secondary_->GetWindowProperty() != nullptr &&
@@ -228,7 +228,7 @@ void WindowPair::Clear()
             secondary_->GetWindowProperty()->ResumeLastWindowMode();
             // when change mode, need to reset shadow and radius
             WindowSystemEffect::SetWindowEffect(secondary_);
-            secondary_->GetWindowToken()->UpdateWindowMode(secondary_->GetWindowMode());
+            secondary_->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ secondary_->GetWindowMode() });
         }
     }
 
@@ -448,7 +448,7 @@ void WindowPair::SwitchPosition()
         // when change mode, need to reset shadow and radius
         WindowSystemEffect::SetWindowEffect(primary_);
         if (primary_->GetWindowToken() != nullptr) {
-            primary_->GetWindowToken()->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+            primary_->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_SECONDARY });
         }
         std::swap(primary_, secondary_);
     } else if (primary_->GetWindowMode() == secondary_->GetWindowMode() &&
@@ -457,7 +457,7 @@ void WindowPair::SwitchPosition()
         // when change mode, need to reset shadow and radius
         WindowSystemEffect::SetWindowEffect(secondary_);
         if (secondary_->GetWindowToken() != nullptr) {
-            secondary_->GetWindowToken()->UpdateWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+            secondary_->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
         }
         std::swap(primary_, secondary_);
     }
@@ -545,7 +545,7 @@ void WindowPair::HandleRemoveWindow(sptr<WindowNode>& node)
             node->GetWindowProperty()->ResumeLastWindowMode();
             // when change mode, need to reset shadow and radius
             WindowSystemEffect::SetWindowEffect(node);
-            node->GetWindowToken()->UpdateWindowMode(node->GetWindowMode());
+            node->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ node->GetWindowMode() });
         }
         // target node is not in window pair, need resume mode when remove
         return;

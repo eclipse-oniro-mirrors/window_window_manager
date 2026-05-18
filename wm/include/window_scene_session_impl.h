@@ -53,6 +53,7 @@ public:
     WMError Minimize() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
+    WindowModeInfo GetWindowModeInfo() const override;
     WMError SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName) override;
     class WindowScreenListener : public ScreenManager::IScreenListener {
     public:
@@ -161,7 +162,7 @@ public:
     WMError UpdateSurfaceNodeAfterCustomAnimation(bool isAdd) override;
     WMError SetAlpha(float alpha) override;
     void DumpSessionElementInfo(const std::vector<std::string>& params) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError UpdateTitleInTargetPos(bool isShow, int32_t height) override;
     void NotifySessionForeground(uint32_t reason, bool withAnimation) override;
@@ -522,7 +523,7 @@ private:
     void TransformSurfaceNode(const Transform& trans);
     void AdjustWindowAnimationFlag(bool withAnimation = false);
     WMError UpdateAnimationFlagProperty(bool withAnimation);
-    WMError UpdateWindowModeImmediately(WindowMode mode);
+    WMError UpdateWindowModeImmediately(const WindowModeInfo& windowModeInfo);
     void UpdateWindowState();
     void UpdateNewSize();
     void FillWindowLimits(WindowLimits& windowLimits, PixelUnit pixelUnit);

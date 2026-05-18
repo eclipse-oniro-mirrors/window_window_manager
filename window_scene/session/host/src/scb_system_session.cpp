@@ -163,10 +163,11 @@ WSError SCBSystemSession::UpdateFocus(bool isFocused)
     return WSError::WS_OK;
 }
 
-WSError SCBSystemSession::UpdateWindowMode(WindowMode mode)
+WSError SCBSystemSession::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     WLOGFD("session is system, id: %{public}d, mode: %{public}d, name: %{public}s, state: %{public}u",
-        GetPersistentId(), static_cast<int32_t>(mode), sessionInfo_.bundleName_.c_str(), GetSessionState());
+        GetPersistentId(), static_cast<int32_t>(windowModeInfo.windowMode), sessionInfo_.bundleName_.c_str(),
+        GetSessionState());
     return WSError::WS_ERROR_INVALID_SESSION;
 }
 

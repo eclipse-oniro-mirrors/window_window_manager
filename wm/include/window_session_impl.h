@@ -268,7 +268,7 @@ public:
     bool IsFocused() const override;
     WMError RequestFocus() const override;
     WMError RequestFocusByClient(bool isFocused) const override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override { return WSError::WS_OK; }
     WSError HandleBackEvent() override;
     KeyboardAnimationConfig GetKeyboardAnimationConfig() override;
@@ -824,9 +824,12 @@ protected:
     WMError UnregisterExtensionAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener);
 
     void RefreshNoInteractionTimeoutMonitor();
-    WindowStatus GetWindowStatusInner(WindowMode mode, bool isGetParentStatus = false,
-        MaximizeMode maximizeMode = MaximizeMode::MODE_AVOID_SYSTEM_BAR,
-        bool isLayoutFullScreen = false);
+    // Convert WindowMode to WindowStatus based on maximize mode and immersive mode
+    WindowStatus ConvertWindowModeToStatus(WindowMode mode, MaximizeMode maximizeMode, bool immersiveModeEnabled);
+    // Get window status for the current session using its own properties
+    WindowStatus GetOwnWindowStatus(WindowMode mode);
+    // Get window status using externally provided parameters
+    WindowStatus GetWindowStatusWithExternalState(WindowMode mode, MaximizeMode maximizeMode, bool isLayoutFullScreen);
 
     /*
      * PC Event Filter
@@ -885,6 +888,7 @@ protected:
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
 
     sptr<WindowSessionProperty> property_;
+    WindowModeInfo windowModeInfo_;
     SystemSessionConfig windowSystemConfig_;
     NotifyNativeWinDestroyFunc notifyNativeFunc_;
 
