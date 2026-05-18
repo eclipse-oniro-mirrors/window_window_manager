@@ -1162,11 +1162,6 @@ void ScreenSession::SmartSensorRotationChange(float sensorRotation)
     SmartSensorRotationChange(sensorRotation, false);
 }
 
-void ScreenSession::SmartRotationChange(float sensorRotation)
-{
-    SmartRotationChange(sensorRotation, false);
-}
-
 void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser)
 {
     std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
