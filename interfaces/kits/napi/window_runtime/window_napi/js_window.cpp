@@ -1966,20 +1966,18 @@ napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     napi_value lastParam = (argc == 0) ? nullptr :
         (GetType(env, argv[INDEX_ZERO]) == napi_function ? argv[INDEX_ZERO] : nullptr);
-    // Check if argv[0] is a SnapshotAnimationConfig object
     std::optional<SnapshotAnimationConfig> configOpt;
+    bool parseFailed = false;
     if (argc > 0 && argv[INDEX_ZERO] != nullptr && GetType(env, argv[INDEX_ZERO]) == napi_object) {
-        lastParam = nullptr;
         configOpt = ParseSnapshotAnimationConfig(env, argv[INDEX_ZERO]);
-        if (!configOpt) {
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-                "[window][recover]msg: Failed to parse SnapshotAnimationConfig");
-        }
+        parseFailed = !configOpt.has_value();
     }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     const char* const where = __func__;
-    auto asyncTask = [windowToken = wptr<Window>(windowToken_), configOpt, env, task = napiAsyncTask, where] {
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_),
+                      configOpt, parseFailed,
+                      env, task = napiAsyncTask, where] {
         auto window = windowToken.promote();
         if (window == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.recover",
@@ -1987,6 +1985,11 @@ napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s window is nullptr", where);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                  "[window][recover]msg: Window is nullptr"));
+            return;
+        }
+        if (parseFailed) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                "[window][recover]msg: Failed to parse SnapshotAnimationConfig"));
             return;
         }
         WMError ret = configOpt.has_value() ? window->Recover(1, *configOpt) : window->Recover(1);
@@ -8342,31 +8345,15 @@ std::optional<MaximizeOptions> ParseMaximizeOptions(napi_env env, napi_value jsO
 
 napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info)
 {
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "window is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][maximizeWithOptions]msg: The window is not created or destroyed.");
-    }
-    if (!(WindowHelper::IsMainWindow(windowToken_->GetType()) || windowToken_->IsSubWindowMaximizeSupported())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "only support main or sub Window");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][maximizeWithOptions]msg: Only support main or sub Window");
-    }
-
     size_t argc = ONE_PARAMS_SIZE;
     napi_value argv[ONE_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-
     auto optionsOpt = ParseMaximizeOptions(env, argv[INDEX_ZERO]);
-    if (!optionsOpt) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][maximizeWithOptions]msg: Failed to parse MaximizeOptions");
-    }
-
+    bool parseFailed = !optionsOpt.has_value();
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
-    auto options = *optionsOpt;
-    auto asyncTask = [windowToken = wptr<Window>(windowToken_), options,
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_),
+                      optionsOpt, parseFailed,
                       env, napiAsyncTask, where = __func__] {
         auto window = windowToken.promote();
         if (window == nullptr) {
@@ -8374,8 +8361,15 @@ napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info
                 "[window][maximizeWithOptions]msg: The window is not created or destroyed."));
             return;
         }
+        if (parseFailed) {
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                "[window][maximizeWithOptions]msg: Failed to parse MaximizeOptions"));
+            return;
+        }
         WMError ret = window->MaximizeWithOptions(
-            options.maximizePresentation, options.acrossDisplayPresentation, options.snapshotAnimationConfig);
+            optionsOpt->maximizePresentation,
+            optionsOpt->acrossDisplayPresentation,
+            optionsOpt->snapshotAnimationConfig);
         if (ret == WMError::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -8384,8 +8378,8 @@ napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT,
             "%{public}s: windowId: %{public}u, present: %{public}d, acrossDisplayPresentation: %{public}u",
-            where, window->GetWindowId(), static_cast<int32_t>(options.maximizePresentation),
-            static_cast<uint32_t>(options.acrossDisplayPresentation));
+            where, window->GetWindowId(), static_cast<int32_t>(optionsOpt->maximizePresentation),
+            static_cast<uint32_t>(optionsOpt->acrossDisplayPresentation));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnMaximizeWithOptions") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
