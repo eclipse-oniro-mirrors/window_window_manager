@@ -587,15 +587,17 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_01, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
 }
 
@@ -608,17 +610,19 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_02, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
 
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NOT_SYSTEM_APP);
 }
 
@@ -631,17 +635,19 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_03, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
 
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
 }
 
@@ -654,12 +660,14 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_04, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetFloatingWindowAppType(true);
@@ -667,8 +675,8 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_04, Test
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     MockAccesstokenKit::MockIsSystemApp(false);
     MockAccesstokenKit::MockIsSACalling(false);
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NOT_SYSTEM_APP);
 }
 
@@ -681,19 +689,21 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_05, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     property->SetFloatingWindowAppType(true);
     property->SetIsUIExtFirstSubWindow(true);
 
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
 }
 
@@ -706,19 +716,21 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_06, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW);
     property->SetFloatingWindowAppType(true);
     property->SetIsUIExtFirstSubWindow(true);
 
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_INVALID_WINDOW);
 }
 
@@ -731,19 +743,21 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_07, Test
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     property->SetFloatingWindowAppType(true);
     property->SetIsUIExtFirstSubWindow(true);
 
-    auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_DO_NOTHING);
 }
 
@@ -756,17 +770,19 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_08, Func
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
-        systemConfig, token);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(res, WSError::WS_ERROR_INVALID_OPERATION);
 }
 

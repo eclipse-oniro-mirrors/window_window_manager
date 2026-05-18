@@ -175,9 +175,13 @@ HWTEST_F(WindowSessionTest, SetActive01, TestSize.Level1)
     auto surfaceNode = CreateRSSurfaceNode();
     SystemSessionConfig sessionConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint64_t nodeId = 0;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
     ASSERT_NE(nullptr, property);
     ASSERT_EQ(WSError::WS_OK,
-              session_->Connect(mockSessionStage, mockEventChannel, surfaceNode, sessionConfig, property));
+        session_->Connect(mockSessionStage, mockEventChannel, nodeId, sessionConfig, renderSession,
+        outputSurfaceNode, property));
     ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetActive(true));
     ASSERT_EQ(false, session_->isActive_);
 
@@ -319,18 +323,23 @@ HWTEST_F(WindowSessionTest, ConnectInner, TestSize.Level1)
     session_->state_ = SessionState::STATE_CONNECT;
     session_->isTerminating_ = false;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint64_t nodeId = 1000;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     property->SetIsNeedUpdateWindowMode(true);
     session_->SetScreenId(233);
     session_->SetSessionProperty(property);
     auto res = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res, WSError::WS_ERROR_INVALID_SESSION);
 
     session_->isTerminating_ = true;
     auto res2 = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res2, WSError::WS_OK);
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
@@ -338,7 +347,8 @@ HWTEST_F(WindowSessionTest, ConnectInner, TestSize.Level1)
     session_->SetScreenId(SCREEN_ID_INVALID);
     session_->SetSessionProperty(property);
     auto res3 = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res3, WSError::WS_OK);
     ASSERT_EQ(false, session_->GetSessionProperty()->GetIsNeedUpdateWindowMode());
 }

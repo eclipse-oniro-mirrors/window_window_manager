@@ -146,7 +146,11 @@ HWTEST_F(SessionLayoutTest, UpdateRect01, TestSize.Level1)
     sptr<WindowEventChannelMocker> mockEventChannel = sptr<WindowEventChannelMocker>::MakeSptr(mockSessionStage);
     SystemSessionConfig sessionConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_EQ(WSError::WS_OK, session_->Connect(mockSessionStage, mockEventChannel, nullptr, sessionConfig, property));
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
+    uint64_t nodeId = 0;
+    ASSERT_EQ(WSError::WS_OK, session_->Connect(mockSessionStage, mockEventChannel, nodeId, sessionConfig,
+        renderSession, outputSurfaceNode, property));
 
     rect = { 0, 0, 100, 100 };
     ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION,

@@ -165,7 +165,7 @@ HWTEST_F(WindowExtensionSessionImplTest, Create04, TestSize.Level1)
     ASSERT_NE(nullptr, session);
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetPersistentId(1);
-    EXPECT_CALL(*session, Connect).WillOnce(Return(WSError::WS_ERROR_NULLPTR));
+    EXPECT_CALL(*session, Connect(_, _, _, _, _, _, _, _, _)).WillOnce(Return(WSError::WS_ERROR_NULLPTR));
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(abilityContext, session));
 }
 
