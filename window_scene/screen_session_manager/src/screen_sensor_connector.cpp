@@ -39,6 +39,7 @@ bool MotionSubscriber::isMotionSensorSubscribed_ = false;
 bool MotionTentSubscriber::isMotionSensorSubscribed_ = false;
 static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
 static void TentMotionEventCallback(const MotionSensorEvent& motionData);
+static bool GetMatchTentMode(int32_t motionStatus, TentMode& tentMode);
 #endif
 
 void ScreenSensorConnector::SubscribeRotationSensor()
@@ -186,15 +187,35 @@ void TentMotionEventCallback(const MotionSensorEvent& motionData)
         realHall = -1;
     }
 
-    TentMode motionStatus = static_cast<TentMode>(motionData.status);
-    if (motionStatus == TentMode::UNKNOWN ||
-        motionStatus == TentMode::TENT_MODE ||
-        motionStatus == TentMode::HOVER) {
+    TentMode motionStatus = TentMode::TENT_MODE_MAX;;
+    if (GetMatchTentMode(motionData.status, motionStatus)) {
         ScreenTentProperty::HandleSensorEventInput(motionData.status, realHall);
         ScreenSessionManager::GetInstance().NotifyTentModeChange(motionStatus);
     } else {
         TLOGE(WmsLogTag::DMS, "tent motion:%{public}d invalid", motionData.status);
     }
+}
+
+bool GetMatchTentMode(int32_t motionStatus, TentMode& tentMode)
+{
+    switch (motionStatus) {
+        case 0 :
+            tentMode = TentMode::UNKNOWN
+            break;
+        case 1 :
+        case 4 :
+        case 5 :
+            tentMode = TentMode::TENT_MODE;
+            break;
+        case 2 :
+        case 3 :
+            tentMode = TentMode::HOVER;
+            break;
+        default:
+            tentMode = TentMode::TENT_MODE_MAX
+            return false;
+    }
+    return true;
 }
 #endif
 } // Rosen
