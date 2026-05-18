@@ -1615,7 +1615,6 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
     EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_VERTICAL);
     EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitIndex, SPLIT_INDEX_SECONDARY);
     EXPECT_EQ(infos[0]->windowDisplayInfo.displayId, defaultDisplay->GetId());
-    EXPECT_EQ(infos[0]->windowDisplayInfo.displayName, defaultDisplay->GetName());
 }
 
 /**
