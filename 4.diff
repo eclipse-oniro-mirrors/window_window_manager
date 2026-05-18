@@ -1,0 +1,876 @@
+diff --git a/interfaces/innerkits/wm/window_manager.h b/interfaces/innerkits/wm/window_manager.h
+index 2000f9e2e1b43906c28359c458a87242e97af16a..d56b1167aafd4e64f9f1b0cf78da14c3d36a50de 100644
+--- a/interfaces/innerkits/wm/window_manager.h
++++ b/interfaces/innerkits/wm/window_manager.h
+@@ -46,7 +46,7 @@ struct SystemBarRegionTint {
+ using SystemBarRegionTints = std::vector<SystemBarRegionTint>;
+ using GetJSWindowObjFunc = std::function<void*(const std::string& windowName)>;
+ using WindowChangeInfoType = std::variant<int32_t, uint32_t, int64_t, uint64_t, std::string, float, Rect, WindowMode,
+-    WindowVisibilityState, bool>;
++    WindowModeInfo, WindowVisibilityState, bool>;
+ using WindowInfoList = std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>;
+ 
+ struct VisibleWindowNumInfo {
+@@ -1665,6 +1665,8 @@ private:
+     WMError UnregisterGlobalRectChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+     WMError RegisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+     WMError UnregisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
++    WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
++    WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+     WMError RegisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+     WMError UnregisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+     WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+diff --git a/interfaces/innerkits/wm/window_manager_lite.h b/interfaces/innerkits/wm/window_manager_lite.h
+index 22b34da5439da5bb51d9047b519579eabc66ac14..8a63ff7202382682e0f9a054ed9794d4163ac7e5 100644
+--- a/interfaces/innerkits/wm/window_manager_lite.h
++++ b/interfaces/innerkits/wm/window_manager_lite.h
+@@ -551,6 +551,8 @@ private:
+     WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
+     WMError RegisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+     WMError UnregisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
++    WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
++    WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+     WMError NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo);
+ };
+ } // namespace Rosen
+diff --git a/interfaces/innerkits/wm/wm_common.h b/interfaces/innerkits/wm/wm_common.h
+index cd665498034ccf14cdfdd38fa704a77a8e7e0575..e51f6b47f906591979cd8032488202e569ce1fe8 100644
+--- a/interfaces/innerkits/wm/wm_common.h
++++ b/interfaces/innerkits/wm/wm_common.h
+@@ -252,6 +252,25 @@ struct WindowModeInfo {
+     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+     SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+     int32_t splitIndex = SPLIT_INDEX_PRIMARY;
++
++    bool Marshalling(Parcel& parcel) const
++    {
++        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
++               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
++    }
++
++    bool Unmarshalling(Parcel& parcel)
++    {
++        uint32_t windowModeValue = 1;
++        int32_t splitStyleValue = 0;
++        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
++            !parcel.ReadInt32(splitIndex)) {
++            return false;
++        }
++        windowMode = static_cast<WindowMode>(windowModeValue);
++        splitStyle = static_cast<SplitStyle>(splitStyleValue);
++        return true;
++    }
+ };
+ 
+ /**
+@@ -2667,6 +2686,7 @@ struct WindowMetaInfo : public Parcelable {
+     uint64_t leashWinSurfaceNodeId = 0;
+     bool isPrivacyMode = false;
+     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
++    WindowModeInfo windowModeInfo;
+     bool isMidScene = false;
+     bool isFocused = false;
+     bool isTouchable = true;
+@@ -2681,6 +2701,7 @@ struct WindowMetaInfo : public Parcelable {
+                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
+                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
+                parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
++               windowModeInfo.Marshalling(parcel) &&
+                parcel.WriteBool(isTouchable) && parcel.WriteInt32(mainWindowPersistentId) &&
+                parcel.WriteUint8(static_cast<uint8_t>(controlAppType));
+     }
+@@ -2699,6 +2720,7 @@ struct WindowMetaInfo : public Parcelable {
+             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
+             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
+             !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
++            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel) ||
+             !parcel.ReadBool(windowMetaInfo->isTouchable) ||
+             !parcel.ReadInt32(windowMetaInfo->mainWindowPersistentId) || !parcel.ReadUint8(controlAppTypeValue)) {
+             delete windowMetaInfo;
+@@ -3422,6 +3444,7 @@ enum class WindowInfoKey : int32_t {
+     FLOATING_SCALE = 1 << 8,
+     MID_SCENE = 1 << 9,
+     WINDOW_GLOBAL_RECT = 1 << 10,
++    WINDOW_MODE_INFO = 1 << 11,
+ };
+ 
+ /**
+diff --git a/previewer/include/wm_common.h b/previewer/include/wm_common.h
+index eb966c153037a493c3b9e8ce841a8ffe1cca1f05..6f23ace629c0fc104edc8e8528aaba94ed38be4d 100644
+--- a/previewer/include/wm_common.h
++++ b/previewer/include/wm_common.h
+@@ -228,6 +228,25 @@ struct WindowModeInfo {
+     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+     SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+     int32_t splitIndex = SPLIT_INDEX_PRIMARY;
++
++    bool Marshalling(Parcel& parcel) const
++    {
++        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
++               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
++    }
++
++    bool Unmarshalling(Parcel& parcel)
++    {
++        uint32_t windowModeValue = 1;
++        int32_t splitStyleValue = 0;
++        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
++            !parcel.ReadInt32(splitIndex)) {
++            return false;
++        }
++        windowMode = static_cast<WindowMode>(windowModeValue);
++        splitStyle = static_cast<SplitStyle>(splitStyleValue);
++        return true;
++    }
+ };
+ 
+ /**
+@@ -1724,6 +1743,7 @@ struct WindowMetaInfo : public Parcelable {
+     uint64_t leashWinSurfaceNodeId = 0;
+     bool isPrivacyMode = false;
+     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
++    WindowModeInfo windowModeInfo;
+     bool isMidScene = false;
+     bool isFocused = false;
+ 
+@@ -1734,7 +1754,8 @@ struct WindowMetaInfo : public Parcelable {
+                parcel.WriteUint32(static_cast<uint32_t>(windowType)) && parcel.WriteUint32(parentWindowId) &&
+                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
+                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
+-               parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode));
++               parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
++               windowModeInfo.Marshalling(parcel);
+     }
+ 
+     static WindowMetaInfo* Unmarshalling(Parcel& parcel)
+@@ -1748,7 +1769,8 @@ struct WindowMetaInfo : public Parcelable {
+             !parcel.ReadUint32(windowMetaInfo->parentWindowId) || !parcel.ReadUint64(windowMetaInfo->surfaceNodeId) ||
+             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
+             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
+-            !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue)) {
++            !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
++            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel)) {
+             delete windowMetaInfo;
+             return nullptr;
+         }
+diff --git a/window_scene/interfaces/include/ws_common.h b/window_scene/interfaces/include/ws_common.h
+index 5cc971e61c489bc993f7f5e6c411f903b03a958e..8c2113000036755804aa73c9e988c51d510b0f9c 100644
+--- a/window_scene/interfaces/include/ws_common.h
++++ b/window_scene/interfaces/include/ws_common.h
+@@ -1336,6 +1336,7 @@ enum class SessionPropertyFlag {
+     FLOATING_SCALE = 1 << 8,
+     MID_SCENE = 1 << 9,
+     WINDOW_GLOBAL_RECT = 1 << 10,
++    WINDOW_MODE_INFO = 1 << 11,
+ };
+ 
+ /**
+diff --git a/window_scene/session/host/include/session.h b/window_scene/session/host/include/session.h
+index a9620bcd07c9183e643a9759987f3454d9597691..437435699eb42fcd7127083506c703403100f53e 100644
+--- a/window_scene/session/host/include/session.h
++++ b/window_scene/session/host/include/session.h
+@@ -735,6 +735,8 @@ public:
+     void SetAbilityToken(sptr<IRemoteObject> token);
+     sptr<IRemoteObject> GetAbilityToken() const;
+     WindowMode GetWindowMode() const;
++    WindowModeInfo GetWindowModeInfo() const;
++    WindowMode GetWindowModeCompat() const;
+     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
+ 
+     /*
+diff --git a/window_scene/session/host/src/session.cpp b/window_scene/session/host/src/session.cpp
+index 645e6834ef7045f5487b28e355a04118027f57e3..1755805f9efa9c387109067100fc399240524627 100644
+--- a/window_scene/session/host/src/session.cpp
++++ b/window_scene/session/host/src/session.cpp
+@@ -4438,11 +4438,13 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
+     } else if (state_ == SessionState::STATE_DISCONNECT) {
+         property->SetWindowModeInfo(windowModeInfo);
+         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
++        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+         property->SetIsNeedUpdateWindowMode(true);
+         UpdateGestureBackEnabled();
+     } else {
+         property->SetWindowModeInfo(windowModeInfo);
+         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
++        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+         RequestNextVsyncWhenModeChange();
+         if (WindowHelper::IsSplitWindowMode(mode)) {
+             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
+@@ -5081,6 +5083,26 @@ WindowMode Session::GetWindowMode() const
+     return property->GetWindowMode();
+ }
+ 
++WindowModeInfo Session::GetWindowModeInfo() const
++{
++    auto property = GetSessionProperty();
++    if (property == nullptr) {
++        WLOGFW("null property.");
++        return WindowModeInfo {};
++    }
++    return property->GetWindowModeInfo();
++}
++
++WindowMode Session::GetWindowModeCompat() const
++{
++    auto property = GetSessionProperty();
++    if (property == nullptr) {
++        WLOGFW("null property.");
++        return WindowMode::WINDOW_MODE_UNDEFINED;
++    }
++    return property->GetWindowModeCompat();
++}
++
+ WSError Session::UpdateMaximizeMode(bool isMaximize)
+ {
+     WLOGFD("Session update maximize mode, isMaximize: %{public}d", isMaximize);
+@@ -5877,7 +5899,8 @@ WindowMetaInfo Session::GetWindowMetaInfoForWindowInfo() const
+     windowMetaInfo.appIndex = GetSessionInfo().appIndex_;
+     windowMetaInfo.pid = GetCallingPid();
+     windowMetaInfo.windowType = GetWindowType();
+-    windowMetaInfo.windowMode = GetWindowMode();
++    windowMetaInfo.windowMode = GetWindowModeCompat();
++    windowMetaInfo.windowModeInfo = GetWindowModeInfo();
+     windowMetaInfo.isMidScene = GetIsMidScene();
+     windowMetaInfo.isFocused = IsFocused();
+     if (auto parentSession = GetParentSession()) {
+diff --git a/window_scene/session_manager/src/scene_session_manager.cpp b/window_scene/session_manager/src/scene_session_manager.cpp
+index 66b04f50ec4a4fc2049d7776f41335d017d9d524..85671247c58ccd47608861675bcc2e2cf2ade14c 100644
+--- a/window_scene/session_manager/src/scene_session_manager.cpp
++++ b/window_scene/session_manager/src/scene_session_manager.cpp
+@@ -20363,7 +20363,11 @@ void SceneSessionManager::PackWindowPropertyChangeInfo(const sptr<SceneSession>&
+         windowPropertyChangeInfo[WindowInfoKey::WINDOW_RECT] = rect;
+     }
+     if (interestedFlags_ & static_cast<uint32_t>(SessionPropertyFlag::WINDOW_MODE)) {
+-        windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE] = sceneSession->GetWindowMode();
++        windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE] = sceneSession->GetWindowModeCompat();
++    }
++    if (interestedFlags_ & static_cast<uint32_t>(SessionPropertyFlag::WINDOW_MODE_INFO)) {
++        windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE_INFO] =
++            sceneSession->GetSessionProperty()->GetWindowModeInfo();
+     }
+     if (interestedFlags_ & static_cast<uint32_t>(SessionPropertyFlag::FLOATING_SCALE)) {
+         windowPropertyChangeInfo[WindowInfoKey::FLOATING_SCALE] = sceneSession->GetFloatingScale();
+diff --git a/window_scene/test/unittest/scene_session_manager_test10.cpp b/window_scene/test/unittest/scene_session_manager_test10.cpp
+index 1c06fc7e67c6942462d67fde530155a384889670..2688483e3156e0cbfc8bf891422bb71fcc45b53e 100644
+--- a/window_scene/test/unittest/scene_session_manager_test10.cpp
++++ b/window_scene/test/unittest/scene_session_manager_test10.cpp
+@@ -990,6 +990,8 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
+     windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
+     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
++    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
++    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
+ 
+     ssm_->sceneSessionMap_.emplace(sceneSession->GetPersistentId(), sceneSession);
+     windowManagerAgent->propertyDirtyFlags_ = 0;
+@@ -997,6 +999,11 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
+     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+     EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
++    windowManagerAgent->propertyDirtyFlags_ = 0;
++    windowManagerAgent->windowInfoListSize_ = 0;
++    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
++    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
++    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+ 
+     EXPECT_EQ(WMError::WM_OK,
+         SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+@@ -1033,6 +1040,12 @@ HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, Te
+     EXPECT_EQ(WSError::WS_OK, ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
+     EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+     EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
++    windowManagerAgent->propertyDirtyFlags_ = 0;
++    windowManagerAgent->windowInfoListSize_ = 0;
++    EXPECT_EQ(WSError::WS_OK,
++        ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE_INFO));
++    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
++    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+ 
+     EXPECT_EQ(WMError::WM_OK,
+         SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+@@ -1585,6 +1598,8 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
+     sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+     sceneSession->GetSessionProperty()->SetWindowName("listWindowInfoTest");
+     sceneSession->GetSessionProperty()->SetDisplayId(defaultDisplay->GetId());
++    sceneSession->UpdateWindowMode({ WindowMode::WINDOW_MODE_SPLIT, SplitStyle::TWO_WINDOW_VERTICAL,
++        SPLIT_INDEX_SECONDARY });
+     ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+ 
+     WindowInfoOption windowInfoOption;
+@@ -1596,6 +1611,9 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
+     ASSERT_EQ(infos.size(), 1);
+     ASSERT_NE(infos[0], nullptr);
+     EXPECT_EQ(infos[0]->windowMetaInfo.windowName, "listWindowInfoTest");
++    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.windowMode, WindowMode::WINDOW_MODE_SPLIT);
++    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_VERTICAL);
++    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitIndex, SPLIT_INDEX_SECONDARY);
+     EXPECT_EQ(infos[0]->windowDisplayInfo.displayId, defaultDisplay->GetId());
+     EXPECT_EQ(infos[0]->windowDisplayInfo.displayName, defaultDisplay->GetName());
+ }
+diff --git a/window_scene/test/unittest/scene_session_manager_test8.cpp b/window_scene/test/unittest/scene_session_manager_test8.cpp
+index 8a774273bdb2dcc2e91967121f4a04fb54f27a9a..898e7f49215d236fa5ac4ca023d405ebae34e4b8 100755
+--- a/window_scene/test/unittest/scene_session_manager_test8.cpp
++++ b/window_scene/test/unittest/scene_session_manager_test8.cpp
+@@ -1147,12 +1147,16 @@ HWTEST_F(SceneSessionManagerTest8, PackWindowPropertyChangeInfo01, TestSize.Leve
+     sceneSession1->SetSessionState(SessionState::STATE_FOREGROUND);
+     sceneSession1->GetSessionProperty()->SetDisplayId(0);
+     sceneSession1->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
++    sceneSession1->GetSessionProperty()->SetWindowModeInfo(
++        WindowModeInfo { WindowMode::WINDOW_MODE_FULLSCREEN, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY });
+     sceneSession1->SetFloatingScale(1.0f);
+     sceneSession1->SetIsMidScene(true);
+ 
+     std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
+     ssm_->PackWindowPropertyChangeInfo(sceneSession1, windowPropertyChangeInfo);
+-    EXPECT_EQ(windowPropertyChangeInfo.size(), 11);
++    EXPECT_EQ(windowPropertyChangeInfo.size(), 12);
++    EXPECT_EQ(std::get<WindowModeInfo>(windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE_INFO]).windowMode,
++        WindowMode::WINDOW_MODE_FULLSCREEN);
+ }
+ 
+ /**
+diff --git a/window_scene/test/unittest/session_test4.cpp b/window_scene/test/unittest/session_test4.cpp
+index cea4c18d0017a0a4cf8f407ce9990c2fcfa978a0..20d063443f9c3fd5196f7ab83c3f1cac6eec029b 100644
+--- a/window_scene/test/unittest/session_test4.cpp
++++ b/window_scene/test/unittest/session_test4.cpp
+@@ -1132,6 +1132,9 @@ HWTEST_F(WindowSessionTest4, GetWindowMetaInfoForWindowInfo01, TestSize.Level1)
+     ASSERT_EQ(windowMetaInfo.pid, sceneSession->GetCallingPid());
+     ASSERT_EQ(windowMetaInfo.windowType, WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+     ASSERT_EQ(windowMetaInfo.windowMode, WindowMode::WINDOW_MODE_FULLSCREEN);
++    ASSERT_EQ(windowMetaInfo.windowModeInfo.windowMode, WindowMode::WINDOW_MODE_FULLSCREEN);
++    ASSERT_EQ(windowMetaInfo.windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_HORIZONTAL);
++    ASSERT_EQ(windowMetaInfo.windowModeInfo.splitIndex, SPLIT_INDEX_PRIMARY);
+     ASSERT_EQ(windowMetaInfo.isMidScene, true);
+     ASSERT_EQ(windowMetaInfo.isFocused, true);
+     WindowMetaInfo windowMetaInfo1 = sceneSession1->GetWindowMetaInfoForWindowInfo();
+diff --git a/wm/src/window_manager.cpp b/wm/src/window_manager.cpp
+index 8d4c08285989c18ca0a0ae0e817f94f0c37cb53c..a37a9b9296c18cfdc60f126b8505a3bbe7c07002 100644
+--- a/wm/src/window_manager.cpp
++++ b/wm/src/window_manager.cpp
+@@ -65,6 +65,7 @@ public:
+         float density, DisplayOrientation orientation);
+     void NotifyDisplayIdChange(const WindowInfoList& windowInfoList);
+     void NotifyWindowModeChangeForPropertyChange(const WindowInfoList& windowInfoList);
++    void NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList);
+     void NotifyFloatingScaleChange(const WindowInfoList& windowInfoList);
+     void NotifyMidSceneStatusChange(const WindowInfoList& windowInfoList);
+     WindowInfoList GetWindowInfoListByInterestWindowIds(
+@@ -89,6 +90,7 @@ public:
+     ListenerSet<IWindowInfoChangedListener> windowRectChangeListeners_;
+     ListenerSet<IWindowInfoChangedListener> windowGlobalRectChangeListeners_;
+     ListenerSet<IWindowInfoChangedListener> windowModeChangeListeners_;
++    ListenerSet<IWindowInfoChangedListener> windowModeInfoChangeListeners_;
+     ListenerSet<IWindowInfoChangedListener> floatingScaleChangeListeners_;
+     ListenerSet<IWindowInfoChangedListener> midSceneStatusChangeListeners_;
+     // Window support rotation
+@@ -488,6 +490,23 @@ void WindowManager::Impl::NotifyWindowModeChangeForPropertyChange(const WindowIn
+     }
+ }
+ 
++void WindowManager::Impl::NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList)
++{
++    std::vector<sptr<IWindowInfoChangedListener>> windowModeInfoChangeListeners;
++    {
++        std::lock_guard<std::recursive_mutex> lock(mutex_);
++        windowModeInfoChangeListeners.assign(windowModeInfoChangeListeners_.begin(),
++            windowModeInfoChangeListeners_.end());
++    }
++
++    for (auto& listener : windowModeInfoChangeListeners) {
++        WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
++        if (listener != nullptr && !windowInfoListForNotify.empty()) {
++            listener->OnWindowInfoChanged(windowInfoListForNotify);
++        }
++    }
++}
++
+ void WindowManager::Impl::NotifyFloatingScaleChange(const WindowInfoList& windowInfoList)
+ {
+     std::vector<sptr<IWindowInfoChangedListener>> floatingScaleChangeListeners;
+@@ -1346,6 +1365,77 @@ WMError WindowManager::UnregisterWindowModeChangedListenerForPropertyChange(
+     return ret;
+ }
+ 
++WMError WindowManager::RegisterWindowModeInfoChangedListenerForPropertyChange(
++    const sptr<IWindowInfoChangedListener>& listener)
++{
++    if (listener == nullptr) {
++        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
++        return WMError::WM_ERROR_NULLPTR;
++    }
++    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
++    WMError ret = WMError::WM_OK;
++    if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
++        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
++    }
++    uint32_t interestInfo = 0;
++    for (auto windowInfoKey : listener->GetInterestInfo()) {
++        if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
++            interestInfoMap_[windowInfoKey] = 1;
++        } else {
++            interestInfoMap_[windowInfoKey]++;
++        }
++        interestInfo |= static_cast<uint32_t>(windowInfoKey);
++    }
++    ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
++        WindowInfoKey::WINDOW_MODE_INFO, interestInfo, pImpl_->windowPropertyChangeAgent_);
++    if (ret == WMError::WM_ERROR_SAMGR) {
++        auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
++        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
++    }
++    if (ret != WMError::WM_OK) {
++        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
++        pImpl_->windowPropertyChangeAgent_ = nullptr;
++    } else {
++        if (pImpl_->windowModeInfoChangeListeners_.count(listener)) {
++            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
++            return WMError::WM_OK;
++        }
++        pImpl_->windowModeInfoChangeListeners_.insert(listener);
++    }
++    return ret;
++}
++
++WMError WindowManager::UnregisterWindowModeInfoChangedListenerForPropertyChange(
++    const sptr<IWindowInfoChangedListener>& listener)
++{
++    if (listener == nullptr) {
++        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
++        return WMError::WM_ERROR_NULLPTR;
++    }
++    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
++    pImpl_->windowModeInfoChangeListeners_.erase(listener);
++    uint32_t interestInfo = 0;
++    for (auto windowInfoKey : listener->GetInterestInfo()) {
++        if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
++            continue;
++        } else if (interestInfoMap_[windowInfoKey] == 1) {
++            interestInfoMap_.erase(windowInfoKey);
++            interestInfo |= static_cast<uint32_t>(windowInfoKey);
++        } else {
++            interestInfoMap_[windowInfoKey]--;
++        }
++    }
++    WMError ret = WMError::WM_OK;
++    if (pImpl_->windowModeInfoChangeListeners_.empty() && pImpl_->windowPropertyChangeAgent_ != nullptr) {
++        ret = WindowAdapter::GetInstance(userId_).UnregisterWindowPropertyChangeAgent(
++            WindowInfoKey::WINDOW_MODE_INFO, interestInfo, pImpl_->windowPropertyChangeAgent_);
++        if (ret == WMError::WM_OK) {
++            pImpl_->windowPropertyChangeAgent_ = nullptr;
++        }
++    }
++    return ret;
++}
++
+ WMError WindowManager::RegisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener)
+ {
+     if (listener == nullptr) {
+@@ -2638,6 +2728,8 @@ WMError WindowManager::ProcessRegisterWindowInfoChangeCallback(WindowInfoKey obs
+             return RegisterRectChangedListener(listener);
+         case WindowInfoKey::WINDOW_MODE :
+             return RegisterWindowModeChangedListenerForPropertyChange(listener);
++        case WindowInfoKey::WINDOW_MODE_INFO :
++            return RegisterWindowModeInfoChangedListenerForPropertyChange(listener);
+         case WindowInfoKey::FLOATING_SCALE :
+             return RegisterFloatingScaleChangedListener(listener);
+         case WindowInfoKey::MID_SCENE :
+@@ -2662,6 +2754,8 @@ WMError WindowManager::ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey o
+             return UnregisterRectChangedListener(listener);
+         case WindowInfoKey::WINDOW_MODE :
+             return UnregisterWindowModeChangedListenerForPropertyChange(listener);
++        case WindowInfoKey::WINDOW_MODE_INFO :
++            return UnregisterWindowModeInfoChangedListenerForPropertyChange(listener);
+         case WindowInfoKey::FLOATING_SCALE :
+             return UnregisterFloatingScaleChangedListener(listener);
+         case WindowInfoKey::MID_SCENE :
+@@ -2830,6 +2924,9 @@ void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, cons
+     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE)) {
+         pImpl_->NotifyWindowModeChangeForPropertyChange(windowInfoList);
+     }
++    if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE_INFO)) {
++        pImpl_->NotifyWindowModeInfoChangeForPropertyChange(windowInfoList);
++    }
+     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::FLOATING_SCALE)) {
+         pImpl_->NotifyFloatingScaleChange(windowInfoList);
+     }
+@@ -3007,4 +3104,4 @@ WMError WindowManager::UpdateOutline(const sptr<IRemoteObject>& remoteObject, co
+     return ret;
+ }
+ } // namespace Rosen
+-} // namespace OHOS
+\ No newline at end of file
++} // namespace OHOS
+diff --git a/wm/src/window_manager_lite.cpp b/wm/src/window_manager_lite.cpp
+index ce7c17fd017bd0c629ffd596ab65bbc73e33aadc..b97b9e4483545bd3e57f767ba6bcd9a53bf95ca4 100644
+--- a/wm/src/window_manager_lite.cpp
++++ b/wm/src/window_manager_lite.cpp
+@@ -49,6 +49,7 @@ public:
+     void NotifyDisplayIdChange(const WindowInfoList& windowInfoList);
+     void NotifyMidSceneStatusChange(const WindowInfoList& windowInfoList);
+     void NotifyWindowModeChangeForPropertyChange(const WindowInfoList& windowInfoList);
++    void NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList);
+     WindowInfoList GetWindowInfoListByInterestWindowIds(
+         const sptr<IWindowInfoChangedListener>& listener, const WindowInfoList& windowInfoList);
+     void PackWindowChangeInfo(const std::unordered_set<WindowInfoKey>& interestInfo,
+@@ -95,6 +96,7 @@ public:
+     ListenerSet<IWindowInfoChangedListener> windowDisplayIdChangeListeners_;
+     ListenerSet<IWindowInfoChangedListener> midSceneStatusChangeListeners_;
+     ListenerSet<IWindowInfoChangedListener> windowModeChangeListeners_;
++    ListenerSet<IWindowInfoChangedListener> windowModeInfoChangeListeners_;
+     sptr<WindowManagerAgentLite> windowPropertyChangeAgent_;
+ 
+     // Window drawing content
+@@ -307,6 +309,22 @@ void WindowManagerLite::Impl::NotifyWindowModeChangeForPropertyChange(const Wind
+     }
+ }
+ 
++void WindowManagerLite::Impl::NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList)
++{
++    std::vector<sptr<IWindowInfoChangedListener>> windowModeInfoChangeListeners;
++    {
++        std::lock_guard<std::recursive_mutex> lock(mutex_);
++        windowModeInfoChangeListeners.assign(windowModeInfoChangeListeners_.begin(),
++            windowModeInfoChangeListeners_.end());
++    }
++    for (auto& listener : windowModeInfoChangeListeners) {
++        WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
++        if (listener != nullptr && !windowInfoListForNotify.empty()) {
++            listener->OnWindowInfoChanged(windowInfoListForNotify);
++        }
++    }
++}
++
+ void WindowManagerLite::Impl::NotifyDisplayIdChange(const WindowInfoList& windowInfoList)
+ {
+     std::vector<sptr<IWindowInfoChangedListener>> windowDisplayIdChangeListeners;
+@@ -976,6 +994,88 @@ WMError WindowManagerLite::UnregisterWindowModeChangedListenerForPropertyChange(
+     return ret;
+ }
+ 
++WMError WindowManagerLite::RegisterWindowModeInfoChangedListenerForPropertyChange(
++    const sptr<IWindowInfoChangedListener>& listener)
++{
++    if (listener == nullptr) {
++        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
++        return WMError::WM_ERROR_NULLPTR;
++    }
++    sptr<WindowManagerAgentLite> windowPropertyChangeAgent;
++    uint32_t interestInfo = 0;
++    {
++        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
++        if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
++            pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
++        }
++        windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
++        for (auto windowInfoKey : listener->GetInterestInfo()) {
++            if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
++                interestInfoMap_[windowInfoKey] = 1;
++            } else {
++                interestInfoMap_[windowInfoKey]++;
++            }
++            interestInfo |= static_cast<uint32_t>(windowInfoKey);
++        }
++    }
++    auto ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
++        WindowInfoKey::WINDOW_MODE_INFO, interestInfo, windowPropertyChangeAgent);
++    if (ret == WMError::WM_ERROR_SAMGR) {
++        ret = ActiveFaultAgentReregister(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
++            windowPropertyChangeAgent);
++    }
++    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
++    if (ret != WMError::WM_OK) {
++        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
++        pImpl_->windowPropertyChangeAgent_ = nullptr;
++    } else {
++        if (pImpl_->windowModeInfoChangeListeners_.count(listener)) {
++            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
++            return WMError::WM_OK;
++        }
++        pImpl_->windowModeInfoChangeListeners_.insert(listener);
++    }
++    return ret;
++}
++
++WMError WindowManagerLite::UnregisterWindowModeInfoChangedListenerForPropertyChange(
++    const sptr<IWindowInfoChangedListener>& listener)
++{
++    if (listener == nullptr) {
++        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
++        return WMError::WM_ERROR_NULLPTR;
++    }
++    sptr<WindowManagerAgentLite> windowPropertyChangeAgent;
++    uint32_t interestInfo = 0;
++    bool needUnregister = false;
++    {
++        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
++        pImpl_->windowModeInfoChangeListeners_.erase(listener);
++        needUnregister = pImpl_->windowModeInfoChangeListeners_.empty();
++        windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
++        for (auto windowInfoKey : listener->GetInterestInfo()) {
++            if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
++                continue;
++            } else if (interestInfoMap_[windowInfoKey] == 1) {
++                interestInfoMap_.erase(windowInfoKey);
++                interestInfo |= static_cast<uint32_t>(windowInfoKey);
++            } else {
++                interestInfoMap_[windowInfoKey]--;
++            }
++        }
++    }
++    WMError ret = WMError::WM_OK;
++    if (needUnregister && windowPropertyChangeAgent != nullptr) {
++        ret = WindowAdapterLite::GetInstance(userId_).UnregisterWindowPropertyChangeAgent(
++            WindowInfoKey::WINDOW_MODE_INFO, interestInfo, windowPropertyChangeAgent);
++        if (ret == WMError::WM_OK) {
++            std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
++            pImpl_->windowPropertyChangeAgent_ = nullptr;
++        }
++    }
++    return ret;
++}
++
+ void WindowManagerLite::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
+ {
+     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "lite flags=%{public}u", propertyDirtyFlags);
+@@ -988,6 +1088,9 @@ void WindowManagerLite::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
+     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE)) {
+         pImpl_->NotifyWindowModeChangeForPropertyChange(windowInfoList);
+     }
++    if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE_INFO)) {
++        pImpl_->NotifyWindowModeInfoChangeForPropertyChange(windowInfoList);
++    }
+ }
+ 
+ WMError WindowManagerLite::RegisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener)
+@@ -1775,6 +1878,8 @@ WMError WindowManagerLite::ProcessRegisterWindowInfoChangeCallback(WindowInfoKey
+             return RegisterMidSceneChangedListener(listener);
+         case WindowInfoKey::WINDOW_MODE:
+             return RegisterWindowModeChangedListenerForPropertyChange(listener);
++        case WindowInfoKey::WINDOW_MODE_INFO:
++            return RegisterWindowModeInfoChangedListenerForPropertyChange(listener);
+         default:
+             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Invalid observedInfo: %{public}d", static_cast<uint32_t>(observedInfo));
+             return WMError::WM_ERROR_INVALID_PARAM;
+@@ -1793,6 +1898,8 @@ WMError WindowManagerLite::ProcessUnregisterWindowInfoChangeCallback(WindowInfoK
+             return UnregisterMidSceneChangedListener(listener);
+         case WindowInfoKey::WINDOW_MODE:
+             return UnregisterWindowModeChangedListenerForPropertyChange(listener);
++        case WindowInfoKey::WINDOW_MODE_INFO:
++            return UnregisterWindowModeInfoChangedListenerForPropertyChange(listener);
+         default:
+             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Invalid observedInfo: %{public}d", static_cast<uint32_t>(observedInfo));
+             return WMError::WM_ERROR_INVALID_PARAM;
+diff --git a/wm/src/zidl/window_manager_agent_proxy.cpp b/wm/src/zidl/window_manager_agent_proxy.cpp
+index 9e75b233c2ce82a54af95d6c88b3081f780cffc7..4b1a29d3696c6780a88b1074bd7b90c0c61ee3c5 100644
+--- a/wm/src/zidl/window_manager_agent_proxy.cpp
++++ b/wm/src/zidl/window_manager_agent_proxy.cpp
+@@ -657,6 +657,13 @@ bool WindowManagerAgentProxy::WriteWindowChangeInfoValue(MessageParcel& data,
+             }
+             break;
+         }
++        case WindowInfoKey::WINDOW_MODE_INFO : {
++            if (!std::get<WindowModeInfo>(windowInfoPair.second).Marshalling(data)) {
++                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write WindowModeInfo failed");
++                return false;
++            }
++            break;
++        }
+         case WindowInfoKey::DISPLAY_ID : {
+             if (!data.WriteUint64(std::get<uint64_t>(windowInfoPair.second))) {
+                 TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write uint64_t failed");
+diff --git a/wm/src/zidl/window_manager_agent_stub.cpp b/wm/src/zidl/window_manager_agent_stub.cpp
+index a5ce4cbe0c54b8970c046c5af1cc797b3f95bb78..e776f11bea9f3cc4050aecc3d7064d4b8a17c64d 100644
+--- a/wm/src/zidl/window_manager_agent_stub.cpp
++++ b/wm/src/zidl/window_manager_agent_stub.cpp
+@@ -380,6 +380,15 @@ bool WindowManagerAgentStub::ReadWindowInfo(MessageParcel& data,
+             windowInfo[windowInfoKey] = static_cast<WindowMode>(value);
+             break;
+         }
++        case WindowInfoKey::WINDOW_MODE_INFO : {
++            WindowModeInfo value;
++            if (!value.Unmarshalling(data)) {
++                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read WindowModeInfo failed");
++                return false;
++            }
++            windowInfo[windowInfoKey] = value;
++            break;
++        }
+         case WindowInfoKey::DISPLAY_ID : {
+             uint64_t value = 0;
+             if (!data.ReadUint64(value)) {
+diff --git a/wm/test/unittest/window_manager_lite_test.cpp b/wm/test/unittest/window_manager_lite_test.cpp
+index 77fde346138355190e64cbaef0b6788589aa8a2f..723e275aeb2dfa8bfadf897420b32d53af1d96a3 100644
+--- a/wm/test/unittest/window_manager_lite_test.cpp
++++ b/wm/test/unittest/window_manager_lite_test.cpp
+@@ -1608,6 +1608,8 @@ HWTEST_F(WindowManagerLiteTest, ProcessRegisterWindowInfoChangeCallback01, Funct
+ 
+     ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, nullptr);
+     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
++    ret = instance_->ProcessRegisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE_INFO, listener);
++    ASSERT_NE(WMError::WM_ERROR_INVALID_PARAM, ret);
+     observedInfo = WindowInfoKey::BUNDLE_NAME;
+     ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener);
+     ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
+@@ -1631,6 +1633,8 @@ HWTEST_F(WindowManagerLiteTest, ProcessUnregisterWindowInfoChangeCallback01, Fun
+     ASSERT_EQ(WMError::WM_OK, ret);
+     ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, nullptr);
+     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
++    ret = instance_->ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE_INFO, listener);
++    ASSERT_EQ(WMError::WM_OK, ret);
+     observedInfo = WindowInfoKey::BUNDLE_NAME;
+     ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
+     ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
+diff --git a/wm/test/unittest/window_manager_test.cpp b/wm/test/unittest/window_manager_test.cpp
+index a2b917f151712bd498847b454c57df2752589557..09ba05ecaf74477c795fd1ffd63680d3817f31b2 100755
+--- a/wm/test/unittest/window_manager_test.cpp
++++ b/wm/test/unittest/window_manager_test.cpp
+@@ -1978,24 +1978,28 @@ HWTEST_F(WindowManagerTest, ProcessRegisterWindowInfoChangeCallback, Function |
+     observedInfo = WindowInfoKey::WINDOW_RECT;
+     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+ 
+-    // branch 4: case WINDOW_MODE
+-    observedInfo = WindowInfoKey::WINDOW_MODE;
+-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+-
+-    // branch 5: case FLOATING_SCALE
+-    observedInfo = WindowInfoKey::FLOATING_SCALE;
+-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+-
+-    // branch 6: case MID_SCENE
+-    observedInfo = WindowInfoKey::MID_SCENE;
+-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+-
+-    // branch 7: case WINDOW_GLOBAL_RECT
+-    observedInfo = WindowInfoKey::WINDOW_GLOBAL_RECT;
+-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+-
+-    // branch 8: default
+-    observedInfo = static_cast<WindowInfoKey>(-1);
++    // branch 4: case WINDOW_MODE
++    observedInfo = WindowInfoKey::WINDOW_MODE;
++    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
++
++    // branch 5: case WINDOW_MODE_INFO
++    observedInfo = WindowInfoKey::WINDOW_MODE_INFO;
++    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
++
++    // branch 6: case FLOATING_SCALE
++    observedInfo = WindowInfoKey::FLOATING_SCALE;
++    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
++
++    // branch 7: case MID_SCENE
++    observedInfo = WindowInfoKey::MID_SCENE;
++    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
++
++    // branch 8: case WINDOW_GLOBAL_RECT
++    observedInfo = WindowInfoKey::WINDOW_GLOBAL_RECT;
++    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
++
++    // branch 9: default
++    observedInfo = static_cast<WindowInfoKey>(-1);
+     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM,
+               instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener));
+ }
+@@ -2020,10 +2024,13 @@ HWTEST_F(WindowManagerTest, ProcessUnregisterWindowInfoChangeCallback01, Functio
+     EXPECT_EQ(WMError::WM_OK, ret);
+     observedInfo = WindowInfoKey::WINDOW_RECT;
+     ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
+-    EXPECT_EQ(WMError::WM_OK, ret);
+-    ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, nullptr);
+-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+-    observedInfo = WindowInfoKey::BUNDLE_NAME;
++    EXPECT_EQ(WMError::WM_OK, ret);
++    ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, nullptr);
++    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
++    observedInfo = WindowInfoKey::WINDOW_MODE_INFO;
++    ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
++    EXPECT_EQ(WMError::WM_OK, ret);
++    observedInfo = WindowInfoKey::BUNDLE_NAME;
+     ret = WindowManager::GetInstance().ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
+     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
+     observedInfo = WindowInfoKey::MID_SCENE;
+diff --git a/wm/test/unittest/window_test.cpp b/wm/test/unittest/window_test.cpp
+index ef9b9bcfce243cf40134afacd83142fa1696cd1c..177039b5eecba42c0be59d26f2b222f0f106c62f 100755
+--- a/wm/test/unittest/window_test.cpp
++++ b/wm/test/unittest/window_test.cpp
+@@ -2186,20 +2186,59 @@ HWTEST_F(WindowTest, IAceAbilityHandler, TestSize.Level1)
+  * @tc.desc: keyboardAnimationCurve marshalling
+  * @tc.type: FUNC
+  */
+-HWTEST_F(WindowTest, keyboardAnimationCurveMarshalling, TestSize.Level1)
+-{
+-    MessageParcel data;
+-    KeyboardAnimationCurve curveConfig;
+-    auto ret = data.WriteParcelable(&curveConfig);
+-    Parcel parcel;
+-    curveConfig.Unmarshalling(parcel);
+-    ASSERT_EQ(true, ret);
+-}
+-
+-/**
+- * @tc.name: GetVSyncPeriod
+- * @tc.desc: window GetVSyncPeriod
+- * @tc.type: FUNC
++HWTEST_F(WindowTest, keyboardAnimationCurveMarshalling, TestSize.Level1)
++{
++    MessageParcel data;
++    KeyboardAnimationCurve curveConfig;
++    auto ret = data.WriteParcelable(&curveConfig);
++    Parcel parcel;
++    curveConfig.Unmarshalling(parcel);
++    ASSERT_EQ(true, ret);
++}
++
++/**
++ * @tc.name: WindowMetaInfoMarshalling
++ * @tc.desc: WindowMetaInfo marshalling
++ * @tc.type: FUNC
++ */
++HWTEST_F(WindowTest, WindowMetaInfoMarshalling, TestSize.Level1)
++{
++    WindowMetaInfo info;
++    info.windowId = 1001;
++    info.windowName = "windowMetaInfoTest";
++    info.bundleName = "bundleName";
++    info.abilityName = "abilityName";
++    info.appIndex = 10;
++    info.pid = 2002;
++    info.windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
++    info.parentWindowId = 1000;
++    info.surfaceNodeId = 3003;
++    info.leashWinSurfaceNodeId = 4004;
++    info.isPrivacyMode = true;
++    info.windowMode = WindowMode::WINDOW_MODE_FULLSCREEN;
++    info.windowModeInfo = { WindowMode::WINDOW_MODE_SPLIT, SplitStyle::TWO_WINDOW_VERTICAL,
++        SPLIT_INDEX_SECONDARY };
++    info.isMidScene = true;
++    info.isFocused = true;
++    info.isTouchable = false;
++    info.mainWindowPersistentId = 5005;
++    info.controlAppType = ControlAppType::CONTROL_APP_TYPE_BEGIN;
++
++    Parcel parcel;
++    ASSERT_TRUE(info.Marshalling(parcel));
++    WindowMetaInfo* unmarshalledInfo = WindowMetaInfo::Unmarshalling(parcel);
++    ASSERT_NE(unmarshalledInfo, nullptr);
++    EXPECT_EQ(unmarshalledInfo->windowModeInfo.windowMode, WindowMode::WINDOW_MODE_SPLIT);
++    EXPECT_EQ(unmarshalledInfo->windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_VERTICAL);
++    EXPECT_EQ(unmarshalledInfo->windowModeInfo.splitIndex, SPLIT_INDEX_SECONDARY);
++    EXPECT_EQ(unmarshalledInfo->mainWindowPersistentId, 5005);
++    delete unmarshalledInfo;
++}
++
++/**
++ * @tc.name: GetVSyncPeriod
++ * @tc.desc: window GetVSyncPeriod
++ * @tc.type: FUNC
+  */
+ HWTEST_F(WindowTest, GetVSyncPeriod, TestSize.Level1)
+ {
+@@ -3071,4 +3110,4 @@ HWTEST_F(WindowTest, IsAnyWindowMatchState, TestSize.Level1)
+ }
+ } // namespace
+ } // namespace Rosen
+-} // namespace OHOS
+\ No newline at end of file
++} // namespace OHOS
