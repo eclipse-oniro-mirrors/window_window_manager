@@ -502,6 +502,15 @@ public:
     virtual WSError ShowSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
 
     /**
+     * @brief Destroy SubWindow whose zLevel above parent loosened.
+     *
+     * Destroy SubWindow whose zLevel above parent loosened.
+     *
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError DestroySubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
+
+    /**
      * @brief Set isStartMoving flag to client.
      *
      * @param isStartMoving Indicates whether start moving window.

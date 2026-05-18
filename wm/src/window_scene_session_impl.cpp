@@ -9362,5 +9362,19 @@ WSError WindowSceneSessionImpl::ShowSubWindowZLevelAboveParentLoosened()
     Show(0, false, true);
     return WSError::WS_OK;
 }
+
+WSError WindowSceneSessionImpl::DestroySubWindowZLevelAboveParentLoosened()
+{
+    TLOGI(WmsLogTag::WMS_SUB, "persistentId: %{public}d", GetPersistentId());
+    handler_->PostTask([weakThis = wptr(this)] {
+        auto window = weakThis.promote();
+        if (!window) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr");
+            return;
+        }
+        window->Close();
+    }, __func__);
+    return WSError::WS_OK;
+}
 } // namespace Rosen
 } // namespace OHOS

@@ -210,6 +210,7 @@ public:
      */
     WSError HideSubWindowZLevelAboveParentLoosened() override;
     WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
     /*
      * PC Window

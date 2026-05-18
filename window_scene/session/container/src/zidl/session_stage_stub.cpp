@@ -298,6 +298,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleHideSubWindowZLevelAboveParentLoosened(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SHOW_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED):
             return HandleShowSubWindowZLevelAboveParentLoosened(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_DESTROY_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED):
+            return HandleDestroySubWindowZLevelAboveParentLoosened(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_IS_START_MOVING):
             return HandleSetIsStartMoving(data, reply);
         default:
@@ -1859,6 +1861,13 @@ int SessionStageStub::HandleShowSubWindowZLevelAboveParentLoosened(MessageParcel
 {
     TLOGD(WmsLogTag::WMS_SUB, "in");
     ShowSubWindowZLevelAboveParentLoosened();
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleDestroySubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_SUB, "in");
+    DestroySubWindowZLevelAboveParentLoosened();
     return ERR_NONE;
 }
 
