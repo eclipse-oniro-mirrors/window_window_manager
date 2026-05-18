@@ -665,6 +665,11 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     /**
      * @brief Clear the window mask of window.
      *

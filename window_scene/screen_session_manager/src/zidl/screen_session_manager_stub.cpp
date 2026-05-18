@@ -100,6 +100,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteBool(SuspendEnd());
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE: {
+            ScreenClosedState screenClosedState = static_cast<ScreenClosedState>(data.ReadUint32());
+            bool isScreenOn = data.ReadBool();
+            DMError ret = SetScreenSwitchState(screenClosedState, isScreenOn);
+            reply.WriteUint32(static_cast<uint32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_INTERNAL_SCREEN_ID: {
             reply.WriteUint64(GetInternalScreenId());
             break;
@@ -157,9 +164,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_BRIGHTNESS: {
-            uint64_t screenId = data.ReadUint64();
-            uint32_t level = data.ReadUint64();
-            reply.WriteBool(SetScreenBrightness(screenId, level));
+            DmsScreenBrightnessData* brightnessDataPtr = DmsScreenBrightnessData::Unmarshalling(data);
+            if (brightnessDataPtr == nullptr) {
+                reply.WriteBool(false);
+            } else {
+                reply.WriteBool(SetScreenBrightness(*brightnessDataPtr));
+                delete brightnessDataPtr;
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_SCREEN_BRIGHTNESS: {
@@ -264,6 +275,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::DMS, "write sdrNits failed!");
                 break;
             }
+            if (!reply.WriteFloat(brightnessInfo.brightnessPosition)) {
+                TLOGE(WmsLogTag::DMS, "write brightnessPosition failed!");
+                break;
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTS_INPUT: {
@@ -336,6 +351,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             int32_t userId = data.ReadInt32();
             uint32_t phyWidth = data.ReadUint32();
             uint32_t phyHeight = data.ReadUint32();
+            uint32_t renderWidth = data.ReadUint32();
+            uint32_t renderHeight = data.ReadUint32();
             int32_t screenIdParam = data.ReadInt32();
             VirtualScreenCaller caller = static_cast<VirtualScreenCaller>(data.ReadUint32());
             bool isSurfaceValid = data.ReadBool();
@@ -365,6 +382,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .phyWidth_ = phyWidth,
                 .phyHeight_ = phyHeight,
                 .userId_ = userId,
+                .renderWidth_ = renderWidth,
+                .renderHeight_ = renderHeight,
                 .screenId_ = screenIdParam,
                 .caller_ = caller
             };
@@ -902,6 +921,17 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            Orientation orientation = static_cast<Orientation>(data.ReadUint32());
+            OrientationOptions options;
+            options.needAnimation = data.ReadBool();
+            options.ignoreRotationLock = data.ReadBool();
+            bool isFromNapi = data.ReadBool();
+            DMError ret = SetOrientation(screenId, orientation, options, isFromNapi);
+            reply.WriteInt32(static_cast<int32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED: {
             bool isLocked = static_cast<bool>(data.ReadBool());
             DMError ret = SetScreenRotationLocked(isLocked);
@@ -1249,7 +1279,9 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             uint32_t width = data.ReadUint32();
             uint32_t height = data.ReadUint32();
-            DMError ret = ResizeVirtualScreen(screenId, width, height);
+            uint32_t renderWidth = data.ReadUint32();
+            uint32_t renderHeight = data.ReadUint32();
+            DMError ret = ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(ret)));
             break;
         }
@@ -1691,6 +1723,12 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY: {
+            if (!ProcGetScreenCapability(data, reply)) {
+                return ERR_INVALID_DATA;
+            }
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1949,5 +1987,37 @@ IPCPriority ScreenSessionManagerStub::GetIPCPriority(uint32_t code)
         return IPCPriority::LOW;
     }
     return it->second;
+}
+
+bool ScreenSessionManagerStub::ProcGetScreenCapability(MessageParcel& data, MessageParcel& reply)
+{
+    ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+    ScreenCapability capability;
+    DMError ret = GetScreenCapability(screenId, capability);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::DMS, "Write ret failed.");
+        return false;
+    }
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "Ret %{public}d", static_cast<int32_t>(ret));
+        return true;
+    }
+    if (!reply.WriteUint32(capability.phyWidth_)) {
+        TLOGE(WmsLogTag::DMS, "Write phyWidth failed.");
+        return false;
+    }
+    if (!reply.WriteUint32(capability.phyHeight_)) {
+        TLOGE(WmsLogTag::DMS, "Write phyHeight failed.");
+        return false;
+    }
+    if (!reply.WriteUint32(capability.interfaceType_)) {
+        TLOGE(WmsLogTag::DMS, "Write interfaceType failed.");
+        return false;
+    }
+    if (!reply.WriteUint8(capability.colorBitDepth_)) {
+        TLOGE(WmsLogTag::DMS, "Write colorBitDepth failed.");
+        return false;
+    }
+    return true;
 }
 } // namespace OHOS::Rosen

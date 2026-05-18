@@ -126,6 +126,12 @@ WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISe
         return WSError::WS_ERROR_IPC_FAILED;
     }
     property->SetWindowType(static_cast<WindowType>(windowType));
+    bool isSystemCalling = false;
+    if (!reply.ReadBool(isSystemCalling)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isSystemCalling failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    property->SetSystemCalling(isSystemCalling);
     int32_t ret = reply.ReadInt32();
     return static_cast<WSError>(ret);
 }
@@ -2651,13 +2657,17 @@ WMError SceneSessionManagerProxy::GetGlobalWindowMode(DisplayId displayId, Globa
     return static_cast<WMError>(errCode);
 }
 
-WMError SceneSessionManagerProxy::GetFloatViewLimits(FloatViewLimits& limits)
+WMError SceneSessionManagerProxy::GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits)
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(templateType)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "write templateType failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();

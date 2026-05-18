@@ -28,6 +28,7 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "Session
 constexpr size_t MAX_PARCEL_CAPACITY = 100 * 1024 * 1024; // 100M
 constexpr size_t CAPACITY_THRESHOLD = 8 * 100 * 1024; // 800k
 constexpr size_t RESERVED_SPACE = 4 * 1024; // 4k
+constexpr uint32_t MAX_FV_LIMITS = 10;
 
 bool CalculateDumpInfoSize(const std::vector<std::string>& infos)
 {
@@ -643,9 +644,28 @@ int SessionStageStub::HandleNotifySecureLimitChange(MessageParcel& data, Message
 
 int SessionStageStub::HandleUpdateWindowMode(MessageParcel& data, MessageParcel& reply)
 {
-    WLOGFD("HandleUpdateWindowMode!");
-    WindowMode mode = static_cast<WindowMode>(data.ReadUint32());
-    WSError errCode = UpdateWindowMode(mode);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "HandleUpdateWindowMode!");
+    uint32_t windowMode = 0;
+    if (!data.ReadUint32(windowMode)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read windowMode");
+        return ERR_INVALID_DATA;
+    }
+    uint32_t splitStyle = 0;
+    if (!data.ReadUint32(splitStyle)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read splitStyle");
+        return ERR_INVALID_DATA;
+    }
+    int32_t splitIndex = 0;
+    if (!data.ReadInt32(splitIndex)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read splitIndex");
+        return ERR_INVALID_DATA;
+    }
+    WindowModeInfo windowModeInfo = {
+        static_cast<WindowMode>(windowMode),
+        static_cast<SplitStyle>(splitStyle),
+        splitIndex,
+    };
+    WSError errCode = UpdateWindowMode(windowModeInfo);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -1081,13 +1101,34 @@ int SessionStageStub::HandleSyncFvWindowInfo(MessageParcel& data, MessageParcel&
 int SessionStageStub::HandleSyncFvLimits(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_SYSTEM, "HandleSyncFvLimits");
-    sptr<FloatViewLimits> limits = data.ReadParcelable<FloatViewLimits>();
-    if (limits == nullptr) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Read limits failed");
-        reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+    std::map<uint32_t, FloatViewLimits> fvLimits {};
+    uint32_t size = 0;
+    if (!data.ReadUint32(size)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Read limits size failed");
         return ERR_INVALID_VALUE;
     }
-    auto error = SyncFvLimits(*limits);
+    if (size > MAX_FV_LIMITS) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "size not available");
+        return ERR_INVALID_VALUE;
+    }
+    for (uint32_t i = 0; i < size; ++i) {
+        uint32_t templateType;
+        if (!data.ReadUint32(templateType)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Read template type failed");
+            return ERR_INVALID_VALUE;
+        }
+        if (templateType >= static_cast<uint32_t>(FloatViewTemplate::END)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Read invalid template type");
+            return ERR_INVALID_VALUE;
+        }
+        sptr<FloatViewLimits> limits = data.ReadParcelable<FloatViewLimits>();
+        if (limits == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Read fv limits failed");
+            return ERR_INVALID_VALUE;
+        }
+        fvLimits.emplace(templateType, *limits);
+    }
+    auto error = SyncFvLimits(fvLimits);
     if (!reply.WriteInt32(static_cast<int32_t>(error))) {
         return ERR_INVALID_VALUE;
     }
@@ -1233,12 +1274,12 @@ int SessionStageStub::HandleSetEnableDragBySystem(MessageParcel& data, MessagePa
 int SessionStageStub::HandleSetDragActivated(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");
-    bool dragActivated = true;
-    if (!data.ReadBool(dragActivated)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Read dragActivated failed.");
+    uint32_t dragActivatedBitmap = 0;
+    if (!data.ReadUint32(dragActivatedBitmap)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read dragActivatedBitmap failed.");
         return ERR_INVALID_DATA;
     }
-    SetDragActivated(dragActivated);
+    SetDragActivated(dragActivatedBitmap);
     return ERR_NONE;
 }
 

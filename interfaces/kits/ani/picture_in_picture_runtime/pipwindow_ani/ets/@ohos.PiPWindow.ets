@@ -241,7 +241,7 @@ export namespace PiPWindow {
   }
 
   export native function pipControllerFinalizerCallback(nativeObj: long): void;
-  let pipControllerFinalizerRegister = new FinalizationRegistry<long>(pipControllerFinalizerCallback);
+  let pipControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(pipControllerFinalizerCallback);
 
   export class PiPControllerInternal implements PiPController {
     public nativeObj: long = 0;

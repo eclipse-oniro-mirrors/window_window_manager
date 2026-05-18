@@ -185,6 +185,7 @@ using NotifyMoveMainWindowToTargetDisplayFunc = std::function<void(DisplayId dis
 using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 using PageEnableFunc = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
+using GetFloatViewLimitFunc = std::function<bool(std::map<uint32_t, FloatViewLimits>& limit)>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
     void OnAppDebugStarted(const std::vector<AppExecFwk::AppDebugInfo>& debugInfos) override;
@@ -369,19 +370,21 @@ public:
     void SetSpecificWindowZIndexListener(const NotifySetSpecificWindowZIndexFunc& func);
     void SetMoveMainWindowToTargetDisplayListener(NotifyMoveMainWindowToTargetDisplayFunc&& func);
 
-    WSError UpdateWindowMode(int32_t persistentId, int32_t windowMode);
+    WSError UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo);
     WSError SendTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, uint32_t zIndex);
     WSError RaiseWindowToTop(int32_t persistentId) override;
     void SetScreenLocked(const bool isScreenLocked);
     bool IsScreenLocked() const;
     void ConfigSupportZLevel();
     WSError SendAxisEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    WSError RedispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
     /*
      * Float view
      */
-    WSError SyncFloatViewLimits(const FloatViewLimits &limits);
-    WMError GetFloatViewLimits(FloatViewLimits& limits) override;
+    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits);
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
+    void RegisterGetFloatViewLimitCallback(GetFloatViewLimitFunc&& func);
 
     /*
      * Multi User
@@ -536,7 +539,7 @@ public:
         const WSRect& portraitRect, const WSRect& landspaceRect, DisplayId displayId);
     WSError NotifyFloatNavigationInfo(DisplayId displayId, bool visible,
         const WSRect& portraitRect, const WSRect& landspaceRect);
-    WSError GetFloatNavagationInfo(DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo);
+    WSError GetFloatNavigationInfo(DisplayId displayId, std::tuple<bool, WSRect, WSRect>& floatNavagationInfo);
     WSError GetNextAvoidRectInfo(DisplayId displayId, AvoidAreaType type,
         std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo);
     WSRect GetAINavigationBarArea(uint64_t displayId, bool ignoreVisibility = false);
@@ -1693,6 +1696,8 @@ private:
      */
     void SetSessionSnapshotSkipForAppProcess(const sptr<SceneSession>& sceneSession) REQUIRES(SCENE_GUARD);
     void SetSessionSnapshotSkipForAppBundleName(const sptr<SceneSession>& sceneSession) REQUIRES(SCENE_GUARD);
+    void ReportPrivacyWindowSnapshotFail(const sptr<SceneSession>& sceneSession, int32_t errorCode,
+        const std::string& errorMsg);
 
     void HandleSpecialExtWindowFlagsChange(int32_t persistentId, ExtensionWindowFlags extWindowFlags,
         ExtensionWindowFlags extWindowActions);
@@ -1884,6 +1889,7 @@ private:
     WMError FlushSessionBlackListInfoMapWhenRemove(ScreenId screenId);
     void UpdateVirtualScreenBlackList(ScreenId screenId);
     void AddSkipSurfaceNodeWhenAttach(int32_t windowId, const std::string& bundleName, uint64_t surfaceNodeId);
+    bool IsSessionVisibleAndRealForeground(const sptr<SceneSession>& session);
     SessionState GetRealSessionState(const sptr<SceneSession>& session);
     std::unordered_map<std::string, std::unordered_set<std::string>> bundleRSBlackListConfigMap_;
     inline static const std::string WMS_DEFAULT = "WMS_DEFAULT";
@@ -2069,7 +2075,8 @@ private:
      * Float view
      */
     std::mutex floatViewLimitsMutex_;
-    FloatViewLimits floatViewLimits_ {};
+    GetFloatViewLimitFunc getFloatViewLimitFunc_;
+    std::map<uint32_t, FloatViewLimits> floatViewLimits_{};
 };
 } // namespace OHOS::Rosen
 

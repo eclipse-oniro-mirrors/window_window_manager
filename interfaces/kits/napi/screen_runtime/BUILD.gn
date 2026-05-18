@@ -67,6 +67,11 @@ ohos_shared_library("screen_napi") {
     defines += [ "XPOWER_EVENT_ENABLE" ]
   }
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   relative_install_dir = "module"
 
   part_name = "window_manager"
@@ -104,6 +109,11 @@ ohos_shared_library("screen_kit") {
     "hitrace:hitrace_meter",
     "napi:ace_napi",
   ]
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines = [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]

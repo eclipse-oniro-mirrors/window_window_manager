@@ -2184,6 +2184,7 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_EnabledPc, TestSize.Leve
     sptr<Session> session = sptr<Session>::MakeSptr(info);
     ASSERT_NE(session, nullptr);
     session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     session->property_->SetZLevelAboveParentLoosened(true);
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(true, session->IsLoosenedWithFreeMultiMode());
@@ -2202,6 +2203,7 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_EnabledFreeMulti, TestSi
     sptr<Session> session = sptr<Session>::MakeSptr(info);
     ASSERT_NE(session, nullptr);
     session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     session->property_->SetZLevelAboveParentLoosened(true);
     session->systemConfig_.freeMultiWindowEnable_ = true;
     session->systemConfig_.freeMultiWindowSupport_ = true;

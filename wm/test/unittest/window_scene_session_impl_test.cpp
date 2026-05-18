@@ -3489,7 +3489,7 @@ HWTEST_F(WindowSceneSessionImplTest, Destroy02, TestSize.Level0)
 
 /**
  * @tc.name: MaximizeWithOptions01
- * @tc.desc: MaximizeWithOptions with default config (-1, -1)
+ * @tc.desc: MaximizeWithOptions with default config (-1, -1) should use system defaults
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions01, TestSize.Level1)
@@ -3506,10 +3506,10 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions01, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { -1, -1 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
-    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3652,7 +3652,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions07, TestSize.Level1)
     SnapshotAnimationConfig config = { 0, 0 };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3677,12 +3677,12 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions08, TestSize.Level1)
     SnapshotAnimationConfig config = { 400, 350 };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
  * @tc.name: MaximizeWithOptions09
- * @tc.desc: MaximizeWithOptions with duration only, delay=-1
+ * @tc.desc: MaximizeWithOptions with duration only, delay=-1 uses system default
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions09, TestSize.Level1)
@@ -3699,10 +3699,10 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions09, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { 200, -1 };
+    SnapshotAnimationConfig config = { 200, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
-    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3728,7 +3728,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions10, TestSize.Level1)
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER,
         AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3774,7 +3774,7 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig01, TestSize.Level1)
 
     SnapshotAnimationConfig config = { 200, 30 };
     WMError ret = window->Recover(1, config);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3913,7 +3913,7 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig07, TestSize.Level1)
 
     SnapshotAnimationConfig config = { 0, 0 };
     WMError ret = window->Recover(1, config);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3939,7 +3939,7 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig08, TestSize.Level1)
 
     SnapshotAnimationConfig config = { 400, 350 };
     WMError ret = window->Recover(1, config);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -3970,7 +3970,7 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig09, TestSize.Level1)
 
 /**
  * @tc.name: RecoverWithConfig10
- * @tc.desc: Recover with -1 defaults (delegates to Recover(reason))
+ * @tc.desc: Recover with -1 defaults should use system defaults
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig10, TestSize.Level1)
@@ -3989,9 +3989,9 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig10, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { -1, -1 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->Recover(1, config);
-    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -4056,10 +4056,11 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeDelegatedPath01, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    // Maximize(pres, state) -> MaximizeWithOptions(pres, state, {-1,-1})
-    WMError ret = window->Maximize(
-        MaximizePresentation::ENTER_IMMERSIVE, WaterfallResidentState::UNCHANGED);
-    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    // Maximize(pres, state) -> MaximizeWithOptions(pres, UNSPECIFIED, {-1,-1})
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
+    ASSERT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -4111,7 +4112,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowInvalidWaterfa
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { 100, 20 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     // Sub window with OPEN waterfall (not UNCHANGED) should fail
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE, config);
@@ -4138,7 +4139,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_NotMainWindow01, TestSi
     window->hostSession_ = session;
     // Don't set IsSubWindowMaximizeSupported (defaults to false)
 
-    SnapshotAnimationConfig config = { 100, 20 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
@@ -4230,7 +4231,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowExitMode01, Te
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { 100, 20 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE, config);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
@@ -4253,9 +4254,32 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowFollowMode01, 
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
 
-    SnapshotAnimationConfig config = { 100, 20 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowUnspecified01
+ * @tc.desc: Sub window with UNSPECIFIED acrossDisplayPresentation should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowUnspecified01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWindowUnspecified01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
     ASSERT_EQ(ret, WMError::WM_OK);
 }
 
@@ -4281,7 +4305,7 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_NotMainWindow01, TestSize
     window->hostSession_ = session;
     // Don't set IsSubWindowMaximizeSupported (defaults to false)
 
-    SnapshotAnimationConfig config = { 200, 30 };
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
     WMError ret = window->Recover(1, config);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_OPERATION, ret);
 }
@@ -4340,6 +4364,169 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_DeviceNotSupport01, TestS
     ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
 }
 
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowCustomDuration01
+ * @tc.desc: Sub window with custom duration should be rejected by animation config validation
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowCustomDuration01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinCustomDuration01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowCustomDelay01
+ * @tc.desc: Sub window with custom delay should be rejected by animation config validation
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowCustomDelay01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinCustomDelay01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, 200 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowCustomBoth01
+ * @tc.desc: Sub window with both custom duration and delay should be rejected
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowCustomBoth01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinCustomBoth01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 100 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowZeroConfig01
+ * @tc.desc: Sub window with zero animation config should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowZeroConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinZeroConfig01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 0, 0 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowMixedConfig01
+ * @tc.desc: Sub window with UNSET duration and zero delay should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowMixedConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinMixedConfig01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, 0 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowMixedConfig02
+ * @tc.desc: Sub window with zero duration and UNSET delay should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowMixedConfig02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinMixedConfig02");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 0, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWithConfig_SubWindowCustomConfig01
+ * @tc.desc: Sub window Recover with custom animation config should be rejected
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_SubWindowCustomConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverSubWinCustom01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 100 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

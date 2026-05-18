@@ -38,6 +38,8 @@ public:
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
+    void OnScreenOrientationChangedWithOptions(ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options) override;
     void OnScreenExtendChanged(ScreenId mainScreenId, ScreenId extendScreenId) override;
     void OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked) override;
     void OnDisplayStateChanged(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
@@ -72,6 +74,7 @@ public:
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;
     void OnTentModeChange(TentMode tentMode) override;
     void OnTransRSEvent(const sptr<RSEventDataBase>& param) override;
+    void OnScreenClosedStateChange(ScreenClosedState screenClosedState) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerClientProxy> delegator_;
     bool ScreenConnectWriteParam(const SessionOption& SessionOption, ScreenEvent screenEvent, MessageParcel& data);

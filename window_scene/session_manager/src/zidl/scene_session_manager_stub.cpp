@@ -368,6 +368,7 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     reply.WriteUint32(property->GetSubWindowLevel());
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
+    reply.WriteBool(property->GetSystemCalling());
     reply.WriteUint32(static_cast<uint32_t>(WSError::WS_OK));
     return ERR_NONE;
 }
@@ -1749,7 +1750,12 @@ int SceneSessionManagerStub::HandleGetGlobalWindowMode(MessageParcel& data, Mess
 int SceneSessionManagerStub::HandleGetFloatViewLimits(MessageParcel& data, MessageParcel& reply)
 {
     FloatViewLimits limits;
-    if (!reply.WriteInt32(static_cast<int32_t>(GetFloatViewLimits(limits)))) {
+    uint32_t templateType = 0;
+    if (!data.ReadUint32(templateType)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "read templateType fail");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(GetFloatViewLimits(templateType, limits)))) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Write errCode fail");
         return ERR_INVALID_DATA;
     }

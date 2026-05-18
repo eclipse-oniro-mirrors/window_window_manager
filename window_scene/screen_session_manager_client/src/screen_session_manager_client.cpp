@@ -194,6 +194,29 @@ void ScreenSessionManagerClient::OnTentModeChange(TentMode tentMode)
     }
 }
 
+void ScreenSessionManagerClient::RegisterScreenClosedStateChangeListener(IScreenClosedStateListener* listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to register screen closed state listener, listener is null");
+        return;
+    }
+
+    screenClosedStateListener_ = listener;
+    ConnectToServer();
+
+    OnScreenClosedStateChange(screenClosedState_);
+    TLOGI(WmsLogTag::DMS, "Success to register screen closed state listener");
+}
+
+void ScreenSessionManagerClient::OnScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    TLOGD(WmsLogTag::DMS, "screenClosedState callback trigger");
+    screenClosedState_ = screenClosedState;
+    if (screenClosedStateListener_) {
+        screenClosedStateListener_->OnScreenClosedStateChange(screenClosedState);
+    }
+}
+
 void ScreenSessionManagerClient::HandleScreenDisconnectEvent(SessionOption option, ScreenEvent screenEvent)
 {
     if (HandleScreenDisconnection(option)) {
@@ -375,6 +398,17 @@ void ScreenSessionManagerClient::OnScreenOrientationChanged(ScreenId screenId, f
         return;
     }
     screenSession->ScreenOrientationChange(screenOrientation);
+}
+
+void ScreenSessionManagerClient::OnScreenOrientationChangedWithOptions(ScreenId screenId,
+    float screenOrientation, const OrientationOptions& options)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->ScreenOrientationChange(screenOrientation, options);
 }
 
 void ScreenSessionManagerClient::OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked)
@@ -1169,6 +1203,9 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
     config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
+    if (config.displayNode != nullptr) {
+        config.displayNode->SetScreenId(option.rsId_);
+    }
     if (screenSession == nullptr) {
         screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
     } else {

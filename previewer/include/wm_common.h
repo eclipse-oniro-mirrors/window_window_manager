@@ -173,6 +173,7 @@ enum WindowModeSupport : uint32_t {
     WINDOW_MODE_SUPPORT_SPLIT_SECONDARY = 1 << 3,
     WINDOW_MODE_SUPPORT_PIP = 1 << 4,
     WINDOW_MODE_SUPPORT_FB = 1 << 5,
+    WINDOW_MODE_SUPPORT_SPLIT = 1 << 6,
     WINDOW_MODE_SUPPORT_ALL = WINDOW_MODE_SUPPORT_FLOATING |
                               WINDOW_MODE_SUPPORT_FULLSCREEN |
                               WINDOW_MODE_SUPPORT_SPLIT_PRIMARY |
@@ -192,6 +193,7 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_FLOATING,
     WINDOW_MODE_PIP,
     WINDOW_MODE_FB,
+    WINDOW_MODE_SPLIT,
     WINDOW_MODE_FV,
 };
 
@@ -202,6 +204,30 @@ enum class SplitRatioPreference : int32_t {
     EQUAL = 0,
     PRIMARY_DOMINANT = 1,
     SECONDARY_DOMINANT = 2,
+};
+
+/**
+ * @brief Enumerates split style of window.
+ */
+enum class SplitStyle : uint32_t {
+    TWO_WINDOW_HORIZONTAL = 0,
+    TWO_WINDOW_VERTICAL,
+    THREE_WINDOW_HORIZONTAL,
+};
+
+/**
+ * @brief Split index constants for split window mode.
+ */
+static constexpr int32_t SPLIT_INDEX_PRIMARY = 0;
+static constexpr int32_t SPLIT_INDEX_SECONDARY = 1;
+
+/**
+ * @brief Window mode info, including mode, split style and split index.
+ */
+struct WindowModeInfo {
+    WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    int32_t splitIndex = SPLIT_INDEX_PRIMARY;
 };
 
 /**
@@ -1471,6 +1497,26 @@ struct AttachLimitOptions {
 };
 
 /**
+ * @enum DragActivateSource
+ *
+ * @brief Bit flags identifying the caller source for drag activation.
+ * Each source owns one bit. AND semantics: all registered sources must agree for drag to be activated.
+ */
+enum class DragActivateSource : uint32_t {
+    FOLLOW_PARENT_LAYOUT = 1 << 0,
+    FOLLOW_PARENT_POSITION = 1 << 1,
+    APP_LOCK = 1 << 2,
+    MID_SCENE_TO_PC_MODE = 1 << 3,
+    // Extend as needed, use 1 << N
+};
+
+constexpr uint32_t DRAG_ACTIVATE_ALL_MASK =
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT) |
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_POSITION) |
+    static_cast<uint32_t>(DragActivateSource::APP_LOCK) |
+    static_cast<uint32_t>(DragActivateSource::MID_SCENE_TO_PC_MODE);
+
+/**
  * @struct TitleButtonRect
  *
  * @brief An area of title buttons relative to the upper right corner of the window.
@@ -2021,6 +2067,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -2186,8 +2233,9 @@ enum class ScreenshotEventType : int32_t {
  * @brief Configuration for snapshot animation duration and delay.
  */
 struct SnapshotAnimationConfig {
-    int64_t duration = -1;  // Animation duration in ms, -1 means use system default
-    int64_t delay = -1;     // Animation delay in ms, -1 means use system default
+    static constexpr int64_t UNSET = -1;  // Use system default
+    int64_t duration = UNSET;  // Animation duration in ms
+    int64_t delay = UNSET;     // Animation delay in ms
 };
 
 /**
@@ -2233,6 +2281,9 @@ enum class AcrossDisplayPresentation : uint32_t {
      * re-entering half-folded.
      */
     EXIT_ACROSS_DISPLAY_MODE = 2,
+
+    /** Internal sentinel indicating the user did not specify this parameter. */
+    UNSPECIFIED = UINT32_MAX,
 };
 
 /**
@@ -2242,7 +2293,7 @@ enum class AcrossDisplayPresentation : uint32_t {
 struct MaximizeOptions {
     MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
     AcrossDisplayPresentation acrossDisplayPresentation =
-        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
+        AcrossDisplayPresentation::UNSPECIFIED;
     SnapshotAnimationConfig snapshotAnimationConfig;
 };
 

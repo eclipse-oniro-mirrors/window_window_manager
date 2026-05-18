@@ -212,6 +212,7 @@ sptr<Window> Window::CreateFb(sptr<WindowOption>& option, const FloatingBallTemp
         return nullptr;
     }
     FloatingBallTemplateInfo fbTemplateInfo = FloatingBallTemplateInfo(fbTemplateBaseInfo, icon);
+    fbTemplateInfo.isVisibleInApp_ = fbTemplateBaseInfo.isVisibleInApp_;
     windowSessionImpl->GetProperty()->SetFbTemplateInfo(fbTemplateInfo);
     WMError error = windowSessionImpl->Create(context, nullptr);
     if (error != WMError::WM_OK) {

@@ -19,6 +19,7 @@
 
 #include "js_float_view_listener.h"
 #include "js_runtime_utils.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {

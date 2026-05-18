@@ -509,7 +509,7 @@ public:
         return WMError::WM_OK;
     }
     WMError NotifySupportRotationRegistered() override { return WMError::WM_OK; }
-    WMError GetFloatViewLimits(FloatViewLimits& limits) override { return WMError::WM_OK; }
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override { return WMError::WM_OK; }
 
     virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) = 0;

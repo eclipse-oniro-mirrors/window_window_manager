@@ -249,6 +249,62 @@ HWTEST_F(WindowSceneSessionImplEventTest, ClearWindowMask, TestSize.Level1)
     EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, window->ClearWindowMask());
 }
+
+/**
+ * @tc.name: SetWindowMaskWithAlphaInvalidWindow
+ * @tc.desc: SetWindowMaskWithAlpha with invalid window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMaskWithAlphaInvalidWindow, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMaskWithAlphaInvalidWindow");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->hostSession_ = nullptr;
+    uint8_t maskData[4] = { 0, 128, 255, 64 };
+    auto ret = window->SetWindowMaskWithAlpha(maskData, 2, 2);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+}
+
+/**
+ * @tc.name: SetWindowMaskWithAlphaNullMask
+ * @tc.desc: SetWindowMaskWithAlpha with nullptr mask
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMaskWithAlphaNullMask, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMaskWithAlphaNullMask");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->persistentId_ = 12;
+    window->state_ = WindowState::STATE_SHOWN;
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    auto ret = window->SetWindowMaskWithAlpha(nullptr, 2, 2);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+}
+
+/**
+ * @tc.name: SetWindowMaskWithAlphaSuccess
+ * @tc.desc: SetWindowMaskWithAlpha with valid parameters
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMaskWithAlphaSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMaskWithAlphaSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->persistentId_ = 13;
+    window->state_ = WindowState::STATE_SHOWN;
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    EXPECT_CALL(*session, UpdateSessionPropertyByAction(_, _)).WillRepeatedly(Return(WMError::WM_OK));
+    uint8_t maskData[4] = { 0, 128, 255, 64 };
+    auto ret = window->SetWindowMaskWithAlpha(maskData, 2, 2);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

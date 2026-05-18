@@ -105,6 +105,7 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverWindowPropertyChangeFlag01, 
     MessageParcel data;
     MessageParcel reply;
 
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
     auto res = stub_->HandleRecoverWindowPropertyChangeFlag(data, reply);
     EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
 
@@ -507,24 +508,37 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleUpdateOutline02, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerStubTest2, HandleGetFloatViewLimits, Function | SmallTest | Level2)
 {
-    MessageParcel data;
     MessageParcel reply;
-    
-    // WriteInt32 failed
+
+    // ReadUint32 failed
     MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
+    MessageParcel data;
+    data.WriteUint32(0);
     int res = stub_->HandleGetFloatViewLimits(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
+    // WriteInt32 failed
+    MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data1;
+    data1.WriteUint32(0);
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    res = stub_->HandleGetFloatViewLimits(data1, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
     // WriteParcelable failed
     MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data2;
+    data2.WriteUint32(0);
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
-    res = stub_->HandleGetFloatViewLimits(data, reply);
+    res = stub_->HandleGetFloatViewLimits(data2, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
     // success
     MockMessageParcel::ClearAllErrorFlag();
-    res = stub_->HandleGetFloatViewLimits(data, reply);
+    MessageParcel data3;
+    data3.WriteUint32(0);
+    res = stub_->HandleGetFloatViewLimits(data3, reply);
     EXPECT_EQ(res, ERR_NONE);
 }
 } // namespace

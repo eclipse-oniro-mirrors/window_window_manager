@@ -31,9 +31,10 @@ public:
     int32_t OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     void OnSessionManagerServiceRecover(const sptr<IRemoteObject>& sessionManagerService) override;
     void OnWMSConnectionChanged(int32_t wmsUserId,
-                                int32_t screenId,
-                                bool isConnected,
-                                const sptr<IRemoteObject>& sessionManagerService) override;
+                                 int32_t screenId,
+                                 bool isConnected,
+                                 const sptr<IRemoteObject>& sessionManagerService,
+                                 int32_t pid) override;
 
 private:
     const int32_t userId_;
@@ -74,11 +75,12 @@ public:
     /*
      * Multi User
      */
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<ISessionManagerService>& sessionManagerService);
+        int32_t userId, int32_t screenId, bool isConnected,
+        const sptr<ISessionManagerService>& sessionManagerService, int32_t pid);
 
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
@@ -131,7 +133,7 @@ private:
     /*
      * Multi User and multi screen
      */
-    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected);
+    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected, int32_t pid);
     void OnUserSwitch(const sptr<ISessionManagerService>& sessionManagerService);
     const int32_t userId_;
     static std::unordered_map<int32_t, sptr<SessionManager>> sessionManagerMap_;
@@ -143,6 +145,7 @@ private:
     bool isWMSConnected_ = false;
     int32_t currentWMSUserId_ = INVALID_USER_ID;
     int32_t currentScreenId_ = DEFAULT_SCREEN_ID;
+    int32_t currentWMSPid_ = INVALID_PID;
     WMSConnectionChangedCallbackFunc wmsConnectionChangedFunc_ = nullptr;
     // above guarded by wmsConnectionMutex_, among OnWMSConnectionChanged for wms connection event, user switched,
     // register WMSConnectionChangedListener.

@@ -492,8 +492,8 @@ HWTEST_F(FloatWindowManagerTest, CreateFbWindow_Test, TestSize.Level1)
 {
     WMError error = WMError::WM_OK;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    FloatingBallTemplateBaseInfo templateInfo(0, "title", "content", "#000000", true, false, INVALID_WINDOW_ID,
-        true, "test");
+    FloatingBallTemplateBaseInfo templateInfo(0, "title", "content", "#000000", "", "", true, false,
+        INVALID_WINDOW_ID, true, "test");
     std::shared_ptr<Media::PixelMap> icon = nullptr;
     std::shared_ptr<OHOS::AbilityRuntime::Context> context = nullptr;
 

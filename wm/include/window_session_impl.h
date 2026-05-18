@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -267,7 +267,7 @@ public:
     bool IsFocused() const override;
     WMError RequestFocus() const override;
     WMError RequestFocusByClient(bool isFocused) const override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override { return WSError::WS_OK; }
     WSError HandleBackEvent() override;
     KeyboardAnimationConfig GetKeyboardAnimationConfig() override;
@@ -429,7 +429,7 @@ public:
     WMError GetPiPSettingSwitchStatus(bool& switchStatus) const override;
     WMError SetPipParentWindowId(uint32_t windowId) const override;
     WMError IsPiPActive(bool& status) override;
-
+    WMError UpdateFloatingBallForVisible(bool isVisible) override;
     WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
         const std::shared_ptr<Media::PixelMap>& icon) override;
     void NotifyPrepareCloseFloatingBall() override;
@@ -451,7 +451,7 @@ public:
     void NotifyPrepareCloseFloatView() override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
-    WSError SyncFvLimits(const FloatViewLimits& limits) override;
+    WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
 
@@ -541,7 +541,7 @@ public:
      * Window Layout
      */
     WMError EnableDrag(bool enableDrag) override;
-    WSError SetDragActivated(bool dragActivated) override;
+    WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetEnableDragBySystem(bool enableDrag) override;
     bool IsWindowDraggable();
     CrossAxisState GetCrossAxisState() override;
@@ -695,10 +695,6 @@ public:
      * Window LifeCycle
      */
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
-
-    /*
-     * Window LifeCycle
-     */
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     void NotifyAfterLifecycleForeground();
@@ -706,6 +702,8 @@ public:
     void NotifyAfterLifecycleResumed(bool isGamePreLaunch = false);
     void NotifyAfterLifecyclePaused();
     void SetNavDestinationInfo(const std::string& navDestinationInfo) override;
+    bool IsLoosenedWithPcOrFreeMultiMode() const;
+
     /*
      * Window Lifecycle and mode Record
      */
@@ -783,8 +781,11 @@ protected:
      */
     void ClearSwitchFreeMultiWindowListenersById(int32_t persistentId);
     void NotifySwitchFreeMultiWindow(bool enable);
+    virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
+    virtual void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() {}
 
     void ClearVsyncStation();
+    void ReleaseSurfaceNode();
     WMError WindowSessionCreateCheck();
     void UpdateDecorEnableToAce(bool isDecorEnable);
     bool NeedShowDecorInOtherDisplay(bool decorVisible);
@@ -823,9 +824,12 @@ protected:
     WMError UnregisterExtensionAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener);
 
     void RefreshNoInteractionTimeoutMonitor();
-    WindowStatus GetWindowStatusInner(WindowMode mode, bool isGetParentStatus = false,
-        MaximizeMode maximizeMode = MaximizeMode::MODE_AVOID_SYSTEM_BAR,
-        bool isLayoutFullScreen = false);
+    // Convert WindowMode to WindowStatus based on maximize mode and immersive mode
+    WindowStatus ConvertWindowModeToStatus(WindowMode mode, MaximizeMode maximizeMode, bool immersiveModeEnabled);
+    // Get window status for the current session using its own properties
+    WindowStatus GetOwnWindowStatus(WindowMode mode);
+    // Get window status using externally provided parameters
+    WindowStatus GetWindowStatusWithExternalState(WindowMode mode, MaximizeMode maximizeMode, bool isLayoutFullScreen);
 
     /*
      * PC Event Filter
@@ -872,9 +876,9 @@ protected:
     void GetSubWindows(int32_t parentPersistentId, std::vector<sptr<WindowSessionImpl>>& subWindows);
     void RemoveSubWindow(int32_t parentPersistentId);
     bool IsZLevelAboveParentLoosened() const override;
-    bool IsLoosenedWithPcOrFreeMultiMode() const;
 
     sptr<WindowOption> windowOption_;
+    bool haveSetSupportedWindowModes_ = false;
     sptr<ISession> hostSession_;
     mutable std::mutex hostSessionMutex_;
     std::shared_ptr<Ace::UIContent> uiContent_;
@@ -885,6 +889,7 @@ protected:
     uint64_t nodeId_;
 
     sptr<WindowSessionProperty> property_;
+    WindowModeInfo windowModeInfo_;
     SystemSessionConfig windowSystemConfig_;
     NotifyNativeWinDestroyFunc notifyNativeFunc_;
 
@@ -1087,6 +1092,7 @@ protected:
     bool isGamePreLaunch_ = false;
 private:
     void InitPropertyFromOption(const sptr<WindowOption>& option);
+    void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     //Trans between colorGamut and colorSpace
     static ColorSpace GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut);
     static GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace);
@@ -1350,7 +1356,7 @@ private:
     std::atomic_bool windowSizeChanged_ = false;
     std::atomic_bool enableFrameLayoutFinishCb_ = false;
     bool hasNotifyPrelaunchStartingWindow_ = false;
-    std::atomic_bool dragActivated_ = true;
+    std::atomic<uint32_t> dragActivatedBitmap_{DRAG_ACTIVATE_ALL_MASK};
     WindowSizeChangeReason lastSizeChangeReason_ = WindowSizeChangeReason::END;
     std::atomic<bool> postTaskDone_ = false;
     Transform layoutTransform_;

@@ -928,29 +928,37 @@ WSError SessionStageProxy::NotifyWindowOcclusionState(const WindowVisibilityStat
     return static_cast<WSError>(errCode);
 }
 
-WSError SessionStageProxy::UpdateWindowMode(WindowMode mode)
+WSError SessionStageProxy::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option(MessageOption::TF_ASYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        WLOGFE("WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteUint32(static_cast<uint32_t>(mode))) {
-        WLOGFE("Write mode failed");
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.windowMode))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write windowMode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(windowModeInfo.splitStyle))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write splitStyle failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(windowModeInfo.splitIndex)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write splitIndex failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        WLOGFE("remote is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "remote is null");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_WINDOW_MODE_CHANGE),
         data, reply, option) != ERR_NONE) {
-        WLOGFE("SendRequest failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     int32_t ret = reply.ReadInt32();
@@ -1618,7 +1626,7 @@ WSError SessionStageProxy::SyncFvWindowInfo(const FloatViewWindowInfo& windowInf
     return WSError::WS_OK;
 }
 
-WSError SessionStageProxy::SyncFvLimits(const FloatViewLimits& limits)
+WSError SessionStageProxy::SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -1628,9 +1636,19 @@ WSError SessionStageProxy::SyncFvLimits(const FloatViewLimits& limits)
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteParcelable(&limits)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits failed");
+    if (!data.WriteUint32(limits.size())) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits size failed");
         return WSError::WS_ERROR_IPC_FAILED;
+    }
+    for (const auto& [templateType, fvLimits] : limits) {
+        if (!data.WriteUint32(templateType)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits type failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
+        if (!data.WriteParcelable(&fvLimits)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Write limits failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
     }
 
     sptr<IRemoteObject> remote = Remote();
@@ -2053,7 +2071,7 @@ WSError SessionStageProxy::SetStageKeyFramePolicy(const KeyFramePolicy& keyFrame
     return WSError::WS_OK;
 }
 
-WSError SessionStageProxy::SetDragActivated(bool dragActivated)
+WSError SessionStageProxy::SetDragActivated(uint32_t dragActivatedBitmap)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -2062,7 +2080,7 @@ WSError SessionStageProxy::SetDragActivated(bool dragActivated)
         TLOGE(WmsLogTag::WMS_LAYOUT, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!data.WriteBool(dragActivated)) {
+    if (!data.WriteUint32(dragActivatedBitmap)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Write params failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }

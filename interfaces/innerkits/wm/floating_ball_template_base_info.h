@@ -23,9 +23,12 @@ class FloatingBallTemplateBaseInfo {
 public:
     FloatingBallTemplateBaseInfo() = default;
     FloatingBallTemplateBaseInfo(const uint32_t& templateType, const std::string& title,
-        const std::string& content, const std::string& color, uint32_t textUpdateAnimationType,
-        bool isBind, uint32_t bindWindowId, bool showWhenCreate, const std::string &id) : template_(templateType),
-        title_(title), content_(content), backgroundColor_(color),
+        const std::string& content, const std::string& backgroundColor, const std::string& titleColor,
+ 	    const std::string& contentColor, const bool isVisibleInApp,
+        uint32_t textUpdateAnimationType, bool isBind, uint32_t bindWindowId, bool showWhenCreate,
+        const std::string &id) : template_(templateType),
+        title_(title), content_(content), backgroundColor_(backgroundColor),
+        titleColor_(titleColor), contentColor_(contentColor), isVisibleInApp_(isVisibleInApp),
         textUpdateAnimationType_(textUpdateAnimationType), isBind_(isBind),
         bindWindowId_(bindWindowId), showWhenCreate_(showWhenCreate),
         id_(id) {};
@@ -38,11 +41,15 @@ public:
     std::string title_ {};
     std::string content_ {};
     std::string backgroundColor_ {};
+    std::string titleColor_ {};
+    std::string contentColor_ {};
+    bool isVisibleInApp_ = true;
     uint32_t textUpdateAnimationType_ {};
     bool isBind_ {false};
     uint32_t bindWindowId_ {INVALID_WINDOW_ID};
     bool showWhenCreate_ { true };
     std::string id_ {};
+    uint32_t updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::DEFAULT);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_FLOATING_BALL_TEMPLATE_BASE_INFO_H

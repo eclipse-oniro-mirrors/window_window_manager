@@ -44,7 +44,7 @@ public:
 
     using SessionRecoverCallbackFunc = std::function<WMError()>;
     using UIEffectRecoverCallbackFunc = std::function<WMError()>;
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     using OutlineRecoverCallbackFunc = std::function<WMError()>;
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& windowProperty,
         std::shared_ptr<RSSurfaceNode> surfaceNode, uint32_t& windowId, const sptr<IRemoteObject>& token);
@@ -264,7 +264,7 @@ public:
     /**
      * Float View
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits &limits);
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits);
 
 private:
     friend class sptr<WindowAdapter>;

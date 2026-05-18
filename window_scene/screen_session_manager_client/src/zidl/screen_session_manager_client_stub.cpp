@@ -58,6 +58,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnScreenOrientationChanged(data, reply);
     };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleOnScreenOrientationChangedWithOptions(data, reply);
+    };
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ROTATION_LOCKED_CHANGED] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnScreenRotationLockedChanged(data, reply);
@@ -169,6 +173,10 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_TRANS_RS_EVENT_TO_DESKTOP] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleTransRSEvent(data, reply);
+    };
+    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_CLOSED_STATE_CHANGE] =
+        [this](MessageParcel& data, MessageParcel& reply) {
+        return HandleScreenClosedStateChange(data, reply);
     };
 }
 
@@ -398,6 +406,19 @@ int ScreenSessionManagerClientStub::HandleOnScreenOrientationChanged(MessageParc
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto screenOrientation = data.ReadFloat();
     OnScreenOrientationChanged(screenId, screenOrientation);
+    return ERR_NONE;
+}
+
+int ScreenSessionManagerClientStub::HandleOnScreenOrientationChangedWithOptions(
+    MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::DMS, "HandleOnScreenOrientationChangedWithOptions");
+    auto screenId = static_cast<ScreenId>(data.ReadUint64());
+    auto screenOrientation = data.ReadFloat();
+    OrientationOptions options;
+    options.needAnimation = data.ReadBool();
+    options.ignoreRotationLock = data.ReadBool();
+    OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
     return ERR_NONE;
 }
 
@@ -705,5 +726,13 @@ sptr<RSEventDataBase> ScreenSessionManagerClientStub::ReadRSEventFromParcel(Mess
     }
 
     return event;
+}
+
+int ScreenSessionManagerClientStub::HandleScreenClosedStateChange(MessageParcel& data, MessageParcel& reply)
+{
+    auto screenClosedState = static_cast<ScreenClosedState>(data.ReadUint32());
+    TLOGD(WmsLogTag::DMS, "begin, screenClosedState = %{public}" PRIu32, static_cast<uint32_t>(screenClosedState));
+    OnScreenClosedStateChange(screenClosedState);
+    return ERR_NONE;
 }
 } // namespace OHOS::Rosen

@@ -26,8 +26,9 @@ namespace Rosen {
  * @brief Configuration for snapshot animation duration and delay.
  */
 struct SnapshotAnimationConfig {
-    int64_t duration = -1;  // Animation duration in ms, -1 means use system default
-    int64_t delay = -1;     // Animation delay in ms, -1 means use system default
+    static constexpr int64_t UNSET = -1;  // Use system default
+    int64_t duration = UNSET;  // Animation duration in ms
+    int64_t delay = UNSET;     // Animation delay in ms
 };
 
 /**
@@ -58,6 +59,9 @@ enum class AcrossDisplayPresentation : uint32_t {
      * re-entering half-folded.
      */
     EXIT_ACROSS_DISPLAY_MODE = 2,
+
+    /** Internal sentinel indicating the user did not specify this parameter. */
+    UNSPECIFIED = UINT32_MAX,
 };
 
 } // namespace Rosen

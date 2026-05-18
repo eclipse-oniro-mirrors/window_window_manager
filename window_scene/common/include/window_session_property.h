@@ -83,6 +83,7 @@ public:
     void SetTokenState(bool hasToken);
     void SetMaximizeMode(MaximizeMode mode);
     void SetWindowMode(WindowMode mode);
+    void SetWindowModeInfo(const WindowModeInfo& windowModeInfo);
     void SetWindowLimits(const WindowLimits& windowLimits);
     void SetWindowLimitsVP(const WindowLimits& windowLimits);
     void SetUserWindowLimits(const WindowLimits& windowLimits);
@@ -163,6 +164,17 @@ public:
     bool GetTokenState() const;
     MaximizeMode GetMaximizeMode() const;
     WindowMode GetWindowMode() const;
+    /**
+     * @brief Get window mode compatible with legacy WindowMode enum.
+     *
+     * When windowMode is WINDOW_MODE_SPLIT with two-window split style (horizontal or vertical),
+     * converts to WINDOW_MODE_SPLIT_PRIMARY or WINDOW_MODE_SPLIT_SECONDARY based on splitIndex,
+     * so that callers unaware of the new SPLIT mode can still distinguish primary/secondary.
+     *
+     * @return WindowMode compatible with legacy behavior.
+     */
+    WindowMode GetWindowModeCompat() const;
+    WindowModeInfo GetWindowModeInfo() const;
     WindowLimits GetWindowLimits() const;
     WindowLimits GetWindowLimitsVP() const;
     WindowLimits GetUserWindowLimits() const;
@@ -308,6 +320,8 @@ public:
     HookWindowInfo GetHookWindowInfo() const;
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    void GetDragDisabledAreas(std::vector<Rect>& areas);
 
     /*
      * Window Lifecycle
@@ -547,6 +561,7 @@ private:
     uint32_t accessTokenId_ = INVALID_SESSION_ID;
     MaximizeMode maximizeMode_ = MaximizeMode::MODE_RECOVER;
     WindowMode windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    WindowModeInfo windowModeInfo_ {};
     WindowState windowState_ = WindowState::STATE_INITIAL;
     WindowLimits limits_;
     WindowLimits limitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
@@ -709,6 +724,9 @@ private:
     bool isMobileAppInPadLayoutFullScreen_ = false;
     std::atomic<bool> isForceSplitEnabled_ = false;
     bool isRotationLock_ = false;
+    
+    mutable std::mutex dragDisabledAreasMutex_;
+    std::vector<Rect> dragDisabledAreas_;
 
     /*
      * Window Focus

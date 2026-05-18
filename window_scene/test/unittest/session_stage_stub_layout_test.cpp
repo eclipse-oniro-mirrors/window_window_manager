@@ -493,6 +493,38 @@ HWTEST_F(SessionStageStubLayoutTest, HandleNotifyRebindAttachAfterParentChange02
     EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->HandleNotifyRebindAttachAfterParentChange(data, reply));
 }
 
+/**
+ * @tc.name: HandleSetDragActivated01
+ * @tc.desc: Test HandleSetDragActivated with valid bitmap
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubLayoutTest, HandleSetDragActivated01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+
+    uint32_t bitmap = 0xFFFFFFFF;
+    data.WriteUint32(bitmap);
+
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->HandleSetDragActivated(data, reply));
+}
+
+/**
+ * @tc.name: HandleSetDragActivated02
+ * @tc.desc: Test HandleSetDragActivated with ReadUint32 failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubLayoutTest, HandleSetDragActivated02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    // Don't write bitmap - will fail to read
+
+    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->HandleSetDragActivated(data, reply));
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

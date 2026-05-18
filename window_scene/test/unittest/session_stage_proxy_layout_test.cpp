@@ -801,6 +801,84 @@ HWTEST_F(SessionStageProxyLayoutTest, NotifyRebindAttachAfterParentChange05, Tes
     EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
 }
 
+/**
+ * @tc.name: SetDragActivated01
+ * @tc.desc: Test SetDragActivated success
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SetDragActivated01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    uint32_t bitmap = 0xFFFFFFFF;
+
+    WSError res = sessionStage_->SetDragActivated(bitmap);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: SetDragActivated02
+ * @tc.desc: Test SetDragActivated with WriteInterfaceToken error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SetDragActivated02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+
+    uint32_t bitmap = 0xFFFFFFFF;
+    WSError res = sessionStage_->SetDragActivated(bitmap);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: SetDragActivated03
+ * @tc.desc: Test SetDragActivated with WriteUint32 error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SetDragActivated03, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+
+    uint32_t bitmap = 0xFFFFFFFF;
+    WSError res = sessionStage_->SetDragActivated(bitmap);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: SetDragActivated04
+ * @tc.desc: Test SetDragActivated with null remote object
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SetDragActivated04, TestSize.Level1)
+{
+    auto sessionStage = sptr<SessionStageProxy>::MakeSptr(nullptr);
+
+    uint32_t bitmap = 0xFFFFFFFF;
+    WSError res = sessionStage->SetDragActivated(bitmap);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
+/**
+ * @tc.name: SetDragActivated05
+ * @tc.desc: Test SetDragActivated with SendRequest error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyLayoutTest, SetDragActivated05, TestSize.Level1)
+{
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+
+    uint32_t bitmap = 0xFFFFFFFF;
+    WSError res = failSendProxy->SetDragActivated(bitmap);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
