@@ -502,7 +502,7 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
     sptr<ISessionStage> sessionStage = iface_cast<ISessionStage>(sessionStageObject);
     sptr<IRemoteObject> eventChannelObject = data.ReadRemoteObject();
     sptr<IWindowEventChannel> eventChannel = iface_cast<IWindowEventChannel>(eventChannelObject);
-    NodeId surfaceNodeId = data.ReadUint64();
+    uint64_t surfaceNodeId = data.ReadUint64();
     if (sessionStage == nullptr || eventChannel == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
         return ERR_INVALID_DATA;

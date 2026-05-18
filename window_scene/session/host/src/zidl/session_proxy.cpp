@@ -265,7 +265,7 @@ WSError ReadCombinedCompatibleConfig(MessageParcel& reply, sptr<WindowSessionPro
 }
 
 WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    NodeId nodeId, SystemSessionConfig& systemConfig,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
     sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
