@@ -1243,6 +1243,36 @@ HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConfigureScreenScene
+ * @tc.desc: ConfigureScreenScene test with multiple configs
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    auto intBackup = ScreenSceneConfig::intNumbersConfig_;
+    auto enableBackup = ScreenSceneConfig::enableConfig_;
+    auto stringBackup = ScreenSceneConfig::stringConfig_;
+
+    ScreenSceneConfig::intNumbersConfig_.clear();
+    ScreenSceneConfig::enableConfig_.clear();
+    ScreenSceneConfig::stringConfig_.clear();
+
+    ssm_->ConfigureScreenScene();
+    EXPECT_EQ(0, ssm_->subDeviceRotationOffset_);
+
+    uint32_t subDeviceRotationOffset = 2;
+    ScreenSceneConfig::intNumbersConfig_["subDeviceRotationOffset"] = {subDeviceRotationOffset};
+    ssm_->subDeviceRotationOffset_ = 0;
+    ssm_->ConfigureScreenScene();
+    EXPECT_EQ(subDeviceRotationOffset, ssm_->subDeviceRotationOffset_);
+
+    ScreenSceneConfig::intNumbersConfig_ = intBackup;
+    ScreenSceneConfig::enableConfig_ = enableBackup;
+    ScreenSceneConfig::stringConfig_ = stringBackup;
+}
+
+/**
  * @tc.name: RegisterSettingCoordinationReadyObserver
  * @tc.desc: RegisterSettingCoordinationReadyObserver test
  * @tc.type: FUNC
