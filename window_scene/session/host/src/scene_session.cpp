@@ -3176,9 +3176,9 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
     if (isWindowFloatingOrSplit && isAvailableWindowType && isAvailableDevice && isAvailableScreen) {
         float vpr = 3.5f; // 3.5f: default pixel ratio
         auto display = DisplayManager::GetInstance().GetDefaultDisplay();
-        if (display == nullptr) { 
-            TLOGE(WmsLogTag::WMS_IMMS, "display is null"); 
-            return; 
+        if (display == nullptr) {
+            TLOGE(WmsLogTag::WMS_IMMS, "display is null");
+            return;
         }
         vpr = display->GetVirtualPixelRatio();
         bool isFloat = windowMode == WindowMode::WINDOW_MODE_FLOATING && !GetIsMidScene();
