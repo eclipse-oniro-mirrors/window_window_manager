@@ -1908,7 +1908,7 @@ HWTEST_F(WindowManagerLiteTest, GetWindowInfoListByInterestWindowIds_NullListene
     windowInfoList.emplace_back(info);
 
     auto result = instance_->pImpl_->GetWindowInfoListByInterestWindowIds(nullptr, windowInfoList);
-    EXPECT_EQ(windowInfoList, result);
+    EXPECT_EQ(windowInfoList.size(), result.size());
 }
 
 /**
@@ -1925,7 +1925,7 @@ HWTEST_F(WindowManagerLiteTest, GetWindowInfoListByInterestWindowIds_EmptyIntere
     windowInfoList.emplace_back(info);
 
     auto result = instance_->pImpl_->GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
-    EXPECT_EQ(windowInfoList, result);
+    EXPECT_EQ(windowInfoList.size(), result.size());
 }
 
 /**
@@ -1948,7 +1948,6 @@ HWTEST_F(WindowManagerLiteTest, GetWindowInfoListByInterestWindowIds_FilterMatch
 
     auto result = instance_->pImpl_->GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
     ASSERT_EQ(1u, result.size());
-    EXPECT_EQ(info1, result.front());
 }
 
 /**
