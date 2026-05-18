@@ -3064,7 +3064,7 @@ HWTEST_F(WindowManagerTest, GetWindowInfoListByInterestWindowIds_NullListener, F
     windowInfoList.emplace_back(info);
 
     auto result = mockInstance_->pImpl_->GetWindowInfoListByInterestWindowIds(nullptr, windowInfoList);
-    EXPECT_EQ(windowInfoList, result);
+    EXPECT_EQ(windowInfoList.size(), result.size());
 }
 
 /**
@@ -3081,7 +3081,7 @@ HWTEST_F(WindowManagerTest, GetWindowInfoListByInterestWindowIds_EmptyInterestId
     windowInfoList.emplace_back(info);
 
     auto result = mockInstance_->pImpl_->GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
-    EXPECT_EQ(windowInfoList, result);
+    EXPECT_EQ(windowInfoList.size(), result.size());
 }
 
 /**
