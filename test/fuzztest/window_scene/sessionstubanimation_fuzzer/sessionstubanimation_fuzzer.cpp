@@ -87,6 +87,10 @@ void SessionStageStubAnimationTest(sptr<WindowSessionImpl> stageStub, MessagePar
     stageStub->OnRemoteRequest(static_cast<uint32_t>
         (Rosen::SessionStageInterfaceCode::TRANS_ID_GET_SCENE_NODE_COUNT_WITH_CALLBACK),
         parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>
+        (Rosen::SessionStageInterfaceCode::TRANS_ID_NOTIFY_ORIENTATION_CHANGE),
+        parcel, reply, option);
 }
 
 bool DoSomethingInterestingWithMyAPI1(const uint8_t* data, size_t size)
