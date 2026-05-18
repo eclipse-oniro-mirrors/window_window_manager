@@ -38,12 +38,15 @@ public:
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
-    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError ShowKeyboard(uint32_t callingWindowId, uint64_t tgtDisplayId, KeyboardEffectOption effectOption) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
-    WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0) override;
+    WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0,
+        bool isFromInnerkits = false) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
@@ -515,7 +518,7 @@ protected:
     void RegisterWindowRecoverStateChangeListener();
 
 private:
-    WMError DestroyInner(bool needNotifyServer);
+    WMError DestroyInner(bool needNotifyServer, bool isFromInnerkits = false);
     WMError MainWindowCloseInner();
     WMError SyncDestroyAndDisconnectSpecificSession(int32_t persistentId);
     bool IsValidSystemWindowType(const WindowType& type);

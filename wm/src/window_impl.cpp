@@ -1840,7 +1840,7 @@ void WindowImpl::ClearVsyncStation()
     }
 }
 
-WMError WindowImpl::Destroy(uint32_t reason)
+WMError WindowImpl::Destroy(uint32_t reason, bool isFromInnerkits)
 {
     return Destroy(true, true, reason);
 }
@@ -1994,12 +1994,14 @@ bool WindowImpl::IsShowWithOptions() const
     return showWithOptions_;
 }
 
-WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus)
+WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus,
+    int32_t requestId, int32_t scbRequestId)
 {
-    return Show(reason, withAnimation, withFocus, false);
+    return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach)
+WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, __PRETTY_FUNCTION__);
     WLOGFD("Window Show [name:%{public}s, id:%{public}u, mode: %{public}u], reason:%{public}u, "

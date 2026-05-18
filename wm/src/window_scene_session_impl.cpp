@@ -2143,12 +2143,14 @@ void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<Display
     uiContent->PreLayout();
 }
 
-WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus)
+WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus,
+    int32_t requestId, int32_t scbRequestId)
 {
-    return Show(reason, withAnimation, withFocus, false);
+    return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach)
+WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
 {
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH)) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to current user, NotifyAfterForeground");
@@ -2168,8 +2170,9 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
 
-    TLOGI(WmsLogTag::WMS_LIFE, "Window show [name: %{public}s, id: %{public}d, type: %{public}u], reason: %{public}u,"
-        " state:%{public}u, requestState:%{public}u", property_->GetWindowName().c_str(),
+    TLOGI(WmsLogTag::WMS_LIFE, "[requestId: %{public}d][scbRequestId: %{public}d]Window show [name: %{public}s, "
+        "id: %{public}d, type: %{public}u], reason: %{public}u, state:%{public}u, requestState:%{public}u",
+        requestId, scbRequestId, property_->GetWindowName().c_str(),
         property_->GetPersistentId(), type, reason, state_, requestState_);
     auto isDecorEnable = IsDecorEnable();
     UpdateDecorEnableToAce(isDecorEnable);
@@ -2236,14 +2239,16 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         NotifyAfterDidForeground(reason);
         NotifyFreeMultiWindowModeResume();
         RefreshNoInteractionTimeoutMonitor();
-        TLOGI(WmsLogTag::WMS_LIFE, "Window show success [name:%{public}s, id:%{public}d, type:%{public}u]",
-            property_->GetWindowName().c_str(), GetPersistentId(), type);
+        TLOGI(WmsLogTag::WMS_LIFE, "[requestId: %{public}d][scbRequestId: %{public}d]Window show success "
+            "[name:%{public}s, id:%{public}d, type:%{public}u]",
+            requestId, scbRequestId, property_->GetWindowName().c_str(), GetPersistentId(), type);
         RecordWindowLifecycleChange("show");
     } else {
         RecordLifeCycleExceptionEvent(ret, WMErrorReason::WM_REASON_WINDOW_SHOW_ERR, "window show failed");
         NotifyForegroundFailed(ret);
-        TLOGI(WmsLogTag::WMS_LIFE, "Window show failed with errcode: %{public}d, name:%{public}s, id:%{public}d",
-            static_cast<int32_t>(ret), property_->GetWindowName().c_str(), GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LIFE, "[requestId: %{public}d][scbRequestId: %{public}d]Window show failed with "
+            "errcode: %{public}d, name:%{public}s, id:%{public}d",
+            requestId, scbRequestId, static_cast<int32_t>(ret), property_->GetWindowName().c_str(), GetPersistentId());
     }
     NotifyWindowStatusChange(GetWindowMode());
     NotifyWindowStatusDidChangeAfterShowWindow();
@@ -2352,7 +2357,8 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
 
     const auto type = GetType();
     TLOGI(WmsLogTag::WMS_LIFE, "Window hide [id:%{public}d, type: %{public}d, reason:%{public}u, state:%{public}u, "
-        "requestState:%{public}u", GetPersistentId(), type, reason, state_, requestState_);
+        "requestState:%{public}u, isFromInnerkits:%{public}d",
+        GetPersistentId(), type, reason, state_, requestState_, isFromInnerkits);
     if (IsWindowSessionInvalid()) {
         TLOGI(WmsLogTag::WMS_LIFE, "session is invalid, id:%{public}d", GetPersistentId());
         RecordLifeCycleExceptionEvent(WMError::WM_ERROR_INVALID_WINDOW,
@@ -2390,7 +2396,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
         if (res != WMError::WM_OK) {
             return res;
         }
-        res = static_cast<WMError>(hostSession->Background(true, identityToken_));
+        res = static_cast<WMError>(hostSession->Background(true, identityToken_, isFromInnerkits));
     } else if (WindowHelper::IsSystemOrSubWindow(type)) {
         if (waitDetach && !lifecycleCallback_ && !WindowHelper::IsKeyboardWindow(type) &&
             SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME) {
@@ -2559,7 +2565,7 @@ void WindowSceneSessionImpl::SetDefaultProperty()
     }
 }
 
-WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
+WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer, bool isFromInnerkits)
 {
     WMError ret = WMError::WM_OK;
     if (!WindowHelper::IsMainWindow(GetType()) && needNotifyServer) {
@@ -2585,7 +2591,7 @@ WMError WindowSceneSessionImpl::DestroyInner(bool needNotifyServer)
 
     if (WindowHelper::IsMainWindow(GetType())) {
         if (auto hostSession = GetHostSession()) {
-            ret = static_cast<WMError>(hostSession->Disconnect(true, identityToken_));
+            ret = static_cast<WMError>(hostSession->Disconnect(true, identityToken_, isFromInnerkits));
             RecordLifeCycleExceptionEvent(ret, WMErrorReason::WM_REASON_WINDOW_DESTROY_ERR, "window disconnect failed");
         }
     }
@@ -2661,11 +2667,12 @@ WindowLifeCycleInfo WindowSceneSessionImpl::GetWindowLifecycleInfo() const
     return lifeCycleInfo;
 }
 
-WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason)
+WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason,
+    bool isFromInnerkits)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy start, id:%{public}d, state:%{public}u, needNotifyServer:%{public}d, "
-        "needClearListener:%{public}d, reason:%{public}u", GetPersistentId(), state_, needNotifyServer,
-        needClearListener, reason);
+        "needClearListener:%{public}d, reason:%{public}u, isFromInnerkits:%{public}d", GetPersistentId(), state_,
+        needNotifyServer, needClearListener, reason, isFromInnerkits);
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::ABILITY_HOOK)) {
         return DestroyHookWindow();
     }
@@ -2679,7 +2686,7 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
     WindowInspector::GetInstance().UnregisterGetWMSWindowListCallback(GetWindowId());
     SingletonContainer::Get<WindowAdapter>().UnregisterSessionRecoverCallbackFunc(property_->GetPersistentId());
 
-    auto ret = DestroyInner(needNotifyServer);
+    auto ret = DestroyInner(needNotifyServer, isFromInnerkits);
     // nullptr means no session in server
     // main window ipc failed means no session in server
     if (ret != WMError::WM_OK && ret != WMError::WM_ERROR_NULLPTR &&

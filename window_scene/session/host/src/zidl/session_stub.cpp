@@ -421,7 +421,12 @@ int SessionStub::HandleBackground(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    const WSError errCode = Background(isFromClient, identityToken);
+    bool isFromInnerkits = false;
+    if (!data.ReadBool(isFromInnerkits)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isFromInnerkits failed.");
+        return ERR_INVALID_DATA;
+    }
+    const WSError errCode = Background(isFromClient, identityToken, isFromInnerkits);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }
@@ -435,7 +440,12 @@ int SessionStub::HandleDisconnect(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = Disconnect(isFromClient, identityToken);
+    bool isFromInnerkits = false;
+    if (!data.ReadBool(isFromInnerkits)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isFromInnerkits failed.");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = Disconnect(isFromClient, identityToken, isFromInnerkits);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }
