@@ -45,7 +45,7 @@ void DmsTestBase::TriggerScreenDisconnect(ScreenId screenId)
     RsMockImpl::GetInstance().TriggerScreenChange(screenId, ScreenEvent::DISCONNECTED, ScreenChangeReason::DEFAULT);
 }
 
-void DmsTestBase::TriggerRotaitonSensorEvent(int32_t rotationStatus)
+void DmsTestBase::TriggerRotationSensorEvent(int32_t rotationStatus)
 {
     RsMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_ROTATION, rotationStatus, 0, nullptr);
 }
