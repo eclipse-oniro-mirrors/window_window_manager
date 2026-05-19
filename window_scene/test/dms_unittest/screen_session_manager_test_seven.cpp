@@ -1244,10 +1244,10 @@ HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene, TestSize.Level1)
 
 /**
  * @tc.name: ConfigureScreenScene
- * @tc.desc: ConfigureScreenScene test with multiple configs
+ * @tc.desc: ConfigureScreenScene test subDeviceRotationOffset
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene_testSubDeviceRotationOffset, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     auto intBackup = ScreenSceneConfig::intNumbersConfig_;
