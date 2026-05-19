@@ -1524,6 +1524,21 @@ HWTEST_F(WindowSessionPropertyTest, GetDisplayId, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetKeyboardTargetDisplayId
+ * @tc.desc: GetKeyboardTargetDisplayId
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetKeyboardTargetDisplayId, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    DisplayId keyboardTargetDisplayId = 100;
+    property->SetKeyboardTargetDisplayId(keyboardTargetDisplayId);
+    auto result = property->GetKeyboardTargetDisplayId();
+    ASSERT_EQ(result, keyboardTargetDisplayId);
+}
+
+/**
  * @tc.name: GetPersistentId
  * @tc.desc: GetPersistentId
  * @tc.type: FUNC

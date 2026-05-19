@@ -415,6 +415,8 @@ public:
     bool IsSystemKeyboard() const;
     void SetKeyboardEffectOption(const KeyboardEffectOption& effectOption);
     KeyboardEffectOption GetKeyboardEffectOption() const;
+    void SetKeyboardTargetDisplayId(DisplayId displayId);
+    DisplayId GetKeyboardTargetDisplayId() const;
     mutable std::mutex keyboardMutex_;
 
     /*
@@ -689,6 +691,7 @@ private:
      */
     bool isSystemKeyboard_ = false;
     KeyboardEffectOption keyboardEffectOption_;
+    DisplayId keyboardTargetDisplayId_ = 0;
 
     /*
      * Window Immersive
