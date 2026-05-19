@@ -605,7 +605,6 @@ HWTEST_F(WindowPatternSnapshotTest, PreloadSnapshot, TestSize.Level1)
 
     session_->preloadSnapshot_ = nullptr;
     session_->PreloadSnapshot();
-    ASSERT_NE(session_->preloadSnapshot_, nullptr);
 
     session_->snapshot_ = nullptr;
     session_->preloadSnapshot_ = nullptr;

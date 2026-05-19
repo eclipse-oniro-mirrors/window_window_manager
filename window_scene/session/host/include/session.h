@@ -502,6 +502,8 @@ public:
     void SetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition, bool value);
     bool GetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition);
     void SetSessionInfoWindowMode(int32_t windowMode);
+    void SetDeviceType(const std::string& deviceType);
+    const std::string& GetDeviceType() const;
     void SetSessionInfoRequestId(int32_t requestId);
     int32_t GetSessionInfoRequestId() const;
     void SetSessionInfoScbRequestId(int32_t scbRequestId);
@@ -1094,6 +1096,7 @@ protected:
     int32_t persistentId_ = INVALID_SESSION_ID;
     std::atomic<SessionState> state_ = SessionState::STATE_DISCONNECT;
     SessionInfo sessionInfo_;
+    std::string deviceType_ = "unknown";
     std::recursive_mutex sessionInfoMutex_;
 
     mutable std::mutex surfaceNodeMutex_;

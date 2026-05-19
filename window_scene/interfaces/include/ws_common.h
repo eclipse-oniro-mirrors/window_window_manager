@@ -1098,6 +1098,7 @@ struct AppWindowSceneConfig {
     StartingWindowAnimationConfig startingWindowAnimationConfig_;
     SystemUIStatusBarConfig systemUIStatusBarConfig_;
     WindowImmersive windowImmersive_;
+    std::string deviceType_ = "unknown";
 };
 
 struct SingleHandCompatibleModeConfig {
