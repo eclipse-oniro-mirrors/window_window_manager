@@ -1626,8 +1626,7 @@ HWTEST_F(SceneSessionManagerTest10, FilterForListWindowInfo01, TestSize.Level1)
 
 /**
  * @tc.name: FilterForListWindowInfo02
- * @tc.desc: EXCLUDE_SYSTEM
- * @tc.type: FUNC
+ * @tc.desc: EXCLUDE_SYSTEM 
  */
 HWTEST_F(SceneSessionManagerTest10, FilterForListWindowInfo02, TestSize.Level1)
 {
