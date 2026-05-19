@@ -15772,10 +15772,8 @@ void SceneSessionManager::ProcessFocusZOrderChange(uint32_t dirty)
     RequestSessionFocus(voiceInteractionSession->GetPersistentId(), true, FocusChangeReason::VOICE_INTERACTION);
 }
 
-void SceneSessionManager::PostProcessFocus()
+std::vector<std::pair<int32_t, sptr<SceneSession>>> SceneSessionManager::CollectProcessingSessions()
 {
-    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::PostProcessFocus");
-    // priority process focus requests from top to bottom
     std::vector<std::pair<int32_t, sptr<SceneSession>>> processingSessions;
     {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
@@ -15798,6 +15796,14 @@ void SceneSessionManager::PostProcessFocus()
         return focusCmp || lhsZOrder > rhsZOrder;
     };
     std::sort(processingSessions.begin(), processingSessions.end(), cmp);
+    return processingSessions;
+}
+
+void SceneSessionManager::PostProcessFocus()
+{
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::PostProcessFocus");
+    // priority process focus requests from top to bottom
+    auto processingSessions = CollectProcessingSessions();
 
     // only change focus one time
     std::unordered_set<DisplayId> focusChangedSet;
