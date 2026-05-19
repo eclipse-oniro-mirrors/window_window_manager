@@ -3299,12 +3299,19 @@ void SceneSession::ForceNotifyKeyboardOccupiedArea()
 
 void SceneSession::GetCutoutAvoidArea(WSRect& rect, AvoidArea& avoidArea)
 {
-    auto display = DisplayManager::GetInstance().GetDisplayById(GetSessionProperty()->GetDisplayId());
-    if (display == nullptr) {
-        TLOGE(WmsLogTag::WMS_IMMS, "Failed to get display");
-        return;
+    sptr<CutoutInfo> cutoutInfo = nullptr;
+    if (sessionInfo_.isGamePrelaunch_) {
+        uint32_t rotation = MIN_ROTATION_VALUE;
+        auto property = PreCalcWindowProperty();
+        ConvertRotationToOrientation(property.rotation, property.width, property.height, rotation);
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d rotation %{public}d to %{public}d, wh [%{public}d, %{public}d]",
+            GetPersistentId(), property.rotation, rotation, property.width, property.height);
+        cutoutInfo = DisplayManager::GetInstance().GetCutoutInfoWithRotation(
+            static_cast<Rotation>(rotation), property.width, property.height);
+    } else {
+        auto display = DisplayManager::GetInstance().GetDisplayById(GetSessionProperty()->GetDisplayId());
+        cutoutInfo = display ? display->GetCutoutInfo() : nullptr;
     }
-    sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo();
     if (cutoutInfo == nullptr) {
         TLOGI(WmsLogTag::WMS_IMMS, "There is no cutout info");
         return;
