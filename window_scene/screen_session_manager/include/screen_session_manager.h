@@ -1266,6 +1266,16 @@ private:
     void InitScreenActiveModeRectMap();
     void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
 
+    // custom resolution
+    void RegisterSettingCustomResolutionObserver();
+    void HandleCustomResolutionChange();
+    void SetCustomResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height);
+    void RecoveryCustomResolutionEffect();
+    bool HasExternalScreen();
+    void RestoreCustomResolution();
+    uint32_t customResolutionWidth_ = 0;
+    uint32_t customResolutionHeight_ = 0;
+
     std::map<ScreenId, ScreenPowerStatus> screenPowerStatusMap_;
     std::mutex screenPowerStatusMapMutex_;
     std::function<void(sptr<ScreenSession>& screenSession,
