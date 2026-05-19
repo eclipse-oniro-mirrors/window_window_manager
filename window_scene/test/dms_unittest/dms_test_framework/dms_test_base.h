@@ -135,7 +135,7 @@ public:
     static bool WaitScreenDisconnectFinish(ScreenId screenId);
 
     static void TriggerRotationSensorEvent(int32_t rotationStatus);
-    static void TriggerTentSensorEvent(int32_t dataLen, int32_t* data);
+    static void TriggerTentSensorEvent(int32_t status, int32_t dataLen, int32_t* data);
 
     static bool CreatScreen(ScreenId screenId);
 };

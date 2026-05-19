@@ -47,12 +47,12 @@ void DmsTestBase::TriggerScreenDisconnect(ScreenId screenId)
 
 void DmsTestBase::TriggerRotationSensorEvent(int32_t rotationStatus)
 {
-    RsMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_ROTATION, rotationStatus, 0, nullptr);
+    SensorPluginMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_ROTATION, rotationStatus, 0, nullptr);
 }
 
-void DmsTestBase::TriggerTentSensorEvent(int32_t status, int32_t dataLen, int32_t* data, )
+void DmsTestBase::TriggerTentSensorEvent(int32_t status, int32_t dataLen, int32_t* data)
 {
-    RsMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_TENT, status, dataLen, data);
+    SensorPluginMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_TENT, status, dataLen, data);
 }
 
 bool DmsTestBase::WaitScreenConnectFinish(ScreenId screenId)
