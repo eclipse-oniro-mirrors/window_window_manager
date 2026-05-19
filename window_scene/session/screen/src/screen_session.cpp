@@ -3463,6 +3463,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
         screenProperty.SetScreenRealHeight(eventPara.GetScreenRealHeight());
         TLOGI(WmsLogTag::DMS, "ProcPropertyChange : Orientation= %{public}u", deviceOrientation);
     }
+    screenProperty.SetDefaultDeviceRotationOffset(eventPara.GetDefaultDeviceRotationOffset());
     screenProperty.SetPhysicalTouchBounds(GetRotationCorrection(eventPara.GetDisplayMode()));
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() || FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
         screenProperty.SetValidHeight(screenProperty.GetBounds().rect_.GetHeight());
