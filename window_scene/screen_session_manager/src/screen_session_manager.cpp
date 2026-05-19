@@ -138,6 +138,7 @@ const ScreenId CONTROL_PANEL_PHYSICAL_ID = 0;
 const ScreenId CO_DRIVER_PANEL_PHYSICAL_ID = 6;
 constexpr int32_t INVALID_SCB_PID = -1;
 static bool g_foldScreenFlag = system::GetParameter("const.window.foldscreen.type", "") != "";
+static bool g_setLocalResolution = system::GetIntParameter<int32_t>("const.settings.inner_display_resolution", 0);
 static const int32_t g_screenRotationOffSet = system::GetIntParameter<int32_t>("const.fold.screen_rotation.offset", 0);
 static const int32_t ROTATION_90 = 1;
 #ifdef FOLD_ABILITY_ENABLE
@@ -2075,6 +2076,12 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
+
+    if (g_setLocalResolution && screenSession != nullptr && screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL &&
+        !screenSession->isInternal_) {
+        TLOGNFI(WmsLogTag::DMS, "External screen connected, disable custom resolution");
+        RecoveryCustomResolutionEffect();
+    }
     if (phyMirrorEnable || (IsConcurrentUser() && screenId != SCREEN_ID_DEFAULT)) {
         TLOGNFW(WmsLogTag::DMS, "HandleScreenConnectEven. SCreenId: %{public}" PRIu64, screenSession->GetScreenId());
         NotifyScreenConnected(screenSession->ConvertToScreenInfo());
@@ -2253,6 +2260,14 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
     }
     if (!g_isPcDevice && phyMirrorEnable) {
         UnregisterSettingWireCastObserver(screenId);
+    }
+
+    if (g_setLocalResolution && screenSession != nullptr && screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL &&
+        !screenSession->isInternal_) {
+        TLOGNFI(WmsLogTag::DMS, "External screen disconnected, check if need restore custom resolution");
+        if (!HasExternalScreen()) {
+            RestoreCustomResolution();
+        }
     }
     TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
 }
@@ -6483,6 +6498,9 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         that.RegisterSettingRotationObserver();
         that.RegisterSettingResolutionEffectObserver();
         that.RegisterSettingOsSwitchStatusObserver();
+        if (g_setLocalResolution) {
+            that.RegisterSettingCustomResolutionObserver();
+        }
         that.RegisterSettingCoordinationReadyObserver();
         if (that.defaultDpi) {
             uint32_t initDefaultDpi;
@@ -6668,6 +6686,155 @@ void ScreenSessionManager::HandleOsSwitchResolutionStatusChange(const std::strin
     }
 }
 
+void ScreenSessionManager::RegisterSettingCustomResolutionObserver()
+{
+    TLOGNFI(WmsLogTag::DMS, "Register Setting Custom Resolution Observer");
+    SettingObserver::UpdateFunc updateFunc = [&](const std::string& key) { HandleCustomResolutionChange(); };
+    ScreenSettingHelper::RegisterSettingCustomResolutionObserver(DmUtils::wrap_callback(updateFunc));
+}
+
+void ScreenSessionManager::HandleCustomResolutionChange()
+{
+    TLOGNFI(WmsLogTag::DMS, "HandleCustomResolutionChange start");
+    uint32_t width = 0;
+    uint32_t height = 0;
+    if (!ScreenSettingHelper::GetCustomResolution(width, height)) {
+        TLOGNFE(WmsLogTag::DMS, "GetCustomResolution failed");
+        return;
+    }
+    if (width <= 0 || height <= 0) {
+        TLOGNFE(WmsLogTag::DMS, "invalid custom resolution");
+        return;
+    }
+    customResolutionWidth_ = width;
+    customResolutionHeight_ = height;
+    TLOGNFI(WmsLogTag::DMS, "width:%{public}u, height:%{public}u", width, height);
+
+    if (HasExternalScreen()) {
+        TLOGNFI(WmsLogTag::DMS, "Has external screen, custom resolution not applied");
+        return;
+    }
+
+    sptr<ScreenSession> internalSession = GetInternalScreenSession();
+    if (internalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "internalSession is null");
+        return;
+    }
+    SetCustomResolutionEffect(internalSession->GetScreenId(), width, height);
+}
+
+void ScreenSessionManager::SetCustomResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height)
+{
+    TLOGNFI(WmsLogTag::DMS, "SetCustomResolutionEffect screenId:%{public}" PRIu64
+        ", width:%{public}u, height:%{public}u", screenId, width, height);
+    sptr<ScreenSession> internalSession = GetInternalScreenSession();
+    if (internalSession == nullptr || internalSession->GetScreenId() != screenId) {
+        TLOGNFE(WmsLogTag::DMS, "internalSession is null or screenId mismatch");
+        return;
+    }
+    uint32_t realWidth = internalSession->GetScreenProperty().GetScreenRealWidth();
+    uint32_t realHeight = internalSession->GetScreenProperty().GetScreenRealHeight();
+    if (width > realWidth || height > realHeight) {
+        TLOGNFE(WmsLogTag::DMS, "custom resolution exceeds real resolution");
+        return;
+    }
+    DMRect targetRect = {
+        static_cast<int32_t>(std::floor((realWidth - width) / 2)),
+        static_cast<int32_t>(std::floor((realHeight - height) / 2)),
+        width,
+        height
+    };
+    TLOGNFI(WmsLogTag::DMS, "targetRect posX:%{public}d, posY:%{public}d, width:%{public}u, height:%{public}u",
+        targetRect.posX_, targetRect.posY_, targetRect.width_, targetRect.height_);
+
+    auto oldProperty = internalSession->GetScreenProperty();
+    auto newProperty = internalSession->GetPropertyByResolution(targetRect);
+    newProperty.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    newProperty.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::RESOLUTION_EFFECT_CHANGE);
+    internalSession->NotifyListenerPropertyChange(newProperty, ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    oldProperty.SetInputOffset(newProperty.GetInputOffsetX(), newProperty.GetInputOffsetY());
+
+    if (GetSuperFoldStatus() != SuperFoldStatus::KEYBOARD) {
+        TLOGNFE(WmsLogTag::DMS, "GetSuperFoldStatus SuperFoldStatus::KEYBOARD");
+        oldProperty.SetScreenAreaWidth(newProperty.GetScreenAreaWidth());
+        oldProperty.SetScreenAreaHeight(newProperty.GetScreenAreaHeight());
+        oldProperty.SetMirrorWidth(newProperty.GetMirrorWidth());
+        oldProperty.SetMirrorHeight(newProperty.GetMirrorHeight());
+    }
+
+    internalSession->SetScreenProperty(oldProperty);
+
+    auto clientProxy = GetClientProxy();
+    if (clientProxy == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "clientProxy_ is null");
+        return;
+    }
+    TLOGNFE(WmsLogTag::DMS, "SetInternalClipToBounds");
+    clientProxy->SetInternalClipToBounds(internalSession->GetScreenId(), true);
+    NotifyScreenModeChange();
+}
+
+void ScreenSessionManager::RecoveryCustomResolutionEffect()
+{
+    TLOGNFI(WmsLogTag::DMS, "RecoveryCustomResolutionEffect start");
+    sptr<ScreenSession> internalSession = GetInternalScreenSession();
+    if (internalSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "internalSession is null");
+        return;
+    }
+    auto internalProperty = internalSession->GetScreenProperty();
+    DMRect realResolutionRect = {
+        0, 0,
+        internalProperty.GetScreenRealWidth(),
+        internalProperty.GetScreenRealHeight()
+    };
+    TLOGNFI(WmsLogTag::DMS, "realResolutionRect width:%{public}u, height:%{public}u",
+        realResolutionRect.width_, realResolutionRect.height_);
+
+    auto oldProperty = internalSession->GetScreenProperty();
+    auto newProperty = internalSession->GetPropertyByResolution(realResolutionRect);
+    newProperty.SetPropertyChangeReason(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    internalSession->NotifyListenerPropertyChange(newProperty, ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
+    oldProperty.SetInputOffset(0, 0);
+    oldProperty.SetScreenAreaWidth(realResolutionRect.width_);
+    oldProperty.SetScreenAreaHeight(realResolutionRect.height_);
+    oldProperty.SetMirrorWidth(realResolutionRect.width_);
+    oldProperty.SetMirrorHeight(realResolutionRect.height_);
+    internalSession->SetScreenProperty(oldProperty);
+
+    auto clientProxy = GetClientProxy();
+    if (clientProxy != nullptr) {
+        clientProxy->SetInternalClipToBounds(internalSession->GetScreenId(), false);
+    }
+    NotifyScreenModeChange();
+}
+
+bool ScreenSessionManager::HasExternalScreen()
+{
+    sptr<ScreenSession> externalSession = GetExternalSession();
+    if (externalSession != nullptr && externalSession->GetIsCurrentInUse()) {
+        TLOGNFI(WmsLogTag::DMS, "Has wired external screen");
+        return true;
+    }
+    return false;
+}
+
+void ScreenSessionManager::RestoreCustomResolution()
+{
+    uint32_t width = 0;
+    uint32_t height = 0;
+    if (ScreenSettingHelper::GetCustomResolution(width, height)) {
+        TLOGNFI(WmsLogTag::DMS, "Restore custom resolution width:%{public}u, height:%{public}u",
+            width, height);
+        customResolutionWidth_ = width;
+        customResolutionHeight_ = height;
+        ScreenSettingHelper::SetCustomResolution(width, height);
+        sptr<ScreenSession> internalSession = GetInternalScreenSession();
+        if (internalSession != nullptr) {
+            SetCustomResolutionEffect(internalSession->GetScreenId(), width, height);
+        }
+    }
+}
 void ScreenSessionManager::RegisterSettingDpiObserver()
 {
     TLOGNFI(WmsLogTag::DMS, "Register Setting Dpi Observer");
@@ -12392,6 +12559,10 @@ void ScreenSessionManager::HandleResolutionEffectAfterSwitchUser() {
         // After switching users, the listener will become invalid and needs to be re-registered. 
         ScreenSettingHelper::UnregisterSettingResolutionEffectObserver();
         RegisterSettingResolutionEffectObserver();
+        if (g_setLocalResolution) {
+            ScreenSettingHelper::UnregisterSettingCustomResolutionObserver();
+            RegisterSettingCustomResolutionObserver();
+        }
     }
     //ensure updateavilibearea success after switch user
     auto internalSession = GetInternalScreenSession();

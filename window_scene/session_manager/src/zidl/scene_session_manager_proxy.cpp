@@ -106,7 +106,6 @@ WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISe
     }
 
     uint32_t level = 0;
-
     if (!reply.ReadUint32(level)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read level failed");
         return WSError::WS_ERROR_IPC_FAILED;

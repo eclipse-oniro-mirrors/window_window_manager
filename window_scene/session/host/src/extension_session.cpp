@@ -255,7 +255,9 @@ WSError ExtensionSession::ConnectInner(
         auto ret = session->Session::ConnectInner(
             sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode, property, token, pid, uid);
         renderSession = RSUIContextContainer::GetRenderSession();
-        TLOGI(WmsLogTag::WMS_LIFE, "renderSession is %{public}p", renderSession.GetRefPtr());
+        if (renderSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "renderSession is nullptr");
+        }
         return ret;
     };
     return PostSyncTask(task, "ConnectInner");
@@ -513,7 +515,7 @@ AvoidArea ExtensionSession::GetAvoidAreaByType(AvoidAreaType type, const WSRect&
     return avoidArea;
 }
 
-WSError ExtensionSession::Background(bool isFromClient, const std::string& identityToken)
+WSError ExtensionSession::Background(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "Background ExtensionSession, id: %{public}d, state: %{public}" PRIu32"",

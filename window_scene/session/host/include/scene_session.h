@@ -254,11 +254,14 @@ public:
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     WSError BackgroundTask(const bool isSaveSnapshot = true,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError DisconnectTask(bool isFromClient = false, bool isSaveSnapshot = true);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT,
+        bool isFromInnerkits = false);
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError DisconnectTask(bool isFromClient = false, bool isSaveSnapshot = true, bool isFromInnerkits = false);
     void SetClientIdentityToken(const std::string& clientIdentityToken);
     virtual void BindKeyboardPanelSession(sptr<SceneSession> panelSession) {};
     virtual sptr<SceneSession> GetKeyboardPanelSession() const { return nullptr; };
