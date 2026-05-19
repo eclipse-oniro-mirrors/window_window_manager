@@ -30,6 +30,7 @@ export default namespace floatView {
     start(): Promise<void>;
     stop(): Promise<void>;
     setUIContext(path: string, contentStorage?: LocalStorage): Promise<void>;
+    setUIContextByName(name: string, contentStorage?: LocalStorage): Promise<void>;
     setFloatViewVisibilityInApp(visibleInApp: boolean): Promise<void>;
     setWindowSize(size: window.Size): Promise<void>;
     getWindowProperties(): FloatViewProperties;
@@ -262,6 +263,18 @@ export default namespace floatView {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         try {
           this.setUIContextNative(this.nativeObj, path, contentStorage);
+          resolve(undefined);
+        } catch (err) {
+          reject(err as BusinessError);
+        }
+      });
+    }
+
+    public native setUIContextByNameNative(nativeObj: long, name: string, contentStorage?: LocalStorage): void;
+    public setUIContextByName(name: string, contentStorage?: LocalStorage): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        try {
+          this.setUIContextByNameNative(this.nativeObj, name, contentStorage);
           resolve(undefined);
         } catch (err) {
           reject(err as BusinessError);

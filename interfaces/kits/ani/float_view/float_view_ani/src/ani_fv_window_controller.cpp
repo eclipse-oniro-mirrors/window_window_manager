@@ -174,10 +174,25 @@ void AniFvController::SetUIContextAni(ani_env* env, ani_object obj, ani_long nat
             "Float view controller is not available.");
         return;
     }
-    aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage);
+    aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage, false);
 }
 
-void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani_object contentStorage)
+void AniFvController::SetUIContextByNameAni(ani_env* env, ani_object obj, ani_long nativeObj,
+    ani_string contextUrl, ani_object contentStorage)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContextByNameAni start");
+    AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
+    if (aniFvController == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
+        return;
+    }
+    aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage, true);
+}
+
+void AniFvController::OnSetUIContextAni(ani_env* env,
+    ani_string contextUrl, ani_object contentStorage, bool isLoadByName)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
@@ -196,7 +211,7 @@ void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "The ui path is empty.");
         return;
     }
-    WMError errCode = fvController_->SetUIContext(url, contentStorage);
+    WMError errCode = fvController_->SetUIContext(url, contentStorage, isLoadByName);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContext failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set UI content.");
@@ -617,6 +632,8 @@ auto GetNativeMethod()
             reinterpret_cast<void*>(AniFvController::StopFloatViewAni)},
         ani_native_function{"setUIContextNative", nullptr,
             reinterpret_cast<void*>(AniFvController::SetUIContextAni)},
+        ani_native_function{"setUIContextByNameNative", nullptr,
+            reinterpret_cast<void*>(AniFvController::SetUIContextByNameAni)},
         ani_native_function{"setFloatViewVisibilityInAppNative", nullptr,
             reinterpret_cast<void*>(AniFvController::SetFloatViewVisibilityInAppAni)},
         ani_native_function{"setWindowSizeNative", nullptr,
