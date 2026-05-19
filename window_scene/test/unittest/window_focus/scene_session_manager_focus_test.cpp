@@ -364,34 +364,6 @@ HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus04, TestSize.Level1)
 }
 
 /**
- * @tc.name: PostProcessFocus05
- * @tc.desc: test PostProcessFocus with isFocused but not visible
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus05, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.clear();
-    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
-    focusGroup->SetFocusedSessionId(0);
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus05";
-    sessionInfo.abilityName_ = "PostProcessFocus05";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sceneSession->persistentId_ = 1;
-    sceneSession->SetFocusedOnShow(true);
-    sceneSession->SetSessionState(SessionState::STATE_BACKGROUND);
-    sceneSession->isVisible_ = false;
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_NE(focusGroup->GetFocusedSessionId(), 1);
-
-    ssm_->sceneSessionMap_.erase(1);
-}
-
-/**
  * @tc.name: PostProcessFocus06
  * @tc.desc: test PostProcessFocus with SCB_START_APP and DelayFocusChange
  * @tc.type: FUNC
@@ -638,37 +610,6 @@ HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus12, TestSize.Level1)
 }
 
 /**
- * @tc.name: PostProcessFocus13
- * @tc.desc: test PostProcessFocus with nullptr session in processingSessions
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus13, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.clear();
-    ssm_->sceneSessionMap_.emplace(0, nullptr);
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus13";
-    sessionInfo.abilityName_ = "PostProcessFocus13";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sceneSession->persistentId_ = 1;
-    sceneSession->SetFocusedOnShow(true);
-    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
-    sceneSession->isVisible_ = true;
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-
-    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
-    focusGroup->SetFocusedSessionId(0);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(focusGroup->GetFocusedSessionId(), 1);
-
-    ssm_->sceneSessionMap_.erase(0);
-    ssm_->sceneSessionMap_.erase(1);
-}
-
-/**
  * @tc.name: PostProcessFocus14
  * @tc.desc: test PostProcessFocus with focusCmp sorting (isFocused priority)
  * @tc.type: FUNC
@@ -705,6 +646,291 @@ HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus14, TestSize.Level1)
     ssm_->sceneSessionMap_.emplace(2, sceneSession2);
     ssm_->PostProcessFocus();
     EXPECT_EQ(focusGroup->GetFocusedSessionId(), 1);
+
+    ssm_->sceneSessionMap_.erase(1);
+    ssm_->sceneSessionMap_.erase(2);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions01
+ * @tc.desc: test CollectProcessingSessions with empty sceneSessionMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions01, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_TRUE(sessions.empty());
+}
+
+/**
+ * @tc.name: CollectProcessingSessions02
+ * @tc.desc: test CollectProcessingSessions with nullptr session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions02, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.emplace(0, nullptr);
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_TRUE(sessions.empty());
+    ssm_->sceneSessionMap_.erase(0);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions03
+ * @tc.desc: test CollectProcessingSessions with disabled state
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions03, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions03";
+    sessionInfo.abilityName_ = "CollectProcessingSessions03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    PostProcessFocusState state = { false, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession->SetPostProcessFocusState(state);
+    ssm_->sceneSessionMap_.emplace(1, sceneSession);
+    
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_TRUE(sessions.empty());
+    ssm_->sceneSessionMap_.erase(1);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions04
+ * @tc.desc: test CollectProcessingSessions with isFocused but not visible
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions04, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions04";
+    sessionInfo.abilityName_ = "CollectProcessingSessions04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->isVisible_ = false;
+    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession->SetPostProcessFocusState(state);
+    ssm_->sceneSessionMap_.emplace(1, sceneSession);
+    
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_TRUE(sessions.empty());
+    ssm_->sceneSessionMap_.erase(1);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions05
+ * @tc.desc: test CollectProcessingSessions with valid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions05, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions05";
+    sessionInfo.abilityName_ = "CollectProcessingSessions05";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->isVisible_ = true;
+    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession->SetPostProcessFocusState(state);
+    ssm_->sceneSessionMap_.emplace(1, sceneSession);
+    
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_EQ(sessions.size(), 1);
+    ssm_->sceneSessionMap_.erase(1);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions06
+ * @tc.desc: test CollectProcessingSessions with multiple sessions sorted by ZOrder
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions06, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions06";
+    sessionInfo.abilityName_ = "CollectProcessingSessions06";
+
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession1->persistentId_ = 1;
+    sceneSession1->SetZOrder(100);
+    sceneSession1->isVisible_ = true;
+    PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession1->SetPostProcessFocusState(state1);
+
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession2->persistentId_ = 2;
+    sceneSession2->SetZOrder(50);
+    sceneSession2->isVisible_ = true;
+    PostProcessFocusState state2 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession2->SetPostProcessFocusState(state2);
+
+    ssm_->sceneSessionMap_.emplace(1, sceneSession1);
+    ssm_->sceneSessionMap_.emplace(2, sceneSession2);
+
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_EQ(sessions.size(), 2);
+    EXPECT_EQ(sessions[0]->GetZOrder(), 100);
+    EXPECT_EQ(sessions[1]->GetZOrder(), 50);
+
+    ssm_->sceneSessionMap_.erase(1);
+    ssm_->sceneSessionMap_.erase(2);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions07
+ * @tc.desc: test CollectProcessingSessions with isFocused priority in sorting
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions07, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions07";
+    sessionInfo.abilityName_ = "CollectProcessingSessions07";
+
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession1->persistentId_ = 1;
+    sceneSession1->SetZOrder(50);
+    sceneSession1->isVisible_ = true;
+    PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession1->SetPostProcessFocusState(state1);
+
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession2->persistentId_ = 2;
+    sceneSession2->SetZOrder(100);
+    sceneSession2->isVisible_ = true;
+    PostProcessFocusState state2 = { true, false, true, FocusChangeReason::DEFAULT };
+    sceneSession2->SetPostProcessFocusState(state2);
+
+    ssm_->sceneSessionMap_.emplace(1, sceneSession1);
+    ssm_->sceneSessionMap_.emplace(2, sceneSession2);
+
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_EQ(sessions.size(), 2);
+    EXPECT_EQ(sessions[0]->GetPersistentId(), 1);
+
+    ssm_->sceneSessionMap_.erase(1);
+    ssm_->sceneSessionMap_.erase(2);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions08
+ * @tc.desc: test CollectProcessingSessions with mix of nullptr and valid sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions08, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions08";
+    sessionInfo.abilityName_ = "CollectProcessingSessions08";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->persistentId_ = 1;
+    sceneSession->isVisible_ = true;
+    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession->SetPostProcessFocusState(state);
+
+    ssm_->sceneSessionMap_.emplace(0, nullptr);
+    ssm_->sceneSessionMap_.emplace(1, sceneSession);
+    ssm_->sceneSessionMap_.emplace(2, nullptr);
+
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_EQ(sessions.size(), 1);
+    EXPECT_EQ(sessions[0]->GetPersistentId(), 1);
+
+    ssm_->sceneSessionMap_.erase(0);
+    ssm_->sceneSessionMap_.erase(1);
+    ssm_->sceneSessionMap_.erase(2);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions09
+ * @tc.desc: test CollectProcessingSessions returns sorted vector
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions09, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions09";
+    sessionInfo.abilityName_ = "CollectProcessingSessions09";
+
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession1->persistentId_ = 1;
+    sceneSession1->SetZOrder(30);
+    sceneSession1->isVisible_ = true;
+    PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession1->SetPostProcessFocusState(state1);
+
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession2->persistentId_ = 2;
+    sceneSession2->SetZOrder(60);
+    sceneSession2->isVisible_ = true;
+    PostProcessFocusState state2 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession2->SetPostProcessFocusState(state2);
+
+    sptr<SceneSession> sceneSession3 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession3->persistentId_ = 3;
+    sceneSession3->SetZOrder(90);
+    sceneSession3->isVisible_ = true;
+    PostProcessFocusState state3 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession3->SetPostProcessFocusState(state3);
+
+    ssm_->sceneSessionMap_.emplace(1, sceneSession1);
+    ssm_->sceneSessionMap_.emplace(2, sceneSession2);
+    ssm_->sceneSessionMap_.emplace(3, sceneSession3);
+
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_EQ(sessions.size(), 3);
+    EXPECT_EQ(sessions[0]->GetZOrder(), 90);
+    EXPECT_EQ(sessions[1]->GetZOrder(), 60);
+    EXPECT_EQ(sessions[2]->GetZOrder(), 30);
+
+    ssm_->sceneSessionMap_.erase(1);
+    ssm_->sceneSessionMap_.erase(2);
+    ssm_->sceneSessionMap_.erase(3);
+}
+
+/**
+ * @tc.name: CollectProcessingSessions10
+ * @tc.desc: test CollectProcessingSessions with same ZOrder different isFocused
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions10, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "CollectProcessingSessions10";
+    sessionInfo.abilityName_ = "CollectProcessingSessions10";
+
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession1->persistentId_ = 1;
+    sceneSession1->SetZOrder(100);
+    sceneSession1->isVisible_ = true;
+    PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession1->SetPostProcessFocusState(state1);
+
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession2->persistentId_ = 2;
+    sceneSession2->SetZOrder(100);
+    sceneSession2->isVisible_ = true;
+    PostProcessFocusState state2 = { true, false, true, FocusChangeReason::DEFAULT };
+    sceneSession2->SetPostProcessFocusState(state2);
+
+    ssm_->sceneSessionMap_.emplace(1, sceneSession1);
+    ssm_->sceneSessionMap_.emplace(2, sceneSession2);
+
+    auto sessions = ssm_->CollectProcessingSessions();
+    EXPECT_EQ(sessions.size(), 2);
+    EXPECT_EQ(sessions[0]->GetPersistentId(), 1);
 
     ssm_->sceneSessionMap_.erase(1);
     ssm_->sceneSessionMap_.erase(2);
