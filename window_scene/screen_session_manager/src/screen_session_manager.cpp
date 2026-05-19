@@ -5172,7 +5172,11 @@ static std::vector<int> GetDeviceRadiusFormConfig(float dpi)
     std::string radiusStr(REAL_DEVICE_RADIUS);
     std::vector<std::string> radius = FoldScreenStateInternel::StringSplit(radiusStr, ',');
     for (const auto& item : radius) {
-        float value = std::stof(item);
+        float value = 0.0f;
+        if (!StringUtil::ConvertStringToFloat(item, value)) {
+            TLOGNW(WmsLogTag::DMS, "Invalid radius value: %{public}s", item.c_str());
+            break;
+        }
         if (value > 0) {
             int radiusPx = static_cast<int>(std::ceil(dpi * value)); //convert radius vp to px
             result.push_back(radiusPx);
