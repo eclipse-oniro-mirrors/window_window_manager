@@ -2118,10 +2118,13 @@ void ScreenSessionManager::ScreenConnectionChanged(sptr<ScreenSession>& screenSe
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         SuperFoldStateManager::GetInstance().RefreshExternalRegion();
     }
-    if (foldScreenController_ != nullptr) {
-        HandleFoldDeviceScreenConnect(screenId, screenSession, phyMirrorEnable, screenEvent);
-        return;
+    if (!g_isPcDevice) {
+        if (foldScreenController_ != nullptr) {
+            HandleFoldDeviceScreenConnect(screenId, screenSession, phyMirrorEnable, screenEvent);
+            return;
+        }
     }
+
 #endif
     if (IsConcurrentUser()) {
         NotifyUserClientProxy(screenSession, screenId, screenEvent);
