@@ -38,6 +38,7 @@
 #include "screen_session_manager_client.h"
 #include "session_helper.h"
 #include "session_utils.h"
+#include "string_util.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "wm_common_inner.h"
@@ -58,6 +59,7 @@ namespace {
 constexpr const char* MOVE_RESAMPLE_ENABLE_PARAM_KEY = "persist.windowlayout.moveresample.enable";
 constexpr const char* MOVE_RESAMPLE_MIN_FPS_PARAM_KEY = "persist.windowlayout.moveresample.minfps";
 constexpr const char* MOVE_RESAMPLE_MAX_FPS_PARAM_KEY = "persist.windowlayout.moveresample.maxfps";
+constexpr const char* MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY = "persist.windowlayout.moveresample.pointertypes";
 
 // The system parameter key for moving event throttle interval configuration.
 constexpr const char* MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY = "persist.windowlayout.movingevent.throttleinterval";
@@ -201,8 +203,7 @@ MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneS
     }
 
     // Move Resampling System Config
-    std::tie(enableMoveResample_, resampleMinFps_, resampleMaxFps_) =
-        MoveDragController::LoadMoveResampleSystemConfig();
+    moveResampleConfig_ = MoveDragController::LoadMoveResampleSystemConfig();
 
     // Moving Event Throttle System Config
     movingEventThrottleIntervalUs_ = MoveDragController::LoadMovingEventThrottleSystemConfig();
@@ -1917,37 +1918,39 @@ std::optional<T> GetOptionalNumericParameter(const char* key)
     return value;
 }
 
-void MoveDragController::SaveMoveResampleSystemConfig(
-    bool enable, std::optional<uint32_t> minFps, std::optional<uint32_t> maxFps)
+void MoveDragController::SaveMoveResampleSystemConfig(const MoveResampleConfig& config)
 {
-    system::SetParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, enable ? "true" : "false");
-    std::string minFpsStr = minFps ? std::to_string(*minFps) : ""; // empty value means unlimited
-    std::string maxFpsStr = maxFps ? std::to_string(*maxFps) : "";
+    system::SetParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, config.enable ? "true" : "false");
+
+    std::string minFpsStr = config.minFps ? std::to_string(*config.minFps) : ""; // empty value means unlimited
     system::SetParameter(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY, minFpsStr);
+
+    std::string maxFpsStr = config.maxFps ? std::to_string(*config.maxFps) : "";
     system::SetParameter(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY, maxFpsStr);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "enable: %{public}d, minFps: %{public}s, maxFps: %{public}s",
-          enable, minFpsStr.c_str(), maxFpsStr.c_str());
+
+    std::string pointerTypesStr = StringUtil::JoinValueSet(config.pointerTypes);
+    system::SetParameter(MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY, pointerTypesStr);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
 }
 
-std::tuple<bool, std::optional<uint32_t>, std::optional<uint32_t>> MoveDragController::LoadMoveResampleSystemConfig()
+MoveResampleConfig MoveDragController::LoadMoveResampleSystemConfig()
 {
-    bool enable = system::GetBoolParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, false);
-    auto minFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY);
-    auto maxFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY);
+    MoveResampleConfig config;
+    config.enable = system::GetBoolParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, false);
+    config.minFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY);
+    config.maxFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY);
 
-    TLOGD(WmsLogTag::WMS_LAYOUT,
-          "enable: %{public}d, minFps: %{public}s, maxFps: %{public}s",
-          enable,
-          minFps ? std::to_string(*minFps).c_str() : "unlimited",
-          maxFps ? std::to_string(*maxFps).c_str() : "unlimited");
+    std::string pointerTypesStr = system::GetParameter(MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY, "");
+    config.pointerTypes = StringUtil::ParseValueSet<int32_t>(pointerTypesStr);
 
-    return { enable, minFps, maxFps };
+    TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
+    return config;
 }
 
 void MoveDragController::SaveMovingEventThrottleSystemConfig(uint32_t throttleIntervalUs)
 {
     system::SetParameter(MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY, std::to_string(throttleIntervalUs));
-    TLOGI(WmsLogTag::WMS_LAYOUT, "throttleIntervalUs: %{public}u", throttleIntervalUs);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "throttleIntervalUs: %{public}u", throttleIntervalUs);
 }
 
 uint32_t MoveDragController::LoadMovingEventThrottleSystemConfig()
@@ -1987,17 +1990,11 @@ bool MoveDragController::SyncPropertiesFromSceneSession()
 bool MoveDragController::ShouldOpenMoveResample(int32_t pointerType) const
 {
     // Global enable switch
-    if (!enableMoveResample_) {
+    if (!moveResampleConfig_.enable) {
         return false;
     }
 
-    // Only touchscreen events support move resampling.
-    // For other pointer types (e.g. mouse input), we prefer immediate
-    // responsiveness over additional smoothing. Mouse events are typically
-    // delivered at high frequency with fine-grained movement, and applying
-    // resampling may introduce unnecessary latency and reduce perceived
-    // precision.
-    if (pointerType != MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
+    if (!moveResampleConfig_.IsPointerTypeAllowed(pointerType)) {
         return false;
     }
 
@@ -2031,22 +2028,13 @@ void MoveDragController::UpdateResampleActivationByFps()
         return;
     }
 
-    if ((resampleMinFps_ && *curFps < *resampleMinFps_) || (resampleMaxFps_ && *curFps > *resampleMaxFps_)) {
+    if (!moveResampleConfig_.IsFpsInRange(*curFps)) {
         moveDragProperty_.isMoveResampleActive_ = false;
-        TLOGI(WmsLogTag::WMS_LAYOUT,
-              "Current FPS %{public}u is outside resample range [%{public}s, %{public}s], "
-              "disabling move resampling.",
-              *curFps,
-              resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
-              resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Current FPS %{public}u is outside resample range, disabling move resampling.",
+              *curFps);
         return;
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-          "Current FPS %{public}u is within resample range [%{public}s, %{public}s], "
-          "keeping move resampling active.",
-          *curFps,
-          resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
-          resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
 }
 
 void MoveDragController::RefreshGlobalScreenRects()

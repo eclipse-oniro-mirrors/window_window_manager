@@ -20,6 +20,8 @@
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
+#include <set>
+#include <sstream>
 #include <string>
 
 #include "dm_common.h"
@@ -90,7 +92,74 @@ public:
         }
         return false;
     }
+
+    /**
+     * @brief Join a set of values into a delimiter-separated string.
+     *
+     * @tparam T Value type. Must support operator<< for std::ostream.
+     * @param values Set of values to join.
+     * @param delimiter Delimiter used between values.
+     * @return Joined string representation of the value set.
+     */
+    template<typename T>
+    static std::string JoinValueSet(const std::set<T>& values, char delimiter = ' ');
+
+    /**
+     * @brief Parse a delimiter-separated string into a value set.
+     *
+     * Empty tokens and invalid values are ignored.
+     *
+     * @tparam T Value type. Must support operator>> for std::istream.
+     * @param str Input string to parse.
+     * @param delimiter Delimiter used to split values.
+     * @return Parsed value set.
+     */
+    template<typename T>
+    static std::set<T> ParseValueSet(const std::string& str, char delimiter = ' ');
 };
-} // Rosen
-} // OHOS
-#endif // WM_BUNDLE_MGR_UTIL_H
+
+template<typename T>
+std::string StringUtil::JoinValueSet(const std::set<T>& values, char delimiter)
+{
+    std::ostringstream oss;
+
+    for (auto iter = values.begin(); iter != values.end(); ++iter) {
+        if (iter != values.begin()) {
+            oss << delimiter;
+        }
+        oss << *iter;
+    }
+
+    return oss.str();
+}
+
+template<typename T>
+std::set<T> StringUtil::ParseValueSet(const std::string& str, char delimiter)
+{
+    std::istringstream stream(str);
+    std::set<T> values;
+    std::string token;
+
+    while (std::getline(stream, token, delimiter)) {
+        if (token.empty()) {
+            continue;
+        }
+
+        std::istringstream tokenStream(token);
+
+        T value {};
+        tokenStream >> value;
+
+        tokenStream >> std::ws;
+        if (!tokenStream.eof()) {
+            continue;
+        }
+
+        values.insert(value);
+    }
+
+    return values;
+}
+} // namespace Rosen
+} // namespace OHOS
+#endif // WM_STRING_UTIL_H
