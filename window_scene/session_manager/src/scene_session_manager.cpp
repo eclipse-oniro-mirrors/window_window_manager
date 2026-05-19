@@ -15772,27 +15772,26 @@ void SceneSessionManager::ProcessFocusZOrderChange(uint32_t dirty)
     RequestSessionFocus(voiceInteractionSession->GetPersistentId(), true, FocusChangeReason::VOICE_INTERACTION);
 }
 
-std::vector<std::pair<int32_t, sptr<SceneSession>>> SceneSessionManager::CollectProcessingSessions()
+std::vector<sptr<SceneSession>> SceneSessionManager::CollectProcessingSessions()
 {
-    std::vector<std::pair<int32_t, sptr<SceneSession>>> processingSessions;
+    std::vector<sptr<SceneSession>> processingSessions;
     {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        for (auto& iter : sceneSessionMap_) {
-            auto session = iter.second;
+        for (const auto& [persistentId, session] : sceneSessionMap_) {
             if (session == nullptr || !session->GetPostProcessFocusState().enabled_) {
                 continue;
             }
             if (session->GetPostProcessFocusState().isFocused_ && !session->IsVisible()) {
                 continue;
             }
-            processingSessions.push_back(iter);
+            processingSessions.push_back(session);
         }
     }
-    CmpFunc cmp = [](std::pair<int32_t, sptr<SceneSession>>& lhs, std::pair<int32_t, sptr<SceneSession>>& rhs) {
-        bool focusCmp = lhs.second->GetPostProcessFocusState().isFocused_ &&
-            !rhs.second->GetPostProcessFocusState().isFocused_;
-        uint32_t lhsZOrder = lhs.second != nullptr ? lhs.second->GetZOrder() : 0;
-        uint32_t rhsZOrder = rhs.second != nullptr ? rhs.second->GetZOrder() : 0;
+    auto cmp = [](const sptr<SceneSession>& lhs, const sptr<SceneSession>& rhs) {
+        bool focusCmp = lhs->GetPostProcessFocusState().isFocused_ &&
+            !rhs->GetPostProcessFocusState().isFocused_;
+        uint32_t lhsZOrder = lhs != nullptr ? lhs->GetZOrder() : 0;
+        uint32_t rhsZOrder = rhs != nullptr ? rhs->GetZOrder() : 0;
         return focusCmp || lhsZOrder > rhsZOrder;
     };
     std::sort(processingSessions.begin(), processingSessions.end(), cmp);
@@ -15802,13 +15801,10 @@ std::vector<std::pair<int32_t, sptr<SceneSession>>> SceneSessionManager::Collect
 void SceneSessionManager::PostProcessFocus()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::PostProcessFocus");
-    // priority process focus requests from top to bottom
-    auto processingSessions = CollectProcessingSessions();
-
+    std::vector<sptr<SceneSession>> processingSessions = CollectProcessingSessions();
     // only change focus one time
     std::unordered_set<DisplayId> focusChangedSet;
-    for (auto iter = processingSessions.begin(); iter != processingSessions.end(); ++iter) {
-        auto session = iter->second;
+    for (const auto& session : processingSessions) {
         if (session == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "session is nullptr");
             continue;
