@@ -16,11 +16,14 @@
 #include "dms_test_base.h"
 #include "product_config_mock.h"
 #include "parameters.h"
+#include "sensor_plugin_mock_impl.h"
 
 namespace OHOS {
 std::string system::DeviceParamMock::currentDeviceType_ = "PLR";
 namespace Rosen {
 std::string ProductConfigMock::currentDeviceType_ = "PLR";
+const int32_t MOTION_TYPE_ROTATION = 700;
+const int32_t MOTION_TYPE_TENT = 2800;
 
 DmsTestBase::DmsTestBase()
 {
@@ -40,6 +43,16 @@ void DmsTestBase::TriggerScreenConnect(ScreenId screenId)
 void DmsTestBase::TriggerScreenDisconnect(ScreenId screenId)
 {
     RsMockImpl::GetInstance().TriggerScreenChange(screenId, ScreenEvent::DISCONNECTED, ScreenChangeReason::DEFAULT);
+}
+
+void DmsTestBase::TriggerRotaitonSensorEvent(int32_t rotationStatus)
+{
+    RsMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_ROTATION, rotationStatus, 0, nullptr);
+}
+
+void DmsTestBase::TriggerTentSensorEvent(int32_t status, int32_t dataLen, int32_t* data, )
+{
+    RsMockImpl::GetInstance().TriggerSensorEvent(MOTION_TYPE_TENT, status, dataLen, data);
 }
 
 bool DmsTestBase::WaitScreenConnectFinish(ScreenId screenId)

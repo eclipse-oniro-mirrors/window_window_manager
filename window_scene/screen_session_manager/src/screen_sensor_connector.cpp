@@ -195,6 +195,7 @@ void TentMotionEventCallback(const MotionSensorEvent& motionData)
 
     TentMode motionStatus = TentMode::TENT_MODE_MAX;
     if (GetMatchTentMode(motionData.status, motionStatus)) {
+        TLOGE(WmsLogTag::DMS, "tent motion:%{public}d", motionStatus);
         ScreenTentProperty::HandleSensorEventInput(motionData.status, realHall);
         ScreenSessionManager::GetInstance().NotifyTentModeChange(motionStatus);
     } else {

@@ -128,13 +128,16 @@ public:
 class DmsTestBase : public testing::Test {
 public:
     DmsTestBase();
-    void TriggerScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
-    void TriggerScreenConnect(ScreenId screenId);
-    void TriggerScreenDisconnect(ScreenId screenId);
-    bool WaitScreenConnectFinish(ScreenId screenId);
-    bool WaitScreenDisconnectFinish(ScreenId screenId);
+    static void TriggerScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
+    static void TriggerScreenConnect(ScreenId screenId);
+    static void TriggerScreenDisconnect(ScreenId screenId);
+    static bool WaitScreenConnectFinish(ScreenId screenId);
+    static bool WaitScreenDisconnectFinish(ScreenId screenId);
 
-    bool CreatScreen(ScreenId screenId);
+    static void TriggerRotationSensorEvent(int32_t rotationStatus);
+    static void TriggerTentSensorEvent(int32_t dataLen, int32_t* data);
+
+    static bool CreatScreen(ScreenId screenId);
 };
 
 }  // namespace Rosen
