@@ -202,6 +202,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::StartAbilityBySpecified);
     BindNativeFunction(env, exportObj, "startUIAbilityBySCB", moduleName,
         JsSceneSessionManager::StartUIAbilityBySCB);
+    BindNativeFunction(env, exportObj, "notifyStartWindowsAbility", moduleName,
+        JsSceneSessionManager::NotifyStartWindowsAbility);
     BindNativeFunction(env, exportObj, "changeUIAbilityVisibilityBySCB", moduleName,
         JsSceneSessionManager::ChangeUIAbilityVisibilityBySCB);
     BindNativeFunction(env, exportObj, "setVmaCacheStatus", moduleName,
@@ -1069,6 +1071,13 @@ napi_value JsSceneSessionManager::StartUIAbilityBySCB(napi_env env, napi_callbac
     TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnStartUIAbilityBySCB(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::NotifyStartWindowsAbility(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnNotifyStartWindowsAbility(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::ChangeUIAbilityVisibilityBySCB(napi_env env, napi_callback_info info)
@@ -2808,6 +2817,33 @@ napi_value JsSceneSessionManager::OnStartUIAbilityBySCB(napi_env env, napi_callb
     }
 
     SceneSessionManager::GetInstance().StartUIAbilityBySCB(sceneSession);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnNotifyStartWindowsAbility(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    size_t argc = DEFAULT_ARG_COUNT;
+    napi_value argv[DEFAULT_ARG_COUNT] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE || argv[ARG_INDEX_ZERO] == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu or nativeObj is nullptr", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    SessionInfo sessionInfo;
+    if (!ConvertSessionInfoFromJs(env, argv[ARG_INDEX_ZERO], sessionInfo)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to get session info from js object");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    TLOGI(WmsLogTag::WMS_LIFE, "Start ability, bundleName:%{public}s, moduleName:%{public}s, abilityName:%{public}s",
+        sessionInfo.bundleName_.c_str(), sessionInfo.moduleName_.c_str(), sessionInfo.abilityName_.c_str());
+    SceneSessionManager::GetInstance().NotifyStartWindowsAbility(sessionInfo);
     return NapiGetUndefined(env);
 }
 
