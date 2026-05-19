@@ -30,7 +30,7 @@ const int32_t INVALID_INSTANCEID = -1;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_FOUR = 4;
 }
-napi_value FindJsExtensionWindowById(napi_env env, int32_t id);
+napi_value FindJsExtensionWindow(napi_env env, sptr<Window> window);
 
 static napi_value CreateJsNumber(napi_env env, uint64_t value)
 {
@@ -103,7 +103,7 @@ napi_value JsWindowEnvManager::OnFindWindowById(napi_env env, napi_callback_info
         return nullptr;
     }
     if (window->GetType() == WindowType::WINDOW_TYPE_UI_EXTENSION) {
-        return FindJsExtensionWindowById(env, window->GetWindowPersistentId());
+        return FindJsExtensionWindow(env, window);
     }
     return CreateJsWindowObject(env, window);
 }

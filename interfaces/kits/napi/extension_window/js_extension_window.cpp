@@ -24,6 +24,7 @@
 #include "permission.h"
 #include "pixel_map.h"
 #include "pixel_map_napi.h"
+#include "session_info.h"
 #include "ui_content.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
@@ -97,18 +98,41 @@ void addJsExtensionWindow(napi_env env, napi_value objValue, int32_t id)
     g_jsExtensionWindowMap[id] = jsExtensionWindowRef;
 }
 
-napi_value FindJsExtensionWindowById(napi_env env, int32_t id)
+napi_value FindJsExtensionWindow(napi_env env, sptr<Rosen::Window> window)
 {
-    std::lock_guard<std::mutex> lock(g_extensionMutex);
-    if (g_jsExtensionWindowMap.find(id) == g_jsExtensionWindowMap.end()) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "The extensionWindow is destroyed."));
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
         return NapiGetUndefined(env);
     }
-    napi_value extensionWindow = g_jsExtensionWindowMap[id]->GetNapiValue();
-    if (!extensionWindow) {
+    int32_t id = window->GetWindowPersistentId();
+    napi_value extensionWindow = nullptr;
+
+    {
+        std::lock_guard<std::mutex> lock(g_extensionMutex);
+        auto iter = g_jsExtensionWindowMap.find(id);
+        if (iter != g_jsExtensionWindowMap.end()) {
+            extensionWindow = iter->second->GetNapiValue();
+            if (extensionWindow != nullptr) {
+                return extensionWindow;
+            }
+            TLOGE(WmsLogTag::WMS_UIEXT, "The extensionWindow is destroyed.");
+            napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "The extensionWindow is destroyed."));
+            return NapiGetUndefined(env);
+        }
+    }
+
+    if (window->GetIsAtomicService()) {
+        extensionWindow =
+            JsExtensionWindow::CreateJsExtensionWindowObject(env, window, sptr<AAFwk::SessionInfo>::MakeSptr());
+    } else {
+        extensionWindow = JsExtensionWindow::CreateJsExtensionWindow(env, window, window->GetParentId());
+    }
+
+    if (extensionWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Create extensionWindow failed, id: %{public}d", window->GetParentId());
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "The extensionWindow is destroyed."));
+            "Create extensionWindow failed."));
         return NapiGetUndefined(env);
     }
     return extensionWindow;
@@ -325,7 +349,19 @@ void JsExtensionWindow::RegisterUnsupportFuncs(napi_env env, napi_value objValue
 void JsExtensionWindow::Finalizer(napi_env env, void* data, void* hint)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "[NAPI]");
-    std::unique_ptr<JsExtensionWindow>(static_cast<JsExtensionWindow*>(data));
+    auto jsExtensionWin = std::unique_ptr<JsExtensionWindow>(static_cast<JsExtensionWindow*>(data));
+    if (jsExtensionWin == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "jsExtensionWin is nullptr");
+        return;
+    }
+    sptr<Rosen::Window> window = jsExtensionWin->extensionWindow_->GetWindow();
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    g_jsExtensionWindowMap.erase(window->GetWindowPersistentId());
+    TLOGI(WmsLogTag::WMS_UIEXT, "Remove window %{public}d", window->GetWindowPersistentId());
 }
 
 napi_value JsExtensionWindow::GetWindowAvoidArea(napi_env env, napi_callback_info info)

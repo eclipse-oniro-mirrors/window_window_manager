@@ -373,7 +373,7 @@ public:
     WMError SetBackgroundColor(const std::string& color) override;
     virtual Orientation GetRequestedOrientation() override;
 
-    int32_t GetParentId() const;
+    int32_t GetParentId() const override;
     int32_t GetPersistentId() const override;
     sptr<WindowSessionProperty> GetProperty() const;
     SystemSessionConfig GetSystemSessionConfig() const;
