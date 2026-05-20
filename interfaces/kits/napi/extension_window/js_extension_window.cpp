@@ -102,7 +102,7 @@ napi_value FindJsExtensionWindow(napi_env env, sptr<Rosen::Window> window)
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, 
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "The extensionWindow is destroyed."));
         return NapiGetUndefined(env);
     }
