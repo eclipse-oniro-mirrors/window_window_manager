@@ -137,6 +137,7 @@ public:
     void SetScreenCombination(ScreenId mainScreenId, ScreenId extendScreenId,
         ScreenCombination extendCombination) override;
     std::string OnDumperClientScreenSessions() override;
+    void DumpClientScreenProperty(std::ostringstream& oss, ScreenProperty prop);
     void SetDefaultMultiScreenModeWhenSwitchUser();
     void NotifyExtendScreenCreateFinish();
     void NotifyExtendScreenDestroyFinish();
