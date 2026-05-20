@@ -4094,7 +4094,8 @@ public:
      * @param hostWindowId window Id of the host window.
      * @return Rect of window.
      */
-    virtual Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize = false) { return {}; }
+    virtual Rect GetHostWindowRect(int32_t hostWindowId) { return {}; }
+    virtual Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) { return {}; }
 
     /**
      * @brief Make multi-window become landscape or not.
