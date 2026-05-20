@@ -1987,7 +1987,7 @@ int32_t WindowExtensionSessionImpl::GetRealParentId() const
     return property_->GetRealParentId();
 }
 
-int32_t WindowExtensionSessionImpl::GetParentId() const
+int32_t WindowExtensionSessionImpl::GetHostWindowId() const
 {
     return property_->GetParentId();
 }

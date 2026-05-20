@@ -128,11 +128,11 @@ napi_value FindJsExtensionWindow(napi_env env, sptr<Rosen::Window> window)
         extensionWindow =
             JsExtensionWindow::CreateJsExtensionWindowObject(env, window, sptr<AAFwk::SessionInfo>::MakeSptr());
     } else {
-        extensionWindow = JsExtensionWindow::CreateJsExtensionWindow(env, window, window->GetParentId());
+        extensionWindow = JsExtensionWindow::CreateJsExtensionWindow(env, window, window->GetHostWindowId());
     }
 
     if (extensionWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Create extensionWindow failed, id: %{public}d", window->GetParentId());
+        TLOGE(WmsLogTag::WMS_UIEXT, "Create extensionWindow failed, id: %{public}d", window->GetHostWindowId());
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "Create extensionWindow failed."));
         return NapiGetUndefined(env);
