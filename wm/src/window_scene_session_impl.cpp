@@ -2920,7 +2920,7 @@ WMError WindowSceneSessionImpl::MoveWindowToGlobalDisplay(
     return static_cast<WMError>(ret);
 }
 
-WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
+WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize)
 {
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
@@ -2932,7 +2932,16 @@ WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
     TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, globalScaledRect:%{public}s, ret:%{public}d",
         GetPersistentId(), globalScaledRect.ToString().c_str(), ret);
     if (WMError::WM_OK == static_cast<WMError>(ret)) {
-        HookWindowSizeByHookWindowInfo(globalScaledRect);
+        Rect realRect = globalScaledRect;
+        Rect hookedRect = globalScaledRect;
+        HookWindowSizeByHookWindowInfo(hookedRect);
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "HookWindowSize[GetGlobalScaledRect], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
+            "useHookedSize:%{public}d",
+            GetPersistentId(), realRect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
+        if (useHookedSize) {
+            globalScaledRect = hookedRect;
+        }
     }
     return static_cast<WMError>(ret);
 }
@@ -8646,7 +8655,7 @@ bool WindowSceneSessionImpl::IsFullScreenEnable() const
     return true;
 }
 
-WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo)
+WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize)
 {
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -8673,11 +8682,33 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
     windowPropertyInfo.displayId = GetDisplayId();
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}u, globalDisplayRect=%{public}s", GetWindowId(),
         windowPropertyInfo.globalDisplayRect.ToString().c_str());
-    HookWindowSizeByHookWindowInfo(windowPropertyInfo.windowRect);
-    HookWindowSizeByHookWindowInfo(windowPropertyInfo.globalDisplayRect);
-    auto hookWindowInfo = GetProperty()->GetHookWindowInfo();
-    if (hookWindowInfo.drawableRectHook) {
-        HookWindowSizeByHookWindowInfo(windowPropertyInfo.drawableRect);
+    {
+        Rect realWindowRect = windowPropertyInfo.windowRect;
+        Rect realGlobalDisplayRect = windowPropertyInfo.globalDisplayRect;
+        Rect realDrawableRect = windowPropertyInfo.drawableRect;
+        Rect hookedWindowRect = windowPropertyInfo.windowRect;
+        Rect hookedGlobalDisplayRect = windowPropertyInfo.globalDisplayRect;
+        Rect hookedDrawableRect = windowPropertyInfo.drawableRect;
+        HookWindowSizeByHookWindowInfo(hookedWindowRect);
+        HookWindowSizeByHookWindowInfo(hookedGlobalDisplayRect);
+        auto hookWindowInfo = GetProperty()->GetHookWindowInfo();
+        if (hookWindowInfo.drawableRectHook) {
+            HookWindowSizeByHookWindowInfo(hookedDrawableRect);
+        }
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "HookWindowSize[GetWindowPropertyInfo], id:%{public}d, "
+            "realWindowRect:%{public}s, hookedWindowRect:%{public}s, "
+            "realGlobalDisplayRect:%{public}s, hookedGlobalDisplayRect:%{public}s, "
+            "realDrawableRect:%{public}s, hookedDrawableRect:%{public}s, useHookedSize:%{public}d",
+            GetPersistentId(),
+            realWindowRect.ToString().c_str(), hookedWindowRect.ToString().c_str(),
+            realGlobalDisplayRect.ToString().c_str(), hookedGlobalDisplayRect.ToString().c_str(),
+            realDrawableRect.ToString().c_str(), hookedDrawableRect.ToString().c_str(), useHookedSize);
+        if (useHookedSize) {
+            windowPropertyInfo.windowRect = hookedWindowRect;
+            windowPropertyInfo.globalDisplayRect = hookedGlobalDisplayRect;
+            windowPropertyInfo.drawableRect = hookedDrawableRect;
+        }
     }
     return WMError::WM_OK;
 }

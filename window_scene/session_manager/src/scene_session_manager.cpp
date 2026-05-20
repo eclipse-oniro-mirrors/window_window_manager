@@ -16423,9 +16423,9 @@ bool SceneSessionManager::FilterForListWindowInfo(const WindowInfoOption& window
 }
 
 WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
-    std::vector<sptr<WindowLayoutInfo>>& infos, const WindowInfoOptions& option)
+    std::vector<sptr<WindowLayoutInfo>>& infos, const WindowInfoOptions& option, bool useHookedSize)
 {
-    auto task = [this, displayId, &infos, option, funcName = __func__]() mutable {
+    auto task = [this, displayId, &infos, option, useHookedSize, funcName = __func__]() mutable {
         bool isVirtualDisplay = false;
         if (displayId == VIRTUAL_DISPLAY_ID) {
             displayId = DEFAULT_DISPLAY_ID;
@@ -16439,18 +16439,23 @@ WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
             if (isVirtualDisplay) {
                 globalScaledRect.posY_ -= GetFoldLowerScreenPosY();
             }
+            Rect realRect = globalScaledRect;
+            Rect hookedRect = globalScaledRect;
             HookWindowInfo hookWindowInfo = session->GetSessionProperty()->GetHookWindowInfo();
             if (hookWindowInfo.enableHookWindow && !session->IsFullScreenInForceSplit() &&
                 WindowHelper::IsMainWindow(session->GetWindowType()) &&
                 !MathHelper::NearEqual(hookWindowInfo.widthHookRatio, HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
-                globalScaledRect.width_ =
-                    static_cast<uint32_t>(globalScaledRect.width_ * hookWindowInfo.widthHookRatio);
-                TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s: id:%{public}u, hook window width, hooked width:%{public}u, "
-                    "widthHookRatio:%{public}f.", funcName, session->GetPersistentId(), globalScaledRect.width_,
-                    hookWindowInfo.widthHookRatio);
+                hookedRect.width_ =
+                    static_cast<uint32_t>(hookedRect.width_ * hookWindowInfo.widthHookRatio);
             }
+            TLOGND(WmsLogTag::WMS_LAYOUT,
+                "HookWindowSize[GetAllWindowLayoutInfo], id:%{public}u, "
+                "realRect:%{public}s, hookedRect:%{public}s, useHookedSize:%{public}d",
+                session->GetPersistentId(), realRect.ToString().c_str(),
+                hookedRect.ToString().c_str(), useHookedSize);
+            Rect resultRect = useHookedSize ? hookedRect : realRect;
             auto windowLayoutInfo = sptr<WindowLayoutInfo>::MakeSptr();
-            windowLayoutInfo->rect = globalScaledRect;
+            windowLayoutInfo->rect = resultRect;
             if (auto surfaceNode = session->GetSurfaceNode()) {
                 windowLayoutInfo->windowAlpha = surfaceNode->GetStagingProperties().GetAlpha();
                 TLOGD(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f", funcName,
@@ -16675,37 +16680,63 @@ bool SceneSessionManager::IsSessionInSpecificDisplay(const sptr<SceneSession>& s
     return displayId == session->GetSessionProperty()->GetDisplayId();
 }
 
-WMError SceneSessionManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
+WMError SceneSessionManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize)
 {
     if (!SessionPermission::IsSystemCalling() &&
         !SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_VISIBLE_WINDOW_INFO)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied!");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
-    auto task = [this, &infos, where = __func__]() {
+    auto task = [this, &infos, useHookedSize, where = __func__]() {
         for (auto [surfaceId, _] : lastVisibleData_) {
             sptr<SceneSession> session = SelectSesssionFromMap(surfaceId);
             if (session == nullptr) {
                 continue;
             }
             WSRect hostRect = session->GetSessionRect();
-            Rect rect = {hostRect.posX_, hostRect.posY_,
+            Rect realRect = {hostRect.posX_, hostRect.posY_,
                          static_cast<uint32_t>(hostRect.width_), static_cast<uint32_t>(hostRect.height_)};
+            Rect realGlobalDisplayRect = session->GetSessionProperty()->GetGlobalDisplayRect();
+            Rect realGlobalRect;
+            session->GetGlobalScaledRect(realGlobalRect);
+            Rect hookedRect = realRect;
+            Rect hookedGlobalDisplayRect = realGlobalDisplayRect;
+            Rect hookedGlobalRect = realGlobalRect;
+            HookWindowInfo hookWindowInfo = session->GetSessionProperty()->GetHookWindowInfo();
+            if (hookWindowInfo.enableHookWindow && !session->IsFullScreenInForceSplit() &&
+                WindowHelper::IsMainWindow(session->GetWindowType()) &&
+                !MathHelper::NearEqual(hookWindowInfo.widthHookRatio, HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
+                hookedRect.width_ = static_cast<uint32_t>(hookedRect.width_ * hookWindowInfo.widthHookRatio);
+                hookedGlobalDisplayRect.width_ =
+                    static_cast<uint32_t>(hookedGlobalDisplayRect.width_ * hookWindowInfo.widthHookRatio);
+                hookedGlobalRect.width_ =
+                    static_cast<uint32_t>(hookedGlobalRect.width_ * hookWindowInfo.widthHookRatio);
+            }
+            TLOGND(WmsLogTag::WMS_LAYOUT,
+                "HookWindowSize[GetVisibilityWindowInfo], id:%{public}u, "
+                "realRect:%{public}s, hookedRect:%{public}s, "
+                "realGlobalDisplayRect:%{public}s, hookedGlobalDisplayRect:%{public}s, "
+                "realGlobalRect:%{public}s, hookedGlobalRect:%{public}s, useHookedSize:%{public}d",
+                session->GetPersistentId(),
+                realRect.ToString().c_str(), hookedRect.ToString().c_str(),
+                realGlobalDisplayRect.ToString().c_str(), hookedGlobalDisplayRect.ToString().c_str(),
+                realGlobalRect.ToString().c_str(), hookedGlobalRect.ToString().c_str(), useHookedSize);
+            Rect resultRect = useHookedSize ? hookedRect : realRect;
             auto windowStatus = GetWindowStatus(session->GetWindowMode(), session->GetSessionState(),
                                                 session->GetSessionProperty());
             auto windowVisibilityInfo = sptr<WindowVisibilityInfo>::MakeSptr(session->GetWindowId(), session->GetCallingPid(),
-                session->GetCallingUid(), session->GetVisibilityState(), session->GetWindowType(), windowStatus, rect,
+                session->GetCallingUid(), session->GetVisibilityState(), session->GetWindowType(), windowStatus, resultRect,
                 session->GetSessionInfo().bundleName_, session->GetSessionInfo().abilityName_,
                 session->IsFocused());
             windowVisibilityInfo->SetModuleName(session->GetSessionInfo().moduleName_);
             windowVisibilityInfo->SetAppIndex(session->GetSessionInfo().appIndex_);
             windowVisibilityInfo->SetIsSystem(session->GetSessionInfo().isSystem_);
             windowVisibilityInfo->SetZOrder(session->GetZOrder());
-            Rect globalDisplayRect = session->GetSessionProperty()->GetGlobalDisplayRect();
-            windowVisibilityInfo->SetGlobalDisplayRect(globalDisplayRect);
-            Rect globalRect;
-            session->GetGlobalScaledRect(globalRect);
-            windowVisibilityInfo->SetGlobalRect(globalRect);
+            Rect resultGlobalDisplayRect = useHookedSize ? hookedGlobalDisplayRect : realGlobalDisplayRect;
+            windowVisibilityInfo->SetGlobalDisplayRect(resultGlobalDisplayRect);
+            Rect resultGlobalRect = useHookedSize ? hookedGlobalRect : realGlobalRect;
+            windowVisibilityInfo->SetGlobalRect(resultGlobalRect);
             DisplayId displayId = session->GetSessionProperty()->GetDisplayId();
             if (session->IsPcFoldDevice() && PcFoldScreenManager::GetInstance().IsHalfFolded(displayId)) {
                 displayId = session->GetClientDisplayId();
@@ -16714,21 +16745,6 @@ WMError SceneSessionManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisi
             TLOGI(WmsLogTag::WMS_ATTRIBUTE,
                 "%{public}s: wid=%{public}d, visibilityInfo displayId=%{public}" PRIu64,
                 where, session->GetWindowId(), displayId);
-            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: wid=%{public}d, globalDisplayRect=%{public}s",
-                where, static_cast<int32_t>(session->GetPersistentId()), globalDisplayRect.ToString().c_str());
-            HookWindowInfo hookWindowInfo = session->GetSessionProperty()->GetHookWindowInfo();
-            if (hookWindowInfo.enableHookWindow && !session->IsFullScreenInForceSplit() &&
-                WindowHelper::IsMainWindow(session->GetWindowType()) &&
-                !MathHelper::NearEqual(hookWindowInfo.widthHookRatio, HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
-                rect.width_ = static_cast<uint32_t>(rect.width_ * hookWindowInfo.widthHookRatio);
-                globalDisplayRect.width_ =
-                    static_cast<uint32_t>(globalDisplayRect.width_ * hookWindowInfo.widthHookRatio);
-                windowVisibilityInfo->rect_ = rect;
-                windowVisibilityInfo->SetGlobalDisplayRect(globalDisplayRect);
-                TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s: id:%{public}u, hook window width, hooked width:%{public}u, "
-                    "hooked globalDisplay width:%{public}u, widthHookRatio:%{public}f.", where,
-                    session->GetPersistentId(), rect.width_, globalDisplayRect.width_, hookWindowInfo.widthHookRatio);
-            }
             infos.emplace_back(windowVisibilityInfo);
         }
         SortVisibilityWindowInfos(infos);
@@ -17217,7 +17233,7 @@ WSError SceneSessionManager::UpdateExtWindowFlags(const sptr<IRemoteObject>& tok
     return ret;
 }
 
-WSError SceneSessionManager::GetHostWindowRect(int32_t hostWindowId, Rect& rect)
+WSError SceneSessionManager::GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "hostWindowId:%{public}d", hostWindowId);
     if (!SessionPermission::IsSystemCalling()) {
@@ -17229,7 +17245,7 @@ WSError SceneSessionManager::GetHostWindowRect(int32_t hostWindowId, Rect& rect)
         }
         TLOGI(WmsLogTag::WMS_UIEXT, "The UEA is going to get HostWindowRect!");
     }
-    auto task = [this, hostWindowId, &rect]() {
+    auto task = [this, hostWindowId, &rect, useHookedSize]() {
         auto sceneSession = GetSceneSession(hostWindowId);
         if (sceneSession == nullptr) {
             TLOGNE(WmsLogTag::WMS_UIEXT, "Session with persistentId %{public}d not found", hostWindowId);
@@ -17248,13 +17264,31 @@ WSError SceneSessionManager::GetHostWindowRect(int32_t hostWindowId, Rect& rect)
                 globalRect.ToString().c_str(), hostRect.ToString().c_str());
         }
         rect = {hostRect.posX_, hostRect.posY_, hostRect.width_, hostRect.height_};
+        {
+            Rect realRect = rect;
+            Rect hookedRect = rect;
+            auto hookWindowInfo = sceneSession->GetSessionProperty()->GetHookWindowInfo();
+            if (hookWindowInfo.enableHookWindow &&
+                !MathHelper::NearEqual(hookWindowInfo.widthHookRatio,
+                    HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
+                hookedRect.width_ = static_cast<uint32_t>(hookedRect.width_ * hookWindowInfo.widthHookRatio);
+            }
+            TLOGND(WmsLogTag::WMS_LAYOUT,
+                "HookWindowSize[GetHostWindowRect], id:%{public}d, "
+                "realRect:%{public}s, hookedRect:%{public}s, useHookedSize:%{public}d",
+                hostWindowId, realRect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
+            if (useHookedSize) {
+                rect = hookedRect;
+            }
+        }
         return WSError::WS_OK;
     };
     taskScheduler_->PostSyncTask(task, "GetHostWindowRect");
     return WSError::WS_OK;
 }
 
-WSError SceneSessionManager::GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect)
+WSError SceneSessionManager::GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+    bool useHookedSize)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "hostWindowId:%{public}d", hostWindowId);
     auto callingTokenId = IPCSkeleton::GetCallingTokenID();
@@ -17264,6 +17298,23 @@ WSError SceneSessionManager::GetHostGlobalScaledRect(int32_t hostWindowId, Rect&
         return WSError::WS_ERROR_INVALID_SESSION;
     }
     sceneSession->GetGlobalScaledRect(globalScaledRect);
+    {
+        Rect realRect = globalScaledRect;
+        Rect hookedRect = globalScaledRect;
+        auto hookWindowInfo = sceneSession->GetSessionProperty()->GetHookWindowInfo();
+        if (hookWindowInfo.enableHookWindow &&
+            !MathHelper::NearEqual(hookWindowInfo.widthHookRatio,
+                HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
+            hookedRect.width_ = static_cast<uint32_t>(hookedRect.width_ * hookWindowInfo.widthHookRatio);
+        }
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+            "HookWindowSize[GetHostGlobalScaledRect], id:%{public}d, "
+            "realRect:%{public}s, hookedRect:%{public}s, useHookedSize:%{public}d",
+            hostWindowId, realRect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
+        if (useHookedSize) {
+            globalScaledRect = hookedRect;
+        }
+    }
     return WSError::WS_OK;
 }
 

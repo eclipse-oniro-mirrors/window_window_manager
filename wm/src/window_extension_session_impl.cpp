@@ -516,7 +516,7 @@ WMError WindowExtensionSessionImpl::UnregisterHostWindowRectChangeListener(
 }
 
 WMError WindowExtensionSessionImpl::RegisterRectChangeInGlobalDisplayListener(
-    const sptr<IRectChangeInGlobalDisplayListener>& listener)
+    const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize)
 {
     AAFwk::Want dataToSend;
     auto ret = SendExtensionMessageToHost(
@@ -1665,20 +1665,21 @@ WMError WindowExtensionSessionImpl::UpdateExtWindowFlags(const ExtensionWindowFl
     return SingletonContainer::Get<WindowAdapter>().UpdateExtWindowFlags(abilityToken_, flags.bitData, actions.bitData);
 }
 
-Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId)
+Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId, bool useHookedSize)
 {
     Rect rect;
     if (hostWindowId != property_->GetParentId()) {
         TLOGE(WmsLogTag::WMS_UIEXT, "hostWindowId is invalid");
         return rect;
     }
-    SingletonContainer::Get<WindowAdapter>().GetHostWindowRect(hostWindowId, rect);
+    SingletonContainer::Get<WindowAdapter>().GetHostWindowRect(hostWindowId, rect, useHookedSize);
     return rect;
 }
 
-WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
+WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize)
 {
-    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(property_->GetParentId(), globalScaledRect);
+    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(
+        property_->GetParentId(), globalScaledRect, useHookedSize);
 }
 
 WMError WindowExtensionSessionImpl::GetGestureBackEnabled(bool& enable) const

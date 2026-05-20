@@ -349,12 +349,12 @@ WMError WindowAdapter::ListWindowInfo(const WindowInfoOption& windowInfoOption, 
 }
 
 WMError WindowAdapter::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-    const WindowInfoOptions& option)
+    const WindowInfoOptions& option, bool useHookedSize)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->GetAllWindowLayoutInfo(displayId, infos, option);
+    return wmsProxy->GetAllWindowLayoutInfo(displayId, infos, option, useHookedSize);
 }
 
 WMError WindowAdapter::GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos)
@@ -477,13 +477,13 @@ WMError WindowAdapter::RecoverScreenWatermarkImage()
     return errCode;
 }
 
-WMError WindowAdapter::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
+WMError WindowAdapter::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
-
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->GetVisibilityWindowInfo(infos);
+    return wmsProxy->GetVisibilityWindowInfo(infos, useHookedSize);
 }
 
 WMError WindowAdapter::SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller)
@@ -1421,22 +1421,22 @@ WMError WindowAdapter::UpdateExtWindowFlags(const sptr<IRemoteObject>& token, ui
     return static_cast<WMError>(wmsProxy->UpdateExtWindowFlags(token, extWindowFlags, extWindowActions));
 }
 
-WMError WindowAdapter::GetHostWindowRect(int32_t hostWindowId, Rect& rect)
+WMError WindowAdapter::GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
-    return static_cast<WMError>(wmsProxy->GetHostWindowRect(hostWindowId, rect));
+    return static_cast<WMError>(wmsProxy->GetHostWindowRect(hostWindowId, rect, useHookedSize));
 }
 
-WMError WindowAdapter::GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect)
+WMError WindowAdapter::GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect, bool useHookedSize)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
-    return static_cast<WMError>(wmsProxy->GetHostGlobalScaledRect(hostWindowId, globalScaledRect));
+    return static_cast<WMError>(wmsProxy->GetHostGlobalScaledRect(hostWindowId, globalScaledRect, useHookedSize));
 }
 
 WMError WindowAdapter::GetFreeMultiWindowEnableState(bool& enable)

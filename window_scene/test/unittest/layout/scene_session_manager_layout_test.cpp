@@ -16,6 +16,8 @@
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
 #include <gtest/gtest.h>
+#include <ipc_skeleton.h>
+#include <ui/rs_surface_node.h>
 
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
@@ -544,6 +546,37 @@ HWTEST_F(SceneSessionManagerLayoutTest, GetAllWindowLayoutInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetAllWindowLayoutInfoUseHookedSizeFalse
+ * @tc.desc: test GetAllWindowLayoutInfo returns real size when useHookedSize is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, GetAllWindowLayoutInfoUseHookedSizeFalse, TestSize.Level1)
+{
+    ASSERT_TRUE(ssm_ != nullptr);
+    std::string bundleName = "GetAllWindowLayoutInfoUseHookedSizeFalse";
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = bundleName;
+    sessionInfo.abilityName_ = bundleName;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    constexpr DisplayId TEST_DISPLAY_ID = 200;
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+    sceneSession->SetSessionGlobalRect({ 0, 0, 800, 800 });
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+
+    std::vector<sptr<WindowLayoutInfo>> info;
+    ssm_->GetAllWindowLayoutInfo(TEST_DISPLAY_ID, info, WindowInfoOptions(), false);
+    ASSERT_NE(info.size(), 0);
+    EXPECT_EQ(800, info[0]->rect.width_);
+    ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());
+}
+
+/**
  * @tc.name: OnSessionRecoverStateChange_SetAnchorInfoOnProperty
  * @tc.desc: Verify anchor info is stored in session property during sub window recovery
  * @tc.type: FUNC
@@ -750,6 +783,144 @@ HWTEST_F(SceneSessionManagerLayoutTest, SetParentWindowInner_AnchorRebind03, Tes
     // Verify anchor state is reset
     EXPECT_FALSE(subSession->GetWindowAnchorInfo().isAnchorEnabled_);
     EXPECT_TRUE(subSession->GetWindowAnchorInfo().isFromAttachOrDetach_);
+}
+
+/**
+ * @tc.name: GetVisibilityWindowInfoUseHookedSize
+ * @tc.desc: test GetVisibilityWindowInfo returns hooked/real size based on useHookedSize for all 3 rects
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, GetVisibilityWindowInfoUseHookedSize, TestSize.Level1)
+{
+    auto oldVisibleData = ssm_->lastVisibleData_;
+    auto oldSessionMap = ssm_->sceneSessionMap_;
+    SessionInfo info;
+    info.bundleName_ = "bundle";
+    info.abilityName_ = "ability";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->persistentId_ = 2002;
+    sceneSession->isScbCoreEnabled_ = true;
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->GetSessionProperty()->SetDisplayId(66);
+    Rect globalDisplayRect = { 10, 20, 100, 200 };
+    sceneSession->GetSessionProperty()->SetGlobalDisplayRect(globalDisplayRect);
+    sceneSession->SetSessionGlobalRect({ 10, 20, 100, 200 });
+    WSRect sessionRect = { 10, 20, 100, 200 };
+    sceneSession->SetSessionRect(sessionRect);
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+    struct RSSurfaceNodeConfig surfaceNodeConfig;
+    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(surfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
+    ASSERT_NE(surfaceNode, nullptr);
+    sceneSession->SetSurfaceNode(surfaceNode);
+    ssm_->sceneSessionMap_ = { { sceneSession->GetPersistentId(), sceneSession } };
+    ssm_->lastVisibleData_ = { { surfaceNode->GetId(), WindowVisibilityState::START } };
+
+    // useHookedSize=true: rect should be hooked (width halved)
+    std::vector<sptr<WindowVisibilityInfo>> hookedInfos;
+    auto hookedResult = ssm_->GetVisibilityWindowInfo(hookedInfos, true);
+    EXPECT_EQ(hookedResult, WMError::WM_OK);
+    ASSERT_EQ(hookedInfos.size(), 1);
+    ASSERT_NE(hookedInfos[0], nullptr);
+    EXPECT_EQ(hookedInfos[0]->rect_.width_, static_cast<uint32_t>(100 * 0.5f));
+    EXPECT_EQ(hookedInfos[0]->GetGlobalDisplayRect().width_, static_cast<uint32_t>(100 * 0.5f));
+    EXPECT_EQ(hookedInfos[0]->GetGlobalRect().width_, static_cast<uint32_t>(100 * 0.5f));
+
+    // useHookedSize=false: rect should be real (original width)
+    std::vector<sptr<WindowVisibilityInfo>> realInfos;
+    auto realResult = ssm_->GetVisibilityWindowInfo(realInfos, false);
+    EXPECT_EQ(realResult, WMError::WM_OK);
+    ASSERT_EQ(realInfos.size(), 1);
+    ASSERT_NE(realInfos[0], nullptr);
+    EXPECT_EQ(realInfos[0]->rect_.width_, 100u);
+    EXPECT_EQ(realInfos[0]->GetGlobalDisplayRect().width_, 100u);
+    EXPECT_EQ(realInfos[0]->GetGlobalRect().width_, 100u);
+
+    ssm_->lastVisibleData_ = oldVisibleData;
+    ssm_->sceneSessionMap_ = oldSessionMap;
+}
+
+/**
+ * @tc.name: GetHostWindowRectUseHookedSize
+ * @tc.desc: test GetHostWindowRect returns hooked/real size based on useHookedSize
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, GetHostWindowRectUseHookedSize, TestSize.Level1)
+{
+    int32_t hostWindowId = 3001;
+    SessionInfo info;
+    info.bundleName_ = "GetHostWindowRectUseHookedSize";
+    info.abilityName_ = "GetHostWindowRectUseHookedSize";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->GetLayoutController()->SetSessionRect({ 10, 20, 100, 200 });
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+    auto callingTokenId = IPCSkeleton::GetCallingTokenID();
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.callingTokenId = callingTokenId;
+    sceneSession->AddExtensionTokenInfo(tokenInfo);
+    ssm_->sceneSessionMap_.insert(std::make_pair(hostWindowId, sceneSession));
+    PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
+        0, SuperFoldStatus::EXPANDED, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1624, 2472, 1648 });
+
+    // useHookedSize=true: width should be hooked (halved)
+    Rect hookedRect;
+    auto hookedRet = ssm_->GetHostWindowRect(hostWindowId, hookedRect, true);
+    EXPECT_EQ(WSError::WS_OK, hookedRet);
+    EXPECT_EQ(hookedRect.width_, static_cast<uint32_t>(100 * 0.5f));
+
+    // useHookedSize=false: width should be real (original)
+    Rect realRect;
+    auto realRet = ssm_->GetHostWindowRect(hostWindowId, realRect, false);
+    EXPECT_EQ(WSError::WS_OK, realRet);
+    EXPECT_EQ(realRect.width_, 100u);
+
+    ssm_->sceneSessionMap_.erase(hostWindowId);
+}
+
+/**
+ * @tc.name: GetHostGlobalScaledRectUseHookedSize
+ * @tc.desc: test GetHostGlobalScaledRect returns hooked/real size based on useHookedSize
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, GetHostGlobalScaledRectUseHookedSize, TestSize.Level1)
+{
+    int32_t hostWindowId = 3002;
+    SessionInfo info;
+    info.bundleName_ = "GetHostGlobalScaledRectUseHookedSize";
+    info.abilityName_ = "GetHostGlobalScaledRectUseHookedSize";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionGlobalRect({ 10, 20, 100, 200 });
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+    auto callingTokenId = IPCSkeleton::GetCallingTokenID();
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.callingTokenId = callingTokenId;
+    sceneSession->AddExtensionTokenInfo(tokenInfo);
+    ssm_->sceneSessionMap_.insert(std::make_pair(hostWindowId, sceneSession));
+
+    // useHookedSize=true: width should be hooked (halved)
+    Rect hookedRect;
+    auto hookedRet = ssm_->GetHostGlobalScaledRect(hostWindowId, hookedRect, true);
+    EXPECT_EQ(WSError::WS_OK, hookedRet);
+    EXPECT_EQ(hookedRect.width_, static_cast<uint32_t>(100 * 0.5f));
+
+    // useHookedSize=false: width should be real (original)
+    Rect realRect;
+    auto realRet = ssm_->GetHostGlobalScaledRect(hostWindowId, realRect, false);
+    EXPECT_EQ(WSError::WS_OK, realRet);
+    EXPECT_EQ(realRect.width_, 100u);
+
+    ssm_->sceneSessionMap_.erase(hostWindowId);
 }
 
 } // namespace

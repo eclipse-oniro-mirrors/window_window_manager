@@ -121,6 +121,54 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverWindowPropertyChangeFlag01, 
 }
 
 /**
+ * @tc.name: HandleGetHostWindowRect_ReadUseHookedSizeFail
+ * @tc.desc: test HandleGetHostWindowRect with parcel missing useHookedSize (ReadBool fails)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetHostWindowRect_ReadUseHookedSizeFail, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(65535);
+    int res = stub_->HandleGetHostWindowRect(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetHostGlobalScaledRect_ReadUseHookedSizeFail
+ * @tc.desc: test HandleGetHostGlobalScaledRect with parcel missing useHookedSize (ReadBool fails)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetHostGlobalScaledRect_ReadUseHookedSizeFail, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(65535);
+    int res = stub_->HandleGetHostGlobalScaledRect(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetAllWindowLayoutInfo_ReadUseHookedSizeFail
+ * @tc.desc: test HandleGetAllWindowLayoutInfo with parcel missing useHookedSize (ReadBool fails)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetAllWindowLayoutInfo_ReadUseHookedSizeFail, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteUint64(0);
+    data.WriteBool(false);
+    data.WriteInt32(0);
+    data.WriteInt32(0);
+    int res = stub_->HandleGetAllWindowLayoutInfo(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
  * @tc.name: HandleSetWatermarkImageForApp01
  * @tc.desc: test HandleSetWatermarkImageForApp
  * @tc.type: FUNC

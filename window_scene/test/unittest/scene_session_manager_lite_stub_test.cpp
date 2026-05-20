@@ -1206,6 +1206,7 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetVisibilityWindowInfo, TestSiz
 {
     MessageParcel data;
     MessageParcel reply;
+    data.WriteBool(true);
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandleGetVisibilityWindowInfo(data, reply);
     EXPECT_EQ(ERR_NONE, res);

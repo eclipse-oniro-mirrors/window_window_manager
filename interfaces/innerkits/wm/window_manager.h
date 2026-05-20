@@ -1048,7 +1048,7 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) const;
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) const;
 
     /**
      * @brief Get global window mode.
@@ -1127,7 +1127,8 @@ public:
      * @param infos Visible window infos
      * @return WM_OK means get success, others means get failed.
      */
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const;
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) const;
 
     /**
      * @brief Set gesture navigation enabled.

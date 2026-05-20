@@ -73,7 +73,7 @@ public:
     WMError MoveToAsync(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
-    WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true) override;
     WMError Resize(uint32_t width, uint32_t height) override;
     WMError ResizeAsync(uint32_t width, uint32_t height) override;
     WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
@@ -320,7 +320,7 @@ public:
     WMError SetCustomDensity(float density, bool applyToSubWindow) override;
     WMError GetWindowDensityInfo(WindowDensityInfo& densityInfo) override;
     WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) override;
-    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true) override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetRotationLocked(bool locked) override;
     WMError GetRotationLocked(bool& locked) override;

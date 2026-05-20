@@ -355,6 +355,11 @@ Rect WindowImpl::GetRect() const
     return property_->GetWindowRect();
 }
 
+Rect WindowImpl::GetRect(bool useHookedSize) const
+{
+    return property_->GetWindowRect();
+}
+
 Rect WindowImpl::GetRequestRect() const
 {
     return property_->GetRequestRect();
@@ -2734,6 +2739,14 @@ WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListene
     return RegisterListener(windowChangeListeners_[GetWindowId()], listener);
 }
 
+WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+    bool useHookedSize)
+{
+    WLOGFD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(windowChangeListeners_[GetWindowId()], listener);
+}
+
 WMError WindowImpl::UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
 {
     WLOGFD("Start unregister");
@@ -4938,7 +4951,7 @@ uint32_t WindowImpl::GetApiTargetVersion() const
     return version;
 }
 
-WMError WindowImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo)
+WMError WindowImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize)
 {
     if (!IsWindowValid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
