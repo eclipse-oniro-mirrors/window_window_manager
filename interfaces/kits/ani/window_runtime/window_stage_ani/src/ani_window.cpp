@@ -1153,7 +1153,7 @@ void AniWindow::OnRecover(ani_env* env, ani_object snapshotAnimationConfig)
     if (!AniWindowUtils::CheckParaIsUndefined(env, snapshotAnimationConfig)) {
         auto configOpt = ParseSnapshotAnimationConfigANI(env, snapshotAnimationConfig);
         if (!configOpt) {
-            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return;
         }
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Recover(1, *configOpt));
@@ -5348,16 +5348,10 @@ void AniWindow::OnMaximizeWithOptions(ani_env* env, ani_object maximizeOptions)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    if (!(WindowHelper::IsMainWindow(windowToken_->GetType()) ||
-          windowToken_->IsSubWindowMaximizeSupported())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Unsupported window type");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
-        return;
-    }
 
     auto optionsOpt = ParseMaximizeOptionsANI(env, maximizeOptions);
     if (!optionsOpt) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return;
     }
 
