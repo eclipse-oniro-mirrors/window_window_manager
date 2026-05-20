@@ -15778,21 +15778,26 @@ std::vector<sptr<SceneSession>> SceneSessionManager::CollectProcessingSessions()
     {
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (const auto& [persistentId, session] : sceneSessionMap_) {
-            if (session == nullptr || !session->GetPostProcessFocusState().enabled_) {
+            if (session == nullptr) {
                 continue;
             }
-            if (session->GetPostProcessFocusState().isFocused_ && !session->IsVisible()) {
+            const auto& state = session->GetPostProcessFocusState();
+            if (!state.enabled_) {
+                continue;
+            }
+            if (state.isFocused_ && !session->IsVisible()) {
                 continue;
             }
             processingSessions.push_back(session);
         }
     }
     auto cmp = [](const sptr<SceneSession>& lhs, const sptr<SceneSession>& rhs) {
-        bool focusCmp = lhs->GetPostProcessFocusState().isFocused_ &&
-            !rhs->GetPostProcessFocusState().isFocused_;
-        uint32_t lhsZOrder = lhs != nullptr ? lhs->GetZOrder() : 0;
-        uint32_t rhsZOrder = rhs != nullptr ? rhs->GetZOrder() : 0;
-        return focusCmp || lhsZOrder > rhsZOrder;
+        const auto& lhsState = lhs->GetPostProcessFocusState();
+        const auto& rhsState = rhs->GetPostProcessFocusState();
+        if (lhsState.isFocused_ != rhsState.isFocused_) {
+            return lhsState.isFocused_;
+        }
+        return lhs->GetZOrder() > rhs->GetZOrder();
     };
     std::sort(processingSessions.begin(), processingSessions.end(), cmp);
     return processingSessions;
