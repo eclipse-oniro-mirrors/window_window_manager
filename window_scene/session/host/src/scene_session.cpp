@@ -9616,7 +9616,7 @@ uint32_t SceneSession::UpdateUIParam(const SessionUIParam& uiParam)
         dirtyFlags_ & static_cast<uint32_t>(SessionUIDirtyFlag::SCALE)) {
         NotifyGlobalScaledRectChange();
     }
-    if (!isPcScenePanel_ || !IsPcWindow()) {
+    if (!isPcScenePanel_) {
         dirtyFlags_ |= UpdateZOrderInner(uiParam.zOrder_) ? static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER) : 0;
     }
     if (!lastVisible && IsVisible() && !isFocused_ && !postProcessFocusState_.enabled_ &&
