@@ -67,6 +67,7 @@ public:
         TRANS_ID_SET_INTERNAL_CLIPTOBOUNDS,
         TRANS_ID_ON_TENT_MODE_CHANGE,
         TRANS_ID_ON_TRANS_RS_EVENT_TO_DESKTOP,
+        TRANS_ID_ON_SCREEN_CLOSED_STATE_CHANGE,
     };
 
     virtual void SwitchUserCallback(std::vector<int32_t> oldScbPids, int32_t currentScbPid) = 0;
@@ -117,6 +118,7 @@ public:
     virtual void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) = 0;
     virtual void OnTentModeChange(TentMode tentMode) = 0;
     virtual void OnTransRSEvent(const sptr<RSEventDataBase>& param) = 0;
+    virtual void OnScreenClosedStateChange(ScreenClosedState screenClosedState) = 0;
 };
 } // namespace OHOS::Rosen
 

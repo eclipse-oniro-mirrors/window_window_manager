@@ -3669,4 +3669,12 @@ bool ScreenSession::IsBootingConnect() const
 {
     return bootingConnect_.load();
 }
+
+void ScreenSession::GetScreenCapability(ScreenCapability& capability)
+{
+    RSScreenCapability rsCapability = RSInterfaces::GetInstance().GetScreenCapability(rsId_);
+    capability.phyWidth_ = rsCapability.GetPhyWidth();
+    capability.phyHeight_ = rsCapability.GetPhyHeight();
+    capability.interfaceType_ = rsCapability.GetType();
+}
 } // namespace OHOS::Rosen

@@ -39,13 +39,13 @@ WMError WindowAgent::UpdateWindowRect(const struct Rect& rect, bool decoStatus, 
     return WMError::WM_OK;
 }
 
-WMError WindowAgent::UpdateWindowMode(WindowMode mode)
+WMError WindowAgent::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     if (window_ == nullptr) {
         WLOGFE("window_ is nullptr");
         return WMError::WM_ERROR_NULLPTR;
     }
-    window_->UpdateMode(mode);
+    window_->UpdateMode(windowModeInfo.windowMode);
     return WMError::WM_OK;
 }
 

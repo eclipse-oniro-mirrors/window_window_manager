@@ -23,6 +23,7 @@
 #include "singleton_container.h"
 #include "window_adapter.h"
 #include "window_group_mgr.h"
+#include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "window_manager_service.h"
 #include "minimize_app.h"
@@ -125,7 +126,7 @@ WMError WindowGroupMgr::MoveMissionToForeground(int32_t missionId)
     std::set<DisplayId> displayIds;
     if (backupWindowModes_.count(windowNode->GetWindowId()) > 0) {
         auto mode = backupWindowModes_.at(windowNode->GetWindowId());
-        if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetWindowMode(mode);
             windowNode->SetWindowMode(mode);
             // when change mode, need to reset shadow and radius

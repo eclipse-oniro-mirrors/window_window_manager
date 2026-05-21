@@ -1496,7 +1496,8 @@ WMError WindowManagerService::GetUnreliableWindowInfo(int32_t windowId,
     return PostSyncTask(task, "GetUnreliableWindowInfo");
 }
 
-WMError WindowManagerService::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
+WMError WindowManagerService::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize)
 {
     auto task = [this, &infos]() {
         return windowController_->GetVisibilityWindowInfo(infos);

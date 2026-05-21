@@ -331,8 +331,7 @@ void SceneSessionDirtyManager::UpdateDefaultHotAreas(sptr<SceneSession> sceneSes
         sceneSession->IsDragAccessible();
     bool isSingleHandAffectedWindow = singleHandData.mode != SingleHandMode::MIDDLE &&
         windowSessionProperty->GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
-    bool isWindowSplit = windowSessionProperty->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        windowSessionProperty->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+    bool isWindowSplit = WindowHelper::IsSplitWindowMode(windowSessionProperty->GetWindowMode());
     if ((isAppPipWindow || isAppMainWindow || (isSystemOrSubWindow && isDragAccessibleWindow)) &&
         !isMidScene && !isSingleHandAffectedWindow && !isWindowSplit) {
         float vpr = 1.5f; // 1.5: default vp

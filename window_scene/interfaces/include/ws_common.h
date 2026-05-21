@@ -53,6 +53,8 @@ constexpr int64_t INVALID_TIME_STAMP = 0;
 constexpr float INVALID_SCALE = 0;
 constexpr int32_t MIN_REQUEST_ID_FROM_ABILITY = 1;
 constexpr int32_t DEFAULT_REQUEST_FROM_SCB_ID = -1;
+constexpr int32_t SCB_REQUEST_ID_START = 1;
+constexpr int32_t DEFAULT_REQUEST_ID = 0;
 constexpr int32_t WINDOW_SUPPORT_MODE_MAX_SIZE = 4;
 constexpr uint32_t COMBINED_COMPATIBLE_CONFIG_MAX_SIZE = 5;
 constexpr int32_t DEFAULT_SCALE_RATIO = 100;
@@ -485,7 +487,8 @@ struct SessionInfo {
     bool isPcOrPadEnableActivation_ = false;
     bool canStartAbilityFromBackground_ = false;
     bool isFoundationCall_ = false;
-    int32_t requestId = 0;
+    int32_t requestId = DEFAULT_REQUEST_ID;
+    int32_t scbRequestId = DEFAULT_REQUEST_ID;         // SCB generated global tracking ID
     std::string specifiedFlag_ = "";
     bool disableDelegator = false;
     bool reuseDelegatorWindow = false;
@@ -683,6 +686,7 @@ enum class SessionEvent : uint32_t {
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
     EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
+    EVENT_CREATE_WINDOW_WHEN_DRAGGING = 300,
     EVENT_END
 };
 

@@ -42,7 +42,7 @@ struct WindowMaskWithAlphaParseParams {
 
 class AniWindow {
 public:
-    explicit AniWindow(const sptr<Window>& window, ani_env* env);
+    explicit AniWindow(const sptr<Window>& window, ani_vm* vm);
     explicit AniWindow(const std::shared_ptr<OHOS::Rosen::Window>& window);
     ~AniWindow();
     sptr<Window> GetWindow() { return windowToken_; }
@@ -216,6 +216,8 @@ public:
     ani_object SetSpecificSystemBarEnabled(ani_env* env, ani_string name, ani_boolean enable,
         ani_object enableAnimation);
     ani_object SetDragKeyFramePolicy(ani_env* env, ani_object aniKeyFramePolicy);
+    static void SetSupportedWindowModes(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object aniSupportedWindowModes);
     ani_object Snapshot(ani_env* env);
     ani_object SnapshotSync(ani_env* env);
     void HideNonSystemFloatingWindows(ani_env* env, ani_boolean shouldHide);
@@ -385,6 +387,7 @@ private:
     void OnStartMoving(ani_env* env);
     void OnStartMoveWindowWithCoordinate(ani_env* env, ani_int offsetX, ani_int offsetY);
     void OnStopMoving(ani_env* env);
+    void OnSetSupportedWindowModes(ani_env* env, ani_object aniSupportedWindowModes);
 
     /*
      * Window animation
@@ -396,7 +399,7 @@ private:
 
     sptr<Window> windowToken_ = nullptr;
     std::unique_ptr<AniWindowRegisterManager> registerManager_ = nullptr;
-    ani_env* env_;
+    ani_vm* vm_ = nullptr;
     ani_ref aniRef_ = nullptr;
     ani_object aniTransControllerObj_ = nullptr;
 };

@@ -353,6 +353,7 @@
             OHOS::Rosen::ScreenSessionGroup::HasChild*;
             OHOS::Rosen::ScreenSessionGroup::RemoveChild*;
             OHOS::Rosen::ScreenSessionGroup::ScreenSessionGroup*;
+            OHOS::Rosen::ScreenSession::GetScreenCapability*;
         };
     local:
     *;

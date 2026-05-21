@@ -58,7 +58,7 @@ ScreenScene::~ScreenScene()
     Destroy();
 }
 
-WMError ScreenScene::Destroy(uint32_t reason)
+WMError ScreenScene::Destroy(uint32_t reason, bool isFromInnerkits)
 {
     std::function<void()> task; //延长task的生命周期
     {

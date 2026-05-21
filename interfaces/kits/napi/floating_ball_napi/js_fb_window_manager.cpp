@@ -56,13 +56,15 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-        return NapiThrowInvalidParam(env, "Missing args when creating fbController");
+        return NapiThrowInvalidParam(env,
+            "[fbWindow][create]msg: Missing args when creating fbController");
     }
 
     napi_value config = argv[0];
     if (config == nullptr) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-        return NapiThrowInvalidParam(env, "Failed to convert object to fbConfiguration or fbConfiguration is null");
+        return NapiThrowInvalidParam(env,
+            "[fbWindow][create]msg: Failed to convert object to fbConfiguration or fbConfiguration is null");
     }
 
     napi_value contextPtrValue = nullptr;
@@ -71,7 +73,7 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     napi_unwrap(env, contextPtrValue, &contextPtr);
     if (contextPtr == nullptr) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_CREATE_FAILED);
-        return NapiThrowInvalidParam(env, "Context is null.");
+        return NapiThrowInvalidParam(env, "[fbWindow][create]msg: Context is null.");
     }
     return NapiSendTask(env, contextPtr);
 }

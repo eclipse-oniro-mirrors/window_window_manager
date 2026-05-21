@@ -72,6 +72,38 @@ HWTEST_F(StringUtilTest, Trim, TestSize.Level1)
 
     ASSERT_EQ("Hello World 123", StringUtil::Trim("   Hello World 123   "));
 }
+
+/**
+ * @tc.name: ConvertStringToFloat
+ * @tc.desc: test ConvertStringToFloat
+ * @tc.type: FUNC
+ */
+HWTEST_F(StringUtilTest, ConvertStringToFloat, TestSize.Level1)
+{
+    float value = 0.0f;
+
+    // valid inputs
+    ASSERT_TRUE(StringUtil::ConvertStringToFloat("10.5", value));
+    ASSERT_FLOAT_EQ(value, 10.5f);
+
+    ASSERT_TRUE(StringUtil::ConvertStringToFloat("0", value));
+    ASSERT_FLOAT_EQ(value, 0.0f);
+
+    ASSERT_TRUE(StringUtil::ConvertStringToFloat("-3.14", value));
+    ASSERT_FLOAT_EQ(value, -3.14f);
+
+    ASSERT_TRUE(StringUtil::ConvertStringToFloat("  12.4", value));
+    ASSERT_FLOAT_EQ(value, 12.4f);
+
+    ASSERT_TRUE(StringUtil::ConvertStringToFloat("1.5abc", value));
+    ASSERT_FLOAT_EQ(value, 1.5f);
+
+    // invalid inputs
+    ASSERT_FALSE(StringUtil::ConvertStringToFloat("abc", value));
+    ASSERT_FALSE(StringUtil::ConvertStringToFloat("", value));
+    ASSERT_FALSE(StringUtil::ConvertStringToFloat("inf", value));
+    ASSERT_FALSE(StringUtil::ConvertStringToFloat("nan", value));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
