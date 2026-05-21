@@ -102,6 +102,7 @@ public:
         TRANS_ID_SET_IMAGE_FOR_RECENT_PIXELMAP,
         TRANS_ID_REMOVE_IMAGE_FOR_RECENT,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
     };
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& property,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode,
@@ -142,7 +143,10 @@ public:
         std::vector<sptr<WindowInfo>>& infos) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) { return WMError::WM_OK; }
     virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -178,7 +182,8 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) = 0;
+    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) = 0;
     virtual WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller) = 0;
     virtual WMError GetSystemConfig(SystemConfig& systemConfig) = 0;
     virtual WMError NotifyWindowTransition(sptr<WindowTransitionInfo>& from, sptr<WindowTransitionInfo>& to,
@@ -330,11 +335,12 @@ public:
     {
         return WMError::WM_OK;
     }
-    virtual WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect)
+    virtual WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false)
     {
         return WSError::WS_OK;
     }
-    virtual WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect)
+    virtual WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false)
     {
         return WSError::WS_OK;
     }
@@ -434,7 +440,7 @@ public:
     /*
      * Float view
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits& limits)
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

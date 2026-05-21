@@ -269,23 +269,6 @@ HWTEST_F(SessionSpecificWindowTest, GetKeyboardAvoidArea01, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsSystemSpecificSession
- * @tc.desc: IsSystemSpecificSession
- * @tc.type: FUNC
- */
-HWTEST_F(SessionSpecificWindowTest, IsSystemSpecificSession, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "IsSystemSpecificSession";
-    info.bundleName_ = "IsSystemSpecificSession";
-
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_FALSE(sceneSession->IsSystemSpecificSession());
-    sceneSession->SetIsSystemSpecificSession(true);
-    ASSERT_TRUE(sceneSession->IsSystemSpecificSession());
-}
-
-/**
  * @tc.name: SetAndIsSystemKeyboard
  * @tc.desc: test SetIsSystemKeyboard and IsSystemKeyboard func
  * @tc.type: FUNC

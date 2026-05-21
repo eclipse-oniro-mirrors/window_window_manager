@@ -170,13 +170,13 @@ void ScreenshotManagerAni::GetHdrScreenshot(ani_env *env, std::unique_ptr<HdrPar
         return;
     }
     CaptureOption option = { param->option.displayId, param->option.isNeedNotify, true,
-        param->option.isCaptureFullOfScreen };
+        param->option.isCaptureFullOfScreen, param->option.displayIntent };
     if (!option.isNeedNotify_) {
         param->imageVec = DisplayManager::GetInstance().GetScreenHDRshotWithOption(option, param->wret);
     } else {
         TLOGI(WmsLogTag::DMS, "[ANI] Get Screenshot by default option");
         param->imageVec = DisplayManager::GetInstance().GetScreenHDRshot(param->option.displayId, param->wret,
-            true, param->option.isCaptureFullOfScreen);
+            true, param->option.isCaptureFullOfScreen, param->option.displayIntent);
     }
     if ((param->imageVec.size() != PIXMAP_VECTOR_SIZE || param->imageVec[SDR_PIXMAP] == nullptr) &&
         param->wret == DmErrorCode::DM_OK) {

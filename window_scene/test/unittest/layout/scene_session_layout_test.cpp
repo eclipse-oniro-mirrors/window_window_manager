@@ -781,7 +781,7 @@ HWTEST_F(SceneSessionLayoutTest, ActivateDragBySystem, TestSize.Level1)
     info.abilityName_ = "ActivateDragBySystem";
     info.bundleName_ = "ActivateDragBySystem";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    auto ret = sceneSession->ActivateDragBySystem(true);
+    auto ret = sceneSession->ActivateDragBySystem(DragActivateSource::FOLLOW_PARENT_LAYOUT, true);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 
@@ -804,14 +804,14 @@ HWTEST_F(SceneSessionLayoutTest, CheckDragActivatedSettings, TestSize.Level1)
     info.bundleName_ = "CheckDragActivatedSettings";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
 
-    sceneSession->ActivateDragBySystem(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
     ASSERT_EQ(true, sceneSession->IsDragAccessible());
 
     sceneSession->GetSessionProperty()->SetDragEnabled(false);
     ASSERT_EQ(false, sceneSession->IsDragAccessible());
 
-    sceneSession->ActivateDragBySystem(false);
+    sceneSession->dragActivatedBitmap_ = 0;
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
     ASSERT_EQ(false, sceneSession->IsDragAccessible());
 
@@ -927,7 +927,7 @@ HWTEST_F(SceneSessionLayoutTest, IsDraggable, TestSize.Level1)
     sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     sceneSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     sceneSession->GetSessionProperty()->SetDragEnabled(true);
-    sceneSession->SetDragActivated(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
 
     sceneSession->moveDragController_ = nullptr;
     EXPECT_EQ(sceneSession->IsDraggable(), false);
@@ -2967,6 +2967,52 @@ HWTEST_F(SceneSessionLayoutTest, NotifyRebindAttachAfterParentChange02, TestSize
         .Times(1).WillOnce(testing::Return(WSError::WS_OK));
 
     session->NotifyRebindAttachAfterParentChange(200);
+}
+
+/**
+ * @tc.name: GetParentSessionRectSync01
+ * @tc.desc: GetParentSessionRectSync with no parent session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, GetParentSessionRectSync01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetParentSessionRectSync01";
+    info.bundleName_ = "GetParentSessionRectSync01";
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->handler_ = nullptr;
+
+    WSRect rect = session->GetParentSessionRectSync();
+    EXPECT_EQ(0, rect.posX_);
+    EXPECT_EQ(0, rect.posY_);
+    EXPECT_EQ(0, rect.width_);
+    EXPECT_EQ(0, rect.height_);
+}
+
+/**
+ * @tc.name: GetParentSessionRectSync02
+ * @tc.desc: GetParentSessionRectSync with parent session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, GetParentSessionRectSync02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetParentSessionRectSync02";
+    info.bundleName_ = "GetParentSessionRectSync02";
+    auto parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    WSRect parentRect = { 100, 200, 800, 600 };
+    parentSession->SetSessionRect(parentRect);
+    parentSession->handler_ = nullptr;
+
+    auto childSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    childSession->parentSession_ = parentSession;
+    childSession->handler_ = nullptr;
+
+    WSRect rect = childSession->GetParentSessionRectSync();
+    EXPECT_EQ(parentRect.posX_, rect.posX_);
+    EXPECT_EQ(parentRect.posY_, rect.posY_);
+    EXPECT_EQ(parentRect.width_, rect.width_);
+    EXPECT_EQ(parentRect.height_, rect.height_);
 }
 
 } // namespace

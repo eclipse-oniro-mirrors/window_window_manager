@@ -233,10 +233,10 @@ HWTEST_F(SessionStageProxyTest, ConfigDockAutoHide, TestSize.Level1)
     ASSERT_TRUE((sessionStage_ != nullptr));
     bool isDockAutoHide = true;
     WSError res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
     isDockAutoHide = false;
     res = sessionStage_->ConfigDockAutoHide(isDockAutoHide);
-    ASSERT_EQ(WSError::WS_OK, res);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
 }
 
 /**
@@ -529,10 +529,74 @@ HWTEST_F(SessionStageProxyTest, NotifyTouchOutside, TestSize.Level1)
  */
 HWTEST_F(SessionStageProxyTest, UpdateWindowMode, TestSize.Level1)
 {
-    WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED;
     ASSERT_TRUE((sessionStage_ != nullptr));
-    WSError res = sessionStage_->UpdateWindowMode(mode);
+    WSError res = sessionStage_->UpdateWindowMode(
+        WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     ASSERT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: UpdateWindowMode02
+ * @tc.desc: test UpdateWindowMode with split modes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateWindowMode02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    WSError res = sessionStage_->UpdateWindowMode(
+        WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY,
+                        SplitStyle::TWO_WINDOW_HORIZONTAL,
+                        SPLIT_INDEX_PRIMARY });
+    EXPECT_EQ(WSError::WS_OK, res);
+
+    res = sessionStage_->UpdateWindowMode(
+        WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_SECONDARY,
+                        SplitStyle::TWO_WINDOW_VERTICAL,
+                        SPLIT_INDEX_SECONDARY });
+    EXPECT_EQ(WSError::WS_OK, res);
+
+    res = sessionStage_->UpdateWindowMode(
+        WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT,
+                        SplitStyle::THREE_WINDOW_HORIZONTAL,
+                        SPLIT_INDEX_PRIMARY });
+    EXPECT_EQ(WSError::WS_OK, res);
+}
+
+/**
+ * @tc.name: UpdateWindowMode03
+ * @tc.desc: test UpdateWindowMode with IPC write failures
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateWindowMode03, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    WindowModeInfo info{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY,
+                         SplitStyle::TWO_WINDOW_HORIZONTAL,
+                         SPLIT_INDEX_PRIMARY };
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionStageProxy> proxy = sptr<SessionStageProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    // WriteInterfaceToken failed
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateWindowMode(info));
+    MockMessageParcel::ClearAllErrorFlag();
+
+    // WriteUint32 (windowMode) failed
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateWindowMode(info));
+    MockMessageParcel::ClearAllErrorFlag();
+
+    // WriteInt32 (splitIndex) failed
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateWindowMode(info));
+    MockMessageParcel::ClearAllErrorFlag();
+
+    // SendRequest failed
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateWindowMode(info));
+    remoteMocker->SetRequestResult(ERR_NONE);
 }
 
 /**
@@ -1612,7 +1676,9 @@ HWTEST_F(SessionStageProxyTest, SyncFvWindowInfo, TestSize.Level1)
 HWTEST_F(SessionStageProxyTest, SyncFvLimits, TestSize.Level1)
 {
     ASSERT_TRUE(sessionStage_ != nullptr);
-    FloatViewLimits limits;
+    FloatViewLimits limit;
+    std::map<uint32_t, FloatViewLimits> limits {};
+    limits.emplace(0, limit);
     
     // Case 1: Success
     MockMessageParcel::ClearAllErrorFlag();
@@ -1623,6 +1689,12 @@ HWTEST_F(SessionStageProxyTest, SyncFvLimits, TestSize.Level1)
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
     
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteUint32ErrorCount(1);
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+
     // Case 3: Failed to write limits
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SyncFvLimits(limits));

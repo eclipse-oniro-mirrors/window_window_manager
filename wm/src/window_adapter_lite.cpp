@@ -75,12 +75,13 @@ WindowAdapterLite& WindowAdapterLite::GetInstance()
 WindowAdapterLite& WindowAdapterLite::GetInstance(const int32_t userId)
 {
     if (userId <= INVALID_USER_ID) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
         return GetInstance();
     }
-    // multi-instance mode
     std::lock_guard<std::mutex> lock(windowAdapterLiteMapMutex_);
     auto iter = windowAdapterLiteMap_.find(userId);
     if (iter != windowAdapterLiteMap_.end() && iter->second) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get existing instance, userId: %{public}d", userId);
         return *iter->second;
     }
     auto instance = sptr<WindowAdapterLite>::MakeSptr(userId);

@@ -35,11 +35,9 @@ namespace {
 constexpr size_t DATA_MIN_SIZE = 2;
 }
 
-void SessionStageStubLayoutTest(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel)
+static void SessionStageStubLayoutTestGroup1(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel,
+    MessageParcel& reply, MessageOption& option)
 {
-    MessageParcel reply;
-    MessageOption option;
-
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(
         static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_LAYOUT_FINISH_AFTER_WINDOW_MODE_CHANGE),
@@ -64,6 +62,48 @@ void SessionStageStubLayoutTest(sptr<WindowSessionImpl> stageStub, MessageParcel
     stageStub->OnRemoteRequest(
         static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_ANIMATION_SPEED),
         parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SUB_WINDOW_AFTER_PARENT_WINDOW_SIZE_CHANGE),
+        parcel, reply, option);
+}
+
+static void SessionStageStubLayoutTestGroup2(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel,
+    MessageParcel& reply, MessageOption& option)
+{
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_SUB_WINDOW_AFTER_PARENT_WINDOW_STATUS_CHANGE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_ATTACHED_WINDOW_LIMITS),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_ALL_ATTACHED_LIMITS_TO_CHILD),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_REBIND_ATTACH_AFTER_PARENT_CHANGE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_CONFIG_DOCK_AUTO_HIDE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_IS_START_MOVING),
+        parcel, reply, option);
+}
+
+void SessionStageStubLayoutTest(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel)
+{
+    MessageParcel reply;
+    MessageOption option;
+
+    SessionStageStubLayoutTestGroup1(stageStub, parcel, reply, option);
+    SessionStageStubLayoutTestGroup2(stageStub, parcel, reply, option);
 }
 
 bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)

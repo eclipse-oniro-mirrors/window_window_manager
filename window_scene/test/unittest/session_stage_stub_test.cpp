@@ -1938,19 +1938,45 @@ HWTEST_F(SessionStageStubTest, HandleSyncFvLimits, TestSize.Level1)
     MessageParcel reply;
     MessageOption option;
     
-    // Case 1: Success
     data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     sptr<FloatViewLimits> limits = sptr<FloatViewLimits>::MakeSptr();
+    data.WriteUint32(1);
+    data.WriteUint32(0);
     data.WriteParcelable(limits);
     uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_FV_LIMITS);
     ASSERT_TRUE(sessionStageStub_ != nullptr);
     ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
     
-    // Case 2: Failed to read limits
     MessageParcel data2;
     MessageParcel reply2;
     data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data2, reply2, option));
+
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data3.WriteUint32(1);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data3, reply3, option));
+
+    MessageParcel data4;
+    MessageParcel reply4;
+    data4.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data4.WriteUint32(11);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data4, reply4, option));
+
+    MessageParcel data5;
+    MessageParcel reply5;
+    data5.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data5.WriteUint32(1);
+    data5.WriteUint32(5);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data5, reply5, option));
+
+    MessageParcel data6;
+    MessageParcel reply6;
+    data6.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data6.WriteUint32(1);
+    data6.WriteUint32(0);
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data6, reply6, option));
 }
 
 /**

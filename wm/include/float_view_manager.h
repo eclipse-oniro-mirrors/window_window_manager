@@ -41,7 +41,7 @@ public:
     static void DoActionInFloatingBall(const std::string& reason);
 
     static void SyncFvWindowInfo(uint32_t windowId, const FloatViewWindowInfo& windowInfo, const std::string& reason);
-    static void SyncFvLimits(uint32_t windowId, const FloatViewLimits& limits);
+    static void SyncFvLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& limits);
 private:
     // controller in use
     static sptr<FloatViewController> activeController_;

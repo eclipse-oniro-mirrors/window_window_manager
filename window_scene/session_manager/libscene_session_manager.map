@@ -149,6 +149,7 @@
             OHOS::Rosen::SceneSessionManager::SchedulePcAppInPadLifecycle*;
             OHOS::Rosen::SceneSessionManager::SendTouchEvent*;
             OHOS::Rosen::SceneSessionManager::SendAxisEvent*;
+            OHOS::Rosen::SceneSessionManager::RedispatchTouchEvent*;
             OHOS::Rosen::SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc*;
             OHOS::Rosen::SceneSessionManager::SetAlivePersistentIds*;
             OHOS::Rosen::SceneSessionManager::SetAppDragResizeTypeInner*;
@@ -225,6 +226,7 @@
             OHOS::Rosen::SceneSessionManager::RegisterPageEnableFunc*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SceneSessionManager::SyncFloatViewLimits*;
+            OHOS::Rosen::SceneSessionManager::RegisterGetFloatViewLimitCallback*;
             OHOS::Rosen::SessionLifecycleListenerStub::OnRemoteRequest*;
             OHOS::Rosen::SessionRouterStackListenerStub::OnRemoteRequest*;
             OHOS::Rosen::UIEffectManager::GetInstance*;

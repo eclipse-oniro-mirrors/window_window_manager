@@ -44,7 +44,7 @@ public:
 
     using SessionRecoverCallbackFunc = std::function<WMError()>;
     using UIEffectRecoverCallbackFunc = std::function<WMError()>;
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     using OutlineRecoverCallbackFunc = std::function<WMError()>;
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& windowProperty,
         std::shared_ptr<RSSurfaceNode> surfaceNode, uint32_t& windowId, const sptr<IRemoteObject>& token);
@@ -91,14 +91,15 @@ public:
     virtual WMError GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<UnreliableWindowInfo>>& infos);
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos);
     virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions());
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true);
     virtual WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos);
     virtual WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds,
         const WindowSnapshotConfiguration& config, const sptr<IRemoteObject>& callback);
     virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip);
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode);
     virtual WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName);
-    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos);
+    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true);
     virtual void MinimizeWindowsByLauncher(std::vector<uint32_t> windowIds, bool isAnimated,
         sptr<RSIWindowAnimationFinishedCallback>& finishCallback);
     virtual void SetAnchorAndScale(int32_t x, int32_t y, float scale);
@@ -158,8 +159,9 @@ public:
     virtual WMError AddOrRemoveSecureSession(int32_t persistentId, bool shouldHide);
     virtual WMError UpdateExtWindowFlags(const sptr<IRemoteObject>& token, uint32_t extWindowFlags,
         uint32_t extWindowActions);
-    virtual WMError GetHostWindowRect(int32_t hostWindowId, Rect& rect);
-    virtual WMError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect);
+    virtual WMError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false);
+    virtual WMError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false);
     virtual WMError GetFreeMultiWindowEnableState(bool& enable);
     virtual WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus);
     virtual WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect);
@@ -264,7 +266,7 @@ public:
     /**
      * Float View
      */
-    virtual WMError GetFloatViewLimits(FloatViewLimits &limits);
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits);
 
 private:
     friend class sptr<WindowAdapter>;

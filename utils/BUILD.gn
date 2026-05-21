@@ -30,6 +30,7 @@ config("libwmutil_public_config") {
     "${window_base_path}/window_scene/interfaces/include",
     "../interfaces/innerkits/dm",
     "../interfaces/innerkits/wm",
+    "../interfaces/kits/ndk/wm",
   ]
 }
 

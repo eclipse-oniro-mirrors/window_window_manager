@@ -57,7 +57,7 @@ public:
     WSError NotifyTouchOutside() override;
     WSError NotifyWindowVisibility(bool isVisible) override;
     WSError NotifyWindowOcclusionState(const WindowVisibilityState state) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
     WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
@@ -111,7 +111,7 @@ public:
     WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
 
-    WSError SetDragActivated(bool dragActivated) override;
+    WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetSplitButtonVisible(bool isVisible) override;
     WSError SetEnableDragBySystem(bool dragEnable) override;
     WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
@@ -138,7 +138,7 @@ public:
     WSError SendFbActionEvent(const std::string& action) override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
-    WSError SyncFvLimits(const FloatViewLimits& limits) override;
+    WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
     WSError AddSidebarBlur() override;

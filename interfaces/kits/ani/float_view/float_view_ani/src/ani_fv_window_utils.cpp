@@ -294,9 +294,9 @@ ani_status AniFvUtils::GetAniString(ani_env* env, const std::string& str, ani_st
     return env->String_NewUTF8(str.c_str(), static_cast<ani_size>(str.size()), result);
 }
 
-bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, Rect& rect)
+bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, std::pair<int32_t, int32_t>& size)
 {
-    auto getAndAssign = [&, where = __func__](const char* name, uint32_t& field) -> ani_status {
+    auto getAndAssign = [&, where = __func__](const char* name, int32_t& field) -> ani_status {
         ani_int int_value;
         ani_status ret = env->Object_GetPropertyByName_Int(windowSize, name, &int_value);
         if (ret != ANI_OK) {
@@ -304,11 +304,11 @@ bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, Rect& rect
                 "[ANI]Object_GetPropertyByName_Int failed,ret:%{public}d", static_cast<int32_t>(ret));
             return ret;
         }
-        field = static_cast<uint32_t>(int_value);
+        field = static_cast<int32_t>(int_value);
         return ANI_OK;
     };
-    if (getAndAssign("width", rect.width_) != ANI_OK ||
-        getAndAssign("height", rect.height_) != ANI_OK) {
+    if (getAndAssign("width", size.first) != ANI_OK ||
+        getAndAssign("height", size.second) != ANI_OK) {
         return false;
     }
     return true;
@@ -375,7 +375,7 @@ ani_object AniFvUtils::CreateAniFloatViewRectChangeInfoObject(ani_env* env,
     return infoObj;
 }
 
-ani_object AniFvUtils::CreateAniFvWindowInfoObject(ani_env* env,
+ani_object AniFvUtils::CreateAniFloatViewPropertiesObject(ani_env* env, uint32_t templateType,
     const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state)
 {
     RETURN_IF_NULL(env, nullptr);
@@ -387,17 +387,19 @@ ani_object AniFvUtils::CreateAniFvWindowInfoObject(ani_env* env,
     }
     ani_method ctor = nullptr;
     ret = env->Class_FindMethod(infoClass, "<ctor>",
-        "iiC{@ohos.window.window.Rect}dC{@ohos.window.window.Rect}z:", &ctor);
+        "iiiC{@ohos.window.window.Rect}dC{@ohos.window.window.AvoidArea}z:", &ctor);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[ANI]find constructor failed");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));
     }
     ani_object windowRect = AniWindowUtils::CreateAniRect(env, windowInfo.windowRect_);
-    ani_object titleBarRect = AniWindowUtils::CreateAniRect(env, windowInfo.titleBarRect_);
+    ani_object avoidArea = AniWindowUtils::CreateAniAvoidArea(env,
+        windowInfo.avoidArea_, AvoidAreaType::TYPE_START, false);
     ani_boolean isSidebar = ani_boolean(state == FvWindowState::FV_STATE_IN_SIDEBAR);
     ani_object infoObj = nullptr;
-    ret = env->Object_New(infoClass, ctor, &infoObj, ani_int(window->GetWindowId()), ani_int(window->GetDisplayId()),
-        windowRect, ani_double(windowInfo.scale_), titleBarRect, isSidebar);
+    ret = env->Object_New(infoClass, ctor, &infoObj,
+        ani_int(templateType), ani_int(window->GetWindowId()), ani_int(window->GetDisplayId()),
+        windowRect, ani_double(windowInfo.scale_), avoidArea, isSidebar);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[ANI] failed to create new obj");
         return static_cast<ani_object>(AniFvUtils::AniGetUndefined(env));

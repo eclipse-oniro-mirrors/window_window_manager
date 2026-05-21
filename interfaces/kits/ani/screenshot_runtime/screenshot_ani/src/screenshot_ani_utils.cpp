@@ -268,6 +268,14 @@ ani_status ScreenshotAniUtils::GetHdrScreenshotParam(ani_env* env, const std::un
         TLOGE(WmsLogTag::DMS, "[ANI] get isCaptureFullOfScreen failed");
         return ret;
     }
+
+    ani_int displayIntentValue = 0;
+    ret = ReadOptionalEnumField(env, options, "displayIntent", displayIntentValue);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] get displayIntent failed");
+        return ret;
+    }
+    param->option.displayIntent = static_cast<DisplayIntentType>(displayIntentValue);
  
     return ANI_OK;
 }
@@ -391,6 +399,17 @@ ani_status ScreenshotAniUtils::ReadOptionalBoolField(ani_env* env, ani_object ob
         if (result == ANI_OK) {
             value = static_cast<bool>(aniBool);
         }
+    }
+    return result;
+}
+
+ani_status ScreenshotAniUtils::ReadOptionalEnumField(ani_env* env, ani_object obj, const char* fieldName,
+    ani_int& value)
+{
+    ani_ref ref = nullptr;
+    ani_status result = ReadOptionalField(env, obj, fieldName, ref);
+    if (result == ANI_OK && ref != nullptr) {
+        result = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(ref), &value);
     }
     return result;
 }

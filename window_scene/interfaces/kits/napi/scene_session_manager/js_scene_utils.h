@@ -146,6 +146,7 @@ napi_value CreateJsRSUIFirstSwitch(napi_env env);
 napi_value CreateJsSessionPiPControlType(napi_env env);
 napi_value CreateJsSessionPiPControlStatus(napi_env env);
 napi_value CreateJsSessionFbTextUpdateAnimationType(napi_env env);
+napi_value CreateJsSessionFloatViewTemplateType(napi_env env);
 napi_value CreateJsSessionGravity(napi_env env);
 napi_value CreateJsSessionDragResizeType(napi_env env);
 void CreatePiPSizeChangeReason(napi_env env, napi_value objValue);
@@ -203,15 +204,19 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
 bool ConvertHookWindowInfoFromJs(napi_env env, napi_value jsObject, HookWindowInfo& hookWindowInfo);
 bool ConvertRotateAnimationConfigFromJs(napi_env env, napi_value value, RotateAnimationConfig& config);
 bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType& dragResizeType);
+bool ConvertAvoidAreaFromJsValue(napi_env env, napi_value jsObject, AvoidArea& avoidArea);
 bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect);
+bool ConvertDragDisabledAreasFromJsValue(napi_env env, napi_value nativeArray,
+    std::vector<Rect>& dragDisabledAreas);
 bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInfo& rotationChangeInfo);
 bool ConvertThrowSlipModeFromJs(napi_env env, napi_value value, ThrowSlipMode& throwSlipMode);
 bool convertAnimConfigFromJs(napi_env env, napi_value value, SceneAnimationConfig& config);
 bool ConvertSupportRotationInfoFromJsValue(napi_env env, napi_value jsObject,
     SupportRotationInfo& suppoortRotationInfo);
 bool ParseBoolArrayValueFromJsValue(napi_env env, napi_value array, std::vector<bool>& vector);
-bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits& limits);
-bool ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits& limits);
+bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo& windowModeInfo);
+bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, std::map<uint32_t, FloatViewLimits>& tmp2Limits);
+std::vector<std::pair<double, double>> ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits);
 template<class T>
 bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T& data)
 {

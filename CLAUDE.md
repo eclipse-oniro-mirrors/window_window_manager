@@ -8,7 +8,7 @@ This file provides guidance for AI coding agents working in this repository.
 
 ## Architecture
 
-Two compile-time architectures are supported, selected via `window_manager_use_sceneboard` in `product/define.gni`:
+Two compile-time architectures are supported, selected via `window_manager_use_sceneboard` (set externally by the OpenHarmony build system):
 
 | Value | Architecture | Key module compiled |
 |-------|-------------|---------------------|
@@ -30,10 +30,12 @@ Key modules:
 
 This project uses the OpenHarmony `gn` + `ninja` build system.
 
-Feature flags are declared via `declare_args()` in `windowmanager_aafwk.gni`. The global architecture switch is:
+Feature flags are declared via `declare_args()` in `windowmanager_aafwk.gni`. Key flags:
 ```gni
-window_manager_use_sceneboard = true   # unified arch
-window_manager_use_sceneboard = false  # separated arch
+window_manager_use_sceneboard      # Architecture switch (external)
+window_manager_fold_ability        # Foldable device support
+window_manager_feature_multi_screen # Multi-display support
+window_manager_feature_multi_usr   # Multi-user support
 ```
 
 ## Code Style
@@ -145,6 +147,22 @@ HWTEST_F(MyFeatureTest, TestSomething, TestSize.Level1)
 | window_scene | `window_scene:test` |
 | snapshot | `snapshot:test` |
 | extension/window_extension | `extension/window_extension:test` |
+
+Fuzz tests are in `test/fuzztest/{wms,dms,window_scene}/` and built via `test:fuzztest`.
+
+## Git Commit
+
+- **User approval required**: Ask user before `git commit`. Use `git commit -s` after approval.
+- **Angular format**: `type(scope): subject` (feat, fix, docs, style, refactor, test, chore)
+- **Co-authored footer**: Append `Co-Authored-By: Agent` to every commit message.
+
+Example:
+```
+feat(auth): add user login feature
+
+Signed-off-by: Your Name <your.email@example.com>
+Co-Authored-by: Agent
+```
 
 ## IPC / ZIDL
 

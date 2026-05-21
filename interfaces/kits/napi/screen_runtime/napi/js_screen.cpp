@@ -21,6 +21,7 @@
 #include "screen.h"
 #include "screen_info.h"
 #include "window_manager_hilog.h"
+#include "display_histogram_management.h"
 #ifdef XPOWER_EVENT_ENABLE
 #include "xpower_event_js.h"
 #endif // XPOWER_EVENT_ENABLE
@@ -30,6 +31,8 @@ namespace Rosen {
 using namespace AbilityRuntime;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_TWO = 2;
+constexpr size_t ARGC_THREE = 3;
+constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 
 static thread_local std::map<ScreenId, std::shared_ptr<NativeReference>> g_JsScreenMap;
 std::recursive_mutex g_mutex;
@@ -85,45 +88,74 @@ napi_valuetype GetType(napi_env env, napi_value value)
     return res;
 }
 
+napi_value ThrowInvalidParam(napi_env env, const char* msg)
+{
+    napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), msg));
+    return NapiGetUndefined(env);
+}
+
+static bool ParseOrientationOptions(napi_env env, napi_value obj, OrientationOptions& opts)
+{
+    napi_value val;
+    bool has;
+    napi_has_named_property(env, obj, "needAnimation", &has);
+    if (has && napi_get_named_property(env, obj, "needAnimation", &val) == napi_ok) {
+        if (!ConvertFromJsValue(env, val, opts.needAnimation)) {
+            TLOGE(WmsLogTag::DMS, "Failed to convert needAnimation");
+            return false;
+        }
+    }
+    napi_has_named_property(env, obj, "ignoreRotationLock", &has);
+    if (has && napi_get_named_property(env, obj, "ignoreRotationLock", &val) == napi_ok) {
+        if (!ConvertFromJsValue(env, val, opts.ignoreRotationLock)) {
+            TLOGE(WmsLogTag::DMS, "Failed to convert ignoreRotationLock");
+            return false;
+        }
+    }
+    return true;
+}
+
 napi_value JsScreen::OnSetOrientation(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::DMS, "called");
-    bool paramValidFlag = true;
-    Orientation orientation = Orientation::UNSPECIFIED;
-    size_t argc = 4;
-    napi_value argv[4] = {nullptr};
-    std::string errMsg = "";
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARGC_THREE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         TLOGE(WmsLogTag::DMS, "Params not match, info argc: %{public}zu", argc);
-        errMsg = "Invalid args count, need one arg at least!";
-        paramValidFlag = false;
-    } else if (!ConvertFromJsValue(env, argv[0], orientation)) {
-        paramValidFlag = false;
-        TLOGE(WmsLogTag::DMS, "Failed to convert parameter to orientation");
-        errMsg = "Failed to convert parameter to orientation";
+        return ThrowInvalidParam(env, "Invalid args count, need one arg at least!");
     }
-    if (!paramValidFlag) {
-        TLOGE(WmsLogTag::DMS, "paramValidFlag error");
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
-        return NapiGetUndefined(env);
+
+    Orientation orientation = Orientation::UNSPECIFIED;
+    if (!ConvertFromJsValue(env, argv[0], orientation)) {
+        TLOGE(WmsLogTag::DMS, "Failed to convert parameter to orientation");
+        return ThrowInvalidParam(env, "Failed to convert parameter to orientation");
     }
     if (orientation < Orientation::BEGIN || orientation > Orientation::END) {
         TLOGE(WmsLogTag::DMS, "Orientation param error! orientation value must from enum Orientation");
-        errMsg = "orientation value must from enum Orientation";
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
-        return NapiGetUndefined(env);
+        return ThrowInvalidParam(env, "orientation value must from enum Orientation");
     }
+
+    OrientationOptions options;
+    bool hasOptions = false;
     napi_value lastParam = nullptr;
-    if (argc >= ARGC_TWO && argv[ARGC_TWO - 1] != nullptr &&
-        GetType(env, argv[ARGC_TWO - 1]) == napi_function) {
-        lastParam = argv[ARGC_TWO - 1];
+    if (argc >= ARGC_TWO && argv[ARGC_ONE] != nullptr) {
+        auto type = GetType(env, argv[ARGC_ONE]);
+        if (type == napi_object) {
+            if (!ParseOrientationOptions(env, argv[ARGC_ONE], options)) {
+                return ThrowInvalidParam(env, "Failed to convert parameter to orientationOptions");
+            }
+            hasOptions = true;
+        } else if (type == napi_function) {
+            lastParam = argv[ARGC_ONE];
+        }
     }
     napi_value result = nullptr;
-    std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [this, orientation, env, task = napiAsyncTask.get()]() {
+    auto napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
+    auto asyncTask = [this, orientation, options, hasOptions, env, task = napiAsyncTask.get()]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreen::OnSetOrientation");
-        DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetScreenOrientation(orientation));
+        DmErrorCode ret = hasOptions
+            ? DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetScreenOrientation(orientation, options))
+            : DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetScreenOrientation(orientation));
         if (ret == DmErrorCode::DM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetOrientation success");
@@ -152,6 +184,7 @@ napi_value JsScreen::SetScreenActiveMode(napi_env env, napi_callback_info info)
 napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.setScreenActiveMode.Count", HISTOGRAM_BOOLEAN_COUNTS);
     bool paramValidFlag = true;
     uint32_t modeId = 0;
     size_t argc = 4;
@@ -171,6 +204,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
     }
     if (!paramValidFlag) {
         TLOGE(WmsLogTag::DMS, "paramValidFlag error");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setScreenActiveMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -188,6 +222,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetScreenActiveMode success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setScreenActiveMode", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                                             "JsScreen::OnSetScreenActiveMode failed."));
             TLOGNE(WmsLogTag::DMS, "OnSetScreenActiveMode failed");
@@ -208,6 +243,7 @@ napi_value JsScreen::SetDensityDpi(napi_env env, napi_callback_info info)
 napi_value JsScreen::OnSetDensityDpi(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.setDensityDpi.Count", HISTOGRAM_BOOLEAN_COUNTS);
     bool paramValidFlag = true;
     uint32_t densityDpi = 0;
     size_t argc = 4;
@@ -227,6 +263,7 @@ napi_value JsScreen::OnSetDensityDpi(napi_env env, napi_callback_info info)
     }
     if (!paramValidFlag) {
         TLOGE(WmsLogTag::DMS, "paramValidFlag error");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setDensityDpi", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -244,6 +281,7 @@ napi_value JsScreen::OnSetDensityDpi(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetDensityDpi success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setDensityDpi", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                                             "JsScreen::OnSetDensityDpi failed."));
             TLOGNE(WmsLogTag::DMS, "OnSetDensityDpi failed");

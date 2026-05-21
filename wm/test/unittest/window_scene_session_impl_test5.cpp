@@ -171,14 +171,16 @@ HWTEST_F(WindowSceneSessionImplTest5, TestCheckAcrossDisplayPresentation, TestSi
     auto option = sptr<WindowOption>::MakeSptr();
     auto window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
-    // Case 1: Main window, any state should return true
+    // Case 1: Main window, any state should return true (including UNSPECIFIED)
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::UNSPECIFIED));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 
-    // Case 2: Sub window, only FOLLOW_ACROSS_DISPLAY_SETTING should return true
+    // Case 2: Sub window, only UNSPECIFIED and FOLLOW_ACROSS_DISPLAY_SETTING should return true
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::UNSPECIFIED));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
@@ -269,12 +271,15 @@ HWTEST_F(WindowSceneSessionImplTest5, Maximize01, TestSize.Level1)
     auto ret = window->Maximize(presentation);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
-    // waterfallResidentState is invalid and windowType is invalid
-    ret = window->Maximize(presentation, WaterfallResidentState::OPEN);
+    // acrossDisplayPresentation is invalid and windowType is invalid
+    ret = window->MaximizeWithOptions(presentation,
+        AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
-    // waterfallResidentState is valid but windowType is invalid
-    ret = window->Maximize(presentation, WaterfallResidentState::UNCHANGED);
+    // acrossDisplayPresentation is valid but windowType is invalid
+    ret = window->MaximizeWithOptions(presentation,
+        AcrossDisplayPresentation::UNSPECIFIED, { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
@@ -2573,11 +2578,11 @@ HWTEST_F(WindowSceneSessionImplTest5, GetDragAreaByDownEvent02, TestSize.Level2)
     pointerItem.SetWindowY(1);
     windowSceneSessionImpl->property_->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
     windowSceneSessionImpl->property_->SetDragEnabled(true);
-    windowSceneSessionImpl->SetDragActivated(true);
+    windowSceneSessionImpl->SetDragActivated(DRAG_ACTIVATE_ALL_MASK);
     AreaType dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::LEFT_TOP);
     windowSceneSessionImpl->property_->SetDragEnabled(false);
-    windowSceneSessionImpl->SetDragActivated(false);
+    windowSceneSessionImpl->SetDragActivated(0);
     dragType = windowSceneSessionImpl->GetDragAreaByDownEvent(pointerEvent, pointerItem);
     EXPECT_EQ(dragType, AreaType::UNDEFINED);
 }
@@ -3151,6 +3156,79 @@ HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck06, TestSi
     result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
     EXPECT_EQ(result, false);
     result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck07
+ * @tc.desc: Verify WINDOW_MODE_SPLIT and WINDOW_MODE_SUPPORT_SPLIT are handled correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck07");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // WINDOW_MODE_SUPPORT_SPLIT with FLOATING mode: should skip (has split support but no fullscreen)
+    uint32_t windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT;
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, true);
+
+    // WINDOW_MODE_SUPPORT_SPLIT with SPLIT mode itself
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck08
+ * @tc.desc: Verify WINDOW_MODE_SPLIT mode on phone/pad without free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck08");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+
+    uint32_t windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY;
+    // WINDOW_MODE_SPLIT is a split mode — should skip on phone without free multi window
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, true);
+
+    // FLOATING mode with split support on phone — should also skip
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, true);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck09
+ * @tc.desc: Verify WINDOW_MODE_SUPPORT_SPLIT combined with other support types
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck09, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck09");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // SPLIT + FULLSCREEN both supported — FLOATING should NOT skip (has fullscreen)
+    uint32_t windowModeSupportType =
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN;
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, false);
+
+    // SPLIT mode with SPLIT + FULLSCREEN support
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
     EXPECT_EQ(result, false);
 }
 

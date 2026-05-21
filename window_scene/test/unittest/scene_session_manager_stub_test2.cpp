@@ -105,6 +105,7 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverWindowPropertyChangeFlag01, 
     MessageParcel data;
     MessageParcel reply;
 
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
     auto res = stub_->HandleRecoverWindowPropertyChangeFlag(data, reply);
     EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
 
@@ -117,6 +118,54 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleRecoverWindowPropertyChangeFlag01, 
     res = stub_->HandleRecoverWindowPropertyChangeFlag(data, reply);
     EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
     MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: HandleGetHostWindowRect_ReadUseHookedSizeFail
+ * @tc.desc: test HandleGetHostWindowRect with parcel missing useHookedSize (ReadBool fails)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetHostWindowRect_ReadUseHookedSizeFail, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(65535);
+    int res = stub_->HandleGetHostWindowRect(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetHostGlobalScaledRect_ReadUseHookedSizeFail
+ * @tc.desc: test HandleGetHostGlobalScaledRect with parcel missing useHookedSize (ReadBool fails)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetHostGlobalScaledRect_ReadUseHookedSizeFail, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(65535);
+    int res = stub_->HandleGetHostGlobalScaledRect(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleGetAllWindowLayoutInfo_ReadUseHookedSizeFail
+ * @tc.desc: test HandleGetAllWindowLayoutInfo with parcel missing useHookedSize (ReadBool fails)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleGetAllWindowLayoutInfo_ReadUseHookedSizeFail, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, stub_);
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteUint64(0);
+    data.WriteBool(false);
+    data.WriteInt32(0);
+    data.WriteInt32(0);
+    int res = stub_->HandleGetAllWindowLayoutInfo(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
 }
 
 /**
@@ -507,24 +556,37 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleUpdateOutline02, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerStubTest2, HandleGetFloatViewLimits, Function | SmallTest | Level2)
 {
-    MessageParcel data;
     MessageParcel reply;
-    
-    // WriteInt32 failed
+
+    // ReadUint32 failed
     MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    MockMessageParcel::SetReadUint32ErrorFlag(true);
+    MessageParcel data;
+    data.WriteUint32(0);
     int res = stub_->HandleGetFloatViewLimits(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
+    // WriteInt32 failed
+    MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data1;
+    data1.WriteUint32(0);
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    res = stub_->HandleGetFloatViewLimits(data1, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
     // WriteParcelable failed
     MockMessageParcel::ClearAllErrorFlag();
+    MessageParcel data2;
+    data2.WriteUint32(0);
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
-    res = stub_->HandleGetFloatViewLimits(data, reply);
+    res = stub_->HandleGetFloatViewLimits(data2, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
-    
+
     // success
     MockMessageParcel::ClearAllErrorFlag();
-    res = stub_->HandleGetFloatViewLimits(data, reply);
+    MessageParcel data3;
+    data3.WriteUint32(0);
+    res = stub_->HandleGetFloatViewLimits(data3, reply);
     EXPECT_EQ(res, ERR_NONE);
 }
 } // namespace

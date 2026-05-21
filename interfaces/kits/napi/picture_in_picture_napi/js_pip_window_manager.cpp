@@ -54,6 +54,8 @@ namespace {
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
     };
+    const char* ARKUI_WINDOW_PIP_ISPIPENABLED = "ArkUI.window.pip.isPipEnabled";
+    const char* ARKUI_WINDOW_PIP_CREATE = "ArkUI.window.pip.create";
 }
 
 static int32_t checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups)
@@ -313,6 +315,11 @@ napi_value JsPipWindowManager::OnIsPipEnabled(napi_env env, napi_callback_info i
 {
     TLOGD(WmsLogTag::WMS_PIP, "OnIsPipEnabled called");
     bool isPipEnabled = PictureInPictureManager::GetPipEnabled();
+    if (!isPipEnabled) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ISPIPENABLED, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+    } else {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ISPIPENABLED, WmErrorCode::WM_OK);
+    }
     return CreateJsValue(env, isPipEnabled);
 }
 
@@ -374,11 +381,13 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_CREATE, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: Missing args when creating pipController");
     }
     napi_value config = argv[0];
     if (config == nullptr || GetType(env, config) == napi_undefined || GetType(env, config) == napi_null) {
         TLOGE(WmsLogTag::WMS_PIP, "config is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_CREATE, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowInvalidParam(env,
             "[PiPWindow][create]msg: The pipConfiguration is null");
     }
@@ -388,6 +397,7 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
             " please check if context/xComponentController is null,"
             " or controlGroup mismatch the corresponding pipTemplateType, or defaultWindowSizeType is invalid";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_CREATE, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowInvalidParam(env, errMsg);
     }
     if (argc > 1) {
@@ -404,6 +414,7 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
             pipOption.SetTypeNodeRef(nullptr);
         }
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_CREATE, WmErrorCode::WM_OK);
     return NapiSendTask(env, pipOption);
 }
 

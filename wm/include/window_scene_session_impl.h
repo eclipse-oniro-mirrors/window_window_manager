@@ -56,6 +56,7 @@ public:
     WMError Minimize() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
+    WindowModeInfo GetWindowModeInfo() const override;
     WMError SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName) override;
     class WindowScreenListener : public ScreenManager::IScreenListener {
     public:
@@ -72,7 +73,7 @@ public:
     WMError MoveToAsync(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
-    WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true) override;
     WMError Resize(uint32_t width, uint32_t height) override;
     WMError ResizeAsync(uint32_t width, uint32_t height) override;
     WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
@@ -164,7 +165,7 @@ public:
     WMError UpdateSurfaceNodeAfterCustomAnimation(bool isAdd) override;
     WMError SetAlpha(float alpha) override;
     void DumpSessionElementInfo(const std::vector<std::string>& params) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError UpdateTitleInTargetPos(bool isShow, int32_t height) override;
     void NotifySessionForeground(uint32_t reason, bool withAnimation) override;
@@ -214,6 +215,7 @@ public:
      * PC Window
      */
     WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask) override;
+    WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight) override;
     WMError ClearWindowMask() override;
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
@@ -250,7 +252,6 @@ public:
     WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
-    bool haveSetSupportedWindowModes_ = false;
     uint32_t pendingWindowModeSupportType_ { WindowModeSupport::WINDOW_MODE_SUPPORT_ALL };
 
     /*
@@ -319,7 +320,7 @@ public:
     WMError SetCustomDensity(float density, bool applyToSubWindow) override;
     WMError GetWindowDensityInfo(WindowDensityInfo& densityInfo) override;
     WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) override;
-    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true) override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetRotationLocked(bool locked) override;
     WMError GetRotationLocked(bool& locked) override;
@@ -525,15 +526,15 @@ private:
     void TransformSurfaceNode(const Transform& trans);
     void AdjustWindowAnimationFlag(bool withAnimation = false);
     WMError UpdateAnimationFlagProperty(bool withAnimation);
-    WMError UpdateWindowModeImmediately(WindowMode mode);
+    WMError UpdateWindowModeImmediately(const WindowModeInfo& windowModeInfo);
     void UpdateWindowState();
     void UpdateNewSize();
     void FillWindowLimits(WindowLimits& windowLimits, PixelUnit pixelUnit);
     bool HasIntersectedAttachLimits() const;
     WindowLimits GetCustomizedLimitsForSetWindowLimits(const WindowLimits& windowLimits);
     WindowLimits ConvertBaseLimitsToTargetUnit(const WindowLimits& srcLimits, PixelUnit targetPixelUnit);
-    void UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
-    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
+    void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() override;
+    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() override;
     WMError ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config);
     void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
@@ -554,6 +555,9 @@ private:
     bool HandlePointDownEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const MMI::PointerEvent::PointerItem& pointerItem);
     std::unique_ptr<Media::PixelMap> HandleWindowMask(const std::vector<std::vector<uint32_t>>& windowMask);
+    std::shared_ptr<Media::PixelMap> HandleWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth,
+        uint32_t maskHeight);
+    WMError ApplyWindowMask(const std::shared_ptr<Media::PixelMap>& mask);
     void NotifyDisplayInfoChange(const sptr<DisplayInfo>& info = nullptr);
     void UpdateDensityInner(const sptr<DisplayInfo>& info = nullptr);
     sptr<DisplayInfo> GetDisplayInfo() const;
@@ -579,6 +583,7 @@ private:
      */
     void CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
+    void UpdateSubWindowDragEnabledByDecorVisible() override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
@@ -604,7 +609,6 @@ private:
     /*
      * PC Window Layout
      */
-    bool CheckWaterfallResidentState(WaterfallResidentState state) const;
     bool CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const;
     void ApplyMaximizePresentation(MaximizePresentation presentation);
     WMError CheckMaximizePreConditions(AcrossDisplayPresentation state);

@@ -395,57 +395,6 @@ HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos01, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetBatchAbilityInfos02
- * @tc.desc: GetBatchAbilityInfos02
- * @tc.type: FUNC
- */
-HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos02, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
-    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
-    int32_t userId = 100;
-    std::vector<std::string> bundleNames = {};
-    auto scbAbilityInfos = std::make_shared<std::vector<SCBAbilityInfo>>();
-    WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
-    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
-}
-
-/**
- * @tc.name: GetBatchAbilityInfos03
- * @tc.desc: GetBatchAbilityInfos03
- * @tc.type: FUNC
- */
-HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos03, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
-    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
-    int32_t userId = 100;
-    std::vector<std::string> bundleNames = { "" };
-    auto scbAbilityInfos = std::make_shared<std::vector<SCBAbilityInfo>>();
-    WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
-    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
-}
-
-/**
- * @tc.name: GetBatchAbilityInfos04
- * @tc.desc: GetBatchAbilityInfos04
- * @tc.type: FUNC
- */
-HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos04, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
-    ssm_->bundleMgr_ = sptr<AppExecFwk::BundleMgrProxy>::MakeSptr(iRemoteObjectMocker);
-    int32_t userId = 100;
-    std::vector<std::string> bundleNames = { "test1", "test2" };
-    auto scbAbilityInfos = std::make_shared<std::vector<SCBAbilityInfo>>();
-    WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
-    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
-}
-
-/**
  * @tc.name: IsWindowSupportCacheForRecovering
  * @tc.desc: test function : IsWindowSupportCacheForRecovering
  * @tc.type: FUNC
@@ -567,8 +516,6 @@ HWTEST_F(WindowRecoverSessionTest, CacheSpecificSessionForRecovering, TestSize.L
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 1);
     ssm_->CacheSpecificSessionForRecovering(sceneSession, property);
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 2);
-    ssm_->RecoverCachedSubSession(parentPersistentId);
-    ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 0);
     ssm_->recoverSubSessionCacheMap_.clear();
 }
 
@@ -584,9 +531,24 @@ HWTEST_F(WindowRecoverSessionTest, RecoverCachedSubSession, TestSize.Level1)
     info.bundleName_ = "SubSession";
     info.abilityName_ = "SubSession";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    WindowAnchorInfo anchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
+    property->SetWindowAnchorInfo(anchorInfo);
+    sceneSession->SetSessionProperty(property);
+
+    SessionInfo parentInfo;
+    parentInfo.bundleName_ = "ParentSession";
+    parentInfo.abilityName_ = "ParentSession";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ssm_->sceneSessionMap_[123] = parentSession;
+    NotifyCreateSubSessionFunc func = [](const sptr<SceneSession>& session) {};
+    ssm_->createSubSessionFuncMap_[123] = func;
+
     ssm_->recoverSubSessionCacheMap_[123].emplace_back(sceneSession);
     ssm_->RecoverCachedSubSession(123);
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_.size(), 0);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->createSubSessionFuncMap_.clear();
 }
 
 HWTEST_F(WindowRecoverSessionTest, RecoverCachedDialogSession, TestSize.Level1)

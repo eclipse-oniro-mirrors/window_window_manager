@@ -37,7 +37,8 @@ public:
      * Multi User
      */
     virtual void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<IRemoteObject>& sessionManagerService) = 0;
+        int32_t userId, int32_t screenId, bool isConnected,
+        const sptr<IRemoteObject>& sessionManagerService, int32_t pid) = 0;
 };
 }
 }

@@ -73,7 +73,7 @@ HWTEST_F(WindowProxyTest, UpdateWindowRect01, TestSize.Level1)
  */
 HWTEST_F(WindowProxyTest, UpdateWindowMode01, TestSize.Level1)
 {
-    WMError err = windowProxy_->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    WMError err = windowProxy_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
     ASSERT_EQ(err, WMError::WM_OK);
 }
 

@@ -333,7 +333,10 @@ public:
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) override { return WMError::WM_OK; }
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override
+    {
+        return WMError::WM_OK;
+    }
     WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) override { return WMError::WM_OK; }
@@ -348,7 +351,8 @@ public:
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
         std::string& watermarkName) override { return WMError::WM_OK; }
     WMError RecoverWatermarkImageForApp(const std::string& watermarkName) override { return WMError::WM_OK; }
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override { return WMError::WM_OK; }
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) override { return WMError::WM_OK; }
     WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller) override
     {
         return WMError::WM_OK;
@@ -414,11 +418,12 @@ public:
     {
         return WSError::WS_OK;
     }
-    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect) override
+    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override
     {
         return WSError::WS_OK;
     }
-    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect) override
+    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false) override
     {
         return WSError::WS_OK;
     }
@@ -509,7 +514,7 @@ public:
         return WMError::WM_OK;
     }
     WMError NotifySupportRotationRegistered() override { return WMError::WM_OK; }
-    WMError GetFloatViewLimits(FloatViewLimits& limits) override { return WMError::WM_OK; }
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override { return WMError::WM_OK; }
 
     virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) = 0;

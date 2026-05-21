@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -403,27 +403,34 @@ int32_t SystemSession::GetSubWindowZLevel() const
     return zLevel;
 }
 
+WMError SystemSession::IsFloatingBallValid(const FloatingBallTemplateInfo& fbTemplateInfo) const
+{
+    WMError result = WMError::WM_OK;
+    if (fbTemplateInfo.template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
+        fbTemplateInfo.template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Template %{public}d is invalid", fbTemplateInfo.template_);
+        result = WMError::WM_ERROR_FB_PARAM_INVALID;
+    } else if (GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
+        result = WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
+    } else if (GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Fb template type can't update %{public}d, %{public}d",
+            GetFbTemplateInfo().template_, fbTemplateInfo.template_);
+        result = WMError::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED;
+    }
+    return result;
+}
+
 WMError SystemSession::UpdateFloatingBall(const FloatingBallTemplateInfo& fbTemplateInfo)
 {
     if (!WindowHelper::IsFbWindow(GetWindowType())) {
         return WMError::WM_DO_NOTHING;
     }
-
-    if (fbTemplateInfo.template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
-        fbTemplateInfo.template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Template %{public}d is invalid", fbTemplateInfo.template_);
-        return WMError::WM_ERROR_FB_PARAM_INVALID;
-    }
-
-    if (GetFbTemplateInfo().template_ == static_cast<uint32_t>(FloatingBallTemplate::STATIC)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Fb static template can't update");
-        return WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED;
-    }
-
-    if (GetFbTemplateInfo().template_ != fbTemplateInfo.template_) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Fb template type can't update %{public}d, %{public}d",
-            GetFbTemplateInfo().template_, fbTemplateInfo.template_);
-        return WMError::WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED;
+    if (fbTemplateInfo.updateMode_ == static_cast<uint32_t>(FloatingBallUpdateMode::DEFAULT)) {
+        WMError result = IsFloatingBallValid(fbTemplateInfo);
+        if (result != WMError::WM_OK) {
+            return result;
+        }
     }
 
     int32_t callingPid = IPCSkeleton::GetCallingPid();
@@ -966,7 +973,7 @@ void SystemSession::SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func)
     PostTask(std::move(task), __func__);
 }
 
-WSError SystemSession::SyncFloatViewLimits(const FloatViewLimits& limits)
+WSError SystemSession::SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFloatViewLimits");
     if (!sessionStage_) {

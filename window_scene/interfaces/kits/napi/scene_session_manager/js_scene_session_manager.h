@@ -59,6 +59,7 @@ enum class ListenerFunctionType : uint32_t {
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
+    GET_FLOAT_VIEW_LIMIT_CB,
 };
 
 class JsSceneSessionManager final {
@@ -205,6 +206,7 @@ public:
      * Window Event
      */
     static napi_value SendAxisEvent(napi_env env, napi_callback_info info);
+    static napi_value RedispatchTouchEvent(napi_env env, napi_callback_info info);
 
     /*
      * Float view
@@ -414,6 +416,7 @@ private:
     void RegisterWatchFocusActiveChangeCallback();
     void OnWatchFocusActiveChange(bool isActive);
     napi_value OnSendAxisEvent(napi_env env, napi_callback_info info);
+    napi_value OnRedispatchTouchEvent(napi_env env, napi_callback_info info);
 
     /*
      * Window Lifecycle
@@ -487,6 +490,8 @@ private:
      * Float view
      */
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
+    void RegisterGetFloatViewLimitCallback();
+    bool OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit);
 };
 } // namespace OHOS::Rosen
 
