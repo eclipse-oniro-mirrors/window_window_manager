@@ -4880,7 +4880,6 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         property->SetSystemCalling(isSystemCalling);
         auto errCode = newSession->ConnectInner(
             sessionStage, eventChannel, nodeId, systemConfig_, renderSession, surfaceNode, property, token, pid, uid);
-        newSession->SetIsSystemSpecificSession(isSystemCalling);
         systemConfig = systemConfig_;
         persistentId = property->GetPersistentId();
 
