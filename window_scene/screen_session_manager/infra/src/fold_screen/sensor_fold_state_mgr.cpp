@@ -29,6 +29,7 @@
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
 #endif
+#include "ffrt.h"
 
 namespace OHOS::Rosen::DMS {
 
@@ -49,6 +50,11 @@ constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
 std::chrono::time_point<std::chrono::system_clock> g_lastUpdateTime = std::chrono::system_clock::now();
 }  // namespace
 
+class SensorFoldStateMgr::Impl {
+public:
+    ffrt::recursive_mutex statusMutex_;
+};
+
 SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
 {
     static std::mutex singletonMutex_;
@@ -67,7 +73,7 @@ SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
     return *instance_;
 }
 
-SensorFoldStateMgr::SensorFoldStateMgr()
+SensorFoldStateMgr::SensorFoldStateMgr() : pImpl_(std::make_unique<Impl>())
 {
     taskProcess_ = new TaskSequenceProcess(
         MAX_QUEUE_SIZE,
@@ -76,6 +82,8 @@ SensorFoldStateMgr::SensorFoldStateMgr()
     currentFoldStatus_ = {FoldStatus::UNKNOWN};
     foldAlgorithmStrategy_ = {0, 0};
 }
+
+SensorFoldStateMgr::~SensorFoldStateMgr() = default;
 
 void SensorFoldStateMgr::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
 {
@@ -216,7 +224,7 @@ std::vector<std::string> SensorFoldStateMgr::getHallSwitchAppList()
 
 void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
 {
-    std::lock_guard<std::recursive_mutex> lock(statusMutex_);
+    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->statusMutex_);
     if (nextStatus == FoldStatus::UNKNOWN) {
         TLOGW(WmsLogTag::DMS, "fold state is UNKNOWN");
         return;

@@ -138,7 +138,7 @@ using GetStatusBarConstantlyShowFunc = std::function<void(DisplayId displayId, b
 using NotifySetWindowCornerRadiusFunc = std::function<void(float cornerRadius)>;
 using GetNextAvoidAreaRectInfoFunc = std::function<WSError(DisplayId displayId, AvoidAreaType type,
     std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo)>;
-using GetFloatNavagationInfoFunc = std::function<WSError(DisplayId displayId,
+using GetFloatNavigationInfoFunc = std::function<WSError(DisplayId displayId,
     std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)>;
 using GetLSStateFunc = std::function<bool()>;
 using NotifyFollowParentRectFunc = std::function<void(bool isFollow)>;
@@ -211,7 +211,7 @@ public:
         NotifySessionTouchOutsideCallback onSessionTouchOutside_;
         GetAINavigationBarArea onGetAINavigationBarArea_;
         GetNextAvoidAreaRectInfoFunc onGetNextAvoidAreaRectInfo_;
-        GetFloatNavagationInfoFunc onGetFloatNavagationInfo_;
+        GetFloatNavigationInfoFunc onGetFloatNavigationInfo_;
         GetLSStateFunc onGetLSState_;
         OnOutsideDownEvent onOutsideDownEvent_;
         HandleSecureSessionShouldHideCallback onHandleSecureSessionShouldHide_;
@@ -446,7 +446,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
-    virtual WSError SyncFloatViewLimits(const FloatViewLimits &limits) { return WSError::WS_OK; };
+    virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
      * Float Window
@@ -456,7 +456,7 @@ public:
     /*
      * Window Layout
      */
-    WMError ActivateDragBySystem(bool activateDrag);
+    WMError ActivateDragBySystem(DragActivateSource source, bool activateDrag);
     WMError SetSystemWindowEnableDrag(bool enableDrag) override;
     WMError SetWindowEnableDragBySystem(bool enableDrag);
     WSError OnDefaultDensityEnabled(bool isDefaultDensityEnabled) override;
@@ -524,6 +524,8 @@ public:
     void RegisterMainModalTypeChangeCallback(NotifyMainModalTypeChangeFunc&& func);
     void CloneWindow(NodeId surfaceNodeId, bool needOffScreen);
     void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
+    WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     void AddSidebarBlur();
     void SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimation);
     void SaveLastDensity();
@@ -571,6 +573,8 @@ public:
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
     void RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
     WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    std::vector<Rect> GetDragDisabledAreas() const;
 
     /*
      * Window Immersive
@@ -634,6 +638,7 @@ public:
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
+    WSRect GetParentSessionRectSync();
     int32_t GetMainSessionId();
     int32_t GetMainSessionOrLoosenedSessionId();
     virtual int32_t GetMissionId() const { return persistentId_; };
@@ -678,7 +683,7 @@ public:
     bool CheckTouchOutsideCallbackRegistered();
     void UpdateNativeVisibility(bool visible);
     void DumpSessionElementInfo(const std::vector<std::string>& params);
-    void NotifyForceHideChange(bool hide);
+    void NotifyForceHideChange(bool hide) override;
     WSError BindDialogSessionTarget(const sptr<SceneSession>& sceneSession);
     void DumpSessionInfo(std::vector<std::string>& info) const;
     bool AddSubSession(const sptr<SceneSession>& subSession);
@@ -799,8 +804,6 @@ public:
     bool SendKeyEventToUI(std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent = false);
     bool IsStartMoving() override;
     void SetIsStartMoving(bool startMoving);
-    bool IsSystemSpecificSession() const;
-    void SetIsSystemSpecificSession(bool isSystemSpecificSession);
     void SetShouldHideNonSecureWindows(bool shouldHide);
     void UpdateExtWindowFlags(int32_t extPersistentId, const ExtensionWindowFlags& extWindowFlags,
         const ExtensionWindowFlags& extWindowActions);
@@ -923,6 +926,7 @@ public:
     bool IsDragMoving() const override;
     bool IsDragZooming() const override;
     bool IsCrossDisplayDragSupported() const;
+    
     // KeyFrame
     WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) override;
@@ -1569,7 +1573,6 @@ private:
     SessionEventParam sessionEventParam_ = { 0, 0, 0, 0, 0 };
     std::atomic_bool isStartMoving_ { false };
     std::atomic_bool isVisibleForAccessibility_ { true };
-    bool isSystemSpecificSession_ { false };
 
     /**
      * Keyboard(private)

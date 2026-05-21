@@ -1524,6 +1524,21 @@ HWTEST_F(WindowSessionPropertyTest, GetDisplayId, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetKeyboardTargetDisplayId
+ * @tc.desc: GetKeyboardTargetDisplayId
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetKeyboardTargetDisplayId, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    DisplayId keyboardTargetDisplayId = 100;
+    property->SetKeyboardTargetDisplayId(keyboardTargetDisplayId);
+    auto result = property->GetKeyboardTargetDisplayId();
+    ASSERT_EQ(result, keyboardTargetDisplayId);
+}
+
+/**
  * @tc.name: GetPersistentId
  * @tc.desc: GetPersistentId
  * @tc.type: FUNC
@@ -2133,12 +2148,15 @@ HWTEST_F(WindowSessionPropertyTest, UnmarshallingFbTemplateInfoTest, TestSize.Le
 
     Parcel parcel;
     std::shared_ptr<Media::PixelMap> icon;
-    FloatingBallTemplateInfo fbTemplateInfo {{1, "fb", "fb_content", "red", 0, true, false, 0, true}, icon, "test"};
+    FloatingBallTemplateInfo fbTemplateInfo {{1, "fb", "fb_content", "red", "green", "blue", 0, true, false, 0, true},
+        icon, "test"};
     property->UnmarshallingFbTemplateInfo(parcel, property);
     ASSERT_NE(property->GetFbTemplateInfo().template_, fbTemplateInfo.template_);
     ASSERT_NE(property->GetFbTemplateInfo().title_, fbTemplateInfo.title_);
     ASSERT_NE(property->GetFbTemplateInfo().content_, fbTemplateInfo.content_);
     ASSERT_NE(property->GetFbTemplateInfo().backgroundColor_, fbTemplateInfo.backgroundColor_);
+    ASSERT_NE(property->GetFbTemplateInfo().titleColor_, fbTemplateInfo.titleColor_);
+    ASSERT_NE(property->GetFbTemplateInfo().contentColor_, fbTemplateInfo.contentColor_);
     ASSERT_EQ(property->GetFbTemplateInfo().icon_, fbTemplateInfo.icon_);
     ASSERT_EQ(property->GetFbTemplateInfo().textUpdateAnimationType_, fbTemplateInfo.textUpdateAnimationType_);
 
@@ -2708,6 +2726,101 @@ HWTEST_F(WindowSessionPropertyTest, MarshallingUnmarshallingWithHookWindowInfo, 
     ASSERT_EQ(targetProperty->GetHookWindowInfo().widthHookRatio, 0.8f);
     ASSERT_EQ(targetProperty->GetHookWindowInfo().drawableRectHook, true);
     ASSERT_EQ(targetProperty->GetForceSplitEnable(), true);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat001
+ * @tc.desc: Non-SPLIT mode returns original window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat001, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_FULLSCREEN);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_FLOATING);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat002
+ * @tc.desc: SPLIT mode with TWO_WINDOW_HORIZONTAL and PRIMARY index maps to SPLIT_PRIMARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat002, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = SPLIT_INDEX_PRIMARY;
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat003
+ * @tc.desc: SPLIT mode with TWO_WINDOW_VERTICAL and SECONDARY index maps to SPLIT_SECONDARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat003, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_VERTICAL;
+    splitInfo.splitIndex = SPLIT_INDEX_SECONDARY;
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat004
+ * @tc.desc: SPLIT mode with non-TWO_WINDOW style returns original mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat004, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::THREE_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = SPLIT_INDEX_PRIMARY;
+    property->SetWindowModeInfo(splitInfo);
+    // THREE_WINDOW_HORIZONTAL is not TWO_WINDOW_HORIZONTAL/VERTICAL, return original
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat005
+ * @tc.desc: SPLIT mode with invalid splitIndex returns original mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat005, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = 99; // Invalid index
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
 }
 } // namespace
 } // namespace Rosen

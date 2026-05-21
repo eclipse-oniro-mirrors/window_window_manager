@@ -158,6 +158,59 @@ void ScreenAni::OnSetScreenActiveMode(ani_env* env, ani_object obj, ani_long mod
     }
 }
 
+ScreenAni* ScreenAni::GetScreenAni(ani_env* env, ani_object obj)
+{
+    ani_long screenNativeRef;
+    ani_status ret = env->Object_GetFieldByName_Long(obj, "screenNativeObj", &screenNativeRef);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get screenAni native failed, ret: %{public}u", ret);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
+            "get screenNativeObj failed.");
+        return nullptr;
+    }
+    ScreenAni* screenAni = reinterpret_cast<ScreenAni*>(screenNativeRef);
+    if (screenAni == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] screenAni is nullptr");
+    }
+    return screenAni;
+}
+
+bool ScreenAni::ParseOrientation(ani_env* env, ani_enum_item orientationAni, Orientation& orientation)
+{
+    ani_int orientationInt = 0;
+    ani_status ret = env->EnumItem_GetValue_Int(orientationAni, &orientationInt);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get orientation failed, ret: %{public}u", ret);
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
+            "Failed to Get orientation");
+        return false;
+    }
+    
+    orientation = static_cast<Orientation>(orientationInt);
+    if (orientation < Orientation::BEGIN || orientation > Orientation::END) {
+        TLOGE(WmsLogTag::DMS, "Orientation param error! value must from enum Orientation");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
+            "orientation value must from enum Orientation");
+        return false;
+    }
+    return true;
+}
+
+void ScreenAni::ParseOrientationOptions(ani_env* env, ani_object optionsAni, OrientationOptions& options)
+{
+    ani_boolean value = ANI_TRUE;
+    ani_status ret = env->Object_GetPropertyByName_Boolean(optionsAni, "needAnimation", &value);
+    if (ret == ANI_OK) {
+        options.needAnimation = (value == ANI_TRUE);
+    }
+    
+    value = ANI_FALSE;
+    ret = env->Object_GetPropertyByName_Boolean(optionsAni, "ignoreRotationLock", &value);
+    if (ret == ANI_OK) {
+        options.ignoreRotationLock = (value == ANI_TRUE);
+    }
+}
+
 void ScreenAni::SetOrientation(ani_env* env, ani_object obj, ani_enum_item orientationAni)
 {
     TLOGI(WmsLogTag::DMS, "begin");
@@ -170,16 +223,8 @@ void ScreenAni::SetOrientation(ani_env* env, ani_object obj, ani_enum_item orien
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "orientationAni is nullptr.");
         return;
     }
-    ani_long screenNativeRef;
-    ani_status ret = env->Object_GetFieldByName_Long(obj, "screenNativeObj", &screenNativeRef);
-    if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "[ANI] get screenAni native failed, ret: %{public}u", ret);
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "get screenNativeObj failed.");
-        return;
-    }
-    ScreenAni* screenAni = reinterpret_cast<ScreenAni*>(screenNativeRef);
+    ScreenAni* screenAni = GetScreenAni(env, obj);
     if (screenAni == nullptr) {
-        TLOGE(WmsLogTag::DMS, "[ANI] screenAni is nullptr");
         return;
     }
     screenAni->OnSetOrientation(env, obj, orientationAni);
@@ -191,23 +236,62 @@ void ScreenAni::OnSetOrientation(ani_env* env, ani_object obj, ani_enum_item ori
         TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
         return;
     }
-    ani_int orientationInt = 0;
-    ani_status ret = env->EnumItem_GetValue_Int(orientationAni, &orientationInt);
-    if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::DMS, "[ANI] Get orientation failed, ret: %{public}u", ret);
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to Get orientation");
+    Orientation orientation;
+    if (!ParseOrientation(env, orientationAni, orientation)) {
         return;
     }
-    Orientation orientation = static_cast<Orientation>(orientationInt);
-    if (orientation < Orientation::BEGIN || orientation > Orientation::END) {
-        TLOGE(WmsLogTag::DMS, "Orientation param error! orientation value must from enum Orientation");
-        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-            "orientation value must from enum Orientation");
-        return;
-    }
+
     DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(screen_->SetOrientation(orientation));
     if (res != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Set screen orientation failed");
+        AniErrUtils::ThrowBusinessError(env, res, "Screen::SetOrientation failed.");
+    }
+}
+
+void ScreenAni::SetOrientationWithOptions(
+    ani_env* env, ani_object obj, ani_enum_item orientationAni, ani_object optionsAni)
+{
+    TLOGI(WmsLogTag::DMS, "Set orientation with options");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+
+    if (orientationAni == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] orientationAni is nullptr");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
+            "orientationAni is nullptr.");
+        return;
+    }
+
+    ScreenAni* screenAni = GetScreenAni(env, obj);
+    if (screenAni == nullptr) {
+        return;
+    }
+    screenAni->OnSetOrientationWithOptions(env, obj, orientationAni, optionsAni);
+}
+
+
+void ScreenAni::OnSetOrientationWithOptions(
+    ani_env* env, ani_object obj, ani_enum_item orientationAni, ani_object optionsAni)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    
+    Orientation orientation;
+    if (!ParseOrientation(env, orientationAni, orientation)) {
+        return;
+    }
+    OrientationOptions options;
+    ParseOrientationOptions(env, optionsAni, options);
+
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
+        screen_->SetOrientation(orientation, options)
+    );
+    if (res != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Set screen orientation with options failed");
         AniErrUtils::ThrowBusinessError(env, res, "Screen::SetOrientation failed.");
     }
 }

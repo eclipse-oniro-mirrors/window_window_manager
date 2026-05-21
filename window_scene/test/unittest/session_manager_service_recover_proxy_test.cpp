@@ -121,7 +121,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged01, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 0, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 0, true, sessionManagerService, 9999);
 }
 
 /**
@@ -138,7 +138,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged02, TestSi
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 0, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 0, true, sessionManagerService, 8888);
     MockMessageParcel::ClearAllErrorFlag();
 }
 
@@ -155,7 +155,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged03, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(-1, 0, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(-1, 0, true, sessionManagerService, 7777);
 }
 
 /**
@@ -171,7 +171,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged04, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, -1, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, -1, true, sessionManagerService, 6666);
 }
 
 /**
@@ -188,7 +188,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged05, TestSi
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
     MockMessageParcel::SetWriteBoolErrorFlag(true);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService, 5555);
     MockMessageParcel::ClearAllErrorFlag();
 }
 
@@ -205,7 +205,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged06, TestSi
     sessionManagerServiceRecoverProxy_ = sptr<SessionManagerServiceRecoverProxy>::MakeSptr(mockIRemoteObject);
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = nullptr;
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService, 4444);
 }
 
 /**
@@ -222,7 +222,7 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged07, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService, 3333);
 }
 } // namespace
 } // namespace Rosen

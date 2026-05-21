@@ -135,6 +135,10 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
             if (config.isMirrored) {
                 EnableMirrorScreenRegion();
             }
+            if (property_.GetNeedCastScale()) {
+                displayNode_->SetPivot(0.0F, 0.0F);
+                displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+            }
         } else {
             TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
         }
@@ -477,7 +481,7 @@ bool ScreenSession::GetIsExtend() const
 void ScreenSession::SetIsInternal(bool isInternal)
 {
     isInternal_ = isInternal;
-    property_.SetIsInternal(isInternal);
+    property_.SetInternalStatus(isInternal);
 }
 
 bool ScreenSession::GetIsInternal() const
@@ -832,7 +836,7 @@ ScreenProperty ScreenSession::GetPropertyByResolution(const DMRect& rect)
 void ScreenSession::CheckAndNotifyPropertyChange()
 {
     std::lock_guard<std::mutex> lock(propertyNeedNotifiedMutex_);
-    if (isNeedNotify) {
+    if (isNeedNotify && property_.GetInternalStatus()) {
         TLOGI(WmsLogTag::DMS, "It's need notify RESOLUTION_EFFECT_CHANGE");
         NotifyListenerPropertyChange(propertyNeedNotified_, ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE);
         isNeedNotify = false;
@@ -1209,7 +1213,7 @@ void ScreenSession::ScreenExtendChange(ScreenId mainScreenId, ScreenId extendScr
     }
 }
 
-void ScreenSession::ScreenOrientationChange(Orientation orientation,
+float ScreenSession::GetScreenOrientation(Orientation orientation,
     FoldDisplayMode foldDisplayMode, bool isFromNapi)
 {
     Rotation rotationAfter = Rotation::ROTATION_0;
@@ -1221,7 +1225,21 @@ void ScreenSession::ScreenOrientationChange(Orientation orientation,
         TLOGI(WmsLogTag::DMS, "set orientation from inner. rotationAfter: %{public}d", rotationAfter);
     }
     float screenRotation = ConvertRotationToFloat(rotationAfter);
+    return screenRotation;
+}
+
+void ScreenSession::ScreenOrientationChange(Orientation orientation,
+    FoldDisplayMode foldDisplayMode, bool isFromNapi)
+{
+    float screenRotation = GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
     ScreenOrientationChange(screenRotation);
+}
+
+void ScreenSession::ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode,
+    const OrientationOptions& options, bool isFromNapi)
+{
+    float screenRotation = GetScreenOrientation(orientation, foldDisplayMode, isFromNapi);
+    ScreenOrientationChange(screenRotation, options);
 }
 
 void ScreenSession::ScreenOrientationChange(float orientation)
@@ -1233,6 +1251,20 @@ void ScreenSession::ScreenOrientationChange(float orientation)
             continue;
         }
         listener->OnScreenOrientationChange(orientation, screenId_);
+    }
+}
+
+void ScreenSession::ScreenOrientationChange(float orientation, const OrientationOptions& options)
+{
+    TLOGI(WmsLogTag::DMS, "Orientation: %{public}f, needAnimation: %{public}d, ignoreRotationLock: %{public}d",
+        orientation, options.needAnimation, options.ignoreRotationLock);
+    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
+    for (auto& listener : screenChangeListenerList_) {
+        if (!listener) {
+            TLOGE(WmsLogTag::DMS, "screenChangeListener is null.");
+            continue;
+        }
+        listener->OnScreenOrientationChangeWithOptions(orientation, options, screenId_);
     }
 }
 
@@ -1966,6 +1998,12 @@ void ScreenSession::SetScreenCombination(ScreenCombination combination)
         static_cast<int32_t>(combination));
     std::lock_guard<std::mutex> lock(combinationMutex_);
     combination_ = combination;
+    if (combination_ == ScreenCombination::SCREEN_MAIN) {
+        auto ret = RSInterfaces::GetInstance().SetAsMainScreen(GetRSScreenId(), true);
+        if (ret != StatusCode::SUCCESS) {
+            TLOGE(WmsLogTag::DMS, "SetAsMainScreen fail! rsId %{public}" PRIu64"", rsId_);
+        }
+    }
 }
 
 ScreenCombination ScreenSession::GetScreenCombination() const
@@ -2371,6 +2409,10 @@ void ScreenSession::InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startP
         screenId_, width, height, positionX, positionY);
     displayNode_->SetFrame(positionX, positionY, static_cast<float>(width), static_cast<float>(height));
     displayNode_->SetBounds(positionX, positionY, static_cast<float>(width), static_cast<float>(height));
+    if (property_.GetNeedCastScale()) {
+        displayNode_->SetPivot(0.0F, 0.0F);
+        displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+    }
     if (config.isMirrored) {
         EnableMirrorScreenRegion();
     }
@@ -3491,6 +3533,7 @@ void ScreenSession::UpdateScbScreenPropertyToServer(const ScreenProperty& screen
         property_.SetDisplayOrientation(screenProperty.GetDisplayOrientation());
         property_.SetScreenAreaOffsetY(screenProperty.GetScreenAreaOffsetY());
         property_.SetScreenAreaHeight(screenProperty.GetScreenAreaHeight());
+        property_.SetScreenAreaWidth(screenProperty.GetScreenAreaWidth());
     }
 
     property_.SetPhysicalTouchBoundsDirectly(screenProperty.GetPhysicalTouchBounds());
@@ -3631,5 +3674,13 @@ void ScreenSession::SetBootingConnect(const bool bootingConnect)
 bool ScreenSession::IsBootingConnect() const
 {
     return bootingConnect_.load();
+}
+
+void ScreenSession::GetScreenCapability(ScreenCapability& capability)
+{
+    RSScreenCapability rsCapability = RSInterfaces::GetInstance().GetScreenCapability(rsId_);
+    capability.phyWidth_ = rsCapability.GetPhyWidth();
+    capability.phyHeight_ = rsCapability.GetPhyHeight();
+    capability.interfaceType_ = rsCapability.GetType();
 }
 } // namespace OHOS::Rosen

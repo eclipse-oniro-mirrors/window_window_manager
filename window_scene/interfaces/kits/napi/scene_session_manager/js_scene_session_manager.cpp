@@ -93,6 +93,7 @@ const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
 const std::string MINIMIZE_ALL_CB = "minimizeAll";
 const std::string NOTIFY_PAGE_ENABLE_REGISTERED_CB = "notifyPageEnableRegistered";
+const std::string GET_FLOAT_VIEW_LIMIT_CB = "getFloatViewLimit";
 
 const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {CREATE_SYSTEM_SESSION_CB,     ListenerFunctionType::CREATE_SYSTEM_SESSION_CB},
@@ -124,6 +125,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {MINIMIZE_ALL_CB,     ListenerFunctionType::MINIMIZE_ALL_CB},
     {MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,     ListenerFunctionType::MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB},
     {NOTIFY_PAGE_ENABLE_REGISTERED_CB, ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB},
+    {GET_FLOAT_VIEW_LIMIT_CB, ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB},
 };
 } // namespace
 
@@ -168,6 +170,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "TitleButtonEventType", CreateTitleButtonEventType(env));
     napi_set_named_property(env, exportObj, "FloatingBallTextUpdateAnimationType",
         CreateJsSessionFbTextUpdateAnimationType(env));
+    napi_set_named_property(env, exportObj, "FloatViewTemplateType", CreateJsSessionFloatViewTemplateType(env));
 
     const char* moduleName = "JsSceneSessionManager";
     BindNativeFunction(env, exportObj, "setBehindWindowFilterEnabled",
@@ -383,6 +386,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "getJsonProfile", moduleName,
         JsSceneSessionManager::GetJsonProfile);
     BindNativeFunction(env, exportObj, "sendAxisEvent", moduleName, JsSceneSessionManager::SendAxisEvent);
+    BindNativeFunction(env, exportObj, "redispatchTouchEvent", moduleName, JsSceneSessionManager::RedispatchTouchEvent);
     BindNativeFunction(env, exportObj, "syncFloatViewLimits", moduleName, JsSceneSessionManager::SyncFloatViewLimits);
     return NapiGetUndefined(env);
 }
@@ -1240,6 +1244,13 @@ napi_value JsSceneSessionManager::SendAxisEvent(napi_env env, napi_callback_info
     return (me != nullptr) ? me->OnSendAxisEvent(env, info) : nullptr;
 }
 
+napi_value JsSceneSessionManager::RedispatchTouchEvent(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_EVENT, "in");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnRedispatchTouchEvent(env, info) : nullptr;
+}
+
 napi_value JsSceneSessionManager::SyncFloatViewLimits(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::WMS_EVENT, "in");
@@ -1876,6 +1887,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             break;
         case ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB:
             RegisterPageEnableCallback();
+            break;
+        case ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB:
+            RegisterGetFloatViewLimitCallback();
             break;
         default:
             break;
@@ -3161,26 +3175,26 @@ napi_value JsSceneSessionManager::OnUpdateWindowMode(napi_env env, napi_callback
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_TWO) {
-        WLOGFE("Argc is invalid: %{public}zu", argc);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     int32_t persistentId;
     if (!ConvertFromJsValue(env, argv[0], persistentId)) {
-        WLOGFE("Failed to convert parameter to persistentId");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to persistentId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    int32_t windowMode;
-    if (!ConvertFromJsValue(env, argv[1], windowMode)) {
-        WLOGFE("Failed to convert parameter to windowMode");
+    WindowModeInfo windowModeInfo;
+    if (!ConvertWindowModeInfoFromJs(env, argv[1], windowModeInfo)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to windowModeInfo");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowMode);
+    SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowModeInfo);
     return NapiGetUndefined(env);
 }
 
@@ -3431,6 +3445,62 @@ napi_value JsSceneSessionManager::OnSendAxisEvent(napi_env env, napi_callback_in
     return NapiGetUndefined(env);
 }
 
+napi_value JsSceneSessionManager::OnRedispatchTouchEvent(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARGC_THREE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_TWO) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    // get TouchEvent ts pointer
+    napi_value touchEventObj = argv[0];
+    if (touchEventObj == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert touchEventObj");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    // get arkui uiContent pointer
+    const auto& uiContent = RootScene::staticRootScene_->GetUIContent();
+    if (uiContent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "uiContent is null");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
+    // get PointerEvent from arkui
+    auto constPointerEvent = uiContent->GetPointerEventFromTouchEvent(touchEventObj);
+    if (constPointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to Get pointer event from arkui");
+        return NapiGetUndefined(env);
+    }
+    auto pointerEvent = std::make_shared<OHOS::MMI::PointerEvent>(*constPointerEvent);
+    if (pointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to Get pointer event");
+        return NapiGetUndefined(env);
+    }
+    // set new actionTime :us
+    auto actionTime = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    TLOGI(WmsLogTag::WMS_EVENT, "Get action time from pointer event: %{public}" PRId64 ", now: %{public}lld",
+        pointerEvent->GetActionTime(), actionTime);
+    pointerEvent->SetActionTime(actionTime);
+    // get second param zIndex and set
+    uint32_t zIndex;
+    if (!ConvertFromJsValue(env, argv[1], zIndex)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to zIndex");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    pointerEvent->SetZOrder(zIndex);
+    SceneSessionManager::GetInstance().RedispatchTouchEvent(pointerEvent);
+    return NapiGetUndefined(env);
+}
+
 napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callback_info info)
 {
     size_t argc = 1;
@@ -3449,7 +3519,7 @@ napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callb
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    FloatViewLimits limits;
+    std::map<uint32_t, FloatViewLimits> limits {};
     if (!ConvertFloatViewLimitsFromJs(env, jsLimits, limits)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to FloatViewLimits");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
@@ -6453,4 +6523,31 @@ void JsSceneSessionManager::OnNotifyPageEnableRegistered(const std::string& bund
         napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
         }, __func__);
 }
+
+void JsSceneSessionManager::RegisterGetFloatViewLimitCallback()
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "RegisterGetFloatViewLimitCallback called");
+    SceneSessionManager::GetInstance().RegisterGetFloatViewLimitCallback(
+        [this](std::map<uint32_t, FloatViewLimits>& limit) -> bool {
+            return this->OnRegisterGetFloatViewLimitCallback(limit);
+    });
+}
+
+bool JsSceneSessionManager::OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnRegisterGetFloatViewLimitCallback called");
+    auto jsCallBack = GetJSCallback(GET_FLOAT_VIEW_LIMIT_CB);
+    if (jsCallBack == nullptr) {
+        TLOGNE(WmsLogTag::WMS_SYSTEM, "jsCallBack is nullptr");
+        return false;
+    }
+    napi_value result = nullptr;
+    napi_value argv[] = {};
+    napi_call_function(env_, NapiGetUndefined(env_), jsCallBack->GetNapiValue(), 0, argv, &result);
+    if (!ConvertFloatViewLimitsFromJs(env_, result, fvlimit)) {
+        return false;
+    }
+    return true;
+}
+
 } // namespace OHOS::Rosen

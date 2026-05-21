@@ -199,6 +199,7 @@ public:
      */
     static napi_value GetWindowStatus(napi_env env, napi_callback_info info);
     static napi_value SetWindowMask(napi_env env, napi_callback_info info);
+    static napi_value SetWindowMaskWithAlpha(napi_env env, napi_callback_info info);
     static napi_value ClearWindowMask(napi_env env, napi_callback_info info);
     static napi_value SetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     static napi_value IsInFreeWindowMode(napi_env env, napi_callback_info info);
@@ -236,6 +237,7 @@ public:
     static napi_value SetTitleAndDockHoverShown(napi_env env, napi_callback_info info);
     static napi_value Restore(napi_env env, napi_callback_info info);
     static napi_value SetDragKeyFramePolicy(napi_env env, napi_callback_info info);
+    static napi_value SetSupportedWindowModes(napi_env env, napi_callback_info info);
 
     /*
      * Window Immersive
@@ -457,6 +459,7 @@ private:
      * PC Window
      */
     napi_value OnSetWindowMask(napi_env env, napi_callback_info info);
+    napi_value OnSetWindowMaskWithAlpha(napi_env env, napi_callback_info info);
     napi_value OnClearWindowMask(napi_env env, napi_callback_info info);
     napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
@@ -496,6 +499,7 @@ private:
     napi_value OnRestore(napi_env env, napi_callback_info info);
     napi_value OnStartMoveWindowWithCoordinate(napi_env env, size_t argc, napi_value* argv);
     napi_value OnSetDragKeyFramePolicy(napi_env env, napi_callback_info info);
+    napi_value OnSetSupportedWindowModes(napi_env env, napi_callback_info info);
 
     std::string windowName_;
     sptr<Window> windowToken_ = nullptr;

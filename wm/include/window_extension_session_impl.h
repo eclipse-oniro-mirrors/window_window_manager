@@ -59,7 +59,7 @@ public:
     WMError RegisterHostWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
     WMError UnregisterHostWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
     WMError RegisterRectChangeInGlobalDisplayListener(
-        const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
+        const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize = true) override;
     WMError UnregisterRectChangeInGlobalDisplayListener(
         const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
     WMError RegisterKeyboardDidShowListener(const sptr<IKeyboardDidShowListener>& listener) override;
@@ -145,8 +145,8 @@ public:
     float GetDefaultDensity(const sptr<DisplayInfo>& displayInfo);
     WMError HideNonSecureWindows(bool shouldHide) override;
     WMError SetWaterMarkFlag(bool isEnable) override;
-    Rect GetHostWindowRect(int32_t hostWindowId) override;
-    WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
+    Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize = false) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
     bool IsComponentFocused() const override;
 
     /*
@@ -173,6 +173,7 @@ public:
     bool PreNotifyKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     void NotifyExtensionTimeout(int32_t errorCode) override;
     int32_t GetRealParentId() const override;
+    int32_t GetHostWindowId() const override;
     WindowType GetParentWindowType() const override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ public:
     WMError StartFloatingBallSingle(const sptr<FbOption>& option, bool showWhenCreate = true);
     WMError StopFloatingBall();
     WMError UpdateFloatingBall(sptr<FbOption>& option);
+    WMError SetInApplicationVisible(bool isVisible);
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::Want>& want);
     WMError DestroyFloatingBallWindow();
     sptr<Window> GetFbWindow() const;
@@ -78,6 +79,8 @@ private:
     FbWindowState curState_ = FbWindowState::STATE_UNDEFINED;
     void* contextPtr_ = nullptr;
     bool stopFromClient_ = false;
+    bool visibleInApp_ = true;
+
     sptr<FbOption> option_ = nullptr;
     bool bindState_ = false;
     uint32_t bindWindowId_ = INVALID_WINDOW_ID;

@@ -96,8 +96,11 @@
             OHOS::Rosen::ScreenProperty::SetDisplayOrientation*;
             OHOS::Rosen::ScreenProperty::SetDeviceOrientation*;
             OHOS::Rosen::ScreenProperty::GetDeviceOrientation*;
-            OHOS::Rosen::ScreenProperty::SetIsInternal*;
-            OHOS::Rosen::ScreenProperty::GetIsInternal*;
+            OHOS::Rosen::ScreenProperty::SetCastScaleX*;
+            OHOS::Rosen::ScreenProperty::SetCastScaleY*;
+            OHOS::Rosen::ScreenProperty::SetNeedCastScale*;
+            OHOS::Rosen::ScreenProperty::SetInternalStatus*;
+            OHOS::Rosen::ScreenProperty::GetInternalStatus*;
             OHOS::Rosen::ScreenSession::AddHdrFormats*;
             OHOS::Rosen::ScreenSession::AddRotationCorrection*;
             OHOS::Rosen::ScreenSession::BeforeScreenPropertyChange*;
@@ -274,6 +277,7 @@
             OHOS::Rosen::ScreenSession::SetRotationAndScreenRotationOnly*;
             OHOS::Rosen::ScreenSession::SetRotationCorrectionMap*;
             OHOS::Rosen::ScreenSession::SetRSScreenId*;
+            OHOS::Rosen::ScreenSession::SetScreenId*;
             OHOS::Rosen::ScreenSession::SetScreenAreaHeight*;
             OHOS::Rosen::ScreenSession::SetScreenAreaOffsetY*;
             OHOS::Rosen::ScreenSession::SetScreenAreaWidth*;
@@ -350,6 +354,7 @@
             OHOS::Rosen::ScreenSessionGroup::HasChild*;
             OHOS::Rosen::ScreenSessionGroup::RemoveChild*;
             OHOS::Rosen::ScreenSessionGroup::ScreenSessionGroup*;
+            OHOS::Rosen::ScreenSession::GetScreenCapability*;
         };
     local:
     *;

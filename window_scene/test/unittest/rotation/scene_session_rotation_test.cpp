@@ -67,6 +67,9 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+
+protected:
+    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
 };
 
 void SceneSessionRotationTest::SetUpTestCase() {}
@@ -809,6 +812,40 @@ HWTEST_F(SceneSessionRotationTest, NotifyOrientationExecutionResult02, TestSize.
     WSError ret = sceneSession->NotifyOrientationExecutionResult(promiseId, result);
     EXPECT_EQ(ret, WSError::WS_OK);
     GTEST_LOG_(INFO) << "SceneSessionRotationTest: NotifyOrientationExecutionResult02 end";
+}
+
+/**
+ * @tc.name: SetCurrentRotation
+ * @tc.desc: Test SetCurrentRotation with various branch scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionRotationTest, SetCurrentRotation, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetCurrentRotation start";
+
+    // Case 1: Normal scenario - sessionStage_ exists
+    SessionInfo info;
+    info.abilityName_ = "SetCurrentRotation";
+    info.bundleName_ = "SetCurrentRotation";
+    sptr<SceneSessionMocker> sceneSession = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sptr<SessionStageMocker> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = sessionStage;
+
+    int32_t currentRotation = 90;
+    WSError ret = sceneSession->SetCurrentRotation(currentRotation);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(sceneSession->currentRotation_, currentRotation);
+
+    // Case 2: sessionStage_ is nullptr - skip callback, still return WS_OK
+    sptr<SceneSessionMocker> sessionNoStage = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    sessionNoStage->sessionStage_ = nullptr;
+    ret = sessionNoStage->SetCurrentRotation(90);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(sessionNoStage->currentRotation_, 90);
+
+    GTEST_LOG_(INFO) << "SceneSessionRotationTest: SetCurrentRotation end";
 }
 
 } // namespace

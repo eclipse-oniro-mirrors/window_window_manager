@@ -36,7 +36,7 @@ constexpr size_t MAX_LENGTH_STRING = 64;
 constexpr int32_t MIN_POSITION = -10000;
 constexpr int32_t MAX_POSITION = 10000;
 constexpr uint32_t MAX_RESOLUTION = 8192;
-static constexpr std::array<uint32_t, 181> kValidTransIds = {{
+static constexpr std::array<uint32_t, 187> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_VISIBLE_AREA_DISPLAY_INFO_BY_ID),
@@ -60,8 +60,8 @@ static constexpr std::array<uint32_t, 181> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_DISPLAY_EVENT),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_TRY_TO_CANCEL_SCREEN_OFF),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_BRIGHTNESS),
-    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_BRIGHTNESS),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_FREEZE_EVENT),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_BRIGHTNESS),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_BASE),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_CREATE_VIRTUAL_SCREEN),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_DESTROY_VIRTUAL_SCREEN),
@@ -218,6 +218,12 @@ static constexpr std::array<uint32_t, 181> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNC_SCREEN_POWER_STATE),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REGISTER_DISPLAY_ATTRIBUTE_AGENT),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNREGISTER_DISPLAY_ATTRIBUTE),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_QUERY_MULTI_SCREEN_CAPTURE),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_POWER_STATE_AOD),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY),
 }};
 
 sptr<IRemoteObject> GetRemote()
@@ -225,23 +231,19 @@ sptr<IRemoteObject> GetRemote()
     return new CameraStandard::MockIRemoteObject();
 }
 
-void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
+void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp,
+    ScreenSessionManagerStub& screenStub, const sptr<IRemoteObject>& remote, uint32_t code)
 {
-    std::shared_ptr<ScreenSessionManagerStub> screenStub = std::make_shared<ScreenSessionManagerStub>();
-    sptr<IRemoteObject> remote = GetRemote();
     MessageParcel parcel;
     MessageOption option;
     MessageParcel reply;
     parcel.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
 
-    size_t index = fdp.ConsumeIntegralInRange<size_t>(0, kValidTransIds.size() - 1);
-    uint32_t code = kValidTransIds[index];
-    std::cout << "code: " << code << std::endl;
     switch (code) {
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO): {
             int32_t userId = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteInt32(userId);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REGISTER_DISPLAY_MANAGER_AGENT):
@@ -249,7 +251,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteRemoteObject(remote);
             uint32_t type = fdp.ConsumeIntegral<uint32_t>();
             parcel.WriteUint32(type);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUSPEND_BEGIN):
@@ -259,7 +261,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 static_cast<uint32_t>(PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN)
             );
             parcel.WriteUint32(rawReason);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_INTERNAL_SCREEN_ID):
@@ -302,8 +304,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_AREA_OF_DISPLAY_AREA):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_PRIMARY_DISPLAY_SYSTEM_DPI):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_AUTO_ROTATION):
-        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_SWITCH_USER_ANIMATION_FINISH): {
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_SWITCH_USER_ANIMATION_FINISH):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_SURFACE_NODE):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_SURFACE_NODE):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_FREEZE_EVENT):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_AS_DEFAULT):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_SCREEN_BASE): {
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_POWER_BY_ID): {
@@ -321,13 +328,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(stateRaw);
             parcel.WriteUint32(reasonRaw);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_DISPLAY_STATE): {
             uint32_t stateRaw = fdp.ConsumeIntegral<uint32_t>();
             parcel.WriteUint32(stateRaw);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SPECIFIED_SCREEN_POWER): {
@@ -339,7 +346,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(stateRaw);
             parcel.WriteUint32(reasonRaw);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_POWER_FOR_ALL): {
@@ -349,7 +356,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(stateRaw);
             parcel.WriteUint32(reasonRaw);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_STATE):
@@ -366,20 +373,20 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             uint64_t displayId = fdp.ConsumeIntegral<uint64_t>();
             parcel.WriteUint64(displayId);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_DISPLAY_EVENT): {
             uint32_t event = fdp.ConsumeIntegral<uint32_t>();
             parcel.WriteUint32(event);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_POWER): {
             uint64_t dmsScreenId = fdp.ConsumeIntegral<uint64_t>();
             parcel.WriteUint64(dmsScreenId);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_BRIGHTNESS): {
@@ -389,13 +396,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(level);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_BRIGHTNESS):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_SCREEN):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_INFO_BY_ID):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTED_COLOR_GAMUTS):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_COLOR_GAMUT):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_GROUP_INFO_BY_ID):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DENSITY_IN_CURRENT_RESOLUTION):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_GAMUT_MAP):
@@ -403,6 +411,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_PIXEL_FORMAT):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTED_HDR_FORMAT):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_SUPPORTED_COLOR_SPACE):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_COLOR_SPACE):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_CONVERT_SCREENID_TO_RSSCREENID):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_HAS_IMMERSIVE_WINDOW):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_DUMP_SPECIAL_SCREEN):
@@ -416,13 +425,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_SCREEN_PROPERTY_BY_FOLD_STATE_CHANGE): {
             uint64_t screenId = fdp.ConsumeIntegral<uint64_t>();
             parcel.WriteUint64(screenId);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_ALL_DISPLAYIDS): {
             int32_t userId = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteInt32(userId);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_SET_SUPPORTS_INPUT): {
@@ -430,7 +439,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             bool supportsInput = fdp.ConsumeBool();
             parcel.WriteUint64(displayId);
             parcel.WriteBool(supportsInput);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_CREATE_VIRTUAL_SCREEN): {
@@ -477,7 +486,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteString(serialNumber);
             parcel.WriteString(bundleName);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SURFACE): {
@@ -490,7 +499,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 parcel.WriteRemoteObject(remote);
             }
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_BLOCK_LIST): {
@@ -500,7 +509,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 parcel.WriteInt32(fdp.ConsumeIntegral<int32_t>());
             }
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_BLOCK_LIST): {
@@ -510,7 +519,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 parcel.WriteInt32(fdp.ConsumeIntegral<int32_t>());
             }
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_WHITE_LIST): {
@@ -521,7 +530,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             for (uint64_t i = 0; i < missionCount; ++i) {
                 parcel.WriteUint64(fdp.ConsumeIntegral<uint64_t>());
             }
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_WHITE_LIST): {
@@ -534,7 +543,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 parcel.WriteUint64(fdp.ConsumeIntegral<uint64_t>());
             }
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_MASKIMAGE): {
@@ -548,7 +557,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 parcel.WriteInt32(width);
                 parcel.WriteInt32(height);
             }
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CANVAS_ROTATION): {
@@ -556,7 +565,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             bool autoRotate = fdp.ConsumeBool();
             parcel.WriteUint64(screenId);
             parcel.WriteBool(autoRotate);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SCALE_MODE): {
@@ -565,13 +574,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             uint32_t scaleMode = fdp.ConsumeIntegralInRange<uint32_t>(0, MAX_SCALE_MODE_VALUE);
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(scaleMode);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_DESTROY_VIRTUAL_SCREEN): {
             uint64_t screenId = fdp.ConsumeIntegral<uint64_t>();
             parcel.WriteUint64(screenId);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_MIRROR): {
@@ -589,7 +598,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteInt32(rotation);
             parcel.WriteBool(needSetRotation);
             
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_MIRROR_FOR_RECORD): {
@@ -608,7 +617,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUInt64Vector(mainScreenIds);
             parcel.WriteUInt64Vector(mirrorScreenIds);
             
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_MIRROR_WITH_REGION): {
@@ -631,7 +640,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(width);
             parcel.WriteUint32(height);
             
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_MULTI_SCREEN_MODE_SWITCH): {
@@ -641,7 +650,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(mainScreenId);
             parcel.WriteUint64(secondaryScreenId);
             parcel.WriteUint32(screenMode);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_MULTI_SCREEN_POSITION): {
@@ -659,7 +668,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(secondaryScreenX);
             parcel.WriteUint32(secondaryScreenY);
             
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_STOP_MIRROR): {
@@ -669,13 +678,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 mirrorScreenIds.push_back(static_cast<ScreenId>(fdp.ConsumeIntegral<uint64_t>()));
             }
             parcel.WriteUInt64Vector(mirrorScreenIds);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_DISABLE_MIRROR): {
             bool disable = fdp.ConsumeBool();
             parcel.WriteBool(disable);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_MAKE_EXPAND): {
@@ -705,7 +714,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 parcel.WriteInt32(pt.posY_);
             }
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_STOP_EXPAND): {
@@ -715,7 +724,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 expandScreenIds.push_back(static_cast<ScreenId>(fdp.ConsumeIntegral<uint64_t>()));
             }
             parcel.WriteUInt64Vector(expandScreenIds);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_FROM_SCREEN_GROUP): {
@@ -725,7 +734,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 screenId.push_back(static_cast<ScreenId>(fdp.ConsumeIntegral<uint64_t>()));
             }
             parcel.WriteUInt64Vector(screenId);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT): {
@@ -737,7 +746,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteBool(isUseDma);
             parcel.WriteBool(isCaptureFullOfScreen);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_HDR_SNAPSHOT): {
@@ -749,7 +758,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteBool(isUseDma);
             parcel.WriteBool(isCaptureFullOfScreen);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_ACTIVE_MODE): {
@@ -759,7 +768,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(modeId);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_PIXEL_RATIO): {
@@ -769,7 +778,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteFloat(virtualPixelRatio);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_PIXEL_RATIO_SYSTEM): {
@@ -779,7 +788,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteFloat(virtualPixelRatio);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_DEFAULT_DENSITY_DPI): {
@@ -789,7 +798,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteFloat(virtualPixelRatio);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_RESOLUTION): {
@@ -803,7 +812,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(height);
             parcel.WriteFloat(virtualPixelRatio);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_SET_COLOR_GAMUT): {
@@ -813,7 +822,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteInt32(colorGamutIdx);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_SET_GAMUT_MAP): {
@@ -823,7 +832,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(gamutMap);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_SET_PIXEL_FORMAT): {
@@ -833,14 +842,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(pixelFormat);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_GET_HDR_FORMAT): {
             uint64_t screenId = fdp.ConsumeIntegral<uint64_t>();
             parcel.WriteUint64(screenId);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_SET_HDR_FORMAT): {
@@ -850,7 +859,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteInt32(modeIdx);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCREEN_SET_COLOR_SPACE): {
@@ -860,7 +869,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(colorSpace);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_ORIENTATION): {
@@ -872,21 +881,21 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(orientation);
             parcel.WriteBool(isFromNapi);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED): {
             bool isLocked = fdp.ConsumeBool();
             parcel.WriteBool(isLocked);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED_FROM_JS): {
             bool isLocked = fdp.ConsumeBool();
             parcel.WriteBool(isLocked);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_CUTOUT_INFO_WITH_ROTATION): {
@@ -900,14 +909,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteInt32(height);
             parcel.WriteUint32(rotation);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_SET_FOLD_DISPLAY_MODE): {
             uint32_t displayMode = fdp.ConsumeIntegral<uint32_t>();
             parcel.WriteUint32(displayMode);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_FOLD_DISPLAY_MODE_FROM_JS): {
@@ -917,35 +926,35 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(displayMode);
             parcel.WriteString(reason);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_LOCK_FOLD_DISPLAY_STATUS): {
             bool lockDisplayStatus = fdp.ConsumeBool();
             parcel.WriteBool(lockDisplayStatus);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_LOCK_FOLD_DISPLAY_STATUS_FROM_JS): {
             bool lockDisplayStatus = fdp.ConsumeBool();
             parcel.WriteBool(lockDisplayStatus);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_TARGET_FOLD_STATUS_AND_LOCK): {
             uint32_t targetFoldStatus = fdp.ConsumeIntegral<uint32_t>();
             parcel.WriteUint32(targetFoldStatus);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_FOLD_STATUS_EXPAND_AND_LOCKED): {
             bool lockDisplayStatus = fdp.ConsumeBool();
             parcel.WriteBool(lockDisplayStatus);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_SET_DISPLAY_SCALE): {
@@ -959,13 +968,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteFloat(scaleY);
             parcel.WriteFloat(pivotX);
             parcel.WriteFloat(pivotY);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_LANDSCAPE_LOCK_STATUS): {
             bool isLocked = fdp.ConsumeBool();
             parcel.WriteBool(isLocked);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_MAKE_UNIQUE_SCREEN): {
@@ -980,12 +989,12 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             int32_t rotation = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteBool(isRotationLocked);
             parcel.WriteInt32(rotation);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_CLIENT): {
             parcel.WriteRemoteObject(remote);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_SCREEN_DIRECTION_INFO): {
@@ -1001,7 +1010,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteFloat(phyRotation);
             parcel.WriteUint32(changeType);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_SCREEN_ROTATION_PROPERTY): {
@@ -1013,11 +1022,11 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteFloat(rotation);
             parcel.WriteUint32(changeType);
             parcel.WriteBool(isSwitchUser);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_CURVED_SCREEN_COMPRESSION_AREA): {
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_DISPLAY_CHANGE_INFO): {
@@ -1046,13 +1055,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 break;
             }
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_STATE): {
             bool hasPrivate = fdp.ConsumeBool();
             parcel.WriteBool(hasPrivate);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREENID_PRIVACY_STATE): {
@@ -1069,7 +1078,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             int32_t rotation = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteBool(isRotationLocked);
             parcel.WriteInt32(rotation);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_WINDOW_LIST): {
@@ -1081,7 +1090,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 privacyWindowList.push_back(fdp.ConsumeRandomLengthString(MAX_LENGTH_STRING));
             }
             parcel.WriteStringVector(privacyWindowList);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_RESIZE_VIRTUAL_SCREEN): {
@@ -1091,7 +1100,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(width);
             parcel.WriteUint32(height);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_AVAILABLE_AREA): {
@@ -1105,7 +1114,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteInt32(posY);
             parcel.WriteUint32(width);
             parcel.WriteUint32(height);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_SUPER_FOLD_AVAILABLE_AREA): {
@@ -1127,7 +1136,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteInt32(cPosY);
             parcel.WriteUint32(cWidth);
             parcel.WriteUint32(cHeight);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_SUPER_FOLD_EXPAND_AVAILABLE_AREA): {
@@ -1141,19 +1150,19 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteInt32(posY);
             parcel.WriteUint32(width);
             parcel.WriteUint32(height);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_OFF_DELAY_TIME): {
             int32_t delay = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteInt32(delay);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_FOLD_TO_EXPAND_COMPLETION): {
             bool foldToExpand = fdp.ConsumeBool();
             parcel.WriteBool(foldToExpand);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_AOD_OP_COMPLETION): {
@@ -1161,7 +1170,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             int32_t result = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteUint32(op);
             parcel.WriteInt32(result);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_REFRESH_RATE): {
@@ -1169,7 +1178,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             uint32_t refreshInterval = fdp.ConsumeIntegral<uint32_t>();
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(refreshInterval);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_BLACK_LIST): {
@@ -1192,7 +1201,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             for (uint64_t i = 0; i < typeCount; ++i) {
                 parcel.WriteUint8(fdp.ConsumeIntegral<uint8_t>());
             }
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_DISPLAY_HOOK_INFO): {
@@ -1217,13 +1226,13 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint32(displayOrientation);
             parcel.WriteBool(enableHookDisplayOrientation);
             parcel.WriteBool(isFullScreenInForceSplit);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_HOOK_INFO): {
             int32_t uid = fdp.ConsumeIntegral<int32_t>();
             parcel.WriteInt32(uid);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_SECURITY_EXEMPTION): {
@@ -1231,7 +1240,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             bool exempt = fdp.ConsumeBool();
             parcel.WriteUint64(screenId);
             parcel.WriteBool(exempt);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_STATUS): {
@@ -1240,7 +1249,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
 
             parcel.WriteUint64(screenId);
             parcel.WriteInt32(screenStatus);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_MAX_REFRESHRATE): {
@@ -1249,7 +1258,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
 
             parcel.WriteUint64(screenId);
             parcel.WriteUint32(refreshRate);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_SNAPSHOT_WITH_OPTION): {
@@ -1279,7 +1288,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteInt32(width);
             parcel.WriteInt32(height);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_HDR_SNAPSHOT_WITH_OPTION): {
@@ -1289,7 +1298,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteBool(enableHdr);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_CAMERA_STATUS): {
@@ -1298,14 +1307,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
 
             parcel.WriteInt32(cameraStatus);
             parcel.WriteInt32(cameraPosition);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_ON_DELAY_TIME): {
             int32_t delay = fdp.ConsumeIntegral<int32_t>();
 
             parcel.WriteInt32(delay);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_SKIP_PROTECTED_WINDOW): {
@@ -1319,7 +1328,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUInt64Vector(screenIds);
             parcel.WriteBool(isEnable);
 
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_RECORD_EVENT_FROM_SCB): {
@@ -1328,14 +1337,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
 
             parcel.WriteString(description);
             parcel.WriteBool(needRecordEvent);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SYSTEM_KEYBOARD_STATUS): {
             bool isTpKeyboardOn = fdp.ConsumeBool();
 
             parcel.WriteBool(isTpKeyboardOn);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_DISPLAY_MUTE_FLAG): {
@@ -1343,7 +1352,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             bool muteFlag = fdp.ConsumeBool();
             parcel.WriteUint64(screenId);
             parcel.WriteBool(muteFlag);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_FORCE_CLOSE_HDR): {
@@ -1351,14 +1360,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             bool isForceCloseHdr = fdp.ConsumeBool();
             parcel.WriteUint64(screenId);
             parcel.WriteBool(isForceCloseHdr);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNCHRONIZED_POWER_STATUS): {
             constexpr uint32_t maxPowerStateValue = static_cast<uint32_t>(ScreenPowerState::POWER_DOZE_SUSPEND);
             uint32_t stateTemp = fdp.ConsumeIntegralInRange<uint32_t>(0, maxPowerStateValue);
             parcel.WriteUint32(stateTemp);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_PRIVACY_WINDOW_TAG_SWITCH): {
@@ -1372,7 +1381,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             parcel.WriteUint64(screenId);
             parcel.WriteStringVector(privacyWindowTag);
             parcel.WriteBool(enable);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_IS_FULL_SCREEN_IN_FORCE_SPLIT): {
@@ -1380,14 +1389,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
             bool isFullScreen = fdp.ConsumeBool();
             parcel.WriteInt32(uid);
             parcel.WriteBool(isFullScreen);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SYNC_SCREEN_POWER_STATE): {
             constexpr uint32_t maxPowerStateValue = static_cast<uint32_t>(ScreenPowerState::POWER_DOZE_SUSPEND);
             uint32_t state = fdp.ConsumeIntegralInRange<uint32_t>(0, maxPowerStateValue);
             parcel.WriteUint32(state);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REGISTER_DISPLAY_ATTRIBUTE_AGENT): {
@@ -1398,7 +1407,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 attributes.push_back(fdp.ConsumeRandomLengthString(MAX_LENGTH_STRING));
             }
             parcel.WriteStringVector(attributes);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNREGISTER_DISPLAY_ATTRIBUTE): {
@@ -1409,7 +1418,66 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
                 attributes.push_back(fdp.ConsumeRandomLengthString(MAX_LENGTH_STRING));
             }
             parcel.WriteStringVector(attributes);
-            screenStub->OnRemoteRequest(code, parcel, reply, option);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS): {
+            uint64_t screenId = fdp.ConsumeIntegral<uint64_t>();
+            uint32_t orientation = fdp.ConsumeIntegralInRange<uint32_t>(
+                0, static_cast<uint32_t>(Orientation::END));
+            bool needAnimation = fdp.ConsumeBool();
+            bool ignoreRotationLock = fdp.ConsumeBool();
+            bool isFromNapi = fdp.ConsumeBool();
+            parcel.WriteUint64(screenId);
+            parcel.WriteUint32(orientation);
+            parcel.WriteBool(needAnimation);
+            parcel.WriteBool(ignoreRotationLock);
+            parcel.WriteBool(isFromNapi);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_QUERY_MULTI_SCREEN_CAPTURE): {
+            size_t numScreens = fdp.ConsumeIntegralInRange<size_t>(0, MAX_BUFFER_SIZE);
+            std::vector<uint64_t> screenIds;
+            for (size_t i = 0; i < numScreens; ++i) {
+                screenIds.push_back(fdp.ConsumeIntegral<uint64_t>());
+            }
+            parcel.WriteUInt64Vector(screenIds);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST): {
+            uint32_t listSize = fdp.ConsumeIntegralInRange<uint32_t>(0, MAX_BUFFER_SIZE);
+            std::vector<std::string> bundleNameList;
+            for (uint32_t i = 0; i < listSize; ++i) {
+                bundleNameList.push_back(fdp.ConsumeRandomLengthString(MAX_LENGTH_STRING));
+            }
+            parcel.WriteStringVector(bundleNameList);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_POWER_STATE_AOD): {
+            uint32_t state = fdp.ConsumeIntegralInRange<uint32_t>(
+                static_cast<uint32_t>(ScreenPowerState::POWER_ON),
+                static_cast<uint32_t>(ScreenPowerState::POWER_DOZE_SUSPEND));
+            parcel.WriteUint32(state);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE): {
+            uint32_t screenClosedState = fdp.ConsumeIntegralInRange<uint32_t>(
+                static_cast<uint32_t>(ScreenClosedState::CLOSE),
+                static_cast<uint32_t>(ScreenClosedState::OPEN));
+            bool isScreenOn = fdp.ConsumeBool();
+            parcel.WriteUint32(screenClosedState);
+            parcel.WriteBool(isScreenOn);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY): {
+            uint64_t screenId = fdp.ConsumeIntegral<uint64_t>();
+            parcel.WriteUint64(screenId);
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }
         default:
@@ -1417,20 +1485,42 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp)
     }
 }
 
+void ScreenSessionManagerStubFuzzTestMalformed(FuzzedDataProvider& fdp,
+    ScreenSessionManagerStub& screenStub, const sptr<IRemoteObject>& remote, uint32_t code)
+{
+    MessageParcel parcel;
+    MessageOption option;
+    MessageParcel reply;
+    parcel.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    // Write raw bytes — typically too few or ill-typed, triggering Read* failures in the stub
+    size_t rawSize = fdp.ConsumeIntegralInRange<size_t>(0, 256);
+    std::vector<uint8_t> rawBytes;
+    rawBytes.reserve(rawSize);
+    for (size_t i = 0; i < rawSize; ++i) {
+        rawBytes.push_back(fdp.ConsumeIntegral<uint8_t>());
+    }
+    if (!rawBytes.empty()) {
+        parcel.WriteBuffer(rawBytes.data(), rawBytes.size());
+    }
+
+    parcel.RewindRead(0);
+    screenStub.OnRemoteRequest(code, parcel, reply, option);
+}
+
 void Test(FuzzedDataProvider& fdp)
 {
-    auto func = fdp.PickValueInArray({
-        ScreenSessionManagerStubFuzzTestEnhanced,
-    });
-    func(fdp);
+    std::shared_ptr<ScreenSessionManagerStub> screenStub = std::make_shared<ScreenSessionManagerStub>();
+    sptr<IRemoteObject> remote = GetRemote();
+
+    for (size_t i = 0; i < kValidTransIds.size(); ++i) {
+        ScreenSessionManagerStubFuzzTestEnhanced(fdp, *screenStub, remote, kValidTransIds[i]);
+        ScreenSessionManagerStubFuzzTestMalformed(fdp, *screenStub, remote, kValidTransIds[i]);
+    }
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    if (size < DATA_MIN_SIZE) {
-        return 0;
-    }
-
     FuzzedDataProvider fdp(data, size);
     Test(fdp);
     return 0;

@@ -365,6 +365,7 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     reply.WriteUint32(property->GetSubWindowLevel());
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
+    reply.WriteBool(property->GetSystemCalling());
     reply.WriteUint32(static_cast<uint32_t>(WSError::WS_OK));
     return ERR_NONE;
 }
@@ -1626,8 +1627,13 @@ int SceneSessionManagerStub::HandleGetAllWindowLayoutInfo(MessageParcel& data, M
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to read foregroundBelowWindow");
         return ERR_INVALID_DATA;
     }
+    bool useHookedSize = true;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to read useHookedSize");
+        return ERR_INVALID_DATA;
+    }
     std::vector<sptr<WindowLayoutInfo>> infos;
-    WMError errCode = GetAllWindowLayoutInfo(displayId, infos, option);
+    WMError errCode = GetAllWindowLayoutInfo(displayId, infos, option, useHookedSize);
     if (!MarshallingHelper::MarshallingVectorParcelableObj<WindowLayoutInfo>(reply, infos)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to write window layout info");
         return ERR_INVALID_DATA;
@@ -1746,7 +1752,12 @@ int SceneSessionManagerStub::HandleGetGlobalWindowMode(MessageParcel& data, Mess
 int SceneSessionManagerStub::HandleGetFloatViewLimits(MessageParcel& data, MessageParcel& reply)
 {
     FloatViewLimits limits;
-    if (!reply.WriteInt32(static_cast<int32_t>(GetFloatViewLimits(limits)))) {
+    uint32_t templateType = 0;
+    if (!data.ReadUint32(templateType)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "read templateType fail");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(GetFloatViewLimits(templateType, limits)))) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Write errCode fail");
         return ERR_INVALID_DATA;
     }
@@ -1886,8 +1897,13 @@ int SceneSessionManagerStub::HandleRecoverWatermarkImageForApp(MessageParcel& da
 
 int SceneSessionManagerStub::HandleGetVisibilityWindowInfo(MessageParcel& data, MessageParcel& reply)
 {
+    bool useHookedSize = true;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to read useHookedSize");
+        return ERR_INVALID_DATA;
+    }
     std::vector<sptr<WindowVisibilityInfo>> infos;
-    WMError errCode = GetVisibilityWindowInfo(infos);
+    WMError errCode = GetVisibilityWindowInfo(infos, useHookedSize);
     if (!MarshallingHelper::MarshallingVectorParcelableObj<WindowVisibilityInfo>(reply, infos)) {
         WLOGFE("Write visibility window infos failed");
         return ERR_INVALID_DATA;
@@ -2048,8 +2064,13 @@ int SceneSessionManagerStub::HandleGetHostWindowRect(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_UIEXT, "read hostWindowId fail");
         return ERR_INVALID_DATA;
     }
+    bool useHookedSize = false;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read useHookedSize fail");
+        return ERR_INVALID_DATA;
+    }
     Rect rect;
-    WSError ret = GetHostWindowRect(hostWindowId, rect);
+    WSError ret = GetHostWindowRect(hostWindowId, rect, useHookedSize);
     reply.WriteInt32(rect.posX_);
     reply.WriteInt32(rect.posY_);
     reply.WriteUint32(rect.width_);
@@ -2066,8 +2087,13 @@ int SceneSessionManagerStub::HandleGetHostGlobalScaledRect(MessageParcel& data, 
         TLOGE(WmsLogTag::WMS_UIEXT, "read hostWindowId fail");
         return ERR_INVALID_DATA;
     }
+    bool useHookedSize = false;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read useHookedSize fail");
+        return ERR_INVALID_DATA;
+    }
     Rect rect;
-    WSError ret = GetHostGlobalScaledRect(hostWindowId, rect);
+    WSError ret = GetHostGlobalScaledRect(hostWindowId, rect, useHookedSize);
     reply.WriteInt32(rect.posX_);
     reply.WriteInt32(rect.posY_);
     reply.WriteUint32(rect.width_);

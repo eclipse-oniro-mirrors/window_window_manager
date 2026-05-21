@@ -898,7 +898,7 @@ HWTEST_F(SystemSessionTest, UpdateFloatingBall, Function | SmallTest | Level2)
     EXPECT_EQ(systemSession->UpdateFloatingBall(fbTemplateInfo), WMError::WM_OK);
 
     FloatingBallTemplateBaseInfo fbBaseTmpInfo (
-        static_cast<uint32_t>(FloatingBallTemplate::STATIC), "", "", "", 0, false, 0, true, "test");
+        static_cast<uint32_t>(FloatingBallTemplate::STATIC), "", "", "", "", "", 0, false, 0, true, "test");
     FloatingBallTemplateInfo fbTmpInfo {fbBaseTmpInfo, nullptr};
     systemSession->SetFbTemplateInfo(fbTmpInfo);
     EXPECT_EQ(systemSession->UpdateFloatingBall(fbTemplateInfo), WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED);
@@ -1063,9 +1063,10 @@ HWTEST_F(SystemSessionTest, NotifyUpdateFloatingBall, Function | SmallTest | Lev
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, specificCallback);
 
-    FloatingBallTemplateBaseInfo fbBaseTmpInfo {1, "fb", "fb_content", "red", 0, false, 0, true, "test"};
+    FloatingBallTemplateBaseInfo fbBaseTmpInfo {1, "fb", "fb_content", "red", "", "", 0, false, 0, true, "test"};
     FloatingBallTemplateInfo fbTemplateInfo {fbBaseTmpInfo, nullptr};
-    FloatingBallTemplateBaseInfo newFbBaseTmpInfo {2, "fb_new", "fb_content_new", "red", 0, false, 0, true, "test"};
+    FloatingBallTemplateBaseInfo newFbBaseTmpInfo {2, "fb_new", "fb_content_new", "red", "", "", 0, false, 0, true,
+        "test"};
     FloatingBallTemplateInfo newFbTemplateInfo {newFbBaseTmpInfo, nullptr};
     systemSession->SetFloatingBallUpdateCallback(nullptr);
     systemSession->NotifyUpdateFloatingBall(newFbTemplateInfo);
@@ -1494,7 +1495,7 @@ HWTEST_F(SystemSessionTest, SyncFloatViewLimits, Function | SmallTest | Level2)
     SessionInfo info;
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
 
-    FloatViewLimits limits;
+    std::map<uint32_t, FloatViewLimits> limits;
     systemSession->sessionStage_ = nullptr;
     EXPECT_EQ(systemSession->SyncFloatViewLimits(limits), WSError::WS_ERROR_NULLPTR);
 

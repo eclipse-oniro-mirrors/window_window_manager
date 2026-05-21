@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1224,6 +1224,14 @@ public:
     virtual Rect GetRect() const { return {}; }
 
     /**
+     * @brief Get the window show rect
+     *
+     * @param useHookedSize Whether to return hooked size for force-split windows.
+     * @return Rect of window
+     */
+    virtual Rect GetRect(bool useHookedSize) const { return {}; }
+
+    /**
      * @brief Get window default rect from window property.
      *
      * @return Rect of window.
@@ -1233,9 +1241,24 @@ public:
     /**
      * @brief Get the window rectangle in global coordinates.
      *
+     * @param useHookedSize Whether to return hooked size for force-split windows. Default is false.
      * @return The rectangle (position and size) of the window in global coordinates.
      */
-    virtual Rect GetGlobalDisplayRect() const { return { 0, 0, 0, 0 }; }
+    virtual Rect GetGlobalDisplayRect(bool useHookedSize = false) const { return { 0, 0, 0, 0 }; }
+
+    /**
+     * @brief Set whether UpdateViewportConfig should use hooked size for force-split windows.
+     *
+     * @param useHookedSize True to use hooked size, false to use real size. Default is false.
+     */
+    virtual void SetViewportConfigUseHookedSize(bool useHookedSize) {}
+
+    /**
+     * @brief Get whether UpdateViewportConfig uses hooked size.
+     *
+     * @return True if hooked size is used, false otherwise.
+     */
+    virtual bool GetViewportConfigUseHookedSize() const { return false; }
 
     /**
      * @brief Convert a position from client (window-relative) coordinates to global coordinates.
@@ -1274,6 +1297,13 @@ public:
      * @return Mode of window.
      */
     virtual WindowMode GetWindowMode() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
+
+    /**
+     * @brief Get the window mode info.
+     *
+     * @return WindowModeInfo of window.
+     */
+    virtual WindowModeInfo GetWindowModeInfo() const { return WindowModeInfo{}; }
 
     /**
      * @brief Get alpha of window.
@@ -1790,7 +1820,10 @@ public:
      * @param Rect
      * @return WMError
      */
-    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief resize the window instance (w,h)
@@ -2280,6 +2313,19 @@ public:
      * @return WM_OK means register success, others means register failed.
      */
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Register window change listener with hooked size control.
+     *
+     * @param listener IWindowChangeListener.
+     * @param useHookedSize Whether to receive hooked size for force-split windows.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize)
     {
         return WMError::WM_OK;
     }
@@ -4048,7 +4094,7 @@ public:
      * @param hostWindowId window Id of the host window.
      * @return Rect of window.
      */
-    virtual Rect GetHostWindowRect(int32_t hostWindowId) { return {}; }
+    virtual Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize = false) { return {}; }
 
     /**
      * @brief Make multi-window become landscape or not.
@@ -4137,6 +4183,11 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -4260,9 +4311,11 @@ public:
      * @brief Register window rect change listener.
      *
      * @param listener IWindowRectChangeListener.
+     * @param useHookedSize Whether to receive hooked size for force-split windows. Default is true.
      * @return WM_OK means register success, others means register failed.
      */
-    virtual WMError RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener)
+    virtual WMError RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener,
+        bool useHookedSize = true)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -4282,9 +4335,11 @@ public:
      * @brief Register a listener to observe window rectangle changes in global coordinates.
      *
      * @param listener The listener to receive rectangle change notifications.
+     * @param useHookedSize Whether to receive hooked size for force-split windows. Default is true.
      * @return WMError WM_OK if registration succeeds; otherwise, an error code is returned.
      */
-    virtual WMError RegisterRectChangeInGlobalDisplayListener(const sptr<IRectChangeInGlobalDisplayListener>& listener)
+    virtual WMError RegisterRectChangeInGlobalDisplayListener(
+        const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize = true)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -4480,6 +4535,13 @@ public:
      * @return Real parent id of UIExtension
      */
     virtual int32_t GetRealParentId() const { return static_cast<int32_t>(INVALID_WINDOW_ID); }
+
+    /**
+     * @brief Get the host window id of UIExtension
+     *
+     * @return Host window id of UIExtension
+     */
+    virtual int32_t GetHostWindowId() const { return static_cast<int32_t>(INVALID_WINDOW_ID); }
 
     /**
      * @brief Get the parent window type of UIExtension
@@ -5006,7 +5068,10 @@ public:
      * @param windowPropertyInfo the window property struct.
      * @return WMError.
      */
-    virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) { return WMError::WM_OK; }
+    virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true)
+    {
+        return WMError::WM_OK;
+    }
 
     /**
      * @brief Get is subwindow support maximize.
@@ -5162,6 +5227,16 @@ public:
         return WMError::WM_OK;
     }
  
+    /**
+     * @brief update the floating ball visibility.
+     *
+     * @param isVisible the visibility status of the floating-ball.
+     */
+    virtual WMError UpdateFloatingBallForVisible(bool isVisible)
+    {
+        return WMError::WM_OK;
+    }
+
     /**
      * @brief get windowId of floating-ball
      *

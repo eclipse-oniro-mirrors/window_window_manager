@@ -80,6 +80,32 @@ void ScreenSessionManagerClientProxy::OnTentModeChange(TentMode tentMode)
     }
 }
 
+void ScreenSessionManagerClientProxy::OnScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is null");
+        return;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(screenClosedState))) {
+        TLOGE(WmsLogTag::DMS, "Write screenClosedState failed");
+        return;
+    }
+    int ret = remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_CLOSED_STATE_CHANGE),
+        data, reply, option);
+    if (ret != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "send request failed, ret=%{public}d", ret);
+    }
+}
+
 bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOption& sessionOption,
     ScreenEvent screenEvent, MessageParcel& data)
 {
@@ -431,6 +457,46 @@ void ScreenSessionManagerClientProxy::OnScreenOrientationChanged(ScreenId screen
     }
     if (remote->SendRequest(
         static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
+
+void ScreenSessionManagerClientProxy::OnScreenOrientationChangedWithOptions(
+    ScreenId screenId, float screenOrientation, const OrientationOptions& options)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteFloat(screenOrientation)) {
+        TLOGE(WmsLogTag::DMS, "Write screenOrientation failed");
+        return;
+    }
+    if (!data.WriteBool(options.needAnimation)) {
+        TLOGE(WmsLogTag::DMS, "Write needAnimation failed");
+        return;
+    }
+    if (!data.WriteBool(options.ignoreRotationLock)) {
+        TLOGE(WmsLogTag::DMS, "Write ignoreRotationLock failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::DMS, "SendRequest failed");
         return;
@@ -1219,5 +1285,36 @@ bool ScreenSessionManagerClientProxy::WriteRSEventToParcel(MessageParcel& data, 
     }
 
     return true;
+}
+
+void ScreenSessionManagerClientProxy::SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteUint64(rsScreenId)) {
+        TLOGE(WmsLogTag::DMS, "Write rsScreenId failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_SET_DISPLAY_NODE_RS_SCREEN_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
 }
 } // namespace OHOS::Rosen

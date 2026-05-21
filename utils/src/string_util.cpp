@@ -19,11 +19,9 @@ namespace OHOS {
 namespace Rosen {
 std::string StringUtil::Trim(std::string s)
 {
-    if (!s.empty()) {
-        s.erase(0, s.find_first_not_of(" "));
-        s.erase(s.find_last_not_of(" ") + 1);
-    }
-    return s;
+    size_t start = s.find_first_not_of(" ");
+    if (start == std::string::npos) return "";
+    return s.substr(start, s.find_last_not_of(" ") - start + 1);
 }
 } // namespace Rosen
 } // namespace OHOS
