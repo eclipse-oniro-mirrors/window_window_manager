@@ -220,6 +220,14 @@ public:
     virtual WSError SetAspectRatio(float ratio) { return WSError::WS_OK; }
 
     /**
+     * @brief Notify surface node alpha update.
+     *
+     * @param alpha Indicates the alpha value of surface node.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError NotifySurfaceNodeAlphaUpdate(float alpha) { return WSError::WS_OK; }
+
+    /**
      * @brief Set content aspect ratio of the window.
      *
      * @param ratio The aspect ratio of window content (width divided by height).

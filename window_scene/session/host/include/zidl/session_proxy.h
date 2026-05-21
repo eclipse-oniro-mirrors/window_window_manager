@@ -82,6 +82,7 @@ public:
     WSError SetGlobalMaximizeMode(MaximizeMode mode) override;
     WSError GetGlobalMaximizeMode(MaximizeMode& mode) override;
     WSError SetAspectRatio(float ratio) override;
+    WSError NotifySurfaceNodeAlphaUpdate(float alpha) override;
     WSError SetContentAspectRatio(float ratio, bool isPersistent, bool needUpdateRect) override;
     WSError UpdateWindowAnimationFlag(bool needDefaultAnimationFlag) override;
     WSError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;

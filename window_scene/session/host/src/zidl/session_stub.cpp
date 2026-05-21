@@ -157,6 +157,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSetPreferredOrientationWithResult(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_ASPECT_RATIO):
             return HandleSetAspectRatio(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE):
+            return HandleNotifySurfaceNodeAlphaUpdate(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_CONTENT_ASPECT_RATIO):
             return HandleSetContentAspectRatio(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_WINDOW_ANIMATION_FLAG):
@@ -1577,6 +1579,23 @@ int SessionStub::HandleSetAspectRatio(MessageParcel& data, MessageParcel& reply)
     }
     WSError errCode = SetAspectRatio(ratio);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
+    return ERR_NONE;
+}
+
+/** @note @window.attribute */
+int SessionStub::HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "In");
+    
+    float alpha = 0.0f;
+    if (!data.ReadFloat(alpha)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read alpha failed");
+        return ERR_INVALID_DATA;
+    }
+    
+    WSError errCode = NotifySurfaceNodeAlphaUpdate(alpha);
+    reply.WriteUint32(static_cast<uint32_t>(errCode));
+    
     return ERR_NONE;
 }
 
