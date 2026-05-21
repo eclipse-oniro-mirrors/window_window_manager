@@ -603,7 +603,7 @@ std::string RSAdapterUtil::RSUIDirectorToStr(const std::shared_ptr<RSUIDirector>
     return oss.str();
 }
 
-sptr<IRemoteBroker> RSUIContextContainer::renderSession;
+sptr<IRemoteObject> RSUIContextContainer::renderSession;
 std::shared_ptr<RSUIContext> RSUIContextContainer::rsUIContext;
 
 sptr<IRemoteObject> RSUIContextContainer::GetRenderSession()

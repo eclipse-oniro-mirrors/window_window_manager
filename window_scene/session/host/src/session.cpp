@@ -1662,7 +1662,7 @@ WSError Session::UpdateOrientation()
     return sessionStage_->UpdateOrientation();
 }
 
-RSSurfaceNodeType WindowSessionImpl::GetRSSurfaceNodeType(sptr<WindowSessionProperty> property)
+RSSurfaceNodeType GetRSSurfaceNodeType(sptr<WindowSessionProperty> property)
 {
     RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
     WindowType type = property->GetWindowType();
@@ -1698,7 +1698,7 @@ RSSurfaceNodeType WindowSessionImpl::GetRSSurfaceNodeType(sptr<WindowSessionProp
 std::shared_ptr<RSSurfaceNode> Session::CreateSurfaceNode(uint64_t nodeId, sptr<WindowSessionProperty> property)
 {
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    rsSurfaceNodeConfig.SurfaceNodeName = name;
+    rsSurfaceNodeConfig.SurfaceNodeName = property->GetWindowName();
     rsSurfaceNodeConfig.nodeId = nodeId;
     RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(property);
     auto surfaceNode =  RSSurfaceNode::Create(rsSurfaceNodeConfig,

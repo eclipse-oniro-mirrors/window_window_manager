@@ -205,7 +205,7 @@ public:
     static void SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj);
 
 private:
-    static sptr<IRemoteBroker> renderSession;
+    static sptr<IRemoteObject> renderSession;
     static std::shared_ptr<RSUIContext> rsUIContext;
 };
 } // namespace Rosen
