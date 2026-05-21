@@ -15870,44 +15870,56 @@ void SceneSessionManager::ProcessFocusZOrderChange(uint32_t dirty)
     RequestSessionFocus(voiceInteractionSession->GetPersistentId(), true, FocusChangeReason::VOICE_INTERACTION);
 }
 
+std::vector<sptr<SceneSession>> SceneSessionManager::CollectProcessingSessions()
+{
+    std::vector<sptr<SceneSession>> processingSessions;
+    {
+        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+        for (const auto& [persistentId, session] : sceneSessionMap_) {
+            if (session == nullptr) {
+                continue;
+            }
+            const auto& state = session->GetPostProcessFocusState();
+            if (!state.enabled_) {
+                continue;
+            }
+            if (state.isFocused_ && !session->IsVisible()) {
+                continue;
+            }
+            processingSessions.push_back(session);
+        }
+    }
+    auto cmp = [](const sptr<SceneSession>& lhs, const sptr<SceneSession>& rhs) {
+        const auto& lhsState = lhs->GetPostProcessFocusState();
+        const auto& rhsState = rhs->GetPostProcessFocusState();
+        if (lhsState.isFocused_ != rhsState.isFocused_) {
+            return lhsState.isFocused_;
+        }
+        return lhs->GetZOrder() > rhs->GetZOrder();
+    };
+    std::sort(processingSessions.begin(), processingSessions.end(), cmp);
+    return processingSessions;
+}
+
 void SceneSessionManager::PostProcessFocus()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::PostProcessFocus");
-    // priority process focus requests from top to bottom
-    std::vector<std::pair<int32_t, sptr<SceneSession>>> processingSessions;
-    {
-        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        for (auto& iter : sceneSessionMap_) {
-            auto session = iter.second;
-            if (session == nullptr || !session->GetPostProcessFocusState().enabled_) {
-                continue;
-            }
-            processingSessions.push_back(iter);
-        }
-    }
-    CmpFunc cmp = [](std::pair<int32_t, sptr<SceneSession>>& lhs, std::pair<int32_t, sptr<SceneSession>>& rhs) {
-        bool focusCmp = lhs.second->GetPostProcessFocusState().isFocused_ &&
-            !rhs.second->GetPostProcessFocusState().isFocused_;
-        uint32_t lhsZOrder = lhs.second != nullptr ? lhs.second->GetZOrder() : 0;
-        uint32_t rhsZOrder = rhs.second != nullptr ? rhs.second->GetZOrder() : 0;
-        return focusCmp || lhsZOrder > rhsZOrder;
-    };
-    std::sort(processingSessions.begin(), processingSessions.end(), cmp);
-
+    std::vector<sptr<SceneSession>> processingSessions = CollectProcessingSessions();
     // only change focus one time
     std::unordered_set<DisplayId> focusChangedSet;
-    for (auto iter = processingSessions.begin(); iter != processingSessions.end(); ++iter) {
-        auto session = iter->second;
+    for (const auto& session : processingSessions) {
         if (session == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "session is nullptr");
             continue;
         }
-        auto displayId = session->GetSessionProperty()->GetDisplayId();
-        auto displayGroupId = windowFocusController_->GetDisplayGroupId(displayId);
+        const auto displayId = session->GetSessionProperty()->GetDisplayId();
+        const auto displayGroupId = windowFocusController_->GetDisplayGroupId(displayId);
+        const auto& processFocusState = session->GetPostProcessFocusState();
+        const auto persistentId = session->GetPersistentId();
+
         TLOGD(WmsLogTag::WMS_PIPELINE,
             "id: %{public}d, isFocused: %{public}d, reason: %{public}d, focusableOnShow: %{public}d",
-            session->GetPersistentId(), session->GetPostProcessFocusState().isFocused_,
-            session->GetPostProcessFocusState().reason_, session->IsFocusableOnShow());
+            persistentId, processFocusState.isFocused_, processFocusState.reason_, session->IsFocusableOnShow());
         if (focusChangedSet.find(displayGroupId) != focusChangedSet.end()) {
             session->ResetPostProcessFocusState();
             continue;
@@ -15921,26 +15933,23 @@ void SceneSessionManager::PostProcessFocus()
         }
 
         WSError ret = WSError::WS_DO_NOTHING;
-        if (session->GetPostProcessFocusState().isFocused_) {
-            if (session->GetPostProcessFocusState().reason_ == FocusChangeReason::SCB_START_APP &&
-                session->IsDelayFocusChange()) {
+        if (processFocusState.isFocused_) {
+            const auto reason = processFocusState.reason_;
+            if (reason == FocusChangeReason::SCB_START_APP && session->IsDelayFocusChange()) {
                 TLOGI(WmsLogTag::WMS_FOCUS, "delay focus change until the window is visible");
                 continue;
-            } else if (session->GetPostProcessFocusState().reason_ == FocusChangeReason::SCB_START_APP) {
-                ret = RequestSessionFocusImmediately(session->GetPersistentId());
-            } else if (session->GetPostProcessFocusState().reason_ == FocusChangeReason::RECENT) {
-                ret = RequestSessionFocus(session->GetPersistentId(),
-                                          session->GetPostProcessFocusState().byForeground_,
-                                          session->GetPostProcessFocusState().reason_);
+            }
+            if (reason == FocusChangeReason::SCB_START_APP) {
+                ret = RequestSessionFocusImmediately(persistentId);
+            } else if (reason == FocusChangeReason::RECENT) {
+                ret = RequestSessionFocus(persistentId, processFocusState.byForeground_, reason);
             } else {
-                ret = RequestSessionFocus(session->GetPersistentId(), true,
-                                          session->GetPostProcessFocusState().reason_);
+                ret = RequestSessionFocus(persistentId, true, reason);
             }
         } else {
-            ret = RequestSessionUnfocus(session->GetPersistentId(), session->GetPostProcessFocusState().reason_);
+            ret = RequestSessionUnfocus(persistentId, processFocusState.reason_);
         }
         session->ResetPostProcessFocusState();
-        // if succeed then end process
         if (ret == WSError::WS_OK) {
             focusChangedSet.insert(displayGroupId);
         }
