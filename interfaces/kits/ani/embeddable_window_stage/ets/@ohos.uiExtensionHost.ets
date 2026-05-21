@@ -114,6 +114,7 @@ namespace uiExtensionHost {
     public native snapshot(nativeObj: long): image.PixelMap;
     public native snapshotSync(nativeObj: long): image.PixelMap;
     public native snapshotIgnorePrivacy(nativeObj: long): image.PixelMap;
+    public native getWindowProperties(nativeObj: long): window.WindowProperties;
 
     get properties(): UIExtensionHostWindowProxyProperties {
       let property = new UIEProperties();
@@ -159,6 +160,10 @@ namespace uiExtensionHost {
         hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `getWindowAvoidArea failed, ret: ${ret}`);
       }
       return area;
+    }
+
+    public getWindowProperties(): window.WindowProperties {
+      return this.getWindowProperties(this.nativeObj);
     }
 
     public setWaterMarkFlag(enable: boolean): Promise<void> {
@@ -287,6 +292,7 @@ namespace uiExtensionHost {
     offAvoidAreaChange<T>(callback?: Callback<T>): void;
     onWindowSizeChange(callback: Callback<window.Size>): void;
     offWindowSizeChange(callback?: Callback<window.Size>): void;
+    getWindowProperties(): window.WindowProperties;
 
     properties: UIExtensionHostWindowProxyProperties;
   }
