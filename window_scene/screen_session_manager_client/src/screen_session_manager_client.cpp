@@ -1194,7 +1194,7 @@ void ScreenSessionManagerClient::HandleDisplayNodeWhenScreenConnect(ScreenSessio
     }
     if (config.displayNode != nullptr && IS_SUPPORT_PC_MODE &&
         system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
-        config.displayNode->SetScreenId(config.rsId_);
+        config.displayNode->SetScreenId(config.rsId);
         RSTransactionAdapter::FlushImplicitTransaction({config.displayNode});
     }
 }
