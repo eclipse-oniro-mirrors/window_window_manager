@@ -4537,6 +4537,13 @@ public:
     virtual int32_t GetRealParentId() const { return static_cast<int32_t>(INVALID_WINDOW_ID); }
 
     /**
+     * @brief Get the host window id of UIExtension
+     *
+     * @return Host window id of UIExtension
+     */
+    virtual int32_t GetHostWindowId() const { return static_cast<int32_t>(INVALID_WINDOW_ID); }
+
+    /**
      * @brief Get the parent window type of UIExtension
      *
      * @return Parent window type of UIExtension
