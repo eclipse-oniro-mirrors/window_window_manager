@@ -2090,18 +2090,15 @@ HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility02, TestSize.Level1
     ASSERT_NE(ssm_, nullptr);
     ssm_->bundleMgr_ = ssm_->GetBundleManager();
     ssm_->currentUserId_ = USER_ID;
-
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest11";
     sessionInfo.moduleName_ = "SceneSessionManager";
     sessionInfo.abilityName_ = "NotifyStartWindowsAbility02";
     sessionInfo.want = std::make_shared<AAFwk::Want>();
-
-    SceneSessionManager::SessionInfoList list = { .uid_ = USER_ID,
-                                                   .bundleName_ = "SceneSessionManagerTest11",
-                                                   .abilityName_ = "NotifyStartWindowsAbility02",
-                                                   .moduleName_ = "SceneSessionManager" };
-
+    SceneSessionManager::SessionInfoList list = {
+        .uid_ = USER_ID, .bundleName_ = "SceneSessionManagerTest11",
+        .abilityName_ = "NotifyStartWindowsAbility02", .moduleName_ = "SceneSessionManager"
+    };
     std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
     ASSERT_NE(abilityInfo, nullptr);
     ssm_->abilityInfoMap_[list] = abilityInfo;
