@@ -202,6 +202,7 @@ private:
     void OnScreenModeChanged(ScreenModeChangeEvent screenModeChangeEvent) override;
 
     void SetDisplayNodeScreenId(ScreenId screenId, ScreenId displayNodeScreenId) override;
+    void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
     void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) override;
 
     void NotifyScreenConnect(const sptr<ScreenSession>& screenSession);

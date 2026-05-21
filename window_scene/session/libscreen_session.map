@@ -277,6 +277,7 @@
             OHOS::Rosen::ScreenSession::SetRotationAndScreenRotationOnly*;
             OHOS::Rosen::ScreenSession::SetRotationCorrectionMap*;
             OHOS::Rosen::ScreenSession::SetRSScreenId*;
+            OHOS::Rosen::ScreenSession::SetScreenId*;
             OHOS::Rosen::ScreenSession::SetScreenAreaHeight*;
             OHOS::Rosen::ScreenSession::SetScreenAreaOffsetY*;
             OHOS::Rosen::ScreenSession::SetScreenAreaWidth*;
