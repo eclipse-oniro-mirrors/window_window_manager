@@ -207,7 +207,7 @@ public:
 private:
     static sptr<IRemoteBroker> renderSession;
     static std::shared_ptr<RSUIContext> rsUIContext;
-}
+};
 } // namespace Rosen
 } // namespace OHOS
 
