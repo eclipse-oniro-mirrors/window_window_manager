@@ -1183,7 +1183,7 @@ void ScreenSessionManagerClient::NotifyClientScreenConnect(sptr<ScreenSession>& 
 }
 
 void ScreenSessionManagerClient::HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config,
-    sptr<ScreenSession> screenSession)
+    sptr<ScreenSession>& screenSession)
 {
     config.displayNode = screenSessionManager_->GetDisplayNode(config.screenId);
     if (screenSession == nullptr) {

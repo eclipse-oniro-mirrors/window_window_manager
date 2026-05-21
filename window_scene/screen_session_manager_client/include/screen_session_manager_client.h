@@ -178,7 +178,7 @@ private:
     bool CheckIfNeedConnectScreen(SessionOption option);
     void OnScreenConnectionChanged(SessionOption option, ScreenEvent screenEvent) override;
     bool HandleScreenConnection(SessionOption option);
-    void HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config,sptr<ScreenSession> screenSession);
+    void HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config, sptr<ScreenSession>& screenSession);
     void HandleScreenDisconnectEvent(SessionOption option, ScreenEvent screenEvent);
     bool HandleScreenDisconnection(SessionOption option);
     void NotifyClientScreenConnect(sptr<ScreenSession>& screenSession);
