@@ -606,6 +606,16 @@ RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string&
     if (renderSession_ || needCreateCompleteSurfaceNode_) {
         RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
     }
+    if (surfaceNode != nullptr) {
+        surfaceNode->SetAlphaChangedCallback([weak = wptr(this), where = __func__](float alpha) {
+            auto window = weak.promote();
+            if (!window) {
+                TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: window is null", where);
+                return;
+            }
+            window->NotifySurfaceNodeAlphaUpdate(alpha);
+        });
+    }
     TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
         RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), name.c_str());
     return surfaceNode;
@@ -7794,6 +7804,18 @@ WSError WindowSessionImpl::NotifyWindowVisibility(bool isVisible)
         }
     }
     return WSError::WS_OK;
+}
+
+void WindowSessionImpl::NotifySurfaceNodeAlphaUpdate(float alpha)
+{
+    auto hostSession = GetHostSession();
+    if (hostSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "hostSession is null, wid=%{public}d, alpha=%{public}f", GetWindowId(), alpha);
+        return;
+    }
+    auto retErr = hostSession->NotifySurfaceNodeAlphaUpdate(alpha);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, alpha=%{public}f, retErr=%{public}d",
+        GetWindowId(), alpha, retErr);
 }
 
 WSError WindowSessionImpl::NotifyNoInteractionTimeout(const IWindowNoInteractionListenerSptr& listener)

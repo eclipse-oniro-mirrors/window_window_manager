@@ -16456,7 +16456,7 @@ WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
             Rect resultRect = useHookedSize ? hookedRect : realRect;
             auto windowLayoutInfo = sptr<WindowLayoutInfo>::MakeSptr();
             windowLayoutInfo->rect = resultRect;
-            session->GetSurfaceNodeAlpha(windowLayoutInfo->windowAlpha);
+            windowLayoutInfo->windowAlpha = session->GetSurfaceNodeAlpha();
             infos.emplace_back(windowLayoutInfo);
         }
         return WMError::WM_OK;

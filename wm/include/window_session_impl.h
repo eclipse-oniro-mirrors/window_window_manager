@@ -1245,6 +1245,7 @@ private:
     void NotifyAfterResumed();
     void NotifyAfterPaused();
     void NotifyUIContentHighlightStatus(bool isHighlighted);
+    void NotifySurfaceNodeAlphaUpdate(float alpha);
 
     /*
      * Window Decor listener

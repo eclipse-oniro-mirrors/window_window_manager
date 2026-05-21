@@ -1093,7 +1093,6 @@ public:
     void NotifySessionAcrossDisplaysChange(const sptr<SceneSession>& sceneSession, bool isAcrossDisplays);
     WMError OnUpdateColorMode(const std::string& colorMode, bool hasDarkRes) override;
     std::string GetAbilityColorMode() const;
-    bool GetSurfaceNodeAlpha(float& alpha);
     void SetSecurityLayerWhenEnterForeground();
     void RegisterSnapshotSkipChangeCallback(NotifySnapshotSkipChangeFunc&& callback);
     void UpdatePropertyWhenTriggerMode();
