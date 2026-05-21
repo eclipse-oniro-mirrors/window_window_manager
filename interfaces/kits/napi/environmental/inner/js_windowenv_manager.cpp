@@ -30,7 +30,7 @@ const int32_t INVALID_INSTANCEID = -1;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_FOUR = 4;
 }
-napi_value FindJsExtensionWindow(napi_env env, sptr<Window> window);
+napi_value FindJsExtensionWindow(napi_env env, const sptr<Window>& window);
 
 static napi_value CreateJsNumber(napi_env env, uint64_t value)
 {

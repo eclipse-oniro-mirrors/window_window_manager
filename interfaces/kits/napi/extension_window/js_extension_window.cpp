@@ -98,7 +98,7 @@ void addJsExtensionWindow(napi_env env, napi_value objValue, int32_t id)
     g_jsExtensionWindowMap[id] = jsExtensionWindowRef;
 }
 
-napi_value FindJsExtensionWindow(napi_env env, sptr<Rosen::Window> window)
+napi_value FindJsExtensionWindow(napi_env env, const sptr<Rosen::Window>& window)
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
@@ -113,6 +113,12 @@ napi_value FindJsExtensionWindow(napi_env env, sptr<Rosen::Window> window)
         std::lock_guard<std::mutex> lock(g_extensionMutex);
         auto iter = g_jsExtensionWindowMap.find(id);
         if (iter != g_jsExtensionWindowMap.end()) {
+            if (iter->second == nullptr) {
+                TLOGE(WmsLogTag::WMS_UIEXT, "jsExtensionWindowRef is nullptr, id: %{public}d", id);
+                napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    "The extensionWindow is destroyed."));
+                return NapiGetUndefined(env);
+            }
             extensionWindow = iter->second->GetNapiValue();
             if (extensionWindow != nullptr) {
                 return extensionWindow;
@@ -354,6 +360,10 @@ void JsExtensionWindow::Finalizer(napi_env env, void* data, void* hint)
     auto jsExtensionWin = std::unique_ptr<JsExtensionWindow>(static_cast<JsExtensionWindow*>(data));
     if (jsExtensionWin == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "jsExtensionWin is nullptr");
+        return;
+    }
+    if (jsExtensionWin->extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
         return;
     }
     sptr<Rosen::Window> window = jsExtensionWin->extensionWindow_->GetWindow();
