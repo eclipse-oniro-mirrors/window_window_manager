@@ -1046,6 +1046,9 @@ private:
      *       <moveResample enable="true">
      *         <resampleFpsRange>29 91</resampleFpsRange>
      *         <resamplePointerTypes>1 2</resamplePointerTypes>
+     *         <secondaryPhase enable="true">
+     *           <leadTimeMs>2</leadTimeMs>
+     *         </secondaryPhase>
      *       </moveResample>
      *     </moveDrag>
      *   </windowLayout>

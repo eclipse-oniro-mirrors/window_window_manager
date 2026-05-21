@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_MOVE_DRAG_CONTROLLER_H
 #define OHOS_ROSEN_WINDOW_SCENE_MOVE_DRAG_CONTROLLER_H
 
+#include <atomic>
 #include <mutex>
 #include <optional>
 #include <set>
@@ -23,15 +24,15 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <refbase.h>
-#include <struct_multimodal.h>
-
-#include "common/include/window_session_property.h"
-#include "move_resampler.h"
 #include "property/rs_properties_def.h"
+#include "refbase.h"
+#include "struct_multimodal.h"
+
+#include "move_resampler.h"
 #include "screen_manager.h"
 #include "string_util.h"
 #include "window.h"
+#include "window_session_property.h"
 #include "ws_common_inner.h"
 
 namespace OHOS::MMI {
@@ -48,8 +49,6 @@ using ScreenIdSet = std::unordered_set<ScreenId>;
 using ScreenRectMap = std::unordered_map<ScreenId, WSRect>;
 
 const uint32_t WINDOW_HOT_AREA_TYPE_UNDEFINED = 0;
-const int32_t POSITIVE_CORRELATION = 1;
-const int32_t NEGATIVE_CORRELATION = -1;
 
 enum class MoveDirection : uint32_t {
     UNKNOWN,
@@ -117,6 +116,16 @@ struct MoveResampleConfig {
     std::set<int32_t> pointerTypes;
 
     /**
+     * @brief Whether a second resampling phase is scheduled within each vsync period.
+     */
+    bool secondaryPhaseEnable = false;
+
+    /**
+     * @brief Time reserved before the next vsync for the secondary resampling phase, in milliseconds.
+     */
+    int32_t secondaryPhaseLeadTimeMs = 0;
+
+    /**
      * @brief Check whether the given pointer event source type is allowed.
      *
      * @param pointerType MMI pointer event source type.
@@ -150,7 +159,9 @@ struct MoveResampleConfig {
         oss << "enable: " << enable
             << ", minFps: " << (minFps ? std::to_string(*minFps) : "unlimited")
             << ", maxFps: " << (maxFps ? std::to_string(*maxFps) : "unlimited")
-            << ", pointerTypes: " << StringUtil::JoinValueSet(pointerTypes);
+            << ", pointerTypes: " << StringUtil::JoinValueSet(pointerTypes)
+            << ", secondaryPhaseEnable: " << secondaryPhaseEnable
+            << ", secondaryPhaseLeadTimeMs: " << secondaryPhaseLeadTimeMs;
 
         return oss.str();
     }
@@ -208,17 +219,24 @@ public:
     WSRect GetTargetRectByDisplayId(DisplayId displayId) const;
 
     /**
-     * @brief Resample the moving position for the given vsync timestamp and update
+     * @brief Resample the moving position for the given sample timestamp and update
      *        the target rectangle.
      *
      * If moving is inactive, no update is performed. Otherwise the resampled
      * position is applied and the resulting rectangle is returned in legacy
      * global (unified) coordinates.
      *
-     * @param vsyncTimeUs  Timestamp of the vsync event, in microseconds.
+     * @param sampleTimeUs Sample timestamp in microseconds.
      * @return Pair of update mode and the resulting target rectangle.
      */
-    std::pair<TargetRectUpdateMode, WSRect> ResampleTargetRectOnVsync(int64_t vsyncTimeUs);
+    std::pair<TargetRectUpdateMode, WSRect> ResampleTargetRectAt(int64_t sampleTimeUs);
+
+    /**
+     * @brief Gets the delay of the secondary resampling phase from the current vsync.
+     *
+     * @return Delay in milliseconds, or std::nullopt if the secondary phase is disabled or invalid.
+     */
+    std::optional<int64_t> GetSecondaryPhaseResamplingDelayMs() const;
 
     void InitMoveDragProperty();
 
@@ -438,6 +456,11 @@ private:
          */
         bool isResampleFpsRangeChecked_ = false;
 
+        /**
+         * @brief Latest sample timestamp accepted by move resampling, in microseconds.
+         */
+        int64_t lastResampledTimeUs_ = -1;
+
         bool isEmpty() const
         {
             return (pointerId_ == -1 && originalPointerPosX_ == -1 && originalPointerPosY_ == -1);
@@ -458,6 +481,7 @@ private:
             targetRectChangeReason_ = SizeChangeReason::UNDEFINED;
             isMoveResampleActive_ = false;
             isResampleFpsRangeChecked_ = false;
+            lastResampledTimeUs_ = -1;
         }
     };
 

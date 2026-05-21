@@ -397,6 +397,95 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResamplePointerTypesValid, TestSize
 }
 
 /**
+ * @tc.name: ConfigMoveResampleSecondaryPhaseValid
+ * @tc.desc: Verify secondary phase enable and lead time are applied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleSecondaryPhaseValid, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+    ConfigItem secondaryEnableProp;
+    secondaryEnableProp.SetValue(true);
+    ConfigItem leadTime;
+    leadTime.SetValue(std::vector<int>{2});
+
+    ConfigItem secondaryPhase;
+    secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+    secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+
+    ConfigItem moveResample;
+    moveResample.SetProperty({ { "enable", enableProp } });
+    moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+    EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_TRUE(config.secondaryPhaseEnable);
+    EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 2);
+}
+
+/**
+ * @tc.name: ConfigMoveResampleSecondaryPhaseFallback
+ * @tc.desc: Verify invalid secondary phase fields keep default values
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleSecondaryPhaseFallback, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::string("invalid"));
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_FALSE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+
+    ConfigItem secondaryEnableProp;
+    secondaryEnableProp.SetValue(true);
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::vector<int>{ -1 });
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::vector<int>{ 1, 2 });
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+}
+
+/**
  * @tc.name: ConfigMovingEventInvalidType
  * @tc.desc: Verify ConfigMovingEvent returns false when config is not a map
  * @tc.type: FUNC

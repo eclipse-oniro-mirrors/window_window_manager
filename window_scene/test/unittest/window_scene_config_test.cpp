@@ -370,6 +370,38 @@ HWTEST_F(WindowSceneConfigTest, DecorConfig04, TestSize.Level1)
 }
 
 /**
+ * @tc.name: MoveResampleSecondaryPhaseConfig
+ * @tc.desc: Parse secondary phase configuration and lead time from XML
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneConfigTest, MoveResampleSecondaryPhaseConfig, TestSize.Level1)
+{
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<windowLayout>"
+        "<moveDrag>"
+        "<moveResample enable=\"true\">"
+        "<secondaryPhase enable=\"true\">"
+        "<leadTimeMs>2</leadTimeMs>"
+        "</secondaryPhase>"
+        "</moveResample>"
+        "</moveDrag>"
+        "</windowLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+
+    auto secondaryPhase = WindowSceneConfig::config_["windowLayout"]["moveDrag"]["moveResample"]["secondaryPhase"];
+    ASSERT_TRUE(secondaryPhase.IsMap());
+    ASSERT_TRUE(secondaryPhase.GetProp("enable").IsBool());
+    EXPECT_TRUE(secondaryPhase.GetProp("enable").boolValue_);
+    auto leadTime = secondaryPhase["leadTimeMs"];
+    ASSERT_TRUE(leadTime.IsInts());
+    ASSERT_EQ(leadTime.intsValue_->size(), 1);
+    EXPECT_EQ((*leadTime.intsValue_)[0], 2);
+}
+
+/**
  * @tc.name: LoadconfigXml
  * @tc.desc: load config xml
  * @tc.type: FUNC

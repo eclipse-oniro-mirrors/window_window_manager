@@ -1772,6 +1772,32 @@ void ParseMoveResampleFpsRangeConfig(
     config.maxFps = static_cast<uint32_t>(maxVal);
 }
 
+void ParseMoveResampleSecondaryPhaseConfig(const WindowSceneConfig::ConfigItem& moveResampleConfig,
+                                           MoveResampleConfig& config)
+{
+    const auto& secondaryPhaseConfig = moveResampleConfig["secondaryPhase"];
+    if (!secondaryPhaseConfig.IsMap()) {
+        return;
+    }
+
+    const auto& enableProp = secondaryPhaseConfig.GetProp("enable");
+    if (enableProp.IsBool()) {
+        config.secondaryPhaseEnable = enableProp.boolValue_;
+    } else {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The secondaryPhase.enable prop is missing or not a bool.");
+    }
+
+    const auto& leadTimeConfig = secondaryPhaseConfig["leadTimeMs"];
+    if (!leadTimeConfig.IsInts()) {
+        return;
+    }
+    if (!leadTimeConfig.intsValue_ || leadTimeConfig.intsValue_->size() != 1 || (*leadTimeConfig.intsValue_)[0] < 0) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The secondaryPhase.leadTimeMs config is invalid.");
+        return;
+    }
+    config.secondaryPhaseLeadTimeMs = (*leadTimeConfig.intsValue_)[0];
+}
+
 bool SceneSessionManager::ConfigMoveResample(const WindowSceneConfig::ConfigItem& moveResampleConfig)
 {
     if (!moveResampleConfig.IsMap()) {
@@ -1787,8 +1813,9 @@ bool SceneSessionManager::ConfigMoveResample(const WindowSceneConfig::ConfigItem
 
     MoveResampleConfig config;
     config.enable = enable;
-    ParseMoveResamplePointerTypesConfig(moveResampleConfig, config);
     ParseMoveResampleFpsRangeConfig(moveResampleConfig, config);
+    ParseMoveResamplePointerTypesConfig(moveResampleConfig, config);
+    ParseMoveResampleSecondaryPhaseConfig(moveResampleConfig, config);
     MoveDragController::SaveMoveResampleSystemConfig(config);
     return true;
 }

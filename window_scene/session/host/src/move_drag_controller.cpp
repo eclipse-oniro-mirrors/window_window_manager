@@ -60,6 +60,10 @@ constexpr const char* MOVE_RESAMPLE_ENABLE_PARAM_KEY = "persist.windowlayout.mov
 constexpr const char* MOVE_RESAMPLE_MIN_FPS_PARAM_KEY = "persist.windowlayout.moveresample.minfps";
 constexpr const char* MOVE_RESAMPLE_MAX_FPS_PARAM_KEY = "persist.windowlayout.moveresample.maxfps";
 constexpr const char* MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY = "persist.windowlayout.moveresample.pointertypes";
+constexpr const char* MOVE_RESAMPLE_SECONDARY_PHASE_ENABLE_PARAM_KEY =
+    "persist.windowlayout.moveresample.secondaryphase.enable";
+constexpr const char* MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY =
+    "persist.windowlayout.moveresample.secondaryphase.leadtimems";
 
 // The system parameter key for moving event throttle interval configuration.
 constexpr const char* MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY = "persist.windowlayout.movingevent.throttleinterval";
@@ -1320,7 +1324,7 @@ TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEvent(
     return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
-std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOnVsync(int64_t vsyncTimeUs)
+std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectAt(int64_t sampleTimeUs)
 {
     if (!GetStartMoveFlag()) {
         TLOGW(WmsLogTag::WMS_LAYOUT, "Not in moving state, skip resampled targetRect update.");
@@ -1336,8 +1340,17 @@ std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOn
         return { TargetRectUpdateMode::NONE, WSRect::EMPTY_RECT };
     }
 
-    // Compute pointer position at this vsync via resampling.
-    auto sample = moveResampler_.ResampleAt(vsyncTimeUs);
+    if (sampleTimeUs <= moveDragProperty_.lastResampledTimeUs_) {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+              "Skip move resample task with outdated sample time, sampleTimeUs: %{public}" PRId64,
+              sampleTimeUs);
+        return { TargetRectUpdateMode::RESAMPLE_SCHEDULED, WSRect::EMPTY_RECT };
+    }
+    moveDragProperty_.lastResampledTimeUs_ = sampleTimeUs;
+
+    // Resample on the requested frame time so adjacent vsync intervals advance
+    // evenly even when input events are not delivered at a stable cadence.
+    auto sample = moveResampler_.ResampleAt(sampleTimeUs);
 
     // Update internal targetRect_ using the resampled offset.
     UpdateTargetRectWithOffset(sample.posX, sample.posY, moveDragProperty_.targetRectChangeReason_);
@@ -1346,6 +1359,19 @@ std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOn
     // expressed in the legacy global (unified) coordinate system.
     auto rect = GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
     return { TargetRectUpdateMode::UPDATED_IMMEDIATELY, rect };
+}
+
+std::optional<int64_t> MoveDragController::GetSecondaryPhaseResamplingDelayMs() const
+{
+    if (!moveResampleConfig_.secondaryPhaseEnable) {
+        return std::nullopt;
+    }
+
+    const auto vsyncPeriodNs = CallSceneSession(&SceneSession::GetVSyncPeriod, 0);
+    constexpr int64_t NS_PER_MS = 1000'000;
+    const int64_t vsyncPeriodMs = vsyncPeriodNs / NS_PER_MS;
+    const int64_t delayMs = vsyncPeriodMs - moveResampleConfig_.secondaryPhaseLeadTimeMs;
+    return delayMs > 0 ? std::make_optional(delayMs) : std::nullopt;
 }
 
 /** @note @window.drag */
@@ -1625,6 +1651,9 @@ bool MoveDragController::InitMainAxis(AreaType type, int32_t tranX, int32_t tran
 
 int32_t MoveDragController::ConvertByAreaType(int32_t tran) const
 {
+    constexpr int32_t POSITIVE_CORRELATION = 1;
+    constexpr int32_t NEGATIVE_CORRELATION = -1;
+
     const static std::map<AreaType, int32_t> areaTypeMap = {
         { AreaType::LEFT, NEGATIVE_CORRELATION },
         { AreaType::RIGHT, POSITIVE_CORRELATION },
@@ -1930,6 +1959,12 @@ void MoveDragController::SaveMoveResampleSystemConfig(const MoveResampleConfig& 
 
     std::string pointerTypesStr = StringUtil::JoinValueSet(config.pointerTypes);
     system::SetParameter(MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY, pointerTypesStr);
+
+    system::SetParameter(MOVE_RESAMPLE_SECONDARY_PHASE_ENABLE_PARAM_KEY,
+                         config.secondaryPhaseEnable ? "true" : "false");
+    system::SetParameter(MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY,
+                         std::to_string(config.secondaryPhaseLeadTimeMs));
+
     TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
 }
 
@@ -1942,6 +1977,11 @@ MoveResampleConfig MoveDragController::LoadMoveResampleSystemConfig()
 
     std::string pointerTypesStr = system::GetParameter(MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY, "");
     config.pointerTypes = StringUtil::ParseValueSet<int32_t>(pointerTypesStr);
+    config.secondaryPhaseEnable = system::GetBoolParameter(MOVE_RESAMPLE_SECONDARY_PHASE_ENABLE_PARAM_KEY, false);
+
+    config.secondaryPhaseLeadTimeMs =
+        GetOptionalNumericParameter<int32_t>(MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY)
+            .value_or(2); // 2: default lead time
 
     TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
     return config;

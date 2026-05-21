@@ -2246,11 +2246,11 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
 }
 
 /**
- * @tc.name: TestResampleTargetRectOnVsyncAllBranches
- * @tc.desc: Verify ResampleTargetRectOnVsync behavior under different move/resample states
+ * @tc.name: TestResampleTargetRectAtAllBranches
+ * @tc.desc: Verify ResampleTargetRectAt behavior under different move/resample states
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestResampleTargetRectAtAllBranches, TestSize.Level1)
 {
     constexpr int64_t vsyncTime = 1000;
     auto& prop = moveDragController->moveDragProperty_;
@@ -2259,7 +2259,7 @@ HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestS
     moveDragController->isStartMove_ = false;
 
     {
-        auto [mode, _] = moveDragController->ResampleTargetRectOnVsync(vsyncTime);
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(vsyncTime);
         EXPECT_EQ(mode, TargetRectUpdateMode::NONE);
     }
 
@@ -2269,7 +2269,7 @@ HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestS
     prop.isResampleFpsRangeChecked_ = true; // Skip FPS logic
 
     {
-        auto [mode, _] = moveDragController->ResampleTargetRectOnVsync(vsyncTime);
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(vsyncTime);
         EXPECT_EQ(mode, TargetRectUpdateMode::NONE);
     }
 
@@ -2278,9 +2278,71 @@ HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestS
     prop.isResampleFpsRangeChecked_ = true;
 
     {
-        auto [mode, _] = moveDragController->ResampleTargetRectOnVsync(vsyncTime);
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(vsyncTime);
         EXPECT_EQ(mode, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     }
+}
+
+/**
+ * @tc.name: TestResampleTargetRectAtFiltersStaleSampleTime
+ * @tc.desc: Verify resampling accepts zero time, filters stale samples, and resets time state for a new move
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestResampleTargetRectAtFiltersStaleSampleTime, TestSize.Level1)
+{
+    auto& prop = moveDragController->moveDragProperty_;
+    moveDragController->isStartMove_ = true;
+    prop.isMoveResampleActive_ = true;
+    prop.isResampleFpsRangeChecked_ = true;
+
+    {
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(0);
+        EXPECT_EQ(mode, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    }
+    EXPECT_EQ(moveDragController->moveDragProperty_.lastResampledTimeUs_, 0);
+
+    {
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(0);
+        EXPECT_EQ(mode, TargetRectUpdateMode::RESAMPLE_SCHEDULED);
+    }
+
+    {
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(-1);
+        EXPECT_EQ(mode, TargetRectUpdateMode::RESAMPLE_SCHEDULED);
+    }
+
+    moveDragController->InitMoveDragProperty();
+    EXPECT_EQ(moveDragController->moveDragProperty_.lastResampledTimeUs_, -1);
+}
+
+/**
+ * @tc.name: TestGetSecondaryPhaseResamplingDelayMs
+ * @tc.desc: Verify secondary phase delay is controlled by the resample policy and lead time
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestGetSecondaryPhaseResamplingDelayMs, TestSize.Level1)
+{
+    moveDragController->moveResampleConfig_.secondaryPhaseEnable = false;
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
+
+    moveDragController->moveResampleConfig_.secondaryPhaseEnable = true;
+    moveDragController->moveResampleConfig_.secondaryPhaseLeadTimeMs = 1;
+    moveDragController->sceneSession_ = nullptr;
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
+    moveDragController->sceneSession_ = wptr(session_);
+
+    EXPECT_CALL(*mockVsyncStation_, GetVSyncPeriod())
+        .WillOnce(Return(0))
+        .WillOnce(Return(16000000))
+        .WillOnce(Return(16000000));
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
+
+    auto delayMs = moveDragController->GetSecondaryPhaseResamplingDelayMs();
+    ASSERT_TRUE(delayMs.has_value());
+    EXPECT_EQ(*delayMs, 15);
+
+    moveDragController->moveResampleConfig_.secondaryPhaseLeadTimeMs = 160;
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
 }
 
 /**
