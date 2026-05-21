@@ -4885,7 +4885,7 @@ void SceneSession::ThrowSlipDirectly(ThrowSlipMode throwSlipMode, const WSRectF&
             TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s not allow throw slip", where);
             return;
         }
-        bool isFullScreen = GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
+        bool isFullScreen = session->GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
         WSRect currRect;
         session->HookStartMoveRect(currRect, session->GetSessionRect());
         controller->RecordStartMoveRectDirectly(currRect, throwSlipMode, velocity, isFullScreen);
