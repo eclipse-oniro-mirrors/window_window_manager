@@ -45,6 +45,8 @@ public:
                 (DisplayPowerEvent event, EventStatus status, PowerStateChangeReason reason), (override));
     MOCK_METHOD(void, OnSensorRotationChanged, (ScreenId screenId, float sensorRotation, bool isSwitchUser),
                 (override));
+    MOCK_METHOD(void, OnSmartSensorRotationChanged, (ScreenId screenId, float sensorRotation, bool isSwitchUser),
+                (override));
     MOCK_METHOD(void, OnHoverStatusChanged, (ScreenId screenId, int32_t hoverStatus, bool needRotate), (override));
     MOCK_METHOD(void, OnScreenOrientationChanged, (ScreenId screenId, float screenOrientation), (override));
     MOCK_METHOD(void, OnScreenOrientationChangedWithOptions, (ScreenId screenId,

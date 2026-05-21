@@ -374,25 +374,61 @@ void ScreenSessionManagerClientProxy::OnSensorRotationChanged(ScreenId screenId,
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
         return;
     }
     if (!data.WriteUint64(screenId)) {
-        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write screenId failed");
         return;
     }
     if (!data.WriteFloat(sensorRotation)) {
-        TLOGE(WmsLogTag::DMS, "Write sensorRotation failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write sensorRotation failed");
         return;
     }
     if (!data.WriteBool(isSwitchUser)) {
-        TLOGE(WmsLogTag::DMS, "Write isSwitchUser failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write isSwitchUser failed");
         return;
     }
     if (remote->SendRequest(
         static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SENSOR_ROTATION_CHANGED),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
+        return;
+    }
+}
+
+void ScreenSessionManagerClientProxy::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteFloat(sensorRotation)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write sensorRotation failed");
+        return;
+    }
+    if (!data.WriteBool(isSwitchUser)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write isSwitchUser failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SMART_SENSOR_ROTATION_CHANGED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
         return;
     }
 }

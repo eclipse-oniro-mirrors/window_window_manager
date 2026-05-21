@@ -39,6 +39,7 @@ private:
     int HandleOnFoldPropertyChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnPowerStatusChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnSensorRotationChanged(MessageParcel& data, MessageParcel& reply);
+    int HandleOnSmartSensorRotationChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenOrientationChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenOrientationChangedWithOptions(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenRotationLockedChanged(MessageParcel& data, MessageParcel& reply);

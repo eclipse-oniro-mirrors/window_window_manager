@@ -380,6 +380,17 @@ void ScreenSessionManagerClient::OnSensorRotationChanged(ScreenId screenId, floa
     screenSession->SensorRotationChange(sensorRotation, isSwitchUser);
 }
 
+void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->SmartSensorRotationChange(sensorRotation, isSwitchUser);
+}
+
 void ScreenSessionManagerClient::OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate)
 {
     auto screenSession = GetScreenSession(screenId);
@@ -1676,6 +1687,19 @@ void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
     TLOGI(WmsLogTag::DMS, "notify animation finished by window");
     screenSessionManager_->NotifySwitchUserAnimationFinish();
 }
+
+void ScreenSessionManagerClient::SubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->SubscribeMotionSensor(motionType);
+}
+
+void ScreenSessionManagerClient::UnsubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->UnsubscribeMotionSensor(motionType);
+}
+
 void ScreenSessionManagerClient::OnAnimationFinish()
 {
     std::lock_guard<std::mutex> lock(animateFinishNotificationSetMutex_);
