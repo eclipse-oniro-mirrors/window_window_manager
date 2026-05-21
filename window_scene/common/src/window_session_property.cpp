@@ -685,11 +685,41 @@ WindowLimits WindowSessionProperty::GetWindowLimitsVP() const
 void WindowSessionProperty::SetWindowMode(WindowMode mode)
 {
     windowMode_ = mode;
+    windowModeInfo_ = {mode, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY};
 }
 
 WindowMode WindowSessionProperty::GetWindowMode() const
 {
     return windowMode_;
+}
+
+WindowMode WindowSessionProperty::GetWindowModeCompat() const
+{
+    if (windowModeInfo_.windowMode != WindowMode::WINDOW_MODE_SPLIT) {
+        return windowMode_;
+    }
+    if (windowModeInfo_.splitStyle != SplitStyle::TWO_WINDOW_HORIZONTAL &&
+        windowModeInfo_.splitStyle != SplitStyle::TWO_WINDOW_VERTICAL) {
+        return windowMode_;
+    }
+    if (windowModeInfo_.splitIndex == SPLIT_INDEX_PRIMARY) {
+        return WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
+    }
+    if (windowModeInfo_.splitIndex == SPLIT_INDEX_SECONDARY) {
+        return WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+    }
+    return windowMode_;
+}
+
+void WindowSessionProperty::SetWindowModeInfo(const WindowModeInfo& windowModeInfo)
+{
+    windowMode_ = windowModeInfo.windowMode;
+    windowModeInfo_ = windowModeInfo;
+}
+
+WindowModeInfo WindowSessionProperty::GetWindowModeInfo() const
+{
+    return windowModeInfo_;
 }
 
 WindowState WindowSessionProperty::GetWindowState() const
@@ -1611,6 +1641,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteString(appInstanceKey_) &&
         parcel.WriteInt32(appIndex_) &&
         parcel.WriteBool(isSystemKeyboard_) &&
+        parcel.WriteUint64(keyboardTargetDisplayId_) &&
         parcel.WriteUint32(avoidAreaOption_) && parcel.WriteBool(isWindowDelayRaiseEnabled_) &&
         parcel.WriteUint8(backgroundAlpha_) && parcel.WriteParcelable(&keyboardEffectOption_) &&
         parcel.WriteFloat(cornerRadius_) && parcel.WriteBool(isExclusivelyHighlighted_) &&
@@ -1728,6 +1759,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetAppInstanceKey(parcel.ReadString());
     property->SetAppIndex(parcel.ReadInt32());
     property->SetIsSystemKeyboard(parcel.ReadBool());
+    property->SetKeyboardTargetDisplayId(parcel.ReadUint64());
     property->SetAvoidAreaOption(parcel.ReadUint32());
     property->SetWindowDelayRaiseEnabled(parcel.ReadBool());
     property->SetBackgroundAlpha(parcel.ReadUint8());
@@ -1860,6 +1892,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     appInstanceKey_ = property->appInstanceKey_;
     appIndex_ = property->appIndex_;
     isSystemKeyboard_ = property->isSystemKeyboard_;
+    keyboardTargetDisplayId_ = property->keyboardTargetDisplayId_;
     avoidAreaOption_ = property->avoidAreaOption_;
     isWindowDelayRaiseEnabled_ = property->isWindowDelayRaiseEnabled_;
     backgroundAlpha_ = property->backgroundAlpha_;
@@ -2490,6 +2523,16 @@ KeyboardEffectOption WindowSessionProperty::GetKeyboardEffectOption() const
 {
     std::lock_guard<std::mutex> lock(keyboardMutex_);
     return keyboardEffectOption_;
+}
+
+void WindowSessionProperty::SetKeyboardTargetDisplayId(DisplayId displayId)
+{
+    keyboardTargetDisplayId_ = displayId;
+}
+
+DisplayId WindowSessionProperty::GetKeyboardTargetDisplayId() const
+{
+    return keyboardTargetDisplayId_;
 }
 
 uint8_t WindowSessionProperty::GetBackgroundAlpha() const

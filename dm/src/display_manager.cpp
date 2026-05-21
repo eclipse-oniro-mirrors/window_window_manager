@@ -142,7 +142,7 @@ public:
     sptr<Display> GetPrimaryDisplaySync();
     DisplayId GetPrimaryDisplayId();
     void OnRemoteDied();
-    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation);
+    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation, int32_t width, int32_t height);
     DMError GetScreenAreaOfDisplayArea(DisplayId displayId, const DMRect& displayArea,
         ScreenId& screenId, DMRect& screenArea);
     DMError GetBrightnessInfo(DisplayId dispalyId, ScreenBrightnessInfo& brightnessInfo);
@@ -2643,10 +2643,12 @@ bool DisplayManager::TryToCancelScreenOff()
     return SingletonContainer::Get<DisplayManagerAdapter>().TryToCancelScreenOff();
 }
 
-bool DisplayManager::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManager::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
-    TLOGI(WmsLogTag::DMS, "[UL_POWER]ScreenId:%{public}" PRIu64", level:%{public}u,", screenId, level);
-    RSInterfaces::GetInstance().SetScreenBacklight(screenId, level);
+    RsScreenBrightnessData data{brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition};
+    TLOGI(WmsLogTag::DMS, "[UL_POWER]ScreenId:%{public}" PRIu64", level:%{public}u, brightnessPosition:%{public}.4f",
+        data.screenId, data.level, data.brightnessPosition);
+    RSInterfaces::GetInstance().SetScreenBacklight(data);
     return true;
 }
 
@@ -3003,19 +3005,21 @@ float DisplayManager::GetPrimaryDisplaySystemDpi() const
     return displayInfo->GetDensityInCurResolution();
 }
 
-sptr<CutoutInfo> DisplayManager::GetCutoutInfoWithRotation(Rotation rotation)
+sptr<CutoutInfo> DisplayManager::GetCutoutInfoWithRotation(Rotation rotation, int32_t width, int32_t height)
 {
-    return pImpl_->GetCutoutInfoWithRotation(rotation);
+    return pImpl_->GetCutoutInfoWithRotation(rotation, width, height);
 }
 
-sptr<CutoutInfo> DisplayManager::Impl::GetCutoutInfoWithRotation(Rotation rotation)
+sptr<CutoutInfo> DisplayManager::Impl::GetCutoutInfoWithRotation(Rotation rotation, int32_t width, int32_t height)
 {
     auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         return nullptr;
     }
+    width = width > 0 ? width : displayInfo->GetWidth();
+    height = height > 0 ? height : displayInfo->GetHeight();
     return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(displayInfo->GetDisplayId(),
-        displayInfo->GetWidth(), displayInfo->GetHeight(), rotation);
+        width, height, rotation);
 }
 
 DMError DisplayManager::GetScreenAreaOfDisplayArea(DisplayId displayId, const DMRect& displayArea,

@@ -1734,6 +1734,72 @@ HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSi
     ssm_->DestroyVirtualScreen(screenId);
     GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode end";
 }
+
+/**
+ * @tc.name: GetScreenCapability01
+ * @tc.desc: GetScreenCapability with invalid screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(SCREEN_ID_INVALID, capability);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetScreenCapability02
+ * @tc.desc: GetScreenCapability with non-existent screenId (screenSession is null)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = 99999;
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(invalidScreenId, capability);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetScreenCapability03
+ * @tc.desc: GetScreenCapability success with virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("GetScreenCapability", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(screenId, capability);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: GetScreenCapability04
+ * @tc.desc: GetScreenCapability with virtual screen, GetEdid fails, colorBitDepth remains default
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("GetScreenCapabilityEdid", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    ScreenCapability capability;
+    capability.colorBitDepth_ = 0;
+    DMError ret = ssm_->GetScreenCapability(screenId, capability);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_EQ(capability.colorBitDepth_, 0);
+    ssm_->DestroyVirtualScreen(screenId);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

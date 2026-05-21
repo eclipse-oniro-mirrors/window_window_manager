@@ -355,6 +355,7 @@ HWTEST_F(SceneSessionManagerStubLifecycleTest, HandleGetVisibilityWindowInfo, Te
     ASSERT_NE(nullptr, stub_);
     MessageParcel data;
     MessageParcel reply;
+    data.WriteBool(true);
 
     int res = stub_->HandleGetVisibilityWindowInfo(data, reply);
     EXPECT_EQ(res, ERR_NONE);

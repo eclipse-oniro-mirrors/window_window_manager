@@ -295,10 +295,12 @@ void WindowExtensionSessionImpl::UpdateDefaultStatusBarColor()
     SetStatusBarColorForExtensionInner(contentColor);
 }
 
-WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason)
+WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason,
+    bool isFromInnerkits)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d Destroy, state:%{public}u, needNotifyServer:%{public}d, "
-        "needClearListener:%{public}d", GetPersistentId(), state_, needNotifyServer, needClearListener);
+        "needClearListener:%{public}d, isFromInnerkits:%{public}d",
+        GetPersistentId(), state_, needNotifyServer, needClearListener, isFromInnerkits);
 
     auto usage = property_->GetUIExtensionUsage();
     if ((usage == UIExtensionUsage::MODAL) || SessionHelper::IsSecureUIExtension(usage)) {
@@ -514,7 +516,7 @@ WMError WindowExtensionSessionImpl::UnregisterHostWindowRectChangeListener(
 }
 
 WMError WindowExtensionSessionImpl::RegisterRectChangeInGlobalDisplayListener(
-    const sptr<IRectChangeInGlobalDisplayListener>& listener)
+    const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize)
 {
     AAFwk::Want dataToSend;
     auto ret = SendExtensionMessageToHost(
@@ -1382,16 +1384,18 @@ WMError WindowExtensionSessionImpl::UnregisterAvoidAreaChangeListener(const sptr
     return UnregisterExtensionAvoidAreaChangeListener(listener);
 }
 
-WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus)
+WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus,
+    int32_t requestId, int32_t scbRequestId)
 {
-    return Show(reason, withAnimation, withFocus, false);
+    return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach)
+WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
 {
     CheckAndAddExtWindowFlags();
     UpdateSystemViewportConfig();
-    WMError ret = WindowSessionImpl::Show(reason, withAnimation, withFocus, waitAttach);
+    WMError ret = WindowSessionImpl::Show(reason, withAnimation, withFocus, waitAttach, requestId, scbRequestId);
     if (ret == WMError::WM_OK) {
         RecordWindowLifecycleChange("show");
     }
@@ -1661,20 +1665,21 @@ WMError WindowExtensionSessionImpl::UpdateExtWindowFlags(const ExtensionWindowFl
     return SingletonContainer::Get<WindowAdapter>().UpdateExtWindowFlags(abilityToken_, flags.bitData, actions.bitData);
 }
 
-Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId)
+Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId, bool useHookedSize)
 {
     Rect rect;
     if (hostWindowId != property_->GetParentId()) {
         TLOGE(WmsLogTag::WMS_UIEXT, "hostWindowId is invalid");
         return rect;
     }
-    SingletonContainer::Get<WindowAdapter>().GetHostWindowRect(hostWindowId, rect);
+    SingletonContainer::Get<WindowAdapter>().GetHostWindowRect(hostWindowId, rect, useHookedSize);
     return rect;
 }
 
-WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
+WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize)
 {
-    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(property_->GetParentId(), globalScaledRect);
+    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(
+        property_->GetParentId(), globalScaledRect, useHookedSize);
 }
 
 WMError WindowExtensionSessionImpl::GetGestureBackEnabled(bool& enable) const
@@ -1981,6 +1986,11 @@ void WindowExtensionSessionImpl::NotifyExtensionTimeout(int32_t errorCode)
 int32_t WindowExtensionSessionImpl::GetRealParentId() const
 {
     return property_->GetRealParentId();
+}
+
+int32_t WindowExtensionSessionImpl::GetHostWindowId() const
+{
+    return property_->GetParentId();
 }
 
 WindowType WindowExtensionSessionImpl::GetParentWindowType() const

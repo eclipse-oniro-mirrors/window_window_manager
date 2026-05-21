@@ -160,7 +160,7 @@ WSError SystemSession::Hide()
     return WSError::WS_OK;
 }
 
-WSError SystemSession::Disconnect(bool isFromClient, const std::string& identityToken)
+WSError SystemSession::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     PostTask([weakThis = wptr(this), isFromClient]() {
         auto session = weakThis.promote();

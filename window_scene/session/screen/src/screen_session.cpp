@@ -1998,6 +1998,12 @@ void ScreenSession::SetScreenCombination(ScreenCombination combination)
         static_cast<int32_t>(combination));
     std::lock_guard<std::mutex> lock(combinationMutex_);
     combination_ = combination;
+    if (combination_ == ScreenCombination::SCREEN_MAIN) {
+        auto ret = RSInterfaces::GetInstance().SetAsMainScreen(GetRSScreenId(), true);
+        if (ret != StatusCode::SUCCESS) {
+            TLOGE(WmsLogTag::DMS, "SetAsMainScreen fail! rsId %{public}" PRIu64"", rsId_);
+        }
+    }
 }
 
 ScreenCombination ScreenSession::GetScreenCombination() const
@@ -3668,5 +3674,13 @@ void ScreenSession::SetBootingConnect(const bool bootingConnect)
 bool ScreenSession::IsBootingConnect() const
 {
     return bootingConnect_.load();
+}
+
+void ScreenSession::GetScreenCapability(ScreenCapability& capability)
+{
+    RSScreenCapability rsCapability = RSInterfaces::GetInstance().GetScreenCapability(rsId_);
+    capability.phyWidth_ = rsCapability.GetPhyWidth();
+    capability.phyHeight_ = rsCapability.GetPhyHeight();
+    capability.interfaceType_ = rsCapability.GetType();
 }
 } // namespace OHOS::Rosen

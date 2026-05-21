@@ -300,6 +300,8 @@ HWTEST_F(SceneSessionImmersiveTest, GetCutoutAvoidArea, TestSize.Level1)
     WSRect overlapRect = { 0, 0, 0, 0 };
     AvoidArea avoidArea;
     sceneSession->GetCutoutAvoidArea(overlapRect, avoidArea);
+    sceneSession->sessionInfo_.isGamePrelaunch_ = true;
+    sceneSession->GetCutoutAvoidArea(overlapRect, avoidArea);
 }
 
 /**

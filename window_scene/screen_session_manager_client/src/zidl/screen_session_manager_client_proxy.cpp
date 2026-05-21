@@ -1286,4 +1286,35 @@ bool ScreenSessionManagerClientProxy::WriteRSEventToParcel(MessageParcel& data, 
 
     return true;
 }
+
+void ScreenSessionManagerClientProxy::SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteUint64(rsScreenId)) {
+        TLOGE(WmsLogTag::DMS, "Write rsScreenId failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_SET_DISPLAY_NODE_RS_SCREEN_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
 } // namespace OHOS::Rosen

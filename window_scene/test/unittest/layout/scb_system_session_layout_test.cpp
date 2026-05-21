@@ -69,7 +69,7 @@ HWTEST_F(SCBSystemSessionLayoutTest, UpdateWindowMode, TestSize.Level1)
     ASSERT_EQ(WSError::WS_OK, scbSystemSession_->SetSystemSceneBlockingFocus(true));
     WSRect rect = { 0, 0, 0, 0 };
     scbSystemSession_->UpdatePointerArea(rect);
-    auto ret = scbSystemSession_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
+    auto ret = scbSystemSession_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED });
     ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, ret);
 }
 

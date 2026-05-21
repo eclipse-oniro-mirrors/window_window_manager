@@ -107,7 +107,7 @@ WSError SessionProxy::Foreground(
     return static_cast<WSError>(ret);
 }
 
-WSError SessionProxy::Background(bool isFromClient, const std::string& identityToken)
+WSError SessionProxy::Background(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -122,6 +122,10 @@ WSError SessionProxy::Background(bool isFromClient, const std::string& identityT
     }
     if (!data.WriteString(identityToken)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write identityToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isFromInnerkits)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write isFromInnerkits failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
@@ -201,7 +205,7 @@ WSError SessionProxy::Hide()
     return static_cast<WSError>(ret);
 }
 
-WSError SessionProxy::Disconnect(bool isFromClient, const std::string& identityToken)
+WSError SessionProxy::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -217,6 +221,10 @@ WSError SessionProxy::Disconnect(bool isFromClient, const std::string& identityT
     }
     if (!data.WriteString(identityToken)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write identityToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isFromInnerkits)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write isFromInnerkits failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();

@@ -851,11 +851,12 @@ bool DisplayManagerLite::TryToCancelScreenOff()
     return SingletonContainer::Get<DisplayManagerAdapterLite>().TryToCancelScreenOff();
 }
 
-bool DisplayManagerLite::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManagerLite::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
-    TLOGD(WmsLogTag::DMS, "[UL_POWER]SetScreenBrightness screenId:%{public}" PRIu64", level:%{public}u,",
-        screenId, level);
-    SingletonContainer::Get<DisplayManagerAdapterLite>().SetScreenBrightness(screenId, level);
+    TLOGD(WmsLogTag::DMS, "[UL_POWER]SetScreenBrightness screenId:%{public}" PRIu64
+        ", level:%{public}u, brightnessPosition: %{public}.4f",
+        brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().SetScreenBrightness(brightnessData);
     return true;
 }
 

@@ -26,6 +26,7 @@
 #include "root_scene.h"
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "window_visibility_info.h"
 #include "process_options.h"
@@ -1715,6 +1716,62 @@ bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType&
         return false;
     }
     dragResizeType = static_cast<DragResizeType>(dragResizeTypeValue);
+    return true;
+}
+
+namespace {
+bool ParseWindowModeFromJs(napi_env env, napi_value value, WindowModeInfo& info)
+{
+    uint32_t modeValue = 0;
+    if (!ConvertFromJsValue(env, value, modeValue)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert windowMode");
+        return false;
+    }
+    if (!WindowHelper::IsValidWindowMode(static_cast<WindowMode>(modeValue))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "invalid windowMode: %{public}u", modeValue);
+        return false;
+    }
+    info.windowMode = static_cast<WindowMode>(modeValue);
+    return true;
+}
+} // namespace
+
+bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo& windowModeInfo)
+{
+    napi_valuetype type = GetType(env, value);
+    if (type == napi_number) {
+        return ParseWindowModeFromJs(env, value, windowModeInfo);
+    }
+    if (type != napi_object) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "type is not number or object, type: %{public}d", static_cast<int32_t>(type));
+        return false;
+    }
+    napi_value windowModeValue = nullptr;
+    napi_get_named_property(env, value, "windowMode", &windowModeValue);
+    if (!ParseWindowModeFromJs(env, windowModeValue, windowModeInfo)) {
+        return false;
+    }
+    napi_value splitStyleValue = nullptr;
+    napi_get_named_property(env, value, "splitStyle", &splitStyleValue);
+    if (GetType(env, splitStyleValue) != napi_undefined) {
+        uint32_t splitStyle = 0;
+        if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
+            if (splitStyle <= static_cast<uint32_t>(SplitStyle::THREE_WINDOW_HORIZONTAL)) {
+                windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+            } else {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "invalid splitStyle: %{public}u", splitStyle);
+                return false;
+            }
+        }
+    }
+    napi_value splitIndexValue = nullptr;
+    napi_get_named_property(env, value, "splitIndex", &splitIndexValue);
+    if (GetType(env, splitIndexValue) != napi_undefined) {
+        int32_t splitIndex = 0;
+        if (ConvertFromJsValue(env, splitIndexValue, splitIndex)) {
+            windowModeInfo.splitIndex = splitIndex;
+        }
+    }
     return true;
 }
 

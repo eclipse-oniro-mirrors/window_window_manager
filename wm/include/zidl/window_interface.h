@@ -60,7 +60,7 @@ public:
 
     virtual WMError UpdateWindowRect(const struct Rect& rect, bool decoStatus, WindowSizeChangeReason reason,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) = 0;
-    virtual WMError UpdateWindowMode(WindowMode mode) = 0;
+    virtual WMError UpdateWindowMode(const WindowModeInfo& windowModeInfo) = 0;
     virtual WMError UpdateWindowModeSupportType(uint32_t windowModeSupportType) = 0;
     virtual WMError UpdateFocusStatus(bool focused) = 0;
     virtual WMError UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) = 0;

@@ -257,14 +257,14 @@ bool DisplayManagerAdapterLite::TryToCancelScreenOff()
     return displayManagerServiceProxy_->TryToCancelScreenOff();
 }
 
-bool DisplayManagerAdapterLite::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManagerAdapterLite::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
     if (IsScreenLessDevice()) {
         return true;
     }
     INIT_PROXY_CHECK_RETURN(false);
 
-    return displayManagerServiceProxy_->SetScreenBrightness(screenId, level);
+    return displayManagerServiceProxy_->SetScreenBrightness(brightnessData);
 }
 
 uint32_t DisplayManagerAdapterLite::GetScreenBrightness(uint64_t screenId)

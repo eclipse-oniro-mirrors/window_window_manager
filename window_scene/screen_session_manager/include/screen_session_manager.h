@@ -97,6 +97,8 @@ public:
     DMError GetScreenColorSpace(ScreenId screenId, GraphicCM_ColorSpaceType& colorSpace) override;
     DMError SetScreenColorSpace(ScreenId screenId, GraphicCM_ColorSpaceType colorSpace) override;
 
+    DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability) override;
+
     void DumpAllScreensInfo(std::string& dumpInfo) override;
     void DumpSpecialScreenInfo(ScreenId id, std::string& dumpInfo) override;
 
@@ -116,7 +118,7 @@ public:
     bool SetScreenPowerByIdDefault(ScreenId screenId, ScreenPowerState state);
     bool DealMultiScreenOff(ScreenId screenId, ScreenPowerStatus status);
     DisplayState GetDisplayState(DisplayId displayId) override;
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level) override;
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData) override;
     uint32_t GetScreenBrightness(uint64_t screenId) override;
     bool SetSpecifiedScreenPower(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason) override;
     void ForceSkipScreenOffAnimation();
@@ -508,8 +510,6 @@ public:
     void SwitchScrollParam(FoldDisplayMode displayMode);
     void OnScreenChange(ScreenId screenId, ScreenEvent screenEvent,
         ScreenChangeReason reason = ScreenChangeReason::DEFAULT, sptr<IRemoteObject> connectToRenderToken = nullptr);
-    void OnScreenChangeInner(ScreenId screenId, ScreenEvent screenEvent,
-        ScreenChangeReason reason = ScreenChangeReason::DEFAULT, sptr<IRemoteObject> connectToRenderToken = nullptr);
     void OnScreenChangeDefault(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason,
         sptr<IRemoteObject> connectToRenderToken = nullptr);
     void OnScreenChangeForPC(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason,
@@ -738,6 +738,22 @@ private:
     void RecoverScreenActiveMode(ScreenId rsScreenId);
     void CheckAndNotifyRefreshRate(uint32_t refreshRate, sptr<ScreenSession> updateScreenSession);
     void CheckAndNotifyChangeMode(const RRect& bounds, sptr<ScreenSession> updateScreenSession);
+    void WaitForDefaultDisplayReady();
+    void ClearAllVirtualScreens();
+    void CreateScreenForBoot();
+    sptr<ScreenSession> CreateDefaultVirtualScreen(ScreenSessionReason reason);
+    int32_t CountRealPhysicalScreens();
+    sptr<ScreenSession> CreateZeroScreenSession(ScreenId screenId, ScreenId rsId,
+        ScreenProperty& property, ScreenSessionReason reason);
+    void OneScreenConnect(sptr<ScreenSession> connectScreenSession,
+        ScreenId screenId, bool& needChangeScreenSession);
+    bool OneScreenDisconnect(ScreenId disconnectedScreenId, ScreenEvent screenEvent);
+    void NotifyInfoChange(sptr<ScreenSession> screenSession);
+    bool HasInternalScreen();
+    bool HasRealScreenConnect();
+    void ExtendScreenChangetoMainScreen(sptr<ScreenSession> screenSession);
+    void DeleteScreen(sptr<ScreenSession> screenSession);
+    void ChangeDisplayNode(ScreenId screenId);
     void ReportScreenModeChangeEvent(RSScreenModeInfo screenmode, uint32_t result);
     void ReportRelativePositionChangeEvent(MultiScreenPositionOptions& mainScreenOptions,
         MultiScreenPositionOptions& secondScreenOption, const std::string& errMsg);
@@ -1263,6 +1279,16 @@ private:
     void ClearScreenPowerStatus(ScreenId rsScreenId);
     void InitScreenActiveModeRectMap();
     void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
+
+    // custom resolution
+    void RegisterSettingCustomResolutionObserver();
+    void HandleCustomResolutionChange();
+    void SetCustomResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height);
+    void RecoveryCustomResolutionEffect();
+    bool HasExternalScreen();
+    void RestoreCustomResolution();
+    uint32_t customResolutionWidth_ = 0;
+    uint32_t customResolutionHeight_ = 0;
 
     std::map<ScreenId, ScreenPowerStatus> screenPowerStatusMap_;
     std::mutex screenPowerStatusMapMutex_;

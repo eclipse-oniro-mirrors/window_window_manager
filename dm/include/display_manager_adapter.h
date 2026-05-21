@@ -226,6 +226,7 @@ public:
     virtual DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
     virtual DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable);
+    virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability);
 private:
     static inline SingletonDelegator<ScreenManagerAdapter> delegator;
 };

@@ -544,6 +544,12 @@ ohos_unittest("ws_screen_session_manager_lite_stub_test") {
 ohos_unittest("ws_screen_session_manager_stub_test") {
   module_out_path = module_out_path
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   sources = [ "screen_session_manager_stub_test.cpp" ]
 
   deps = [

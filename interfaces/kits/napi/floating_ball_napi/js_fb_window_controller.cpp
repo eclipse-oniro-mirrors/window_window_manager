@@ -104,7 +104,8 @@ napi_value JsFbController::OnStartFloatingBall(napi_env env, napi_callback_info 
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_STARTFLOATINGBALL, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-        return NapiThrowInvalidParam(env, "Missing args when start floating ball");
+        return NapiThrowInvalidParam(env,
+            "[fbWindow][startFloatingBall]msg: Missing args when start floating ball");
     }
 
     napi_value config = argv[0];
@@ -112,6 +113,7 @@ napi_value JsFbController::OnStartFloatingBall(napi_env env, napi_callback_info 
         TLOGE(WmsLogTag::WMS_SYSTEM, "config is null");
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_STARTFLOATINGBALL, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
         return NapiThrowInvalidParam(env,
+            "[fbWindow][startFloatingBall]msg: "
             "Failed to convert object to FloatingBallOption or FloatingBallOption is null");
     }
 
@@ -185,7 +187,8 @@ napi_value JsFbController::OnUpdateFloatingBall(napi_env env, napi_callback_info
     if (argc < 1) {
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_UPDATEFLOATINGBALL,
                                          WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-        return NapiThrowInvalidParam(env, "Missing args when update floating ball");
+        return NapiThrowInvalidParam(env,
+            "[fbWindow][updateFloatingBall]msg: Missing args when update floating ball");
     }
 
     napi_value config = argv[0];
@@ -194,6 +197,7 @@ napi_value JsFbController::OnUpdateFloatingBall(napi_env env, napi_callback_info
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_UPDATEFLOATINGBALL,
                                          WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
         return NapiThrowInvalidParam(env,
+            "[fbWindow][updateFloatingBall]msg: "
             "Failed to convert object to FloatingBallOption or FloatingBallOption is null");
     }
 
@@ -343,7 +347,7 @@ napi_value JsFbController::OnStopFloatingBall(napi_env env, napi_callback_info i
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_STOPFLOATINGBALL, WmErrorCode::WM_OK);
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFbController::OnStopFloatingBall failed."));
+                    "[fbWindow][stopFloatingBall]msg: JsFbController::OnStopFloatingBall failed."));
             }
         };
     napi_value result = nullptr;
@@ -365,23 +369,22 @@ napi_value JsFbController::OnRestoreMainWindow(napi_env env, napi_callback_info 
     napi_value argv[1] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW,
-                                         WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-        return NapiThrowInvalidParam(env, "Missing args when restore main window");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
+        return NapiThrowInvalidParam(env, "[fbWindow][restoreMainWindow]msg: Missing args when restore main window");
     }
 
     napi_value wantValue = argv[0];
     if (wantValue == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "want is null");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW,
-                                         WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
+        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
         return NapiThrowInvalidParam(env, "want is null");
     }
 
     AAFwk::Want want;
     if (!AppExecFwk::UnwrapWant(env, wantValue, want)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "unWrap want failed.");
-        return NapiThrowInvalidParam(env, "Incorrect parameter, parameter must be want.");
+        return NapiThrowInvalidParam(env, "[fbWindow][restoreMainWindow]msg: "
+                                          "Incorrect parameter, parameter must be want.");
     }
 
     std::shared_ptr<AAFwk::Want> abilityWant = std::make_shared<AAFwk::Want>(want);
@@ -411,7 +414,7 @@ napi_value JsFbController::OnRestoreMainWindow(napi_env env, napi_callback_info 
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW, WmErrorCode::WM_OK);
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFbController::OnRestoreMainWindow failed."));
+                    "[fbWindow][restoreMainWindow]msg: JsFbController::OnRestoreMainWindow failed."));
             }
         };
     napi_value result = nullptr;
@@ -495,17 +498,17 @@ napi_value JsFbController::OnRegisterCallback(napi_env env, napi_callback_info i
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "OnRegisterCallback Params not match: %{public}zu", argc);
-        return NapiThrowInvalidParam(env, "OnRegisterCallback Params not match");
+        return NapiThrowInvalidParam(env, "[fbWindow][on]msg: OnRegisterCallback Params not match");
     }
     std::string cbType = "";
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to callbackType");
-        return NapiThrowInvalidParam(env, "Failed to convert parameter to callbackType");
+        return NapiThrowInvalidParam(env, "[fbWindow][on]msg: Failed to convert parameter to callbackType");
     }
     napi_value value = argv[1];
     if (value == nullptr || !NapiIsCallable(env, value)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Callback is nullptr or not callable");
-        return NapiThrowInvalidParam(env, "Callback is nullptr or not callable");
+        return NapiThrowInvalidParam(env, "[fbWindow][on]msg: Callback is nullptr or not callable");
     }
     return RegisterListenerWithType(env, cbType, value);
 }
@@ -614,19 +617,19 @@ napi_value JsFbController::OnUnregisterCallback(napi_env env, napi_callback_info
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc == 0) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "JsFbController Params not match: %{public}zu", argc);
-        return NapiThrowInvalidParam(env, "Params num not match");
+        return NapiThrowInvalidParam(env, "[fbWindow][off]msg: Params num not match");
     }
     std::string cbType = "";
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to string");
-        return NapiThrowInvalidParam(env, "Failed to convert parameter to string");
+        return NapiThrowInvalidParam(env, "[fbWindow][off]msg: Failed to convert parameter to string");
     }
     if (argc == 1) {
         return UnRegisterListenerWithType(env, cbType, nullptr);
     }
     napi_value value = argv[1];
     if (value == nullptr || !NapiIsCallable(env, value)) {
-        return NapiThrowInvalidParam(env, "callBack is invalid");
+        return NapiThrowInvalidParam(env, "[fbWindow][off]msg: callBack is invalid");
     }
     return UnRegisterListenerWithType(env, cbType, value);
 }
@@ -773,7 +776,7 @@ napi_value JsFbController::OnGetFloatingBallWindowInfo(napi_env env, napi_callba
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_GETFLOATINGBALLWINDOWINFO, WmErrorCode::WM_OK);
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFbController::OnGetFloatingBallWindowInfo failed."));
+                    "[fbWindow][getFloatingBallWindowInfo]msg: JsFbController::OnGetFloatingBallWindowInfo failed."));
             }
         };
     napi_value result = nullptr;
