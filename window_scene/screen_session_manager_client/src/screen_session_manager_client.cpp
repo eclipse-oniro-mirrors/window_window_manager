@@ -30,6 +30,8 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr int LINE_WIDTH = 30;
+const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
+const std::string IS_PC_MODE_KEY = "persist.sceneboard.ispcmode";
 } // namespace
 
 WM_IMPLEMENT_SINGLE_INSTANCE(ScreenSessionManagerClient)
@@ -1180,6 +1182,23 @@ void ScreenSessionManagerClient::NotifyClientScreenConnect(sptr<ScreenSession>& 
     screenSession->Connect();
 }
 
+void ScreenSessionManagerClient::HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config,
+    sptr<ScreenSession> screenSession)
+{
+    config.displayNode = screenSessionManager_->GetDisplayNode(config.screenId);
+    if (screenSession == nullptr) {
+        screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    } else {
+        screenSession->SetScreenProperty(config.property);
+        screenSession->SetDisplayNode(config.displayNode);
+    }
+    if (config.displayNode != nullptr && IS_SUPPORT_PC_MODE &&
+        system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
+        config.displayNode->SetScreenId(config.rsId_);
+        RSTransactionAdapter::FlushImplicitTransaction({config.displayNode});
+    }
+}
+
 bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
 {
     if (!CheckIfNeedConnectScreen(option)) {
@@ -1202,17 +1221,7 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     config.property = screenSessionManager_->GetScreenProperty(option.screenId_);
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
-    config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
-    if (screenSession == nullptr) {
-        screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
-    } else {
-        screenSession->SetScreenProperty(config.property);
-        screenSession->SetDisplayNode(config.displayNode);
-    }
-    if (config.displayNode != nullptr) {
-        config.displayNode->SetScreenId(option.rsId_);
-        RSTransactionAdapter::FlushImplicitTransaction({config.displayNode});
-    }
+    HandleDisplayNodeWhenScreenConnect(config, screenSession);
     screenSession->SetScreenCombination(screenSessionManager_->GetScreenCombination(option.screenId_));
     screenSession->SetIsExtend(option.isExtend_);
     screenSession->SetIsRealScreen(screenSessionManager_->GetIsRealScreen(option.screenId_));
