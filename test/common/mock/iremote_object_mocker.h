@@ -46,6 +46,11 @@ public:
         return true;
     }
 
+    bool IsObjectDead() const
+    {
+        return false;
+    }
+
     bool CheckObjectLegality() const
     {
         return true;
