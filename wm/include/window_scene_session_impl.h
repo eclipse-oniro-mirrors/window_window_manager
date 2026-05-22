@@ -266,11 +266,11 @@ public:
     void HookDecorButtonStyleInCompatibleMode(uint32_t contentColor);
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
-    void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
-        SelectMode selectMode = SelectMode::INVALID_MODE) override;
+    void SetForceSplitConfigEnable(bool needUpdateViewport = false) override;
     void SendCombinedCompatibleConfigToArkUI();
     WMError NotifyPageEnable(const std::string& action, const std::string& message) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    WMError GetForceSplitEnable(bool& enable) override;
 
     /*
      * Free Multi Window

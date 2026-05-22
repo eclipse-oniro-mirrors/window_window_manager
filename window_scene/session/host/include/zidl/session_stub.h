@@ -91,6 +91,7 @@ private:
     int HandleGetAppForceLandscapeConfig(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyAttachedWindowsLimitsChanged(MessageParcel& data, MessageParcel& reply);
     int HandleGetSelectMode(MessageParcel& data, MessageParcel& reply);
+    int HandleGetForceSplitEnable(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyWindowStatusDidChangeAfterShowWindow(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyParentWindowSizeChange(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyParentWindowStatusChange(MessageParcel& data, MessageParcel& reply);

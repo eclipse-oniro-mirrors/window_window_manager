@@ -2945,6 +2945,38 @@ WMError SessionProxy::GetAppForceLandscapeConfig(AppForceLandscapeConfig& config
     return static_cast<WMError>(ret);
 }
 
+WMError SessionProxy::GetForceSplitEnable(bool& enable)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "WriteInterfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (!remote) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    uint32_t requestCode = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_FORCE_SPLIT_ENABLE);
+    if (remote->SendRequest(requestCode, data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!reply.ReadBool(enable)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read enable failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    // ret is written by the stub side which only writes valid WMError values; no range check needed
+    return static_cast<WMError>(ret);
+}
+
 WMError SessionProxy::GetSelectMode(SelectMode& selectMode)
 {
     MessageParcel data;

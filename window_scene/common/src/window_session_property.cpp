@@ -2811,6 +2811,18 @@ void WindowSessionProperty::SetWidthHookRatio(float ratio)
     hookWindowInfo_.widthHookRatio = ratio;
 }
 
+void WindowSessionProperty::SetSelectMode(SelectMode selectMode)
+{
+    std::lock_guard<std::mutex> lock(selectModeMutex_);
+    selectMode_ = selectMode;
+}
+
+SelectMode WindowSessionProperty::GetSelectMode() const
+{
+    std::lock_guard<std::mutex> lock(selectModeMutex_);
+    return selectMode_;
+}
+
 bool WindowSessionProperty::GetPcAppInpadCompatibleMode() const
 {
     return isPcAppInpadCompatibleMode_;

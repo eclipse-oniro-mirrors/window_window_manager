@@ -141,6 +141,7 @@ public:
     WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
+    WMError GetForceSplitEnable(bool& enable) override;
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
     WMError NotifySnapshotUpdate() override;
     WMError NotifyRemovePrelaunchStartingWindow() override;

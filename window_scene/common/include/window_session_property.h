@@ -411,6 +411,8 @@ public:
     CompatibleStyleMode GetPageCompatibleMode() const;
     void SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig);
     std::vector<std::string> GetCombinedCompatibleConfig() const;
+    void SetSelectMode(SelectMode selectMode);
+    SelectMode GetSelectMode() const;
 
     /*
      * Keyboard
@@ -726,6 +728,8 @@ private:
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
     mutable std::mutex hookWindowInfoMutex_;
     HookWindowInfo hookWindowInfo_;
+    mutable std::mutex selectModeMutex_;
+    SelectMode selectMode_ = SelectMode::INVALID_MODE;
     bool isPcAppInpadCompatibleMode_ = false;
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
