@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "screen_session_manager/include/screen_session_manager.h"
+#include "motion_manager.h"
 #include "display_manager_agent_default.h"
 #include "iconsumer_surface.h"
 #include "connection/screen_cast_connection.h"
@@ -846,27 +847,6 @@ HWTEST_F(ScreenSessionManagerTest, IsScreenRotationLocked, TestSize.Level1)
 }
 
 /**
- * @tc.name: CreateScreenProperty
- * @tc.desc: CreateScreenProperty test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, CreateScreenProperty, Function | SmallTest | Level3)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "testVirtualOption";
-    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
-    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
-    ScreenProperty property;
-    ssm_->isDensityDpiLoad_ = false;
-    ssm_->CreateScreenProperty(screenId, property);
-    ssm_->isDensityDpiLoad_ = true;
-    ASSERT_EQ(0, screenSession->GetScreenProperty().GetRefreshRate());
-    ssm_->DestroyVirtualScreen(screenId);
-}
-
-/**
  * @tc.name: GetInternalWidth
  * @tc.desc: GetInternalWidth test
  * @tc.type: FUNC
@@ -1277,6 +1257,594 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid03, TestSize.Level1)
     ssm_->displayHookMap_.erase(uid);
     ssm_->DestroyVirtualScreen(screenId);
 }
+
+/**
+ * @tc.name: HookDisplayInfoByUid04
+ * @tc.desc: HookDisplayInfo by uid with isFullScreenInForceSplit_ condition
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid04, TestSize.Level1)
+{
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("HookDisplayInfoByUid04", screenId);
+    ASSERT_NE(ssm_->GetScreenSession(screenId), nullptr);
+    sptr<DisplayInfo> displayInfo = ssm_->GetDefaultDisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    uint32_t uid = getuid();
+    
+    uint32_t originalWidth = displayInfo->GetWidth();
+    uint32_t originalHeight = displayInfo->GetHeight();
+    
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    dmHookInfo.isFullScreenInForceSplit_ = true;
+    ssm_->displayHookMap_[uid] = dmHookInfo;
+    EXPECT_NE(ssm_->displayHookMap_.find(uid), ssm_->displayHookMap_.end());
+    displayInfo = ssm_->HookDisplayInfoByUid(displayInfo, screenSession);
+    EXPECT_EQ(displayInfo->GetWidth(), originalWidth);
+    EXPECT_EQ(displayInfo->GetHeight(), originalHeight);
+    ssm_->displayHookMap_.erase(uid);
+    
+    dmHookInfo.isFullScreenInForceSplit_ = false;
+    ssm_->displayHookMap_[uid] = dmHookInfo;
+    displayInfo = ssm_->HookDisplayInfoByUid(displayInfo, screenSession);
+    EXPECT_EQ(displayInfo->GetWidth(), dmHookInfo.width_);
+    EXPECT_EQ(displayInfo->GetHeight(), dmHookInfo.height_);
+    ssm_->displayHookMap_.erase(uid);
+    ssm_->DestroyVirtualScreen(screenId);
 }
+
+/**
+ * @tc.name: OnTransRSEvent
+ * @tc.desc: OnTransRSEvent all branches test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnTransRSEvent, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    ssm_->OnTransRSEvent(nullptr);
+
+    auto unknownData = std::make_shared<RSExposedEventDataBase>();
+    unknownData->type_ = static_cast<RSExposedEventType>(999);
+    ssm_->OnTransRSEvent(unknownData);
+
+    auto validData = std::make_shared<RSExposedEventDataBase>();
+    validData->type_ = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    auto originalProxy = ssm_->clientProxy_;
+    ssm_->clientProxy_ = nullptr;
+    ssm_->OnTransRSEvent(validData);
+
+    ssm_->clientProxy_ = originalProxy;
+    ssm_->OnTransRSEvent(validData);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList001
+ * @tc.desc: The package name in bundleNameList matches the virtual screen.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsCapturedByBundleNameList001, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "TestVirtualScreen";
+    virtualOption.bundleName_ = "com.test.recorder";
+    virtualOption.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+
+    std::vector<std::string> bundleNameList = {"com.test.recorder"};
+    bool ret = ssm_->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, true);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList002
+ * @tc.desc: The package name in bundleNameList does not match the virtual screen.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsCapturedByBundleNameList002, TestSize.Level1)
+{
+    // 1. 创建虚拟屏，设置 bundleName
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "TestVirtualScreen";
+    virtualOption.bundleName_ = "com.test.recorder";
+    virtualOption.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+
+    std::vector<std::string> bundleNameList = {"com.other.app"};
+    bool ret = ssm_->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, false);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: IsCapturedByBundleNameList003
+ * @tc.desc: The bundleNameList contains multiple package names.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, IsCapturedByBundleNameList003, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> agent = new DisplayManagerAgentDefault();
+    VirtualScreenOption option;
+    option.name_ = "VirtualScreen";
+    option.bundleName_ = "com.target.app";
+    option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    ScreenId screenId = ssm_->CreateVirtualScreen(option, agent->AsObject());
+
+    std::vector<std::string> bundleNameList = {"com.app1", "com.target.app", "com.app3"};
+    bool ret = ssm_->IsCapturedByBundleNameList(bundleNameList);
+    EXPECT_EQ(ret, true);
+    
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: SetOptionConfig_BundleName001
+ * @tc.desc: caller is NATIVE_SCREEN_MANAGEG
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName001, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "testVirtualScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    
+    VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
+    option.bundleName_ = "com.test.native";
+    
+    ssm_->SetOptionConfig(screenId, option);
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_EQ(screenSession->GetBundleName(), "com.test.native");
+    
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: SetOptionConfig_BundleName002
+ * @tc.desc: caller is JS_DISPLAY_MANAGER
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName002, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "testVirtualScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    
+    VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::JS_DISPLAY_MANAGER;
+    option.bundleName_ = "";
+    
+    ssm_->SetOptionConfig(screenId, option);
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_TRUE(g_logMsg.find("bundleInfo null") != std::string::npos);
+    
+    LOG_SetCallback(nullptr);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: SetOptionConfig_BundleName003
+ * @tc.desc: caller is UNKNOWN
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOptionConfig_BundleName003, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "testVirtualScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+
+    VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::UNKNOWN;
+    option.bundleName_ = "";
+
+    ssm_->SetOptionConfig(screenId, option);
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    EXPECT_TRUE(g_logMsg.find("bundleInfo null") != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+
+/**
+ * @tc.name: SetOrientationWithOptions01
+ * @tc.desc: SetOrientation with options permission denied
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_NE(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: SubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: UnsubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions02
+ * @tc.desc: SetOrientation with options invalid orientation
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    Orientation orientation = static_cast<Orientation>(100);
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions03
+ * @tc.desc: SetOrientation with options screenSession nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 99999;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions04
+ * @tc.desc: SetOrientation overload1 call
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen3", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    Orientation orientation = Orientation::VERTICAL;
+    bool isFromNapi = true;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions05
+ * @tc.desc: SetOrientation overload2 call
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen4", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    Orientation orientation = Orientation::REVERSE_VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = true;
+    bool isFromNapi = false;
+    DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions06
+ * @tc.desc: SetOrientation with different orientation values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("testScreen5", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    std::vector<Orientation> orientations = {
+        Orientation::UNSPECIFIED, Orientation::VERTICAL,
+        Orientation::HORIZONTAL, Orientation::REVERSE_VERTICAL, Orientation::REVERSE_HORIZONTAL
+    };
+
+    for (auto orientation : orientations) {
+        DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
+        EXPECT_EQ(ret, DMError::DM_OK);
+    }
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangeWithOptions01
+ * @tc.desc: OnScreenOrientationChangeWithOptions - clientProxy is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto originalProxy = ssm_->clientProxy_;
+    ssm_->clientProxy_ = nullptr;
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    ssm_->OnScreenOrientationChangeWithOptions(screenOrientation, options, screenId);
+    EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") != std::string::npos);
+
+    ssm_->clientProxy_ = originalProxy;
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangeWithOptions02
+ * @tc.desc: OnScreenOrientationChangeWithOptions - normal case with valid clientProxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 0;
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    ssm_->OnScreenOrientationChangeWithOptions(screenOrientation, options, screenId);
+    EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") == std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_ValidScale
+ * @tc.desc: Verify SetScreenSessionScale sets cast scale properties with valid scale values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_ValidScale, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleValid", screenId);
+    float scaleX = 1920.0f / 1080.0f;
+    float scaleY = 1080.0f / 720.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleZero
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleZero, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleZero", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 0.0f, 1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleNegative
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is negative
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleNegative, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNeg", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 1.0f, -1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_WithDisplayNode
+ * @tc.desc: Verify SetScreenSessionScale applies scale on displayNode when it is not null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNode", screenId);
+    // Create displayNode first so GetDisplayNode returns non-null
+    RSDisplayNodeConfig rsConfig;
+    rsConfig.screenId = screenId;
+    rsConfig.isMirrored = false;
+    screenSession->CreateDisplayNode(rsConfig);
+    ASSERT_NE(screenSession->GetDisplayNode(), nullptr);
+    float scaleX = 1.5f;
+    float scaleY = 2.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode end";
+}
+
+/**
+ * @tc.name: GetScreenCapability01
+ * @tc.desc: GetScreenCapability with invalid screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(SCREEN_ID_INVALID, capability);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetScreenCapability02
+ * @tc.desc: GetScreenCapability with non-existent screenId (screenSession is null)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = 99999;
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(invalidScreenId, capability);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetScreenCapability03
+ * @tc.desc: GetScreenCapability success with virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("GetScreenCapability", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(screenId, capability);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: GetScreenCapability04
+ * @tc.desc: GetScreenCapability with virtual screen, GetEdid fails, colorBitDepth remains default
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("GetScreenCapabilityEdid", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    ScreenCapability capability;
+    capability.colorBitDepth_ = 0;
+    DMError ret = ssm_->GetScreenCapability(screenId, capability);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_EQ(capability.colorBitDepth_, 0);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+} // namespace
 } // namespace Rosen
 } // namespace OHOS

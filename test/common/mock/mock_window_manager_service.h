@@ -55,7 +55,8 @@ public:
     MOCK_METHOD(WMError, SetWindowGravity, (uint32_t windowId, WindowGravity gravity, uint32_t percent), (override));
     MOCK_METHOD(WMError, GetAccessibilityWindowInfo, (std::vector<sptr<AccessibilityWindowInfo>>& infos), (override));
     MOCK_METHOD(WMError, GetUnreliableWindowInfo, (int32_t, std::vector<sptr<UnreliableWindowInfo>>&), (override));
-    MOCK_METHOD(WMError, GetVisibilityWindowInfo, (std::vector<sptr<WindowVisibilityInfo>>& infos), (override));
+    MOCK_METHOD(WMError, GetVisibilityWindowInfo,
+        (std::vector<sptr<WindowVisibilityInfo>>& infos, bool useHookedSize), (override));
     MOCK_METHOD(WMError, SetWindowAnimationController, (const sptr<RSIWindowAnimationController>&), (override));
     MOCK_METHOD(WMError, GetSystemConfig, (SystemConfig& systemConfig), (override));
     MOCK_METHOD(WMError, NotifyWindowTransition, (sptr<WindowTransitionInfo>&, sptr<WindowTransitionInfo>&,
@@ -91,6 +92,7 @@ public:
         const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
     MOCK_METHOD(WMError, UnregisterWindowPropertyChangeAgent, (WindowInfoKey, uint32_t,
         const sptr<IWindowManagerAgent>&), (override));
+    MOCK_METHOD(WSError, MoveMainWindowToTargetDisplay, (DisplayId displayId, int32_t windowId), (override));
 };
 
 /**

@@ -211,6 +211,19 @@ HWTEST_F(SessionPermissionTest, IsFoundationCall, TestSize.Level1)
     ASSERT_EQ(false, result);
 }
 
+/**
+ * @tc.name: PermissionConstantsTest
+ * @tc.desc: test permission constants
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionPermissionTest, PermissionConstantsTest, TestSize.Level1)
+{
+    ASSERT_STREQ(PermissionConstants::PERMISSION_FLOAT_VIEW, "ohos.permission.FLOAT_VIEW");
+    ASSERT_STREQ(PermissionConstants::PERMISSION_FLOATING_BALL, "ohos.permission.USE_FLOAT_BALL");
+    ASSERT_STREQ(PermissionConstants::PERMISSION_FLOATING_BALL_AUTO_RESTORE,
+        "ohos.permission.AUTO_RESTORE_MAIN_WINDOW");
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

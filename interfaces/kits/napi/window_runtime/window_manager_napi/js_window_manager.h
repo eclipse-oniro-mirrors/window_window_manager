@@ -71,6 +71,7 @@ public:
     static napi_value GetMainWindowSnapshot(napi_env env, napi_callback_info info);
     static napi_value SetSpecificSystemWindowZIndex(napi_env env, napi_callback_info info);
     static napi_value CreateSubWindowAndBindParent(napi_env env, napi_callback_info info);
+    static napi_value MoveMainWindowToTargetDisplay(napi_env env, napi_callback_info info);
 
 private:
     static napi_value OnCreate(napi_env env, napi_callback_info info);
@@ -106,6 +107,8 @@ private:
     static napi_value OnCreateUIEffectController(napi_env env, napi_callback_info info);
     static napi_value OnSetSpecificSystemWindowZIndex(napi_env env, napi_callback_info info);
     napi_value OnCreateSubWindowAndBindParent(napi_env env, napi_callback_info info);
+    static napi_value OnMoveMainWindowToTargetDisplay(napi_env env, napi_callback_info info);
+    static bool ParseWindowInfoOptions(napi_env env, napi_value jsObject, WindowInfoOptions& option);
     static bool ParseRequiredConfigOption(
         napi_env env, napi_value jsObject, WindowOption& option);
     static bool ParseConfigOption(

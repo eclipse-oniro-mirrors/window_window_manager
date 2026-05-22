@@ -72,6 +72,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     "hitrace:hitrace_meter",
     "image_framework:image",
     "image_framework:image_native",
+    "json:nlohmann_json_static",
     "input:libmmi-client",
     "ipc:ipc_single",
     "libxml2:libxml2",

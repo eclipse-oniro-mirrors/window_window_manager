@@ -22,6 +22,8 @@
 #include "window_manager_hilog.h"
 #include "scene_board_judgement.h"
 #include "fold_screen_state_internel.h"
+#include "rs_event_data_manager.h"
+#include "motion_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -87,6 +89,30 @@ public:
     void SetUp() override;
     void TearDown() override;
     ScreenSessionManagerClient* screenSessionManagerClient_;
+};
+
+class MockTransRSEventListener : public ITransRSEventListener {
+public:
+    MockTransRSEventListener() : eventReceived_(false) {}
+    void OnTransRSEvent(const sptr<RSEventDataBase>& param) override
+    {
+        eventReceived_ = true;
+        eventData_ = param;
+    }
+    bool eventReceived_;
+    sptr<RSEventDataBase> eventData_;
+};
+
+class MockScreenClosedStateListener : public IScreenClosedStateListener {
+public:
+    void OnScreenClosedStateChange(const ScreenClosedState screenClosedState) override
+    {
+        WLOGFI("OnScreenClosedStateChange has triggered, state: %{public}u", static_cast<uint32_t>(screenClosedState));
+        lastScreenClosedState_ = screenClosedState;
+        callCount_++;
+    }
+    ScreenClosedState lastScreenClosedState_ = ScreenClosedState::UNKNOWN;
+    int callCount_ = 0;
 };
 
 void ScreenSessionManagerClientTest::SetUp()
@@ -648,30 +674,6 @@ HWTEST_F(ScreenSessionManagerClientTest, OnPropertyChanged, TestSize.Level1)
 }
 
 /**
- * @tc.name: OnPropertyChanged03
- * @tc.desc: OnPropertyChanged03 test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, OnPropertyChanged03, TestSize.Level1)
-{
-    ScreenId screenId = 0;
-    ScreenProperty property;
-
-    ScreenPropertyChangeReason reason = ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE;
-    sptr<ScreenSession> screenSession = new ScreenSession(0, property, 0);
-    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
-    property.SetMirrorWidth(100);
-    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
-    screenSessionManagerClient_->currentstate_ = SuperFoldStatus::KEYBOARD;
-    screenSessionManagerClient_->OnPropertyChanged(screenId, property, reason);
-    EXPECT_NE(screenSession->GetScreenProperty().GetMirrorWidth(), 100);
-
-    screenSessionManagerClient_->currentstate_ = SuperFoldStatus::UNKNOWN;
-    screenSessionManagerClient_->OnPropertyChanged(screenId, property, reason);
-    EXPECT_EQ(screenSession->GetScreenProperty().GetMirrorWidth(), 100);
-}
-
-/**
  * @tc.name: OnFoldPropertyChanged
  * @tc.desc: OnFoldPropertyChanged test
  * @tc.type: FUNC
@@ -738,6 +740,36 @@ HWTEST_F(ScreenSessionManagerClientTest, OnSensorRotationChanged02, TestSize.Lev
 
     ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
     screenSessionManagerClient_->OnSensorRotationChanged(screenId, sensorRotation, false);
+}
+
+/**
+ * @tc.name: OnSmartSensorRotationChanged01
+ * @tc.desc: OnSmartSensorRotationChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged01, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    float sensorRotation = 90.0f;
+    bool isSwitchUser = false;
+
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
+}
+
+/**
+ * @tc.name: OnSmartSensorRotationChanged02
+ * @tc.desc: OnSmartSensorRotationChanged test with isSwitchUser true
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged02, TestSize.Level1)
+{
+    ScreenId screenId = 1;
+    float sensorRotation = 180.0f;
+    bool isSwitchUser = true;
+
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
 }
 
 /**
@@ -2565,6 +2597,475 @@ HWTEST_F(ScreenSessionManagerClientTest, SetPhysicalVisibleMaskToDisplayNode04, 
     EXPECT_TRUE(logMsg.find("screen width") != std::string::npos);
     logMsg.clear();
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnPropertyChanged03
+ * @tc.desc: OnPropertyChanged03 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnPropertyChanged03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 0;
+    ScreenProperty property1, property2;
+    ScreenPropertyChangeReason reason = ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE;
+    sptr<ScreenSession> screenSession = new ScreenSession(0, property1, 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+
+    RRect bounds1, bounds2, bounds3;
+    bounds1.rect_.left_ = 0;
+    bounds1.rect_.top_ = 0;
+    bounds1.rect_.width_ = 100;
+    bounds1.rect_.height_ = 200;
+
+    bounds2.rect_.left_ = 0;
+    bounds2.rect_.top_ = 0;
+    bounds2.rect_.width_ = 200;
+    bounds2.rect_.height_ = 100;
+
+    bounds3.rect_.left_ = 0;
+    bounds3.rect_.top_ = 0;
+    bounds3.rect_.width_ = 100;
+    bounds3.rect_.height_ = 100;
+
+    property2.SetBounds(bounds2);
+    screenSessionManagerClient_->OnPropertyChanged(screenId, property2, reason);
+    EXPECT_TRUE(logMsg.find("bounds change") != std::string::npos);
+    logMsg.clear();
+
+    property1.SetBounds(bounds1);
+    property2.SetBounds(bounds3);
+    screenSession->SetScreenProperty(property2);
+    screenSession->SetPropertyNeedNotified(property1);
+    screenSessionManagerClient_->OnPropertyChanged(screenId, property2, reason);
+    EXPECT_TRUE(logMsg.find("bounds change") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+    screenSessionManagerClient_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: OnPropertyChanged04
+ * @tc.desc: OnPropertyChanged04 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnPropertyChanged04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 0;
+    ScreenProperty property1, property2;
+    ScreenPropertyChangeReason reason = ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE;
+    sptr<ScreenSession> screenSession = new ScreenSession(0, property1, 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+
+    RRect bounds1, bounds2;
+    bounds1.rect_.left_ = 0;
+    bounds1.rect_.top_ = 0;
+    bounds1.rect_.width_ = 100;
+    bounds1.rect_.height_ = 200;
+
+    bounds2.rect_.left_ = 0;
+    bounds2.rect_.top_ = 0;
+    bounds2.rect_.width_ = 200;
+    bounds2.rect_.height_ = 100;
+
+    property1.SetBounds(bounds1);
+    property2.SetBounds(bounds2);
+    screenSession->SetScreenProperty(property1);
+    screenSession->SetPropertyNeedNotified(property1);
+    screenSessionManagerClient_->OnPropertyChanged(screenId, property2, reason);
+    EXPECT_TRUE(logMsg.find("bounds not change") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+    screenSessionManagerClient_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: OnPropertyChanged05
+ * @tc.desc: OnPropertyChanged05 test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnPropertyChanged05, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 0;
+    ScreenProperty property1, property2;
+    ScreenPropertyChangeReason reason = ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE;
+    sptr<ScreenSession> screenSession = new ScreenSession(0, property1, 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+
+    RRect bounds1, bounds2;
+    bounds1.rect_.left_ = 0;
+    bounds1.rect_.top_ = 0;
+    bounds1.rect_.width_ = 100;
+    bounds1.rect_.height_ = 200;
+
+    bounds2.rect_.left_ = 0;
+    bounds2.rect_.top_ = 1;
+    bounds2.rect_.width_ = 200;
+    bounds2.rect_.height_ = 100;
+
+    property1.SetBounds(bounds1);
+    property2.SetBounds(bounds2);
+    screenSession->SetScreenProperty(property1);
+    screenSessionManagerClient_->OnPropertyChanged(screenId, property2, reason);
+    EXPECT_TRUE(logMsg.find("bounds change") != std::string::npos);
+    logMsg.clear();
+
+    bounds2.rect_.left_ = 1;
+    bounds2.rect_.top_ = 2;
+    property1.SetBounds(bounds1);
+    property2.SetBounds(bounds2);
+    screenSession->SetScreenProperty(property1);
+    screenSessionManagerClient_->OnPropertyChanged(screenId, property2, reason);
+    EXPECT_TRUE(logMsg.find("bounds change") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+    screenSessionManagerClient_->screenSessionMap_.erase(screenId);
+}
+
+/**
+ * @tc.name: RegisterTransRSEventListener01
+ * @tc.desc: RegisterTransRSEventListener with null listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterTransRSEventListener01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<ITransRSEventListener> listener = nullptr;
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("Failed to register transRSEvent listener, listener is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RegisterTransRSEventListener02
+ * @tc.desc: RegisterTransRSEventListener with duplicate listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterTransRSEventListener02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("Listener already exists") != std::string::npos);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener01
+ * @tc.desc: UnRegisterTransRSEventListener with null listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<ITransRSEventListener> listener = nullptr;
+
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("listener is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener02
+ * @tc.desc: UnRegisterTransRSEventListener successfully
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener02, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(listener->eventReceived_ == false);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener03
+ * @tc.desc: UnRegisterTransRSEventListener with listener not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("No listeners for type") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterTransRSEventListener04
+ * @tc.desc: UnRegisterTransRSEventListener removes empty listener list
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterTransRSEventListener04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+    EXPECT_TRUE(logMsg.find("Remove empty listener list") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnTransRSEvent01
+ * @tc.desc: OnTransRSEvent with null data
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<RSEventDataBase> data = nullptr;
+
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(logMsg.find("data is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnTransRSEvent02
+ * @tc.desc: OnTransRSEvent with no listeners for event type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<RSEventDataBase> data = new RSExtScreenUnsupportEventData();
+
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(logMsg.find("No listeners for type") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnTransRSEvent03
+ * @tc.desc: OnTransRSEvent successfully dispatches to listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent03, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener = new MockTransRSEventListener();
+    sptr<RSEventDataBase> data = new RSExtScreenUnsupportEventData();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener);
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(listener->eventReceived_);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener);
+}
+
+/**
+ * @tc.name: OnTransRSEvent04
+ * @tc.desc: OnTransRSEvent dispatches to multiple listeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnTransRSEvent04, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<MockTransRSEventListener> listener1 = new MockTransRSEventListener();
+    sptr<MockTransRSEventListener> listener2 = new MockTransRSEventListener();
+    sptr<RSEventDataBase> data = new RSExtScreenUnsupportEventData();
+
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener1);
+    screenSessionManagerClient_->RegisterTransRSEventListener(type, listener2);
+    screenSessionManagerClient_->OnTransRSEvent(data);
+    EXPECT_TRUE(listener1->eventReceived_);
+    EXPECT_TRUE(listener2->eventReceived_);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener1);
+    screenSessionManagerClient_->UnRegisterTransRSEventListener(type, listener2);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions01
+ * @tc.desc: OnScreenOrientationChangedWithOptions with screenSession nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenOrientationChangedWithOptions01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 99999;
+    float screenOrientation = 0.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    screenSessionManagerClient_->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("screenSession is null") != std::string::npos);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenOrientationChangedWithOptions02
+ * @tc.desc: OnScreenOrientationChangedWithOptions with screenSession exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenOrientationChangedWithOptions02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ScreenId screenId = 0;
+    sptr<ScreenSession> screenSession = new ScreenSession(screenId, ScreenProperty(), 0);
+    screenSessionManagerClient_->screenSessionMap_.emplace(screenId, screenSession);
+
+    float screenOrientation = 90.0f;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+
+    screenSessionManagerClient_->OnScreenOrientationChangedWithOptions(screenId, screenOrientation, options);
+    EXPECT_TRUE(logMsg.find("screenSession is null") == std::string::npos);
+
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RegisterScreenClosedStateChangeListener01
+ * @tc.desc: RegisterScreenClosedStateChangeListener test with null listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterScreenClosedStateChangeListener01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    IScreenClosedStateListener* listener = nullptr;
+    screenSessionManagerClient_->RegisterScreenClosedStateChangeListener(listener);
+    EXPECT_TRUE(logMsg.find("Failed to register screen closed state listener, listener is null") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RegisterScreenClosedStateChangeListener02
+ * @tc.desc: RegisterScreenClosedStateChangeListener test with valid listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, RegisterScreenClosedStateChangeListener02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockScreenClosedStateListener* listener = new MockScreenClosedStateListener();
+    screenSessionManagerClient_->RegisterScreenClosedStateChangeListener(listener);
+    EXPECT_TRUE(logMsg.find("Success to register screen closed state listener") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnScreenClosedStateChange
+ * @tc.desc: OnScreenClosedStateChange test with CLOSE state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChange, TestSize.Level1)
+{
+    MockScreenClosedStateListener* listener = new MockScreenClosedStateListener();
+    screenSessionManagerClient_->RegisterScreenClosedStateChangeListener(listener);
+
+    ScreenClosedState state = ScreenClosedState::CLOSE;
+    screenSessionManagerClient_->OnScreenClosedStateChange(state);
+    EXPECT_EQ(listener->lastScreenClosedState_, state);
+    EXPECT_GT(listener->callCount_, 0);
+}
+
+/**
+ * @tc.name: OnScreenClosedStateChangeWithoutListener
+ * @tc.desc: OnScreenClosedStateChange test without listener registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChangeWithoutListener, TestSize.Level1)
+{
+    screenSessionManagerClient_->screenClosedStateListener_ = nullptr;
+    ScreenClosedState state = ScreenClosedState::CLOSE;
+    screenSessionManagerClient_->OnScreenClosedStateChange(state);
+    EXPECT_EQ(screenSessionManagerClient_->screenClosedState_, state);
+}
+
+/*
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: SubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: UnsubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
 }
 } // namespace Rosen
 } // namespace OHOS

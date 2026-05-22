@@ -26,11 +26,13 @@ public:
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void PresentFocusIfPointDown() override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     WSError UpdateFocus(bool isFocused) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError SetSystemSceneBlockingFocus(bool blocking) override;
     void BindKeyboardSession(sptr<SceneSession> session) override;
     sptr<SceneSession> GetKeyboardSession() const override;

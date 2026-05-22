@@ -69,6 +69,39 @@ HWTEST_F(SessionStubRotationTest, HandleUpdateRotationChangeListenerRegistered, 
     result = session_->HandleUpdateRotationChangeListenerRegistered(data, reply);
     ASSERT_EQ(result, ERR_INVALID_DATA);
 }
+
+/**
+ * @tc.name: HandleSetPreferredOrientationWithResult01
+ * @tc.desc: 测试正常流程
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubRotationTest, HandleSetPreferredOrientationWithResult01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStubRotationTest: HandleSetPreferredOrientationWithResult01 start";
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteUint32(static_cast<uint32_t>(Orientation::VERTICAL));
+    data.WriteUint32(123);
+    data.WriteBool(true);
+    auto result = session_->HandleSetPreferredOrientationWithResult(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+    GTEST_LOG_(INFO) << "SessionStubRotationTest: HandleSetPreferredOrientationWithResult01 end";
+}
+
+/**
+ * @tc.name: HandleSetPreferredOrientationWithResult02
+ * @tc.desc: 测试 ReadUint32 失败
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubRotationTest, HandleSetPreferredOrientationWithResult02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStubRotationTest: HandleSetPreferredOrientationWithResult02 start";
+    MessageParcel data;
+    MessageParcel reply;
+    auto result = session_->HandleSetPreferredOrientationWithResult(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_DATA);
+    GTEST_LOG_(INFO) << "SessionStubRotationTest: HandleSetPreferredOrientationWithResult02 end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -210,7 +210,7 @@ void HidumpController::DumpLayoutParamList(std::ostringstream& oss)
         << "rotation reason zOrder aspectRatio floatingScale isDirty dragEnabled raiseEnabled"
         << std::endl
         << "requestedOrientation maximizeMode lastVpr isDecorEnable isLayoutFullScreen "
-        << "isDisplayStatusTemp customDecorHeight isTempShowWhenLocked"
+        << "customDecorHeight isTempShowWhenLocked"
         << std::endl;
 }
 
@@ -236,7 +236,6 @@ void HidumpController::DumpLayoutParam(
         << std::setprecision(precision) << property->GetLastLimitsVpr() << "|"
         << property->IsDecorEnable() << "|"
         << property->IsLayoutFullScreen() << "|"
-        << session->GetIsDisplayStatusBarTemporarily() << "|"
         << session->GetCustomDecorHeight() << "|"
         << session->IsTemporarilyShowWhenLocked() << "|"
         << std::endl;

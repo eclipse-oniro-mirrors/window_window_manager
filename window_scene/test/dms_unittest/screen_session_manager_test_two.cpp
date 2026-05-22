@@ -2862,7 +2862,9 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectChange, TestSize.Level1
         ret = ssm_->HandleResolutionEffectChange();
         EXPECT_EQ(!ret, ssm_->GetSuperFoldStatus() != SuperFoldStatus::EXPANDED);
     } else if (!IS_SUPPORT_PC_MODE) {
-        EXPECT_TRUE(ret);
+        bool effectFlag = false;
+        ScreenSettingHelper::GetResolutionEffect(effectFlag, externalSession->GetSerialNumber());
+        EXPECT_EQ(ret, effectFlag);
     }
 
     ssm_->screenSessionMap_.erase(51);
@@ -2994,8 +2996,6 @@ HWTEST_F(ScreenSessionManagerTest, RecoveryResolutionEffect, TestSize.Level1)
 HWTEST_F(ScreenSessionManagerTest, SetInternalScreenResolutionEffect001, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
 
     sptr<ScreenSession> screenSession = new ScreenSession(51, ScreenProperty(), 0);
     ASSERT_NE(nullptr, screenSession);
@@ -3010,11 +3010,6 @@ HWTEST_F(ScreenSessionManagerTest, SetInternalScreenResolutionEffect001, TestSiz
     ssm_->SetInternalScreenResolutionEffect(screenSession, targetRect2);
     screenProperty = screenSession->GetScreenProperty();
     EXPECT_EQ(screenProperty.GetInputOffsetY(), 20);
-
-    DMRect targetRect3 = {0, 0, 0, 0};
-    ssm_->SetInternalScreenResolutionEffect(screenSession, targetRect3);
-    EXPECT_TRUE(g_errLog.find("bounds not change") != std::string::npos);
-    g_errLog.clear();
 }
 
 /**
@@ -3824,6 +3819,332 @@ HWTEST_F(ScreenSessionManagerTest, DoSetScreenPowerStatusTest, TestSize.Level1)
     ssm_->SetRSScreenPowerStatusExt(SCREEN_ID_FULL, ScreenPowerStatus::POWER_STATUS_OFF,
         ScreenPowerOnReason::SAME_DISPLAY_TO_SINGLE_DISPLAY);
     EXPECT_TRUE(g_errLog.find("set the power status to OFF_ADVANCED first") != std::string::npos);
+}
+
+/**
+ * @tc.name: RegisterSettingCustomResolutionObserver
+ * @tc.desc: RegisterSettingCustomResolutionObserver
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RegisterSettingCustomResolutionObserver, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->RegisterSettingCustomResolutionObserver();
+}
+
+/**
+ * @tc.name: HandleCustomResolutionChange
+ * @tc.desc: HandleCustomResolutionChange normal flow
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleCustomResolutionChange, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->HandleCustomResolutionChange();
+
+    ssm_->screenSessionMap_.erase(51);
+}
+
+/**
+ * @tc.name: HandleCustomResolutionChange02
+ * @tc.desc: HandleCustomResolutionChange with internalSession null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleCustomResolutionChange02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ssm_->HandleCustomResolutionChange();
+
+    ssm_->screenSessionMap_.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: HandleCustomResolutionChange03
+ * @tc.desc: HandleCustomResolutionChange with external screen present
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleCustomResolutionChange03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    sptr<ScreenSession> screenSession2 = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession2);
+    screenSession2->SetIsCurrentInUse(true);
+    screenSession2->SetScreenType(ScreenType::REAL);
+    screenSession2->isInternal_ = false;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+    ssm_->screenSessionMap_[52] = screenSession2;
+
+    ssm_->HandleCustomResolutionChange();
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: HandleCustomResolutionChange04
+ * @tc.desc: HandleCustomResolutionChange04 normal flow verification
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleCustomResolutionChange04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->customResolutionWidth_ = 1920;
+    ssm_->customResolutionHeight_ = 1080;
+    ssm_->HandleCustomResolutionChange();
+
+    ssm_->screenSessionMap_.erase(51);
+}
+
+/**
+ * @tc.name: SetCustomResolutionEffect
+ * @tc.desc: SetCustomResolutionEffect normal application
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetCustomResolutionEffect, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->SetCustomResolutionEffect(51, 1920, 1080);
+
+    ssm_->screenSessionMap_.erase(51);
+}
+
+/**
+ * @tc.name: SetCustomResolutionEffect02
+ * @tc.desc: SetCustomResolutionEffect with screenId mismatch
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetCustomResolutionEffect02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->SetCustomResolutionEffect(99, 1920, 1080);
+
+    ssm_->screenSessionMap_.erase(51);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetCustomResolutionEffect03
+ * @tc.desc: SetCustomResolutionEffect exceeds real resolution
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetCustomResolutionEffect03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->SetCustomResolutionEffect(51, 99999, 99999);
+
+    ssm_->screenSessionMap_.erase(51);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RecoveryCustomResolutionEffect
+ * @tc.desc: RecoveryCustomResolutionEffect normal recovery
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RecoveryCustomResolutionEffect, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->RecoveryCustomResolutionEffect();
+
+    ssm_->screenSessionMap_.erase(51);
+}
+
+/**
+ * @tc.name: RecoveryCustomResolutionEffect02
+ * @tc.desc: RecoveryCustomResolutionEffect with internalSession null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RecoveryCustomResolutionEffect02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ssm_->screenSessionMap_.clear();
+    ssm_->RecoveryCustomResolutionEffect();
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: HasExternalScreen
+ * @tc.desc: HasExternalScreen when no external screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HasExternalScreen, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    ssm_->screenSessionMap_.clear();
+
+    bool result = ssm_->HasExternalScreen();
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: HasExternalScreen02
+ * @tc.desc: HasExternalScreen with wired external screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HasExternalScreen02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    sptr<ScreenSession> screenSession2 = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession2);
+    screenSession2->SetIsCurrentInUse(true);
+    screenSession2->SetScreenType(ScreenType::REAL);
+    screenSession2->isInternal_ = false;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+    ssm_->screenSessionMap_[52] = screenSession2;
+
+    bool result = ssm_->HasExternalScreen();
+    EXPECT_TRUE(result);
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+}
+
+/**
+ * @tc.name: RestoreCustomResolution
+ * @tc.desc: RestoreCustomResolution normal restore
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RestoreCustomResolution, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+
+    ssm_->RestoreCustomResolution();
+
+    ssm_->screenSessionMap_.erase(51);
+}
+
+/**
+ * @tc.name: RestoreCustomResolution02
+ * @tc.desc: RestoreCustomResolution with internalSession null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RestoreCustomResolution02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    ssm_->screenSessionMap_.clear();
+    ssm_->RestoreCustomResolution();
+}
+
+/**
+ * @tc.name: HandleResolutionEffectAfterSwitchUser02
+ * @tc.desc: HandleResolutionEffectAfterSwitchUser with custom resolution
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectAfterSwitchUser02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<ScreenSession> screenSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession);
+    screenSession->SetIsCurrentInUse(true);
+    screenSession->SetScreenType(ScreenType::REAL);
+    screenSession->isInternal_ = true;
+
+    ssm_->screenSessionMap_[51] = screenSession;
+    ssm_->HandleResolutionEffectAfterSwitchUser();
+
+    ssm_->screenSessionMap_.erase(51);
+    LOG_SetCallback(nullptr);
 }
 }
 }

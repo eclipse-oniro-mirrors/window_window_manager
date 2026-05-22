@@ -42,7 +42,11 @@ public:
     void RegisterHallCallback();
     void RegisterApplicationStateObserver();
     void UnRegisterPostureCallback();
+    bool UnRegisterPostureCallbackInner();
+    void UnRegisterPostureCallbackForTest();
     void UnRegisterHallCallback();
+    bool UnRegisterHallCallbackInner();
+    void UnRegisterHallCallbackForTest();
     void HandlePostureData(const SensorEvent* const event);
     void HandleHallData(const SensorEvent* const event);
     int32_t SubscribeSensorCallback(int32_t sensorTypeId, int64_t interval, const RecordSensorCallback taskCallback);
@@ -59,8 +63,7 @@ protected:
     virtual SensorStatus GetSensorStatus(DmsSensorType updateSensorType);
     void NotifyFoldAngleChanged();
     bool checkCurrentPostureAndHall();
-    template <typename T>
-    T* GetSensorData(const SensorEvent* const event);
+    void* GetSensorData(const SensorEvent* const event, uint32_t dataSize);
 
     std::vector<float> angle_;
     std::vector<uint16_t> hall_;

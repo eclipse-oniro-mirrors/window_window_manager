@@ -972,6 +972,95 @@ HWTEST_F(KeyboardSessionTest3, SetSessionBlackListWhenShowRemove, Function | Sma
 }
 
 /**
+ * @tc.name: GetSkipFlagForCallingSessionMain
+ * @tc.desc: check func GetSkipFlagForCallingSession main window branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionMain, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionMain",
+        "GetSkipFlagForCallingSessionMain");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo callingInfo;
+    callingInfo.abilityName_ = "GetSkipFlagForCallingSessionMain";
+    callingInfo.bundleName_ = "GetSkipFlagForCallingSessionMain";
+    auto callingSession = sptr<SceneSession>::MakeSptr(callingInfo, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    callingSession->isSkipSelfWhenShowOnVirtualScreen_.store(true);
+
+    EXPECT_TRUE(keyboardSession->GetSkipFlagForCallingSession(callingSession));
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionSub
+ * @tc.desc: check func GetSkipFlagForCallingSession sub window branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionSub, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionSub",
+        "GetSkipFlagForCallingSessionSub");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "GetSkipFlagForCallingSessionSubMain";
+    mainInfo.bundleName_ = "GetSkipFlagForCallingSessionSubMain";
+    auto mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->isSkipSelfWhenShowOnVirtualScreen_.store(true);
+
+    SessionInfo callingInfo;
+    callingInfo.abilityName_ = "GetSkipFlagForCallingSessionSub";
+    callingInfo.bundleName_ = "GetSkipFlagForCallingSessionSub";
+    auto callingSession = sptr<SceneSession>::MakeSptr(callingInfo, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    callingSession->SetParentSession(mainSession);
+    callingSession->isSkipSelfWhenShowOnVirtualScreen_.store(false);
+
+    EXPECT_TRUE(keyboardSession->GetSkipFlagForCallingSession(callingSession));
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionNull
+ * @tc.desc: check func GetSkipFlagForCallingSession null session branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionNull, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionNull",
+        "GetSkipFlagForCallingSessionNull");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    EXPECT_FALSE(keyboardSession->GetSkipFlagForCallingSession(nullptr));
+}
+
+/**
+ * @tc.name: GetSkipFlagForCallingSessionNoMain
+ * @tc.desc: check func GetSkipFlagForCallingSession no main session branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, GetSkipFlagForCallingSessionNoMain, Function | SmallTest | Level0)
+{
+    auto keyboardSession = GetKeyboardSession("GetSkipFlagForCallingSessionNoMain",
+        "GetSkipFlagForCallingSessionNoMain");
+    ASSERT_NE(keyboardSession, nullptr);
+
+    SessionInfo callingInfo;
+    callingInfo.abilityName_ = "GetSkipFlagForCallingSessionNoMain";
+    callingInfo.bundleName_ = "GetSkipFlagForCallingSessionNoMain";
+    auto callingSession = sptr<SceneSession>::MakeSptr(callingInfo, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    callingSession->isSkipSelfWhenShowOnVirtualScreen_.store(true);
+
+    EXPECT_FALSE(keyboardSession->GetSkipFlagForCallingSession(callingSession));
+}
+
+/**
  * @tc.name: NotifyOccupiedAreaChanged
  * @tc.desc: check func NotifyOccupiedAreaChanged
  * @tc.type: FUNC

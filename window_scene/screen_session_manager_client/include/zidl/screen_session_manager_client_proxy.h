@@ -36,8 +36,11 @@ public:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
+    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
+    void OnScreenOrientationChangedWithOptions(ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options) override;
     void OnScreenExtendChanged(ScreenId mainScreenId, ScreenId extendScreenId) override;
     void OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked) override;
     void OnDisplayStateChanged(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
@@ -61,7 +64,7 @@ public:
         ExtendScreenConnectStatus extendScreenConnectStatus) override;
     bool OnExtendDisplayNodeChange(ScreenId firstId, ScreenId secondId) override;
     bool OnCreateScreenSessionOnly(ScreenId screenId, ScreenId rsId, const std::string& name,
-        bool isExtend) override;
+        sptr<IRemoteObject> renderSession, bool isExtend) override;
     bool OnMainDisplayNodeChange(ScreenId mainScreenId, ScreenId extendScreenId, ScreenId extendRSId) override;
     void SetScreenCombination(ScreenId mainScreenId, ScreenId extendScreenId,
         ScreenCombination extendCombination) override;
@@ -71,9 +74,14 @@ public:
     void OnAnimationFinish() override;
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;
     void OnTentModeChange(TentMode tentMode) override;
+    void OnTransRSEvent(const sptr<RSEventDataBase>& param) override;
+    void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
+    void OnScreenClosedStateChange(ScreenClosedState screenClosedState) override;
+
 private:
     static inline BrokerDelegator<ScreenSessionManagerClientProxy> delegator_;
     bool ScreenConnectWriteParam(const SessionOption& SessionOption, ScreenEvent screenEvent, MessageParcel& data);
+    bool WriteRSEventToParcel(MessageParcel& data, const RSEventDataBase& param);
 };
 } // namespace OHOS::Rosen
 

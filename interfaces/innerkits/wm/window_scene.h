@@ -53,7 +53,8 @@ public:
      * @return the error code of window
      */
     WMError Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
-        sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option = nullptr);
+        sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option = nullptr,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID);
 
     /**
      * Init a WindowScene instance based on the parameters displayId, context, listener and option.
@@ -66,9 +67,16 @@ public:
      * @param identityToken identity token of sceneSession
      * @return the error code of window
      */
-    WMError Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
-        sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option, const sptr<IRemoteObject>& iSession,
-        const std::string& identityToken = "", bool isModuleAbilityHookEnd = false);
+    WMError Init(DisplayId displayId, 
+                 const std::shared_ptr<AbilityRuntime::Context>& context,
+                 sptr<IWindowLifeCycle>& listener,
+                 sptr<WindowOption> option,
+                 const sptr<IRemoteObject>& iSession,
+                 const std::string& identityToken = "",
+                 bool isModuleAbilityHookEnd = false,
+                 sptr<IRemoteObject> renderSession = nullptr,
+                 int32_t requestId = INVALID_REQUEST_ID,
+                 int32_t scbRequestId = INVALID_REQUEST_ID);
 
     /**
      * Create a window instance based on the parameters windowName and option.
@@ -98,9 +106,12 @@ public:
      * window go foreground.
      *
      * @param reason the reason of window to go to foreground, default 0.
+     * @param requestId the request id for lifecycle tracking, default INVALID_REQUEST_ID.
+     * @param scbRequestId the scb request id for lifecycle tracking, default INVALID_REQUEST_ID.
      * @return the error code of window
      */
-    WMError GoForeground(uint32_t reason = 0);
+    WMError GoForeground(uint32_t reason = 0, bool isGamePreLaunch = false, int32_t requestId = INVALID_REQUEST_ID,
+ 	    int32_t scbRequestId = INVALID_REQUEST_ID);
 
     /**
      * Window go background.
@@ -130,14 +141,14 @@ public:
      *
      * @return the error code of window
      */
-    WMError GoResume();
+    WMError GoResume(bool isGamePreLaunch = false);
 
     /**
      * Window go pause.
      *
      * @return the error code of window
      */
-    WMError GoPause();
+    WMError GoPause(bool isGamePreLaunch = false);
 
     /**
      * Window handle new want.

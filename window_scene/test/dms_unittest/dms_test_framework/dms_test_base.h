@@ -45,8 +45,12 @@ public:
                 (DisplayPowerEvent event, EventStatus status, PowerStateChangeReason reason), (override));
     MOCK_METHOD(void, OnSensorRotationChanged, (ScreenId screenId, float sensorRotation, bool isSwitchUser),
                 (override));
+    MOCK_METHOD(void, OnSmartSensorRotationChanged, (ScreenId screenId, float sensorRotation, bool isSwitchUser),
+                (override));
     MOCK_METHOD(void, OnHoverStatusChanged, (ScreenId screenId, int32_t hoverStatus, bool needRotate), (override));
     MOCK_METHOD(void, OnScreenOrientationChanged, (ScreenId screenId, float screenOrientation), (override));
+    MOCK_METHOD(void, OnScreenOrientationChangedWithOptions, (ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options), (override));
     MOCK_METHOD(void, OnScreenRotationLockedChanged, (ScreenId screenId, bool isLocked), (override));
     MOCK_METHOD(void, OnScreenExtendChanged, (ScreenId mainScreenId, ScreenId extendScreenId), (override));
     MOCK_METHOD(void, OnSuperFoldStatusChanged, (ScreenId screenId, SuperFoldStatus superFoldStatus), (override));
@@ -76,7 +80,8 @@ public:
                 (ScreenId screenId, ExtendScreenConnectStatus extendScreenConnectStatus), (override));
     MOCK_METHOD(bool, OnExtendDisplayNodeChange, (ScreenId mainScreenId, ScreenId extendScreenId), (override));
     MOCK_METHOD(bool, OnCreateScreenSessionOnly,
-                (ScreenId screenId, ScreenId rsId, const std::string& name, bool isExtend), (override));
+                (ScreenId screenId, ScreenId rsId, const std::string& name, sptr<IRemoteObject> renderSession,
+                bool isExtend), (override));
     MOCK_METHOD(bool, OnMainDisplayNodeChange, (ScreenId mainScreenId, ScreenId extendScreenId, ScreenId extendRSId),
                 (override));
     MOCK_METHOD(void, SetScreenCombination,
@@ -86,6 +91,9 @@ public:
     MOCK_METHOD(void, OnAnimationFinish, (), (override));
     MOCK_METHOD(void, SetInternalClipToBounds, (ScreenId screenId, bool clipToBounds), (override));
     MOCK_METHOD(void, OnTentModeChange, (TentMode tentMode), (override));
+    MOCK_METHOD(void, OnTransRSEvent, (const sptr<RSEventDataBase>& param), (override));
+    MOCK_METHOD(void, SetDisplayNodeRSScreenId, (ScreenId screenId, ScreenId rsScreenId), (override));
+    MOCK_METHOD(void, OnScreenClosedStateChange, (ScreenClosedState screenClosedState), (override));
 };
 
 class DisplayManagerAgentMock : public IRemoteStub<IDisplayManagerAgent> {

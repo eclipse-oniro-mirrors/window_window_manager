@@ -453,6 +453,16 @@ bool WindowOption::IsSubWindowOutlineEnabled() const
     return subWindowOutlineEnabled_;
 }
 
+void WindowOption::SetZLevelAboveParentLoosened(bool zLevelAboveParentLoosened)
+{
+    zLevelAboveParentLoosened_ = zLevelAboveParentLoosened;
+}
+ 
+bool WindowOption::IsSubWindowZLevelAboveParentLoosened() const
+{
+    return zLevelAboveParentLoosened_;
+}
+
 int64_t WindowOption::GetStartModalExtensionTimeStamp() const
 {
     return startModalExtensionTimeStamp_;

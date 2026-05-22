@@ -83,6 +83,7 @@ ohos_shared_library("displayani_kit") {
     "runtime_core:ani_helpers",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

@@ -397,10 +397,10 @@ HWTEST_F(SceneSessionManagerTest6, UpdateWindowMode, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession));
     ASSERT_NE(nullptr, ssm_);
-    auto ret = ssm_->UpdateWindowMode(0, 0);
+    auto ret = ssm_->UpdateWindowMode(0, WindowModeInfo{ static_cast<WindowMode>(0) });
     EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, ret);
     ASSERT_NE(nullptr, ssm_);
-    ret = ssm_->UpdateWindowMode(2, 0);
+    ret = ssm_->UpdateWindowMode(2, WindowModeInfo{ static_cast<WindowMode>(0) });
     EXPECT_EQ(WSError::WS_OK, ret);
 }
 
@@ -1551,6 +1551,7 @@ HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo02, TestSize.Level1)
     ASSERT_NE(nullptr, ssm_);
     SessionInfo sessionInfo;
     sessionInfo.bundleName_ = "SceneSessionManagerTest2";
+    sessionInfo.moduleName_ = "entry";
     sessionInfo.abilityName_ = "DumpSessionWithId";
     sessionInfo.callerPersistentId_ = 2;
     auto session1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
@@ -1566,6 +1567,7 @@ HWTEST_F(SceneSessionManagerTest6, SetSessionVisibilityInfo02, TestSize.Level1)
     ssm_->occlusionStateListenerSessionSet_.insert(1);
     ssm_->SetSessionVisibilityInfo(session1, visibleState, windowVisibilityInfos, visibilityInfo);
     EXPECT_NE(windowVisibilityInfos.size(), 0);
+    EXPECT_EQ(windowVisibilityInfos[0]->GetModuleName(), "entry");
     ssm_->sceneSessionMap_.clear();
     ssm_->occlusionStateListenerSessionSet_.clear();
 }
@@ -2431,11 +2433,11 @@ HWTEST_F(SceneSessionManagerTest6, RequestSceneSessionDestruction, TestSize.Leve
 }
 
 /**
- * @tc.name: NotifySessionAINavigationBarChange
- * @tc.desc: NotifySessionAINavigationBarChange
+ * @tc.name: NotifySessionNavigationBarChange
+ * @tc.desc: NotifySessionNavigationBarChange
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest6, NotifySessionAINavigationBarChange, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest6, NotifySessionNavigationBarChange, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     int32_t persistentId = 1;
@@ -2443,13 +2445,13 @@ HWTEST_F(SceneSessionManagerTest6, NotifySessionAINavigationBarChange, TestSize.
     sptr<SceneSession::SpecificSessionCallback> specificCallback = nullptr;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback);
     ssm_->sceneSessionMap_.insert({ 0, sceneSession });
-    ssm_->NotifySessionAINavigationBarChange(persistentId);
+    ssm_->NotifySessionNavigationBarChange(persistentId, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
 
     persistentId = 0;
     Session session(info);
     session.isVisible_ = true;
     session.state_ = SessionState::STATE_FOREGROUND;
-    ssm_->NotifySessionAINavigationBarChange(persistentId);
+    ssm_->NotifySessionNavigationBarChange(persistentId, AvoidAreaType::TYPE_FLOAT_NAVIGATION);
 }
 
 /**

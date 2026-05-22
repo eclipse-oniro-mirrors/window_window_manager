@@ -78,6 +78,7 @@ ohos_shared_library("libsnapshot_util") {
     "libjpeg-turbo:turbojpeg",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   part_name = "window_manager"
   subsystem_name = "window"
 }

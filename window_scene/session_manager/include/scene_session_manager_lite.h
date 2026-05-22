@@ -33,7 +33,7 @@ public:
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
     WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params) override;
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller = true) override;
+        bool shouldBackToCaller = true, int32_t reason = 0) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
     WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent) override;
@@ -73,7 +73,7 @@ public:
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) override;
     WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
     WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease) override;
-    WSError UpdateWindowMode(int32_t persistentId, int32_t windowMode);
+    WSError UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo);
     WMError GetWindowModeType(WindowModeType& windowModeType) override;
     WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed) override;
     WMError GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken, MainWindowInfo& windowInfo) override;
@@ -86,6 +86,7 @@ public:
     WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds) override;
     WMError GetWindowStyleType(WindowStyleType& windowStyletype) override;
     WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled) override;
+    WMError RecoverProcessWatermark(int32_t pid, const std::string& watermarkName) override;
     WMError TerminateSessionByPersistentId(int32_t persistentId) override;
     WMError CloseTargetFloatWindow(const std::string& bundleName) override;
     WMError CloseTargetPiPWindow(const std::string& bundleName) override;
@@ -136,6 +137,8 @@ public:
 
     WMError RegisterPipChgListenerByScreenId(int32_t screenId, const sptr<IPipChangeListener>& listener) override;
     WMError UnregisterPipChgListenerByScreenId(int32_t screenId) override;
+    WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) override;
 };
 } // namespace OHOS::Rosen
 

@@ -42,6 +42,8 @@ public:
     virtual DMError GetScreenGamutMap(ScreenId screenId, ScreenGamutMap& gamutMap) override;
     virtual DMError SetScreenGamutMap(ScreenId screenId, ScreenGamutMap gamutMap) override;
     virtual DMError SetScreenColorTransform(ScreenId screenId) override;
+    
+    virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability) override;
 
     DMError GetPixelFormat(ScreenId screenId, GraphicPixelFormat& pixelFormat) override;
     DMError SetPixelFormat(ScreenId screenId, GraphicPixelFormat pixelFormat) override;
@@ -100,7 +102,8 @@ public:
 
     DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay) override;
 
-    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height) override;
+    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth, uint32_t renderHeight) override;
 
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate) override;
 
@@ -132,10 +135,11 @@ public:
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId,
         DmErrorCode* errorCode, bool isUseDma, bool isCaptureFullOfScreen) override;
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen) override;
+        DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent) override;
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect, DmErrorCode* errorCode) override;
 
     virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId) override;
+    virtual sptr<DisplayInfo> GetDisplayInfoById(DisplayId displayId, bool isGetActualInfo) override;
     virtual sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId) override;
     virtual sptr<DisplayInfo> GetDisplayInfoByScreen(ScreenId screenId) override;
     virtual std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT) override;
@@ -148,6 +152,8 @@ public:
         std::vector<ScreenColorGamut>& colorGamuts) override;
 
     virtual DMError SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi) override;
+    virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
+        const OrientationOptions& options, bool isFromNapi) override;
     virtual DMError SetScreenRotationLocked(bool isLocked) override;
     virtual DMError SetScreenRotationLockedFromJs(bool isLocked) override;
     virtual DMError IsScreenRotationLocked(bool& isLocked) override;
@@ -183,6 +189,7 @@ public:
 
     bool IsFoldable() override;
     bool IsCaptured() override;
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList) override;
 
     FoldStatus GetFoldStatus() override;
     SuperFoldStatus GetSuperFoldStatus() override;
@@ -269,6 +276,8 @@ public:
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) override;
     void NotifySwitchUserAnimationFinish() override;
+    void SubscribeMotionSensor(int32_t motionType) override;
+    void UnsubscribeMotionSensor(int32_t motionType) override;
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
 

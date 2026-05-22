@@ -28,7 +28,8 @@ public:
     ~SessionManagerServiceRecoverProxy() = default;
     void OnSessionManagerServiceRecover(const sptr<IRemoteObject>& sessionManagerService) override;
     void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<IRemoteObject>& sessionManagerService) override;
+        int32_t userId, int32_t screenId, bool isConnected,
+        const sptr<IRemoteObject>& sessionManagerService, int32_t pid) override;
 
 private:
     static inline BrokerDelegator<SessionManagerServiceRecoverProxy> delegator_;

@@ -26,6 +26,7 @@
 #include "display_change_info.h"
 #include "dm_common.h"
 #include "session/screen/include/screen_session.h"
+#include "session_option.h"
 #include "ffrt_queue_helper.h"
 #include "interfaces/include/ws_common.h"
 #include "wm_single_instance.h"
@@ -50,6 +51,16 @@ public:
 class ITentModeListener {
 public:
     virtual void OnTentModeChange(const TentMode tentMode) = 0;
+};
+
+class IScreenClosedStateListener {
+public:
+    virtual void OnScreenClosedStateChange(const ScreenClosedState screenClosedState) = 0;
+};
+
+class ITransRSEventListener : virtual public RefBase {
+public:
+    virtual void OnTransRSEvent(const sptr<RSEventDataBase>& param) = 0;
 };
 
 class ScreenSessionManagerClient : public ScreenSessionManagerClientStub {
@@ -121,17 +132,20 @@ public:
                             float translateY);
     bool OnExtendDisplayNodeChange(ScreenId firstId, ScreenId secondId) override;
     bool OnCreateScreenSessionOnly(ScreenId screenId, ScreenId rsId,
-        const std::string& name, bool isExtend) override;
+        const std::string& name, sptr<IRemoteObject> renderSession, bool isExtend) override;
     bool OnMainDisplayNodeChange(ScreenId mainScreenId, ScreenId extendScreenId, ScreenId extendRSId) override;
     void SetScreenCombination(ScreenId mainScreenId, ScreenId extendScreenId,
         ScreenCombination extendCombination) override;
     std::string OnDumperClientScreenSessions() override;
+    void DumpClientScreenProperty(std::ostringstream& oss, ScreenProperty prop);
     void SetDefaultMultiScreenModeWhenSwitchUser();
     void NotifyExtendScreenCreateFinish();
     void NotifyExtendScreenDestroyFinish();
     void NotifyScreenMaskAppear();
     void NotifySwitchUserAnimationFinish(const std::string& description);
     void NotifySwitchUserAnimationFinishByWindow();
+    void SubscribeMotionSensor(int32_t motionType);
+    void UnsubscribeMotionSensor(int32_t motionType);
     void RegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
     void OnTentModeChange(TentMode tentMode) override;
@@ -144,12 +158,18 @@ public:
     bool OnFoldPropertyChange(ScreenId screenId, const ScreenProperty& property,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode, ScreenProperty& midProperty) override;
     void RegisterTentModeChangeListener(ITentModeListener* listener);
+    void OnTransRSEvent(const sptr<RSEventDataBase>& param) override;
+    void RegisterTransRSEventListener(const RSExposedEventType& type, const sptr<ITransRSEventListener>& listener);
+    void UnRegisterTransRSEventListener(const RSExposedEventType& type, const sptr<ITransRSEventListener>& listener);
+    void RegisterScreenClosedStateChangeListener(IScreenClosedStateListener* listener);
+    void OnScreenClosedStateChange(ScreenClosedState screenClosedState) override;
 
     /*
      * RS Client Multi Instance
      */
     std::shared_ptr<RSUIDirector> GetRSUIDirector(ScreenId screenId);
     std::shared_ptr<RSUIContext> GetRSUIContext(ScreenId screenId);
+    sptr<IRemoteObject> GetRenderSessionToken();
     bool GetSupportsFocus(DisplayId displayId);
 
 protected:
@@ -169,8 +189,11 @@ private:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
+    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
+    void OnScreenOrientationChangedWithOptions(ScreenId screenId,
+        float screenOrientation, const OrientationOptions& options) override;
     void OnScreenRotationLockedChanged(ScreenId screenId, bool isLocked) override;
     void OnCameraBackSelfieChanged(ScreenId screenId, bool isCameraBackSelfie) override;
     void OnScreenExtendChanged(ScreenId mainScreenId, ScreenId extendScreenId) override;
@@ -182,6 +205,7 @@ private:
     void OnScreenModeChanged(ScreenModeChangeEvent screenModeChangeEvent) override;
 
     void SetDisplayNodeScreenId(ScreenId screenId, ScreenId displayNodeScreenId) override;
+    void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
     void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) override;
 
     void NotifyScreenConnect(const sptr<ScreenSession>& screenSession);
@@ -204,6 +228,8 @@ private:
     IScreenConnectionListener* screenConnectionListener_;
     ITentModeListener* tentModeListener_;
     std::atomic<TentMode> tentMode_ = TentMode::UNKNOWN;
+    IScreenClosedStateListener* screenClosedStateListener_;
+    std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     sptr<IScreenConnectionChangeListener> screenConnectionChangeListener_;
     sptr<IDisplayChangeListener> displayChangeListener_;
     FoldDisplayMode displayMode_ = FoldDisplayMode::UNKNOWN;
@@ -219,6 +245,8 @@ private:
     std::set<std::string> animateFinishNotificationSet_;
     mutable std::shared_mutex animateFinishDescriptionSetMutex_;
     mutable std::mutex animateFinishNotificationSetMutex_;
+    std::mutex transToRSEventMutex_;
+    std::unordered_map<RSExposedEventType, std::vector<sptr<ITransRSEventListener>>> transRSEventListener_;
 };
 } // namespace OHOS::Rosen
 

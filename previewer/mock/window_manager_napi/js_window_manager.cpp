@@ -152,6 +152,13 @@ napi_value JsWindowManager::NotifyScreenshotEvent(napi_env env, napi_callback_in
     return nullptr;
 }
 
+/** @note @window.life */
+napi_value JsWindowManager::MoveMainWindowToTargetDisplay(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "mock: MoveMainWindowToTargetDisplay");
+    return nullptr;
+}
+
 static void GetNativeContext(napi_env env, napi_value nativeContext, void*& contextPtr, WMError& errCode)
 {
     AppExecFwk::Ability* ability = nullptr;
@@ -244,6 +251,7 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "WindowType", WindowTypeInit(env));
     napi_set_named_property(env, exportObj, "AvoidAreaType", AvoidAreaTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowMode", WindowModeInit(env));
+    napi_set_named_property(env, exportObj, "SplitRatioPreference", SplitRatioPreferenceInit(env));
     napi_set_named_property(env, exportObj, "ColorSpace", ColorSpaceInit(env));
     napi_set_named_property(env, exportObj, "WindowStageEventType", WindowStageEventTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowAnchor", WindowAnchorInit(env));
@@ -256,6 +264,7 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "WMError", WindowErrorInit(env));
     napi_set_named_property(env, exportObj, "WindowStatusType", WindowStatusTypeInit(env));
     napi_set_named_property(env, exportObj, "MaximizePresentation", MaximizePresentationInit(env));
+    napi_set_named_property(env, exportObj, "AcrossDisplayPresentation", AcrossDisplayPresentationInit(env));
     const char* moduleName = "JsWindowManager";
     BindNativeFunction(env, exportObj, "create", moduleName, JsWindowManager::Create);
     BindNativeFunction(env, exportObj, "createWindow", moduleName, JsWindowManager::CreateWindowNapi);
@@ -278,6 +287,8 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "setWaterMarkImage", moduleName, JsWindowManager::SetWaterMarkImage);
     BindNativeFunction(env, exportObj, "shiftAppWindowFocus", moduleName, JsWindowManager::ShiftAppWindowFocus);
     BindNativeFunction(env, exportObj, "notifyScreenshotEvent", moduleName, JsWindowManager::NotifyScreenshotEvent);
+    BindNativeFunction(env, exportObj, "moveMainWindowToTargetDisplay", moduleName,
+        JsWindowManager::MoveMainWindowToTargetDisplay);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

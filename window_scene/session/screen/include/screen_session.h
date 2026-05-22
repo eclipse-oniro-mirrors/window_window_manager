@@ -52,7 +52,10 @@ public:
     virtual void OnPowerStatusChange(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) {}
     virtual void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
+    virtual void OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
     virtual void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) {}
+    virtual void OnScreenOrientationChangeWithOptions(float screenOrientation,
+        const OrientationOptions& options, ScreenId screenId) {}
     virtual void OnScreenRotationLockedChange(bool isLocked, ScreenId screenId) {}
     virtual void OnScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId) {}
     virtual void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId extendScreenId) {}
@@ -86,6 +89,7 @@ struct ScreenSessionConfig {
     std::string innerName = "UNKNOWN";
     ScreenProperty property;
     std::shared_ptr<RSDisplayNode> displayNode;
+    sptr<IRemoteObject> renderSession = nullptr;
 };
 
 enum class ScreenSessionReason : int32_t {
@@ -199,6 +203,7 @@ public:
     DMError SetScreenColorSpace(GraphicCM_ColorSpaceType colorSpace);
 
     void HandleSensorRotation(float sensorRotation);
+    void HandleSmartRotation(float sensorRotation);
     void HandleHoverStatusChange(int32_t hoverStatus, bool needRotate = true);
     void HandleCameraBackSelfieChange(bool isCameraBackSelfie);
     float ConvertRotationToFloat(Rotation sensorRotation);
@@ -335,11 +340,20 @@ public:
     void SensorRotationChange(Rotation sensorRotation);
     void SensorRotationChange(float sensorRotation);
     void SensorRotationChange(float sensorRotation, bool isSwitchUser);
+    void SmartSensorRotationChange(Rotation sensorRotation);
+    void SmartSensorRotationChange(float sensorRotation);
+    void SmartSensorRotationChange(float sensorRotation, bool isSwitchUser);
     float GetValidSensorRotation();
+    float GetValidSmartSensorRotation();
     void HoverStatusChange(int32_t hoverStatus, bool needRotate = true);
     void CameraBackSelfieChange(bool isCameraBackSelfie);
     void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode, bool isFromNapi);
     void ScreenOrientationChange(float orientation);
+    void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode,
+        const OrientationOptions& options, bool isFromNapi);
+    void ScreenOrientationChange(float orientation, const OrientationOptions& options);
+    float GetScreenOrientation(Orientation orientation,
+        FoldDisplayMode foldDisplayMode, bool isFromNapi);
     void ScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId);
     DMRect GetAvailableArea();
     DMRect GetExpandAvailableArea();
@@ -427,6 +441,8 @@ public:
     uint32_t GetScreenAreaWidth() const;
     void SetScreenAreaHeight(uint32_t screenAreaHeight);
     uint32_t GetScreenAreaHeight() const;
+    void SetRenderSession(sptr<IRemoteObject> renderSession);
+    sptr<IRemoteObject> GetRenderSession();
 
     void UpdateMirrorWidth(uint32_t mirrorWidth);
     void UpdateMirrorHeight(uint32_t mirrorHeight);
@@ -465,6 +481,8 @@ public:
     bool IsBootingConnect() const;
     void CheckAndNotifyPropertyChange();
     void SetPropertyNeedNotified(const ScreenProperty& property);
+    ScreenProperty GetPropertyNeedNotified();
+    void GetScreenCapability(ScreenCapability& capability);
 private:
     bool IsVertical(Rotation rotation) const;
     Orientation CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const;
@@ -494,6 +512,7 @@ private:
     bool isFold_ = false;
     float currentSensorRotation_ { -1.0f };
     std::atomic<float> currentValidSensorRotation_ { -1.0f };
+    std::atomic<float> currentValidSmartRotation_ { -1.0f };
     mutable std::shared_mutex hdrFormatsMutex_;
     std::vector<uint32_t> hdrFormats_;
     mutable std::shared_mutex colorSpacesMutex_;
@@ -537,6 +556,7 @@ private:
     int32_t uniqueRotation_ { 0 };
     mutable std::shared_mutex rotationMapMutex_;
     std::map<int32_t, int32_t> uniqueRotationOrientationMap_;
+    sptr<IRemoteObject> renderSession_ = nullptr;
 
     /*
      * RS Client Multi Instance

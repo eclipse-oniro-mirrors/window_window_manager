@@ -126,6 +126,7 @@ HWTEST_F(FoldScreenBaseControllerTest, RecoverDisplayModeTest, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
+    FoldScreenBasePolicy::GetInstance().physicalFoldLockFlag_ = true;
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
     FoldScreenBasePolicy::GetInstance().currentFoldStatus_ = FoldStatus::EXPAND;
@@ -140,6 +141,7 @@ HWTEST_F(FoldScreenBaseControllerTest, RecoverDisplayModeTest, TestSize.Level1)
     controller.RecoverDisplayMode();
     EXPECT_TRUE(g_logMsg.find("2 -> 1") != std::string::npos);
     ProductConfig::singleton_ = nullptr;
+    FoldScreenBasePolicy::GetInstance().physicalFoldLockFlag_ = false;
 }
 
 /**
@@ -387,6 +389,19 @@ HWTEST_F(FoldScreenBaseControllerTest, GetCurrentDisplayMode, TestSize.Level1)
     auto controller = FoldScreenBaseController();
     FoldScreenBasePolicy::GetInstance().currentDisplayMode_ = FoldDisplayMode::MAIN;
     EXPECT_EQ(controller.GetCurrentDisplayMode(), FoldDisplayMode::MAIN);
+}
+
+/**
+ * @tc.name: GetScreenActiveModeRectMap
+ * @tc.desc: test function : GetScreenActiveModeRectMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBaseControllerTest, GetScreenActiveModeRectMap, TestSize.Level1)
+{
+    auto controller = FoldScreenBaseController();
+    auto screenActiveModeRectMapTemp = FoldScreenBasePolicy::GetInstance().GetScreenActiveModeRectMap();
+    auto screenActiveModeRectMap = controller.GetScreenActiveModeRectMap();
+    EXPECT_EQ(screenActiveModeRectMapTemp.size(), screenActiveModeRectMap.size());
 }
 } // namespace
 } // namespace DMS

@@ -472,40 +472,7 @@ HWTEST_F(SuperFoldStateManagerTest, RefreshMirrorRegionInner_NullptrScreenSessio
     ASSERT_EQ(superFoldStateManager.RefreshMirrorRegionInner(mainScreenSession, secondarySession),
         DMError::DM_ERROR_NULLPTR);
 }
- 
-/**
-* @tc.name  : RefreshMirrorRegionInner_NormalCase
-* @tc.desc  : Test When NormalCase, return DMError::OK
-* @tc.type: FUNC
-*/
-HWTEST_F(SuperFoldStateManagerTest, RefreshMirrorRegionInner_NormalCase, TestSize.Level1)
-{
-    SuperFoldStateManager& superFoldStateManager = SuperFoldStateManager::GetInstance();
-    superFoldStateManager.SetCurrentStatus(SuperFoldStatus::UNKNOWN);
-    ScreenSessionConfig config = {
-        .screenId = 0,
-        .rsId = 0,
-        .defaultScreenId = 0,
-        .name = "",
-        .property = ScreenProperty{},
-    };
-    sptr<ScreenSession> mainScreenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_REAL);
-    ssm_.screenSessionMap_[0] = mainScreenSession;
-    ScreenProperty mainScreenProperty;
-    mainScreenProperty.bounds_.rect_ = { 0, 0, 100, 100 };
-    mainScreenSession->SetScreenProperty(mainScreenProperty);
- 
-    config.screenId = 1;
-    config.rsId = 1;
-    sptr<ScreenSession> secondarySession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_REAL);
-    ssm_.screenSessionMap_[1] = secondarySession;
-    superFoldStateManager.SetCurrentStatus(SuperFoldStatus::EXPANDED);
-    ScreenProperty secondaryScreenProperty;
-    secondaryScreenProperty.bounds_.rect_ = { 0, 0, 100, 100 };
-    secondarySession->SetScreenProperty(secondaryScreenProperty);
-    EXPECT_EQ(superFoldStateManager.RefreshMirrorRegionInner(mainScreenSession, secondarySession), DMError::DM_OK);
-}
- 
+
 /**
  * @tc.name  : RefreshExternalRegion_ShouldReturnOk_WhenNoExtendScreenConnected
  * @tc.desc  : When the extended screen is not connected, the function should return DM_OK and ignore the refresh.

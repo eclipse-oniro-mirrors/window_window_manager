@@ -21,7 +21,10 @@
 
 #include "cutout_info.h"
 #include "xml_config_base.h"
-#include "libxml/parser.h"
+
+struct _xmlNode;
+using xmlNode = _xmlNode;
+using xmlNodePtr = xmlNode*;
 
 namespace OHOS::Rosen {
 struct DisplayFlag {

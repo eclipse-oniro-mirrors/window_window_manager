@@ -66,6 +66,7 @@ class RSTransaction;
 class RSUIContext;
 class RSUIDirector;
 using NotifyNativeWinDestroyFunc = std::function<void(std::string windowName)>;
+using NotifyOrientationExecutionResultFunc = std::function<void(uint32_t, OrientationExecutionResult)>;
 using SendRenderDataCallback = bool (*)(const void*, const size_t, const int32_t, const int32_t, const uint64_t);
 using ContentInfoCallback = std::function<void(std::string contentInfo)>;
 enum class ImageFit;
@@ -162,6 +163,7 @@ public:
 
     virtual const std::shared_ptr<AbilityRuntime::Context> GetContext() const = 0;
     virtual Rect GetRect() const = 0;
+    virtual Rect GetRect(bool useHookedSize) const = 0;
     virtual Rect GetRequestRect() const = 0;
 
     /**
@@ -169,7 +171,7 @@ public:
      *
      * @return The rectangle (position and size) of the window in global coordinates.
      */
-    virtual Rect GetGlobalDisplayRect() const { return { 0, 0, 0, 0 }; }
+    virtual Rect GetGlobalDisplayRect(bool useHookedSize = false) const { return { 0, 0, 0, 0 }; }
 
     /**
      * @brief Convert a position from client (window-relative) coordinates to global coordinates.
@@ -276,7 +278,10 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
-    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError Resize(uint32_t width, uint32_t height) = 0;
     virtual WMError ResizeAsync(uint32_t width, uint32_t height) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) = 0;
@@ -331,6 +336,8 @@ public:
     virtual WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) = 0;
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) = 0;
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) = 0;
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) = 0;
     virtual WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) = 0;
     virtual WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) = 0;
     virtual WMError UnregisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) = 0;
@@ -340,6 +347,8 @@ public:
     virtual WMError UnregisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) = 0;
     virtual void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func) = 0;
     virtual void UnregisterWindowDestroyedListener() {}
+    virtual void RegisterNotifyOrientationExecutionResultFunc(const NotifyOrientationExecutionResultFunc& func) {};
+    virtual void UnregisterNotifyOrientationExecutionResultFunc() {}
     virtual WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener) = 0;
     virtual WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener) = 0;
     virtual WMError RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) = 0;
@@ -381,6 +390,11 @@ public:
     virtual Ace::UIContent* GetUIContent() const = 0;
     virtual void OnNewWant(const AAFwk::Want& want) = 0;
     virtual void SetRequestedOrientation(Orientation) = 0;
+    virtual WMError SetPreferredOrientationWithResult(
+        Orientation orientation, uint32_t promiseId, bool needAnimation = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
@@ -611,6 +625,18 @@ public:
     }
 
     virtual WMError Recover(uint32_t reason = 0) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    
+    /**
+     * @brief Recovery the main window with snapshot animation config.
+     *
+     * @param reason Reason of update.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     virtual WMError Maximize(MaximizePresentation present) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
@@ -626,7 +652,26 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    /**
+     * @brief Maximize window with presentation, across-display presentation, and snapshot animation config.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param acrossDisplayPresentation The across-display presentation to apply when maximizing.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError MaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation acrossDisplayPresentation, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -681,6 +726,20 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     virtual WMError GetGestureBackEnabled(bool& enable) const { return WMError::WM_OK; }
+
+    /*
+     * @brief Set whether to enable float navigation avoid area.
+     * @param enable value true means to enable float navigation avoid area, and false means to opposite.
+     * @return WM_OK means set success, others means set failed.
+     */
+    virtual WMError SetFloatNavigationAvoidAreaEnabled(bool enable) { return WMError::WM_OK; }
+
+    /*
+     * @brief Get whether to enable float navigation avoid area.
+     * @param enable value true means to enable float navigation avoid area, and false means to opposite.
+     * @return WM_OK means get success, others means get failed.
+     */
+    virtual WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const { return WMError::WM_OK; }
 
     /**
      * @brief Flush layout size.
@@ -797,7 +856,7 @@ public:
      * @param windowAnchorInfo the windowAnchorInfo of subWindow.
      * @return WM_OK means set success.
      */
-    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, bool isAttach = false)
+    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -869,7 +928,10 @@ public:
      * @param windowPropertyInfo the window property struct.
      * @return WMError.
      */
-    virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) { return WMError::WM_OK; }
+    virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true)
+    {
+        return WMError::WM_OK;
+    }
 
     /**
      * @brief notify avoid area for compatible mode app

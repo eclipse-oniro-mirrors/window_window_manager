@@ -84,7 +84,7 @@ void WindowLayoutPolicyCascade::Reorder()
                 // when change mode, need to reset shadow and radius
                 WindowSystemEffect::SetWindowEffect(node);
                 if (node->GetWindowToken()) {
-                    node->GetWindowToken()->UpdateWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+                    node->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
                 }
             }
             WLOGFD("Cascade reorder Id: %{public}d, rect:[%{public}d, %{public}d, %{public}d, %{public}d]",

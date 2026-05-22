@@ -21,12 +21,13 @@ export default namespace display {
 
 loadLibraryWithPermissionCheck("displayani_kit.z", "@ohos.display");
 
-const DISPLAY_ARRAY_LENGTH = 15;
-const CUTO_ARRAY_LENGTH = 5;
-const CREASE_RECTS_LENGTH = 10;
-const DISPLAY_PHYSICAL_RESOLUTION_LENGTH = 15;
-const ERROR_INVALID_PARAM = 401;
-const ROUNDED_CORNER_LENGTH = 4;
+const DISPLAY_ARRAY_LENGTH: int = 15;
+const CUTO_ARRAY_LENGTH: int = 5;
+const CREASE_RECTS_LENGTH: int = 10;
+const DISPLAY_PHYSICAL_RESOLUTION_LENGTH: int = 15;
+const ERROR_INVALID_PARAM: int = 401;
+const ERROR_ILLEGAL_PARAM: int = 1400004;
+const ROUNDED_CORNER_LENGTH: int = 4;
 
 export interface Rect {
     left: long;
@@ -347,7 +348,7 @@ export interface Display {
 }
 
 export native function displayInfoFinalizerCallback(nativeObj: long): void;
-let displayInfoFinalizerRegister = new FinalizationRegistry<long>(displayInfoFinalizerCallback);
+let displayInfoFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(displayInfoFinalizerCallback);
 export class DisplayImpl implements Display {
     static { loadLibraryWithPermissionCheck("displayani_kit.z", "@ohos.display"); }
 
@@ -569,7 +570,22 @@ function minusRoundedCornerArray(cornerArr: Array<RoundedCorner>): void {
 
 export native function isFoldable(): boolean;
 
-export native function isCaptured(): boolean;
+export native function isCapturedWithoutParam(): boolean;
+
+export native function isCapturedByBundleNameList(bundleNameList: Array<string>): boolean;
+
+export function isCaptured(): boolean {
+    return isCapturedWithoutParam();
+}
+
+export function isCaptured(bundleNameList: Array<string>): boolean {
+    const MAX_BUNDLE_NAME_LIST_SIZE = 100;
+    if (bundleNameList.length > MAX_BUNDLE_NAME_LIST_SIZE) {
+        throw new BusinessError(ERROR_ILLEGAL_PARAM, 
+            new Error(`[ANI] The size of bundleNameList is larger than 100, actual size: ${bundleNameList.length}`));
+    }
+    return isCapturedByBundleNameList(bundleNameList);
+}
 
 export function getFoldDisplayMode(): FoldDisplayMode {
     let res = getFoldDisplayModeNative();

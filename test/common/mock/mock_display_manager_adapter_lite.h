@@ -37,6 +37,7 @@ public:
     MOCK_METHOD0(SuspendEnd, bool());
     MOCK_METHOD1(SetDisplayState, bool(DisplayState state));
     MOCK_METHOD1(GetDisplayState, DisplayState(DisplayId displayId));
+    MOCK_METHOD2(SetScreenSwitchState, DMError(ScreenClosedState screenClosedState, bool isScreenOn));
 };
 
 class MockScreenManagerAdapterLite : public ScreenManagerAdapterLite {

@@ -1442,7 +1442,11 @@ HWTEST_F(WindowSessionImplTest2, UpdateDecorEnableToAce, TestSize.Level1)
     auto listeners = GetListenerList<IWindowChangeListener, MockWindowChangeListener>();
     sptr<MockWindowChangeListener> nullListener;
     listeners.insert(listeners.begin(), nullListener);
-    window->windowChangeListeners_.insert({ window->GetPersistentId(), listeners });
+    std::vector<std::pair<sptr<IWindowChangeListener>, bool>> pairListeners;
+    for (auto& listener : listeners) {
+        pairListeners.push_back({listener, false});
+    }
+    window->windowChangeListeners_.insert({ window->GetPersistentId(), pairListeners });
     window->windowSystemConfig_.freeMultiWindowSupport_ = false;
     window->UpdateDecorEnableToAce(false);
 
@@ -1520,7 +1524,11 @@ HWTEST_F(WindowSessionImplTest2, NotifyModeChange, TestSize.Level1)
     auto listeners = GetListenerList<IWindowChangeListener, MockWindowChangeListener>();
     sptr<MockWindowChangeListener> nullListener;
     listeners.insert(listeners.begin(), nullListener);
-    window->windowChangeListeners_.insert({ window->GetPersistentId(), listeners });
+    std::vector<std::pair<sptr<IWindowChangeListener>, bool>> pairListeners;
+    for (auto& listener : listeners) {
+        pairListeners.push_back({listener, false});
+    }
+    window->windowChangeListeners_.insert({ window->GetPersistentId(), pairListeners });
 
     window->NotifyModeChange(WindowMode::WINDOW_MODE_FULLSCREEN, true);
     window->Destroy();

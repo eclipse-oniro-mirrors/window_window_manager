@@ -29,6 +29,8 @@ public:
     ~MockWindowSessionImpl() {}
 
     MOCK_METHOD(bool, GetImmersiveModeEnabledState, (), (const override));
+    MOCK_METHOD(WMError, GetAppForceLandscapeConfig, (AppForceLandscapeConfig& config), (override));
+    MOCK_METHOD(WMError, GetSelectMode, (SelectMode& selectMode), (override));
 };
 } // Rosen
 } // OHOS

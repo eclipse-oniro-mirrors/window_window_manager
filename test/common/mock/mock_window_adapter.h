@@ -48,7 +48,8 @@ public:
                                                 const sptr<IWindowManagerAgent>& windowManagerAgent));
     MOCK_METHOD2(UnregisterWindowManagerAgent, WMError(WindowManagerAgentType type,
                                                 const sptr<IWindowManagerAgent>& windowManagerAgent));
-    MOCK_METHOD1(GetVisibilityWindowInfo, WMError(std::vector<sptr<WindowVisibilityInfo>>& infos));
+    MOCK_METHOD2(GetVisibilityWindowInfo, WMError(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize));
     MOCK_METHOD1(GetAccessibilityWindowInfo, WMError(std::vector<sptr<AccessibilityWindowInfo>>& infos));
     MOCK_METHOD3(ConvertToRelativeCoordinateExtended, WMError(const Rect& rect,
         Rect& newRect, DisplayId& newDisplayId));
@@ -73,6 +74,7 @@ public:
     MOCK_METHOD1(IsFreeMultiWindowMode, WMError(bool& isFreeMultiWindow));
     MOCK_METHOD1(IsPcOrPadFreeMultiWindowMode, WMError(bool& IsPcOrPadFreeMultiWindowMode));
     MOCK_METHOD2(UpdateOutline, WMError(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams));
+    MOCK_METHOD2(GetWindowStateSnapshot, WMError(int32_t persistentId, std::string& winStateSnapshotJsonStr));
 };
 }
 } // namespace OHOS

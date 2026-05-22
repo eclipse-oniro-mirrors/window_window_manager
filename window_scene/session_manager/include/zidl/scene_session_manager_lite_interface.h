@@ -91,6 +91,7 @@ public:
         TRANS_ID_CLEAR_MAIN_SESSIONS,
         TRANS_ID_GET_WINDOW_STYLE_TYPE,
         TRANS_ID_SET_PROCESS_WATERMARK,
+        TRANS_ID_RECOVER_PROCESS_WATERMARK,
         TRANS_ID_TERMINATE_SESSION_BY_PERSISTENT_ID,
         TRANS_ID_GET_MAIN_WINDOW_STATES_BY_PID,
         TRANS_ID_CLOSE_TARGET_FLOAT_WINDOW,
@@ -133,6 +134,7 @@ public:
         TRANS_ID_GET_MAIN_WINDOW_INFO_BY_TOKEN,
         TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY,
         TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY,
+        TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
     };
 
     /*
@@ -147,7 +149,7 @@ public:
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) = 0;
     virtual WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params) = 0;
     virtual WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller = true) = 0;
+        bool shouldBackToCaller = true, int32_t reason = 0) = 0;
     virtual WSError MoveSessionsToForeground(const std::vector<std::int32_t>& sessionIds, int32_t topSessionId) = 0;
     virtual WSError MoveSessionsToBackground(const std::vector<std::int32_t>& sessionIds,
         std::vector<std::int32_t>& result) = 0;
@@ -476,6 +478,9 @@ public:
     }
     virtual WMError UnregisterPipChgListenerByScreenId(int32_t screenId) { return WMError::WM_OK; }
     virtual WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) { return WSError::WS_OK; };
+
+    virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H

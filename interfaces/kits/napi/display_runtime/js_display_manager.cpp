@@ -27,6 +27,7 @@
 #include "js_display.h"
 #include "js_display_manager.h"
 #include "scene_board_judgement.h"
+#include "display_histogram_management.h"
 #include "screen.h"
 #include "screen_manager.h"
 #include "surface_utils.h"
@@ -46,6 +47,8 @@ constexpr size_t ARGC_TWO = 2;
 constexpr size_t ARGC_THREE = 3;
 constexpr size_t ARGS_MAX = 4;
 constexpr int32_t INDEX_ONE = 1;
+constexpr size_t BUNDLE_NAME_LIST_MAX_SIZE = 100;
+constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 class JsDisplayManager {
 public:
 explicit JsDisplayManager(napi_env env) {
@@ -229,6 +232,7 @@ std::mutex mtx_;
 napi_value OnGetDefaultDisplay(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getDefaultDisplay.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DMError errCode = DMError::DM_OK;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -246,6 +250,8 @@ napi_value OnGetDefaultDisplay(napi_env env, napi_callback_info info)
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, env, errCode, task = napiAsyncTask.get()] {
         if (errCode != DMError::DM_OK) {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDefaultDisplay",
+                static_cast<DmErrorCode>(errCode));
             task->Reject(env, CreateJsError(env,
                 static_cast<int32_t>(errCode), "JsDisplayManager::OnGetDefaultDisplay failed."));
             delete task;
@@ -257,6 +263,8 @@ napi_value OnGetDefaultDisplay(napi_env env, napi_callback_info info)
             task->Resolve(env, CreateJsDisplayObject(env, display));
             TLOGD(WmsLogTag::DMS, "OnGetDefaultDisplay success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDefaultDisplay",
+                DmErrorCode::DM_ERROR_INVALID_SCREEN);
             task->Reject(env, CreateJsError(env,
                 static_cast<int32_t>(DMError::DM_ERROR_NULLPTR), "JsDisplayManager::OnGetDefaultDisplay failed."));
         }
@@ -269,11 +277,14 @@ napi_value OnGetDefaultDisplay(napi_env env, napi_callback_info info)
 napi_value OnGetPrimaryDisplaySync(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getPrimaryDisplaySync.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "getPrimaryDisplaySync";
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Sync:OnGetPrimaryDisplaySync");
     sptr<Display> display = SingletonContainer::Get<DisplayManager>().GetPrimaryDisplaySync();
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Display info is nullptr, js error will be happen");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getPrimaryDisplaySync",
+            DmErrorCode::DM_ERROR_INVALID_SCREEN);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN,
             GetFormatMsg(functionName, "invalid display id")));
         return NapiGetUndefined(env);
@@ -284,11 +295,14 @@ napi_value OnGetPrimaryDisplaySync(napi_env env, napi_callback_info info)
 napi_value OnGetDefaultDisplaySync(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getDefaultDisplaySync.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "getDefaultDisplaySync";
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Sync:GetDefaultDisplay");
     sptr<Display> display = SingletonContainer::Get<DisplayManager>().GetDefaultDisplaySync(true);
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Display info is nullptr, js error will be happen");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDefaultDisplaySync",
+            DmErrorCode::DM_ERROR_INVALID_SCREEN);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN,
             GetFormatMsg(functionName, "display is not created or destroyed")));
         return NapiGetUndefined(env);
@@ -299,6 +313,7 @@ napi_value OnGetDefaultDisplaySync(napi_env env, napi_callback_info info)
 napi_value OnGetDisplayByIdSync(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getDisplayByIdSync.Count", HISTOGRAM_BOOLEAN_COUNTS);
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Sync:OnGetDisplayByIdSync");
     std::string functionName = "getDisplayByIdSync";
     size_t argc = 4;
@@ -306,6 +321,7 @@ napi_value OnGetDisplayByIdSync(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         std::string errMsg = "Invalid args count, need one arg";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDisplayByIdSync", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, errMsg)));
         return NapiGetUndefined(env);
@@ -314,12 +330,14 @@ napi_value OnGetDisplayByIdSync(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[0], displayId)) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to displayId");
         std::string errMsg = "Failed to convert parameter to displayId";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDisplayByIdSync", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, errMsg)));
         return NapiGetUndefined(env);
     }
     if (displayId < 0) {
         std::string errMsg = "displayid is invalid, less than 0";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDisplayByIdSync", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, errMsg)));
         return NapiGetUndefined(env);
@@ -327,6 +345,7 @@ napi_value OnGetDisplayByIdSync(napi_env env, napi_callback_info info)
     sptr<Display> display = SingletonContainer::Get<DisplayManager>().GetDisplayById(static_cast<DisplayId>(displayId));
     if (display == nullptr) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Display info is nullptr, js error will be happen");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getDisplayByIdSync", DmErrorCode::DM_ERROR_SYSTEM_INNORMAL);
         std::ostringstream oss;
         oss << "[display][getDisplayByIdSync]message: display is null, ";
         oss << "display id " << displayId << " ";
@@ -352,6 +371,7 @@ std::string GetFormatMsg(std::string functionName, std::string errMsg = "", std:
 napi_value OnGetBrightnessInfoChange(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getBrightnessInfo.Count", HISTOGRAM_BOOLEAN_COUNTS);
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "OnGetBrightnessInfoChange");
     std::string functionName = "getBrightnessInfo";
     size_t argc = ARGS_MAX;
@@ -359,6 +379,7 @@ napi_value OnGetBrightnessInfoChange(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         std::string errMsg = "Invalid args count, need one arg";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getBrightnessInfo", DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_ILLEGAL_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -366,12 +387,14 @@ napi_value OnGetBrightnessInfoChange(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[0], displayId)) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to displayId");
         std::string errMsg = "Failed to convert parameter to displayId";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getBrightnessInfo", DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_ILLEGAL_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
     ScreenBrightnessInfo brightnessInfo;
     auto errCode = SingletonContainer::Get<DisplayManager>().GetBrightnessInfo(displayId, brightnessInfo);
     if (errCode != DMError::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getBrightnessInfo", static_cast<DmErrorCode>(errCode));
         return NapiThrowError(env, static_cast<DmErrorCode>(errCode), "Failed to get brightness info", functionName);
     }
 
@@ -466,6 +489,7 @@ napi_value CreateJsDisplayPhysicalArrayObject(napi_env env,
 napi_value OnGetAllDisplayPhysicalResolution(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getAllDisplayPhysicalResolution.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DMError errCode = DMError::DM_OK;
     std::string functionName = "getAllDisplayPhysicalResolution";
     size_t argc = 4;
@@ -484,6 +508,8 @@ napi_value OnGetAllDisplayPhysicalResolution(napi_env env, napi_callback_info in
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, env, errCode, task = napiAsyncTask.get(), functionName] {
         if (errCode != DMError::DM_OK) {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getAllDisplayPhysicalResolution",
+                DmErrorCode::DM_ERROR_INVALID_PARAM);
             task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
                 GetFormatMsg(functionName, "paramter is invalid")));
             delete task;
@@ -495,6 +521,8 @@ napi_value OnGetAllDisplayPhysicalResolution(napi_env env, napi_callback_info in
             task->Resolve(env, CreateJsDisplayPhysicalArrayObject(env, displayPhysicalArray));
             TLOGNI(WmsLogTag::DMS, "OnGetAllDisplayPhysicalResolution success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getAllDisplayPhysicalResolution",
+                DmErrorCode::DM_ERROR_SYSTEM_INNORMAL);
             task->Reject(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_SYSTEM_INNORMAL,
                 GetFormatMsg(functionName)));
         }
@@ -507,6 +535,7 @@ napi_value OnGetAllDisplayPhysicalResolution(napi_env env, napi_callback_info in
 napi_value OnGetAllDisplays(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.getAllDisplays.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "getAllDisplays";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -530,6 +559,7 @@ napi_value OnGetAllDisplays(napi_env env, napi_callback_info info)
                 napi_value exception = nullptr;
                 napi_get_and_clear_last_exception(env, &exception);
             }
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getAllDisplays", DmErrorCode::DM_ERROR_INVALID_SCREEN);
             task->Reject(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_SCREEN,
                 GetFormatMsg(functionName)));
         }
@@ -855,6 +885,7 @@ std::string GetBrightnessInfoErrorMsg(DmErrorCode errCode)
 napi_value OnRegisterDisplayManagerCallback(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "OnRegisterDisplayManagerCallback is called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.on.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "on";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -906,6 +937,7 @@ napi_value OnRegisterDisplayManagerCallback(napi_env env, napi_callback_info inf
 napi_value OnUnregisterDisplayManagerCallback(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.off.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "off";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -913,6 +945,7 @@ napi_value OnUnregisterDisplayManagerCallback(napi_env env, napi_callback_info i
     if (argc < ARGC_ONE) {
         TLOGE(WmsLogTag::DMS, "JsDisplayManager Params not match %{public}zu", argc);
         std::string errMsg = "Invalid args count, need one arg at least!";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.off", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, errMsg)));
         return NapiGetUndefined(env);
@@ -921,6 +954,7 @@ napi_value OnUnregisterDisplayManagerCallback(napi_env env, napi_callback_info i
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to callbackType");
         std::string errMsg = "Failed to convert parameter to string";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.off", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, errMsg, cbType)));
         return NapiGetUndefined(env);
@@ -952,12 +986,14 @@ napi_value OnUnregisterDisplayManagerCallback(napi_env env, napi_callback_info i
 
 napi_value OnHasPrivateWindow(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.hasPrivateWindow.Count", HISTOGRAM_BOOLEAN_COUNTS);
     bool hasPrivateWindow = false;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         std::string errMsg = "Invalid args count, need one arg";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.hasPrivateWindow", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -965,11 +1001,13 @@ napi_value OnHasPrivateWindow(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[0], displayId)) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to displayId");
         std::string errMsg = "Failed to convert parameter to displayId";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.hasPrivateWindow", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
     if (displayId < 0) {
         std::string errMsg = "displayid is invalid, less than 0";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.hasPrivateWindow", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -978,6 +1016,7 @@ napi_value OnHasPrivateWindow(napi_env env, napi_callback_info info)
     TLOGD(WmsLogTag::DMS, "[NAPI]Display id = %{public}" PRIu64", hasPrivateWindow = %{public}u err = %{public}d",
         static_cast<uint64_t>(displayId), hasPrivateWindow, errCode);
     if (errCode != DmErrorCode::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.hasPrivateWindow", errCode);
         napi_throw(env, JsErrUtils::CreateJsError(env, errCode));
         return NapiGetUndefined(env);
     }
@@ -1007,11 +1046,13 @@ napi_value CreateJsDisplayArrayObject(napi_env env, std::vector<sptr<Display>>& 
 
 napi_value OnIsFoldable(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.isFoldable.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "isFoldable";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc >= ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.isFoldable", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, "Input parameter invalid")));
         return NapiGetUndefined(env);
@@ -1025,17 +1066,57 @@ napi_value OnIsFoldable(napi_env env, napi_callback_info info)
 
 napi_value OnIsCaptured(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.isCaptured.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "isCaptured";
-    size_t argc = 4;  // default arg length
-    napi_value argv[4] = { nullptr };  // default arg length
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc >= ARGC_ONE) {
-        napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
-            GetFormatMsg(functionName, "Input parameter invalid")));
-        return NapiGetUndefined(env);
+
+    if (argc > ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.isCaptured", DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+            "Input parameter invalid", functionName);
     }
-    bool isCapture = SingletonContainer::Get<DisplayManager>().IsCaptured();
-    TLOGD(WmsLogTag::DMS, "[NAPI]IsCaptured = %{public}u", isCapture);
+
+    if (argc == 0) {
+        bool isCapture = SingletonContainer::Get<DisplayManager>().IsCaptured();
+        TLOGD(WmsLogTag::DMS, "[NAPI]IsCaptured = %{public}u", isCapture);
+        napi_value result;
+        napi_get_boolean(env, isCapture, &result);
+        return result;
+    }
+
+    napi_value nativeArray = argv[0];
+    uint32_t size = 0;
+    if (GetType(env, nativeArray) != napi_object ||
+        napi_get_array_length(env, nativeArray, &size) != napi_ok) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.isCaptured", DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+            "Failed to convert parameter to bundleNameList array", functionName);
+    }
+
+    if (size > BUNDLE_NAME_LIST_MAX_SIZE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.isCaptured", DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+            "The size of bundleNameList is larger than 100", functionName);
+    }
+
+    std::vector<std::string> bundleNameList;
+    for (uint32_t i = 0; i < size; i++) {
+        std::string bundleName;
+        napi_value element = nullptr;
+        napi_get_element(env, nativeArray, i, &element);
+        if (!ConvertFromJsValue(env, element, bundleName)) {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.isCaptured", DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
+            return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
+                "Failed to convert parameter to bundle name", functionName);
+        }
+        bundleNameList.push_back(bundleName);
+    }
+
+    bool isCapture = SingletonContainer::Get<DisplayManager>().IsCapturedByBundleNameList(bundleNameList);
+    TLOGI(WmsLogTag::DMS, "[NAPI] BundleNameList size: %{public}zu, isCapturedByBundleNameList: %{public}u.",
+        bundleNameList.size(), isCapture);
     napi_value result;
     napi_get_boolean(env, isCapture, &result);
     return result;
@@ -1043,11 +1124,13 @@ napi_value OnIsCaptured(napi_env env, napi_callback_info info)
 
 napi_value OnGetFoldStatus(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.getFoldStatus.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "getFoldStatus";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc >= ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getFoldStatus", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, "Input parameter invalid")));
         return NapiGetUndefined(env);
@@ -1059,11 +1142,13 @@ napi_value OnGetFoldStatus(napi_env env, napi_callback_info info)
 
 napi_value OnGetFoldDisplayMode(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.getFoldDisplayMode.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "getFoldDisplayMode";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc >= ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getFoldDisplayMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, "Input parameter invalid")));
         return NapiGetUndefined(env);
@@ -1075,11 +1160,14 @@ napi_value OnGetFoldDisplayMode(napi_env env, napi_callback_info info)
 
 napi_value OnSetFoldDisplayMode(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.setFoldDisplayMode.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         std::string errMsg = "Invalid args count, need one arg";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldDisplayMode",
+            DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -1087,6 +1175,8 @@ napi_value OnSetFoldDisplayMode(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[0], mode)) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to FoldDisplayMode");
         std::string errMsg = "Failed to convert parameter to FoldDisplayMode";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldDisplayMode",
+            DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -1095,6 +1185,8 @@ napi_value OnSetFoldDisplayMode(napi_env env, napi_callback_info info)
         if (!ConvertFromJsValue(env, argv[INDEX_ONE], reason)) {
             TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to reason");
             std::string errMsg = "Failed to convert parameter to reason";
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldDisplayMode",
+                DmErrorCode::DM_ERROR_INVALID_PARAM);
             napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
             return NapiGetUndefined(env);
         }
@@ -1110,6 +1202,8 @@ napi_value OnSetFoldDisplayMode(napi_env env, napi_callback_info info)
     }
     TLOGI(WmsLogTag::DMS, "[NAPI]%{public}d, error message: %{public}s", static_cast<int32_t>(errCode), errMsg.c_str());
     if (errCode != DmErrorCode::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldDisplayMode",
+            errCode);
         napi_throw(env, JsErrUtils::CreateJsError(env, errCode, errMsg));
         return NapiGetUndefined(env);
     }
@@ -1118,11 +1212,13 @@ napi_value OnSetFoldDisplayMode(napi_env env, napi_callback_info info)
 
 napi_value OnSetFoldStatusLocked(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.setFoldStatusLocked.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
         std::string errMsg = "Invalid args count, need one arg";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldStatusLocked", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
@@ -1130,12 +1226,14 @@ napi_value OnSetFoldStatusLocked(napi_env env, napi_callback_info info)
     if (!ConvertFromJsValue(env, argv[0], locked)) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to SetFoldStatusLocked");
         std::string errMsg = "Failed to convert parameter to SetFoldStatusLocked";
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldStatusLocked", DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_PARAM), errMsg));
         return NapiGetUndefined(env);
     }
     DmErrorCode errCode = DM_JS_TO_ERROR_CODE_MAP.at(
         SingletonContainer::Get<DisplayManager>().SetFoldStatusLockedFromJs(locked));
     if (errCode != DmErrorCode::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.setFoldStatusLocked", errCode);
         napi_throw(env, JsErrUtils::CreateJsError(env, errCode));
         return NapiGetUndefined(env);
     }
@@ -1145,11 +1243,14 @@ napi_value OnSetFoldStatusLocked(napi_env env, napi_callback_info info)
 
 napi_value OnGetCurrentFoldCreaseRegion(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.display.getCurrentFoldCreaseRegion.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "getCurrentFoldCreaseRegion";
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc >= ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.getCurrentFoldCreaseRegion",
+            DmErrorCode::DM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, DmErrorCode::DM_ERROR_INVALID_PARAM,
             GetFormatMsg(functionName, "Input parameter invalid")));
         return NapiGetUndefined(env);
@@ -1192,8 +1293,10 @@ napi_value CreateJsCreaseRectsArrayObject(napi_env env, std::vector<DMRect> crea
 napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.createVirtualScreen.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::JS_DISPLAY_MANAGER;
     size_t argc = 4;
     std::string errMsg = "";
     napi_value argv[4] = {nullptr};
@@ -1247,6 +1350,7 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
 napi_value OnMakeUnique(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.makeUnique.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "makeUnique";
     size_t argc = 4;
     int64_t screenId = -1LL;
@@ -1267,6 +1371,7 @@ napi_value OnMakeUnique(napi_env env, napi_callback_info info)
     }
     if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM || screenId == -1LL) {
         TLOGE(WmsLogTag::DMS, "JsDisplayManager::OnMakeUnique failed, Invalidate params.");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.makeUnique", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg, functionName);
     }
     std::vector<ScreenId> screenIds;
@@ -1284,6 +1389,7 @@ napi_value OnMakeUnique(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "makeUnique success");
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.makeUnique", ret);
             task->Reject(env,
                 JsErrUtils::CreateJsError(env, ret, GetFormatMsg(functionName)));
         }
@@ -1296,6 +1402,7 @@ napi_value OnMakeUnique(napi_env env, napi_callback_info info)
 napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.destroyVirtualScreen.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     int64_t screenId = -1LL;
     std::string errMsg = "";
@@ -1315,6 +1422,7 @@ napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
     }
     if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM || screenId == -1LL) {
         TLOGE(WmsLogTag::DMS, "Invalidate params.");
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.destroyVirtualScreen", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg, "destroyVirtualScreen");
     }
     napi_value lastParam = nullptr;
@@ -1346,6 +1454,7 @@ napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
 napi_value OnSetVirtualScreenSurface(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.setVirtualScreenSurface.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     int64_t screenId = -1LL;
     sptr<Surface> surface;
@@ -1449,6 +1558,7 @@ napi_value OnAddVirtualScreenBlockList(napi_env env, napi_callback_info info)
 napi_value OnRemoveVirtualScreenBlockList(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "in");
+    HISTOGRAM_BOOLEAN("ArkUI.display.removeVirtualScreenBlocklist.Count", HISTOGRAM_BOOLEAN_COUNTS);
     std::string functionName = "removeVirtualScreenBlockList";
     size_t argc = ARGC_THREE;
     napi_value argv[ARGC_THREE] = {nullptr};
@@ -1500,6 +1610,7 @@ napi_value OnRemoveVirtualScreenBlockList(napi_env env, napi_callback_info info)
 napi_value OnConvertGlobalCoordinateToRelative(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "in");
+    HISTOGRAM_BOOLEAN("ArkUI.display.convertGlobalToRelativeCoordinate.Count", HISTOGRAM_BOOLEAN_COUNTS);
     Position globalPosition;
     int64_t displayIdTemp = 0;
     std::string functionName = "convertGlobalToRelativeCoordinate";
@@ -1507,10 +1618,14 @@ napi_value OnConvertGlobalCoordinateToRelative(napi_env env, napi_callback_info 
     napi_value argv[ARGC_TWO] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.convertGlobalToRelativeCoordinate",
+            DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
             "Invalid args count, need one arg at least!", functionName);
     }
     if (argv[0] == nullptr) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.convertGlobalToRelativeCoordinate",
+            DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
             "Failed to get globalPosition, globalPosition is nullptr", functionName);
     }
@@ -1563,6 +1678,7 @@ napi_value CreateJsRelativePositionObject(napi_env env, RelativePosition& relati
 napi_value OnConvertRelativeCoordinateToGlobal(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DMS, "in");
+    HISTOGRAM_BOOLEAN("ArkUI.display.convertRelativeToGlobalCoordinate.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     RelativePosition relativePosition;
     std::string functionName = "convertRelativeToGlobalCoordinate";
@@ -1571,18 +1687,24 @@ napi_value OnConvertRelativeCoordinateToGlobal(napi_env env, napi_callback_info 
     napi_value argv[ARGC_ONE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_ONE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.convertRelativeToGlobalCoordinate",
+            DmErrorCode::DM_ERROR_ILLEGAL_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM,
             "Invalid args count, need one arg at least!", functionName);
     }
 
     errCode = GetRelativePositionFromJs(env, argv[0], relativePosition);
     if (errCode != DmErrorCode::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.convertRelativeToGlobalCoordinate",
+            errCode);
         return NapiThrowError(env, errCode, "Failed to get relativePosition!", functionName);
     }
     Position globalPosition;
     errCode = DM_JS_TO_ERROR_CODE_MAP.at(
         SingletonContainer::Get<DisplayManager>().ConvertRelativeCoordinateToGlobal(relativePosition, globalPosition));
     if (errCode != DmErrorCode::DM_OK) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.display.convertRelativeToGlobalCoordinate",
+            errCode);
         return NapiThrowError(env, errCode, "", functionName);
     }
     return CreateJsGlobalPositionObject(env, globalPosition);
@@ -1733,6 +1855,7 @@ bool GetSurfaceFromJs(napi_env env, napi_value surfaceIdNapiValue, sptr<Surface>
 napi_value OnRegisterDisplayAttributeChangeCallback(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.display.onChangeWithAttribute.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = ARGC_TWO;
     napi_value argv[ARGC_TWO] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -1750,7 +1873,7 @@ napi_value OnRegisterDisplayAttributeChangeCallback(napi_env env, napi_callback_
         return NapiGetUndefined(env);
     }
     FilterValidAttributes(attributes);
- 
+
     napi_value value = argv[INDEX_ONE];
     if (value == nullptr) {
         TLOGE(WmsLogTag::DMS, "info->argv[1] is nullptr");

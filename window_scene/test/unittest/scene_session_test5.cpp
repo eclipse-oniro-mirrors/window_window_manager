@@ -109,14 +109,12 @@ HWTEST_F(SceneSessionTest5, GetSystemAvoidArea, TestSize.Level1)
     AvoidArea avoidArea;
     session->property_->SetWindowFlags(0);
     session->property_->SetWindowMode(WindowMode::WINDOW_MODE_UNDEFINED);
-    session->isDisplayStatusBarTemporarily_.store(true);
     session->GetSystemAvoidArea(rect, avoidArea);
     ASSERT_NE(session->GetSessionProperty(), nullptr);
     EXPECT_EQ(WindowMode::WINDOW_MODE_UNDEFINED, session->GetSessionProperty()->GetWindowMode());
 
     session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     info.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_END);
-    session->isDisplayStatusBarTemporarily_.store(false);
     session->GetSystemAvoidArea(rect, avoidArea);
 
     info.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
@@ -211,8 +209,6 @@ HWTEST_F(SceneSessionTest5, GetSystemAvoidArea01, TestSize.Level1)
     WSRect rect;
     AvoidArea avoidArea;
     session->property_->SetWindowFlags(0);
-
-    session->isDisplayStatusBarTemporarily_.store(false);
 
     info.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
     SystemSessionConfig systemConfig;

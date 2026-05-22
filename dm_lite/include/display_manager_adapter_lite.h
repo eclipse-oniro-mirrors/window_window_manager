@@ -72,12 +72,13 @@ public:
     virtual bool WakeUpEnd();
     virtual bool SuspendBegin(PowerStateChangeReason reason);
     virtual bool SuspendEnd();
+    virtual DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
     virtual ScreenId GetInternalScreenId();
     virtual bool SetScreenPowerById(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason);
     virtual bool SetDisplayState(DisplayState state);
     virtual DisplayState GetDisplayState(DisplayId displayId);
     virtual bool TryToCancelScreenOff();
-    virtual bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    virtual bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
     virtual uint32_t GetScreenBrightness(uint64_t screenId);
     virtual DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
     virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);

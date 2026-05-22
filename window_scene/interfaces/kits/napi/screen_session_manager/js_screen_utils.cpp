@@ -18,6 +18,7 @@
 #include <js_runtime_utils.h>
 
 #include "dm_common.h"
+#include "motion_manager.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -64,6 +65,7 @@ napi_value JsScreenUtils::CreateJsScreenProperty(napi_env env, const ScreenPrope
     napi_set_named_property(env, objValue, "scaleX", CreateJsValue(env, screenProperty.GetScaleX()));
     napi_set_named_property(env, objValue, "scaleY", CreateJsValue(env, screenProperty.GetScaleY()));
     napi_set_named_property(env, objValue, "rsId", CreateJsValue(env, static_cast<int64_t>(screenProperty.GetRsId())));
+    napi_set_named_property(env, objValue, "isInternal", CreateJsValue(env, screenProperty.GetInternalStatus()));
     return objValue;
 }
 
@@ -181,6 +183,42 @@ napi_value JsScreenUtils::CreateJsScreenPropertyChangeType(napi_env env)
         static_cast<int32_t>(ScreenPropertyChangeType::SINGLE_HAND_SWITCH)));
     napi_set_named_property(env, objValue, "UNDEFINED", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeType::UNDEFINED)));
+    return objValue;
+}
+
+napi_value JsScreenUtils::CreateJsScreenClosedState(napi_env env)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create object!");
+        return NapiGetUndefined(env);
+    }
+
+    napi_set_named_property(env, objValue, "CLOSE", CreateJsValue(env,
+        static_cast<int32_t>(ScreenClosedState::CLOSE)));
+    napi_set_named_property(env, objValue, "OPEN", CreateJsValue(env,
+        static_cast<int32_t>(ScreenClosedState::OPEN)));
+    napi_set_named_property(env, objValue, "UNKNOWN", CreateJsValue(env,
+        static_cast<int32_t>(ScreenClosedState::UNKNOWN)));
+    return objValue;
+}
+
+napi_value JsScreenUtils::CreateJsMotionType(napi_env env)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Failed to create object!");
+        return NapiGetUndefined(env);
+    }
+
+    napi_set_named_property(env, objValue, "DEVICE_MOTION_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE)));
+    napi_set_named_property(env, objValue, "SMART_MOTION_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::SMART_MOTION_TYPE)));
+    napi_set_named_property(env, objValue, "SMART_MOTION_ENHANCE_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE)));
     return objValue;
 }
 

@@ -73,6 +73,7 @@ ohos_unittest("ws_scene_input_manager_test") {
     "input:libmmi-client",
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
+    "libxml2:libxml2",
   ]
 }
 
@@ -102,6 +103,7 @@ ohos_unittest("ws_scene_session_dirty_manager_test") {
     "input:libmmi-client",
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
+    "libxml2:libxml2",
   ]
 }
 
@@ -132,6 +134,7 @@ ohos_unittest("ws_scene_session_dirty_manager_test2") {
     "input:libmmi-client",
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
+    "libxml2:libxml2",
   ]
 }
 

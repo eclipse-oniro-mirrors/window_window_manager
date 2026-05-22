@@ -24,6 +24,7 @@
 #include "window_manager_agent.h"
 #include "zidl/screen_session_manager_stub.h"
 #include "zidl/window_manager_agent_interface.h"
+#include "motion_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -369,6 +370,50 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest13, TestSize.Level1)
     uint32_t code = static_cast<uint32_t>(
         DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID);
 
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequestGetDisplayByIdWithHookRequired
+ * @tc.desc: test GetDisplayById with isGetActualInfo parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestGetDisplayByIdWithHookRequired, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 0;
+    data.WriteUint64(displayId);
+    bool isGetActualInfo = true;
+    data.WriteBool(isGetActualInfo);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: OnRemoteRequestGetDisplayByIdWithHookRequiredFalse
+ * @tc.desc: test GetDisplayById with isGetActualInfo = false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestGetDisplayByIdWithHookRequiredFalse, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 0;
+    data.WriteUint64(displayId);
+    bool isGetActualInfo = false;
+    data.WriteBool(isGetActualInfo);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID);
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
 }
@@ -3782,6 +3827,221 @@ HWTEST_F(ScreenSessionManagerStubTest, SetPowerStateForAodNnormalTest, TestSize.
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
 }
+
+/**
+ * @tc.name: IsCapturedByBundleNameList001
+ * @tc.desc: IsCapturedByBundleNameList test normal input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, IsCapturedByBundleNameList001, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    std::vector<std::string> bundleNameList = {"com.test.app1", "com.test.app2"};
+    data.WriteStringVector(bundleNameList);
+    
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+    
+    bool result = reply.ReadBool();
+    EXPECT_EQ(result, false);
 }
+
+/**
+ * @tc.name: IsCapturedByBundleNameList002
+ * @tc.desc: empty bundleNameList
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, IsCapturedByBundleNameList002, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    std::vector<std::string> bundleNameList;
+    data.WriteStringVector(bundleNameList);
+    
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_DEVICE_IS_CAPTURE_BY_BUNDLE_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+
+    bool result = reply.ReadBool();
+    EXPECT_EQ(result, false);
 }
+
+/**
+ * @tc.name: OnRemoteRequestSetOrientationWithOptions
+ * @tc.desc: TRANS_ID_SET_ORIENTATION_WITH_OPTIONS normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetOrientationWithOptions, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+
+    ScreenId screenId = 0;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    Orientation orientation = Orientation::VERTICAL;
+    data.WriteUint32(static_cast<uint32_t>(orientation));
+    bool needAnimation = true;
+    data.WriteBool(needAnimation);
+    bool ignoreRotationLock = false;
+    data.WriteBool(ignoreRotationLock);
+    bool isFromNapi = true;
+    data.WriteBool(isFromNapi);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_ORIENTATION_WITH_OPTIONS);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
 }
+
+/**
+ * @tc.name: OnRemoteRequest_GetScreenCapability
+ * @tc.desc: TRANS_ID_GET_SCREEN_CAPABILITY normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+    DMError ret = static_cast<DMError>(reply.ReadInt32());
+    EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: normal function, TRANS_ID_SUBSCRIBE_MOTION_SENSOR test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    int32_t motionType = static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE);
+    data.WriteInt32(motionType);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: normal function, TRANS_ID_SUBSCRIBE_MOTION_SENSOR test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    int32_t motionType = static_cast<int32_t>(MotionType::SMART_MOTION_TYPE);
+    data.WriteInt32(motionType);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor03
+ * @tc.desc: invalid data, TRANS_ID_SUBSCRIBE_MOTION_SENSOR test without motionType
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SubscribeMotionSensor03, TestSize.Level3)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, -1);
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: normal function, TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    int32_t motionType = static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE);
+    data.WriteInt32(motionType);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: normal function, TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    int32_t motionType = static_cast<int32_t>(MotionType::SMART_MOTION_TYPE);
+    data.WriteInt32(motionType);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor03
+ * @tc.desc: invalid data, TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR test without motionType
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, UnsubscribeMotionSensor03, TestSize.Level3)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, -1);
+}
+} // namespace
+} // namespace Rosen
+} // namespace OHOS

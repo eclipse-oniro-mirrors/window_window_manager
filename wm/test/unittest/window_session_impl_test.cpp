@@ -75,6 +75,7 @@ void WindowSessionImplTest::TearDown()
     usleep(WAIT_SYNC_IN_NS);
     abilityContext_ = nullptr;
 }
+}
 
 namespace {
 /**
@@ -2023,7 +2024,7 @@ HWTEST_F(WindowSessionImplTest, UpdateWindowMode, TestSize.Level1)
     sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
     ASSERT_NE(window, nullptr);
     WindowMode mode = WindowMode{ 0 };
-    auto ret = window->UpdateWindowMode(mode);
+    auto ret = window->UpdateWindowMode(WindowModeInfo{ mode });
     ASSERT_EQ(ret, WSError::WS_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateWindowModetest01 end";
 }
@@ -2384,113 +2385,311 @@ HWTEST_F(WindowSessionImplTest, GetStatusBarHeight, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetWindowStatusInner
+ * @tc.name: GetOwnWindowStatus
  * @tc.desc: GetStatusBarHeightFunOptimize
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, GetWindowStatusInner01, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, GetOwnWindowStatus01, TestSize.Level1)
 {
     WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetWindowStatusInner");
+    option->SetWindowName("GetOwnWindowStatus");
     sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
     sptr<WindowSessionProperty> property_ = sptr<WindowSessionProperty>::MakeSptr();
 
     //case:mode == WindowMode::WINDOW_MODE_FLOATING&&property_->GetMaximizeMode() == MaximizeMode::MODE_AVOID_SYSTEM_BAR
     window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
     mode = WindowMode::WINDOW_MODE_FLOATING;
-    auto result = window->GetWindowStatusInner(mode);
+    auto result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 
     //case:mode == WindowMode::WINDOW_MODE_FLOATING&&property_->GetMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR
     window->property_->SetMaximizeMode(MaximizeMode::MODE_END);
     mode = WindowMode::WINDOW_MODE_FLOATING;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FLOATING);
 
     //case:mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
     //case1:mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY
     mode = WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 
     //case2:mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY
     mode = WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
 
     //case:mode == WindowMode::WINDOW_MODE_FULLSCREEN
     // case1:!IsPcOrPadFreeMultiWindowMode
     mode = WindowMode::WINDOW_MODE_FULLSCREEN;
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // case2:!GetTargetAPIVersion() >= 14
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->targetAPIVersion_ = 12;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // case3:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
     EXPECT_CALL(*window, GetImmersiveModeEnabledState())
-    .Times(1)
     .WillRepeatedly(Return(true));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->targetAPIVersion_ = 14;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
 
     // case4:IsPcOrPadFreeMultiWindowMode() && GetTargetAPIVersion() >= 14
     EXPECT_CALL(*window, GetImmersiveModeEnabledState())
-    .Times(1)
     .WillRepeatedly(Return(false));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->targetAPIVersion_ = 14;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
 
     //case:state_ == WindowState::STATE_HIDDEN
     mode = WindowMode::WINDOW_MODE_UNDEFINED;
     window->state_ = WindowState::STATE_HIDDEN;
-    result = window->GetWindowStatusInner(mode);
+    result = window->GetOwnWindowStatus(mode);
     EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
 }
 
 /**
- * @tc.name: GetWindowStatusInner
- * @tc.desc: GetWindowStatusInner test
+ * @tc.name: GetOwnWindowStatus
+ * @tc.desc: GetOwnWindowStatus test
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, GetWindowStatusInner, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, GetOwnWindowStatus, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetWindowStatusInner");
+    option->SetWindowName("GetOwnWindowStatus");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
-    EXPECT_EQ(WindowStatus::WINDOW_STATUS_UNDEFINED, window->GetWindowStatusInner(WindowMode::WINDOW_MODE_PIP));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_UNDEFINED, window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_PIP));
 
     window->SetTargetAPIVersion(14);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, window->GetWindowStatusInner(WindowMode::WINDOW_MODE_FULLSCREEN));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_FULLSCREEN));
     window->SetTargetAPIVersion(12);
-    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, window->GetWindowStatusInner(WindowMode::WINDOW_MODE_FULLSCREEN));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_FULLSCREEN));
 
     EXPECT_EQ(WindowStatus::WINDOW_STATUS_SPLITSCREEN,
-    window->GetWindowStatusInner(WindowMode::WINDOW_MODE_SPLIT_PRIMARY));
+    window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_SPLIT_PRIMARY));
     EXPECT_EQ(WindowStatus::WINDOW_STATUS_SPLITSCREEN,
-    window->GetWindowStatusInner(WindowMode::WINDOW_MODE_SPLIT_SECONDARY));
+    window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_SPLIT_SECONDARY));
 
     window->property_->maximizeMode_ = MaximizeMode::MODE_AVOID_SYSTEM_BAR;
-    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MAXIMIZE, window->GetWindowStatusInner(WindowMode::WINDOW_MODE_FLOATING));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MAXIMIZE, window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_FLOATING));
     window->property_->maximizeMode_ = MaximizeMode::MODE_FULL_FILL;
-    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FLOATING, window->GetWindowStatusInner(WindowMode::WINDOW_MODE_FLOATING));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FLOATING, window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_FLOATING));
 
     window->state_ = WindowState::STATE_HIDDEN;
-    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MINIMIZE, window->GetWindowStatusInner(WindowMode::WINDOW_MODE_PIP));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MINIMIZE, window->GetOwnWindowStatus(WindowMode::WINDOW_MODE_PIP));
+}
+
+/**
+ * @tc.name: ConvertWindowModeToStatus01
+ * @tc.desc: Test ConvertWindowModeToStatus with FLOATING mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ConvertWindowModeToStatus01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertWindowModeToStatus01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "ConvertTestBundle", "ConvertTestModule", "ConvertTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    // FLOATING + MODE_AVOID_SYSTEM_BAR → MAXIMIZE
+    auto result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_AVOID_SYSTEM_BAR, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
+
+    // FLOATING + MODE_FULL_FILL → FLOATING
+    result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FLOATING);
+}
+
+/**
+ * @tc.name: ConvertWindowModeToStatus02
+ * @tc.desc: Test ConvertWindowModeToStatus with SPLIT mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ConvertWindowModeToStatus02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertWindowModeToStatus02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "ConvertTestBundle", "ConvertTestModule", "ConvertTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    // SPLIT_PRIMARY → SPLITSCREEN
+    auto result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_SPLIT_PRIMARY, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+
+    // SPLIT_SECONDARY → SPLITSCREEN
+    result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_SPLIT_SECONDARY, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+}
+
+/**
+ * @tc.name: ConvertWindowModeToStatus03
+ * @tc.desc: Test ConvertWindowModeToStatus with FULLSCREEN mode under different PC mode and API version
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ConvertWindowModeToStatus03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertWindowModeToStatus03");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+
+    // FULLSCREEN + non-PC mode → FULLSCREEN
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    auto result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // FULLSCREEN + PC mode + API < 14 → FULLSCREEN
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->targetAPIVersion_ = 12;
+    result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // FULLSCREEN + PC mode + API >= 14 + immersive=true → FULLSCREEN
+    window->targetAPIVersion_ = 14;
+    result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, true);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // FULLSCREEN + PC mode + API >= 14 + immersive=false → MAXIMIZE
+    result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
+}
+
+/**
+ * @tc.name: ConvertWindowModeToStatus04
+ * @tc.desc: Test ConvertWindowModeToStatus with unrecognized mode returns UNDEFINED
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ConvertWindowModeToStatus04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertWindowModeToStatus04");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "ConvertTestBundle", "ConvertTestModule", "ConvertTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    // PIP → UNDEFINED
+    auto result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_PIP, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_UNDEFINED);
+
+    // UNDEFINED → UNDEFINED
+    result = window->ConvertWindowModeToStatus(
+        WindowMode::WINDOW_MODE_UNDEFINED, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_UNDEFINED);
+}
+
+/**
+ * @tc.name: GetWindowStatusWithExternalState01
+ * @tc.desc: Test GetWindowStatusWithExternalState delegates to ConvertWindowModeToStatus with parent params
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetWindowStatusWithExternalState01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStatusWithExternalState01");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+
+    // Parent FLOATING + MODE_AVOID_SYSTEM_BAR → MAXIMIZE
+    auto result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_AVOID_SYSTEM_BAR, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
+
+    // Parent FLOATING + MODE_FULL_FILL → FLOATING
+    result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FLOATING);
+
+    // Parent SPLIT_PRIMARY → SPLITSCREEN
+    result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_SPLIT_PRIMARY, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+
+    // Parent SPLIT_SECONDARY → SPLITSCREEN
+    result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_SPLIT_SECONDARY, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_SPLITSCREEN);
+}
+
+/**
+ * @tc.name: GetWindowStatusWithExternalState02
+ * @tc.desc: Test GetWindowStatusWithExternalState with FULLSCREEN mode and parent isLayoutFullScreen parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetWindowStatusWithExternalState02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStatusWithExternalState02");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+
+    // Parent FULLSCREEN + non-PC → FULLSCREEN (isLayoutFullScreen not used in this path)
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    auto result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // Parent FULLSCREEN + PC + API >= 14 + isLayoutFullScreen=true → FULLSCREEN
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->targetAPIVersion_ = 14;
+    result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, true);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_FULLSCREEN);
+
+    // Parent FULLSCREEN + PC + API >= 14 + isLayoutFullScreen=false → MAXIMIZE
+    result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MAXIMIZE);
+}
+
+/**
+ * @tc.name: GetWindowStatusWithExternalState03
+ * @tc.desc: Test GetWindowStatusWithExternalState returns MINIMIZE when current session is hidden
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetWindowStatusWithExternalState03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetWindowStatusWithExternalState03");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+
+    window->state_ = WindowState::STATE_HIDDEN;
+
+    // Hidden state overrides parent FULLSCREEN to MINIMIZE
+    auto result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FULLSCREEN, MaximizeMode::MODE_FULL_FILL, true);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
+
+    // Hidden state overrides parent FLOATING to MINIMIZE
+    result = window->GetWindowStatusWithExternalState(
+        WindowMode::WINDOW_MODE_FLOATING, MaximizeMode::MODE_AVOID_SYSTEM_BAR, false);
+    EXPECT_EQ(result, WindowStatus::WINDOW_STATUS_MINIMIZE);
 }
 
 /**
@@ -2571,6 +2770,15 @@ HWTEST_F(WindowSessionImplTest, GetExtensionConfig, TestSize.Level1)
     window->GetExtensionConfig(want);
     EXPECT_EQ(want.GetIntParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, 0),
         static_cast<int32_t>(isHostWindowDelayRaiseEnabled));
+
+    window->lastWindowStatus_.store(WindowStatus::WINDOW_STATUS_FULLSCREEN);
+    window->GetExtensionConfig(want);
+    EXPECT_EQ(want.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD, 0),
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FULLSCREEN));
+    window->lastWindowStatus_.store(WindowStatus::WINDOW_STATUS_MAXIMIZE);
+    window->GetExtensionConfig(want);
+    EXPECT_EQ(want.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD, 0),
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_MAXIMIZE));
 }
 
 /**
@@ -2844,6 +3052,325 @@ HWTEST_F(WindowSessionImplTest, GetAttachStateSyncResult, TestSize.Level1)
     window->GetAttachStateSyncResult(true, false);
     EXPECT_TRUE(g_errLog.find("get attach state sync result") != std::string::npos);
 }
+
+/**
+ * @tc.name: UpdateFloatingBallForVisible
+ * @tc.desc: UpdateFloatingBallForVisible
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFloatingBallForVisible01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFloatingBallForVisible01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, window->UpdateFloatingBallForVisible(true));
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, window->UpdateFloatingBallForVisible(false));
+
+    SessionInfo sessionInfo = {"UpdateFloatingBallForVisible01", "UpdateFloatingBallForVisible01",
+        "UpdateFloatingBallForVisible01"};
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+    EXPECT_CALL(*(session), UpdateFloatingBall(_)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_EQ(WMError::WM_OK, window->UpdateFloatingBallForVisible(true));
+
+    window->hostSession_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, window->UpdateFloatingBallForVisible(true));
+}
+
+/**
+ * @tc.name: NotifyPrepareCloseFloatView
+ * @tc.desc: NotifyPrepareCloseFloatView Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, NotifyPrepareCloseFloatView, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: NotifyPrepareCloseFloatView start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyPrepareCloseFloatView");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "NotifyPrepareCloseFloatView", "NotifyPrepareCloseFloatView",
+        "NotifyPrepareCloseFloatView" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_NE(nullptr, session);
+
+    window->property_->SetPersistentId(1);
+    WindowSessionImpl::windowSessionMap_.clear();
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
+
+    window->NotifyPrepareCloseFloatView();
+
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+    EXPECT_CALL(*(session), NotifyFloatViewPrepareClose()).Times(1);
+    window->NotifyPrepareCloseFloatView();
+    WindowSessionImpl::windowSessionMap_.clear();
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: NotifyPrepareCloseFloatView end";
+}
+
+/**
+ * @tc.name: UpdateFloatView
+ * @tc.desc: UpdateFloatView Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFloatView, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateFloatView start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFloatView");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "UpdateFloatView", "UpdateFloatView", "UpdateFloatView" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_NE(nullptr, session);
+
+    FloatViewTemplateInfo fvTemplateInfo;
+    fvTemplateInfo.template_ = 1;
+    fvTemplateInfo.visibleInApp_ = true;
+    fvTemplateInfo.isBind_ = false;
+    fvTemplateInfo.bindWindowId_ = INVALID_WINDOW_ID;
+    fvTemplateInfo.rect_ = {0, 0, 100, 100};
+    fvTemplateInfo.showWhenCreate_ = true;
+
+    WMError res = window->UpdateFloatView(fvTemplateInfo);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->property_->SetPersistentId(1);
+    WindowSessionImpl::windowSessionMap_.clear();
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
+
+    res = window->UpdateFloatView(fvTemplateInfo);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+    EXPECT_CALL(*(session), UpdateFloatView(_)).WillOnce(Return(WMError::WM_OK));
+    res = window->UpdateFloatView(fvTemplateInfo);
+    ASSERT_EQ(res, WMError::WM_OK);
+
+    EXPECT_CALL(*(session), UpdateFloatView(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    res = window->UpdateFloatView(fvTemplateInfo);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    WindowSessionImpl::windowSessionMap_.clear();
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateFloatView end";
+}
+
+/**
+ * @tc.name: RestoreFloatViewMainWindow
+ * @tc.desc: RestoreFloatViewMainWindow Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, RestoreFloatViewMainWindow, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: RestoreFloatViewMainWindow start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RestoreFloatViewMainWindow");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "RestoreFloatViewMainWindow", "RestoreFloatViewMainWindow",
+        "RestoreFloatViewMainWindow" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_NE(nullptr, session);
+
+    std::shared_ptr<AAFwk::WantParams> wantParams = std::make_shared<AAFwk::WantParams>();
+
+    WMError res = window->RestoreFloatViewMainWindow(wantParams);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->property_->SetPersistentId(1);
+    window->property_->SetParentPersistentId(2);
+    WindowSessionImpl::windowSessionMap_.clear();
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
+
+    res = window->RestoreFloatViewMainWindow(wantParams);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    sptr<WindowOption> parentOption = sptr<WindowOption>::MakeSptr();
+    parentOption->SetWindowName("RestoreFloatViewMainWindow_Parent");
+    sptr<WindowSessionImpl> parentWindow = sptr<WindowSessionImpl>::MakeSptr(parentOption);
+    parentWindow->property_->SetPersistentId(2);
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(parentWindow->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(parentWindow->GetWindowId(), parentWindow)));
+
+    res = window->RestoreFloatViewMainWindow(wantParams);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+    EXPECT_CALL(*(session), RestoreFloatViewMainWindow(_)).WillOnce(Return(WMError::WM_OK));
+    res = window->RestoreFloatViewMainWindow(wantParams);
+    ASSERT_EQ(res, WMError::WM_OK);
+
+    EXPECT_CALL(*(session), RestoreFloatViewMainWindow(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    res = window->RestoreFloatViewMainWindow(wantParams);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+    WindowSessionImpl::windowSessionMap_.clear();
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: RestoreFloatViewMainWindow end";
+}
+
+/**
+ * @tc.name: UpdateFloatShowWhenCreate
+ * @tc.desc: UpdateFloatShowWhenCreate Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFloatShowWhenCreate, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateFloatShowWhenCreate start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFloatShowWhenCreate");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    WMError res = window->UpdateFloatShowWhenCreate(true);
+    ASSERT_EQ(res, WMError::WM_ERROR_INVALID_WINDOW);
+
+    SessionInfo sessionInfo = { "UpdateFloatShowWhenCreate", "UpdateFloatShowWhenCreate", "UpdateFloatShowWhenCreate" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_NE(nullptr, session);
+
+    window->property_->SetPersistentId(1);
+    WindowSessionImpl::windowSessionMap_.clear();
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
+    window->hostSession_ = session;
+    window->state_ = WindowState::STATE_CREATED;
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    window->UpdateFloatShowWhenCreate(true);
+    EXPECT_EQ(true, window->property_->GetFbTemplateInfo().showWhenCreate_);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    window->UpdateFloatShowWhenCreate(true);
+    EXPECT_EQ(true, window->property_->GetFvTemplateInfo().showWhenCreate_);
+
+    WindowSessionImpl::windowSessionMap_.clear();
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: UpdateFloatShowWhenCreate end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported01
+ * @tc.desc: IsSubWindowMaximizeSupported - not sub window returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported01 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported01 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported02
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported02 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = true;
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_EQ(true, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN |
+        WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    EXPECT_EQ(true, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY |
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_SECONDARY);
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported02 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported03
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is false, use windowOption
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported03 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported03");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = false;
+    EXPECT_EQ(true, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported03 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported04
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is false, windowOption is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported04 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = false;
+    window->windowOption_ = nullptr;
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported04 end";
+}
+
+/**
+ * @tc.name: IsSubWindowMaximizeSupported05
+ * @tc.desc: IsSubWindowMaximizeSupported - haveSetSupportedWindowModes is false, windowOption returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported05 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("IsSubWindowMaximizeSupported05");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetSubWindowMaximizeSupported(false);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->haveSetSupportedWindowModes_ = false;
+    EXPECT_EQ(false, window->IsSubWindowMaximizeSupported());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported05 end";
 }
 } // namespace
 } // namespace Rosen

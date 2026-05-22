@@ -233,14 +233,13 @@ HWTEST_F(WindowSceneSessionImplTest2, SetNeedDefaultAnimation01, TestSize.Level1
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetNeedDefaultAnimation01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    auto ret = true;
     window->property_->SetPersistentId(1);
 
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     window->SetNeedDefaultAnimation(false);
-    ASSERT_TRUE(ret);
+    ASSERT_FALSE(window->enableDefaultAnimation_);
 }
 
 /**
@@ -377,9 +376,10 @@ HWTEST_F(WindowSceneSessionImplTest2, UpdateWindowModeImmediately01, TestSize.Le
     option->SetWindowType(WindowType::SYSTEM_WINDOW_BASE);
 
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_UNDEFINED));
+    WindowModeInfo undefinedModeInfo = { WindowMode::WINDOW_MODE_UNDEFINED };
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(undefinedModeInfo));
     windowSceneSession->state_ = WindowState::STATE_CREATED;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_UNDEFINED));
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->UpdateWindowModeImmediately(undefinedModeInfo));
 }
 
 /**
@@ -395,19 +395,19 @@ HWTEST_F(WindowSceneSessionImplTest2, UpdateWindowMode01, TestSize.Level1)
 
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
     windowSceneSession->state_ = WindowState::STATE_CREATED;
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
 
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSession->hostSession_ = session;
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
     windowSceneSession->property_->SetPersistentId(1);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW_MODE_OR_SIZE,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED }));
 }
 
 /**
@@ -423,18 +423,19 @@ HWTEST_F(WindowSceneSessionImplTest2, UpdateWindowMode02, TestSize.Level1)
 
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
     windowSceneSession->state_ = WindowState::STATE_CREATED;
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
 
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSession->hostSession_ = session;
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW,
-              windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
     windowSceneSession->property_->SetPersistentId(1);
-    ASSERT_EQ(WSError::WS_OK, windowSceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN));
+    ASSERT_EQ(WSError::WS_OK,
+              windowSceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN }));
 }
 
 /**

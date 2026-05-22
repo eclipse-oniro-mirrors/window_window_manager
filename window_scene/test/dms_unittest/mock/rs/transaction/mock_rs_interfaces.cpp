@@ -140,7 +140,7 @@ int32_t RSInterfaces::GetScreenBacklight(ScreenId id)
     return 0;
 }
 
-void RSInterfaces::SetScreenBacklight(ScreenId id, uint32_t level) {}
+void RSInterfaces::SetScreenBacklight(const RsScreenBrightnessData& brightnessData) {}
 int32_t RSInterfaces::GetScreenSupportedColorGamuts(ScreenId id, std::vector<ScreenColorGamut>& mode)
 {
     return 0;
@@ -271,6 +271,27 @@ int32_t RSInterfaces::SetLogicalCameraRotationCorrection(ScreenId id, ScreenRota
 }
 
 ScreenId RSInterfaces::GetActiveScreenId()
+{
+    return 0;
+}
+
+ScreenId RSInterfaces::GetMainScreenId()
+{
+    return 0;
+}
+
+int32_t RSInterfaces::SetAsMainScreen(ScreenId id, bool isMainScreen)
+{
+    return 0;
+}
+
+int32_t RSInterfaces::RegisterExposedEventCallback(
+    const RSExposedEventType type, const RSExposedEventCallback& callback)
+{
+    return 0;
+}
+
+int32_t RSInterfaces::UnRegisterExposedEventCallback(const RSExposedEventType type)
 {
     return 0;
 }

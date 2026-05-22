@@ -51,7 +51,7 @@ public:
     uint32_t defaultRot_ = 0;
 };
 
-DisplayId ScreenshotTest::defaultId_ = DISPLAY_ID_INVALID;
+DisplayId ScreenshotTest::defaultId_ = 0;
 Media::Rect ScreenshotTest::defaultScreen_ = {0, 0, 0, 0};
 Media::Size ScreenshotTest::defaultImage_ = {0, 0};
 
@@ -62,7 +62,7 @@ void ScreenshotTest::SetUpTestCase()
     perms[0] = "ohos.permission.CAPTURE_SCREEN";
     CommonTestUtils::SetAceessTokenPermission("ScreenshotTest", perms, 1);
 
-    auto display = DisplayManager::GetInstance().GetDefaultDisplay();
+    auto display = DisplayManager::GetInstance().GetDisplayById(defaultId_);
     if (display == nullptr) {
         WLOGFE("GetDefaultDisplay: failed!\n");
         return;
@@ -70,7 +70,6 @@ void ScreenshotTest::SetUpTestCase()
     WLOGI("GetDefaultDisplay: id %" PRIu64", w %d, h %d, fps %u\n", display->GetId(), display->GetWidth(),
         display->GetHeight(), display->GetRefreshRate());
 
-    defaultId_ = display->GetId();
     defaultScreen_ = {0, 0, display->GetWidth(), display->GetHeight()};
     defaultImage_ = {display->GetWidth(), display->GetHeight()};
 }

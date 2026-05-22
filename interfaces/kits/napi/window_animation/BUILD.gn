@@ -61,4 +61,5 @@ ohos_shared_library("window_animation_utils") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

@@ -530,7 +530,7 @@ void DisplayManagerAgentProxy::NotifyBrightnessInfoChanged(ScreenId screenId, co
         return;
     }
     if (!data.WriteFloat(info.currentHeadroom) || !data.WriteFloat(info.maxHeadroom) ||
-        !data.WriteFloat(info.sdrNits)) {
+        !data.WriteFloat(info.sdrNits) || !data.WriteFloat(info.brightnessPosition)) {
         TLOGE(WmsLogTag::DMS, "write info failed");
         return;
     }

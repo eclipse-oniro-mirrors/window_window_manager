@@ -314,6 +314,19 @@ public:
      * @return Is sub window outline enabled
      */
     bool IsSubWindowOutlineEnabled() const;
+    /**
+     * @brief Set sub window zLevelAboveParentLoosened
+     *
+     * @param zLevelAboveParentLoosened whether loose the restriction of sub window z-level above parent
+     */
+    void SetZLevelAboveParentLoosened(bool zLevelAboveParentLoosened);
+ 
+    /**
+     * @brief Get sub window zLevelAboveParentLoosened
+     *
+     * @return whether loose the restriction of sub window z-level above parent
+     */
+    bool IsSubWindowZLevelAboveParentLoosened() const;
 
     /**
      * @brief Set real parent id of UIExtension
@@ -719,6 +732,7 @@ private:
     bool subWindowDecorEnable_ = false;
     bool subWindowMaximizeSupported_ = false;
     bool subWindowOutlineEnabled_ = false;
+    bool zLevelAboveParentLoosened_ = false;
     bool onlySupportSceneBoard_ = false;
     bool dialogDecorEnable_ = false;
     std::string dialogTitle_ = { "" };

@@ -19,10 +19,12 @@
 #include "display_info.h"
 #include "display_manager.h"
 #include "display_manager_proxy.h"
+#include "mock_display_manager_adapter.h"
+#include "scene_board_judgement.h"
 #include "screen_manager.h"
 #include "screen_manager/rs_screen_mode_info.h"
+#include "singleton_mocker.h"
 #include "window_manager_hilog.h"
-#include "scene_board_judgement.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -36,6 +38,8 @@ constexpr uint32_t SLEEP_TIME_IN_US = 10000; // 10ms
 constexpr uint32_t SPLIT_TEST_SLEEP_S = 2;
 }
 
+using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+using ScreenMocker = SingletonMocker<ScreenManagerAdapter, MockScreenManagerAdapter>;
 class DisplayChangeEventListener : public DisplayManager::IDisplayListener {
 public:
     virtual void OnCreate(DisplayId displayId)
@@ -77,28 +81,20 @@ public:
     static uint32_t originalDisplayDpi;
     static inline uint32_t times_ = 0;
 };
-DisplayId DisplayChangeTest::defaultDisplayId_ = DISPLAY_ID_INVALID;
+DisplayId DisplayChangeTest::defaultDisplayId_ = 0;
 sptr<Screen> DisplayChangeTest::defaultScreen_ = nullptr;
 sptr<DisplayChangeEventListener> DisplayChangeTest::listener_ = new DisplayChangeEventListener();
 uint32_t DisplayChangeTest::originalDisplayDpi = 0;
 
 void DisplayChangeTest::SetUpTestCase()
 {
-    defaultDisplayId_ = DisplayManager::GetInstance().GetDefaultDisplayId();
-    ASSERT_NE(DISPLAY_ID_INVALID, defaultDisplayId_);
-    sptr<Display> defaultDisplay = DisplayManager::GetInstance().GetDisplayById(defaultDisplayId_);
-    ASSERT_NE(nullptr, defaultDisplay);
-    ScreenId screenId = defaultDisplay->GetScreenId();
-    ASSERT_NE(INVALID_SCREEN_ID, screenId);
-    defaultScreen_ = ScreenManager::GetInstance().GetScreenById(screenId);
-    ASSERT_NE(nullptr, defaultScreen_);
-
-    ASSERT_EQ(DMError::DM_OK, DisplayManager::GetInstance().RegisterDisplayListener(listener_));
+    sptr<ScreenInfo> screenInfo = sptr<ScreenInfo>::MakeSptr();
+    defaultScreen_ = sptr<Screen>::MakeSptr(screenInfo);
 }
 
 void DisplayChangeTest::TearDownTestCase()
 {
-    DisplayManager::GetInstance().UnregisterDisplayListener(listener_);
+    defaultScreen_ = nullptr;
 }
 
 void DisplayChangeTest::SetUp()
@@ -179,8 +175,10 @@ namespace {
  */
 HWTEST_F(DisplayChangeTest, RegisterDisplayChangeListener01, TestSize.Level1)
 {
-    sptr<DisplayChangeEventListener> listener = new DisplayChangeEventListener();
-    DMError ret = DisplayManager::GetInstance().RegisterDisplayListener(listener);
+    DisplayMocker m;
+    EXPECT_CALL(m.Mock(), RegisterDisplayManagerAgent(_, DisplayManagerAgentType::DISPLAY_EVENT_LISTENER))
+        .Times(1).WillOnce(Return(DMError::DM_OK));
+    DMError ret = DisplayManager::GetInstance().RegisterDisplayListener(listener_);
     ASSERT_EQ(DMError::DM_OK, ret);
 }
 
@@ -202,9 +200,10 @@ HWTEST_F(DisplayChangeTest, RegisterDisplayChangeListener02, TestSize.Level1)
  */
 HWTEST_F(DisplayChangeTest, UnregisterDisplayChangeListener01, TestSize.Level1)
 {
-    sptr<DisplayChangeEventListener> listener = new DisplayChangeEventListener();
-    DisplayManager::GetInstance().RegisterDisplayListener(listener);
-    DMError ret = DisplayManager::GetInstance().UnregisterDisplayListener(listener);
+    DisplayMocker m;
+    EXPECT_CALL(m.Mock(), UnregisterDisplayManagerAgent(_, DisplayManagerAgentType::DISPLAY_EVENT_LISTENER))
+        .Times(1).WillOnce(Return(DMError::DM_OK));
+    DMError ret = DisplayManager::GetInstance().UnregisterDisplayListener(listener_);
     ASSERT_EQ(DMError::DM_OK, ret);
 }
 
@@ -333,10 +332,12 @@ HWTEST_F(DisplayChangeTest, CheckDisplaySizeChange02, TestSize.Level1)
  */
 HWTEST_F(DisplayChangeTest, CheckScreenDensityChange01, TestSize.Level1)
 {
-    DisplayChangeTest::originalDisplayDpi = static_cast<uint32_t>(DisplayManager::GetInstance().
-        GetDisplayById(defaultDisplayId_)->GetVirtualPixelRatio() * BASELINE_DENSITY);
+    DisplayChangeTest::originalDisplayDpi =
+        static_cast<uint32_t>(defaultScreen_->GetVirtualPixelRatio() * BASELINE_DENSITY);
     ASSERT_NE(0, DisplayChangeTest::originalDisplayDpi);
     uint32_t densityDpi = 320;
+    ScreenMocker m;
+    EXPECT_CALL(m.Mock(), SetVirtualPixelRatio(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ASSERT_EQ(DMError::DM_OK, defaultScreen_->SetDensityDpi(densityDpi));
     sleep(SPLIT_TEST_SLEEP_S);
 }
@@ -349,6 +350,8 @@ HWTEST_F(DisplayChangeTest, CheckScreenDensityChange01, TestSize.Level1)
 HWTEST_F(DisplayChangeTest, CheckScreenDensityChange02, TestSize.Level1)
 {
     uint32_t densityDpi = 80;
+    ScreenMocker m;
+    EXPECT_CALL(m.Mock(), SetVirtualPixelRatio(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ASSERT_EQ(DMError::DM_OK, defaultScreen_->SetDensityDpi(densityDpi));
     sleep(SPLIT_TEST_SLEEP_S);
 }
@@ -382,6 +385,8 @@ HWTEST_F(DisplayChangeTest, CheckScreenDensityChange04, TestSize.Level1)
  */
 HWTEST_F(DisplayChangeTest, CheckScreenDensityChange05, TestSize.Level1)
 {
+    ScreenMocker m;
+    EXPECT_CALL(m.Mock(), SetVirtualPixelRatio(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ASSERT_EQ(DMError::DM_OK, defaultScreen_->SetDensityDpi(DisplayChangeTest::originalDisplayDpi));
     sleep(SPLIT_TEST_SLEEP_S);
 }

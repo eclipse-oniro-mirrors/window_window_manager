@@ -16,6 +16,7 @@
 sequenceable OHOS.Rosen.DisplayInfo;
 sequenceable OHOS.Rosen.CutoutInfo;
 sequenceable OHOS.Rosen.ScreenInfo;
+sequenceable dm_common..OHOS.Rosen.DmsScreenBrightnessData;
 interface zidl..OHOS.Rosen.IDisplayManagerAgent;
 
 interface OHOS.Rosen.IDisplayManagerLite {
@@ -41,6 +42,6 @@ interface OHOS.Rosen.IDisplayManagerLite {
     void GetAllDisplayIds([out] unsigned long[] displayIds);
     void GetAllScreenInfos([out] sptr<ScreenInfo>[] screenInfos, [out] int dmError);
     void GetScreenInfoById([in] unsigned long screenId, [out] sptr<ScreenInfo> screenInfo);
-    void SetScreenBrightness([in] unsigned long screenId, [in] unsigned int level, [out] boolean isSucc);
+    void SetScreenBrightness([in] DmsScreenBrightnessData brightnessData, [out] boolean isSucc);
     void GetScreenBrightness([in] unsigned long screenId, [out] unsigned int level);
 }

@@ -90,6 +90,7 @@ private:
     int HandleClearMainSessions(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStyleType(MessageParcel& data, MessageParcel& reply);
     int HandleSetProcessWatermark(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverProcessWatermark(MessageParcel& data, MessageParcel& reply);
     int HandleTerminateSessionByPersistentId(MessageParcel& data, MessageParcel& reply);
     int HandleCloseTargetFloatWindow(MessageParcel& data, MessageParcel& reply);
     int HandleCloseTargetPiPWindow(MessageParcel& data, MessageParcel& reply);
@@ -120,7 +121,7 @@ private:
     int HandleNotifyAppUseControlDisplay(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterPipChgListener(MessageParcel& data, MessageParcel& reply);
-
+    int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
 };
 } // namespace OHOS::Rosen

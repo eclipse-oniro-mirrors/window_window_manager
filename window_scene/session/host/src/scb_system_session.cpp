@@ -52,7 +52,8 @@ SCBSystemSession::SCBSystemSession(const SessionInfo& info, const sptr<SpecificS
                 break;
             }
         }
-        surfaceNode_ = Rosen::RSSurfaceNode::Create(config, Rosen::RSSurfaceNodeType::APP_WINDOW_NODE);
+        surfaceNode_ = Rosen::RSSurfaceNode::Create(
+            config, Rosen::RSSurfaceNodeType::APP_WINDOW_NODE, true, false, GetRSUIContext());
         shadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && surfaceNode_ ?
             surfaceNode_->CreateShadowSurfaceNode() : nullptr;
         RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
@@ -80,23 +81,22 @@ WSError SCBSystemSession::ProcessPointDownSession(int32_t posX, int32_t posY)
 }
 
 WSError SCBSystemSession::NotifyClientToUpdateRect(const std::string& updateReason,
-    std::shared_ptr<RSTransaction> rsTransaction)
+                                                   std::optional<WSRect> updateRect,
+                                                   std::shared_ptr<RSTransaction> rsTransaction)
 {
-    PostTask([weakThis = wptr(this), rsTransaction, updateReason]() {
+    PostTask([weakThis = wptr(this), updateReason, updateRect, rsTransaction, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            WLOGFE("session is null");
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, rsTransaction);
-        if (session->specificCallback_ != nullptr && session->specificCallback_->onUpdateAvoidArea_ != nullptr &&
-            session->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_ != nullptr) {
+        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, updateRect, rsTransaction);
+        if (session->specificCallback_ != nullptr && session->specificCallback_->onUpdateAvoidArea_ != nullptr) {
             if (Session::IsScbCoreEnabled()) {
                 session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::AVOID_AREA);
             } else {
                 session->specificCallback_->onUpdateAvoidArea_(session->GetPersistentId());
             }
-            session->specificCallback_->onClearDisplayStatusBarTemporarilyFlags_();
         }
         return ret;
     }, "NotifyClientToUpdateRect");
@@ -163,10 +163,11 @@ WSError SCBSystemSession::UpdateFocus(bool isFocused)
     return WSError::WS_OK;
 }
 
-WSError SCBSystemSession::UpdateWindowMode(WindowMode mode)
+WSError SCBSystemSession::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
 {
     WLOGFD("session is system, id: %{public}d, mode: %{public}d, name: %{public}s, state: %{public}u",
-        GetPersistentId(), static_cast<int32_t>(mode), sessionInfo_.bundleName_.c_str(), GetSessionState());
+        GetPersistentId(), static_cast<int32_t>(windowModeInfo.windowMode), sessionInfo_.bundleName_.c_str(),
+        GetSessionState());
     return WSError::WS_ERROR_INVALID_SESSION;
 }
 

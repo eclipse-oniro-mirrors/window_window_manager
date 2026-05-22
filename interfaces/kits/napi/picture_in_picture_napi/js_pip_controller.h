@@ -22,6 +22,7 @@
 #include "picture_in_picture_controller.h"
 #include "wm_common.h"
 #include "js_pip_window_listener.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -44,6 +45,7 @@ public:
     static napi_value RegisterCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterCallback(napi_env env, napi_callback_info info);
     static napi_value PictureInPicturePossible(napi_env env, napi_callback_info info);
+    sptr<PictureInPictureController> GetController() { return pipController_; }
 private:
     enum class ListenerType : uint32_t {
         STATE_CHANGE_CB,

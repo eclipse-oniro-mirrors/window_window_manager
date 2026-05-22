@@ -63,7 +63,11 @@ const std::map<WindowDFXHelperType, const char*> WM_CHECK_TYPE_TO_CHECK_NAME_MAP
 
 const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
     {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
-    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
+    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"},
+    {KeyboardLifeCycleException::SHOW_EXCEPTION, "SHOW_EXCEPTION"},
+    {KeyboardLifeCycleException::HOT_AREA_EXCEPTION, "HOT_AREA_EXCEPTION"},
+    {KeyboardLifeCycleException::PANEL_AVOID_HEIGHT_EXCEPTION, "PANEL_AVOID_HEIGHT_EXCEPTION"},
+    {KeyboardLifeCycleException::MOVE_DRAG_EXCEPTION, "MOVE_DRAG_EXCEPTION"}
 };
 }
 WM_IMPLEMENT_SINGLE_INSTANCE(WindowInfoReporter)
@@ -413,7 +417,8 @@ int32_t WindowInfoReporter::ReportKeyboardLifeCycleException(int32_t windowId, K
         HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, eventName,
         HiviewDFX::HiSysEvent::EventType::FAULT,
         "WINDOW_ID", windowId,
-        "SUB_TYPE", KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.at(subType),
+        "SUB_TYPE", KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.find(subType) != KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.end() ?
+            KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.at(subType) : "",
         "MSG", msg);
     if (ret != 0) {
         TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);

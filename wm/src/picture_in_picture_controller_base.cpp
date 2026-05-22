@@ -22,10 +22,10 @@
 #include "window_adapter.h"
 #include "window_manager_hilog.h"
 #include "window_session_impl.h"
+#include "float_window_manager.h"
 
 namespace OHOS {
 namespace Rosen {
-
 static const std::map<std::string, PiPControlType> CONTROL_TYPE_MAP = {
     {"playbackStateChanged", PiPControlType::VIDEO_PLAY_PAUSE},
     {"nextVideo", PiPControlType::VIDEO_NEXT},
@@ -279,7 +279,7 @@ WMError PictureInPictureControllerBase::DestroyPictureInPictureWindow()
         TLOGE(WmsLogTag::WMS_PIP, "window is nullptr when destroy pip");
         return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window_->Destroy());
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(FloatWindowManager::DestroyFloatWindow(window_));
     if (ret != WmErrorCode::WM_OK) {
         curState_ = PiPWindowState::STATE_UNDEFINED;
         TLOGE(WmsLogTag::WMS_PIP, "window destroy failed, err:%{public}u", ret);

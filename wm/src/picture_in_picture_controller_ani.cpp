@@ -14,11 +14,10 @@
  */
 
 #include "picture_in_picture_controller_ani.h"
-
+#include "picture_in_picture_manager.h"
+#include "float_window_manager.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
-#include "picture_in_picture_option_ani.h"
-#include "picture_in_picture_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -103,10 +102,10 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOption_->GetContext());
     const std::shared_ptr<AbilityRuntime::Context>& abilityContext = context->lock();
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
-    sptr<Window> window = Window::CreatePiP(windowOption, pipTemplateInfo, context->lock(), errCode);
+    sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     window_ = window;
     window_->UpdatePiPRect(windowRect_, WindowSizeChangeReason::PIP_START);
