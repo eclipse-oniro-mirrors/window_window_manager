@@ -489,8 +489,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetDisplayId(crossProcessWindowInfo.displayId);
             property_->SetIsPcAppInPad(crossProcessWindowInfo.isPcAppInPad);
             property_->SetPcAppInpadCompatibleMode(crossProcessWindowInfo.isPcAppInpadCompatibleMode);
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
-                property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
+            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+                nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         } else {
             sptr<WindowSessionImpl> parentSession = nullptr;
             auto ret = WindowSceneSessionImpl::GetParentSessionAndVerify(hasToastFlag, parentSession);
