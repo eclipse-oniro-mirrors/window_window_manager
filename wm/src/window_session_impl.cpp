@@ -3679,10 +3679,9 @@ WMError WindowSessionImpl::HandleSetOrientationCommon(Orientation orientation, b
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     Orientation lastReqOrientation = property_->GetRequestedOrientation();
-    TLOGI(WmsLogTag::WMS_ROTATION, "id:%{public}u lastReqOrientation:%{public}u(%{public}s) "
-        "target:%{public}u(%{public}s) state:%{public}u",
-        GetPersistentId(), static_cast<uint32_t>(lastReqOrientation), OrientationToString(lastReqOrientation),
-        static_cast<uint32_t>(orientation), OrientationToString(orientation), state_);
+    TLOGI(WmsLogTag::WMS_ROTATION, "id:%{public}u lastReqOrientation:%{public}s "
+        "target:%{public}s state:%{public}u",
+        GetPersistentId(), OrientationToString(lastReqOrientation), OrientationToString(orientation), state_);
     if (!isNeededForciblySetOrientation(orientation) && needAnimation) {
         TLOGW(WmsLogTag::WMS_ROTATION, "winId: %{public}d policy has taken effect", GetPersistentId());
         return WMError::WM_DO_NOTHING;
