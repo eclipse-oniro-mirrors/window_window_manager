@@ -2334,6 +2334,28 @@ HWTEST_F(SessionStubTest, HandleSetDecorVisibleCases, TestSize.Level1)
     }
 }
 
+/**
+ * @tc.name: HandleNotifySurfaceNodeAlphaUpdate
+ * @tc.desc: HandleNotifySurfaceNodeAlphaUpdate test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, HandleNotifySurfaceNodeAlphaUpdate, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE);
+    MockMessageParcel::SetReadFloatErrorFlag(true);
+    EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_INVALID_DATA);
+    MockMessageParcel::SetReadFloatErrorFlag(false);
+
+    float alpha = 0.5f;
+    data.WriteFloat(alpha);
+    EXPECT_EQ(session->HandleNotifySurfaceNodeAlphaUpdate(data, reply), ERR_NONE);
+}
+
 /*
  * @tc.name: HandleSetFloatNavigationEnabled
  * @tc.desc: Verify HandleSetFloatNavigationEnabled with invalid and valid inputs

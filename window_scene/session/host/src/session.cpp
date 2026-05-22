@@ -212,15 +212,17 @@ WSError Session::NotifySurfaceNodeAlphaUpdate(float alpha)
 void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
 {
     RSAdapterUtil::SetRSUIContext(surfaceNode, GetRSUIContext(), true);
-    surfaceNode->SetAlphaChangedCallback([weak = wptr(this), where = __func__](float alpha) {
-        auto session = weak.promote();
-        if (!session) {
-            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
-            return;
-        }
-        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: alpha=%{public}f", where, alpha);
-        session->SetSurfaceNodeAlpha(alpha);
-    });
+    if (surfaceNode != nullptr) {
+        surfaceNode->SetAlphaChangedCallback([weak = wptr(this), where = __func__](float alpha) {
+            auto session = weak.promote();
+            if (!session) {
+                TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+                return;
+            }
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: alpha=%{public}f", where, alpha);
+            session->SetSurfaceNodeAlpha(alpha);
+        });
+    }
     {
         std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
         surfaceNode_ = surfaceNode;
