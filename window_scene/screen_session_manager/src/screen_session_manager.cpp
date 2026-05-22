@@ -5711,20 +5711,24 @@ bool ScreenSessionManager::DoSuspendBegin(PowerStateChangeReason reason)
     }
     // 多屏协作灭屏不通知锁屏
     gotScreenOffNotify_  = false;
-    if (!g_isPcDevice && reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT &&
-        reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_SUCCESS &&
-        reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_ON &&
-        reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_OFF &&
-        reason != PowerStateChangeReason::STATE_CHANGE_REASON_COLLABORATION) {
-        sessionDisplayPowerController_->canCancelSuspendNotify_ = true;
-    }
+
     sessionDisplayPowerController_->isSuspendBegin_ = true;
     sessionDisplayPowerController_->SuspendBegin(reason);
     if (reason == PowerStateChangeReason::STATE_CHANGE_REASON_COLLABORATION) {
         isMultiScreenCollaboration_ = true;
         return true;
     }
-    return NotifyDisplayPowerEvent(DisplayPowerEvent::SLEEP, EventStatus::BEGIN, reason);
+    bool res = NotifyDisplayPowerEvent(DisplayPowerEvent::SLEEP, EventStatus::BEGIN, reason);
+    if (!g_isPcDevice && reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT &&
+        reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_SUCCESS &&
+        reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_ON &&
+        reason != PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_OFF &&
+        reason != PowerStateChangeReason::STATE_CHANGE_REASON_COLLABORATION) {
+        sessionDisplayPowerController_->canCancelSuspendNotify_ = true;
+        TLOGNFI(WmsLogTag::DMS, "[UL_POWER]can Cancel SuspendNotify: %{public}d",
+            sessionDisplayPowerController_->canCancelSuspendNotify_);
+    }
+    return res;
 }
 
 bool ScreenSessionManager::IsSystemSleep()
