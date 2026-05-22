@@ -266,7 +266,7 @@ WSError ExtensionSession::ConnectInner(
 WSError ExtensionSession::Connect(
     const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
     uint64_t nodeId, SystemSessionConfig& systemConfig,
-    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode, 
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {

@@ -32,7 +32,8 @@ using OwnSystemBarPropertyPair = std::pair<SystemBarPropertyOwner, PartialSystem
 class WindowSceneSessionImpl : public WindowSessionImpl {
 public:
     using WindowSessionImpl::GetVirtualPixelRatio;
-    explicit WindowSceneSessionImpl(const sptr<WindowOption>& option, const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+    explicit WindowSceneSessionImpl(const sptr<WindowOption>& option,
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
     ~WindowSceneSessionImpl();
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",

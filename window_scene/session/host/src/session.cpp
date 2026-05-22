@@ -1710,10 +1710,10 @@ std::shared_ptr<RSSurfaceNode> Session::CreateSurfaceNode(uint64_t nodeId, sptr<
 }
 
 __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISessionStage>& sessionStage,
-    const sptr<IWindowEventChannel>& eventChannel,
-    uint64_t nodeId, SystemSessionConfig& systemConfig,
-    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<WindowSessionProperty> property,
-    sptr<IRemoteObject> token, int32_t pid, int32_t uid, const std::string& identityToken)
+    const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
+    sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
+    int32_t pid, int32_t uid, const std::string& identityToken)
 {
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");

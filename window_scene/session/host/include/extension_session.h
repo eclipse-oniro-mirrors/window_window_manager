@@ -89,7 +89,7 @@ public:
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler) override;
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
         uint64_t nodeId, SystemSessionConfig& systemConfig,
-        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode, 
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
         const std::string& identityToken = "") override;
     WSError ConnectInner(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,

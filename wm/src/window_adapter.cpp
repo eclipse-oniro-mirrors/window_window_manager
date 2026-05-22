@@ -1265,7 +1265,8 @@ WMError WindowAdapter::MoveMainWindowToTargetDisplay(DisplayId displayId, int32_
 void WindowAdapter::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token)
+    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+    std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token)
 {
     INIT_PROXY_CHECK_RETURN();
 

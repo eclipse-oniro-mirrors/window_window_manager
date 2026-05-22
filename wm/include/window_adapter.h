@@ -133,7 +133,8 @@ public:
     virtual void CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token = nullptr);
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token = nullptr);
     virtual WMError DestroyAndDisconnectSpecificSession(const int32_t persistentId);
     virtual WMError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
         const sptr<IRemoteObject>& callback);
