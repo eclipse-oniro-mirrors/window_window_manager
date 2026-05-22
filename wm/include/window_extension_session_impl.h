@@ -145,7 +145,8 @@ public:
     float GetDefaultDensity(const sptr<DisplayInfo>& displayInfo);
     WMError HideNonSecureWindows(bool shouldHide) override;
     WMError SetWaterMarkFlag(bool isEnable) override;
-    Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize = false) override;
+    Rect GetHostWindowRect(int32_t hostWindowId) override;
+    Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
     bool IsComponentFocused() const override;
 
