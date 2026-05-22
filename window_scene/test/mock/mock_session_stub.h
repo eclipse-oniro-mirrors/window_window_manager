@@ -94,6 +94,7 @@ public:
     MOCK_METHOD(WSError, SetContentAspectRatio, (float ratio, bool isPersistent, bool needUpdateRect), (override));
     MOCK_METHOD(WSError, SetDecorVisible, (bool isVisible), (override));
     MOCK_METHOD(WMError, SetFloatNavigationEnabled, (bool enable), (override));
+    MOCK_METHOD(WMError, StartMovingWithOptions, (const StartMovingOptions& options), (override));
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -2307,6 +2307,83 @@ bool ParseZIndex(napi_env env, napi_value jsObject, WindowOption& option)
     return true;
 }
 
+napi_status GetOptionalProperty(
+    napi_env env, napi_value object, const char* propertyName, napi_value& outPropValue)
+{
+    napi_status ret = napi_get_named_property(env, object, propertyName, &outPropValue);
+    if (ret != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "Failed to get property %{public}s, ret: %{public}d",
+              propertyName, static_cast<int32_t>(ret));
+    }
+    return ret;
+}
+
+napi_status GetOptionalBoolProperty(
+    napi_env env, napi_value object, const char* propertyName, std::optional<bool>& optBoolProp)
+{
+    optBoolProp.reset();
+
+    napi_value propValue = nullptr;
+    napi_status ret = GetOptionalProperty(env, object, propertyName, propValue);
+    if (ret != napi_ok) {
+        return ret;
+    }
+
+    if (propValue == nullptr) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is nullptr", propertyName);
+        return napi_ok;
+    }
+
+    if (IsUndefined(env, propValue)) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is undefined", propertyName);
+        return napi_ok;
+    }
+
+    bool boolValue = false;
+    if (!ConvertFromJsValue(env, propValue, boolValue)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert %{public}s to boolean", propertyName);
+        return napi_generic_failure;
+    }
+    optBoolProp = boolValue;
+    return napi_ok;
+}
+
+napi_status GetOptionalRectProperty(
+    napi_env env, napi_value object, const char* propertyName, std::optional<Rect>& optRectProp)
+{
+    optRectProp.reset();
+
+    napi_value propValue = nullptr;
+    napi_status ret = GetOptionalProperty(env, object, propertyName, propValue);
+    if (ret != napi_ok) {
+        return ret;
+    }
+
+    if (propValue == nullptr) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is nullptr", propertyName);
+        return napi_ok;
+    }
+
+    if (IsUndefined(env, propValue)) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is undefined", propertyName);
+        return napi_ok;
+    }
+
+    Rect rect;
+    if (!ConvertRectFromJsValue(env, propValue, rect)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert %{public}s to Rect", propertyName);
+        return napi_generic_failure;
+    }
+    optRectProp = rect;
+    return napi_ok;
+}
+
+bool IsUndefined(napi_env env, napi_value value)
+{
+    return CheckTypeForNapiValue(env, value, napi_undefined);
+}
+
 napi_value BuildJsRectChangeOptions(napi_env env, const Rect& rect, RectChangeReason reason)
 {
     CHECK_NAPI_ENV_RETURN_IF_NULL(env);
@@ -2445,6 +2522,31 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env,
             std::unique_ptr<WsNapiAsyncTask::ExecuteCallback>(),
             std::unique_ptr<WsNapiAsyncTask::CompleteCallback>());
     }
+}
+
+std::pair<napi_status, std::optional<StartMovingOptions>> ParseStartMovingOptions(napi_env env, napi_value napiOptions)
+{
+    if (napiOptions == nullptr || IsUndefined(env, napiOptions)) {
+        return { napi_ok, std::nullopt };
+    }
+
+    std::optional<bool> needFocusedOpt;
+    napi_status ret = GetOptionalBoolProperty(env, napiOptions, "needFocused", needFocusedOpt);
+    if (ret != napi_ok) {
+        return { ret, std::nullopt };
+    }
+
+    std::optional<Rect> avoidRectOpt;
+    ret = GetOptionalRectProperty(env, napiOptions, "avoidRect", avoidRectOpt);
+    if (ret != napi_ok) {
+        return { ret, std::nullopt };
+    }
+
+    StartMovingOptions options{
+        .needFocused = needFocusedOpt.value_or(true),
+        .avoidRect = avoidRectOpt.value_or(Rect::EMPTY_RECT),
+    };
+    return { napi_ok, options };
 }
 } // namespace Rosen
 } // namespace OHOS

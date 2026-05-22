@@ -2891,7 +2891,7 @@ WMError WindowSceneSessionImpl::MoveWindowToGlobalDisplay(
     }
     // Use RequestRect to quickly get width and height from Resize method.
     const auto requestRect = GetRequestRect();
-    if (!Rect::IsRightBottomValid(x, y, requestRect.width_, requestRect.height_)) {
+    if (Rect::IsRightBottomOverflow(x, y, requestRect.width_, requestRect.height_)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, illegal position: [%{public}d, %{public}d]", winId, x, y);
         return WMError::WM_ERROR_ILLEGAL_PARAM;
     }
@@ -5101,6 +5101,38 @@ WmErrorCode WindowSceneSessionImpl::StartMoveWindow()
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     return WmErrorCode::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::StartMovingWithOptions(const StartMovingOptions& options)
+{
+    auto windowId = GetPersistentId();
+    if (!CheckCanStartMoveWindowByWindowType()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid window type: %{public}u, id: %{public}d", GetType(), windowId);
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+
+    if (CheckIsPcAppInPadFullScreenOnMobileWindowMode()) {
+        return WMError::WM_OK;
+    }
+
+    if (options.avoidRect.IsRightBottomOverflow()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "avoidRect is invalid: %{public}s", options.avoidRect.ToString().c_str());
+        return WMError::WM_ERROR_ILLEGAL_PARAM;
+    }
+
+    auto hostSession = GetHostSession();
+    if (!hostSession) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "hostSession is nullptr");
+        return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
+    }
+
+    auto ret = hostSession->StartMovingWithOptions(options);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "Failed to start moving with options. id: %{public}d, options: %{public}s, ret: %{public}d",
+              windowId, options.ToString().c_str(), static_cast<int>(ret));
+    }
+    return ret;
 }
 
 WmErrorCode WindowSceneSessionImpl::StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY)

@@ -63,14 +63,6 @@ constexpr const char* MOVE_RESAMPLE_MAX_FPS_PARAM_KEY = "persist.windowlayout.mo
 constexpr const char* MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY = "persist.windowlayout.movingevent.throttleinterval";
 }
 
-const std::map<DragType, uint32_t> STYLEID_MAP = {
-    {DragType::DRAG_UNDEFINED,        MMI::MOUSE_ICON::DEFAULT},
-    {DragType::DRAG_BOTTOM_OR_TOP,    MMI::MOUSE_ICON::NORTH_SOUTH},
-    {DragType::DRAG_LEFT_OR_RIGHT,    MMI::MOUSE_ICON::WEST_EAST},
-    {DragType::DRAG_LEFT_TOP_CORNER,  MMI::MOUSE_ICON::NORTH_WEST_SOUTH_EAST},
-    {DragType::DRAG_RIGHT_TOP_CORNER, MMI::MOUSE_ICON::NORTH_EAST_SOUTH_WEST}
-};
-
 const std::map<AreaType, Gravity> GRAVITY_MAP = {
     {AreaType::LEFT,          Gravity::TOP_RIGHT},
     {AreaType::TOP,           Gravity::BOTTOM_LEFT},
@@ -166,6 +158,39 @@ bool IsMatchingStartPointer(const std::shared_ptr<MMI::PointerEvent>& event,
         return false;
     }
     return true;
+}
+
+/**
+ * @brief Build a screen rectangle in the legacy global coordinate system.
+ *
+ * @param prop The screen property containing position and bounds information.
+ * @return The screen rectangle in the legacy global coordinate system.
+ */
+WSRect BuildScreenRect(const ScreenProperty& prop)
+{
+    return WSRect {
+        .posX_ = static_cast<int32_t>(prop.GetStartX()),
+        .posY_ = static_cast<int32_t>(prop.GetStartY()),
+        .width_ = static_cast<int32_t>(prop.GetBounds().rect_.GetWidth()),
+        .height_ = static_cast<int32_t>(prop.GetBounds().rect_.GetHeight())
+    };
+}
+
+/**
+ * @brief Build the available screen rectangle in the legacy global coordinate system.
+ *
+ * @param prop The screen property containing position and available area information.
+ * @return The available screen rectangle in the legacy global coordinate system.
+ */
+WSRect BuildScreenAvailableRect(const ScreenProperty& prop)
+{
+    DMRect availableArea = prop.GetAvailableArea();
+    return WSRect{
+        .posX_ = availableArea.posX_ + static_cast<int32_t>(prop.GetStartX()),
+        .posY_ = availableArea.posY_ + static_cast<int32_t>(prop.GetStartY()),
+        .width_ = static_cast<int32_t>(availableArea.width_),
+        .height_ = static_cast<int32_t>(availableArea.height_)
+    };
 }
 
 MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneSession_(sceneSession)
@@ -380,8 +405,12 @@ void MoveDragController::InitMoveDragProperty()
 
     moveResampler_.Reset();
 
+    movingAvoidRect_ = WSRect::EMPTY_RECT;
+
     // Sync properties from SceneSession
     SyncPropertiesFromSceneSession();
+
+    RefreshGlobalScreenRects();
 }
 
 void MoveDragController::InitCrossDisplayProperty(DisplayId displayId)
@@ -574,6 +603,8 @@ bool MoveDragController::ConsumeMoveEvent(const std::shared_ptr<MMI::PointerEven
     }
 
     UpdateMoveTempProperty(pointerEvent);
+
+    lastMoveEventPointerDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
 
     int32_t action = pointerEvent->GetPointerAction();
     if (!GetStartMoveFlag()) {
@@ -878,6 +909,7 @@ void MoveDragController::StopMoving()
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "in");
     SizeChangeReason reason = SizeChangeReason::DRAG_END;
     hasPointDown_ = false;
+    movingAvoidRect_ = WSRect::EMPTY_RECT;
     if (GetStartMoveFlag()) {
         SetStartMoveFlag(false);
         ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, hotAreaDisplayId_, reason);
@@ -886,19 +918,20 @@ void MoveDragController::StopMoving()
     OnMoveDragCallback(reason, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
 }
 
+void MoveDragController::SetMovingAvoidRect(const WSRect& avoidRect)
+{
+    movingAvoidRect_ = avoidRect;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, avoidRect: %{public}s",
+          persistentId_, movingAvoidRect_.ToString().c_str());
+}
+
 WSRect MoveDragController::GetScreenRectById(DisplayId displayId)
 {
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(displayId);
     RETURN_IF_NULL(screenSession, WSRect{ -1, -1, -1, -1 });
 
     ScreenProperty screenProperty = screenSession->GetScreenProperty();
-    WSRect screenRect = {
-        screenProperty.GetStartX(),
-        screenProperty.GetStartY(),
-        screenProperty.GetBounds().rect_.GetWidth(),
-        screenProperty.GetBounds().rect_.GetHeight(),
-    };
-    return screenRect;
+    return BuildScreenRect(screenProperty);
 }
 
 void MoveDragController::SetMoveAvailableArea(const DMRect& area)
@@ -1245,6 +1278,13 @@ void MoveDragController::UpdateTargetRectWithOffset(int32_t offsetX, int32_t off
         curRect.width_,
         curRect.height_
     };
+
+    // Apply the avoid strategy to the target rect before updating, so that the
+    // window can dodge the avoid area during movement.
+    auto globalTargetRect = targetRect.WithOffset(originalDisplayOffsetX_, originalDisplayOffsetY_);
+    targetRect = AdjustByAvoidStrategy(globalTargetRect)
+        .WithOffset(-originalDisplayOffsetX_, -originalDisplayOffsetY_);
+
     UpdateTargetRect(reason, targetRect);
 }
 
@@ -1683,6 +1723,7 @@ void MoveDragController::HandleStartMovingWithCoordinate(const MoveCoordinatePro
     moveTempProperty_.lastMovePointerPosY_ = property.pointerPosY;
     moveTempProperty_.lastDownPointerWindowX_ = property.pointerWindowX;
     moveTempProperty_.lastDownPointerWindowY_ = property.pointerWindowY;
+    lastMoveEventPointerDisplayId_ = property.displayId;
 
     // Map the winRect from its display to the start display.
     WSRect targetRect = MapRectFromTargetToStart(property.winRect, property.displayId);
@@ -1811,12 +1852,7 @@ std::set<uint64_t> MoveDragController::GetNewAddedDisplayIdsDuringMoveDrag()
         if (displayIdSetDuringMoveDrag_.find(screenId) != displayIdSetDuringMoveDrag_.end()) {
             continue;
         }
-        WSRect screenRect = {
-            screenProperty.GetStartX(),
-            screenProperty.GetStartY(),
-            screenProperty.GetBounds().rect_.GetWidth(),
-            screenProperty.GetBounds().rect_.GetHeight(),
-        };
+        WSRect screenRect = BuildScreenRect(screenProperty);
         if (windowRect.IsOverlap(screenRect)) {
             displayIdSetDuringMoveDrag_.insert(screenId);
             newAddedDisplayIdSet.insert(screenId);
@@ -2011,5 +2047,211 @@ void MoveDragController::UpdateResampleActivationByFps()
           *curFps,
           resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
           resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
+}
+
+void MoveDragController::RefreshGlobalScreenRects()
+{
+    globalScreenRectMap_.clear();
+    globalAvailableScreenRectMap_.clear();
+
+    const auto screenProperties =
+        ScreenSessionManagerClient::GetInstance().GetAllScreensProperties();
+
+    for (const auto& [screenId, screenProp] : screenProperties) {
+        const WSRect screenRect = BuildScreenRect(screenProp);
+        const WSRect screenAvailableRect = BuildScreenAvailableRect(screenProp);
+
+        globalScreenRectMap_.emplace(screenId, screenRect);
+        globalAvailableScreenRectMap_.emplace(screenId, screenAvailableRect);
+
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+              "screenId: %{public}" PRIu64 ", screenRect: %{public}s, screenAvailableRect: %{public}s",
+              screenId, screenRect.ToString().c_str(), screenAvailableRect.ToString().c_str());
+    }
+}
+
+std::optional<WSRect> MoveDragController::GetGlobalScreenRect(ScreenId screenId) const
+{
+    const auto iter = globalScreenRectMap_.find(screenId);
+    if (iter == globalScreenRectMap_.end()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "ScreenId %{public}" PRIu64 " not found in globalScreenRectMap", screenId);
+        return std::nullopt;
+    }
+    return iter->second;
+}
+
+std::vector<WSRect> MoveDragController::GetGlobalScreenRects(const ScreenIdSet& screenIds) const
+{
+    std::vector<WSRect> screenRects;
+
+    for (const auto& screenId : screenIds) {
+        auto screenRect = GetGlobalScreenRect(screenId);
+        if (screenRect) {
+            screenRects.emplace_back(*screenRect);
+        }
+    }
+    return screenRects;
+}
+
+std::optional<WSRect> MoveDragController::GetGlobalAvailableScreenRect(ScreenId screenId) const
+{
+    const auto iter = globalAvailableScreenRectMap_.find(screenId);
+    if (iter == globalAvailableScreenRectMap_.end()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "ScreenId %{public}" PRIu64 " not found in globalAvailableScreenRectMap", screenId);
+        return std::nullopt;
+    }
+    return iter->second;
+}
+
+ScreenIdSet MoveDragController::GetOverlapScreenIds(const WSRect& targetRect) const
+{
+    ScreenIdSet screenIds;
+    screenIds.reserve(globalScreenRectMap_.size());
+
+    for (const auto& [screenId, screenRect] : globalScreenRectMap_) {
+        if (targetRect.IsOverlap(screenRect)) {
+            screenIds.emplace(screenId);
+        }
+    }
+    return screenIds;
+}
+
+WSRect MoveDragController::AdjustByAvoidStrategy(const WSRect& targetRect) const
+{
+    if (!movingAvoidRect_.HasValidSize()) {
+        return targetRect;
+    }
+
+    ScreenIdSet overlapScreenIds = GetOverlapScreenIds(targetRect);
+    if (overlapScreenIds.empty()) {
+        return targetRect;
+    }
+
+    // Dispatch to the corresponding avoidance strategy according to the number of overlapped screens.
+    if (overlapScreenIds.size() == 1) {
+        return AdjustBySingleScreenAvoidStrategy(targetRect, *overlapScreenIds.begin());
+    }
+    return AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds);
+}
+
+WSRect MoveDragController::AdjustBySingleScreenAvoidStrategy(const WSRect& targetRect, ScreenId screenId) const
+{
+    auto screenAvailableRect = GetGlobalAvailableScreenRect(screenId);
+    if (!screenAvailableRect) {
+        return targetRect;
+    }
+
+    return AdjustTargetRectByAvoidRect(targetRect, *screenAvailableRect);
+}
+
+WSRect MoveDragController::AdjustByCrossScreenAvoidStrategy(
+    const WSRect& targetRect, ScreenIdSet& overlapScreenIds) const
+{
+    // In cross-screen mode, the current pointer target display is used as the target screen.
+    const ScreenId targetScreenId = lastMoveEventPointerDisplayId_;
+
+    auto targetScreenAvailableRect = GetGlobalAvailableScreenRect(targetScreenId);
+    auto targetScreenRect = GetGlobalScreenRect(targetScreenId);
+    if (!targetScreenAvailableRect || !targetScreenRect) {
+        return targetRect;
+    }
+
+    const WSRect targetAvoidRect = movingAvoidRect_.WithOffset(targetRect.posX_, targetRect.posY_);
+    const WSRect unionRect = targetRect.Union(targetAvoidRect);
+    // If the window and avoid rect cannot fit within the target screen available area together,
+    // the avoid rect is treated as invalid in the current target screen.
+    if (unionRect.ExceedsSizeOf(*targetScreenAvailableRect)) {
+        return targetRect;
+    }
+
+    // Treat overlapped screens other than the target screen as non-target screens,
+    // and move the window out of them along the cross-screen direction.
+    overlapScreenIds.erase(targetScreenId);
+    auto otherScreenRects = GetGlobalScreenRects(overlapScreenIds);
+    WSRect adjustedTargetRect =
+        AvoidOverlappingOtherScreens(targetRect, *targetScreenRect, otherScreenRects);
+
+    // Finally, adjust the target rect to keep targetAvoidRect fully inside the target available area.
+    return AdjustTargetRectByAvoidRect(adjustedTargetRect, *targetScreenAvailableRect);
+}
+
+WSRect MoveDragController::AvoidOverlappingScreen(
+    const WSRect& targetRect, const WSRect& targetScreenRect, const WSRect& otherScreenRect) const
+{
+    if (!targetRect.IsOverlap(otherScreenRect)) {
+        return targetRect;
+    }
+
+    WSRect adjustedTargetRect = targetRect;
+
+    // Only the cross-screen direction is adjusted. Diagonal relative positions are handled
+    // by the horizontal direction first, which matches horizontal cross-screen layouts.
+    switch (targetScreenRect.RelativeTo(otherScreenRect)) {
+        case RectRelativePosition::LEFT:
+        case RectRelativePosition::TOP_LEFT:
+        case RectRelativePosition::BOTTOM_LEFT:
+            adjustedTargetRect.posX_ = otherScreenRect.posX_ - targetRect.width_;
+            break;
+        case RectRelativePosition::RIGHT:
+        case RectRelativePosition::TOP_RIGHT:
+        case RectRelativePosition::BOTTOM_RIGHT:
+            adjustedTargetRect.posX_ = otherScreenRect.Right();
+            break;
+        case RectRelativePosition::TOP:
+            adjustedTargetRect.posY_ = otherScreenRect.posY_ - targetRect.height_;
+            break;
+        case RectRelativePosition::BOTTOM:
+            adjustedTargetRect.posY_ = otherScreenRect.Bottom();
+            break;
+        case RectRelativePosition::OVERLAP:
+        default:
+            break;
+    }
+    return adjustedTargetRect;
+}
+
+WSRect MoveDragController::AvoidOverlappingOtherScreens(
+    const WSRect& targetRect, const WSRect& targetScreenRect, const std::vector<WSRect>& otherScreenRects) const
+{
+    WSRect adjustedTargetRect = targetRect;
+    for (const auto& otherScreenRect : otherScreenRects) {
+        adjustedTargetRect = AvoidOverlappingScreen(adjustedTargetRect, targetScreenRect, otherScreenRect);
+    }
+    return adjustedTargetRect;
+}
+
+WSRect MoveDragController::AdjustTargetRectByAvoidRect(
+    const WSRect& targetRect, const WSRect& screenAvailableRect) const
+{
+    const WSRect targetAvoidRect = movingAvoidRect_.WithOffset(targetRect.posX_, targetRect.posY_);
+    if (targetAvoidRect.IsInside(screenAvailableRect)) {
+        return targetRect;
+    }
+
+    // If the window and avoid rect cannot fit into the available area together,
+    // the avoid rect is treated as invalid.
+    const WSRect unionRect = targetRect.Union(targetAvoidRect);
+    if (unionRect.ExceedsSizeOf(screenAvailableRect)) {
+        return targetRect;
+    }
+
+    // Adjust targetRect horizontally so targetAvoidRect stays within screenAvailableRect.
+    int32_t offsetX = 0;
+    if (targetAvoidRect.posX_ < screenAvailableRect.posX_) {
+        offsetX = screenAvailableRect.posX_ - targetAvoidRect.posX_;
+    } else if (targetAvoidRect.Right() > screenAvailableRect.Right()) {
+        offsetX = screenAvailableRect.Right() - targetAvoidRect.Right();
+    }
+
+    // Adjust targetRect vertically so targetAvoidRect stays within screenAvailableRect.
+    int32_t offsetY = 0;
+    if (targetAvoidRect.posY_ < screenAvailableRect.posY_) {
+        offsetY = screenAvailableRect.posY_ - targetAvoidRect.posY_;
+    } else if (targetAvoidRect.Bottom() > screenAvailableRect.Bottom()) {
+        offsetY = screenAvailableRect.Bottom() - targetAvoidRect.Bottom();
+    }
+    return targetRect.WithOffset(offsetX, offsetY);
 }
 } // namespace OHOS::Rosen

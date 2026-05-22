@@ -195,7 +195,7 @@ public:
 
     void SetXYPosition(int32_t x, int32_t y);
 
-    DMRect GetAvailableArea()
+    DMRect GetAvailableArea() const
     {
         return availableArea_;
     }

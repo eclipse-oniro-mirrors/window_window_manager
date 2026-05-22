@@ -134,6 +134,7 @@ public:
     static napi_value IsFocused(napi_env env, napi_callback_info info);
     static napi_value RequestFocus(napi_env env, napi_callback_info info);
     static napi_value StartMoving(napi_env env, napi_callback_info info);
+    static napi_value StartMovingWithOptions(napi_env env, napi_callback_info info);
     static napi_value StopMoving(napi_env env, napi_callback_info info);
     static napi_value GetWindowDensityInfo(napi_env env, napi_callback_info info);
     static napi_value SetDefaultDensityEnabled(napi_env env, napi_callback_info info);
@@ -437,6 +438,7 @@ private:
     napi_value OnSetWindowGrayScale(napi_env env, napi_callback_info info);
     napi_value OnEnableDrag(napi_env env, napi_callback_info info);
     napi_value OnStartMoving(napi_env env, napi_callback_info info);
+    napi_value OnStartMovingWithOptions(napi_env env, napi_callback_info info);
     napi_value OnStopMoving(napi_env env, napi_callback_info info);
     napi_value OnSetRotationLocked(napi_env env, napi_callback_info info);
     napi_value OnGetRotationLocked(napi_env env, napi_callback_info info);

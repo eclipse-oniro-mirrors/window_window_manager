@@ -2397,6 +2397,469 @@ HWTEST_F(MoveDragControllerTest, TestIsWindowCrossScreenOnDragEnd, TestSize.Leve
     moveDragController->moveDragEndDisplayId_ = 2;
     EXPECT_TRUE(moveDragController->IsWindowCrossScreenOnDragEnd());
 }
+
+/**
+ * @tc.name: KeepsTargetRectInsideAvailableAreaWhenAvoidRectWouldOverflow
+ * @tc.desc: Verify single-screen avoidance keeps the avoid rect inside the available area
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, KeepsTargetRectInsideAvailableAreaWhenAvoidRectWouldOverflow, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 70, 20, 40, 40 });
+    moveDragController->globalScreenRectMap_ = {
+        { 0, { 0, 0, 200, 200 } }
+    };
+    moveDragController->globalAvailableScreenRectMap_ = {
+        { 0, { 0, 0, 180, 180 } }
+    };
+
+    const WSRect targetRect = { 100, 100, 80, 80 };
+    const WSRect adjustedRect = moveDragController->AdjustByAvoidStrategy(targetRect);
+    const WSRect expectedRect = { 70, 100, 80, 80 };
+
+    EXPECT_EQ(adjustedRect, expectedRect);
+}
+
+/**
+ * @tc.name: MovesWindowOntoPointerTargetScreenDuringCrossScreenAvoidance
+ * @tc.desc: Verify cross-screen avoidance pushes the target rect away from non-target screens
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, MovesWindowOntoPointerTargetScreenDuringCrossScreenAvoidance, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    moveDragController->globalScreenRectMap_ = {
+        { 0, { 0, 0, 100, 100 } },
+        { 1, { 100, 0, 100, 100 } }
+    };
+    moveDragController->globalAvailableScreenRectMap_ = {
+        { 0, { 0, 0, 100, 100 } },
+        { 1, { 100, 0, 100, 100 } }
+    };
+    moveDragController->lastMoveEventPointerDisplayId_ = 1;
+
+    const WSRect targetRect = { 80, 20, 40, 40 };
+    const WSRect adjustedRect = moveDragController->AdjustByAvoidStrategy(targetRect);
+    const WSRect expectedRect = { 100, 20, 40, 40 };
+
+    EXPECT_EQ(adjustedRect, expectedRect);
+}
+
+/**
+ * @tc.name: ClearsMovingAvoidRectWhenMoveStops
+ * @tc.desc: Verify stopping movement resets the temporary avoid rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, ClearsMovingAvoidRectWhenMoveStops, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    moveDragController->StopMoving();
+
+    EXPECT_EQ(moveDragController->movingAvoidRect_, WSRect::EMPTY_RECT);
+}
+
+/**
+ * @tc.name: InitMoveDragPropertyResetsAvoidRectAndRefreshesScreenCache
+ * @tc.desc: Verify InitMoveDragProperty clears stale avoid data and refreshes cached screen rects
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, InitMoveDragPropertyResetsAvoidRectAndRefreshesScreenCache, TestSize.Level1)
+{
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenProperty screenProperty;
+    screenProperty.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
+        sptr<ScreenSession>::MakeSptr(1, screenProperty, 0);
+    moveDragController->SetMovingAvoidRect({ 1, 2, 3, 4 });
+
+    moveDragController->InitMoveDragProperty();
+
+    EXPECT_EQ(moveDragController->movingAvoidRect_, WSRect::EMPTY_RECT);
+    EXPECT_EQ(moveDragController->globalScreenRectMap_.count(1), 1);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateTargetRectWithOffsetAppliesAvoidStrategyBeforePublishingTarget
+ * @tc.desc: Verify UpdateTargetRectWithOffset adjusts the computed target rect by the avoid strategy
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, UpdateTargetRectWithOffsetAppliesAvoidStrategyBeforePublishingTarget, TestSize.Level1)
+{
+    WSRect originalRect = { 100, 100, 80, 80 };
+    session_->SetSessionRect(originalRect);
+    session_->SetSessionGlobalRect(originalRect);
+    moveDragController->moveDragProperty_.originalRect_ = originalRect;
+    moveDragController->moveDragProperty_.targetRect_ = moveDragController->moveDragProperty_.originalRect_;
+    moveDragController->SetMovingAvoidRect({ 70, 20, 40, 40 });
+    moveDragController->globalScreenRectMap_ = {
+        { 0, { 0, 0, 200, 200 } }
+    };
+    moveDragController->globalAvailableScreenRectMap_ = {
+        { 0, { 0, 0, 180, 180 } }
+    };
+
+    moveDragController->UpdateTargetRectWithOffset(0, 0, SizeChangeReason::DRAG_MOVE);
+
+    const WSRect expectedRect = { 70, 100, 80, 80 };
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_, expectedRect);
+}
+
+/**
+ * @tc.name: RefreshesCachedScreenRectsFromScreenProperties
+ * @tc.desc: Verify RefreshGlobalScreenRects caches screen and available rects in global coordinates
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, RefreshesCachedScreenRectsFromScreenProperties, TestSize.Level1)
+{
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenProperty screenProperty;
+    screenProperty.SetStartX(10);
+    screenProperty.SetStartY(20);
+    screenProperty.SetBounds(RRect({ 0, 0, 300, 200 }, 0.0f, 0.0f));
+    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
+        sptr<ScreenSession>::MakeSptr(1, screenProperty, 0);
+
+    moveDragController->RefreshGlobalScreenRects();
+
+    const WSRect expectedScreenRect = { 10, 20, 300, 200 };
+    const WSRect expectedAvailableRect = { 15, 26, 250, 150 };
+    EXPECT_EQ(moveDragController->globalScreenRectMap_[1], expectedScreenRect);
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[1], expectedAvailableRect);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: GetsScreenRectFromScreenPropertyInGlobalCoordinates
+ * @tc.desc: Verify GetScreenRectById returns the screen property bounds in global coordinates
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, GetsScreenRectFromScreenPropertyInGlobalCoordinates, TestSize.Level1)
+{
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenProperty screenProperty;
+    screenProperty.SetStartX(10);
+    screenProperty.SetStartY(20);
+    screenProperty.SetBounds(RRect({ 0, 0, 300, 200 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
+        sptr<ScreenSession>::MakeSptr(1, screenProperty, 0);
+
+    const WSRect expectedRect = { 10, 20, 300, 200 };
+    const WSRect invalidRect = { -1, -1, -1, -1 };
+    EXPECT_EQ(moveDragController->GetScreenRectById(1), expectedRect);
+    EXPECT_EQ(moveDragController->GetScreenRectById(2), invalidRect);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: ReturnsCachedRectsOnlyForKnownScreens
+ * @tc.desc: Verify cached screen rect lookup helpers ignore unknown screen ids
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, ReturnsCachedRectsOnlyForKnownScreens, TestSize.Level1)
+{
+    moveDragController->globalScreenRectMap_ = {
+        { 1, { 0, 0, 100, 100 } },
+        { 2, { 100, 0, 100, 100 } }
+    };
+    moveDragController->globalAvailableScreenRectMap_ = {
+        { 1, { 0, 0, 90, 90 } }
+    };
+
+    const WSRect expectedScreenRect = { 0, 0, 100, 100 };
+    const WSRect expectedAvailableRect = { 0, 0, 90, 90 };
+    EXPECT_EQ(moveDragController->GetGlobalScreenRect(1), std::optional<WSRect>(expectedScreenRect));
+    EXPECT_EQ(moveDragController->GetGlobalScreenRect(3), std::nullopt);
+    EXPECT_EQ(moveDragController->GetGlobalAvailableScreenRect(1), std::optional<WSRect>(expectedAvailableRect));
+    EXPECT_EQ(moveDragController->GetGlobalAvailableScreenRect(2), std::nullopt);
+
+    const ScreenIdSet screenIds = { 1, 3, 2 };
+    const auto screenRects = moveDragController->GetGlobalScreenRects(screenIds);
+    EXPECT_EQ(screenRects.size(), 2);
+}
+
+/**
+ * @tc.name: FindsOnlyScreensOverlappingTargetRect
+ * @tc.desc: Verify GetOverlapScreenIds returns the exact set of overlapped screens
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, FindsOnlyScreensOverlappingTargetRect, TestSize.Level1)
+{
+    moveDragController->globalScreenRectMap_ = {
+        { 1, { 0, 0, 100, 100 } },
+        { 2, { 100, 0, 100, 100 } },
+        { 3, { 300, 0, 100, 100 } }
+    };
+
+    const auto overlapScreenIds = moveDragController->GetOverlapScreenIds({ 80, 10, 40, 40 });
+
+    EXPECT_EQ(overlapScreenIds.size(), 2);
+    EXPECT_EQ(overlapScreenIds.count(1), 1);
+    EXPECT_EQ(overlapScreenIds.count(2), 1);
+    EXPECT_EQ(overlapScreenIds.count(3), 0);
+}
+
+/**
+ * @tc.name: SkipsAvoidanceWhenAvoidRectIsInvalidOrNoScreenOverlaps
+ * @tc.desc: Verify AdjustByAvoidStrategy returns the target rect when avoidance does not apply
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, SkipsAvoidanceWhenAvoidRectIsInvalidOrNoScreenOverlaps, TestSize.Level1)
+{
+    const WSRect targetRect = { 20, 20, 40, 40 };
+    moveDragController->globalScreenRectMap_ = {
+        { 1, { 0, 0, 100, 100 } }
+    };
+
+    EXPECT_EQ(moveDragController->AdjustByAvoidStrategy(targetRect), targetRect);
+
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    const WSRect nonOverlappingRect = { 200, 200, 40, 40 };
+    EXPECT_EQ(moveDragController->AdjustByAvoidStrategy(nonOverlappingRect), nonOverlappingRect);
+}
+
+/**
+ * @tc.name: LeavesTargetRectUnchangedWhenSingleScreenAvailableAreaIsMissing
+ * @tc.desc: Verify single-screen avoidance falls back when no available rect is cached
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, LeavesTargetRectUnchangedWhenSingleScreenAvailableAreaIsMissing, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    const WSRect targetRect = { 20, 20, 40, 40 };
+
+    EXPECT_EQ(moveDragController->AdjustBySingleScreenAvoidStrategy(targetRect, 1), targetRect);
+}
+
+/**
+ * @tc.name: SkipsCrossScreenAvoidanceWhenTargetScreenDataIsMissing
+ * @tc.desc: Verify cross-screen avoidance falls back without target screen cache
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, SkipsCrossScreenAvoidanceWhenTargetScreenDataIsMissing, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    moveDragController->lastMoveEventPointerDisplayId_ = 2;
+    ScreenIdSet overlapScreenIds = { 1, 2 };
+    const WSRect targetRect = { 80, 10, 40, 40 };
+
+    EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
+}
+
+/**
+ * @tc.name: KeepsTargetRectWhenCrossScreenUnionCannotFit
+ * @tc.desc: Verify cross-screen avoidance treats the avoid rect as invalid when the union is too large
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, KeepsTargetRectWhenCrossScreenUnionCannotFit, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 70, 10, 40, 20 });
+    moveDragController->lastMoveEventPointerDisplayId_ = 2;
+    moveDragController->globalScreenRectMap_ = {
+        { 1, { 0, 0, 100, 100 } },
+        { 2, { 100, 0, 100, 100 } }
+    };
+    moveDragController->globalAvailableScreenRectMap_ = {
+        { 2, { 100, 0, 100, 100 } }
+    };
+    ScreenIdSet overlapScreenIds = { 1, 2 };
+    const WSRect targetRect = { 80, 10, 80, 40 };
+
+    EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
+}
+
+/**
+ * @tc.name: AvoidsOverlappingScreensAccordingToRelativePosition
+ * @tc.desc: Verify AvoidOverlappingScreen adjusts along the cross-screen direction
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, AvoidsOverlappingScreensAccordingToRelativePosition, TestSize.Level1)
+{
+    const WSRect targetRect = { 90, 10, 30, 30 };
+    const WSRect screenRightOfOther = { 100, 0, 100, 100 };
+    const WSRect screenLeftOfOther = { 0, 0, 100, 100 };
+    const WSRect screenBelowOther = { 0, 100, 100, 100 };
+    const WSRect expectedFromLeft = { 100, 10, 30, 30 };
+    const WSRect expectedFromRight = { 70, 10, 30, 30 };
+    const WSRect expectedFromTop = { 90, 100, 30, 30 };
+    const WSRect expectedFromBottom = { 90, 10, 30, 30 };
+    EXPECT_EQ(moveDragController->AvoidOverlappingScreen(targetRect, screenRightOfOther, screenLeftOfOther),
+        expectedFromLeft);
+    EXPECT_EQ(moveDragController->AvoidOverlappingScreen(targetRect, screenLeftOfOther, screenRightOfOther),
+        expectedFromRight);
+    EXPECT_EQ(moveDragController->AvoidOverlappingScreen(targetRect, screenBelowOther, screenLeftOfOther),
+        expectedFromTop);
+    EXPECT_EQ(moveDragController->AvoidOverlappingScreen(targetRect, screenLeftOfOther, screenBelowOther),
+        expectedFromBottom);
+}
+
+/**
+ * @tc.name: AvoidsEachOverlappingNonTargetScreenInOrder
+ * @tc.desc: Verify AvoidOverlappingOtherScreens applies every avoidance adjustment
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, AvoidsEachOverlappingNonTargetScreenInOrder, TestSize.Level1)
+{
+    const auto adjustedRect = moveDragController->AvoidOverlappingOtherScreens(
+        { 80, 10, 40, 40 }, { 100, 0, 100, 100 }, { { 0, 0, 100, 100 }, { 200, 0, 100, 100 } });
+
+    const WSRect expectedRect = { 100, 10, 40, 40 };
+    EXPECT_EQ(adjustedRect, expectedRect);
+}
+
+/**
+ * @tc.name: AdjustsTargetRectOnlyWhenAvoidRectCanFit
+ * @tc.desc: Verify AdjustTargetRectByAvoidRect handles inside, overflow, and valid adjustment paths
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, AdjustsTargetRectOnlyWhenAvoidRectCanFit, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    const WSRect availableRect = { 0, 0, 100, 100 };
+    const WSRect insideRect = { 20, 20, 40, 40 };
+    EXPECT_EQ(moveDragController->AdjustTargetRectByAvoidRect(insideRect, availableRect), insideRect);
+
+    moveDragController->SetMovingAvoidRect({ 70, 10, 40, 20 });
+    const WSRect tooLargeRect = { 20, 20, 80, 40 };
+    EXPECT_EQ(moveDragController->AdjustTargetRectByAvoidRect(tooLargeRect, availableRect), tooLargeRect);
+
+    moveDragController->SetMovingAvoidRect({ 70, 10, 20, 20 });
+    const WSRect overflowRect = { 20, 20, 60, 40 };
+    const WSRect adjustedRect = { 10, 20, 60, 40 };
+    EXPECT_EQ(moveDragController->AdjustTargetRectByAvoidRect(overflowRect, availableRect), adjustedRect);
+}
+
+/**
+ * @tc.name: GetNewAddedDisplayIdsDuringMoveDragAddsOnlyNewOverlappingScreens
+ * @tc.desc: Verify overlapping screens are added while existing and non-overlapping screens are skipped
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, GetNewAddedDisplayIdsDuringMoveDragAddsOnlyNewOverlappingScreens, TestSize.Level1)
+{
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    moveDragController->moveDragProperty_.targetRect_ = { 10, 10, 40, 40 };
+    moveDragController->displayIdSetDuringMoveDrag_.insert(1);
+
+    ScreenProperty existingScreen;
+    existingScreen.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
+        sptr<ScreenSession>::MakeSptr(1, existingScreen, 0);
+
+    ScreenProperty newOverlappingScreen;
+    newOverlappingScreen.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[2] =
+        sptr<ScreenSession>::MakeSptr(2, newOverlappingScreen, 0);
+
+    ScreenProperty nonOverlappingScreen;
+    nonOverlappingScreen.SetStartX(200);
+    nonOverlappingScreen.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[3] =
+        sptr<ScreenSession>::MakeSptr(3, nonOverlappingScreen, 0);
+
+    const auto newDisplayIds = moveDragController->GetNewAddedDisplayIdsDuringMoveDrag();
+
+    EXPECT_EQ(newDisplayIds.size(), 1);
+    EXPECT_EQ(newDisplayIds.count(2), 1);
+    EXPECT_EQ(moveDragController->displayIdSetDuringMoveDrag_.count(2), 1);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: SkipsCrossScreenAvoidanceWhenOnlyOneTargetCacheIsMissing
+ * @tc.desc: Verify cross-screen avoidance falls back when either target cache entry is absent
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, SkipsCrossScreenAvoidanceWhenOnlyOneTargetCacheIsMissing, TestSize.Level1)
+{
+    moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
+    moveDragController->lastMoveEventPointerDisplayId_ = 2;
+    const WSRect targetRect = { 80, 10, 40, 40 };
+
+    moveDragController->globalScreenRectMap_ = {
+        { 2, { 100, 0, 100, 100 } }
+    };
+    ScreenIdSet overlapScreenIds = { 1, 2 };
+    EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
+
+    moveDragController->globalScreenRectMap_.clear();
+    moveDragController->globalAvailableScreenRectMap_ = {
+        { 2, { 100, 0, 100, 100 } }
+    };
+    overlapScreenIds = { 1, 2 };
+    EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
+}
+
+/**
+ * @tc.name: CoversRemainingAvoidOverlappingScreenBranches
+ * @tc.desc: Verify no-overlap, overlap-relative, and diagonal avoidance branches
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, CoversRemainingAvoidOverlappingScreenBranches, TestSize.Level1)
+{
+    auto targetRect = moveDragController->AvoidOverlappingScreen({ 10, 10, 20, 20 },
+                                                                 { 0, 0, 100, 100 },
+                                                                 { 200, 0, 100, 100 });
+    EXPECT_EQ(targetRect, WSRect({ 10, 10, 20, 20 }));
+
+    targetRect = moveDragController->AvoidOverlappingScreen({ 10, 10, 20, 20 },
+                                                            { 0, 0, 100, 100 },
+                                                            { 0, 0, 100, 100 });
+    EXPECT_EQ(targetRect, WSRect({ 10, 10, 20, 20 }));
+
+    targetRect = moveDragController->AvoidOverlappingScreen({ 90, 90, 30, 30 },
+                                                            { 100, 100, 100, 100 },
+                                                            { 0, 0, 100, 100 });
+    EXPECT_EQ(targetRect, WSRect({ 100, 90, 30, 30 }));
+
+    targetRect = moveDragController->AvoidOverlappingScreen({ 90, 90, 30, 30 },
+                                                            { 100, -100, 100, 100 },
+                                                            { 0, 0, 100, 100 });
+    EXPECT_EQ(targetRect, WSRect({ 100, 90, 30, 30 }));
+
+    targetRect = moveDragController->AvoidOverlappingScreen({ 90, 90, 30, 30 },
+                                                            { -100, 100, 100, 100 },
+                                                            { 0, 0, 100, 100 });
+    EXPECT_EQ(targetRect, WSRect({ -30, 90, 30, 30 }));
+
+    targetRect = moveDragController->AvoidOverlappingScreen({ 90, 90, 30, 30 },
+                                                            { -100, -100, 100, 100 },
+                                                            { 0, 0, 100, 100 });
+    EXPECT_EQ(targetRect, WSRect({ -30, 90, 30, 30 }));
+}
+
+/**
+ * @tc.name: AdjustsTargetRectForEachOverflowDirection
+ * @tc.desc: Verify avoid rect overflow on the left, top, and bottom produces the expected offsets
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, AdjustsTargetRectForEachOverflowDirection, TestSize.Level1)
+{
+    const WSRect availableRect = { 0, 0, 100, 100 };
+
+    moveDragController->SetMovingAvoidRect({ -10, 10, 20, 20 });
+    EXPECT_EQ(moveDragController->AdjustTargetRectByAvoidRect({ 20, 20, 60, 40 }, availableRect),
+        WSRect({ 20, 20, 60, 40 }));
+
+    moveDragController->SetMovingAvoidRect({ 10, -10, 20, 20 });
+    EXPECT_EQ(moveDragController->AdjustTargetRectByAvoidRect({ 20, 20, 60, 40 }, availableRect),
+        WSRect({ 20, 20, 60, 40 }));
+
+    moveDragController->SetMovingAvoidRect({ 10, 70, 20, 20 });
+    EXPECT_EQ(moveDragController->AdjustTargetRectByAvoidRect({ 20, 20, 60, 40 }, availableRect),
+        WSRect({ 20, 10, 60, 40 }));
+}
+
+/**
+ * @tc.name: AvoidingNoOtherScreensLeavesTargetRectUnchanged
+ * @tc.desc: Verify AvoidOverlappingOtherScreens returns the original rect when the list is empty
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, AvoidingNoOtherScreensLeavesTargetRectUnchanged, TestSize.Level1)
+{
+    const WSRect targetRect = { 10, 10, 20, 20 };
+    EXPECT_EQ(moveDragController->AvoidOverlappingOtherScreens(targetRect, { 0, 0, 100, 100 }, {}), targetRect);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

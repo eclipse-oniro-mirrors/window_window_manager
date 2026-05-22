@@ -385,6 +385,52 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     }
 
     /**
+     * @brief Get an optional property from an NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param object The NAPI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param outPropValue Output parameter to hold the property value.
+     *                     Could be undefined if not present/undefined/error.
+     * @return napi_ok on success, or appropriate error code on failure.
+     */
+    napi_status GetOptionalProperty(
+        napi_env env, napi_value object, const char* propertyName, napi_value& outPropValue);
+
+    /**
+     * @brief Get an optional boolean property from an NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param object The NAPI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optBoolProp Output parameter to hold the boolean value or std::nullopt if not present/undefined/error.
+     * @return napi_ok on success, or appropriate error code on failure.
+     */
+    napi_status GetOptionalBoolProperty(
+        napi_env env, napi_value object, const char* propertyName, std::optional<bool>& optBoolProp);
+
+    /**
+     * @brief Get an optional Rect property from an NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param object The NAPI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optRectProp Output parameter to hold the Rect value or std::nullopt if not present/undefined/error.
+     * @return napi_ok on success, or appropriate error code on failure.
+     */
+    napi_status GetOptionalRectProperty(
+        napi_env env, napi_value object, const char* propertyName, std::optional<Rect>& optRectProp);
+
+    /**
+     * @brief Check whether the given NAPI value is undefined.
+     *
+     * @param env The NAPI environment.
+     * @param value The NAPI value to be checked.
+     * @return true if the value is undefined, or if the check fails.
+     */
+    bool IsUndefined(napi_env env, napi_value value);
+
+    /**
      * @brief Create a JS object representing a window rectangle change event.
      *
      * The resulting object has the following structure:
@@ -424,6 +470,17 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
      * @return The corresponding WmErrorCode enumeration value, or WmErrorCode::WM_ERROR_STATE_ABNORMALLY if unmapped.
      */
     WmErrorCode MappingWmErrorCodeSafely(WMError err);
+
+    /**
+     * @brief Parse StartMovingOptions from NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param napiOptions The NAPI object containing the options. Can be undefined.
+     * @return Parsing result status and optional StartMovingOptions.
+     *         Returns nullopt if napiOptions is nullptr, undefined, or parsing fails.
+     */
+    std::pair<napi_status, std::optional<StartMovingOptions>> ParseStartMovingOptions(napi_env env,
+                                                                                      napi_value napiOptions);
 }
 }
 #endif
