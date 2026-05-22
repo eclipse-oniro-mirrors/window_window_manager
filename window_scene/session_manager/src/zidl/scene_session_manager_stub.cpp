@@ -361,7 +361,7 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     reply.WriteRemoteObject(sceneSession->AsObject());
     reply.WriteParcelable(&systemConfig);
     reply.WriteRemoteObject(renderSession);
-    if (surfaceNode == nullptr || !surfaceNode.Mashalling(reply)) {
+    if (surfaceNode == nullptr || !surfaceNode->Marshalling(reply)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write surfaceNode to reply failed.");
         return ERR_INVALID_DATA;
     }

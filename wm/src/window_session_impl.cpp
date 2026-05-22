@@ -390,7 +390,7 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
     }
     if (IsSceneBoardEnabled()) {
         nodeId_ = RSNode::GenerateId();
-        TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}.", PRIu64, nodeId_);
+        TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
         vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
     } else {
         RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
