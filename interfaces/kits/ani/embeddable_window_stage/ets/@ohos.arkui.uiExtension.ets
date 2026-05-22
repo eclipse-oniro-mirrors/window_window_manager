@@ -167,8 +167,7 @@ namespace uiExtension {
     }
 
     public getWindowProperties(): window.WindowProperties {
-      let windowProperties = this.getWindowProperties(this.nativeObj) as window.WindowPropertiesInternal;
-      return windowProperties;
+      return this.getWindowProperties(this.nativeObj);
     }
 
     public setWaterMarkFlag(enable: boolean): Promise<void> {

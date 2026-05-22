@@ -115,8 +115,6 @@ namespace uiExtensionHost {
     public native snapshotSync(nativeObj: long): image.PixelMap;
     public native snapshotIgnorePrivacy(nativeObj: long): image.PixelMap;
     public native getWindowProperties(nativeObj: long): window.WindowProperties;
-    public native onRectChange(nativeObj: long, reason: int, callback?: object): void;
-    public native offRectChange(nativeObj: long, callback?: object): void;
 
     get properties(): UIExtensionHostWindowProxyProperties {
       let property = new UIEProperties();
@@ -155,14 +153,6 @@ namespace uiExtensionHost {
       this.offSync(this.nativeObj, WINDOW_SIZE_CHANGE_CB, callback);
     }
 
-    public onRectChange(reason: int, callback: Callback<RectChangeOptions>): void {
-      this.onRectChange(this.nativeObj, reason, callback);
-    }
-
-    public offRectChange(callback?: Callback<RectChangeOptions>): void {
-      this.offRectChange(this.nativeObj, callback);
-    }
-
     public getWindowAvoidArea(type: window.AvoidAreaType): window.AvoidArea {
       let area: window.AvoidArea = new UIEAvoidArea();
       let ret = this.getWindowAvoidArea(this.nativeObj, type, area as object);
@@ -173,8 +163,7 @@ namespace uiExtensionHost {
     }
 
     public getWindowProperties(): window.WindowProperties {
-      let windowProperties = this.getWindowProperties(this.nativeObj) as window.WindowPropertiesInternal;
-      return windowProperties;
+      return this.getWindowProperties(this.nativeObj);
     }
 
     public setWaterMarkFlag(enable: boolean): Promise<void> {
@@ -303,8 +292,6 @@ namespace uiExtensionHost {
     offAvoidAreaChange<T>(callback?: Callback<T>): void;
     onWindowSizeChange(callback: Callback<window.Size>): void;
     offWindowSizeChange(callback?: Callback<window.Size>): void;
-    onRectChange(reasons: int, callback: Callback<RectChangeOptions>): void;
-    offRectChange(callback?: Callback<RectChangeOptions>): void;
     getWindowProperties(): window.WindowProperties;
 
     properties: UIExtensionHostWindowProxyProperties;
