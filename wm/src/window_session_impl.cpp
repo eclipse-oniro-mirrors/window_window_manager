@@ -2617,16 +2617,15 @@ void WindowSessionImpl::SetForceSplitConfig(const AppForceLandscapeConfig& confi
         TLOGE(WmsLogTag::DEFAULT, "uiContent is null!");
         return;
     }
-    SystemForceSplitConfig systemForceSplitConfig;
+    ForceSplitConfig forceSplitConfig;
     if (config.hasChanged_) {
         if (config.containsConfig_) {
-            systemForceSplitConfig.isRouter = config.isRouter_;
-            systemForceSplitConfig.configJsonStr = config.configJsonStr_;
+            forceSplitConfig.isRouter = config.isRouter_;
+            forceSplitConfig.configJsonStr = config.configJsonStr_;
         }
     }
     uiContent->SetForceSplitConfig(
-        config.containsConfig_ ? std::make_optional(systemForceSplitConfig) : std::nullopt,
-        std::nullopt);
+        config.containsConfig_ ? std::make_optional(forceSplitConfig) : std::nullopt);
 }
 
 void WindowSessionImpl::SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo)
