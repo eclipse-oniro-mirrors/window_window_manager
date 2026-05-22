@@ -2419,6 +2419,212 @@ HWTEST_F(SceneSessionTest, ApplySessionEventParam05, TestSize.Level1)
     EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.duration, 400);
     EXPECT_EQ(sceneSession->sessionEventParam_.snapshotAnimationConfig_.delay, 60);
 }
+
+/**
+ * @tc.name: SetDragDisabledAreas01
+ * @tc.desc: Set drag disable areas with valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas01";
+    info.bundleName_ = "SetDragDisabledAreas01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    areas.push_back({ 200, 200, 50, 50 });
+
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_EQ(result[0].posX_, 0);
+    EXPECT_EQ(result[0].posY_, 0);
+    EXPECT_EQ(result[0].width_, 100);
+    EXPECT_EQ(result[0].height_, 100);
+    EXPECT_EQ(result[1].posX_, 200);
+    EXPECT_EQ(result[1].posY_, 200);
+    EXPECT_EQ(result[1].width_, 50);
+    EXPECT_EQ(result[1].height_, 50);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas02
+ * @tc.desc: Set drag disable areas with empty vector
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas02";
+    info.bundleName_ = "SetDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: SetDragDisabledAreas03
+ * @tc.desc: Set drag disable areas with null property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetDragDisabledAreas03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragDisabledAreas03";
+    info.bundleName_ = "SetDragDisabledAreas03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->property_ = nullptr;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 0, 0, 100, 100 });
+    sceneSession->SetDragDisabledAreas(areas);
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: GetDragDisabledAreas01
+ * @tc.desc: Get drag disable areas with null property
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetDragDisabledAreas01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetDragDisabledAreas01";
+    info.bundleName_ = "GetDragDisabledAreas01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->property_ = nullptr;
+
+    auto result = sceneSession->GetDragDisabledAreas();
+    EXPECT_EQ(result.size(), 0);
+}
+
+/**
+ * @tc.name: GetDragDisabledAreas02
+ * @tc.desc: Get drag disable areas after setting multiple areas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetDragDisabledAreas02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetDragDisabledAreas02";
+    info.bundleName_ = "GetDragDisabledAreas02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->property_ = property;
+
+    std::vector<Rect> areas;
+    areas.push_back({ 10, 10, 200, 150 });
+    areas.push_back({ 300, 400, 80, 60 });
+    areas.push_back({ 500, 500, 1, 1 });
+
+    sceneSession->SetDragDisabledAreas(areas);
+    auto result = sceneSession->GetDragDisabledAreas();
+
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], areas[0]);
+    EXPECT_EQ(result[1], areas[1]);
+    EXPECT_EQ(result[2], areas[2]);
+}
+
+/**
+ * @tc.name: OnSessionEventWithCreateWindowWhenDragging01
+ * @tc.desc: Test EVENT_CREATE_WINDOW_WHEN_DRAGGING with null moveDragController
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventWithCreateWindowWhenDragging01";
+    info.bundleName_ = "OnSessionEventWithCreateWindowWhenDragging01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->moveDragController_ = nullptr;
+    SessionEventParam param;
+    auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: OnSessionEventWithCreateWindowWhenDragging02
+ * @tc.desc: Test EVENT_CREATE_WINDOW_WHEN_DRAGGING updates event param with drag position
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventWithCreateWindowWhenDragging02";
+    info.bundleName_ = "OnSessionEventWithCreateWindowWhenDragging02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->InitMoveDragProperty();
+
+    int32_t capturedGlobalPosX = -1;
+    int32_t capturedGlobalPosY = -1;
+    uint32_t capturedEventId = 0;
+    sceneSession->RegisterSessionEventCallback(
+        [&capturedEventId, &capturedGlobalPosX, &capturedGlobalPosY](uint32_t eventId, const SessionEventParam& param) {
+            capturedEventId = eventId;
+            capturedGlobalPosX = param.windowGlobalPosX_;
+            capturedGlobalPosY = param.windowGlobalPosY_;
+        });
+
+    SessionEventParam param;
+    auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(capturedEventId, static_cast<uint32_t>(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING));
+    EXPECT_EQ(capturedGlobalPosX, 0);
+    EXPECT_EQ(capturedGlobalPosY, 0);
+}
+
+/**
+ * @tc.name: OnSessionEventWithCreateWindowWhenDragging03
+ * @tc.desc: Test EVENT_CREATE_WINDOW_WHEN_DRAGGING without registered callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventWithCreateWindowWhenDragging03";
+    info.bundleName_ = "OnSessionEventWithCreateWindowWhenDragging03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->InitMoveDragProperty();
+
+    SessionEventParam param;
+    auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

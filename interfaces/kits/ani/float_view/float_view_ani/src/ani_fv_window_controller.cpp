@@ -191,6 +191,11 @@ void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "param get failed.");
         return;
     }
+    if (url.empty()) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "The ui path is empty");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "The ui path is empty.");
+        return;
+    }
     WMError errCode = fvController_->SetUIContext(url, contentStorage);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContext failed");
@@ -251,17 +256,18 @@ void AniFvController::OnSetWindowSizeAni(ani_env* env, ani_object sizeObj)
             "Float view controller is not available.");
         return;
     }
-    Rect rect;
-    if (!AniFvUtils::ParseWindowSize(env, sizeObj, rect)) {
+    std::pair<int32_t, int32_t> size;
+    if (!AniFvUtils::ParseWindowSize(env, sizeObj, size)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]parse window size failed");
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Convert window size failed.");
         return;
     }
-    if (rect.width_ <= 0 || rect.height_ <= 0) {
+    if (size.first <= 0 || size.second <= 0) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]window size param illegal");
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "Window size param illegal.");
         return;
     }
+    Rect rect = {0, 0, static_cast<uint32_t>(size.first), static_cast<uint32_t>(size.second)};
     WMError errCode = fvController_->SetWindowSize(rect);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetWindowSize failed");
@@ -428,7 +434,11 @@ void AniFvController::UnregisterCallbackWithType(ani_env* env, CallbackType call
     std::lock_guard<std::mutex> lock(mtxListener_);
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]UnregisterCallbackWithType is called, type: %{public}d",
         static_cast<uint32_t>(callbackType));
-    if (callback == nullptr) {
+    ani_boolean isUndef = false;
+    ani_boolean isNull = false;
+    env->Reference_IsUndefined(callback, &isUndef);
+    env->Reference_IsNull(callback, &isNull);
+    if (callback == nullptr || isUndef || isNull) {
         TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]no callback specific, unregister all");
         for (auto& [ref, listener] : typeCallbackListenerMap_[callbackType]) {
             WMError ret = DoUnRegisterListenerWithType(callbackType, listener);
@@ -440,6 +450,7 @@ void AniFvController::UnregisterCallbackWithType(ani_env* env, CallbackType call
                 return;
             }
             env->GlobalReference_Delete(ref);
+            listener->SetAniCallback(nullptr);
         }
         typeCallbackListenerMap_.erase(callbackType);
         TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]Unregister type %{public}d success", static_cast<uint32_t>(callbackType));
@@ -459,6 +470,7 @@ void AniFvController::UnregisterCallbackWithType(ani_env* env, CallbackType call
             return;
         }
         env->GlobalReference_Delete(ref);
+        listener->SetAniCallback(nullptr);
         typeCallbackListenerMap_[callbackType].erase(ref);
         break;
     }

@@ -76,6 +76,13 @@ public:
 
     void SetPivotY(float pivotY);
     float GetPivotY() const;
+    
+    void SetNeedCastScale(bool SetNeedCastScale);
+    bool GetNeedCastScale() const;
+    void SetCastScaleX(float scaleX);
+    float GetCastScaleX() const;
+    void SetCastScaleY(float scaleY);
+    float GetCastScaleY() const;
 
     void SetTranslateX(float translateX);
     float GetTranslateX() const;
@@ -188,7 +195,7 @@ public:
 
     void SetXYPosition(int32_t x, int32_t y);
 
-    DMRect GetAvailableArea()
+    DMRect GetAvailableArea() const
     {
         return availableArea_;
     }
@@ -333,6 +340,10 @@ private:
     float translateX_ { 0.0f };
     float translateY_ { 0.0f };
 
+    bool needCastScale_ = false;
+    float castScaleX_{ 1.0f };
+    float castScaleY_{ 1.0f };
+
     uint32_t phyWidth_ { UINT32_MAX };
     uint32_t phyHeight_ { UINT32_MAX };
 
@@ -344,7 +355,7 @@ private:
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
 
-    bool isInternal_ = true;
+    bool isInternal_ = false;
 
     ScreenPropertyChangeReason propertyChangeReason_;
 

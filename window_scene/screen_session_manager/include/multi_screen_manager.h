@@ -44,10 +44,6 @@ public:
 
     void SetLastScreenMode(ScreenId mainScreenId, MultiScreenMode secondaryScreenMode);
 
-    void InternalScreenOnChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
-
-    void InternalScreenOffChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
-
     void ExternalScreenDisconnectChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
 
     bool AreScreensTouching(sptr<ScreenSession> mainScreenSession, sptr<ScreenSession> secondScreenSession,
@@ -70,28 +66,6 @@ private:
         DMRect mainScreenRegion, const RotationOption& rotationOption, bool forceMirror = false);
 
     DMError PhysicalScreenUniqueSwitch(const std::vector<ScreenId>& screenIds);
-
-    /* pc multi screen switch */
-    void DoFirstExtendChange(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession,
-        const std::string& operateType);
-
-    void DoFirstMainChangeExtend(sptr<IScreenSessionManagerClient> scbClient, sptr<ScreenSession> firstSession,
-        sptr<ScreenSession> secondarySession);
-
-    void DoFirstMainChangeMirror(sptr<IScreenSessionManagerClient> scbClient, sptr<ScreenSession> firstSession,
-        sptr<ScreenSession> secondarySession);
-
-    void DoFirstMirrorChange(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession,
-        const std::string& operateType);
-    void DoFirstMirrorChangeExtend(sptr<IScreenSessionManagerClient> scbClient, sptr<ScreenSession> firstSession,
-        sptr<ScreenSession> secondarySession);
-    void DoFirstMirrorChangeMirror(sptr<IScreenSessionManagerClient> scbClient, sptr<ScreenSession> firstSession,
-        sptr<ScreenSession> secondarySession);
-
-    void DoFirstMainChange(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession,
-        const std::string& operateType);
-    void DoFirstExtendChangeExtend(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession);
-    void DoFirstExtendChangeMirror(sptr<ScreenSession> firstSession, sptr<ScreenSession> secondarySession);
 
     std::pair<ScreenId, MultiScreenMode> lastScreenMode_;  // main screen id & secondary screen mode
 

@@ -29,6 +29,8 @@ constexpr size_t MAX_PARCEL_CAPACITY = 100 * 1024 * 1024; // 100M
 constexpr size_t CAPACITY_THRESHOLD = 8 * 100 * 1024; // 800k
 constexpr size_t RESERVED_SPACE = 4 * 1024; // 4k
 constexpr uint32_t MAX_FV_LIMITS = 10;
+// An application can have at most 256 windows, so the upper limit of attached limits is 256
+constexpr uint32_t MAX_ATTACHED_LIMITS_COUNT = 256;
 
 bool CalculateDumpInfoSize(const std::vector<std::string>& infos)
 {
@@ -644,9 +646,28 @@ int SessionStageStub::HandleNotifySecureLimitChange(MessageParcel& data, Message
 
 int SessionStageStub::HandleUpdateWindowMode(MessageParcel& data, MessageParcel& reply)
 {
-    WLOGFD("HandleUpdateWindowMode!");
-    WindowMode mode = static_cast<WindowMode>(data.ReadUint32());
-    WSError errCode = UpdateWindowMode(mode);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "HandleUpdateWindowMode!");
+    uint32_t windowMode = 0;
+    if (!data.ReadUint32(windowMode)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read windowMode");
+        return ERR_INVALID_DATA;
+    }
+    uint32_t splitStyle = 0;
+    if (!data.ReadUint32(splitStyle)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read splitStyle");
+        return ERR_INVALID_DATA;
+    }
+    int32_t splitIndex = 0;
+    if (!data.ReadInt32(splitIndex)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read splitIndex");
+        return ERR_INVALID_DATA;
+    }
+    WindowModeInfo windowModeInfo = {
+        static_cast<WindowMode>(windowMode),
+        static_cast<SplitStyle>(splitStyle),
+        splitIndex,
+    };
+    WSError errCode = UpdateWindowMode(windowModeInfo);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -935,6 +956,11 @@ int SessionStageStub::HandleSyncAllAttachedLimitsToChild(MessageParcel& data, Me
         TLOGE(WmsLogTag::WMS_LAYOUT, "read limitsList size failed");
         return ERR_INVALID_DATA;
     }
+    if (limitsCount > MAX_ATTACHED_LIMITS_COUNT) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "limitsCount %{public}u exceeds max %{public}u",
+            limitsCount, MAX_ATTACHED_LIMITS_COUNT);
+        return ERR_INVALID_DATA;
+    }
     std::vector<std::pair<int32_t, WindowLimits>> limitsList;
     limitsList.reserve(limitsCount);
     for (uint32_t i = 0; i < limitsCount; ++i) {
@@ -953,6 +979,11 @@ int SessionStageStub::HandleSyncAllAttachedLimitsToChild(MessageParcel& data, Me
     uint32_t optionsCount = 0;
     if (!data.ReadUint32(optionsCount)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "read optionsList size failed");
+        return ERR_INVALID_DATA;
+    }
+    if (optionsCount > MAX_ATTACHED_LIMITS_COUNT) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "optionsCount %{public}u exceeds max %{public}u",
+            optionsCount, MAX_ATTACHED_LIMITS_COUNT);
         return ERR_INVALID_DATA;
     }
     std::vector<std::pair<int32_t, AttachLimitOptions>> optionsList;

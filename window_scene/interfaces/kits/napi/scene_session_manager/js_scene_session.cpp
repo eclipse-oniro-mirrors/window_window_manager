@@ -637,6 +637,7 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "setIsMidScene", moduleName, JsSceneSession::SetIsMidScene);
     BindNativeFunction(env, objValue, "setScale", moduleName, JsSceneSession::SetScale);
     BindNativeFunction(env, objValue, "setWindowLastSafeRect", moduleName, JsSceneSession::SetWindowLastSafeRect);
+    BindNativeFunction(env, objValue, "getParentWindowRect", moduleName, JsSceneSession::GetParentWindowRect);
     BindNativeFunction(env, objValue, "setMovable", moduleName, JsSceneSession::SetMovable);
     BindNativeFunction(env, objValue, "setSplitButtonVisible", moduleName, JsSceneSession::SetSplitButtonVisible);
     BindNativeFunction(env, objValue, "setOffset", moduleName, JsSceneSession::SetOffset);
@@ -728,6 +729,8 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::GetSceneNodeCount);
     BindNativeFunction(env, objValue, "notifyPreCalcWindowProperty", moduleName,
         JsSceneSession::NotifyPreCalcWindowProperty);
+    BindNativeFunction(env, objValue, "setDragDisabledAreas", moduleName,
+        JsSceneSession::SetDragDisabledAreas);
     BindNativeFunction(env, objValue, "sendFvActionEvent", moduleName, JsSceneSession::SendFvActionEvent);
     BindNativeFunction(env, objValue, "syncFvWindowInfo", moduleName, JsSceneSession::SyncFvWindowInfo);
 }
@@ -3065,6 +3068,13 @@ napi_value JsSceneSession::SetNeedSyncSessionRect(napi_env env, napi_callback_in
     TLOGD(WmsLogTag::WMS_PIPELINE, "[NAPI]");
     JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
     return (me != nullptr) ? me->OnSetNeedSyncSessionRect(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::GetParentWindowRect(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnGetParentWindowRect(env, info) : nullptr;
 }
 
 napi_value JsSceneSession::SetLabel(napi_env env, napi_callback_info info)
@@ -8066,6 +8076,17 @@ napi_value JsSceneSession::OnSetNeedSyncSessionRect(napi_env env, napi_callback_
     return NapiGetUndefined(env);
 }
 
+napi_value JsSceneSession::OnGetParentWindowRect(napi_env env, napi_callback_info info)
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    WSRect rect = session->GetParentSessionRectSync();
+    return CreateJsSessionRect(env, rect);
+}
+
 void JsSceneSession::ProcessSetWindowRectAutoSaveRegister()
 {
     auto session = weakSession_.promote();
@@ -8319,7 +8340,7 @@ napi_value JsSceneSession::OnSetFreezeImmediately(napi_env env, napi_callback_in
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    float scaleParam = GreatOrEqual(scaleValue, 0.0f) && LessOrEqual(scaleValue, 1.0f) ?
+    float scaleParam = GreatOrEqual(scaleValue, 0.0) && LessOrEqual(scaleValue, 1.0) ?
         static_cast<float>(scaleValue) : 0.0f;
     bool isFreeze = false;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_1], isFreeze)) {
@@ -9794,6 +9815,50 @@ napi_value JsSceneSession::OnNotifyPreCalcWindowProperty(napi_env env, napi_call
         return NapiGetUndefined(env);
     }
     session->preWindowPropertyFuture_.SetValue(PreWindowProperty(rotation, width, height));
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::SetDragDisabledAreas(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "start");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnSetDragDisabledAreas(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::OnSetDragDisabledAreas(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Invalid parameters"));
+        return NapiGetUndefined(env);
+    }
+    // parse parameters
+    napi_value nativeArray = argv[ARG_INDEX_0];
+    if (nativeArray == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Drag disabled areas is not exists");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Drag disabled areas is not exists"));
+        return NapiGetUndefined(env);
+    }
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "session is null, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    std::vector<Rect> dragDisabledAreas;
+    if (!ConvertDragDisabledAreasFromJsValue(env, nativeArray, dragDisabledAreas)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert drag disabled areas from jsValue");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Failed to convert drag disabled areas from jsValue"));
+        return NapiGetUndefined(env);
+    }
+
+    TLOGI(WmsLogTag::WMS_EVENT, "dragDisabledAreas size: %{public}zu", dragDisabledAreas.size());
+    session->SetDragDisabledAreas(dragDisabledAreas);
     return NapiGetUndefined(env);
 }
 

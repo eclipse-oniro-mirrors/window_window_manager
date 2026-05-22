@@ -306,7 +306,8 @@ HWTEST_F(DisplayManagerAdapterLiteTest, SetScreenBrightnessPiling, TestSize.Leve
 {
 #define SCREENLESS_ENABLE
     uint64_t screenId = 0;
-    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().SetScreenBrightness(screenId, 0);
+    auto ret =
+        SingletonContainer::Get<DisplayManagerAdapterLite>().SetScreenBrightness(DmsScreenBrightnessData(screenId, 0));
     EXPECT_TRUE(ret);
 #undef SCREENLESS_ENABLE
 }

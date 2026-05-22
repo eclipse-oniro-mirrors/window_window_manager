@@ -55,8 +55,10 @@ public:
         const std::string& identityToken = "") { return WSError::WS_OK; }
     virtual WSError Foreground(
         sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "") = 0;
-    virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "") = 0;
-    virtual WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") = 0;
+    virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) = 0;
+    virtual WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) = 0;
     virtual WSError Show(sptr<WindowSessionProperty> property) = 0;
     virtual WSError Hide() = 0;
     virtual WSError DrawingCompleted() = 0;
@@ -563,6 +565,14 @@ public:
      */
     virtual WSError NotifySupportWindowModesChange(
         const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
+
+    /**
+     * @brief Start moving window with options.
+     *
+     * @param options Options to control focus request and avoid region during this movement.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError StartMovingWithOptions(const StartMovingOptions& options) { return WMError::WM_OK; }
 
     /**
      * @brief Start Moving window with coordinate.

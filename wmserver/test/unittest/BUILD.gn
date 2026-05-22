@@ -258,6 +258,8 @@ ohos_unittest("wmserver_window_manager_proxy_test") {
 
   deps = test_inner_deps
   external_deps = test_external_deps
+  include_dirs = [ "${window_base_path}/window_scene/test/mock" ]
+  sources += [ "${window_base_path}/window_scene/test/mock/mock_message_parcel.cpp" ]
 }
 
 ohos_unittest("wmserver_window_dumper_test") {

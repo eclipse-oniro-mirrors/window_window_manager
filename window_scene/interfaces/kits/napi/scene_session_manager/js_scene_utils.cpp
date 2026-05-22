@@ -26,6 +26,7 @@
 #include "root_scene.h"
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "window_visibility_info.h"
 #include "process_options.h"
@@ -36,6 +37,7 @@ namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "JsSceneUtils" };
 constexpr int32_t US_PER_NS = 1000;
 constexpr int32_t INVALID_VAL = -9999;
+constexpr int32_t MAX_DRAG_DISABLED_AREAS = 50;
 
 const std::unordered_map<int32_t, ThrowSlipMode> FINGERS_TO_THROWSLIPMODE_MAP = {
     { 3, ThrowSlipMode::THREE_FINGERS_SWIPE },
@@ -1572,6 +1574,35 @@ bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect
     return true;
 }
 
+bool ConvertDragDisabledAreasFromJsValue(napi_env env, napi_value nativeArray,
+    std::vector<Rect>& dragDisabledAreas)
+{
+    // get array size from js
+    uint32_t size = 0;
+    napi_get_array_length(env, nativeArray, &size);
+    if (size > MAX_DRAG_DISABLED_AREAS) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Over the maximum limit");
+        return false;
+    }
+    // parse array
+    for (uint32_t i = 0; i < size; i++) {
+        napi_value jsObject = nullptr;
+        napi_get_element(env, nativeArray, i, &jsObject);
+        if (jsObject == nullptr) {
+            TLOGE(WmsLogTag::WMS_EVENT, "Failed to get element");
+            return false;
+        }
+        Rect dragDisabledArea;
+        if (!ConvertRectFromJsValue(env, jsObject, dragDisabledArea)) {
+            return false;
+        }
+        // the multimodal will verify the non-draggable areas
+        dragDisabledAreas.emplace_back(dragDisabledArea);
+    }
+    TLOGD(WmsLogTag::WMS_EVENT, "success");
+    return true;
+}
+
 bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInfo& rotationChangeInfo)
 {
     napi_value jsType = nullptr;
@@ -1685,6 +1716,62 @@ bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType&
         return false;
     }
     dragResizeType = static_cast<DragResizeType>(dragResizeTypeValue);
+    return true;
+}
+
+namespace {
+bool ParseWindowModeFromJs(napi_env env, napi_value value, WindowModeInfo& info)
+{
+    uint32_t modeValue = 0;
+    if (!ConvertFromJsValue(env, value, modeValue)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert windowMode");
+        return false;
+    }
+    if (!WindowHelper::IsValidWindowMode(static_cast<WindowMode>(modeValue))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "invalid windowMode: %{public}u", modeValue);
+        return false;
+    }
+    info.windowMode = static_cast<WindowMode>(modeValue);
+    return true;
+}
+} // namespace
+
+bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo& windowModeInfo)
+{
+    napi_valuetype type = GetType(env, value);
+    if (type == napi_number) {
+        return ParseWindowModeFromJs(env, value, windowModeInfo);
+    }
+    if (type != napi_object) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "type is not number or object, type: %{public}d", static_cast<int32_t>(type));
+        return false;
+    }
+    napi_value windowModeValue = nullptr;
+    napi_get_named_property(env, value, "windowMode", &windowModeValue);
+    if (!ParseWindowModeFromJs(env, windowModeValue, windowModeInfo)) {
+        return false;
+    }
+    napi_value splitStyleValue = nullptr;
+    napi_get_named_property(env, value, "splitStyle", &splitStyleValue);
+    if (GetType(env, splitStyleValue) != napi_undefined) {
+        uint32_t splitStyle = 0;
+        if (ConvertFromJsValue(env, splitStyleValue, splitStyle)) {
+            if (splitStyle <= static_cast<uint32_t>(SplitStyle::THREE_WINDOW_HORIZONTAL)) {
+                windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+            } else {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "invalid splitStyle: %{public}u", splitStyle);
+                return false;
+            }
+        }
+    }
+    napi_value splitIndexValue = nullptr;
+    napi_get_named_property(env, value, "splitIndex", &splitIndexValue);
+    if (GetType(env, splitIndexValue) != napi_undefined) {
+        int32_t splitIndex = 0;
+        if (ConvertFromJsValue(env, splitIndexValue, splitIndex)) {
+            windowModeInfo.splitIndex = splitIndex;
+        }
+    }
     return true;
 }
 

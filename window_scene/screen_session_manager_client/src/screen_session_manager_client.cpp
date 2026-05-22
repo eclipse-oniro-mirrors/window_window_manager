@@ -30,6 +30,8 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr int LINE_WIDTH = 30;
+const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
+const std::string IS_PC_MODE_KEY = "persist.sceneboard.ispcmode";
 } // namespace
 
 WM_IMPLEMENT_SINGLE_INSTANCE(ScreenSessionManagerClient)
@@ -117,7 +119,7 @@ bool ScreenSessionManagerClient::CheckIfNeedConnectScreen(SessionOption option)
     if (screenSessionManager_->GetScreenProperty(option.screenId_).GetScreenType() == ScreenType::VIRTUAL) {
         if (option.name_ == "HiCar" || option.name_ == "SuperLauncher" || option.name_ == "CastEngine" ||
             option.name_ == "DevEcoViewer" || option.innerName_ == "CustomScbScreen" || option.name_ == "CeliaView" ||
-            option.name_ == "PadWithCar" || option.name_ == "CooperationExtend") {
+            option.name_ == "PadWithCar" || option.name_ == "CooperationExtend" || option.name_ == "PCVirtualScreen") {
             TLOGI(WmsLogTag::DMS, "HiCar or SuperLauncher or CastEngine or DevEcoViewer or CeliaView, "
                 "need to connect the screen");
             return true;
@@ -191,6 +193,29 @@ void ScreenSessionManagerClient::OnTentModeChange(TentMode tentMode)
     tentMode_ = tentMode;
     if (tentModeListener_) {
         tentModeListener_->OnTentModeChange(tentMode);
+    }
+}
+
+void ScreenSessionManagerClient::RegisterScreenClosedStateChangeListener(IScreenClosedStateListener* listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to register screen closed state listener, listener is null");
+        return;
+    }
+
+    screenClosedStateListener_ = listener;
+    ConnectToServer();
+
+    OnScreenClosedStateChange(screenClosedState_);
+    TLOGI(WmsLogTag::DMS, "Success to register screen closed state listener");
+}
+
+void ScreenSessionManagerClient::OnScreenClosedStateChange(ScreenClosedState screenClosedState)
+{
+    TLOGD(WmsLogTag::DMS, "screenClosedState callback trigger");
+    screenClosedState_ = screenClosedState;
+    if (screenClosedStateListener_) {
+        screenClosedStateListener_->OnScreenClosedStateChange(screenClosedState);
     }
 }
 
@@ -355,6 +380,17 @@ void ScreenSessionManagerClient::OnSensorRotationChanged(ScreenId screenId, floa
         return;
     }
     screenSession->SensorRotationChange(sensorRotation, isSwitchUser);
+}
+
+void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->SmartSensorRotationChange(sensorRotation, isSwitchUser);
 }
 
 void ScreenSessionManagerClient::OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate)
@@ -530,6 +566,18 @@ void ScreenSessionManagerClient::SetDisplayNodeScreenId(ScreenId screenId, Scree
         return;
     }
     screenSession->SetDisplayNodeScreenId(displayNodeScreenId);
+}
+
+void ScreenSessionManagerClient::SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->SetRSScreenId(rsScreenId);
+    screenSession->SetDisplayNodeScreenId(rsScreenId);
+    TLOGW(WmsLogTag::DMS, "client screenId=%{public}" PRIu64"; RsscreenId=%{public}" PRIu64, screenId, rsScreenId);
 }
 
 uint32_t ScreenSessionManagerClient::GetCurvedCompressionArea()
@@ -1157,6 +1205,23 @@ void ScreenSessionManagerClient::NotifyClientScreenConnect(sptr<ScreenSession>& 
     screenSession->Connect();
 }
 
+void ScreenSessionManagerClient::HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config,
+    sptr<ScreenSession>& screenSession)
+{
+    config.displayNode = screenSessionManager_->GetDisplayNode(config.screenId);
+    if (screenSession == nullptr) {
+        screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    } else {
+        screenSession->SetScreenProperty(config.property);
+        screenSession->SetDisplayNode(config.displayNode);
+    }
+    if (config.displayNode != nullptr && IS_SUPPORT_PC_MODE &&
+        system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
+        config.displayNode->SetScreenId(config.rsId);
+        RSTransactionAdapter::FlushImplicitTransaction({config.displayNode});
+    }
+}
+
 bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
 {
     if (!CheckIfNeedConnectScreen(option)) {
@@ -1179,16 +1244,7 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     config.property = screenSessionManager_->GetScreenProperty(option.screenId_);
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
-    config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
-    if (config.displayNode != nullptr) {
-        config.displayNode->SetScreenId(option.rsId_);
-    }
-    if (screenSession == nullptr) {
-        screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
-    } else {
-        screenSession->SetScreenProperty(config.property);
-        screenSession->SetDisplayNode(config.displayNode);
-    }
+    HandleDisplayNodeWhenScreenConnect(config, screenSession);
     screenSession->SetScreenCombination(screenSessionManager_->GetScreenCombination(option.screenId_));
     screenSession->SetIsExtend(option.isExtend_);
     screenSession->SetIsRealScreen(screenSessionManager_->GetIsRealScreen(option.screenId_));
@@ -1407,6 +1463,54 @@ void ScreenSessionManagerClient::SetScreenCombination(ScreenId mainScreenId, Scr
     screenSession->SetScreenCombination(extendCombination);
 }
  
+void ScreenSessionManagerClient::DumpClientScreenProperty(std::ostringstream& oss, ScreenProperty prop)
+{
+    oss << std::left << std::setw(LINE_WIDTH) << "Rotation: " << prop.GetRotation() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Density: " << prop.GetDensity() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DensityInCurResolution: "
+        << prop.GetDensityInCurResolution() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyWidth: " << prop.GetPhyWidth() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyHeight: " << prop.GetPhyHeight() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "RefreshRate: " << prop.GetRefreshRate() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "VirtualPixelRatio: "
+        << prop.GetVirtualPixelRatio() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Orientation: "
+        << static_cast<int32_t>(prop.GetOrientation()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DisplayOrientation: "
+        << static_cast<int32_t>(prop.GetDisplayOrientation()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "ScreenType: "
+        << static_cast<int32_t>(prop.GetScreenType()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "ReqOrientation: "
+        << static_cast<int32_t>(prop.GetScreenRequestedOrientation()) << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DPI<X, Y>: "
+        << prop.GetXDpi() << ", " << prop.GetYDpi() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Offset<X, Y>: "
+        << prop.GetOffsetX() << ", " << prop.GetOffsetY() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "StartPosition<X, Y>: "
+        << prop.GetStartX() << ", " << prop.GetStartY() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "Bounds<L,T,W,H>: "
+        << prop.GetBounds().rect_.GetLeft() << ", "
+        << prop.GetBounds().rect_.GetTop() << ", "
+        << prop.GetBounds().rect_.GetWidth() << ", "
+        << prop.GetBounds().rect_.GetHeight() << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "PhyBounds<L,T,W,H>: "
+        << prop.GetPhyBounds().rect_.GetLeft() << ", "
+        << prop.GetPhyBounds().rect_.GetTop() << ", "
+        << prop.GetPhyBounds().rect_.GetWidth() << ", "
+        << prop.GetPhyBounds().rect_.GetHeight() << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "AvailableArea<X,Y,W,H>: "
+        << prop.GetAvailableArea().posX_ << ", "
+        << prop.GetAvailableArea().posY_ << ", "
+        << prop.GetAvailableArea().width_ << ", "
+        << prop.GetAvailableArea().height_ << ", " << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DefaultDeviceRotationOffset: "
+        << prop.GetDefaultDeviceRotationOffset() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "DisplayGroupId: "
+        << prop.GetDisplayGroupId() << std::endl;
+    oss << std::left << std::setw(LINE_WIDTH) << "MainDisplayIdOfGroup: "
+        << prop.GetMainDisplayIdOfGroup() << std::endl;
+}
+
 std::string ScreenSessionManagerClient::OnDumperClientScreenSessions()
 {
     std::ostringstream oss;
@@ -1414,44 +1518,25 @@ std::string ScreenSessionManagerClient::OnDumperClientScreenSessions()
     {
         std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
         for (const auto& iter : screenSessionMap_) {
-        if (iter.second == nullptr) {
-            oss << std::left << std::setw(LINE_WIDTH) << "session: " << "nullptr" << std::endl;
-            continue;
+            if (iter.second == nullptr) {
+                oss << std::left << std::setw(LINE_WIDTH) << "session: " << "nullptr" << std::endl;
+                continue;
+            }
+            oss << std::left << std::setw(LINE_WIDTH) << "Name: " << iter.second->GetName() << std::endl;
+            oss << std::left << std::setw(LINE_WIDTH) << "ScreenId: " << iter.second->GetScreenId() << std::endl;
+            oss << std::left << std::setw(LINE_WIDTH) << "RSScreenId: " << iter.second->GetRSScreenId() << std::endl;
+            if (iter.second->GetDisplayNode() != nullptr) {
+                oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: "
+                    << iter.second->GetDisplayNode()->GetId() << std::endl;
+            } else {
+                oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: " << "nullptr" << std::endl;
+            }
+            oss << std::left << std::setw(LINE_WIDTH) << "ScreenCombination: "
+                << static_cast<int32_t>(iter.second->GetScreenCombination()) << std::endl;
+            oss << std::left << std::setw(LINE_WIDTH) << "isExtend: "
+                << (iter.second->GetIsExtend() ? "true" : "false") << std::endl;
+            DumpClientScreenProperty(oss, iter.second->GetScreenProperty());
         }
-        ScreenProperty screenProperty = iter.second->GetScreenProperty();
-        oss << std::left << std::setw(LINE_WIDTH) << "Name: " << iter.second->GetName() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "ScreenId: " << iter.second->GetScreenId() << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "RSScreenId: " << iter.second->GetRSScreenId() << std::endl;
-        if (iter.second->GetDisplayNode() != nullptr) {
-            oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: "
-                << iter.second->GetDisplayNode()->GetId() << std::endl;
-        } else {
-            oss << std::left << std::setw(LINE_WIDTH) << "DisplayNode: " << "nullptr" << std::endl;
-        }
-        oss << std::left << std::setw(LINE_WIDTH) << "ScreenCombination: "
-            << static_cast<int32_t>(iter.second->GetScreenCombination()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "isExtend: "
-            << (iter.second->GetIsExtend() ? "true" : "false") << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Orientation: "
-            << static_cast<int32_t>(screenProperty.GetOrientation()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Rotation: "
-            << static_cast<int32_t>(screenProperty.GetRotation()) << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "Bounds<L,T,W,H>: "
-            << screenProperty.GetBounds().rect_.GetLeft() << ", "
-            << screenProperty.GetBounds().rect_.GetTop() << ", "
-            << screenProperty.GetBounds().rect_.GetWidth() << ", "
-            << screenProperty.GetBounds().rect_.GetHeight() << ", " << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "PhyBounds<L,T,W,H>: "
-            << screenProperty.GetPhyBounds().rect_.GetLeft() << ", "
-            << screenProperty.GetPhyBounds().rect_.GetTop() << ", "
-            << screenProperty.GetPhyBounds().rect_.GetWidth() << ", "
-            << screenProperty.GetPhyBounds().rect_.GetHeight() << ", " << std::endl;
-        oss << std::left << std::setw(LINE_WIDTH) << "AvailableArea<X,Y,W,H> "
-            << screenProperty.GetAvailableArea().posX_ << ", "
-            << screenProperty.GetAvailableArea().posY_ << ", "
-            << screenProperty.GetAvailableArea().width_ << ", "
-            << screenProperty.GetAvailableArea().height_ << ", " << std::endl;
-    }
     }
     auto screenInfos = oss.str();
     TLOGW(WmsLogTag::DMS, "%{public}s", screenInfos.c_str());
@@ -1612,6 +1697,19 @@ void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
     TLOGI(WmsLogTag::DMS, "notify animation finished by window");
     screenSessionManager_->NotifySwitchUserAnimationFinish();
 }
+
+void ScreenSessionManagerClient::SubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->SubscribeMotionSensor(motionType);
+}
+
+void ScreenSessionManagerClient::UnsubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->UnsubscribeMotionSensor(motionType);
+}
+
 void ScreenSessionManagerClient::OnAnimationFinish()
 {
     std::lock_guard<std::mutex> lock(animateFinishNotificationSetMutex_);
