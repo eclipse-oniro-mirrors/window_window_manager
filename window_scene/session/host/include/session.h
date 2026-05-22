@@ -964,6 +964,8 @@ public:
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
     WSError NotifySurfaceNodeAlphaUpdate(float alpha) override;
+    SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
+    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load();}
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
 
@@ -1297,8 +1299,6 @@ protected:
      */
     uint32_t propertyDirtyFlags_ = 0;
     std::atomic<float> surfaceNodeAlpha_ = -1.0f;
-    SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
-    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load();}
 
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
