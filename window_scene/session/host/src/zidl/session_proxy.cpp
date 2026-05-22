@@ -1966,7 +1966,6 @@ WSError SessionProxy::SetAspectRatio(float ratio)
     return static_cast<WSError>(ret);
 }
 
-/** @note @window.attribute */
 WSError SessionProxy::NotifySurfaceNodeAlphaUpdate(float alpha)
 {
     MessageParcel data;

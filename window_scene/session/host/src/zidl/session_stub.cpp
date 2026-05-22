@@ -1582,7 +1582,6 @@ int SessionStub::HandleSetAspectRatio(MessageParcel& data, MessageParcel& reply)
     return ERR_NONE;
 }
 
-/** @note @window.attribute */
 int SessionStub::HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply)
 {
     float alpha = 0.0f;
