@@ -1585,17 +1585,13 @@ int SessionStub::HandleSetAspectRatio(MessageParcel& data, MessageParcel& reply)
 /** @note @window.attribute */
 int SessionStub::HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "In");
-    
     float alpha = 0.0f;
     if (!data.ReadFloat(alpha)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Read alpha failed");
         return ERR_INVALID_DATA;
     }
-    
     WSError errCode = NotifySurfaceNodeAlphaUpdate(alpha);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
-    
     return ERR_NONE;
 }
 

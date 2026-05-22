@@ -225,7 +225,7 @@ public:
      * @param alpha Indicates the alpha value of surface node.
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
-    virtual WSError NotifySurfaceNodeAlphaUpdate(float alpha) { return WSError::WS_OK; }
+    virtual WSError NotifySurfaceNodeAlphaUpdate(float alpha) { return WSError::WS_DO_NOTHING; }
 
     /**
      * @brief Set content aspect ratio of the window.
