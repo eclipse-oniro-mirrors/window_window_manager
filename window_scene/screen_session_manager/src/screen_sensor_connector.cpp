@@ -14,6 +14,7 @@
  */
 
 #include "screen_sensor_connector.h"
+#include "screen_session_manager.h"
 #include <chrono>
 #include <securec.h>
 #include <parameters.h>
