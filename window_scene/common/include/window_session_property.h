@@ -886,13 +886,13 @@ struct FreeMultiWindowConfig : public Parcelable {
 
 struct AppForceLandscapeConfig : public Parcelable {
     std::string configJsonStr_ = "";
- 	bool isRouter_ = false;
- 	bool containsConfig_ = false;
+    bool isRouter_ = false;
+    bool containsConfig_ = false;
     bool hasChanged_ = true;
     bool configEnable_ = false;
     AppForceLandscapeConfig() {}
     AppForceLandscapeConfig(const std::string& configJsonStr, bool isRouter, bool containsConfig)
-    : configJsonStr_(configJsonStr), isRouter_(isRouter), containsConfig_(containsConfig) {}
+        : configJsonStr_(configJsonStr), isRouter_(isRouter), containsConfig_(containsConfig) {}
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
