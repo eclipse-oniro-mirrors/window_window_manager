@@ -88,6 +88,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/screen_sensor_plugin.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_dumper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/motion_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_setting_helper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_tent_property.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_power_fsm/session_display_power_controller.cpp",

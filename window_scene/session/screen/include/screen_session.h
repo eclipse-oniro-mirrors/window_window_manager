@@ -52,6 +52,7 @@ public:
     virtual void OnPowerStatusChange(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) {}
     virtual void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
+    virtual void OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
     virtual void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) {}
     virtual void OnScreenOrientationChangeWithOptions(float screenOrientation,
         const OrientationOptions& options, ScreenId screenId) {}
@@ -202,6 +203,7 @@ public:
     DMError SetScreenColorSpace(GraphicCM_ColorSpaceType colorSpace);
 
     void HandleSensorRotation(float sensorRotation);
+    void HandleSmartRotation(float sensorRotation);
     void HandleHoverStatusChange(int32_t hoverStatus, bool needRotate = true);
     void HandleCameraBackSelfieChange(bool isCameraBackSelfie);
     float ConvertRotationToFloat(Rotation sensorRotation);
@@ -338,7 +340,11 @@ public:
     void SensorRotationChange(Rotation sensorRotation);
     void SensorRotationChange(float sensorRotation);
     void SensorRotationChange(float sensorRotation, bool isSwitchUser);
+    void SmartSensorRotationChange(Rotation sensorRotation);
+    void SmartSensorRotationChange(float sensorRotation);
+    void SmartSensorRotationChange(float sensorRotation, bool isSwitchUser);
     float GetValidSensorRotation();
+    float GetValidSmartSensorRotation();
     void HoverStatusChange(int32_t hoverStatus, bool needRotate = true);
     void CameraBackSelfieChange(bool isCameraBackSelfie);
     void ScreenOrientationChange(Orientation orientation, FoldDisplayMode foldDisplayMode, bool isFromNapi);
@@ -506,6 +512,7 @@ private:
     bool isFold_ = false;
     float currentSensorRotation_ { -1.0f };
     std::atomic<float> currentValidSensorRotation_ { -1.0f };
+    std::atomic<float> currentValidSmartRotation_ { -1.0f };
     mutable std::shared_mutex hdrFormatsMutex_;
     std::vector<uint32_t> hdrFormats_;
     mutable std::shared_mutex colorSpacesMutex_;

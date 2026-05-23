@@ -195,7 +195,7 @@ public:
 
     void SetXYPosition(int32_t x, int32_t y);
 
-    DMRect GetAvailableArea()
+    DMRect GetAvailableArea() const
     {
         return availableArea_;
     }
@@ -355,7 +355,7 @@ private:
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
 
-    bool isInternal_ = true;
+    bool isInternal_ = false;
 
     ScreenPropertyChangeReason propertyChangeReason_;
 

@@ -27,6 +27,7 @@
 #include "screen_manager/rs_screen_mode_info.h"
 #include "common/rs_event_def.h"
 
+
 namespace OHOS {
 namespace Rosen {
 constexpr float EPSILON = std::numeric_limits<float>::epsilon();
@@ -160,6 +161,8 @@ public:
     int32_t SetLogicalCameraRotationCorrection(ScreenId id, ScreenRotation screenRotation);
     ScreenId GetActiveScreenId();
     int32_t RegisterExposedEventCallback(const RSExposedEventType type, const RSExposedEventCallback& callback);
+    ScreenId GetMainScreenId();
+    int32_t SetAsMainScreen(ScreenId id, bool isMainScreen);
     int32_t UnRegisterExposedEventCallback(const RSExposedEventType type);
 };
 }  // namespace Rosen

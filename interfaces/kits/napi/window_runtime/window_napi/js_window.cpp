@@ -1312,6 +1312,13 @@ napi_value JsWindow::StartMoving(napi_env env, napi_callback_info info)
     return (me != nullptr) ? me->OnStartMoving(env, info) : nullptr;
 }
 
+napi_value JsWindow::StartMovingWithOptions(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnStartMovingWithOptions(env, info) : nullptr;
+}
+
 napi_value JsWindow::StopMoving(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
@@ -10451,6 +10458,75 @@ napi_value JsWindow::OnStartMoving(napi_env env, napi_callback_info info)
     return result;
 }
 
+std::pair<WmErrorCode, StartMovingOptions> GetStartMovingOptionsFromArgv(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARG_COUNT_ONE;
+    napi_value argv[ARG_COUNT_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    if (argc > ARG_COUNT_ONE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid argc: %{public}zu", argc);
+        return { WmErrorCode::WM_ERROR_INVALID_PARAM, {} };
+    }
+
+    auto [parseRet, optionsOpt] = ParseStartMovingOptions(env, argv[INDEX_ZERO]);
+    if (parseRet != napi_ok) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to parse options, ret: %{public}d", static_cast<int32_t>(parseRet));
+        return { WmErrorCode::WM_ERROR_ILLEGAL_PARAM, {} };
+    }
+
+    return { WmErrorCode::WM_OK, optionsOpt.value_or(StartMovingOptions{ true, Rect::EMPTY_RECT }) };
+}
+
+napi_value JsWindow::OnStartMovingWithOptions(napi_env env, napi_callback_info info)
+{
+    if (!Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "permission denied, require system application");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+                              "[window][startMovingWithOptions]msg: Permission denied");
+    }
+
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "window is nullptr.");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][startMovingWithOptions]msg: window is nullptr");
+    }
+
+    auto optionsRes = GetStartMovingOptionsFromArgv(env, info);
+    if (optionsRes.first != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, optionsRes.first, "[window][startMovingWithOptions]msg: Invalid options");
+    }
+
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_), options = optionsRes.second,
+                      env, napiAsyncTask, where = __func__] {
+        auto window = windowToken.promote();
+        if (window == nullptr) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: window is nullptr.", where);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+            return;
+        }
+        auto ret = window->StartMovingWithOptions(options);
+        if (ret == WMError::WM_OK) {
+            napiAsyncTask->Resolve(env, NapiGetUndefined(env));
+            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: Success, windowId: %{public}u, options: %{public}s",
+                   where, window->GetWindowId(), options.ToString().c_str());
+        } else {
+            auto errCode = MappingWmErrorCodeSafely(ret);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to start moving with options"));
+            TLOGE(WmsLogTag::WMS_LAYOUT, "%{public}s: Failed, windowId: %{public}u, ret: %{public}d",
+                  where, window->GetWindowId(), static_cast<int32_t>(errCode));
+        }
+    };
+    napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnStartMovingWithOptions");
+    if (status != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env,
+            static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY), "Failed to send event"));
+    }
+    return result;
+}
+
 napi_value JsWindow::OnStartMoveWindowWithCoordinate(napi_env env, size_t argc, napi_value* argv)
 {
     if (windowToken_ == nullptr) {
@@ -11725,6 +11801,7 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
 {
     BindNativeFunction(env, object, "startMoving", moduleName, JsWindow::StartMoving);
+    BindNativeFunction(env, object, "startMovingWithOptions", moduleName, JsWindow::StartMovingWithOptions);
     BindNativeFunction(env, object, "stopMoving", moduleName, JsWindow::StopMoving);
     BindNativeFunction(env, object, "show", moduleName, JsWindow::Show);
     BindNativeFunction(env, object, "showWindow", moduleName, JsWindow::ShowWindow);

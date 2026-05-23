@@ -960,7 +960,7 @@ enum class DisplayModeChangeReason : uint32_t {
 
 enum class ScreenClosedState : uint32_t {
     UNKNOWN = 0,
-    CLOSE = 0,
+    CLOSE,
     OPEN
 };
 }

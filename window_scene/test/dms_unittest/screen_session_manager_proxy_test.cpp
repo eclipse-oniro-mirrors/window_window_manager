@@ -27,6 +27,7 @@
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "zidl/screen_session_manager_proxy.h"
+#include "motion_manager.h"
 #include "mock_message_parcel.h"
 
 using namespace testing;
@@ -2411,6 +2412,110 @@ HWTEST_F(ScreenSessionManagerProxyTest, NotifySwitchUserAnimationFinish, TestSiz
     proxy->NotifySwitchUserAnimationFinish();
     remoteMocker->SetRequestResult(ERR_NONE);
     proxy->NotifySwitchUserAnimationFinish();
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: SubscribeMotionSensor test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: UnsubscribeMotionSensor test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ASSERT_NE(proxy, nullptr);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
     MockMessageParcel::ClearAllErrorFlag();
 }
 

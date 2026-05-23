@@ -3333,6 +3333,90 @@ HWTEST_F(SessionStubTest, TestHandleSessionEventSwitchCompatibleRoundtrip01, Tes
     EXPECT_EQ(errCode, static_cast<uint32_t>(WSError::WS_OK));
     EXPECT_EQ(capturedParam.compatibleStyleMode, compatibleStyleMode);
 }
+
+/**
+ * @tc.name: StartMovingWithOptionsRejectsIncompletePayload
+ * @tc.desc: Verify the stub rejects missing focus and rect fields for StartMovingWithOptions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, StartMovingWithOptionsRejectsIncompletePayload, TestSize.Level1)
+{
+    MessageOption option = { MessageOption::TF_SYNC };
+    const auto code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_MOVING_WITH_OPTIONS);
+
+    MessageParcel emptyData;
+    MessageParcel emptyReply;
+    EXPECT_EQ(session_->ProcessRemoteRequest(code, emptyData, emptyReply, option), ERR_INVALID_DATA);
+
+    MessageParcel missingRectData;
+    MessageParcel missingRectReply;
+    missingRectData.WriteBool(false);
+    EXPECT_EQ(session_->ProcessRemoteRequest(code, missingRectData, missingRectReply, option), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsReadsPayloadAndWritesResult
+ * @tc.desc: Verify the stub decodes options and writes the StartMovingWithOptions result
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, StartMovingWithOptionsReadsPayloadAndWritesResult, TestSize.Level1)
+{
+    auto session = sptr<SessionStubMocker>::MakeSptr();
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option = { MessageOption::TF_SYNC };
+    const auto code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_MOVING_WITH_OPTIONS);
+    data.WriteBool(false);
+    data.WriteInt32(1);
+    data.WriteInt32(2);
+    data.WriteUint32(3);
+    data.WriteUint32(4);
+
+    EXPECT_CALL(*session, StartMovingWithOptions(_))
+        .WillOnce([](const StartMovingOptions& options) {
+            EXPECT_FALSE(options.needFocused);
+            EXPECT_EQ(options.avoidRect.posX_, 1);
+            EXPECT_EQ(options.avoidRect.posY_, 2);
+            EXPECT_EQ(options.avoidRect.width_, 3);
+            EXPECT_EQ(options.avoidRect.height_, 4);
+            return WMError::WM_ERROR_REPEAT_OPERATION;
+        });
+
+    EXPECT_EQ(session->ProcessRemoteRequest(code, data, reply, option), ERR_NONE);
+    EXPECT_EQ(reply.ReadInt32(), static_cast<int32_t>(WMError::WM_ERROR_REPEAT_OPERATION));
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsRejectsEachIncompleteRectField
+ * @tc.desc: Verify the stub rejects payloads missing posY, width, or height
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, StartMovingWithOptionsRejectsEachIncompleteRectField, TestSize.Level1)
+{
+    MessageOption option = { MessageOption::TF_SYNC };
+    const auto code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_MOVING_WITH_OPTIONS);
+
+    MessageParcel missingPosYData;
+    MessageParcel missingPosYReply;
+    missingPosYData.WriteBool(false);
+    missingPosYData.WriteInt32(1);
+    EXPECT_EQ(session_->ProcessRemoteRequest(code, missingPosYData, missingPosYReply, option), ERR_INVALID_DATA);
+
+    MessageParcel missingWidthData;
+    MessageParcel missingWidthReply;
+    missingWidthData.WriteBool(false);
+    missingWidthData.WriteInt32(1);
+    missingWidthData.WriteInt32(2);
+    EXPECT_EQ(session_->ProcessRemoteRequest(code, missingWidthData, missingWidthReply, option), ERR_INVALID_DATA);
+
+    MessageParcel missingHeightData;
+    MessageParcel missingHeightReply;
+    missingHeightData.WriteBool(false);
+    missingHeightData.WriteInt32(1);
+    missingHeightData.WriteInt32(2);
+    missingHeightData.WriteUint32(3);
+    EXPECT_EQ(session_->ProcessRemoteRequest(code, missingHeightData, missingHeightReply, option), ERR_INVALID_DATA);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

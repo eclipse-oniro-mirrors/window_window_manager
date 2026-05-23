@@ -575,6 +575,14 @@ public:
         const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
 
     /**
+     * @brief Start moving window with options.
+     *
+     * @param options Options to control focus request and avoid region during this movement.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError StartMovingWithOptions(const StartMovingOptions& options) { return WMError::WM_OK; }
+
+    /**
      * @brief Start Moving window with coordinate.
      *
      * @param offsetX expected pointer position x-axis offset in window when start moving.

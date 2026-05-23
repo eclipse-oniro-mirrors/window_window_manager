@@ -3001,6 +3001,17 @@ public:
     virtual WmErrorCode StartMoveWindow() { return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Start moving window with options.
+     *
+     * @param options Options to control focus request and avoid region during this movement.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError StartMovingWithOptions(const StartMovingOptions& options)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Start moving window. It is called by application.
      *
      * @param offsetX expected pointer position x-axis offset in window when start moving.
@@ -4094,7 +4105,8 @@ public:
      * @param hostWindowId window Id of the host window.
      * @return Rect of window.
      */
-    virtual Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize = false) { return {}; }
+    virtual Rect GetHostWindowRect(int32_t hostWindowId) { return {}; }
+    virtual Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) { return {}; }
 
     /**
      * @brief Make multi-window become landscape or not.
@@ -4535,6 +4547,13 @@ public:
      * @return Real parent id of UIExtension
      */
     virtual int32_t GetRealParentId() const { return static_cast<int32_t>(INVALID_WINDOW_ID); }
+
+    /**
+     * @brief Get the host window id of UIExtension
+     *
+     * @return Host window id of UIExtension
+     */
+    virtual int32_t GetHostWindowId() const { return static_cast<int32_t>(INVALID_WINDOW_ID); }
 
     /**
      * @brief Get the parent window type of UIExtension

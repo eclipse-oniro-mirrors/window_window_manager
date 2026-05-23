@@ -1135,15 +1135,31 @@ void ScreenSession::HandleSensorRotation(float sensorRotation)
     SensorRotationChange(sensorRotation);
 }
 
+void ScreenSession::HandleSmartRotation(float sensorRotation)
+{
+    SmartSensorRotationChange(sensorRotation);
+}
+
 void ScreenSession::SensorRotationChange(Rotation sensorRotation)
 {
     float rotation = ConvertRotationToFloat(sensorRotation);
     SensorRotationChange(rotation);
 }
 
+void ScreenSession::SmartSensorRotationChange(Rotation sensorRotation)
+{
+    float rotation = ConvertRotationToFloat(sensorRotation);
+    SmartSensorRotationChange(rotation);
+}
+
 void ScreenSession::SensorRotationChange(float sensorRotation)
 {
     SensorRotationChange(sensorRotation, false);
+}
+
+void ScreenSession::SmartSensorRotationChange(float sensorRotation)
+{
+    SmartSensorRotationChange(sensorRotation, false);
 }
 
 void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser)
@@ -1162,9 +1178,29 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
     }
 }
 
+void ScreenSession::SmartSensorRotationChange(float sensorRotation, bool isSwitchUser)
+{
+    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
+    if (sensorRotation >= 0.0f) {
+        currentValidSmartRotation_ = sensorRotation;
+    }
+    for (auto& listener : screenChangeListenerList_) {
+        if (!listener) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "screenChangeListener is null.");
+            continue;
+        }
+        listener->OnSmartSensorRotationChange(sensorRotation, screenId_, isSwitchUser);
+    }
+}
+
 float ScreenSession::GetValidSensorRotation()
 {
     return currentValidSensorRotation_.load();
+}
+
+float ScreenSession::GetValidSmartSensorRotation()
+{
+    return currentValidSmartRotation_.load();
 }
 
 void ScreenSession::HandleHoverStatusChange(int32_t hoverStatus, bool needRotate)
@@ -1998,6 +2034,12 @@ void ScreenSession::SetScreenCombination(ScreenCombination combination)
         static_cast<int32_t>(combination));
     std::lock_guard<std::mutex> lock(combinationMutex_);
     combination_ = combination;
+    if (combination_ == ScreenCombination::SCREEN_MAIN) {
+        auto ret = RSInterfaces::GetInstance().SetAsMainScreen(GetRSScreenId(), true);
+        if (ret != StatusCode::SUCCESS) {
+            TLOGE(WmsLogTag::DMS, "SetAsMainScreen fail! rsId %{public}" PRIu64"", rsId_);
+        }
+    }
 }
 
 ScreenCombination ScreenSession::GetScreenCombination() const

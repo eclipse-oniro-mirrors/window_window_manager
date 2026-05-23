@@ -145,7 +145,8 @@ public:
     float GetDefaultDensity(const sptr<DisplayInfo>& displayInfo);
     WMError HideNonSecureWindows(bool shouldHide) override;
     WMError SetWaterMarkFlag(bool isEnable) override;
-    Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize = false) override;
+    Rect GetHostWindowRect(int32_t hostWindowId) override;
+    Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
     bool IsComponentFocused() const override;
 
@@ -173,6 +174,7 @@ public:
     bool PreNotifyKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     void NotifyExtensionTimeout(int32_t errorCode) override;
     int32_t GetRealParentId() const override;
+    int32_t GetHostWindowId() const override;
     WindowType GetParentWindowType() const override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;

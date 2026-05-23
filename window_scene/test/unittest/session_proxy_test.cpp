@@ -2920,6 +2920,70 @@ HWTEST_F(SessionProxyTest, TestOnSessionEvent_OtherEventNoExtraParams, TestSize.
 
     EXPECT_EQ(WSError::WS_OK, sessionProxy->OnSessionEvent(event, param));
 }
+
+/**
+ * @tc.name: StartMovingWithOptionsWritesOptionsAndHandlesIpcFailures
+ * @tc.desc: Verify StartMovingWithOptions serializes options and reports IPC failures
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, StartMovingWithOptionsWritesOptionsAndHandlesIpcFailures, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    StartMovingOptions options;
+    options.needFocused = false;
+    options.avoidRect = { 1, 2, 3, 4 };
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+
+    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(nullProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_OK);
+}
+
+ /**
+ * @tc.name: StartMovingWithOptionsHandlesLaterRectWriteFailures
+ * @tc.desc: Verify rect serialization failure is handled for the second int32 and second uint32 fields
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, StartMovingWithOptionsHandlesLaterRectWriteFailures, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    StartMovingOptions options;
+    options.avoidRect = { 1, 2, 3, 4 };
+
+    MockMessageParcel::SetWriteInt32ErrorCount(1);
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::SetWriteInt32ErrorCount(0);
+
+    MockMessageParcel::SetWriteUint32ErrorCount(1);
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    EXPECT_EQ(sessionProxy->StartMovingWithOptions(options), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+    MockMessageParcel::SetWriteUint32ErrorCount(0);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

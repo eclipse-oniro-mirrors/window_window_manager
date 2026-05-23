@@ -1665,6 +1665,11 @@ WMError WindowExtensionSessionImpl::UpdateExtWindowFlags(const ExtensionWindowFl
     return SingletonContainer::Get<WindowAdapter>().UpdateExtWindowFlags(abilityToken_, flags.bitData, actions.bitData);
 }
 
+Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId)
+{
+    return GetHostWindowRect(hostWindowId, false);
+}
+
 Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId, bool useHookedSize)
 {
     Rect rect;
@@ -1986,6 +1991,11 @@ void WindowExtensionSessionImpl::NotifyExtensionTimeout(int32_t errorCode)
 int32_t WindowExtensionSessionImpl::GetRealParentId() const
 {
     return property_->GetRealParentId();
+}
+
+int32_t WindowExtensionSessionImpl::GetHostWindowId() const
+{
+    return property_->GetParentId();
 }
 
 WindowType WindowExtensionSessionImpl::GetParentWindowType() const

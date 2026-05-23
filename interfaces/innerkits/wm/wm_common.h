@@ -1311,6 +1311,11 @@ struct Rect {
         return posX_ == x && posY_ == y;
     }
 
+    bool IsRightBottomOverflow() const
+    {
+        return Rect::IsRightBottomOverflow(posX_, posY_, width_, height_);
+    }
+
     inline std::string ToString() const
     {
         std::ostringstream oss;
@@ -1335,19 +1340,19 @@ struct Rect {
     static const Rect EMPTY_RECT;
 
     /**
-     * @brief Checks whether the right-bottom corner of a rectangle stays within the valid range.
+     * @brief Checks whether the right-bottom corner of a rectangle overflows the valid range.
      *
      * @param x The x-coordinate of the left-top corner.
      * @param y The y-coordinate of the left-top corner.
      * @param width The rectangle's width.
      * @param height The rectangle's height.
-     * @return true if right-bottom corner stays within int32_t range; false if overflow happens.
+     * @return true if right-bottom corner overflows int32_t range; false if within range.
      */
-    static bool IsRightBottomValid(int32_t x, int32_t y, uint32_t width, uint32_t height)
+    static bool IsRightBottomOverflow(int32_t x, int32_t y, uint32_t width, uint32_t height)
     {
         int64_t right = static_cast<int64_t>(x) + static_cast<int64_t>(width);
         int64_t bottom = static_cast<int64_t>(y) + static_cast<int64_t>(height);
-        return right <= INT32_MAX && bottom <= INT32_MAX;
+        return right > INT32_MAX || bottom > INT32_MAX;
     }
 };
 
@@ -4167,6 +4172,28 @@ enum class TitleButtonEventType : uint32_t {
     EVENT_TYPE_UNDEFINED = 0,
     EVENT_TYPE_MAXIMIZE = 1,
     EVENT_TYPE_END = 10,
+};
+
+/**
+ * @brief Optional configuration for window movement.
+ */
+struct StartMovingOptions {
+    /**
+     * @brief Indicates whether the window needs to be focused when moving starts.
+     */
+    bool needFocused = true;
+
+    /**
+     * @brief The avoidance rect of window during drag-moving.
+     */
+    Rect avoidRect = Rect::EMPTY_RECT;
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "needFocused: " << needFocused << ", avoidRect: " << avoidRect.ToString();
+        return oss.str();
+    }
 };
 }
 }

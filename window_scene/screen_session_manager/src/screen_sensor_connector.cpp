@@ -17,6 +17,7 @@
 #include <chrono>
 #include <securec.h>
 #include <parameters.h>
+#include "motion_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -45,14 +46,17 @@ void ScreenSensorConnector::SubscribeRotationSensor()
 {
     TLOGD(WmsLogTag::DMS, "subscribe rotation-related sensor");
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    MotionSubscriber::SubscribeMotionSensor();
+    // MotionSubscriber::SubscribeMotionSensor();
+    MotionManager::GetInstance().Init();
+    MotionManager::GetInstance().OnScreenOn();
 #endif
 }
 
 void ScreenSensorConnector::UnsubscribeRotationSensor()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    MotionSubscriber::UnsubscribeMotionSensor();
+    // MotionSubscriber::UnsubscribeMotionSensor();
+    MotionManager::GetInstance().OnScreenOff();
 #endif
 }
 

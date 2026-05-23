@@ -30,6 +30,8 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr int LINE_WIDTH = 30;
+const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
+const std::string IS_PC_MODE_KEY = "persist.sceneboard.ispcmode";
 } // namespace
 
 WM_IMPLEMENT_SINGLE_INSTANCE(ScreenSessionManagerClient)
@@ -117,7 +119,7 @@ bool ScreenSessionManagerClient::CheckIfNeedConnectScreen(SessionOption option)
     if (screenSessionManager_->GetScreenProperty(option.screenId_).GetScreenType() == ScreenType::VIRTUAL) {
         if (option.name_ == "HiCar" || option.name_ == "SuperLauncher" || option.name_ == "CastEngine" ||
             option.name_ == "DevEcoViewer" || option.innerName_ == "CustomScbScreen" || option.name_ == "CeliaView" ||
-            option.name_ == "PadWithCar" || option.name_ == "CooperationExtend") {
+            option.name_ == "PadWithCar" || option.name_ == "CooperationExtend" || option.name_ == "PCVirtualScreen") {
             TLOGI(WmsLogTag::DMS, "HiCar or SuperLauncher or CastEngine or DevEcoViewer or CeliaView, "
                 "need to connect the screen");
             return true;
@@ -380,6 +382,17 @@ void ScreenSessionManagerClient::OnSensorRotationChanged(ScreenId screenId, floa
     screenSession->SensorRotationChange(sensorRotation, isSwitchUser);
 }
 
+void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->SmartSensorRotationChange(sensorRotation, isSwitchUser);
+}
+
 void ScreenSessionManagerClient::OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate)
 {
     auto screenSession = GetScreenSession(screenId);
@@ -553,6 +566,18 @@ void ScreenSessionManagerClient::SetDisplayNodeScreenId(ScreenId screenId, Scree
         return;
     }
     screenSession->SetDisplayNodeScreenId(displayNodeScreenId);
+}
+
+void ScreenSessionManagerClient::SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    screenSession->SetRSScreenId(rsScreenId);
+    screenSession->SetDisplayNodeScreenId(rsScreenId);
+    TLOGW(WmsLogTag::DMS, "client screenId=%{public}" PRIu64"; RsscreenId=%{public}" PRIu64, screenId, rsScreenId);
 }
 
 uint32_t ScreenSessionManagerClient::GetCurvedCompressionArea()
@@ -1180,6 +1205,23 @@ void ScreenSessionManagerClient::NotifyClientScreenConnect(sptr<ScreenSession>& 
     screenSession->Connect();
 }
 
+void ScreenSessionManagerClient::HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config,
+    sptr<ScreenSession>& screenSession)
+{
+    config.displayNode = screenSessionManager_->GetDisplayNode(config.screenId);
+    if (screenSession == nullptr) {
+        screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    } else {
+        screenSession->SetScreenProperty(config.property);
+        screenSession->SetDisplayNode(config.displayNode);
+    }
+    if (config.displayNode != nullptr && IS_SUPPORT_PC_MODE &&
+        system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
+        config.displayNode->SetScreenId(config.rsId);
+        RSTransactionAdapter::FlushImplicitTransaction({config.displayNode});
+    }
+}
+
 bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
 {
     if (!CheckIfNeedConnectScreen(option)) {
@@ -1202,16 +1244,7 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
     config.property = screenSessionManager_->GetScreenProperty(option.screenId_);
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());
-    config.displayNode = screenSessionManager_->GetDisplayNode(option.screenId_);
-    if (config.displayNode != nullptr) {
-        config.displayNode->SetScreenId(option.rsId_);
-    }
-    if (screenSession == nullptr) {
-        screenSession = new ScreenSession(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
-    } else {
-        screenSession->SetScreenProperty(config.property);
-        screenSession->SetDisplayNode(config.displayNode);
-    }
+    HandleDisplayNodeWhenScreenConnect(config, screenSession);
     screenSession->SetScreenCombination(screenSessionManager_->GetScreenCombination(option.screenId_));
     screenSession->SetIsExtend(option.isExtend_);
     screenSession->SetIsRealScreen(screenSessionManager_->GetIsRealScreen(option.screenId_));
@@ -1664,6 +1697,19 @@ void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
     TLOGI(WmsLogTag::DMS, "notify animation finished by window");
     screenSessionManager_->NotifySwitchUserAnimationFinish();
 }
+
+void ScreenSessionManagerClient::SubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->SubscribeMotionSensor(motionType);
+}
+
+void ScreenSessionManagerClient::UnsubscribeMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
+    screenSessionManager_->UnsubscribeMotionSensor(motionType);
+}
+
 void ScreenSessionManagerClient::OnAnimationFinish()
 {
     std::lock_guard<std::mutex> lock(animateFinishNotificationSetMutex_);
