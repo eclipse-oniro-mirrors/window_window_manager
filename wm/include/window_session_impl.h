@@ -1245,6 +1245,7 @@ private:
     void NotifyAfterResumed();
     void NotifyAfterPaused();
     void NotifyUIContentHighlightStatus(bool isHighlighted);
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
     void NotifySurfaceNodeAlphaUpdate(float alpha);
 
     /*
