@@ -67,6 +67,7 @@ enum class ScreenEvent : uint8_t {
 enum class ScreenChangeReason : uint8_t {
     DEFAULT = 0,
     HWCDEAD = 1,
+    PROCESS_DISCONNECTED = 2,
 };
 
 enum class ScreenRotation : uint32_t {

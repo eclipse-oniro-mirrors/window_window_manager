@@ -1809,12 +1809,28 @@ void ScreenSessionManager::OnScreenChangeDefault(ScreenId screenId, ScreenEvent 
         connectScreenNumber_ ++;
         HandleScreenConnectEvent(screenSession, screenId, screenEvent);
     } else if (screenEvent == ScreenEvent::DISCONNECTED) {
-        connectScreenNumber_ --;
-        HandleScreenDisconnectEvent(screenSession, screenId, screenEvent);
+        HandleDisconnectEventDefault(screenSession, screenId, screenEvent, reason);
     } else {
         TLOGNFE(WmsLogTag::DMS, "screenEvent error!");
     }
     NotifyScreenModeChange();
+}
+
+void ScreenSessionManager::HandleDisconnectEventDefault(sptr<ScreenSession> screenSession,
+    ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason)
+{
+    connectScreenNumber_ --;
+    if (reason == ScreenChangeReason::PROCESS_DISCONNECTED && IsConcurrentUser()) {
+        if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+            DestroyVirtualScreen(screenSession->GetScreenId());
+            TLOGNFW(WmsLogTag::DMS, "destroy virtual screen , ScreenId: %{public}" PRIu64""
+                , screenSession->GetScreenId());
+            return;
+        }
+        HandleProcessDisconnectEvent(screenSession, screenId, screenEvent);
+    } else {
+        HandleScreenDisconnectEvent(screenSession, screenId, screenEvent);
+    }     
 }
 
 void ScreenSessionManager::OnFoldScreenChange(sptr<ScreenSession>& screenSession)
@@ -2483,8 +2499,8 @@ void ScreenSessionManager::WaitUpdateAvailableAreaForPc()
     }
 }
 
-void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> screenSession,
-    ScreenId screenId, ScreenEvent screenEvent)
+void ScreenSessionManager::HandleDisconnectEventInner(sptr<ScreenSession> screenSession,
+    ScreenId screenId, ScreenEvent screenEvent, bool phyMirrorEnable)
 {
     if (!screenSession) {
        TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
@@ -2519,7 +2535,6 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
         }
     }
     HandlePCScreenDisconnect(screenSession);
-    bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorDisconnect(screenSession, screenId, phyMirrorEnable);
     HandleMapWhenScreenDisconnect(screenId);
     if (IsConcurrentUser()) {
@@ -2574,6 +2589,17 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
         std::lock_guard<std::recursive_mutex> lock_phy(phyScreenPropMapMutex_);
         phyScreenPropMap_.erase(screenId);
     }
+}
+
+void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> screenSession,
+    ScreenId screenId, ScreenEvent screenEvent)
+{
+    if (!screenSession) {
+       TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
+       return;
+    }
+    bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
+    HandleDisconnectEventInner(screenSession, screenId, screenEvent, phyMirrorEnable);
     if (phyMirrorEnable || (IsConcurrentUser() && screenId != SCREEN_ID_DEFAULT)) {
         NotifyScreenDisconnected(screenSession->GetScreenId());
         NotifyDisplayDestroy(screenSession->GetScreenId());
@@ -2588,6 +2614,25 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
         if (!HasExternalScreen()) {
             RestoreCustomResolution();
         }
+    }
+    TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
+}
+
+void ScreenSessionManager::HandleProcessDisconnectEvent(sptr<ScreenSession> screenSession,
+    ScreenId screenId, ScreenEvent screenEvent)
+{
+    if (!screenSession) {
+       TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
+       return;
+    }
+    bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
+    HandleDisconnectEventInner(screenSession, screenId, screenEvent, phyMirrorEnable);
+    if (phyMirrorEnable || IsConcurrentUser()) {
+        NotifyScreenDisconnected(screenSession->GetScreenId());
+        NotifyDisplayDestroy(screenSession->GetScreenId());
+    }
+    if (!g_isPcDevice && phyMirrorEnable) {
+        UnregisterSettingWireCastObserver(screenId);
     }
     TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
 }
