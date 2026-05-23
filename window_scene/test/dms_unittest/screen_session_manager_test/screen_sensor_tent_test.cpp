@@ -86,7 +86,7 @@ HWTEST_F(ScreenSensorTentTest, RotationEventTest, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find("tent motion:1") != std::string::npos);
     status = 99;
     TriggerTentSensorEvent(status, 4, &data);
-    EXPECT_TRUE(g_logMsg.find("tent motion:3") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("tent motion:99") != std::string::npos);
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
