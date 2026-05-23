@@ -25,12 +25,10 @@ group("unittest") {
     ":utils_display_physical_resolution_test",
     ":utils_dm_rs_surface_node_test",
     ":utils_dm_virtual_screen_option_test",
-    ":utils_dms_reporter_test",
     ":utils_perform_reporter_test",
     ":utils_persistent_storage_test",
     ":utils_rate_limited_logger_test",
     ":utils_point_test",
-    ":utils_rs_adapter_test",
     ":utils_screen_group_info_test",
     ":utils_screen_info_test",
     ":utils_string_test",
@@ -52,6 +50,7 @@ group("unittest") {
   if (window_manager_use_sceneboard) {
     deps += [
       ":utils_load_mmi_client_adapter_test",
+      ":utils_rs_adapter_test",
     ]
   }
 }

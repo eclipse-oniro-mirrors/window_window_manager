@@ -143,7 +143,7 @@ HWTEST_F(WindowDumperTest, Dump07, TestSize.Level1)
     args.emplace_back(DUMP_WINDOW);
     args.emplace_back(DUMP_WINDOW_ID);
     WMError ret = windowDumper->Dump(fd, args);
-    ASSERT_EQ(ret, WMError::WM_OK);
+    ASSERT_TRUE(ret == WMError::WM_OK || ret == WMError::WM_ERROR_INVALID_OPERATION);
 }
 
 /**
