@@ -1183,6 +1183,10 @@ void ScreenSessionManager::ConfigureScreenScene()
         defaultDeviceRotationOffset_ = static_cast<uint32_t>(numbersConfig["defaultDeviceRotationOffset"][0]);
         TLOGD(WmsLogTag::DMS, "defaultDeviceRotationOffset = %{public}u", defaultDeviceRotationOffset_);
     }
+    if (numbersConfig.count("subDeviceRotationOffset") != 0) {
+        subDeviceRotationOffset_ = static_cast<uint32_t>(numbersConfig["subDeviceRotationOffset"][0]);
+        TLOGD(WmsLogTag::DMS, "subDeviceRotationOffset = %{public}u", subDeviceRotationOffset_);
+    }
     if (enableConfig.count("isWaterfallDisplay") != 0) {
         bool isWaterfallDisplay = static_cast<bool>(enableConfig["isWaterfallDisplay"]);
         TLOGD(WmsLogTag::DMS, "isWaterfallDisplay = %{public}d", isWaterfallDisplay);
@@ -4887,7 +4891,6 @@ void ScreenSessionManager::CreateScreenProperty(ScreenId screenId, ScreenPropert
     InitScreenProperty(screenId, screenMode, screenCapability, property);
     SetupScreenDensityProperties(screenId, property, screenBounds);
     property.SetRefreshRate(screenRefreshRate);
-    property.SetDefaultDeviceRotationOffset(defaultDeviceRotationOffset_);
 #ifdef FOLD_ABILITY_ENABLE
     if (foldScreenController_ != nullptr && screenId == 0
         && (g_screenRotationOffSet == ROTATION_90 || g_screenRotationOffSet == ROTATION_270)) {
@@ -4916,6 +4919,16 @@ void ScreenSessionManager::CreateScreenProperty(ScreenId screenId, ScreenPropert
     }
     if (property.GetMainDisplayIdOfGroup() == SCREEN_ID_INVALID) {
         property.SetMainDisplayIdOfGroup(mainDisplayId);
+    }
+    InitDeviceRotationOffset(screenId, property);
+}
+
+void ScreenSessionManager::InitDeviceRotationOffset(ScreenId screenId, ScreenProperty& screenProperty)
+{
+    if (screenId == SCREEN_ID_MAIN) {
+        screenProperty.SetDefaultDeviceRotationOffset(subDeviceRotationOffset_);
+    } else if (screenId == SCREEN_ID_FULL) {
+        screenProperty.SetDefaultDeviceRotationOffset(defaultDeviceRotationOffset_);
     }
 }
 
@@ -11835,9 +11848,8 @@ void ScreenSessionManager::NotifyFoldStatusChangedInner(FoldStatus foldStatus)
 #ifdef FOLD_ABILITY_ENABLE
     sptr<ScreenSession> screenSession = GetDefaultScreenSession();
     if (screenSession != nullptr) {
-        if (foldStatus == FoldStatus::FOLDED && !FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() &&
-            !FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
-            screenSession->SetDefaultDeviceRotationOffset(0);
+        if (foldStatus == FoldStatus::FOLDED && !FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+            screenSession->SetDefaultDeviceRotationOffset(subDeviceRotationOffset_);
         } else {
             screenSession->SetDefaultDeviceRotationOffset(defaultDeviceRotationOffset_);
         }
