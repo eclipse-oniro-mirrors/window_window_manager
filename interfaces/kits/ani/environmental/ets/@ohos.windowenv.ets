@@ -15,7 +15,7 @@
 
 import hilog from '@ohos.hilog';
 import window from '@ohos.window';
-import uiExtension from '@ohos.arkui.UIExtension';
+import uiExtension from '@ohos.arkui.uiExtension';
 
 type Callback<T> = (value: T) => void;
 
@@ -35,6 +35,7 @@ export class WindowStaticEnv {
     private instanceId: long;
     private window: window.Window | undefined = undefined;
     private windowProxy: uiExtension.WindowProxy | undefined = undefined;
+    private context: 
     private windowEventCb: Callback<window.WindowEventType> | undefined;
 
     constructor(instanceId: long) {
@@ -46,7 +47,7 @@ export class WindowStaticEnv {
             } else if (win instanceof window.Window) {
                 this.window = win as window.Window;
             } else if (win instanceof uiExtension.WindowProxy) {
-                this.windowProxy = win as WindowProxy;
+                this.windowProxy = win as uiExtension.WindowProxy;
             }
         } catch (error) {
             hilog.error(ATTR_DOMAIN, ATTR_TAG, `[env] env constructor failed, ${error.message}`);
