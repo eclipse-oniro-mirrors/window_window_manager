@@ -1298,7 +1298,7 @@ protected:
      * Window Property
      */
     uint32_t propertyDirtyFlags_ = 0;
-    std::atomic<float> surfaceNodeAlpha_ = -1.0f;
+    std::atomic<float> surfaceNodeAlpha_ = 1.0f;
     void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>
