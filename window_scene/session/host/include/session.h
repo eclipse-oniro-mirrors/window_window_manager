@@ -964,7 +964,7 @@ public:
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
     WSError NotifySurfaceNodeAlphaUpdate(float alpha) override;
-    SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
+    void SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
     float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load();}
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
