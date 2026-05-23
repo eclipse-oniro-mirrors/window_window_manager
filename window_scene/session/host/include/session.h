@@ -1299,6 +1299,7 @@ protected:
      */
     uint32_t propertyDirtyFlags_ = 0;
     std::atomic<float> surfaceNodeAlpha_ = -1.0f;
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
