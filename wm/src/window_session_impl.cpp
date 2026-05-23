@@ -7808,7 +7808,12 @@ void WindowSessionImpl::SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: window is null", where);
             return;
         }
-        window->NotifySurfaceNodeAlphaUpdate(alpha);
+        auto mainWindow = window->FindMainWindowWithContext();
+        if (!mainWindow) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: main window is null", where);
+            return;
+        }
+        mainWindow->NotifySurfaceNodeAlphaUpdate(alpha);
     });
 }
 
