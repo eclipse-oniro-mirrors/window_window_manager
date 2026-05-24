@@ -19729,16 +19729,21 @@ void SceneSessionManager::ReportRssFloatWindowV1(const bool isForeground, sptr<S
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_WINDOW_V1;
     nlohmann::json payload = GetRssPayload();
     TLOGI(WmsLogTag::WMS_SYSTEM, "Start to Report Rss FloatWindowV1, payload: %{public}s", payload.dump().c_str());
-    std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatWindowV1SetMutex_);
     // report foreground
     if (isForeground) {
-        foregroundSessionFloatWindowV1Set_.insert(session);
+        {
+            std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatWindowV1SetMutex_);
+            foregroundSessionFloatWindowV1Set_.insert(session);
+        }
         ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 1, payload);
         TLOGI(WmsLogTag::WMS_SYSTEM, "report foreground successfully, window ResType is RES_TYPE_FLOATING_WINDOW_V1");
         return;
     }
     // report background
-    foregroundSessionFloatWindowV1Set_.erase(session);
+    {
+        std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatWindowV1SetMutex_);
+        foregroundSessionFloatWindowV1Set_.erase(session);
+    }
     if (foregroundSessionFloatWindowV1Set_.empty()) {
         ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 0, payload);
         TLOGI(WmsLogTag::WMS_SYSTEM, "report background successfully, window ResType is RES_TYPE_FLOATING_WINDOW_V1");
@@ -19750,16 +19755,21 @@ void SceneSessionManager::ReportRssFB(const bool isForeground, sptr<SceneSession
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_BALL;
     nlohmann::json payload = GetRssPayload();
     TLOGI(WmsLogTag::WMS_SYSTEM, "Start to Report Rss FloatingBall, payload: %{public}s", payload.dump().c_str());
-    std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatBallSetMutex_);
     // report foreground
     if (isForeground) {
-        foregroundSessionFloatBallSet_.insert(session);
+        {
+            std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatBallSetMutex_);
+            foregroundSessionFloatBallSet_.insert(session);
+        }
         ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 1, payload);
         TLOGI(WmsLogTag::WMS_SYSTEM, "report foreground successfully, window ResType is RES_TYPE_FLOATING_BALL");
         return;
     }
     // report background
-    foregroundSessionFloatBallSet_.erase(session);
+    {
+        std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatBallSetMutex_);
+        foregroundSessionFloatBallSet_.erase(session);
+    }
     if (foregroundSessionFloatBallSet_.empty()) {
         ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 0, payload);
         TLOGI(WmsLogTag::WMS_SYSTEM, "report background successfully, window ResType is RES_TYPE_FLOATING_BALL");
