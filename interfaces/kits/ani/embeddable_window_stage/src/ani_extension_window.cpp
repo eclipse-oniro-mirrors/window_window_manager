@@ -802,8 +802,6 @@ std::array extensionWindowHostNativeMethods = {
         reinterpret_cast<void *>(RegisterExtWindowCallback)},
     ani_native_function {"offSync", "lC{std.core.String}C{std.core.Object}:",
         reinterpret_cast<void *>(UnregisterExtWindowCallback)},
-    ani_native_function {"onRectChange", "liC{std.core.Object}:", reinterpret_cast<void *>(ExtWindowOnRectChange)},
-    ani_native_function {"offRectChange", "lC{std.core.Object}:", reinterpret_cast<void *>(ExtWindowOffRectChange)},
     ani_native_function {"getWindowProperties", "l:C{@ohos.window.window.WindowProperties}",
         reinterpret_cast<void *>(ExtWindowGetWindowProperties)},
     };
