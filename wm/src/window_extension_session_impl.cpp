@@ -1997,7 +1997,7 @@ WindowType WindowExtensionSessionImpl::GetParentWindowType() const
     return property_->GetParentWindowType();
 }
 
-WMError WindowExtensionSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfoo, bool useHookedSize)
+WMError WindowExtensionSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize)
 {
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_UIEXT, "window session is invalid");
