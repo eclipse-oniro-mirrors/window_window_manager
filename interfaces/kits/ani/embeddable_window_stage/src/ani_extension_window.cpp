@@ -298,12 +298,21 @@ ani_object AniExtensionWindow::GetWindowPropertiesSync(ani_env* env)
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]window is nullptr");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
+
     WindowPropertyInfo windowPropertyInfo;
-    WMError ret = window->GetWindowPropertyInfo(windowPropertyInfo);
-    if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]GetWindowPropertyInfo failed");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
+    windowPropertyInfo.windowRect = window->GetRect();
+    windowPropertyInfo.type = window->GetType();
+    windowPropertyInfo.isLayoutFullScreen = window->IsLayoutFullScreen();
+    windowPropertyInfo.isFullScreen = window->IsFullScreen();
+    windowPropertyInfo.isTouchable = window->GetTouchable();
+    windowPropertyInfo.isFocusable = window->GetFocusable();
+    windowPropertyInfo.name = window->GetWindowName();
+    windowPropertyInfo.isPrivacyMode = window->IsPrivacyMode();
+    windowPropertyInfo.isKeepScreenOn = window->IsKeepScreenOn();
+    windowPropertyInfo.brightness = window->GetBrightness();
+    windowPropertyInfo.isTransparent = window->IsTransparent();
+    windowPropertyInfo.id = window->GetWindowId();
+
     auto objValue = AniWindowUtils::CreateWindowsProperties(env, windowPropertyInfo);
     if (objValue == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]CreateWindowsProperties failed");
