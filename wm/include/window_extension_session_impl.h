@@ -174,7 +174,7 @@ public:
     void NotifyExtensionTimeout(int32_t errorCode) override;
     int32_t GetRealParentId() const override;
     WindowType GetParentWindowType() const override;
-    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize) override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
