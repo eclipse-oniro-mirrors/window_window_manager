@@ -1830,7 +1830,6 @@ HWTEST_F(SceneSessionTest2, IsDragResizeScale, Function | SmallTest | Level2)
     EXPECT_EQ(session->IsDragResizeScale(reason), true);
 }
 
-
 /**
  * @tc.name: OnSessionEvent_SplitMovable_PcWindow_EnableDrag
  * @tc.desc: Test split window in PC mode enables fullscreen to floating conversion on drag
