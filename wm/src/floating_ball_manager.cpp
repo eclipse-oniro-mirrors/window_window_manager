@@ -33,6 +33,7 @@ const std::map<std::string, std::function<void()>> FB_ACTION_MAP {
 };
 }
 
+bool FloatingBallManager::isSupportFloatingBall_ = false;
 sptr<FloatingBallController> FloatingBallManager::activeController_ = nullptr;
 
 bool FloatingBallManager::HasActiveController()
@@ -100,10 +101,6 @@ void FloatingBallManager::DoFbActionEvent(const std::string& actionName)
     func->second();
 }
 
-bool FloatingBallManager::IsSupportFloatingBall()
-{
-    return false;
-}
 // LCOV_EXCL_STOP
 
 }

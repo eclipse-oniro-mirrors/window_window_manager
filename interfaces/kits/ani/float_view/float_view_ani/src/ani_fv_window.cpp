@@ -197,7 +197,7 @@ ani_object AniFvWindow::BindAni(ani_env* env, ani_object fvController, ani_objec
         TLOGE(WmsLogTag::WMS_SYSTEM, "one of the controller is null");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Controller instance is null.");
     }
-    if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
+    if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "device not support");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device does not support this operation.");
@@ -240,7 +240,7 @@ ani_object AniFvWindow::UnBindAni(ani_env* env, ani_object fvController, ani_obj
         TLOGE(WmsLogTag::WMS_SYSTEM, "one of the controller is null");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Controller instance is null.");
     }
-    if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
+    if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "device not support");
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device does not support this operation.");

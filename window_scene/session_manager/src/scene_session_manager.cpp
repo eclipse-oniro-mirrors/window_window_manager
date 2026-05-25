@@ -13022,6 +13022,8 @@ void SceneSessionManager::ApplyFeatureConfig(const std::unordered_map<std::strin
                 {"supportUIExtensionSubWindow", std::bind(&SystemSessionConfig::ConvertSupportUIExtensionSubWindow,
                     &systemConfig_, std::placeholders::_1)},
                 {"supportCreateFloatView", std::bind(&SystemSessionConfig::ConvertSupportCreateFloatView,
+                    &systemConfig_, std::placeholders::_1)},
+                {"supportCreateFloatingBall", std::bind(&SystemSessionConfig::ConvertSupportCreateFloatingBall,
                     &systemConfig_, std::placeholders::_1)}
             };
         }
