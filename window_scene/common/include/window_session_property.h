@@ -323,7 +323,7 @@ public:
     void SetDragDisabledAreas(const std::vector<Rect>& areas);
     void GetDragDisabledAreas(std::vector<Rect>& areas);
     void SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
-    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load();}
+    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load(); }
 
     /*
      * Window Lifecycle
