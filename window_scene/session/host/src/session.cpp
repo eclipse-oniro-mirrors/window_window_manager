@@ -591,6 +591,16 @@ void Session::SetSessionInfoWindowMode(int32_t windowMode)
     sessionInfo_.windowMode = windowMode;
 }
 
+void Session::SetDeviceType(const std::string& deviceType)
+{
+    deviceType_ = deviceType;
+}
+
+const std::string& Session::GetDeviceType() const
+{
+    return deviceType_;
+}
+
 void Session::SetSessionInfoRequestId(int32_t requestId)
 {
     sessionInfo_.requestId = requestId;
@@ -3609,7 +3619,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         Session::SnapshotOptions options;
         options.runInFfrt = runInFfrt;
         options.useCurWindow = updateSnapshot;
-        options.windowSync = session->systemConfig_.IsPhoneWindow() || session->systemConfig_.IsPadWindow();
+        options.windowSync = session->GetDeviceType() == "phone" || session->GetDeviceType() == "tablet";
         auto pixelMap = persistentPixelMap ? persistentPixelMap : session->Snapshot(options);
         if (pixelMap == nullptr) {
             return;
