@@ -375,6 +375,10 @@ public:
         const AAFwk::Want& data);
     virtual WMError HandleUIExtUnregisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data);
+    virtual WMError HandleUIExtRegisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
+    virtual WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
 
     WMError SetBackgroundColor(const std::string& color) override;
     virtual Orientation GetRequestedOrientation() override;
@@ -907,8 +911,10 @@ protected:
     std::unordered_set<int32_t> keyboardDidShowUIExtListenerIds_;
     std::unordered_set<int32_t> keyboardDidHideUIExtListenerIds_;
     std::unordered_set<int32_t> rectChangeInGlobalDisplayUIExtListenerIds_;
+    std::unordered_set<int32_t> touchOutsideUIExtListenerIds_;
     std::unordered_map<int32_t, sptr<IKeyboardDidShowListener>> keyboardDidShowUIExtListeners_;
     std::unordered_map<int32_t, sptr<IKeyboardDidHideListener>> keyboardDidHideUIExtListeners_;
+    std::unordered_map<int32_t, sptr<ITouchOutsideListener>> touchOutsideUIExtListeners_;
     bool followCreatorLifecycle_ = false;
     bool isHiddenFollowingUIExtension_ = false;
     void WriteKeyboardInfoToWant(AAFwk::Want& want, const KeyboardPanelInfo& keyboardPanelInfo) const;
@@ -921,6 +927,7 @@ protected:
     bool IsHiddenFollowingUIExtension() { return isHiddenFollowingUIExtension_; }
     std::mutex hostWindowRectChangeListenerMutex_;
     std::mutex hostRectChangeInGlobalDisplayListenerMutex_;
+    void NotifyUIExtTouchOutside();
 
     /*
      * Sub Window
@@ -1116,7 +1123,7 @@ protected:
     bool GetWatchGestureConsumed() const;
     void SetWatchGestureConsumed(bool isWatchGestureConsumed);
     bool dialogSessionBackGestureEnabled_ = false;
-
+    static std::map<int32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     /*
      * Window Rotation
      */
@@ -1372,7 +1379,6 @@ private:
     static std::map<int32_t, std::vector<sptr<IScreenshotListener>>> screenshotListeners_;
     static std::recursive_mutex screenshotAppEventListenerMutex_;
     static std::unordered_map<int32_t, std::vector<IScreenshotAppEventListenerSptr>> screenshotAppEventListeners_;
-    static std::map<int32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     static std::map<int32_t, std::vector<IWindowVisibilityListenerSptr>> windowVisibilityChangeListeners_;
     static std::mutex displayIdChangeListenerMutex_;
     static std::map<int32_t, std::vector<IDisplayIdChangeListenerSptr>> displayIdChangeListeners_;

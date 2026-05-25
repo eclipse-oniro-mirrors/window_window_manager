@@ -7047,7 +7047,7 @@ WMError WindowSessionImpl::SetFloatNavigationAvoidAreaEnabled(bool enable)
     notifyOnceImmediately_ = false;
     return ret == WMError::WM_OK ? WMError::WM_OK : WMError::WM_ERROR_SYSTEM_ABNORMALLY;
 }
- 	 
+
 WMError WindowSessionImpl::GetFloatNavigationAvoidAreaEnabled(bool& enable) const
 {
     if (IsWindowSessionInvalid()) {
@@ -7223,6 +7223,18 @@ EnableIfSame<T, ITouchOutsideListener, std::vector<sptr<ITouchOutsideListener>>>
     return windowChangeListeners;
 }
 
+void WindowSessionImpl::NotifyUIExtTouchOutside()
+{
+    std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
+    CHECK_UI_CONTENT_RETURN_IF_NULL(uiContent);
+    if (!touchOutsideUIExtListenerIds_.empty()) {
+        AAFwk::Want want;
+        uiContent->SendUIExtProprtyByPersistentId(
+            static_cast<uint32_t>(Extension::Businesscode::NOTIFY_TOUCH_OUTSIDE), want,
+            touchOutsideUIExtListenerIds_, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
+    }
+}
+
 WSError WindowSessionImpl::NotifyTouchOutside()
 {
     TLOGD(WmsLogTag::WMS_EVENT, "window: name=%{public}s, id=%{public}u",
@@ -7234,6 +7246,7 @@ WSError WindowSessionImpl::NotifyTouchOutside()
             listener->OnTouchOutside();
         }
     }
+    NotifyUIExtTouchOutside();
     return WSError::WS_OK;
 }
 
@@ -9719,39 +9732,36 @@ WMError WindowSessionImpl::OnExtensionMessage(uint32_t code, int32_t persistentI
     switch (code) {
         case static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE): {
             return HandleHostWindowRaise(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleRegisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleUnregisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtRegisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtRegisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleRegisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER): {
+            return HandleUIExtRegisterTouchOutsideListener(code, persistentId, data);
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
+            return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
         }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
@@ -9836,6 +9846,36 @@ WMError WindowSessionImpl::HandleUIExtUnregisterKeyboardDidShowListener(uint32_t
         keyboardDidShowUIExtListeners_.erase(persistentId);
         keyboardDidShowUIExtListenerIds_.erase(persistentId);
         UnregisterKeyboardDidShowListener(listener);
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowSessionImpl::HandleUIExtRegisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    std::lock_guard<std::recursive_mutex> lockListener(touchOutsideListenerMutex_);
+    if (touchOutsideUIExtListeners_.find(persistentId) == touchOutsideUIExtListeners_.end()) {
+        sptr<ITouchOutsideListener> listener = sptr<ITouchOutsideListener>::MakeSptr();
+        if (!listener) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "listener is nullptr");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        touchOutsideUIExtListeners_[persistentId] = listener;
+        touchOutsideUIExtListenerIds_.emplace(persistentId);
+        RegisterTouchOutsideListener(listener);
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowSessionImpl::HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    std::lock_guard<std::recursive_mutex> lockListener(touchOutsideListenerMutex_);
+    if (touchOutsideUIExtListeners_.find(persistentId) != touchOutsideUIExtListeners_.end()) {
+        sptr<ITouchOutsideListener> listener = touchOutsideUIExtListeners_[persistentId];
+        touchOutsideUIExtListeners_.erase(persistentId);
+        touchOutsideUIExtListenerIds_.erase(persistentId);
+        UnregisterTouchOutsideListener(listener);
     }
     return WMError::WM_OK;
 }
@@ -10320,7 +10360,7 @@ WMError WindowSessionImpl::RegisterParentLifecycleEventListener(const sptr<IPare
         return WMError::WM_ERROR_NULLPTR;
     }
 }
- 	  
+
 WMError WindowSessionImpl::UnregisterParentLifecycleEventListener(const sptr<IParentLifecycleEventListener>& listener)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "Start unregister, id: %{public}d", GetPersistentId());

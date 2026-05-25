@@ -630,6 +630,50 @@ WMError WindowExtensionSessionImpl::UnregisterKeyboardDidHideListener(const sptr
     return ret;
 }
 
+WMError WindowExtensionSessionImpl::RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "in");
+    WMError ret = WMError::WM_OK;
+    auto persistentId = GetPersistentId();
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        ret = RegisterListener(touchOutsideListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            return ret;
+        }
+    }
+    AAFwk::Want want;
+    ret = SendExtensionMessageToHost(
+        static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER), want);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Send register listener message failed, errCode: %{public}d", ret);
+        return ret;
+    }
+    return ret;
+}
+
+WMError WindowExtensionSessionImpl::UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "in");
+    WMError ret = WMError::WM_OK;
+    bool needNotifyHost = false;
+    auto persistentId = GetPersistentId();
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        ret = UnregisterListener(touchOutsideListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            return ret;
+        }
+        needNotifyHost = touchOutsideListeners_[persistentId].empty() && touchOutsideUIExtListenerIds_.empty();
+    }
+    if (needNotifyHost) {
+        AAFwk::Want want;
+        ret = SendExtensionMessageToHost(
+            static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER), want);
+    }
+    return ret;
+}
+
 void WindowExtensionSessionImpl::TriggerBindModalUIExtension()
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "id: %{public}d", GetPersistentId());
@@ -848,7 +892,7 @@ std::unique_ptr<Ace::UIContent> WindowExtensionSessionImpl::CreateUIContent(AppE
             Ace::UIContent::Create(GetContext().get(), reinterpret_cast<NativeEngine*>(env));
     }
 }
- 
+
 WMError WindowExtensionSessionImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
@@ -2207,6 +2251,14 @@ WMError WindowExtensionSessionImpl::OnExtensionMessage(uint32_t code, int32_t pe
             return HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
             break;
         }
+        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER): {
+            return HandleUIExtRegisterTouchOutsideListener(code, persistentId, data);
+            break;
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
+            return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
+            break;
+        }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
             break;
@@ -2289,6 +2341,40 @@ WMError WindowExtensionSessionImpl::HandleUnregisterHostRectChangeInGlobalDispla
     TLOGI(WmsLogTag::WMS_UIEXT, "No need to send message to host to unregister, size of "
         "listener: %{public}zu, size of rectChangeUIExtListenerIds_: %{public}zu",
         hostRectChangeInGlobalDisplayListenerList_.size(), rectChangeInGlobalDisplayUIExtListenerIds_.size());
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::HandleUIExtRegisterTouchOutsideListener(uint32_t code,
+    int32_t persistentId, const AAFwk::Want& data)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    auto ret = SendExtensionMessageToHost(code, data);
+    if (ret != WMError::WM_OK) {
+        return ret;
+    }
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        touchOutsideUIExtListenerIds_.emplace(persistentId);
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::HandleUIExtUnregisterTouchOutsideListener(uint32_t code,
+    int32_t persistentId, const AAFwk::Want& data)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    bool needNotifyHost = false;
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        touchOutsideUIExtListenerIds_.erase(persistentId);
+        needNotifyHost = touchOutsideListeners_[persistentId].empty() && touchOutsideUIExtListenerIds_.empty();
+    }
+    if (needNotifyHost) {
+        return SendExtensionMessageToHost(code, data);
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "No need to send message to host to unregister, size of "
+        "listener: %{public}zu, size of touchOutsideUIExtListenerIds_: %{public}zu",
+        touchOutsideListeners_[persistentId].size(), touchOutsideUIExtListenerIds_.size());
     return WMError::WM_OK;
 }
 
@@ -2590,6 +2676,9 @@ void WindowExtensionSessionImpl::RegisterDataConsumer()
     RegisterConsumer(Extension::Businesscode::SYNC_HOST_WINDOW_STATUS,
         std::bind(&WindowExtensionSessionImpl::OnHostWindowStatusChange,
         this, std::placeholders::_1, std::placeholders::_2));
+    RegisterConsumer(Extension::Businesscode::NOTIFY_TOUCH_OUTSIDE,
+        std::bind(&WindowExtensionSessionImpl::OnTouchOutside,
+        this, std::placeholders::_1, std::placeholders::_2));
 
     auto consumersEntry = [weakThis = wptr(this)](SubSystemId id, uint32_t customId, AAFwk::Want&& data,
                                                   std::optional<AAFwk::Want>& reply) -> int32_t {
@@ -2769,6 +2858,19 @@ void WindowExtensionSessionImpl::NotifyOccupiedAreaChange(sptr<OccupiedAreaChang
             listener->OnSizeChange(info);
         }
     }
+}
+
+WMError WindowExtensionSessionImpl::OnTouchOutside(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "in");
+    auto persistentId = GetPersistentId();
+    for (const auto& listener : touchOutsideListeners_[persistentId]) {
+        if (listener != nullptr) {
+            listener->OnTouchOutside();
+        }
+    }
+    NotifyUIExtTouchOutside();
+    return WMError::WM_OK;
 }
 } // namespace Rosen
 } // namespace OHOS
