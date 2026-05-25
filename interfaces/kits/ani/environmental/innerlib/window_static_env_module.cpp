@@ -63,6 +63,50 @@ static ani_long GetDisplayId(ani_env* env, ani_long instanceId)
     }
     return static_cast<ani_long>(window->GetDisplayId());
 }
+
+static ani_object GetWindowProperties(ani_env* env, ani_long instanceId)
+{
+    auto window = GetWindowByInstanceId(instanceId);
+    if (window == nullptr) {
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+    }
+    WindowPropertyInfo windowPropertyInfo;
+    WMError ret = window->GetWindowPropertyInfo(windowPropertyInfo);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get window properties failed");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+    }
+    auto objValue = AniWindowUtils::CreateWindowsProperties(env, windowPropertyInfo);
+    if (objValue == nullptr) {
+        return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "[ANI] Window get properties failed");
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] Window [%{public}u, %{public}s] get properties end",
+        window->GetWindowId(), window->GetWindowName().c_str());
+    return objValue;
+}
+
+static ani_boolean GetIsFocused(ani_env* env, ani_long instanceId)
+{
+    auto window = GetWindowByInstanceId(instanceId);
+    if (window == nullptr) {
+        return static_cast<ani_boolean>(false);
+    }
+    return static_cast<ani_boolean>(window->IsFocused());
+}
+
+static ani_boolean GetIsHighlighted(ani_env* env, ani_long instanceId)
+{
+    auto window = GetWindowByInstanceId(instanceId);
+    if (window == nullptr) {
+        return static_cast<ani_boolean>(false);
+    }
+    bool isHighlighted = false;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->IsWindowHighlighted(isHighlighted));
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "get window highlight failed, ret: %{public}d", ret);
+    }
+    return static_cast<ani_boolean>(isHighlighted);
+}
 }
 
 
@@ -72,6 +116,12 @@ std::array g_functions = {
         reinterpret_cast<void *>(FindWindowById)},
     ani_native_function {"getDisplayId", "l:l",
         reinterpret_cast<void *>(GetDisplayId)},
+    ani_native_function {"getWindowProperties", "l:C{@ohos.window.window.WindowProperties}",
+        reinterpret_cast<void *>(GetWindowProperties)},
+    ani_native_function {"isFocused", "l:z",
+        reinterpret_cast<void *>(GetIsFocused)},
+    ani_native_function {"isHighlighted", "l:z",
+        reinterpret_cast<void *>(GetIsHighlighted)},
 };
 
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)

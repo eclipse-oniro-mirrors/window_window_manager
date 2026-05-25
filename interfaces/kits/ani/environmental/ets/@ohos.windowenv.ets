@@ -33,6 +33,9 @@ const LAYOUT_TAG = 'WMSLayout';
 namespace env_native {
     export native function findWindowById(instanceId: long): Object;
     export native function getDisplayId(instanceId: long): long;
+    export native function getWindowProperties(instanceId: long): window.WindowProperties;
+    export native function isFocused(instanceId: long): boolean;
+    export native function isHighlighted(instanceId: long): boolean;
 }
 
 export class WindowStaticEnv {
@@ -71,7 +74,6 @@ export class WindowStaticEnv {
     }
 
     getEnvValueByKey(key: string): Any {
-        const win: window.Window | uiExtension.WindowProxy | undefined = this.window ?? this.windowProxy;
         switch (key) {
             case 'system.window.avoidarea':
                 this.initEnvAvoidArea();
@@ -80,25 +82,27 @@ export class WindowStaticEnv {
                 this.initEnvAvoidArea();
                 return this.cacheEnvAvoidArea!;
             case 'system.window.size':
+                const sizeVpProps: window.WindowProperties = env_native.getWindowProperties(this.instanceId);
                 const sizeVp: window.SizeInVP = {
-                    width: this.context.px2vp((win?.getWindowProperties().windowRect.width ?? 0) as double),
-                    height: this.context.px2vp((win?.getWindowProperties().windowRect.height ?? 0) as double),
+                    width: this.context.px2vp(sizeVpProps.windowRect.width as double),
+                    height: this.context.px2vp(sizeVpProps.windowRect.height as double),
                 };
                 return sizeVp;
             case 'system.window.size.px':
+                const sizePxProps: window.WindowProperties = env_native.getWindowProperties(this.instanceId);
                 const sizePx: window.Size = {
-                    width: win?.getWindowProperties().windowRect.width ?? 0,
-                    height: win?.getWindowProperties().windowRect.height ?? 0,
+                    width: sizePxProps.windowRect.width,
+                    height: sizePxProps.windowRect.height,
                 };
                 return sizePx;
             case 'system.window.focused':
-                return false;
+                return env_native.isFocused(this.instanceId);
             case 'system.window.highlighted':
-                return false;
+                return env_native.isHighlighted(this.instanceId);
             case 'system.window.density.system':
                 const windowDensityInfo: window.WindowDensityInfo | undefined = this.window?.getWindowDensityInfo();
                 return (windowDensityInfo?.systemDensity ?? -1) as double;
-            case 'system.window.displayId':
+            case 'system.window.displayid':
                 return env_native.getDisplayId(this.instanceId);
             default:
                 return undefined;
@@ -260,7 +264,7 @@ export class WindowStaticEnv {
                 cb(this.translateEnvAvoidAreaToVp(this.cacheEnvAvoidArea!));
             }
             try {
-                this.window?.onAvoidAreaChange(this.avoidAreaCbPx!);
+                this.window?.onAvoidAreaChange(this.avoidAreaCbVp!);
                 this.windowProxy?.onAvoidAreaChange(this.avoidAreaCbVpForUIE!);
                 this.context.getUIObserver().onDensityUpdate(this.avoidAreaDensityCbVp!);
             } catch (error) {
@@ -290,7 +294,7 @@ export class WindowStaticEnv {
 
     registerWindowAvoidAreaPxEnv(cb: Callback<window.UIEnvWindowAvoidAreaInfoPX>): void {
         this.initEnvAvoidArea();
-        if (!this.avoidAreaCbVp && !this.avoidAreaCbPxForUIE && !this.avoidAreaDensityCbVp) {
+        if (!this.avoidAreaCbPx && !this.avoidAreaCbPxForUIE) {
             const handler = (options: window.AvoidAreaOptions): void => {
                 switch (options.type) {
                     case window.AvoidAreaType.TYPE_SYSTEM:
@@ -314,7 +318,7 @@ export class WindowStaticEnv {
                 }
                 cb(newEnvObj);
             }
-            this.avoidAreaCbVp = (options: window.AvoidAreaOptions) => {
+            this.avoidAreaCbPx = (options: window.AvoidAreaOptions) => {
                 handler(options);
             }
             this.avoidAreaCbPxForUIE = (info: uiExtension.AvoidAreaInfo) => {
@@ -375,7 +379,7 @@ export class WindowStaticEnv {
         }
     }
 
-    unregisterWindowSizeVpEnv(): void {
+    unregisterWindowSizeVpEnv(cb: Callback<window.SizeInVP>): void {
         try {
             if (this.windowSizeCbVp) {
                 this.window?.offWindowSizeChange(this.windowSizeCbVp!);
