@@ -3718,7 +3718,7 @@ bool SceneSession::IsInLSState() const
 
 WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
 {
-    if (!IsInLSState()) {
+    if (!IsInLSState() && !GetSessionProperty()->IsAdaptToEventMapping()) {
         TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, not in LS state", GetPersistentId());
         return WSError::WS_DO_NOTHING;
     }

@@ -474,6 +474,11 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetScaleInLSState, TestSize.Level0)
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
     sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToEventMapping(true);
+    sceneSession->property_->SetCompatibleModeProperty(compatibleModeProperty);
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    compatibleModeProperty->SetIsAdaptToEventMapping(false);
     sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
     sceneSession->Session::SetRsScale(1, 0);
@@ -481,6 +486,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetScaleInLSState, TestSize.Level0)
     WSRect winRect = { 0, 0, 0, 0 };
     sceneSession->CalculateAvoidAreaByScale(winRect);
     sceneSession->Session::SetRsScale(1, 1);
+    compatibleModeProperty->SetIsAdaptToEventMapping(true);
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_OK);
     AvoidArea area;
     sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, winRect, area);
