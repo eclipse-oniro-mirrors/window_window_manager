@@ -1611,7 +1611,6 @@ HWTEST_F(sceneSessionManagerProxyTest, NotifySurfaceNodeAlphaUpdate, TestSize.Le
     EXPECT_NE(WSError::WS_ERROR_NULLPTR, okProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
 }
 
-
 /**
  * @tc.name: GetWindowIdsByCoordinate
  * @tc.desc: normal function
