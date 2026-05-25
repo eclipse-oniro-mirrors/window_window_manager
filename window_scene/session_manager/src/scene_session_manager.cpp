@@ -20080,12 +20080,15 @@ WMError SceneSessionManager::HasFloatingWindowForeground(const sptr<IRemoteObjec
 void SceneSessionManager::RemoveLifeCycleTaskByPersistentId(int32_t persistentId,
     const LifeCycleTaskType taskType)
 {
-    auto sceneSession = GetSceneSession(persistentId);
-    if (sceneSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "session:%{public}d is nullptr", persistentId);
-        return;
-    }
-    sceneSession->RemoveLifeCycleTask(taskType);
+    auto task = [this, persistentId, taskType, where = __func__] {
+        auto sceneSession = GetSceneSession(persistentId);
+        if (sceneSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "session:%{public}d is nullptr", persistentId);
+            return;
+        }
+        sceneSession->RemoveLifeCycleTask(taskType);
+    };
+    taskScheduler_->PostAsyncTask(task, __func__);
 }
 
 WMError SceneSessionManager::RegisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener,
