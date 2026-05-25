@@ -1312,6 +1312,34 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: InitSceneSession03
+ * @tc.desc: InitSceneSession03:test isStartInMultiWindowMode branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest6, InitSceneSession03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "InitSceneSession03";
+    sessionInfo.abilityName_ = "InitSceneSession03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto oldFreeMultiWindowEnable = ssm_->systemConfig_.freeMultiWindowEnable_;
+    auto oldDefaultWindowMode = ssm_->systemConfig_.defaultWindowMode_;
+ 
+    ssm_->systemConfig_.freeMultiWindowEnable_ = true;
+    ssm_->systemConfig_.defaultWindowMode_ = WindowMode::WINDOW_MODE_FLOATING;
+    sessionInfo.isStartInMultiWindowMode = true;
+    ssm_->InitSceneSession(sceneSession, sessionInfo, nullptr);
+ 
+    auto systemConfig = sceneSession->GetSystemConfig();
+    EXPECT_EQ(systemConfig.freeMultiWindowEnable_, false);
+    EXPECT_EQ(systemConfig.defaultWindowMode_, WindowMode::WINDOW_MODE_FULLSCREEN);
+ 
+    ssm_->systemConfig_.freeMultiWindowEnable_ = oldFreeMultiWindowEnable;
+    ssm_->systemConfig_.defaultWindowMode_ = oldDefaultWindowMode;
+}
+
+/**
  * @tc.name: CheckAndNotifyWaterMarkChangedResult
  * @tc.desc: CheckAndNotifyWaterMarkChangedResult
  * @tc.type: FUNC

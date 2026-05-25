@@ -4225,7 +4225,20 @@ napi_value JsSceneSessionManager::OnSwitchFreeMultiWindow(napi_env env, napi_cal
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().SwitchFreeMultiWindow(enable);
+    int32_t windowId = 0;
+    if (argc > ARGC_ONE) {
+        napi_valuetype valueType;
+        napi_typeof(env, argv[1], &valueType);
+        if (valueType != napi_undefined) {
+            if (!ConvertFromJsValue(env, argv[1], windowId)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Failed to convert parameter to windowId");
+                napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                    "Input parameter is missing or invalid"));
+                return NapiGetUndefined(env);
+            }
+        }
+    }
+    SceneSessionManager::GetInstance().SwitchFreeMultiWindow(enable, windowId);
     return NapiGetUndefined(env);
 }
 

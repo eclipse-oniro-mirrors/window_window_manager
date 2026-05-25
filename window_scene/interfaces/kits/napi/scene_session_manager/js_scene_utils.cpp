@@ -620,6 +620,20 @@ static bool IsJsIsAncoApplicationUndefind(napi_env env, napi_value jsIsAncoAppli
     return true;
 }
 
+static bool IsJsIsStartInMultiWindowModeUndefined(napi_env env, napi_value jsIsStartInMultiWindowMode,
+    SessionInfo& sessionInfo)
+    {
+        if (GetType(env, jsIsStartInMultiWindowMode) != napi_undefined) {
+            bool isStartInMultiWindowMode = false;
+            if (!ConvertFromJsValue(env, jsIsStartInMultiWindowMode, isStartInMultiWindowMode)) {
+                TLOGE(WmsLogTag::WMS_PC, "Failed to convert parameter to isStartInMultiWindowMode");
+                return false;
+            }
+            sessionInfo.isStartInMultiWindowMode = isStartInMultiWindowMode;
+        }
+        return true;
+    }
+
 static napi_value CreateJsValueFromStringArray(napi_env env, const std::vector<std::string>& stringArray)
 {
     napi_value arrayValue = nullptr;
@@ -697,6 +711,8 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
     napi_get_named_property(env, jsObject, "specifiedReason", &jsRequestId);
     napi_value jsIsAncoApplication = nullptr;
     napi_get_named_property(env, jsObject, "isAncoApplication", &jsIsAncoApplication);
+    napi_value jsIsStartInMultiWindowMode = nullptr;
+    napi_get_named_property(env, jsObject, "isStartInMultiWindowMode", &jsIsStartInMultiWindowMode);
     if (!IsJsBundleNameUndefind(env, jsBundleName, sessionInfo)) {
         return false;
     }
@@ -718,7 +734,8 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
         !IsJsIsAbilityHookUndefind(env, jsIsAbilityHook, sessionInfo) ||
         !IsJsRequestIdUndefind(env, jsRequestId, sessionInfo) ||
         !IsJsSpecifiedReasonUndefined(env, jsSpecifiedReason, sessionInfo) ||
-        !IsJsIsAncoApplicationUndefind(env, jsIsAncoApplication, sessionInfo)) {
+        !IsJsIsAncoApplicationUndefind(env, jsIsAncoApplication, sessionInfo) ||
+        !IsJsIsStartInMultiWindowModeUndefined(env, jsIsStartInMultiWindowMode, sessionInfo)) {
         return false;
     }
     return true;
