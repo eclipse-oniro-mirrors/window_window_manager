@@ -109,6 +109,7 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     controller->CreateFloatingBallWindow(option);
 
     controller->StartFloatingBall(option);
+    controller->StartFloatingBallSingle(option, true);
 
     FuzzedDataProvider fdp(data, size);
     title = fdp.ConsumeRandomLengthString();
