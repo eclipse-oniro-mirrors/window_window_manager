@@ -20084,7 +20084,7 @@ void SceneSessionManager::RemoveLifeCycleTaskByPersistentId(int32_t persistentId
             return;
         }
         sceneSession->RemoveLifeCycleTask(taskType);
-    }
+    };
     taskScheduler_->PostAsyncTask(task, __func__);
 }
 
