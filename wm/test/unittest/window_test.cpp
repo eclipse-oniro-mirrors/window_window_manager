@@ -2197,6 +2197,45 @@ HWTEST_F(WindowTest, keyboardAnimationCurveMarshalling, TestSize.Level1)
 }
 
 /**
+ * @tc.name: WindowMetaInfoMarshalling
+ * @tc.desc: WindowMetaInfo marshalling
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowTest, WindowMetaInfoMarshalling, TestSize.Level1)
+{
+    WindowMetaInfo info;
+    info.windowId = 1001;
+    info.windowName = "windowMetaInfoTest";
+    info.bundleName = "bundleName";
+    info.abilityName = "abilityName";
+    info.appIndex = 10;
+    info.pid = 2002;
+    info.windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    info.parentWindowId = 1000;
+    info.surfaceNodeId = 3003;
+    info.leashWinSurfaceNodeId = 4004;
+    info.isPrivacyMode = true;
+    info.windowMode = WindowMode::WINDOW_MODE_FULLSCREEN;
+    info.windowModeInfo = { WindowMode::WINDOW_MODE_SPLIT, SplitStyle::TWO_WINDOW_VERTICAL,
+        SPLIT_INDEX_SECONDARY };
+    info.isMidScene = true;
+    info.isFocused = true;
+    info.isTouchable = false;
+    info.mainWindowPersistentId = 5005;
+    info.controlAppType = ControlAppType::CONTROL_APP_TYPE_BEGIN;
+
+    Parcel parcel;
+    ASSERT_TRUE(info.Marshalling(parcel));
+    WindowMetaInfo* unmarshalledInfo = WindowMetaInfo::Unmarshalling(parcel);
+    ASSERT_NE(unmarshalledInfo, nullptr);
+    EXPECT_EQ(unmarshalledInfo->windowModeInfo.windowMode, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(unmarshalledInfo->windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_VERTICAL);
+    EXPECT_EQ(unmarshalledInfo->windowModeInfo.splitIndex, SPLIT_INDEX_SECONDARY);
+    EXPECT_EQ(unmarshalledInfo->mainWindowPersistentId, 5005);
+    delete unmarshalledInfo;
+}
+
+/**
  * @tc.name: GetVSyncPeriod
  * @tc.desc: window GetVSyncPeriod
  * @tc.type: FUNC

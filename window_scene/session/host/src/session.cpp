@@ -4540,11 +4540,13 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
             GetPersistentId(), static_cast<int32_t>(mode));
         property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
         property->SetIsNeedUpdateWindowMode(true);
         UpdateGestureBackEnabled();
     } else {
         property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
         RequestNextVsyncWhenModeChange();
         if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
@@ -5186,6 +5188,26 @@ WindowMode Session::GetWindowMode() const
         return WindowMode::WINDOW_MODE_UNDEFINED;
     }
     return property->GetWindowMode();
+}
+
+WindowModeInfo Session::GetWindowModeInfo() const
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        WLOGFW("null property.");
+        return WindowModeInfo {};
+    }
+    return property->GetWindowModeInfo();
+}
+
+WindowMode Session::GetWindowModeCompat() const
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        WLOGFW("null property.");
+        return WindowMode::WINDOW_MODE_UNDEFINED;
+    }
+    return property->GetWindowModeCompat();
 }
 
 WSError Session::UpdateMaximizeMode(bool isMaximize)
@@ -5984,8 +6006,9 @@ WindowMetaInfo Session::GetWindowMetaInfoForWindowInfo() const
     windowMetaInfo.appIndex = GetSessionInfo().appIndex_;
     windowMetaInfo.pid = GetCallingPid();
     windowMetaInfo.windowType = GetWindowType();
-    windowMetaInfo.windowMode = GetWindowMode();
     windowMetaInfo.isMidScene = GetIsMidScene();
+    windowMetaInfo.windowMode = GetWindowModeCompat();
+    windowMetaInfo.windowModeInfo = GetWindowModeInfo();
     windowMetaInfo.isFocused = IsFocused();
     if (auto parentSession = GetParentSession()) {
         windowMetaInfo.parentWindowId = static_cast<uint32_t>(parentSession->GetWindowId());
