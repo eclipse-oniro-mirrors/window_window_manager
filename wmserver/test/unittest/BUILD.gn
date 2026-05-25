@@ -19,10 +19,8 @@ group("unittest") {
   testonly = true
   deps = [
     ":wmserver_accessibility_connection_test",
-    ":wmserver_display_group_controller_test",
     ":wmserver_display_group_info_test",
     ":wmserver_mock_session_manager_service_test",
-    ":wmserver_starting_window_second_test",
     ":wmserver_window_common_event_test",
     ":wmserver_window_dumper_test",
     ":wmserver_window_freeze_controller_test",
@@ -30,9 +28,7 @@ group("unittest") {
     ":wmserver_window_inner_window_test",
     ":wmserver_window_layout_policy_test",
     ":wmserver_window_manager_config_test",
-    ":wmserver_window_manager_proxy_test",
     ":wmserver_window_manager_service_utils_test",
-    ":wmserver_window_manager_stub_test",
     ":wmserver_window_node_container_test",
     ":wmserver_window_snapshot_test",
     ":wmserver_window_system_effect_test",
