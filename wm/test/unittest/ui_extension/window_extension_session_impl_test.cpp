@@ -3976,6 +3976,25 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChangeWithListener, T
     EXPECT_EQ(WindowStatus::WINDOW_STATUS_MINIMIZE, windowStatus);
     EXPECT_EQ(WMError::WM_OK, window_->UnregisterWindowStatusChangeListener(listener));
 }
+
+/**
+ * @tc.name: GetWindowPropertyInfo
+ * @tc.desc: GetWindowPropertyInfo test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetWindowPropertyInfo, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowName("GetWindowPropertyInfo");
+    WindowPropertyInfo windowPropertyInfo;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->GetWindowPropertyInfo(windowPropertyInfo, true));
+
+    SessionInfo sessionInfo;
+    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window_->hostSession_);
+    EXPECT_EQ(WMError::WM_OK, window->GetWindowPropertyInfo(windowPropertyInfo, true));
+}
 }
 } // namespace Rosen
 } // namespace OHOS
