@@ -3991,8 +3991,9 @@ HWTEST_F(WindowExtensionSessionImplTest, GetWindowPropertyInfo, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->GetWindowPropertyInfo(windowPropertyInfo, true));
 
     SessionInfo sessionInfo;
-    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
-    ASSERT_NE(nullptr, window_->hostSession_);
+    window->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window->hostSession_);
+    window->property_->SetPersistentId(1);
     EXPECT_EQ(WMError::WM_OK, window->GetWindowPropertyInfo(windowPropertyInfo, true));
 }
 }
