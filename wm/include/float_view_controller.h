@@ -44,8 +44,10 @@ public:
     WMError StopFloatViewFromClientSingle(bool isForceStop = false);
     WMError StopFloatView(const std::string& reason);
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams);
-    WMError SetUIContext(const std::string &contextUrl, const std::shared_ptr<NativeReference>& contentStorage);
-    WMError SetUIContext(const std::string &contextUrl, const ani_object& contentStorage);
+    WMError SetUIContext(const std::string &contextUrl,
+        const std::shared_ptr<NativeReference>& contentStorage, bool isLoadByName);
+    WMError SetUIContext(const std::string &contextUrl,
+        const ani_object& contentStorage, bool isLoadByName);
     WMError SetVisibilityInApp(bool visibleInApp);
     WMError SetWindowSize(const Rect &rect);
     void SyncWindowInfo(uint32_t windowId, const FloatViewWindowInfo& windowInfo, const std::string& reason);
@@ -73,7 +75,7 @@ private:
     WMError CreateFloatViewWindow();
     WMError SetFloatViewContext();
     WMError DestroyFloatViewWindow(const std::string& reason);
-    WMError SetUIContextInner();
+    WMError SetUIContextInner(bool isLoadByName);
     ani_env* GetEnv() const;
 
     std::mutex listenerMutex_;

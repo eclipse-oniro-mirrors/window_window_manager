@@ -38,6 +38,7 @@ public:
     static napi_value Start(napi_env env, napi_callback_info info);
     static napi_value Stop(napi_env env, napi_callback_info info);
     static napi_value SetUIContext(napi_env env, napi_callback_info info);
+    static napi_value SetUIContextByName(napi_env env, napi_callback_info info);
     static napi_value SetFloatViewVisibilityInApp(napi_env env, napi_callback_info info);
     static napi_value SetWindowSize(napi_env env, napi_callback_info info);
     static napi_value GetWindowProperties(napi_env env, napi_callback_info info);
@@ -53,9 +54,9 @@ private:
     bool IsCallbackRegistered(napi_env env, const CallbackType& type, napi_value jsCallback);
     napi_value OnStartFloatView(napi_env env, napi_callback_info info);
     napi_value OnStopFloatView(napi_env env, napi_callback_info info);
-    napi_value OnSetUIContext(napi_env env, napi_callback_info info);
+    napi_value OnSetUIContext(napi_env env, napi_callback_info info, bool isLoadByName);
     napi_value SetUIContextTask(napi_env env, const std::string contextUrl,
-        const std::shared_ptr<NativeReference>& contentStorage);
+        const std::shared_ptr<NativeReference>& contentStorage, bool isLoadByName);
     napi_value OnSetFloatViewVisibilityInApp(napi_env env, napi_callback_info info);
     napi_value OnSetWindowSize(napi_env env, napi_callback_info info);
     napi_value OnSetWindowSizeTask(napi_env env, int32_t width, int32_t height);
