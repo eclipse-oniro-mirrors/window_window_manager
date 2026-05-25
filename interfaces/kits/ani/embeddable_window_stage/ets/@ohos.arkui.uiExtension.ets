@@ -110,7 +110,6 @@ namespace uiExtension {
     public native offSync(nativeObj: long, type: string, callback?: object): void;
     public native onRectChange(nativeObj: long, reason: int, callback?: object): void;
     public native offRectChange(nativeObj: long, callback?: object): void;
-    public native getWindowProperties(nativeObj: long): window.WindowProperties;
 
     get properties(): WindowProxyProperties {
       let property = new UIEProperties();
@@ -164,10 +163,6 @@ namespace uiExtension {
         hilog.error(WMS_UIEXT, WMS_UIEXT_TAG, `getWindowAvoidArea failed, ret: ${ret}`);
       }
       return area;
-    }
-
-    public getWindowProperties(): window.WindowProperties {
-      return this.getWindowProperties(this.nativeObj);
     }
 
     public setWaterMarkFlag(enable: boolean): Promise<void> {
@@ -400,7 +395,6 @@ namespace uiExtension {
     offWindowSizeChange(callback?: Callback<window.Size>): void;
     onRectChange(reasons: int, callback: Callback<RectChangeOptions>): void;
     offRectChange(callback?: Callback<RectChangeOptions>): void;
-    getWindowProperties(): window.WindowProperties;
     properties: WindowProxyProperties;
   }
 

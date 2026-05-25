@@ -287,42 +287,6 @@ ani_object AniExtensionWindow::SnapshotSync(ani_env* env)
     return nativePixelMap;
 }
 
-ani_object AniExtensionWindow::GetWindowPropertiesSync(ani_env* env)
-{
-    if (!IsExtensionWindowValid()) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]extension window is invalid");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-    auto window = extensionWindow_->GetWindow();
-    if (window == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]window is nullptr");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-
-    WindowPropertyInfo windowPropertyInfo;
-    windowPropertyInfo.windowRect = window->GetRect();
-    windowPropertyInfo.type = window->GetType();
-    windowPropertyInfo.isLayoutFullScreen = window->IsLayoutFullScreen();
-    windowPropertyInfo.isFullScreen = window->IsFullScreen();
-    windowPropertyInfo.isTouchable = window->GetTouchable();
-    windowPropertyInfo.isFocusable = window->GetFocusable();
-    windowPropertyInfo.name = window->GetWindowName();
-    windowPropertyInfo.isPrivacyMode = window->IsPrivacyMode();
-    windowPropertyInfo.isKeepScreenOn = window->IsKeepScreenOn();
-    windowPropertyInfo.brightness = window->GetBrightness();
-    windowPropertyInfo.isTransparent = window->IsTransparent();
-    windowPropertyInfo.id = window->GetWindowId();
-
-    auto objValue = AniWindowUtils::CreateWindowsProperties(env, windowPropertyInfo);
-    if (objValue == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]CreateWindowsProperties failed");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-    TLOGI(WmsLogTag::WMS_UIEXT, "[ANI]Window [%{public}u, %{public}s] get properties end",
-        window->GetWindowId(), window->GetWindowName().c_str());
-    return objValue;
-}
-
 ani_object AniExtensionWindow::SnapshotIgnorePrivacy(ani_env* env)
 {
     if (!IsExtensionWindowValid()) {
@@ -703,16 +667,6 @@ static ani_object ExtWindowSnapshotIgnorePrivacy(ani_env* env, ani_object obj, a
     return aniExtWinPtr->SnapshotIgnorePrivacy(env);
 }
 
-static ani_object ExtWindowGetWindowProperties(ani_env* env, ani_object obj, ani_long nativeObj)
-{
-    AniExtensionWindow* aniExtWinPtr = reinterpret_cast<AniExtensionWindow*>(nativeObj);
-    if (aniExtWinPtr == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]aniExtWinPtr is nullptr");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-    return aniExtWinPtr->GetWindowPropertiesSync(env);
-}
-
 static void ExtWindowOnRectChange(ani_env* env, ani_object obj, ani_long nativeObj, ani_int reason, ani_object callback)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "[ANI]");
@@ -785,8 +739,6 @@ std::array extensionWindowNativeMethods = {
         reinterpret_cast<void *>(UnregisterExtWindowCallback)},
     ani_native_function {"onRectChange", "liC{std.core.Object}:", reinterpret_cast<void *>(ExtWindowOnRectChange)},
     ani_native_function {"offRectChange", "lC{std.core.Object}:", reinterpret_cast<void *>(ExtWindowOffRectChange)},
-    ani_native_function {"getWindowProperties", "l:C{@ohos.window.window.WindowProperties}",
-        reinterpret_cast<void *>(ExtWindowGetWindowProperties)},
     };
 
 std::array extensionWindowHostNativeMethods = {
@@ -811,8 +763,6 @@ std::array extensionWindowHostNativeMethods = {
         reinterpret_cast<void *>(RegisterExtWindowCallback)},
     ani_native_function {"offSync", "lC{std.core.String}C{std.core.Object}:",
         reinterpret_cast<void *>(UnregisterExtWindowCallback)},
-    ani_native_function {"getWindowProperties", "l:C{@ohos.window.window.WindowProperties}",
-        reinterpret_cast<void *>(ExtWindowGetWindowProperties)},
     };
 
 ANI_EXPORT ani_status ExtensionWindow_ANI_Constructor(ani_vm *vm, uint32_t* result)

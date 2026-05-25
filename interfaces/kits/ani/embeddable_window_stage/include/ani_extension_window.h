@@ -55,7 +55,6 @@ public:
         ani_boolean followCreatorLifecycle);
     WmErrorCode OnRegisterRectChangeCallback(ani_env* env, ani_int reason, ani_object fn);
     WmErrorCode OnUnRegisterRectChangeCallback(ani_env* env, ani_object fn);
-    ani_object GetWindowPropertiesSync(ani_env* env);
 private:
     bool IsExtensionWindowValid();
     std::shared_ptr<Rosen::ExtensionWindow> extensionWindow_;
