@@ -94,24 +94,6 @@ HWTEST_F(SceneSessionAttributeTest, SetWindowSnapshotSkip01, TestSize.Level1)
     session->SetLeashWinSurfaceNode(leashSurfaceNode);
     EXPECT_EQ(session->SetWindowSnapshotSkip(true), WMError::WM_OK);
 }
-
-/**
- * @tc.name: NotifySurfaceNodeAlphaUpdate01
- * @tc.desc: NotifySurfaceNodeAlphaUpdate
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionAttributeTest, NotifySurfaceNodeAlphaUpdate01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifySurfaceNodeAlphaUpdate";
-    info.bundleName_ = "NotifySurfaceNodeAlphaUpdate";
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    ASSERT_NE(session, nullptr);
-    struct RSSurfaceNodeConfig config;
-    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
-    session->SetSurfaceNode(surfaceNode);
-    EXPECT_EQ(session->NotifySurfaceNodeAlphaUpdate(0.1f), WSError::WS_OK);
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

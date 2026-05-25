@@ -1571,6 +1571,48 @@ HWTEST_F(sceneSessionManagerProxyTest, GetWindowStateSnapshot01, TestSize.Level1
 }
 
 /**
+ * @tc.name: NotifySurfaceNodeAlphaUpdate
+ * @tc.desc: NotifySurfaceNodeAlphaUpdate test
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, NotifySurfaceNodeAlphaUpdate, TestSize.Level1)
+{
+    int32_t persistentId = 1;
+    float alpha = 0.5f;
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    auto sessionProxy = sptr<SceneSessionManagerProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(sessionProxy, nullptr);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    MockMessageParcel::SetWriteFloatErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+    MockMessageParcel::SetWriteFloatErrorFlag(false);
+
+    sptr<SceneSessionManagerProxy> nullProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+
+    mockRemote->SetRequestResult(ERR_INVALID_DATA);
+    sptr<SceneSessionManagerProxy> failProxy = sptr<SceneSessionManagerProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+    mockRemote->SetRequestResult(ERR_NONE);
+
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    sptr<SceneSessionManagerProxy> okProxy = sptr<SceneSessionManagerProxy>::MakeSptr(mockRemote);
+    EXPECT_NE(WSError::WS_ERROR_NULLPTR, okProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
+}
+
+
+/**
  * @tc.name: GetWindowIdsByCoordinate
  * @tc.desc: normal function
  * @tc.type: FUNC

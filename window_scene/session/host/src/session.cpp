@@ -220,14 +220,6 @@ void Session::SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurface
     });
 }
 
-WSError Session::NotifySurfaceNodeAlphaUpdate(float alpha)
-{
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], alpha=%{public}f",
-        GetWindowId(), GetWindowName().c_str(), alpha);
-    SetSurfaceNodeAlpha(alpha);
-    return WSError::WS_OK;
-}
-
 void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
 {
     RSAdapterUtil::SetRSUIContext(surfaceNode, GetRSUIContext(), true);

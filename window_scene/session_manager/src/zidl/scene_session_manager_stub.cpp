@@ -163,6 +163,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUpdateSessionOcclusionStateListener(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_STATE_SNAPSHOT):
             return HandleGetWindowStateSnapshot(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE):
+            return HandleNotifySurfaceNodeAlphaUpdate(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SHIFT_APP_WINDOW_FOCUS):
             return HandleShiftAppWindowFocus(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_LIST_WINDOW_INFO):
@@ -1553,6 +1555,26 @@ int SceneSessionManagerStub::HandleGetWindowStateSnapshot(MessageParcel& data, M
     }
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    float alpha = 0.0f;
+    if (!data.ReadFloat(alpha)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read alpha failed");
+        return ERR_INVALID_DATA;
+    }
+    auto errCode = NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed, errCode=%{public}d", errCode);
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

@@ -103,6 +103,7 @@ private:
     int HandleUpdateSessionScreenshotListener(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionOcclusionStateListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStateSnapshot(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply);
     int HandleShiftAppWindowFocus(MessageParcel& data, MessageParcel& reply);
     int HandleListWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetAllWindowLayoutInfo(MessageParcel& data, MessageParcel& reply);

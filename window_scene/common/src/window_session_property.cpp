@@ -1672,6 +1672,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isAppBufferReady_) &&
         parcel.WriteBool(isFollowParentLayout_) &&
         parcel.WriteBool(isCrossProcessWindow_) &&
+        parcel.WriteFloat(GetSurfaceNodeAlpha()) &&
         MarshallingFvTemplateInfo(parcel);
 }
 
@@ -1802,6 +1803,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetAppBufferReady(parcel.ReadBool());
     property->SetFollowParentLayout(parcel.ReadBool());
     property->SetIsCrossProcessWindow(parcel.ReadBool());
+    property->SetSurfaceNodeAlpha(parcel.ReadFloat());
     UnmarshallingFvTemplateInfo(parcel, property);
     return property;
 }
@@ -1922,6 +1924,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
         missionInfo_ = property->missionInfo_;
     }
     isRotationLock_ = property->isRotationLock_;
+    SetSurfaceNodeAlpha(property->GetSurfaceNodeAlpha());
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;

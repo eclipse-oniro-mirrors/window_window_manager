@@ -87,10 +87,10 @@ HWTEST_F(WindowSceneSessionImplAttributeTest, NotifySurfaceNodeAlphaUpdate01, Te
     option->SetWindowName("NotifySurfaceNodeAlphaUpdate01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
-    window->hostSession_ = nullptr;
+    window->SetSurfaceNodeAlphaChangedCallback(nullptr);
+    window->CreateSurfaceNode("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->NotifySurfaceNodeAlphaUpdate(0.1f);
-    EXPECT_NE(window->CreateAndConnectSpecificSession(), WMError::WM_ERROR_TIMEOUT);
-    window->NotifySurfaceNodeAlphaUpdate(0.1f);
+    window->NotifySurfaceNodeAlphaUpdate(window->GetProperty()->GetSurfaceNodeAlpha());
 }
 } // namespace
 } // namespace Rosen

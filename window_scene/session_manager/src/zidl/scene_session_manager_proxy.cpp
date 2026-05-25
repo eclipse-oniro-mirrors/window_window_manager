@@ -767,6 +767,43 @@ WMError SceneSessionManagerProxy::GetWindowStateSnapshot(int32_t persistentId, s
     return static_cast<WMError>(errCode);
 }
 
+WSError SceneSessionManagerProxy::NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write persistentId failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteFloat(alpha)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write alpha failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    auto reqErrCode = remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE),
+        data, reply, option);
+    if (reqErrCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "send request failed, errCode: %{public}d", reqErrCode);
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read errcode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return static_cast<WSError>(ret);
+}
+
 WMError SceneSessionManagerProxy::RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
 {
     MessageOption option;

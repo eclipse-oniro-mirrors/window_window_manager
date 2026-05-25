@@ -7808,25 +7808,24 @@ void WindowSessionImpl::SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: window is null", where);
             return;
         }
-        auto mainWindow = window->FindMainWindowWithContext();
-        if (!mainWindow) {
-            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: main window is null", where);
-            return;
-        }
-        mainWindow->NotifySurfaceNodeAlphaUpdate(alpha);
+        window->NotifySurfaceNodeAlphaUpdate(alpha);
     });
 }
 
 void WindowSessionImpl::NotifySurfaceNodeAlphaUpdate(float alpha)
 {
-    auto hostSession = GetHostSession();
-    if (hostSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "hostSession is null, wid=%{public}d, alpha=%{public}f", GetWindowId(), alpha);
+    auto oldAlpha = property_->GetSurfaceNodeAlpha();
+    if (std::fabs(oldAlpha - alpha) < std::numeric_limits<float>::min()) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, same alpha=%{public}f", GetWindowId(), alpha);
         return;
     }
-    auto retErr = hostSession->NotifySurfaceNodeAlphaUpdate(alpha);
+    auto persistentId = GetPersistentId();
+    auto retErr = SingletonContainer::Get<WindowAdapter>().NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, alpha=%{public}f, retErr=%{public}d",
-        GetWindowId(), alpha, retErr);
+        persistentId, alpha, retErr);
+    if (retErr == WSError::WS_OK) {
+        property_->SetSurfaceNodeAlpha(alpha);
+    }
 }
 
 WSError WindowSessionImpl::NotifyNoInteractionTimeout(const IWindowNoInteractionListenerSptr& listener)

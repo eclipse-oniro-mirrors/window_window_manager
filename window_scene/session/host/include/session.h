@@ -963,9 +963,8 @@ public:
     void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
-    WSError NotifySurfaceNodeAlphaUpdate(float alpha) override;
-    void SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
-    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load();}
+    void SetSurfaceNodeAlpha(float alpha) { property_->SetSurfaceNodeAlpha(alpha); }
+    float GetSurfaceNodeAlpha() const { return property_->GetSurfaceNodeAlpha();}
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
 
@@ -1298,7 +1297,6 @@ protected:
      * Window Property
      */
     uint32_t propertyDirtyFlags_ = 0;
-    std::atomic<float> surfaceNodeAlpha_ = 1.0f;
     void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>

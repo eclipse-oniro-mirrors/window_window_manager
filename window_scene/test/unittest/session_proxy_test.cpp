@@ -2550,37 +2550,6 @@ HWTEST_F(SessionProxyTest, NotifyIsFullScreenInForceSplitMode, TestSize.Level3)
 }
 
 /**
- * @tc.name: NotifySurfaceNodeAlphaUpdate
- * @tc.desc: NotifySurfaceNodeAlphaUpdate test
- * @tc.type: FUNC
- */
-HWTEST_F(SessionProxyTest, NotifySurfaceNodeAlphaUpdate, TestSize.Level3)
-{
-    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
-    auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    float alpha = 0.5f;
-
-    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(alpha));
-    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
-
-    MockMessageParcel::SetWriteFloatErrorFlag(true);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(alpha));
-    MockMessageParcel::SetWriteFloatErrorFlag(false);
-
-    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->NotifySurfaceNodeAlphaUpdate(alpha));
-
-    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
-    sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->NotifySurfaceNodeAlphaUpdate(alpha));
-
-    mockRemote->sendRequestResult_ = ERR_NONE;
-    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    EXPECT_NE(WSError::WS_ERROR_NULLPTR, okProxy->NotifySurfaceNodeAlphaUpdate(alpha));
-}
-
-/**
  * @tc.name: RestartApp
  * @tc.desc: RestartApp test
  * @tc.type: FUNC

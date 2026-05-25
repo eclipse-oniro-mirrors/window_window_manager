@@ -14595,6 +14595,20 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
     return WMError::WM_OK;
 }
 
+WSError SceneSessionManager::NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha)
+{
+    auto session = GetSceneSession(persistentId);
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no session: winId=%{public}d, aplha=%{public}f",
+            persistentId, alpha);
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], alpha=%{public}f",
+        persistentId, session->GetWindowName().c_str(), alpha);
+    session->SetSurfaceNodeAlpha(alpha);
+    return WSError::WS_OK;
+}
+
 void SceneSessionManager::UpdateDarkColorModeToRS()
 {
     std::shared_ptr<AbilityRuntime::ApplicationContext> appContext = AbilityRuntime::Context::GetApplicationContext();

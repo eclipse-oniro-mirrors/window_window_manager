@@ -90,6 +90,9 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     parcel.RewindRead(0);
     SceneSessionManager::GetInstance().OnRemoteRequest(static_cast<uint32_t>(ISceneSessionManager::
         SceneSessionManagerMessage::TRANS_ID_RECOVER_SCREEN_WATERMARK_IMAGE), parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManager::GetInstance().OnRemoteRequest(static_cast<uint32_t>(ISceneSessionManager::
+        SceneSessionManagerMessage::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE), parcel, reply, option);
     return true;
 }
 } // namespace OHOS
