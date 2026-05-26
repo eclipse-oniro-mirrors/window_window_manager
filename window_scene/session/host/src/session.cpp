@@ -2195,7 +2195,7 @@ void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
 bool Session::IsNeedNotifyAttachState(bool isAttach)
 {
     if (WindowHelper::IsMainWindow(GetWindowType()) && (showRecent_ || isAttach == isClientAttach_)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "No need nofityWindowAttachStateChange, persistentId:%{public}d",
+        TLOGI(WmsLogTag::WMS_LIFE, "No need notifyWindowAttachStateChange, persistentId:%{public}d",
             GetPersistentId());
         return false;
     }
