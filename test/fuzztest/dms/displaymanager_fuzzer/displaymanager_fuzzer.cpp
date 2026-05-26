@@ -161,15 +161,17 @@ bool ScreenBrightnessFuzzTest(const uint8_t* data, size_t size)
 {
     uint64_t screenId;
     uint32_t level;
-    if (data == nullptr || size < sizeof(screenId) + sizeof(level)) {
+    float brightnessPosition;
+    if (data == nullptr || size < sizeof(screenId) + sizeof(level) + sizeof(brightnessPosition)) {
         return false;
     }
     size_t startPos = 0;
     DisplayManager& displayManager = DisplayManager::GetInstance();
 
     startPos += GetObject<uint64_t>(screenId, data + startPos, size - startPos);
-    GetObject<uint32_t>(level, data + startPos, size - startPos);
-    displayManager.SetScreenBrightness(screenId, level);
+    startPos += GetObject<uint32_t>(level, data + startPos, size - startPos);
+    GetObject<float>(brightnessPosition, data + startPos, size - startPos);
+    displayManager.SetScreenBrightness(DmsScreenBrightnessData(screenId, level, brightnessPosition));
     displayManager.GetScreenBrightness(screenId);
     return true;
 }

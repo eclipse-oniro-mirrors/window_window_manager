@@ -3139,26 +3139,26 @@ napi_value JsSceneSessionManager::OnUpdateWindowMode(napi_env env, napi_callback
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_TWO) {
-        WLOGFE("Argc is invalid: %{public}zu", argc);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     int32_t persistentId;
     if (!ConvertFromJsValue(env, argv[0], persistentId)) {
-        WLOGFE("Failed to convert parameter to persistentId");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to persistentId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    int32_t windowMode;
-    if (!ConvertFromJsValue(env, argv[1], windowMode)) {
-        WLOGFE("Failed to convert parameter to windowMode");
+    WindowModeInfo windowModeInfo;
+    if (!ConvertWindowModeInfoFromJs(env, argv[1], windowModeInfo)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to windowModeInfo");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowMode);
+    SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowModeInfo);
     return NapiGetUndefined(env);
 }
 
@@ -4383,7 +4383,7 @@ napi_value JsSceneSessionManager::OnGetSessionSnapshotPixelMap(napi_env env, nap
         return NapiGetUndefined(env);
     }
 
-    float scaleParam = GreatOrEqual(scaleValue, 0.0f) && LessOrEqual(scaleValue, 1.0f) ?
+    float scaleParam = GreatOrEqual(scaleValue, 0.0) && LessOrEqual(scaleValue, 1.0) ?
         static_cast<float>(scaleValue) : 0.0f;
     std::shared_ptr<std::shared_ptr<Media::PixelMap>> pixelPtr = std::make_shared<std::shared_ptr<Media::PixelMap>>();
     NapiAsyncTask::ExecuteCallback execute =
@@ -4474,7 +4474,7 @@ napi_value JsSceneSessionManager::OnGetSessionSnapshotPixelMapSync(napi_env env,
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    float scaleParam = GreatOrEqual(scaleValue, 0.0f) && LessOrEqual(scaleValue, 1.0f) ?
+    float scaleParam = GreatOrEqual(scaleValue, 0.0) && LessOrEqual(scaleValue, 1.0) ?
         static_cast<float>(scaleValue) : 0.0f;
     std::shared_ptr<Media::PixelMap> pixelPtr =
         SceneSessionManager::GetInstance().GetSessionSnapshotPixelMap(

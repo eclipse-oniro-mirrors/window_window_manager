@@ -42,6 +42,8 @@ public:
     static void StopFloatViewAni(ani_env *env, ani_object obj, ani_long nativeObj);
     static void SetUIContextAni(ani_env *env, ani_object obj, ani_long nativeObj,
         ani_string contextUrl, ani_object contentStorage);
+    static void SetUIContextByNameAni(ani_env *env, ani_object obj, ani_long nativeObj,
+        ani_string contextUrl, ani_object contentStorage);
     static void SetFloatViewVisibilityInAppAni(ani_env *env, ani_object obj, ani_long nativeObj,
         ani_boolean visibleInApp);
     static void SetWindowSizeAni(ani_env *env, ani_object obj, ani_long nativeObj, ani_object rectObj);
@@ -68,7 +70,7 @@ private:
 
     void OnStartFloatViewAni(ani_env *env);
     void OnStopFloatViewAni(ani_env* env);
-    void OnSetUIContextAni(ani_env *env, ani_string contextUrl, ani_object contentStorage);
+    void OnSetUIContextAni(ani_env *env, ani_string contextUrl, ani_object contentStorage, bool isLoadByName);
     void OnSetFloatViewVisibilityInAppAni(ani_env *env, ani_boolean visibleInApp);
     void OnSetWindowSizeAni(ani_env *env, ani_object rectObj);
     ani_object OnGetWindowPropertiesAni(ani_env *env);

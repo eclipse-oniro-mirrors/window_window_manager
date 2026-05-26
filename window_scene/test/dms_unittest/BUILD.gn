@@ -26,6 +26,7 @@ group("unittest") {
     ":ws_screen_power_utils_test",
     ":ws_screen_property_test",
     ":ws_screen_rotation_property_test",
+    ":ws_motion_manager_test",
     ":ws_screen_session_manager_adapter_test",
     ":ws_screen_session_manager_lite_proxy_test",
     ":ws_screen_session_manager_lite_stub_test",
@@ -543,6 +544,12 @@ ohos_unittest("ws_screen_session_manager_lite_stub_test") {
 
 ohos_unittest("ws_screen_session_manager_stub_test") {
   module_out_path = module_out_path
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   sources = [ "screen_session_manager_stub_test.cpp" ]
 
@@ -1107,6 +1114,28 @@ ohos_unittest("ws_screen_rotation_property_test") {
   external_deps = test_external_deps
 
   defines = []
+  if (defined(global_parts_info) && defined(global_parts_info.sensors_sensor)) {
+    external_deps += [ "sensor:sensor_interface_native" ]
+    defines += [ "SENSOR_ENABLE" ]
+  }
+}
+
+ohos_unittest("ws_motion_manager_test") {
+  module_out_path = module_out_path
+
+  sources = [ "motion_manager_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = []
+  if (window_manager_feature_subscribe_motion) {
+    if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
+      defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+    }
+  }
+
   if (defined(global_parts_info) && defined(global_parts_info.sensors_sensor)) {
     external_deps += [ "sensor:sensor_interface_native" ]
     defines += [ "SENSOR_ENABLE" ]

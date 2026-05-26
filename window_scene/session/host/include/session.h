@@ -224,8 +224,10 @@ public:
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") REQUIRES(SCENE_GUARD);
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override REQUIRES(SCENE_GUARD);
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override REQUIRES(SCENE_GUARD);
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError DrawingCompleted() override;
@@ -500,6 +502,12 @@ public:
     void SetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition, bool value);
     bool GetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition);
     void SetSessionInfoWindowMode(int32_t windowMode);
+    void SetDeviceType(const std::string& deviceType);
+    const std::string& GetDeviceType() const;
+    void SetSessionInfoRequestId(int32_t requestId);
+    int32_t GetSessionInfoRequestId() const;
+    void SetSessionInfoScbRequestId(int32_t scbRequestId);
+    int32_t GetSessionInfoScbRequestId() const;
     const SessionInfo& GetSessionInfo() const;
     SessionInfo& EditSessionInfo();
     DisplayId GetScreenId() const;
@@ -620,7 +628,7 @@ public:
     void NotifyClick(bool requestFocus = true, bool isClick = true);
     bool GetStateFromManager(const ManagerState key);
     virtual void PresentFocusIfNeed(int32_t pointerAcrion, int32_t sourceType = 0);
-    virtual WSError UpdateWindowMode(WindowMode mode);
+    virtual WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo);
     WSError SetIsPcAppInPad(bool enable);
     WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
     WSError SetAppSupportPhoneInPc(bool isSupportPhone);
@@ -735,6 +743,8 @@ public:
     void SetAbilityToken(sptr<IRemoteObject> token);
     sptr<IRemoteObject> GetAbilityToken() const;
     WindowMode GetWindowMode() const;
+    WindowModeInfo GetWindowModeInfo() const;
+    WindowMode GetWindowModeCompat() const;
     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
 
     /*
@@ -1088,6 +1098,7 @@ protected:
     int32_t persistentId_ = INVALID_SESSION_ID;
     std::atomic<SessionState> state_ = SessionState::STATE_DISCONNECT;
     SessionInfo sessionInfo_;
+    std::string deviceType_ = "unknown";
     std::recursive_mutex sessionInfoMutex_;
 
     mutable std::mutex surfaceNodeMutex_;
@@ -1308,6 +1319,7 @@ protected:
 private:
     void HandleDialogForeground();
     void HandleDialogBackground();
+    void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     WSError HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise = false);
 
     template<typename T>
@@ -1334,7 +1346,7 @@ private:
     void InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& property);
     void InitSystemSessionDragEnable(const sptr<WindowSessionProperty>& property);
 
-    void UpdateGravityWhenUpdateWindowMode(WindowMode mode);
+    void UpdateGravityWhenUpdateWindowMode(const WindowModeInfo& windowModeInfo);
 
     std::recursive_mutex lifecycleListenersMutex_;
     std::vector<std::shared_ptr<ILifecycleListener>> lifecycleListeners_;

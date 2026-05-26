@@ -23,6 +23,8 @@
 #include <map>
 #include <mutex>
 #include <sstream>
+
+#include "wm_common.h"
 #include "wm_single_instance.h"
 
 namespace OHOS {
@@ -87,6 +89,17 @@ struct WindowLifeCycleReportInfo {
             windowMode << ", flag:" << windowFlag << "]";
         return ss.str();
     }
+};
+
+struct PrivacyWindowSnapshotInfo {
+    std::string bundleName = "";
+    std::string abilityName = "";
+    int32_t windowId = INVALID_WINDOW_ID;
+    WindowType windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    Rect rect;
+    int32_t errorCode = 0;
+    std::string errorMsg = "";
 };
 
 class PerformReporter {

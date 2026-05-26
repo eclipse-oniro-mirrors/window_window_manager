@@ -1000,6 +1000,114 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, RemoveAttachedWindowLimits01, Functio
 }
 
 /**
+ * @tc.name: UpdateSubWindowDragEnabledByDecorVisible01
+ * @tc.desc: Sub-window with decor visible, drag should be enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible01,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
+    window->uiContent_ = std::move(uiContent);
+
+    window->property_->SetDragEnabled(false);
+    window->UpdateSubWindowDragEnabledByDecorVisible();
+    EXPECT_TRUE(window->property_->GetDragEnabled());
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabledByDecorVisible02
+ * @tc.desc: Sub-window with decor not visible, drag should be disabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible02,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(false));
+    window->uiContent_ = std::move(uiContent);
+
+    window->property_->SetDragEnabled(true);
+    window->UpdateSubWindowDragEnabledByDecorVisible();
+    EXPECT_FALSE(window->property_->GetDragEnabled());
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabledByDecorVisible03
+ * @tc.desc: Main window should skip update
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible03,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
+    window->uiContent_ = std::move(uiContent);
+
+    window->property_->SetDragEnabled(true);
+    window->UpdateSubWindowDragEnabledByDecorVisible();
+    // Main window should not be affected, drag remains true
+    EXPECT_TRUE(window->property_->GetDragEnabled());
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabledByDecorVisible04
+ * @tc.desc: hasSetEnableDrag_ is true, should skip update
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible04,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible04");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
+    window->uiContent_ = std::move(uiContent);
+
+    window->property_->SetDragEnabled(false);
+    window->hasSetEnableDrag_.store(true);
+    window->UpdateSubWindowDragEnabledByDecorVisible();
+    // Should skip, drag remains false
+    EXPECT_FALSE(window->property_->GetDragEnabled());
+    window->hasSetEnableDrag_.store(false);
+}
+
+/**
  * @tc.name: CalcSingleWinIntersect01
  * @tc.desc: Test PX limits intersection calculation
  * @tc.type: FUNC

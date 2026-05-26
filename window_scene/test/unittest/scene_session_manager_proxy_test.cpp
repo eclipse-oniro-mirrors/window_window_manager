@@ -75,6 +75,84 @@ HWTEST_F(sceneSessionManagerProxyTest, NotifyDumpInfoResult, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetVisibilityWindowInfo_WriteUseHookedSizeFail
+ * @tc.desc: test GetVisibilityWindowInfo proxy WriteBool useHookedSize fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, GetVisibilityWindowInfo_WriteUseHookedSizeFail, TestSize.Level1)
+{
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerProxy> proxy =
+        sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(proxy, nullptr);
+    std::vector<sptr<WindowVisibilityInfo>> infos;
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, proxy->GetVisibilityWindowInfo(infos, false));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: GetHostWindowRect_WriteUseHookedSizeFail
+ * @tc.desc: test GetHostWindowRect proxy WriteBool useHookedSize fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, GetHostWindowRect_WriteUseHookedSizeFail, TestSize.Level1)
+{
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerProxy> proxy =
+        sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(proxy, nullptr);
+    Rect rect;
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->GetHostWindowRect(0, rect, false));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: GetHostGlobalScaledRect_WriteUseHookedSizeFail
+ * @tc.desc: test GetHostGlobalScaledRect proxy WriteBool useHookedSize fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, GetHostGlobalScaledRect_WriteUseHookedSizeFail, TestSize.Level1)
+{
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerProxy> proxy =
+        sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(proxy, nullptr);
+    Rect rect;
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->GetHostGlobalScaledRect(0, rect, false));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: GetAllWindowLayoutInfo_WriteUseHookedSizeFail
+ * @tc.desc: test GetAllWindowLayoutInfo proxy WriteBool useHookedSize fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, GetAllWindowLayoutInfo_WriteUseHookedSizeFail, TestSize.Level1)
+{
+    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerProxy> proxy =
+        sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(proxy, nullptr);
+    std::vector<sptr<WindowLayoutInfo>> infos;
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorCount(1);
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED,
+        proxy->GetAllWindowLayoutInfo(0, infos, WindowInfoOptions(), false));
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: CreateAndConnectSpecificSession
  * @tc.desc: normal function
  * @tc.type: FUNC

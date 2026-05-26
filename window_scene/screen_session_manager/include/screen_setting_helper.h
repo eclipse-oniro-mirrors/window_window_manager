@@ -139,6 +139,12 @@ public:
     static void RegisterSettingOsSwitchStatusObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingOsSwitchStatusObserver();
     static bool GetOsSwitchStatus(std::string& status, const std::string& key = SETTING_OS_SWITCH_STATUS);
+    static void RegisterSettingCustomResolutionObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingCustomResolutionObserver();
+    static bool GetCustomResolution(uint32_t& width, uint32_t& height,
+        const std::string& key = SETTING_CUSTOM_RESOLUTION_KEY);
+    static bool SetCustomResolution(uint32_t width, uint32_t height,
+        const std::string& key = SETTING_CUSTOM_RESOLUTION_KEY);
 private:
     static const constexpr char* SETTING_DPI_KEY {"user_set_dpi_value"};
     static const constexpr char* SETTING_CAST_KEY {"huaweicast.data.privacy_projection_state"};
@@ -156,6 +162,7 @@ private:
     static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"settings.display.dual_display_ready"};
     static const constexpr char* SETTING_DISPLAY_WIRED_SCREEN_GAMUT {"settings.display.wired_screen_gamut"};
     static const constexpr char* SETTING_OS_SWITCH_STATUS {"os_switch_status"};
+    static const constexpr char* SETTING_CUSTOM_RESOLUTION_KEY {"user_set_custom_resolution"};
     static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
     static sptr<SettingObserver> offScreenRenderObserver_;
@@ -172,6 +179,7 @@ private:
     static sptr<SettingObserver> coordinationReadyObserver_;
     static sptr<SettingObserver> wiredScreenGamutObserver_;
     static sptr<SettingObserver> osSwitchStatusObserver_;
+    static sptr<SettingObserver> customResolutionObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS

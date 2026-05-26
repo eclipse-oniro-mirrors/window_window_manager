@@ -68,8 +68,8 @@ constexpr double MAX_GRAY_SCALE = 1.0;
 static std::mutex g_aniWindowMap_mutex;
 static std::map<std::string, ani_ref> g_aniWindowMap;
 
-AniWindow::AniWindow(const sptr<Window>& window, ani_env* env)
-    : windowToken_(window), registerManager_(std::make_unique<AniWindowRegisterManager>()), env_(env)
+AniWindow::AniWindow(const sptr<Window>& window, ani_vm* vm)
+    : windowToken_(window), registerManager_(std::make_unique<AniWindowRegisterManager>()), vm_(vm)
 {
     NotifyNativeWinDestroyFunc func = [this](const std::string& windowName) {
         {
@@ -312,7 +312,12 @@ void AniWindow::NotifyOrientationExecutionResultResult(uint32_t promiseId, uint3
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] promiseId:%{public}u result:%{public}u",
         promiseId, result);
-    auto env = env_;
+    if (vm_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] vm is null");
+        return;
+    }
+    auto aniVm = AniVm(vm_);
+    auto env = aniVm.GetAniEnv();
     if (env == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] env is null");
         return;
@@ -1145,10 +1150,10 @@ void AniWindow::OnRecover(ani_env* env, ani_object snapshotAnimationConfig)
         return;
     }
     WmErrorCode ret;
-    if (!AniWindowUtils::CheckParaIsUndefined(env, snapshotAnimationConfig)) {
+    if (!AniWindowUtils::IsUndefined(env, snapshotAnimationConfig)) {
         auto configOpt = ParseSnapshotAnimationConfigANI(env, snapshotAnimationConfig);
         if (!configOpt) {
-            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return;
         }
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Recover(1, *configOpt));
@@ -2496,7 +2501,9 @@ __attribute__((no_sanitize("cfi")))
         TLOGE(WmsLogTag::DEFAULT, "[ANI] null env %{public}u", ret);
         return nullptr;
     }
-    std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, env);
+    ani_vm* vm = nullptr;
+    env->GetVM(&vm);
+    std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, vm);
  
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
@@ -3980,6 +3987,38 @@ ani_object AniWindow::SetDragKeyFramePolicy(ani_env* env, ani_object aniKeyFrame
     return AniWindowUtils::CreateKeyFramePolicy(env, keyFramePolicy);
 }
 
+void AniWindow::SetSupportedWindowModes(ani_env* env, ani_object obj, ani_long nativeObj,
+    ani_object aniSupportedWindowModes)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (aniWindow == nullptr || aniWindow->GetWindow() == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] windowToken is null");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnSetSupportedWindowModes(env, aniSupportedWindowModes);
+}
+
+void AniWindow::OnSetSupportedWindowModes(ani_env* env, ani_object aniSupportedWindowModes)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] windowToken is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    auto supportedWindowModes =
+        AniWindowUtils::ExtractEnumValues<AppExecFwk::SupportWindowMode>(env, aniSupportedWindowModes);
+    WMError ret = windowToken_->SetSupportedWindowModes(supportedWindowModes);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
+              windowToken_->GetWindowId(), static_cast<int32_t>(ret));
+        AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
+        return;
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI] Success, windowId: %{public}u", windowToken_->GetWindowId());
+}
+
 ani_object AniWindow::Snapshot(ani_env* env)
 {
     if (windowToken_ == nullptr) {
@@ -4784,7 +4823,7 @@ ani_object AniWindow::SetWindowLimits(ani_env* env, ani_object inWindowLimits, a
     }
 
     bool isForcible = false;
-    if (!AniWindowUtils::CheckParaIsUndefined(env, forcible)) {
+    if (!AniWindowUtils::IsUndefined(env, forcible)) {
         if (!windowToken_->IsPhonePadOrPcWindow()) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] device not support");
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLimits",
@@ -5072,7 +5111,7 @@ std::optional<MaximizePresentation> ParsePresentation(ani_env* env, ani_object a
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] env is nullptr");
         return std::nullopt;
     }
-    if (AniWindowUtils::CheckParaIsUndefined(env, aniPresentation)) {
+    if (AniWindowUtils::IsUndefined(env, aniPresentation)) {
         return MaximizePresentation::ENTER_IMMERSIVE;
     }
     uint32_t value = 0;
@@ -5091,7 +5130,7 @@ std::optional<AcrossDisplayPresentation> ParseAcrossDisplayPresentationForMaximi
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "[ANI] env is nullptr");
         return std::nullopt;
     }
-    if (AniWindowUtils::CheckParaIsUndefined(env, aniAcrossDisplay)) {
+    if (AniWindowUtils::IsUndefined(env, aniAcrossDisplay)) {
         return AcrossDisplayPresentation::UNSPECIFIED;
     }
     ani_boolean acrossDisplay = ANI_FALSE;
@@ -5121,7 +5160,7 @@ std::optional<SnapshotAnimationConfig> ParseSnapshotAnimationConfigANI(
     if (env == nullptr) {
         return std::nullopt;
     }
-    if (AniWindowUtils::CheckParaIsUndefined(env, aniConfig)) {
+    if (AniWindowUtils::IsUndefined(env, aniConfig)) {
         return std::nullopt;
     }
 
@@ -5176,7 +5215,7 @@ std::optional<AcrossDisplayPresentation> ParseAcrossDisplayPresentation(
     if (env == nullptr) {
         return std::nullopt;
     }
-    if (AniWindowUtils::CheckParaIsUndefined(env, aniAcrossDisplay)) {
+    if (AniWindowUtils::IsUndefined(env, aniAcrossDisplay)) {
         return AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING;
     }
     uint32_t value = 0;
@@ -5194,7 +5233,7 @@ std::optional<MaximizeOptions> ParseMaximizeOptionsANI(ani_env* env, ani_object 
     if (env == nullptr) {
         return std::nullopt;
     }
-    if (AniWindowUtils::CheckParaIsUndefined(env, aniOptions)) {
+    if (AniWindowUtils::IsUndefined(env, aniOptions)) {
         return MaximizeOptions{};
     }
 
@@ -5309,16 +5348,10 @@ void AniWindow::OnMaximizeWithOptions(ani_env* env, ani_object maximizeOptions)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    if (!(WindowHelper::IsMainWindow(windowToken_->GetType()) ||
-          windowToken_->IsSubWindowMaximizeSupported())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Unsupported window type");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
-        return;
-    }
 
     auto optionsOpt = ParseMaximizeOptionsANI(env, maximizeOptions);
     if (!optionsOpt) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return;
     }
 
@@ -5374,6 +5407,52 @@ void AniWindow::OnStartMoving(ani_env* env)
         return;
     }
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[ANI] Success, windowId: %{public}u", windowToken_->GetWindowId());
+}
+
+void AniWindow::StartMovingWithOptions(ani_env* env, ani_object obj, ani_long nativeObj, ani_object aniOptions)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (!aniWindow) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    aniWindow->OnStartMovingWithOptions(env, aniOptions);
+}
+
+void AniWindow::OnStartMovingWithOptions(ani_env* env, ani_object aniOptions)
+{
+    if (!Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] permission denied, require system application");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
+        return;
+    }
+
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+
+    auto [parseRet, optionsOpt] = AniWindowUtils::ParseStartMovingOptions(env, aniOptions);
+    if (parseRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Failed to parse options, ret: %{public}d", static_cast<int32_t>(parseRet));
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return;
+    }
+
+    auto options = optionsOpt.value_or(StartMovingOptions{ true, Rect::EMPTY_RECT });
+    auto ret = windowToken_->StartMovingWithOptions(options);
+    if (ret != WMError::WM_OK) {
+        auto errorCode = AniWindowUtils::ToErrorCode(ret);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Failed, windowId: %{public}u, ret: %{public}d",
+              windowToken_->GetWindowId(), static_cast<int32_t>(errorCode));
+        AniWindowUtils::AniThrowError(env, errorCode);
+        return;
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[ANI] Success, windowId: %{public}u, options: %{public}s",
+          windowToken_->GetWindowId(), options.ToString().c_str());
 }
 
 void AniWindow::StartMoveWindowWithCoordinate(ani_env* env, ani_object obj, ani_long nativeObj,
@@ -5504,7 +5583,7 @@ void AniWindow::MoveWindowToGlobal(ani_env* env, ani_int x, ani_int y, ani_objec
     }
 
     MoveConfiguration moveConfiguration;
-    if (!AniWindowUtils::CheckParaIsUndefined(env, inMoveConfiguration)) {
+    if (!AniWindowUtils::IsUndefined(env, inMoveConfiguration)) {
         int64_t displayId;
         ani_status aniRet = AniWindowUtils::GetPropertyLongObject(env, "displayId", inMoveConfiguration, displayId);
         if (aniRet == ANI_OK) {
@@ -5542,7 +5621,7 @@ void AniWindow::MoveWindowToAsync(ani_env* env, ani_int x, ani_int y, ani_object
     }
 
     MoveConfiguration moveConfiguration;
-    if (!AniWindowUtils::CheckParaIsUndefined(env, inMoveConfiguration)) {
+    if (!AniWindowUtils::IsUndefined(env, inMoveConfiguration)) {
         int64_t displayId;
         ani_status aniRet = AniWindowUtils::GetPropertyLongObject(env, "displayId", inMoveConfiguration, displayId);
         if (aniRet == ANI_OK) {
@@ -5870,7 +5949,9 @@ __attribute__((no_sanitize("cfi")))
         return cls;
     }
 
-    std::unique_ptr<AniWindow> uniqueWindow = std::make_unique<AniWindow>(window, env);
+    ani_vm* vm = nullptr;
+    env->GetVM(&vm);
+    std::unique_ptr<AniWindow> uniqueWindow = std::make_unique<AniWindow>(window, vm);
 
     ani_field contextField;
     if ((ret = env->Class_FindField(cls, "nativeObj", &contextField)) != ANI_OK) {
@@ -7640,6 +7721,8 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
         ani_native_function {"setDragKeyFramePolicy",
             "lC{@ohos.window.window.KeyFramePolicy}:C{@ohos.window.window.KeyFramePolicy}",
             reinterpret_cast<void *>(WindowSetDragKeyFramePolicy)},
+        ani_native_function {"setSupportedWindowModes", "lC{std.core.Array}:",
+            reinterpret_cast<void *>(AniWindow::SetSupportedWindowModes)},
         ani_native_function {"snapshot", "l:C{@ohos.multimedia.image.image.PixelMap}",
             reinterpret_cast<void *>(Snapshot)},
         ani_native_function {"snapshotSync", "l:C{@ohos.multimedia.image.image.PixelMap}",
@@ -7833,6 +7916,8 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::MaximizeWithOptions)},
         ani_native_function {"startMoving", "l:",
             reinterpret_cast<void *>(AniWindow::StartMoving)},
+        ani_native_function {"startMovingWithOptions", "lC{@ohos.window.window.StartMovingOptions}:",
+            reinterpret_cast<void *>(AniWindow::StartMovingWithOptions)},
         ani_native_function {"startMoveWindowWithCoordinate", "lii:",
             reinterpret_cast<void *>(AniWindow::StartMoveWindowWithCoordinate)},
         ani_native_function {"stopMoving", "l:",

@@ -149,6 +149,7 @@ private:
     // PC Window
     int HandleSetWindowRectAutoSave(MessageParcel& data, MessageParcel& reply);
     int HandleSetSupportedWindowModes(MessageParcel& data, MessageParcel& reply);
+    int HandleStartMovingWithOptions(MessageParcel& data, MessageParcel& reply);
     int HandleStartMovingWithCoordinate(MessageParcel& data, MessageParcel& reply);
     int HandleContainerModalEvent(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateFlag(MessageParcel& data, MessageParcel& reply);

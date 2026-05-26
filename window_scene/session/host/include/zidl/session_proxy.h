@@ -29,8 +29,10 @@ public:
 
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
@@ -187,6 +189,7 @@ public:
     /*
      * PC Window
      */
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) override;
     WSError OnContainerModalEvent(const std::string& eventName, const std::string& eventValue) override;

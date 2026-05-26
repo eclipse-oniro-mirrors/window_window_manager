@@ -200,6 +200,8 @@
             OHOS::Rosen::ScreenSession::HandleCameraBackSelfieChange*;
             OHOS::Rosen::ScreenSession::HandleHoverStatusChange*;
             OHOS::Rosen::ScreenSession::HandleSensorRotation*;
+            OHOS::Rosen::ScreenSession::HandleSmartRotation*;
+            OHOS::Rosen::ScreenSession::GetValidSmartSensorRotation*;
             OHOS::Rosen::ScreenSession::HoverStatusChange*;
             OHOS::Rosen::ScreenSession::IsBootingConnect*;
             OHOS::Rosen::ScreenSession::IsScreenAvailable*;
@@ -223,6 +225,7 @@
             OHOS::Rosen::ScreenSession::ScreenSession*;
             OHOS::Rosen::ScreenSession::SecondaryReflexionChange*;
             OHOS::Rosen::ScreenSession::SensorRotationChange*;
+            OHOS::Rosen::ScreenSession::SmartSensorRotationChange*;
             OHOS::Rosen::ScreenSession::SetActiveId*;
             OHOS::Rosen::ScreenSession::SetAvailableArea*;
             OHOS::Rosen::ScreenSession::SetBootingConnect*;
@@ -277,6 +280,7 @@
             OHOS::Rosen::ScreenSession::SetRotationAndScreenRotationOnly*;
             OHOS::Rosen::ScreenSession::SetRotationCorrectionMap*;
             OHOS::Rosen::ScreenSession::SetRSScreenId*;
+            OHOS::Rosen::ScreenSession::SetScreenId*;
             OHOS::Rosen::ScreenSession::SetScreenAreaHeight*;
             OHOS::Rosen::ScreenSession::SetScreenAreaOffsetY*;
             OHOS::Rosen::ScreenSession::SetScreenAreaWidth*;
@@ -353,6 +357,7 @@
             OHOS::Rosen::ScreenSessionGroup::HasChild*;
             OHOS::Rosen::ScreenSessionGroup::RemoveChild*;
             OHOS::Rosen::ScreenSessionGroup::ScreenSessionGroup*;
+            OHOS::Rosen::ScreenSession::GetScreenCapability*;
         };
     local:
     *;

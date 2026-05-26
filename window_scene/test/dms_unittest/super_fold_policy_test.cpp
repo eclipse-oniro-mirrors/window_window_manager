@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -389,6 +389,7 @@ HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayMode01, TestSize.Level1)
 {
     FoldDisplayMode mode = FoldDisplayMode::FULL;
     DMError ret = SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(mode);
+    EXPECT_EQ(ret, DMError::DM_OK);
 }
 
 HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeInner01, TestSize.Level1)
@@ -451,7 +452,7 @@ HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeInner05, TestSize.Level1)
     g_logMsg.clear();
 }
 
-HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeToCoordination01, TestSize.Level1)
+HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeToCoordination, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
     SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::MAIN);
@@ -459,22 +460,6 @@ HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeToCoordination01, TestSize.
     SuperFoldPolicy::GetInstance().ChangeScreenDisplayModeToCoordination(isScreenOn);
     EXPECT_TRUE(g_logMsg.find("only full can enter coordination") != std::string::npos);
     g_logMsg.clear();
-}
-
-HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeToCoordination02, TestSize.Level1)
-{
-    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
-    bool isScreenOn = true;
-    SuperFoldPolicy::GetInstance().ChangeScreenDisplayModeToCoordination(isScreenOn);
-    usleep(SLEEP_TIME_IN_US);
-}
-
-HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeToCoordination03, TestSize.Level1)
-{
-    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
-    bool isScreenOn = false;
-    SuperFoldPolicy::GetInstance().ChangeScreenDisplayModeToCoordination(isScreenOn);
-    usleep(SLEEP_TIME_IN_US);
 }
 
 HWTEST_F(SuperFoldPolicyTest, ExitCoordination01, TestSize.Level1)

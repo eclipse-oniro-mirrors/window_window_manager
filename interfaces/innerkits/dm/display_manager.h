@@ -430,10 +430,9 @@ public:
     /**
      * @brief Set the brightness level of the target screen.
      *
-     * @param screenId Target screen.
-     * @param level Brightness level.
+     * @param brightnessData Brightness data including screenId, level, and brightnessPosition.
      */
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
 
     /**
      * @brief Get the brightness level of the target screen.
@@ -998,9 +997,11 @@ public:
      * @brief Get CutoutInfo with rotation
      *
      * @param Rotation rotation.
+     * @param Rotation display width.
+     * @param Rotation display height.
      * @return CutoutInfo object of default screen.
      */
-    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation);
+    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation, int32_t width = 0, int32_t height = 0);
 
     /**
      * @brief Get screenInfo of display area

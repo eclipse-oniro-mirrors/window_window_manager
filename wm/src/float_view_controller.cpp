@@ -249,7 +249,7 @@ WMError FloatViewController::CreateFloatViewWindow()
 WMError FloatViewController::SetFloatViewContext()
 {
     if (window_ != nullptr && option_.IsUIPathValid()) {
-        return SetUIContextInner();
+        return SetUIContextInner(option_.isLoadUIByName);
     }
     return WMError::WM_OK;
 }
@@ -270,7 +270,7 @@ WMError FloatViewController::StopFloatViewFromClient()
     return StopFloatViewFromClientSingle();
 }
 
-WMError FloatViewController::StopFloatViewFromClientSingle()
+WMError FloatViewController::StopFloatViewFromClientSingle(bool isForceStop)
 {
     {
         std::lock_guard<std::mutex> lock(controllerMutex_);
@@ -280,10 +280,12 @@ WMError FloatViewController::StopFloatViewFromClientSingle()
             TLOGE(WmsLogTag::WMS_SYSTEM, "Repeat stop request, curState: %{public}u", curState_);
             return WMError::WM_ERROR_FV_REPEAT_OPERATION;
         }
-        if (curState_ == FvWindowState::FV_STATE_UNDEFINED ||
-            curState_ == FvWindowState::FV_STATE_STARTING) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "float view not started: curState:%{public}u", curState_);
-            return WMError::WM_ERROR_FV_INVALID_STATE;
+        if (!isForceStop) {
+            if (curState_ == FvWindowState::FV_STATE_UNDEFINED ||
+                curState_ == FvWindowState::FV_STATE_STARTING) {
+                TLOGE(WmsLogTag::WMS_SYSTEM, "float view not started: curState:%{public}u", curState_);
+                return WMError::WM_ERROR_FV_INVALID_STATE;
+            }
         }
         if (window_ == nullptr) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "window is nullptr when stop fv");
@@ -356,7 +358,7 @@ WMError FloatViewController::DestroyFloatViewWindow(const std::string& reason)
 }
 
 WMError FloatViewController::SetUIContext(const std::string &contextUrl,
-    const std::shared_ptr<NativeReference>& contentStorage)
+    const std::shared_ptr<NativeReference>& contentStorage, bool isLoadByName)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "napi SetUIContext called");
     if (type_ != APIType::NAPI) {
@@ -366,10 +368,12 @@ WMError FloatViewController::SetUIContext(const std::string &contextUrl,
     std::lock_guard<std::mutex> lock(controllerMutex_);
     option_.SetUIPath(contextUrl);
     option_.SetStorage(contentStorage);
-    return SetUIContextInner();
+    option_.isLoadUIByName = isLoadByName;
+    return SetUIContextInner(isLoadByName);
 }
 
-WMError FloatViewController::SetUIContext(const std::string &contextUrl, const ani_object& contentStorage)
+WMError FloatViewController::SetUIContext(const std::string &contextUrl,
+    const ani_object& contentStorage, bool isLoadByName)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "ani SetUIContext called");
     if (type_ != APIType::ANI) {
@@ -379,10 +383,11 @@ WMError FloatViewController::SetUIContext(const std::string &contextUrl, const a
     std::lock_guard<std::mutex> lock(controllerMutex_);
     option_.SetUIPath(contextUrl);
     option_.SetStorage(contentStorage);
-    return SetUIContextInner();
+    option_.isLoadUIByName = isLoadByName;
+    return SetUIContextInner(isLoadByName);
 }
 
-WMError FloatViewController::SetUIContextInner()
+WMError FloatViewController::SetUIContextInner(bool isLoadByName)
 {
     if (window_ == nullptr) {
         if (IsStateWithWindow(curState_)) {
@@ -400,7 +405,12 @@ WMError FloatViewController::SetUIContextInner()
             TLOGI(WmsLogTag::WMS_SYSTEM, "Set UI Context with localStorage");
         }
         napi_env env = static_cast<napi_env>(env_);
-        auto errCode = window_->NapiSetUIContent(contentUrl, env, storage, BackupAndRestoreType::NONE);
+        WMError errCode;
+        if (isLoadByName) {
+            errCode = window_->NapiSetUIContentByName(contentUrl, env, storage);
+        } else {
+            errCode = window_->NapiSetUIContent(contentUrl, env, storage, BackupAndRestoreType::NONE);
+        }
         if (errCode != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Set fv window content failed, err: %{public}u", errCode);
             return WMError::WM_ERROR_INVALID_WINDOW;
@@ -413,7 +423,12 @@ WMError FloatViewController::SetUIContextInner()
             TLOGE(WmsLogTag::WMS_SYSTEM, "get env failed");
             return WMError::WM_ERROR_INVALID_WINDOW;
         }
-        auto errCode = window_->AniSetUIContent(contentUrl, env, storage, BackupAndRestoreType::NONE);
+        WMError errCode;
+        if (isLoadByName) {
+            errCode = window_->AniSetUIContentByName(contentUrl, env, storage);
+        } else {
+            errCode = window_->AniSetUIContent(contentUrl, env, storage, BackupAndRestoreType::NONE);
+        }
         if (errCode != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Set fv window content failed, err: %{public}u", errCode);
             return WMError::WM_ERROR_INVALID_WINDOW;

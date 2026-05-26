@@ -1312,6 +1312,13 @@ napi_value JsWindow::StartMoving(napi_env env, napi_callback_info info)
     return (me != nullptr) ? me->OnStartMoving(env, info) : nullptr;
 }
 
+napi_value JsWindow::StartMovingWithOptions(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnStartMovingWithOptions(env, info) : nullptr;
+}
+
 napi_value JsWindow::StopMoving(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
@@ -1422,6 +1429,13 @@ napi_value JsWindow::SetDragKeyFramePolicy(napi_env env, napi_callback_info info
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnSetDragKeyFramePolicy(env, info) : nullptr;
+}
+
+napi_value JsWindow::SetSupportedWindowModes(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnSetSupportedWindowModes(env, info) : nullptr;
 }
 
 napi_value JsWindow::SetRelativePositionToParentWindowEnabled(napi_env env, napi_callback_info info)
@@ -1959,20 +1973,18 @@ napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     napi_value lastParam = (argc == 0) ? nullptr :
         (GetType(env, argv[INDEX_ZERO]) == napi_function ? argv[INDEX_ZERO] : nullptr);
-    // Check if argv[0] is a SnapshotAnimationConfig object
     std::optional<SnapshotAnimationConfig> configOpt;
+    bool parseFailed = false;
     if (argc > 0 && argv[INDEX_ZERO] != nullptr && GetType(env, argv[INDEX_ZERO]) == napi_object) {
-        lastParam = nullptr;
         configOpt = ParseSnapshotAnimationConfig(env, argv[INDEX_ZERO]);
-        if (!configOpt) {
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-                "[window][recover]msg: Failed to parse SnapshotAnimationConfig");
-        }
+        parseFailed = !configOpt.has_value();
     }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     const char* const where = __func__;
-    auto asyncTask = [windowToken = wptr<Window>(windowToken_), configOpt, env, task = napiAsyncTask, where] {
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_),
+                      configOpt, parseFailed,
+                      env, task = napiAsyncTask, where] {
         auto window = windowToken.promote();
         if (window == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.recover",
@@ -1980,6 +1992,11 @@ napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s window is nullptr", where);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                  "[window][recover]msg: Window is nullptr"));
+            return;
+        }
+        if (parseFailed) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                "[window][recover]msg: Failed to parse SnapshotAnimationConfig"));
             return;
         }
         WMError ret = configOpt.has_value() ? window->Recover(1, *configOpt) : window->Recover(1);
@@ -8335,31 +8352,15 @@ std::optional<MaximizeOptions> ParseMaximizeOptions(napi_env env, napi_value jsO
 
 napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info)
 {
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "window is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][maximizeWithOptions]msg: The window is not created or destroyed.");
-    }
-    if (!(WindowHelper::IsMainWindow(windowToken_->GetType()) || windowToken_->IsSubWindowMaximizeSupported())) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "only support main or sub Window");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][maximizeWithOptions]msg: Only support main or sub Window");
-    }
-
     size_t argc = ONE_PARAMS_SIZE;
     napi_value argv[ONE_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-
     auto optionsOpt = ParseMaximizeOptions(env, argv[INDEX_ZERO]);
-    if (!optionsOpt) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][maximizeWithOptions]msg: Failed to parse MaximizeOptions");
-    }
-
+    bool parseFailed = !optionsOpt.has_value();
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
-    auto options = *optionsOpt;
-    auto asyncTask = [windowToken = wptr<Window>(windowToken_), options,
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_),
+                      optionsOpt, parseFailed,
                       env, napiAsyncTask, where = __func__] {
         auto window = windowToken.promote();
         if (window == nullptr) {
@@ -8367,8 +8368,15 @@ napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info
                 "[window][maximizeWithOptions]msg: The window is not created or destroyed."));
             return;
         }
+        if (parseFailed) {
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                "[window][maximizeWithOptions]msg: Failed to parse MaximizeOptions"));
+            return;
+        }
         WMError ret = window->MaximizeWithOptions(
-            options.maximizePresentation, options.acrossDisplayPresentation, options.snapshotAnimationConfig);
+            optionsOpt->maximizePresentation,
+            optionsOpt->acrossDisplayPresentation,
+            optionsOpt->snapshotAnimationConfig);
         if (ret == WMError::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -8377,8 +8385,8 @@ napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT,
             "%{public}s: windowId: %{public}u, present: %{public}d, acrossDisplayPresentation: %{public}u",
-            where, window->GetWindowId(), static_cast<int32_t>(options.maximizePresentation),
-            static_cast<uint32_t>(options.acrossDisplayPresentation));
+            where, window->GetWindowId(), static_cast<int32_t>(optionsOpt->maximizePresentation),
+            static_cast<uint32_t>(optionsOpt->acrossDisplayPresentation));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnMaximizeWithOptions") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
@@ -9950,6 +9958,11 @@ static void SetWindowMaskWithAlphaAsyncTask(wptr<Window> weakToken,
 
 napi_value JsWindow::OnSetWindowMaskWithAlpha(napi_env env, napi_callback_info info)
 {
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "windowToken is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowMaskWithAlpha]msg: The window is not created or destroyed");
+    }
     size_t argc = THREE_PARAMS_SIZE;
     napi_value argv[THREE_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -10442,6 +10455,75 @@ napi_value JsWindow::OnStartMoving(napi_env env, napi_callback_info info)
     napi_value result = nullptr;
     NapiAsyncTask::Schedule("JsWindow::OnStartMoving",
         env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    return result;
+}
+
+std::pair<WmErrorCode, StartMovingOptions> GetStartMovingOptionsFromArgv(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARG_COUNT_ONE;
+    napi_value argv[ARG_COUNT_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    if (argc > ARG_COUNT_ONE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid argc: %{public}zu", argc);
+        return { WmErrorCode::WM_ERROR_INVALID_PARAM, {} };
+    }
+
+    auto [parseRet, optionsOpt] = ParseStartMovingOptions(env, argv[INDEX_ZERO]);
+    if (parseRet != napi_ok) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to parse options, ret: %{public}d", static_cast<int32_t>(parseRet));
+        return { WmErrorCode::WM_ERROR_ILLEGAL_PARAM, {} };
+    }
+
+    return { WmErrorCode::WM_OK, optionsOpt.value_or(StartMovingOptions{ true, Rect::EMPTY_RECT }) };
+}
+
+napi_value JsWindow::OnStartMovingWithOptions(napi_env env, napi_callback_info info)
+{
+    if (!Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "permission denied, require system application");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+                              "[window][startMovingWithOptions]msg: Permission denied");
+    }
+
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "window is nullptr.");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][startMovingWithOptions]msg: window is nullptr");
+    }
+
+    auto optionsRes = GetStartMovingOptionsFromArgv(env, info);
+    if (optionsRes.first != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, optionsRes.first, "[window][startMovingWithOptions]msg: Invalid options");
+    }
+
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [windowToken = wptr<Window>(windowToken_), options = optionsRes.second,
+                      env, napiAsyncTask, where = __func__] {
+        auto window = windowToken.promote();
+        if (window == nullptr) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: window is nullptr.", where);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+            return;
+        }
+        auto ret = window->StartMovingWithOptions(options);
+        if (ret == WMError::WM_OK) {
+            napiAsyncTask->Resolve(env, NapiGetUndefined(env));
+            TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: Success, windowId: %{public}u, options: %{public}s",
+                   where, window->GetWindowId(), options.ToString().c_str());
+        } else {
+            auto errCode = MappingWmErrorCodeSafely(ret);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to start moving with options"));
+            TLOGE(WmsLogTag::WMS_LAYOUT, "%{public}s: Failed, windowId: %{public}u, ret: %{public}d",
+                  where, window->GetWindowId(), static_cast<int32_t>(errCode));
+        }
+    };
+    napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnStartMovingWithOptions");
+    if (status != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env,
+            static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY), "Failed to send event"));
+    }
     return result;
 }
 
@@ -11213,6 +11295,49 @@ napi_value JsWindow::OnSetDragKeyFramePolicy(napi_env env, napi_callback_info in
     return result;
 }
 
+napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info info)
+{
+    size_t argc = FOUR_PARAMS_SIZE;
+    napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARG_COUNT_ONE || GetType(env, argv[INDEX_ZERO]) != napi_object) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc or type is invalid");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setSupportedWindowModes]msg: Invalid parameters"));
+        return NapiGetUndefined(env);
+    }
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    if (!ConvertNativeValueToVector(env, argv[INDEX_ZERO], supportedWindowModes)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "ConvertNativeValueToVector failed");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setSupportedWindowModes]msg: Failed to convert parameter"));
+        return NapiGetUndefined(env);
+    }
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [weakWindow = wptr(windowToken_), supportedWindowModes = std::move(supportedWindowModes),
+        grayOutMaximizeButton = false, env, task = napiAsyncTask] {
+        auto window = weakWindow.promote();
+        if (window == nullptr) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR),
+                "The window is not created or destoryed."));
+            return;
+        }
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(
+            supportedWindowModes, grayOutMaximizeButton));
+        if (ret != WmErrorCode::WM_OK) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setSupportedWindowModes]"));
+        } else {
+            task->Resolve(env, NapiGetUndefined(env));
+        }
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetSupportedWindowModes") != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][setSupportedWindowModes]msg: Failed to send event"));
+    }
+    return result;
+}
+
 napi_value JsWindow::OnSetRelativePositionToParentWindowEnabled(napi_env env, napi_callback_info info)
 {
     size_t argc = FOUR_PARAMS_SIZE;
@@ -11676,6 +11801,7 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
 {
     BindNativeFunction(env, object, "startMoving", moduleName, JsWindow::StartMoving);
+    BindNativeFunction(env, object, "startMovingWithOptions", moduleName, JsWindow::StartMovingWithOptions);
     BindNativeFunction(env, object, "stopMoving", moduleName, JsWindow::StopMoving);
     BindNativeFunction(env, object, "show", moduleName, JsWindow::Show);
     BindNativeFunction(env, object, "showWindow", moduleName, JsWindow::ShowWindow);
@@ -11861,6 +11987,7 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "setExclusivelyHighlighted", moduleName, JsWindow::SetExclusivelyHighlighted);
     BindNativeFunction(env, object, "isWindowHighlighted", moduleName, JsWindow::IsWindowHighlighted);
     BindNativeFunction(env, object, "setDragKeyFramePolicy", moduleName, JsWindow::SetDragKeyFramePolicy);
+    BindNativeFunction(env, object, "setSupportedWindowModes", moduleName, JsWindow::SetSupportedWindowModes);
     BindNativeFunction(env, object, "setRelativePositionToParentWindowEnabled", moduleName,
         JsWindow::SetRelativePositionToParentWindowEnabled);
     BindNativeFunction(env, object, "setFollowParentWindowLayoutEnabled", moduleName,

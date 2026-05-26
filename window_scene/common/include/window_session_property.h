@@ -83,6 +83,7 @@ public:
     void SetTokenState(bool hasToken);
     void SetMaximizeMode(MaximizeMode mode);
     void SetWindowMode(WindowMode mode);
+    void SetWindowModeInfo(const WindowModeInfo& windowModeInfo);
     void SetWindowLimits(const WindowLimits& windowLimits);
     void SetWindowLimitsVP(const WindowLimits& windowLimits);
     void SetUserWindowLimits(const WindowLimits& windowLimits);
@@ -163,6 +164,17 @@ public:
     bool GetTokenState() const;
     MaximizeMode GetMaximizeMode() const;
     WindowMode GetWindowMode() const;
+    /**
+     * @brief Get window mode compatible with legacy WindowMode enum.
+     *
+     * When windowMode is WINDOW_MODE_SPLIT with two-window split style (horizontal or vertical),
+     * converts to WINDOW_MODE_SPLIT_PRIMARY or WINDOW_MODE_SPLIT_SECONDARY based on splitIndex,
+     * so that callers unaware of the new SPLIT mode can still distinguish primary/secondary.
+     *
+     * @return WindowMode compatible with legacy behavior.
+     */
+    WindowMode GetWindowModeCompat() const;
+    WindowModeInfo GetWindowModeInfo() const;
     WindowLimits GetWindowLimits() const;
     WindowLimits GetWindowLimitsVP() const;
     WindowLimits GetUserWindowLimits() const;
@@ -403,6 +415,8 @@ public:
     bool IsSystemKeyboard() const;
     void SetKeyboardEffectOption(const KeyboardEffectOption& effectOption);
     KeyboardEffectOption GetKeyboardEffectOption() const;
+    void SetKeyboardTargetDisplayId(DisplayId displayId);
+    DisplayId GetKeyboardTargetDisplayId() const;
     mutable std::mutex keyboardMutex_;
 
     /*
@@ -549,6 +563,7 @@ private:
     uint32_t accessTokenId_ = INVALID_SESSION_ID;
     MaximizeMode maximizeMode_ = MaximizeMode::MODE_RECOVER;
     WindowMode windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    WindowModeInfo windowModeInfo_ {};
     WindowState windowState_ = WindowState::STATE_INITIAL;
     WindowLimits limits_;
     WindowLimits limitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
@@ -676,6 +691,7 @@ private:
      */
     bool isSystemKeyboard_ = false;
     KeyboardEffectOption keyboardEffectOption_;
+    DisplayId keyboardTargetDisplayId_ = 0;
 
     /*
      * Window Immersive
@@ -999,9 +1015,11 @@ struct SystemSessionConfig : public Parcelable {
     float defaultCornerRadius_ = 0.0f; // default corner radius of window set by system config
     bool supportUIExtensionSubWindow_ = false;
     bool supportCreateFloatView_ = false;
+    bool supportCreateFloatingBall_ = false;
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
+    void ConvertSupportCreateFloatingBall(const std::string& itemValue);
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
@@ -1075,6 +1093,9 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
+        if (!parcel.WriteBool(supportCreateFloatingBall_)) {
+            return false;
+        }
         return true;
     }
 
@@ -1133,6 +1154,7 @@ struct SystemSessionConfig : public Parcelable {
             return nullptr;
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
+        config->supportCreateFloatingBall_ = parcel.ReadBool();
         return config;
     }
         

@@ -366,7 +366,7 @@ HWTEST_F(WindowStubTest, OnRemoteRequest13, TestSize.Level1)
 
 /**
  * @tc.name: OnRemoteRequest14
- * @tc.desc: test TRANS_ID_UPDATE_WINDOW_MODE success
+ * @tc.desc: test TRANS_ID_UPDATE_WINDOW_MODE read windowMode failed
  * @tc.type: FUNC
  */
 HWTEST_F(WindowStubTest, OnRemoteRequest14, TestSize.Level1)
@@ -383,6 +383,96 @@ HWTEST_F(WindowStubTest, OnRemoteRequest14, TestSize.Level1)
 
     data.WriteInterfaceToken(WindowStub::GetDescriptor());
     data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_FB) + 1);
+    res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_INVALID_DATA));
+}
+
+/**
+ * @tc.name: UpdateWindowMode01
+ * @tc.desc: test TRANS_ID_UPDATE_WINDOW_MODE success with WindowModeInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowStubTest, UpdateWindowMode01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    uint32_t code = static_cast<uint32_t>(IWindow::WindowMessage::TRANS_ID_UPDATE_WINDOW_MODE);
+
+    // SPLIT_PRIMARY with splitStyle and splitIndex
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_SPLIT_PRIMARY));
+    data.WriteUint32(static_cast<uint32_t>(SplitStyle::TWO_WINDOW_HORIZONTAL));
+    data.WriteInt32(SPLIT_INDEX_PRIMARY);
+    int res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_NONE));
+
+    // SPLIT_SECONDARY with vertical style
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_SPLIT_SECONDARY));
+    data.WriteUint32(static_cast<uint32_t>(SplitStyle::TWO_WINDOW_VERTICAL));
+    data.WriteInt32(SPLIT_INDEX_SECONDARY);
+    res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_NONE));
+
+    // boundary: UNDEFINED (lower bound)
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_UNDEFINED));
+    data.WriteUint32(static_cast<uint32_t>(SplitStyle::TWO_WINDOW_HORIZONTAL));
+    data.WriteInt32(SPLIT_INDEX_PRIMARY);
+    res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_NONE));
+
+    // boundary: PIP (upper bound of range check)
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_PIP));
+    data.WriteUint32(static_cast<uint32_t>(SplitStyle::TWO_WINDOW_HORIZONTAL));
+    data.WriteInt32(SPLIT_INDEX_PRIMARY);
+    res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_NONE));
+}
+
+/**
+ * @tc.name: UpdateWindowMode02
+ * @tc.desc: test TRANS_ID_UPDATE_WINDOW_MODE invalid windowMode range
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowStubTest, UpdateWindowMode02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    uint32_t code = static_cast<uint32_t>(IWindow::WindowMessage::TRANS_ID_UPDATE_WINDOW_MODE);
+
+    // WINDOW_MODE_SPLIT (105) exceeds PIP (103), rejected by range check
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_SPLIT));
+    int res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_INVALID_DATA));
+}
+
+/**
+ * @tc.name: UpdateWindowMode03
+ * @tc.desc: test TRANS_ID_UPDATE_WINDOW_MODE read splitStyle/splitIndex failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowStubTest, UpdateWindowMode03, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    uint32_t code = static_cast<uint32_t>(IWindow::WindowMessage::TRANS_ID_UPDATE_WINDOW_MODE);
+
+    // valid windowMode, missing splitStyle
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_FULLSCREEN));
+    int res = windowStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, static_cast<int>(ERR_INVALID_DATA));
+
+    // valid windowMode + splitStyle, missing splitIndex
+    data.WriteInterfaceToken(WindowStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(WindowMode::WINDOW_MODE_FULLSCREEN));
+    data.WriteUint32(static_cast<uint32_t>(SplitStyle::TWO_WINDOW_HORIZONTAL));
     res = windowStub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, static_cast<int>(ERR_INVALID_DATA));
 }

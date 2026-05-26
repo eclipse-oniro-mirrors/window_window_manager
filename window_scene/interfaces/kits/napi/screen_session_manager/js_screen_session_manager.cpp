@@ -79,6 +79,8 @@ napi_value JsScreenSessionManager::Init(napi_env env, napi_value exportObj)
         JsScreenUtils::CreateJsFoldStatus(env));
     napi_set_named_property(env, exportObj, "ScreenPropertyChangeType",
         JsScreenUtils::CreateJsScreenPropertyChangeType(env));
+    napi_set_named_property(env, exportObj, "MotionType",
+        JsScreenUtils::CreateJsMotionType(env));
     napi_set_named_property(env, exportObj, "ScreenPowerState",
         JsScreenUtils::CreateJsScreenPowerState(env));
     napi_set_named_property(env, exportObj, "SuperFoldStatus",
@@ -875,6 +877,7 @@ napi_value JsScreenSessionManager::OnRegisterCallback(napi_env env, const napi_c
         RegisterTransRSEventCallback(env, callbackRef, RSExposedEventType::EXT_SCREEN_UNSUPPORT);
     } else {
         TLOGE(WmsLogTag::DMS, "Unsupported callback type: %{public}s.", callbackType.c_str());
+        napi_delete_reference(env, callbackRef);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM)));
     }
     return NapiGetUndefined(env);

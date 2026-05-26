@@ -2327,6 +2327,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleGetHostWindowRect, TestSize.Level1)
 
     int32_t hostWindowId = 65535;
     data.WriteInt32(hostWindowId);
+    data.WriteBool(false);
 
     int res = stub_->HandleGetHostWindowRect(data, reply);
     EXPECT_EQ(res, ERR_NONE);
@@ -2344,6 +2345,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleGetHostGlobalScaledRect, TestSize.Le
     MessageParcel reply;
     int32_t hostWindowId = 65535;
     data.WriteInt32(hostWindowId);
+    data.WriteBool(false);
     int res = stub_->HandleGetHostGlobalScaledRect(data, reply);
     EXPECT_EQ(res, ERR_NONE);
 }

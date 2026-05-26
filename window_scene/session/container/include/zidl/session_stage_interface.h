@@ -133,7 +133,7 @@ public:
     virtual WSError NotifyTouchOutside() = 0;
     virtual WSError NotifyWindowVisibility(bool isVisible) = 0;
     virtual WSError NotifyWindowOcclusionState(const WindowVisibilityState state) = 0;
-    virtual WSError UpdateWindowMode(WindowMode mode) = 0;
+    virtual WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) = 0;
     virtual WSError GetTopNavDestinationName(std::string& topNavDestName) = 0;
     virtual WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) = 0;
     virtual WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) = 0;

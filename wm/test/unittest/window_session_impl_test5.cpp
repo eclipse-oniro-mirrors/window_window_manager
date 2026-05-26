@@ -2283,7 +2283,7 @@ HWTEST_F(WindowSessionImplTest5, TestNotifyGlobalDisplayRectChange, TestSize.Lev
     {
         std::lock_guard<std::mutex> lock(window->rectChangeInGlobalDisplayListenerMutex_);
         window->rectChangeInGlobalDisplayListeners_[window->GetPersistentId()] = {
-            listener1, nullListener, listener2
+            {listener1, false}, {nullListener, false}, {listener2, false}
         };
     }
 
@@ -2380,7 +2380,7 @@ HWTEST_F(WindowSessionImplTest5, SwitchSubWindow, Function | SmallTest | Level1)
     subWindow->SwitchSubWindow(true, PERSISTENT_ID_ONE);
     WindowMode mode = subWindow->property_->GetWindowMode();
     bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
-        mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+        WindowHelper::IsSplitWindowMode(mode) ||
         (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !subWindow->property_->IsLayoutFullScreen());
     if (subWindow->windowSystemConfig_.freeMultiWindowSupport_) {
         auto isSubWindow = WindowHelper::IsSubWindow(subWindow->GetType());
