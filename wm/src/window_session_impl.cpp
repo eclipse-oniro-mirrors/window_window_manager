@@ -2703,21 +2703,15 @@ void WindowSessionImpl::SetForceSplitConfig(const AppForceLandscapeConfig& confi
         TLOGE(WmsLogTag::DEFAULT, "uiContent is null!");
         return;
     }
-    AppForceSplitConfig appForceSplitConfig;
-    SystemForceSplitConfig systemForceSplitConfig;
+    ForceSplitConfig forceSplitConfig;
     if (config.hasChanged_) {
-        if (config.containsAppConfig_) {
-            appForceSplitConfig.isRouter = config.isAppRouter_;
-            appForceSplitConfig.configJsonStr = config.appConfigJsonStr_;
-        } else if (config.containsSysConfig_) {
-            systemForceSplitConfig.isRouter = config.isSysRouter_;
-            systemForceSplitConfig.homePage = config.sysHomePage_;
-            systemForceSplitConfig.configJsonStr = config.sysConfigJsonStr_;
+        if (config.containsConfig_) {
+            forceSplitConfig.isRouter = config.isRouter_;
+            forceSplitConfig.configJsonStr = config.configJsonStr_;
         }
     }
     uiContent->SetForceSplitConfig(
-        config.containsSysConfig_ ? std::make_optional(systemForceSplitConfig) : std::nullopt,
-        config.containsAppConfig_ ? std::make_optional(appForceSplitConfig) : std::nullopt);
+        config.containsConfig_ ? std::make_optional(forceSplitConfig) : std::nullopt);
 }
 
 void WindowSessionImpl::SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo)
@@ -2799,7 +2793,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
 
     AppForceLandscapeConfig config = {};
     if (WindowHelper::IsMainWindow(winType) && GetAppForceLandscapeConfig(config) == WMError::WM_OK &&
-        (config.containsSysConfig_ || config.containsAppConfig_)) {
+        config.containsConfig_) {
         SetForceSplitConfig(config);
         // try to fetch selectMode
         SelectMode finalSelectMode = SelectMode::INVALID_MODE;

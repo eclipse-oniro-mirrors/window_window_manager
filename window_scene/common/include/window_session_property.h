@@ -901,31 +901,20 @@ struct FreeMultiWindowConfig : public Parcelable {
 };
 
 struct AppForceLandscapeConfig : public Parcelable {
-    std::string sysConfigJsonStr_ = "";
-    std::string appConfigJsonStr_ = "";
-    std::string sysHomePage_ = "";
-    bool isSysRouter_ = false;
-    bool isAppRouter_ = false;
-    bool containsSysConfig_ = false;
-    bool containsAppConfig_ = false;
+    std::string configJsonStr_ = "";
+    bool isRouter_ = false;
+    bool containsConfig_ = false;
     bool hasChanged_ = true;
     bool configEnable_ = false;
     AppForceLandscapeConfig() {}
-    AppForceLandscapeConfig(const std::string& sysConfigJsonStr, const std::string& appConfigJsonStr,
-        const std::string& sysHomePage, bool isSysRouter, bool isAppRouter,
-        bool containsSysConfig, bool containsAppConfig) : sysConfigJsonStr_(sysConfigJsonStr),
-        appConfigJsonStr_(appConfigJsonStr), sysHomePage_(sysHomePage), isSysRouter_(isSysRouter),
-        isAppRouter_(isAppRouter), containsSysConfig_(containsSysConfig), containsAppConfig_(containsAppConfig) {}
+    AppForceLandscapeConfig(const std::string& configJsonStr, bool isRouter, bool containsConfig)
+        : configJsonStr_(configJsonStr), isRouter_(isRouter), containsConfig_(containsConfig) {}
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
-        if (!parcel.WriteString(sysConfigJsonStr_) ||
-            !parcel.WriteString(appConfigJsonStr_) ||
-            !parcel.WriteString(sysHomePage_) ||
-            !parcel.WriteBool(isSysRouter_) ||
-            !parcel.WriteBool(isAppRouter_) ||
-            !parcel.WriteBool(containsSysConfig_) ||
-            !parcel.WriteBool(containsAppConfig_)) {
+        if (!parcel.WriteString(configJsonStr_) ||
+            !parcel.WriteBool(isRouter_) ||
+            !parcel.WriteBool(containsConfig_)) {
             return false;
         }
         return true;
@@ -937,13 +926,9 @@ struct AppForceLandscapeConfig : public Parcelable {
         if (config == nullptr) {
             return nullptr;
         }
-        if (!parcel.ReadString(config->sysConfigJsonStr_) ||
-            !parcel.ReadString(config->appConfigJsonStr_) ||
-            !parcel.ReadString(config->sysHomePage_) ||
-            !parcel.ReadBool(config->isSysRouter_) ||
-            !parcel.ReadBool(config->isAppRouter_) ||
-            !parcel.ReadBool(config->containsSysConfig_) ||
-            !parcel.ReadBool(config->containsAppConfig_)) {
+        if (!parcel.ReadString(config->configJsonStr_) ||
+            !parcel.ReadBool(config->isRouter_) ||
+            !parcel.ReadBool(config->containsConfig_)) {
             return nullptr;
         }
         return config.release();
@@ -951,20 +936,12 @@ struct AppForceLandscapeConfig : public Parcelable {
 
     static bool IsSameForceSplitConfig(const AppForceLandscapeConfig& preconfig, const AppForceLandscapeConfig& config)
     {
-        if (preconfig.containsSysConfig_ != config.containsSysConfig_ ||
-            preconfig.containsAppConfig_ != config.containsAppConfig_) {
+        if (preconfig.containsConfig_ != config.containsConfig_) {
             return false;
         }
-        if (config.containsSysConfig_) {
-            if (preconfig.isSysRouter_ != config.isSysRouter_ ||
-                preconfig.sysHomePage_ != config.sysHomePage_ ||
-                preconfig.sysConfigJsonStr_ != config.sysConfigJsonStr_) {
-                return false;
-            }
-        }
-        if (config.containsAppConfig_) {
-            if (preconfig.isAppRouter_ != config.isAppRouter_ ||
-                preconfig.appConfigJsonStr_ != config.appConfigJsonStr_) {
+        if (config.containsConfig_) {
+            if (preconfig.isRouter_ != config.isRouter_ ||
+                preconfig.configJsonStr_ != config.configJsonStr_) {
                 return false;
             }
         }

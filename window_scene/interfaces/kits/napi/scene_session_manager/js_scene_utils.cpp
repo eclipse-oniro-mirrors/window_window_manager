@@ -850,9 +850,6 @@ bool ConvertSessionInfoState(napi_env env, napi_value jsObject, SessionInfo& ses
     if (!ConvertFromJsValueProperty(env, jsObject, "windowMode", sessionInfo.windowMode)) {
         return false;
     }
-    if (!ConvertFromJsValueProperty(env, jsObject, "pageConfig", sessionInfo.pageConfig)) {
-        return false;
-    }
     std::vector<std::string> combinedCompatibleConfig;
     napi_value jsCombinedCompatibleConfig = nullptr;
     napi_get_named_property(env, jsObject, "combinedCompatibleConfig", &jsCombinedCompatibleConfig);

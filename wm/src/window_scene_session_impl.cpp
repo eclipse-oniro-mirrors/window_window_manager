@@ -8984,7 +8984,7 @@ WSError WindowSceneSessionImpl::NotifyAppForceLandscapeConfigUpdated()
     WindowType winType = GetType();
     AppForceLandscapeConfig config = {};
     if (WindowHelper::IsMainWindow(winType) && GetAppForceLandscapeConfig(config) == WMError::WM_OK &&
-        (config.containsSysConfig_ || config.containsAppConfig_)) {
+        config.containsConfig_) {
         SetForceSplitConfig(config);
         return WSError::WS_OK;
     }
