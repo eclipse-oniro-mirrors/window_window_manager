@@ -746,6 +746,8 @@ public:
     WindowModeInfo GetWindowModeInfo() const;
     WindowMode GetWindowModeCompat() const;
     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
+    void SetSceneLastUsedPosition(const std::string& position);
+    const std::string GetSceneLastUsedPosition() const;
 
     /*
      * Window ZOrder
@@ -1384,6 +1386,7 @@ private:
     int32_t callingUid_ = -1;
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };
+    std::string sceneLastUsedPosition_;
     bool isRSVisible_ {false};
     WindowVisibilityState visibilityState_ { WINDOW_LAYER_STATE_MAX};
     bool needNotify_ {true};

@@ -13454,6 +13454,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
 #ifdef MEMMGR_WINDOW_ENABLE
     std::vector<sptr<Memory::MemMgrWindowInfo>> memMgrWindowInfos;
+    std::string memLogInfo = "memMgrWindowInfos [name, lastUsedPosition]";
 #endif
 
     std::string visibilityInfo = "WindowVisibilityInfos [name, winId, visibleState]: ";
@@ -13478,7 +13479,8 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
         UpdateSubWindowVisibility(session, visibleState, visibilityChangeInfo, windowVisibilityInfos, visibilityInfo, currVisibleData);
 #ifdef MEMMGR_WINDOW_ENABLE
         memMgrWindowInfos.emplace_back(new Memory::MemMgrWindowInfo(session->GetWindowId(), session->GetCallingPid(),
-            session->GetCallingUid(), isVisible));
+            session->GetCallingUid(), isVisible, session->GetSceneLastUsedPosition()));
+        memLogInfo += "[" + session->GetWindowName() + ", " + session->GetSceneLastUsedPosition() + "] ";
 #endif
         CheckAndNotifyWaterMarkChangedResult();
     }
@@ -13490,6 +13492,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     ProcessWindowModeType();
 #ifdef MEMMGR_WINDOW_ENABLE
     if (memMgrWindowInfos.size() != 0) {
+        TLOGD(WmsLogTag::WMS_LIFE, "memMgrWindowInfos: %{public}s", memLogInfo.c_str());
         taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
             TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
             Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
