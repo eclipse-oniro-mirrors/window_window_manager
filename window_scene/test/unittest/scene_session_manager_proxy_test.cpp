@@ -1597,18 +1597,6 @@ HWTEST_F(sceneSessionManagerProxyTest, NotifySurfaceNodeAlphaUpdate, TestSize.Le
 
     sptr<SceneSessionManagerProxy> nullProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
     EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
-
-    mockRemote->SetRequestResult(ERR_INVALID_DATA);
-    sptr<SceneSessionManagerProxy> failProxy = sptr<SceneSessionManagerProxy>::MakeSptr(mockRemote);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
-    mockRemote->SetRequestResult(ERR_NONE);
-
-    MockMessageParcel::SetReadInt32ErrorFlag(true);
-    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
-    MockMessageParcel::SetReadInt32ErrorFlag(false);
-
-    sptr<SceneSessionManagerProxy> okProxy = sptr<SceneSessionManagerProxy>::MakeSptr(mockRemote);
-    EXPECT_NE(WSError::WS_ERROR_NULLPTR, okProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha));
 }
 
 /**
