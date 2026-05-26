@@ -198,6 +198,11 @@ WindowMode WindowImpl::GetWindowMode() const
     return windowMode_;
 }
 
+WindowMode WindowImpl::GetWindowModeCompat() const
+{
+    return windowMode_;
+}
+
 float WindowImpl::GetAlpha() const
 {
     return 0.0;

@@ -685,7 +685,7 @@ WindowLimits WindowSessionProperty::GetWindowLimitsVP() const
 void WindowSessionProperty::SetWindowMode(WindowMode mode)
 {
     windowMode_ = mode;
-    windowModeInfo_ = {mode, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY};
+    windowModeInfo_ = {mode, windowModeInfo_.splitStyle, windowModeInfo_.splitIndex};
 }
 
 WindowMode WindowSessionProperty::GetWindowMode() const
@@ -1845,6 +1845,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     accessTokenId_ = property->accessTokenId_;
     maximizeMode_ = property->maximizeMode_;
     windowMode_ = property->windowMode_;
+    windowModeInfo_ = property->windowModeInfo_;
     windowState_ = property->windowState_;
     limits_ = property->limits_;
     limitsVP_ = property->limitsVP_;

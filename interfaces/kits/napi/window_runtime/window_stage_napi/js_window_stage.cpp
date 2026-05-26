@@ -557,7 +557,7 @@ napi_value JsWindowStage::OnGetWindowMode(napi_env env, napi_callback_info info)
             TLOGNE(WmsLogTag::WMS_LIFE, "Get window failed");
             return;
         }
-        Rosen::WindowMode mode = window->GetWindowMode();
+        Rosen::WindowMode mode = window->GetWindowModeCompat();
         if (NATIVE_TO_JS_WINDOW_MODE_MAP.count(mode) != 0) {
             task->Resolve(env, CreateJsValue(env, NATIVE_TO_JS_WINDOW_MODE_MAP.at(mode)));
             TLOGNI(WmsLogTag::WMS_LIFE, "Window [%{public}u, %{public}s] get mode %{public}u, api mode %{public}u",
