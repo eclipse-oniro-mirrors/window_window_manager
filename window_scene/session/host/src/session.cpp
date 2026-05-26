@@ -2192,6 +2192,16 @@ void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
     return isPendingToBackgroundState_.store(isPendingToBackgroundState);
 }
 
+bool Session::IsNeedNotifyAttachState(bool isAttach)
+{
+    if (WindowHelper::IsMainWindow(GetWindowType()) && (showRecent_ || isAttach == isClientAttach_)) {
+        TLOGI(WmsLogTag::WMS_LIFE, "No need nofityWindowAttachStateChange, persistentId:%{public}d",
+            GetPersistentId());
+        return false;
+    }
+    return true;
+}
+
 void Session::SetAttachState(bool isAttach, WindowMode windowMode)
 {
     isAttach_ = isAttach;
@@ -2201,15 +2211,19 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
     PostTask([weakThis = wptr(this), isAttach]() {
         auto session = weakThis.promote();
         if (session == nullptr) {
-            TLOGND(WmsLogTag::WMS_LIFE, "session is null");
+            TLOGD(WmsLogTag::WMS_LIFE, "session is null");
             return;
         }
-        if (session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
+        if (WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType()) &&
+            session->IsNeedNotifyAttachState(isAttach)) {
+            session->isClientAttach_ = isAttach;
+            TLOGI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
-            session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
+            if (session->sessionStage_) {
+                session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
+            }
         }
-        TLOGND(WmsLogTag::WMS_LIFE, "isAttach:%{public}d persistentId:%{public}d", isAttach,
+        TLOGD(WmsLogTag::WMS_LIFE, "isAttach:%{public}d persistentId:%{public}d", isAttach,
             session->GetPersistentId());
         if (!isAttach && session->detachCallback_ != nullptr) {
             TLOGNI(WmsLogTag::WMS_LIFE, "Session detach, persistentId:%{public}d", session->GetPersistentId());

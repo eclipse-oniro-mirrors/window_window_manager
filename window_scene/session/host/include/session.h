@@ -1286,6 +1286,7 @@ protected:
     bool IsSupportAppLockSnapshot() const;
     GetAppUseControlDisplayMapFunc onGetAppUseControlDisplayMapFunc_;
     std::atomic<bool> isAttach_ { false };
+    std::atomic<bool> isClientAttach_ { false };
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
     SnapshotStatus capacity_ = defaultCapacity;
@@ -1321,6 +1322,7 @@ private:
     void HandleDialogBackground();
     void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     WSError HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise = false);
+    bool IsNeedNotifyAttachState(bool isAttach);
 
     template<typename T>
     bool RegisterListenerLocked(std::vector<std::shared_ptr<T>>& holder, const std::shared_ptr<T>& listener);
