@@ -19863,6 +19863,11 @@ WMError SceneSessionManager::GetAppWindowShowingInfosByBundleName(const Applicat
         if (session == nullptr) {
             continue;
         }
+        WindowType windowType = session->GetWindowType();
+        if (!(WindowHelper::IsMainWindow(windowType) || (WindowHelper::IsSubWindow(windowType)
+            && session->IsSubWindowZLevelAboveParentLoosened()))) {
+            continue;
+        }
         AppWindowShowingInfo info;
         info.persistentId = session->GetPersistentId();
         info.windowName = session->GetWindowName();
