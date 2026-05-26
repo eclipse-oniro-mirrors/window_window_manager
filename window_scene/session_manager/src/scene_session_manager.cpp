@@ -19724,7 +19724,7 @@ void SceneSessionManager::ReportWindowRss(const bool isForeground,
     }
 }
 
-void SceneSessionManager::ReportRssFloatWindowV1(const bool isForeground, sptr<SceneSession> session)
+void SceneSessionManager::ReportRssFloatWindowV1(const bool isForeground, const sptr<SceneSession>& session)
 {
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_WINDOW_V1;
     nlohmann::json payload = GetRssPayload();
@@ -19750,7 +19750,7 @@ void SceneSessionManager::ReportRssFloatWindowV1(const bool isForeground, sptr<S
     }
 }
 
-void SceneSessionManager::ReportRssFB(const bool isForeground, sptr<SceneSession> session)
+void SceneSessionManager::ReportRssFB(const bool isForeground, const sptr<SceneSession>& session)
 {
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_BALL;
     nlohmann::json payload = GetRssPayload();
@@ -19776,7 +19776,7 @@ void SceneSessionManager::ReportRssFB(const bool isForeground, sptr<SceneSession
     }
 }
 
-nlohmann::json SceneSessionManager::GetRssPayload()
+nlohmann::json SceneSessionManager::GetRssPayload() const
 {
     int32_t curUserId = GetUserIdByUid(getuid());
     // get steady time, it will not change whe system time change.
@@ -19789,7 +19789,7 @@ nlohmann::json SceneSessionManager::GetRssPayload()
     return payload;
 }
 
-void SceneSessionManager::SetResTypeFloatingBall(nlohmann::json payload)
+void SceneSessionManager::SetResTypeFloatingBall(const nlohmann::json& payload)
 {
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_BALL;
     int64_t hasForegroundFloatingBall = CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB) ? 1 : 0;
@@ -19797,7 +19797,7 @@ void SceneSessionManager::SetResTypeFloatingBall(nlohmann::json payload)
     TLOGI(WmsLogTag::WMS_SYSTEM, "set RES_TYPE_FLOATING_BALL success, value is %{public}lld", hasForegroundFloatingBall);
 }
 
-void SceneSessionManager::SetResTypeFloatingWindowV1(nlohmann::json payload)
+void SceneSessionManager::SetResTypeFloatingWindowV1(const nlohmann::json& payload)
 {
     uint32_t reportType = OHOS::ResourceSchedule::ResType::RES_TYPE_FLOATING_WINDOW_V1;
     int64_t hasForegroundFloatingWindowV1 = CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FLOAT) ? 1 : 0;

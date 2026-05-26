@@ -808,12 +808,12 @@ public:
      * Window Lifecycle
      */
     void ReportWindowRss(const bool isForeground, const WindowType& type, const sptr<SceneSession>& session);
-    void ReportRssFloatWindowV1(const bool isForeground, sptr<SceneSession> session);
-    void ReportRssFB(const bool isForeground, sptr<SceneSession> session);
+    void ReportRssFloatWindowV1(const bool isForeground, const sptr<SceneSession>& session);
+    void ReportRssFB(const bool isForeground, const sptr<SceneSession>& session);
     bool CheckHasForegroundSessionByType(const WindowType& windowType);
-    void SetResTypeFloatingBall(nlohmann::json payload);
-    void SetResTypeFloatingWindowV1(nlohmann::json payload);
-    nlohmann::json GetRssPayload();
+    void SetResTypeFloatingBall(const nlohmann::json& payload);
+    void SetResTypeFloatingWindowV1(const nlohmann::json& payload);
+    nlohmann::json GetRssPayload() const;
     void GetMainSessionByBundleNameAndAppIndex(
         const std::string& bundleName, int32_t appIndex, std::vector<sptr<SceneSession>>& mainSessions);
     void GetSceneSessionsByAppInstance(const std::string& bundleName,
