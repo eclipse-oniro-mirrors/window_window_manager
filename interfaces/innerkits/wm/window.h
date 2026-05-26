@@ -1179,14 +1179,6 @@ public:
         const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode);
 
     /**
-     * @brief Check if any window matches the given state
-     *
-     * @param state The state to match
-     * @return True if any window matches the given state, false otherwise
-     */
-    static bool IsAnyWindowMatchState(const WindowState& state);
-
-    /**
      * @brief Get surface node from RS
      *
      * @return Surface node from RS

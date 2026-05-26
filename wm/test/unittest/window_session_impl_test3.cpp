@@ -1885,33 +1885,6 @@ HWTEST_F(WindowSessionImplTest3, SyncFvLimits, TestSize.Level1)
     limitsInfo.emplace(0, limit);
     EXPECT_EQ(WSError::WS_OK, window->SyncFvLimits(limitsInfo));
 }
-
-/**
- * @tc.name: IsAnyWindowMatchState
- * @tc.desc: IsAnyWindowMatchState test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, IsAnyWindowMatchState, TestSize.Level1)
-{
-    WindowSessionImpl::windowSessionMap_.clear();
-    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-
-    WindowSessionImpl::windowSessionMap_.insert(std::make_pair("test",
-        std::pair<uint64_t, sptr<WindowSessionImpl>>(1, nullptr)));
-    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-
-    WindowSessionImpl::windowSessionMap_.clear();
-    sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName("IsAnyWindowMatchState");
-    sptr<WindowSessionImpl> windowSession = sptr<WindowSessionImpl>::MakeSptr(windowOption);
-    WindowSessionImpl::windowSessionMap_.insert(std::make_pair("test",
-        std::pair<uint64_t, sptr<WindowSessionImpl>>(1, windowSession)));
-    windowSession->state_ = WindowState::STATE_CREATED;
-    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-
-    windowSession->state_ = WindowState::STATE_SHOWN;
-    EXPECT_TRUE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
