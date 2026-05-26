@@ -125,7 +125,7 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         auto pipController = weak.promote();
         if (pipController == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY),
-                "[PiPWindow][startPiP]msg: The window is not created or destroyed."));
+                "[PiPWindow][startPiP]msg: The window is already started or is about to start."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_STARTPIP, WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY);
             return;
         }
@@ -133,7 +133,7 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         WMError errCode = pipController->StartPictureInPicture(StartPipType::USER_START);
         if (errCode != WMError::WM_OK) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(errCode)),
-                "[PiPWindow][startPiP]msg: The window is not created or destroyed."));
+                "[PiPWindow][startPiP]msg: The window is already started or is about to start."));
             return;
         }
         task->Resolve(env, NapiGetUndefined(env));
