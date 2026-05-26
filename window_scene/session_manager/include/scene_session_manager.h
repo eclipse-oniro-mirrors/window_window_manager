@@ -62,6 +62,7 @@
 #include "zidl/session_router_stack_listener.h"
 #include "zidl/pip_change_listener.h"
 #include "pip_controller.h"
+#include "nlohmann/json.hpp"
 
 namespace OHOS::AAFwk {
 class SessionInfo;
@@ -566,7 +567,8 @@ public:
     std::shared_ptr<Media::PixelMap> GetSessionSnapshotPixelMap(const int32_t persistentId, const float scaleParam,
         const SnapshotNodeType snapshotNode = SnapshotNodeType::DEFAULT_NODE,
         bool needSnapshot = true, bool disableBlur = false);
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) override;
     const std::map<int32_t, sptr<SceneSession>> GetSceneSessionMap();
     void GetAllSceneSession(std::vector<sptr<SceneSession>>& sceneSessions);
     void GetAllWindowVisibilityInfos(std::vector<std::pair<int32_t, uint32_t>>& windowVisibilityInfos);
@@ -598,8 +600,9 @@ public:
     WSError UpdateExtWindowFlags(const sptr<IRemoteObject>& token, uint32_t extWindowFlags,
         uint32_t extWindowActions) override;
     void CheckSceneZOrder();
-    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect) override;
-    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect) override;
+    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override;
+    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false) override;
     WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) override;
     WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) override;
     WMError GetWindowModeType(WindowModeType& windowModeType) override;
@@ -684,7 +687,7 @@ public:
         uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override;
     WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags) override;
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) override;
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override;
     WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip) override;
     WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode) override;
     WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName) override;
@@ -806,6 +809,13 @@ public:
     /*
      * Window Lifecycle
      */
+    void ReportWindowRss(const bool isForeground, const WindowType& type, const sptr<SceneSession>& session);
+    void ReportRssFloatWindowV1(const bool isForeground, const sptr<SceneSession>& session);
+    void ReportRssFB(const bool isForeground, const sptr<SceneSession>& session);
+    bool CheckHasForegroundSessionByType(const WindowType& windowType);
+    void SetResTypeFloatingBall(const nlohmann::json& payload);
+    void SetResTypeFloatingWindowV1(const nlohmann::json& payload);
+    nlohmann::json GetRssPayload() const;
     void GetMainSessionByBundleNameAndAppIndex(
         const std::string& bundleName, int32_t appIndex, std::vector<sptr<SceneSession>>& mainSessions);
     void GetSceneSessionsByAppInstance(const std::string& bundleName,
@@ -1043,6 +1053,10 @@ private:
      *     <moveDrag>
      *       <moveResample enable="true">
      *         <resampleFpsRange>29 91</resampleFpsRange>
+     *         <resamplePointerTypes>1 2</resamplePointerTypes>
+     *         <secondaryPhase enable="true">
+     *           <leadTimeMs>2</leadTimeMs>
+     *         </secondaryPhase>
      *       </moveResample>
      *     </moveDrag>
      *   </windowLayout>
@@ -1108,6 +1122,7 @@ private:
     void ProcessFocusZOrderChange(uint32_t dirty);
     void PostProcessFocus();
     void PostProcessProperty(uint32_t dirty);
+    std::vector<sptr<SceneSession>> CollectProcessingSessions();
 
     /*
      * Window Lifecycle
@@ -1988,6 +2003,10 @@ private:
     std::vector<std::string> kioskAppListCache_;
     bool isKioskMode_ = false;
     int32_t kioskAppPersistentId_ = INVALID_SESSION_ID;
+    std::set<sptr<SceneSession>> foregroundSessionFloatWindowV1Set_;
+    std::shared_mutex foregroundSessionFloatWindowV1SetMutex_;
+    std::set<sptr<SceneSession>> foregroundSessionFloatBallSet_;
+    std::shared_mutex foregroundSessionFloatBallSetMutex_;
 
     /*
      * Window Pattern

@@ -100,7 +100,8 @@ WMError GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<UnreliableWin
 {
     return WMError::WM_OK;
 }
-WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
+WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize = true)
 {
     return WMError::WM_OK;
 };

@@ -62,6 +62,7 @@ public:
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
     virtual std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const override;
     virtual Rect GetRect() const override;
+    virtual Rect GetRect(bool useHookedSize) const override;
     virtual Rect GetRequestRect() const override;
     virtual WindowType GetType() const override;
     virtual WindowMode GetWindowMode() const override;
@@ -154,6 +155,8 @@ public:
 
     virtual WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) override;
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
     virtual WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) override;

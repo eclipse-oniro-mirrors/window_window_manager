@@ -276,6 +276,8 @@ public:
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) override;
     void NotifySwitchUserAnimationFinish() override;
+    void SubscribeMotionSensor(int32_t motionType) override;
+    void UnsubscribeMotionSensor(int32_t motionType) override;
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
 

@@ -591,6 +591,16 @@ void Session::SetSessionInfoWindowMode(int32_t windowMode)
     sessionInfo_.windowMode = windowMode;
 }
 
+void Session::SetDeviceType(const std::string& deviceType)
+{
+    deviceType_ = deviceType;
+}
+
+const std::string& Session::GetDeviceType() const
+{
+    return deviceType_;
+}
+
 void Session::SetSessionInfoRequestId(int32_t requestId)
 {
     sessionInfo_.requestId = requestId;
@@ -3191,7 +3201,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         .scaleY = scaleValue,
         .useDma = true,
         .useCurWindow = options.useCurWindow,
-        .windowSync = options.windowSync,
+        .windowSync = false,
         .backGroundColor = GetBackgroundColor(),
         .needErrorCode = true,
     };
@@ -3609,7 +3619,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         Session::SnapshotOptions options;
         options.runInFfrt = runInFfrt;
         options.useCurWindow = updateSnapshot;
-        options.windowSync = session->systemConfig_.IsPhoneWindow() || session->systemConfig_.IsPadWindow();
+        options.windowSync = session->GetDeviceType() == "phone" || session->GetDeviceType() == "tablet";
         auto pixelMap = persistentPixelMap ? persistentPixelMap : session->Snapshot(options);
         if (pixelMap == nullptr) {
             return;
@@ -4063,7 +4073,8 @@ void Session::NotifySessionStateChange(const SessionState& state)
             session->keyboardStateChangeFunc_) {
             const sptr<WindowSessionProperty>& property = session->GetSessionProperty();
             session->keyboardStateChangeFunc_(
-                state, property->GetKeyboardEffectOption(), property->GetCallingSessionId(), property->GetDisplayId());
+                state, property->GetKeyboardEffectOption(), property->GetCallingSessionId(),
+                property->GetKeyboardTargetDisplayId());
         } else if (session->sessionStateChangeFunc_) {
             session->sessionStateChangeFunc_(state);
         } else {
@@ -4539,11 +4550,13 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
             GetPersistentId(), static_cast<int32_t>(mode));
         property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
         property->SetIsNeedUpdateWindowMode(true);
         UpdateGestureBackEnabled();
     } else {
         property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
         RequestNextVsyncWhenModeChange();
         if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
@@ -5185,6 +5198,26 @@ WindowMode Session::GetWindowMode() const
         return WindowMode::WINDOW_MODE_UNDEFINED;
     }
     return property->GetWindowMode();
+}
+
+WindowModeInfo Session::GetWindowModeInfo() const
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        WLOGFW("null property.");
+        return WindowModeInfo {};
+    }
+    return property->GetWindowModeInfo();
+}
+
+WindowMode Session::GetWindowModeCompat() const
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        WLOGFW("null property.");
+        return WindowMode::WINDOW_MODE_UNDEFINED;
+    }
+    return property->GetWindowModeCompat();
 }
 
 WSError Session::UpdateMaximizeMode(bool isMaximize)
@@ -5983,8 +6016,9 @@ WindowMetaInfo Session::GetWindowMetaInfoForWindowInfo() const
     windowMetaInfo.appIndex = GetSessionInfo().appIndex_;
     windowMetaInfo.pid = GetCallingPid();
     windowMetaInfo.windowType = GetWindowType();
-    windowMetaInfo.windowMode = GetWindowMode();
     windowMetaInfo.isMidScene = GetIsMidScene();
+    windowMetaInfo.windowMode = GetWindowModeCompat();
+    windowMetaInfo.windowModeInfo = GetWindowModeInfo();
     windowMetaInfo.isFocused = IsFocused();
     if (auto parentSession = GetParentSession()) {
         windowMetaInfo.parentWindowId = static_cast<uint32_t>(parentSession->GetWindowId());

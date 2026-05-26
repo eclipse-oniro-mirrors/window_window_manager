@@ -253,6 +253,25 @@ struct WindowModeInfo {
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
     SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
     int32_t splitIndex = SPLIT_INDEX_PRIMARY;
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        uint32_t windowModeValue = 1;
+        int32_t splitStyleValue = 0;
+        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
+            !parcel.ReadInt32(splitIndex)) {
+            return false;
+        }
+        windowMode = static_cast<WindowMode>(windowModeValue);
+        splitStyle = static_cast<SplitStyle>(splitStyleValue);
+        return true;
+    }
 };
 
 /**
@@ -1311,6 +1330,11 @@ struct Rect {
         return posX_ == x && posY_ == y;
     }
 
+    bool IsRightBottomOverflow() const
+    {
+        return Rect::IsRightBottomOverflow(posX_, posY_, width_, height_);
+    }
+
     inline std::string ToString() const
     {
         std::ostringstream oss;
@@ -1335,19 +1359,19 @@ struct Rect {
     static const Rect EMPTY_RECT;
 
     /**
-     * @brief Checks whether the right-bottom corner of a rectangle stays within the valid range.
+     * @brief Checks whether the right-bottom corner of a rectangle overflows the valid range.
      *
      * @param x The x-coordinate of the left-top corner.
      * @param y The y-coordinate of the left-top corner.
      * @param width The rectangle's width.
      * @param height The rectangle's height.
-     * @return true if right-bottom corner stays within int32_t range; false if overflow happens.
+     * @return true if right-bottom corner overflows int32_t range; false if within range.
      */
-    static bool IsRightBottomValid(int32_t x, int32_t y, uint32_t width, uint32_t height)
+    static bool IsRightBottomOverflow(int32_t x, int32_t y, uint32_t width, uint32_t height)
     {
         int64_t right = static_cast<int64_t>(x) + static_cast<int64_t>(width);
         int64_t bottom = static_cast<int64_t>(y) + static_cast<int64_t>(height);
-        return right <= INT32_MAX && bottom <= INT32_MAX;
+        return right > INT32_MAX || bottom > INT32_MAX;
     }
 };
 
@@ -2255,7 +2279,8 @@ enum class FloatViewState : uint32_t {
  */
 enum class FloatViewTemplate : uint32_t {
     ROUNDED_RECTANGLE = 0,
-    END = 1,
+    HORIZONTAL_BAR = 1,
+    END,
 };
 
 /**
@@ -2668,6 +2693,7 @@ struct WindowMetaInfo : public Parcelable {
     uint64_t leashWinSurfaceNodeId = 0;
     bool isPrivacyMode = false;
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    WindowModeInfo windowModeInfo;
     bool isMidScene = false;
     bool isFocused = false;
     bool isTouchable = true;
@@ -2682,6 +2708,7 @@ struct WindowMetaInfo : public Parcelable {
                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
                parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               windowModeInfo.Marshalling(parcel) &&
                parcel.WriteBool(isTouchable) && parcel.WriteInt32(mainWindowPersistentId) &&
                parcel.WriteUint8(static_cast<uint8_t>(controlAppType));
     }
@@ -2700,6 +2727,7 @@ struct WindowMetaInfo : public Parcelable {
             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
             !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
+            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel) ||
             !parcel.ReadBool(windowMetaInfo->isTouchable) ||
             !parcel.ReadInt32(windowMetaInfo->mainWindowPersistentId) || !parcel.ReadUint8(controlAppTypeValue)) {
             delete windowMetaInfo;
@@ -3423,6 +3451,7 @@ enum class WindowInfoKey : int32_t {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**
@@ -4108,6 +4137,12 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_2_3 = 4,
     // split aspect ratio
     LANDSCAPE_SPLIT = 5,
+    // 3:2 aspect ratio
+    LANDSCAPE_3_2 = 20,
+    // 4:3 aspect ratio
+    LANDSCAPE_4_3 = 21,
+    // 16:9 aspect ratio
+    LANDSCAPE_16_9 = 22,
 };
 
 enum class WindowManagerAgentType : uint32_t {
@@ -4161,6 +4196,28 @@ enum class TitleButtonEventType : uint32_t {
     EVENT_TYPE_UNDEFINED = 0,
     EVENT_TYPE_MAXIMIZE = 1,
     EVENT_TYPE_END = 10,
+};
+
+/**
+ * @brief Optional configuration for window movement.
+ */
+struct StartMovingOptions {
+    /**
+     * @brief Indicates whether the window needs to be focused when moving starts.
+     */
+    bool needFocused = true;
+
+    /**
+     * @brief The avoidance rect of window during drag-moving.
+     */
+    Rect avoidRect = Rect::EMPTY_RECT;
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "needFocused: " << needFocused << ", avoidRect: " << avoidRect.ToString();
+        return oss.str();
+    }
 };
 }
 }

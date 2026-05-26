@@ -17,6 +17,8 @@
 
 #include "js_runtime_utils.h"
 
+#include "float_view_model.h"
+
 #include "wm_common.h"
 #include "window.h"
 
@@ -31,6 +33,9 @@ napi_value ConvertAvoidAreaToJsValue(napi_env env, const AvoidArea& avoidArea);
 napi_value CreateJsFloatViewPropertiesObject(napi_env env, uint32_t templateType,
     const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state);
 napi_value CreateJsFloatViewLimitsObject(napi_env env, const FloatViewLimits& limits);
+
+std::shared_ptr<TemplateProperty> ConvertJsValueToTemplateProperty(napi_env env, napi_value jsObject,
+    std::string& errorMsg, WmErrorCode& errorCode);
 } // namespace Rosen
 } // namespace OHOS
 #endif

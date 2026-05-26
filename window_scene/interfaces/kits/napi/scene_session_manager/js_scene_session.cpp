@@ -8340,7 +8340,7 @@ napi_value JsSceneSession::OnSetFreezeImmediately(napi_env env, napi_callback_in
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    float scaleParam = GreatOrEqual(scaleValue, 0.0f) && LessOrEqual(scaleValue, 1.0f) ?
+    float scaleParam = GreatOrEqual(scaleValue, 0.0) && LessOrEqual(scaleValue, 1.0) ?
         static_cast<float>(scaleValue) : 0.0f;
     bool isFreeze = false;
     if (!ConvertFromJsValue(env, argv[ARG_INDEX_1], isFreeze)) {

@@ -997,9 +997,11 @@ public:
      * @brief Get CutoutInfo with rotation
      *
      * @param Rotation rotation.
+     * @param Rotation display width.
+     * @param Rotation display height.
      * @return CutoutInfo object of default screen.
      */
-    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation);
+    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation, int32_t width = 0, int32_t height = 0);
 
     /**
      * @brief Get screenInfo of display area

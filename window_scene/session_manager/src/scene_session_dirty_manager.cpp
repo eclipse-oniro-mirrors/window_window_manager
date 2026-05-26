@@ -996,7 +996,6 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
                   windowRect.width_, windowRect.height_ },
         .defaultHotAreas = std::move(touchHotAreas),
         .pointerHotAreas = std::move(pointerHotAreas),
-        .dragDisabledAreas = std::move(dragDisabledAreas),
         .agentWindowId = agentWindowId,
         .action = static_cast<MMI::WINDOW_UPDATE_ACTION>(action),
         .displayId = displayId,
@@ -1010,6 +1009,7 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
         .isSkipSelfWhenShowOnVirtualScreen = sceneSession->GetSessionProperty()->GetSkipEventOnCastPlus(),
         .windowNameType = windowNameType,
         .agentPid = sceneSession->IsStartMoving() ? static_cast<int32_t>(getpid()) : pid,
+        .dragDisabledAreas = std::move(dragDisabledAreas)
     };
     UpdateWindowFlags(displayId, sceneSession, windowInfo);
     if (windowSessionProperty->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_HANDWRITING)) {

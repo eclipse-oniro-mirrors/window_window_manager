@@ -415,6 +415,8 @@ public:
     bool IsSystemKeyboard() const;
     void SetKeyboardEffectOption(const KeyboardEffectOption& effectOption);
     KeyboardEffectOption GetKeyboardEffectOption() const;
+    void SetKeyboardTargetDisplayId(DisplayId displayId);
+    DisplayId GetKeyboardTargetDisplayId() const;
     mutable std::mutex keyboardMutex_;
 
     /*
@@ -689,6 +691,7 @@ private:
      */
     bool isSystemKeyboard_ = false;
     KeyboardEffectOption keyboardEffectOption_;
+    DisplayId keyboardTargetDisplayId_ = 0;
 
     /*
      * Window Immersive
@@ -1012,9 +1015,11 @@ struct SystemSessionConfig : public Parcelable {
     float defaultCornerRadius_ = 0.0f; // default corner radius of window set by system config
     bool supportUIExtensionSubWindow_ = false;
     bool supportCreateFloatView_ = false;
+    bool supportCreateFloatingBall_ = false;
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
+    void ConvertSupportCreateFloatingBall(const std::string& itemValue);
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
@@ -1088,6 +1093,9 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
+        if (!parcel.WriteBool(supportCreateFloatingBall_)) {
+            return false;
+        }
         return true;
     }
 
@@ -1146,6 +1154,7 @@ struct SystemSessionConfig : public Parcelable {
             return nullptr;
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
+        config->supportCreateFloatingBall_ = parcel.ReadBool();
         return config;
     }
         

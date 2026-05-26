@@ -1,0 +1,78 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/features.gni")
+import("//build/test.gni")
+import("../../../../windowmanager_aafwk.gni")
+
+module_output_path = "window_manager/window_manager"
+
+ohos_fuzztest("SessionStageStubFvFuzzTest") {
+  fuzz_config_file = "."
+  module_out_path = module_output_path
+
+  include_dirs = [
+    "${window_base_path}/window_scene/session/container/include",
+    "${window_base_path}/window_scene/session/container/include/zidl",
+    "${window_base_path}/interfaces/innerkits/wm",
+    "${window_base_path}/wm/include",
+    "${window_base_path}/utils/include",
+  ]
+  cflags = [
+    "-g",
+    "-O0",
+    "-fno-omit-frame-pointer",
+  ]
+  sources = [ "sessionstagestubfv_fuzzer.cpp" ]
+  deps = [
+    "${window_base_path}/utils:libwmutil_static",
+    "${window_base_path}/utils:libwmutil_base",
+    "${window_base_path}/wm:libwm",
+  ]
+  external_deps = [
+    "ability_base:configuration",
+    "ability_base:want",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
+    "ability_runtime:app_manager",
+    "ability_runtime:runtime",
+    "accessibility:accessibility_common",
+    "ace_engine:ace_uicontent",
+    "ace_engine:ace_xcomponent_controller",
+    "bundle_framework:appexecfwk_core",
+    "bundle_framework:libappexecfwk_common",
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "graphic_2d:librender_service_client",
+    "graphic_2d:window_animation",
+    "hilog:libhilog",
+    "hilog:libsandboxlog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
+    "image_framework:image_native",
+    "init:libbegetutil",
+    "input:libmmi-client",
+    "ipc:ipc_single",
+    "napi:ace_napi",
+    "samgr:samgr_proxy",
+    "common_event_service:cesfwk_innerkits",
+  ]
+}
+
+group("fuzztest") {
+  testonly = true
+  deps = []
+  deps += [
+    ":SessionStageStubFvFuzzTest",
+  ]
+}

@@ -60,6 +60,34 @@ bool WriteAbilitySessionInfoBasic(MessageParcel& data, sptr<AAFwk::SessionInfo> 
     }
     return true;
 }
+
+/**
+ * @brief Write a Rect to MessageParcel.
+ *
+ * @param data The MessageParcel to write to.
+ * @param rect The Rect to write.
+ * @return true if writing succeeds, false otherwise.
+ */
+bool WriteRect(MessageParcel& data, const Rect& rect)
+{
+    if (!data.WriteInt32(rect.posX_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to write posX.");
+        return false;
+    }
+    if (!data.WriteInt32(rect.posY_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to write posY.");
+        return false;
+    }
+    if (!data.WriteUint32(rect.width_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to write width.");
+        return false;
+    }
+    if (!data.WriteUint32(rect.height_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to write height.");
+        return false;
+    }
+    return true;
+}
 } // namespace
 
 WSError SessionProxy::Foreground(
@@ -3583,6 +3611,43 @@ WSError SessionProxy::SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy
         return WSError::WS_ERROR_IPC_FAILED;
     }
     return static_cast<WSError>(ret);
+}
+
+WMError SessionProxy::StartMovingWithOptions(const StartMovingOptions& options)
+{
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write interface token.");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteBool(options.needFocused)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write needFocused.");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!WriteRect(data, options.avoidRect)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write avoidRect.");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    int sendRet = remote->SendRequest(
+        static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_MOVING_WITH_OPTIONS), data, reply, option);
+    if (sendRet != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to send request, error = %{public}d", sendRet);
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    int32_t ret = reply.ReadInt32();
+    return static_cast<WMError>(ret);
 }
 
 WSError SessionProxy::StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,

@@ -145,11 +145,11 @@ HWTEST_F(ScreenSessionManagerTest, CalcDisplayNodeTranslateOnRotation04, Functio
 }
 
 /**
- * @tc.name: OnScreenChangeInner
- * @tc.desc: OnScreenChangeInner
+ * @tc.name: OnScreenChange
+ * @tc.desc: OnScreenChange
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerTest, OnScreenChangeInner, Function | SmallTest | Level3)
+HWTEST_F(ScreenSessionManagerTest, OnScreenChange, Function | SmallTest | Level3)
 {
     ASSERT_NE(ssm_, nullptr);
     ScreenId id = 50;
@@ -160,6 +160,176 @@ HWTEST_F(ScreenSessionManagerTest, OnScreenChangeInner, Function | SmallTest | L
     ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
     ssm_->OnScreenChangeInner(id, screenEvent, reason);
     ssm_->screenSessionMap_.erase(50);
+}
+
+
+/**
+ * @tc.name: WaitForDefaultDisplayReady01
+ * @tc.desc: Test HasInternalScreen() == true path and while loop exit conditions
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, WaitForDefaultDisplayReady01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    
+    ssm_->WaitForDefaultDisplayReady();
+    
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    ASSERT_NE(displayManagerAgent, nullptr);
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "VirtualScreenForWait";
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    EXPECT_NE(screenId, INVALID_SCREEN_ID);
+    EXPECT_NE(ssm_->GetScreenSession(screenId), nullptr);
+    
+    EXPECT_GE(ssm_->virtualScreenCount_, 1);
+    ssm_->WaitForDefaultDisplayReady();
+    
+    ssm_->ClearAllVirtualScreens();
+    
+    ssm_->OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED, ScreenChangeReason::DEFAULT);
+    ssm_->WaitForDefaultDisplayReady();
+    ssm_->OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED, ScreenChangeReason::HWCDEAD);
+}
+
+/**
+ * @tc.name: OnScreenChange01
+ * @tc.desc: Test INVALID_SCREEN_ID + CONNECTED with DEFAULT/HWCDEAD reason and g_isVirtualScreenBoot states
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenChange01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    
+    ssm_->OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED, ScreenChangeReason::DEFAULT);
+    
+    ssm_->OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED, ScreenChangeReason::DEFAULT);
+    
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    ASSERT_NE(displayManagerAgent, nullptr);
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "VirtualScreenForHWCDEAD";
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    EXPECT_NE(screenId, INVALID_SCREEN_ID);
+    EXPECT_NE(ssm_->GetScreenSession(screenId), nullptr);
+    
+    EXPECT_GE(ssm_->virtualScreenCount_, 1);
+    ssm_->OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED, ScreenChangeReason::HWCDEAD);
+}
+
+/**
+ * @tc.name: OnScreenChange02
+ * @tc.desc: Test physical screen CONNECTED/DISCONNECTED events
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnScreenChange02, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    
+    ScreenId physicalScreenId = 1;
+    
+    ssm_->OnScreenChange(physicalScreenId, ScreenEvent::CONNECTED, ScreenChangeReason::DEFAULT);
+    ssm_->OnScreenChange(physicalScreenId, ScreenEvent::DISCONNECTED, ScreenChangeReason::DEFAULT);
+    
+    ScreenId anotherScreenId = 2;
+    ssm_->OnScreenChange(anotherScreenId, ScreenEvent::CONNECTED, ScreenChangeReason::DEFAULT);
+    ssm_->OnScreenChange(anotherScreenId, ScreenEvent::DISCONNECTED, ScreenChangeReason::HWCDEAD);
+    
+    ssm_->OnScreenChange(physicalScreenId, ScreenEvent::CONNECTED, ScreenChangeReason::HWCDEAD);
+    ssm_->OnScreenChange(anotherScreenId, ScreenEvent::DISCONNECTED, ScreenChangeReason::DEFAULT);
+}
+
+/**
+ * @tc.name: ClearAllVirtualScreens01
+ * @tc.desc: Test clearing multiple virtual screens and single screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ClearAllVirtualScreens01, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    ASSERT_NE(displayManagerAgent, nullptr);
+    
+    VirtualScreenOption virtualOption1;
+    virtualOption1.name_ = "VirtualScreen1";
+    ScreenId screenId1 = ssm_->CreateVirtualScreen(virtualOption1, displayManagerAgent->AsObject());
+    EXPECT_NE(screenId1, INVALID_SCREEN_ID);
+    EXPECT_NE(ssm_->GetScreenSession(screenId1), nullptr);
+    
+    VirtualScreenOption virtualOption2;
+    virtualOption2.name_ = "VirtualScreen2";
+    ScreenId screenId2 = ssm_->CreateVirtualScreen(virtualOption2, displayManagerAgent->AsObject());
+    EXPECT_NE(screenId2, INVALID_SCREEN_ID);
+    EXPECT_NE(ssm_->GetScreenSession(screenId2), nullptr);
+    
+    EXPECT_GE(ssm_->virtualScreenCount_, 2);
+    
+    ssm_->ClearAllVirtualScreens();
+    
+    EXPECT_EQ(ssm_->virtualScreenCount_, 0);
+    EXPECT_EQ(ssm_->GetScreenSession(screenId1), nullptr);
+    EXPECT_EQ(ssm_->GetScreenSession(screenId2), nullptr);
+}
+
+/**
+ * @tc.name: ClearAllVirtualScreens02
+ * @tc.desc: Test empty screenSessionMap and continue branches (nullptr + non-VIRTUAL)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ClearAllVirtualScreens02, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    
+    uint32_t beforeCount = ssm_->virtualScreenCount_;
+    ssm_->ClearAllVirtualScreens();
+    EXPECT_EQ(ssm_->virtualScreenCount_, beforeCount);
+    
+    ScreenId nullScreenId = 99999;
+    ssm_->screenSessionMap_[nullScreenId] = nullptr;
+    
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    ASSERT_NE(displayManagerAgent, nullptr);
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "VirtualScreenForNullTest";
+    ScreenId virtualScreenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    EXPECT_NE(virtualScreenId, INVALID_SCREEN_ID);
+    EXPECT_NE(ssm_->GetScreenSession(virtualScreenId), nullptr);
+    
+    EXPECT_GE(ssm_->virtualScreenCount_, 1);
+    
+    ssm_->ClearAllVirtualScreens();
+    
+    EXPECT_EQ(ssm_->virtualScreenCount_, 0);
+    EXPECT_EQ(ssm_->GetScreenSession(virtualScreenId), nullptr);
+    EXPECT_EQ(ssm_->screenIdManager_.HasRsScreenId(virtualScreenId), false);
+}
+
+/**
+ * @tc.name: ClearAllVirtualScreensAndRecreate
+ * @tc.desc: Test clearing virtual screens and recreating zero screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ClearAllVirtualScreensAndRecreate, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    
+    sptr<IDisplayManagerAgent> displayManagerAgent = new(std::nothrow) DisplayManagerAgentDefault();
+    ASSERT_NE(displayManagerAgent, nullptr);
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "VirtualScreenForRecreate";
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    EXPECT_NE(screenId, INVALID_SCREEN_ID);
+    EXPECT_NE(ssm_->GetScreenSession(screenId), nullptr);
+    
+    EXPECT_GE(ssm_->virtualScreenCount_, 1);
+    
+    ssm_->ClearAllVirtualScreens();
+    
+    EXPECT_EQ(ssm_->virtualScreenCount_, 0);
+    EXPECT_EQ(ssm_->GetScreenSession(screenId), nullptr);
+    
+    ssm_->OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED, ScreenChangeReason::HWCDEAD);
 }
 
 /**

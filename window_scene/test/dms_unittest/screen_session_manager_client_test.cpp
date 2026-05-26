@@ -23,6 +23,7 @@
 #include "scene_board_judgement.h"
 #include "fold_screen_state_internel.h"
 #include "rs_event_data_manager.h"
+#include "motion_manager.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -739,6 +740,36 @@ HWTEST_F(ScreenSessionManagerClientTest, OnSensorRotationChanged02, TestSize.Lev
 
     ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
     screenSessionManagerClient_->OnSensorRotationChanged(screenId, sensorRotation, false);
+}
+
+/**
+ * @tc.name: OnSmartSensorRotationChanged01
+ * @tc.desc: OnSmartSensorRotationChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged01, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    float sensorRotation = 90.0f;
+    bool isSwitchUser = false;
+
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
+}
+
+/**
+ * @tc.name: OnSmartSensorRotationChanged02
+ * @tc.desc: OnSmartSensorRotationChanged test with isSwitchUser true
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged02, TestSize.Level1)
+{
+    ScreenId screenId = 1;
+    float sensorRotation = 180.0f;
+    bool isSwitchUser = true;
+
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
 }
 
 /**
@@ -2989,6 +3020,52 @@ HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChangeWithoutListene
     ScreenClosedState state = ScreenClosedState::CLOSE;
     screenSessionManagerClient_->OnScreenClosedStateChange(state);
     EXPECT_EQ(screenSessionManagerClient_->screenClosedState_, state);
+}
+
+/*
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: SubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: UnsubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
 }
 } // namespace Rosen
 } // namespace OHOS

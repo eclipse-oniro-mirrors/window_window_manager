@@ -61,6 +61,7 @@ public:
     void SetFloatingBallStopCallback(NotifyStopFloatingBallFunc&& func) override;
     void SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloatingBallMainWindowFunc&& func) override;
     void RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& func) override;
+    void RegisterReportWindowRssFunc(ReportWindowRssFunc&& func) override;
 
     /**
      * Float view
@@ -125,6 +126,7 @@ private:
     bool needUpdateFv_ = false;
 
     GetFbPanelWindowIdFunc getFbPanelWindowIdFunc_;
+    ReportWindowRssFunc reportWindowRssFunc_;
     GetIsRecentStateFunc getIsRecentStateFunc_;
 };
 } // namespace OHOS::Rosen

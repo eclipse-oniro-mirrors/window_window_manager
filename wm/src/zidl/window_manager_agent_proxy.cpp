@@ -657,6 +657,13 @@ bool WindowManagerAgentProxy::WriteWindowChangeInfoValue(MessageParcel& data,
             }
             break;
         }
+        case WindowInfoKey::WINDOW_MODE_INFO : {
+            if (!std::get<WindowModeInfo>(windowInfoPair.second).Marshalling(data)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write WindowModeInfo failed");
+                return false;
+            }
+            break;
+        }
         case WindowInfoKey::DISPLAY_ID : {
             if (!data.WriteUint64(std::get<uint64_t>(windowInfoPair.second))) {
                 TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write uint64_t failed");
