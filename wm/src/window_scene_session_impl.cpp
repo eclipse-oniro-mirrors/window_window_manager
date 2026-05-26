@@ -8063,17 +8063,23 @@ void WindowSceneSessionImpl::HandleDownForCompatibleMode(const std::shared_ptr<M
         eventMapTriggerByDisplay_[displayId][pointerId] = true;
         downPointerByDisplay_[displayId][pointerId] = {displayX, displayY};
         const auto& windowRect = GetGlobalScaledRectLocal();
+        const auto& windowRectNoScaled = GetRect();
+        bool isForceSplitEnabled = property_->GetForceSplitEnable();
         float xMappingScale = 1.0f;
+        int32_t xMappingWidth = isForceSplitEnabled ? windowRect.width_ / 2 : windowRect.width_;
         if (windowRect.posX_ != 0) {
-            xMappingScale = static_cast<float>(windowRect.width_) / windowRect.posX_;
+            xMappingScale = static_cast<float>(xMappingWidth) / windowRect.posX_;
         }
         int32_t windowLeft = windowRect.posX_;
         int32_t windowRight = windowRect.posX_ + windowRect.width_;
+        int32_t windowMidNoScaled = windowRectNoScaled.posX_ + windowRectNoScaled.width_ / 2;
+        int32_t xMappingLeft = isForceSplitEnabled ? windowMidNoScaled : windowLeft;
+        int32_t xMappingRight = isForceSplitEnabled ? windowMidNoScaled : windowRight;
         int32_t transferX;
         if (displayX <= windowLeft) {
-            transferX = windowRight - xMappingScale * (windowLeft - displayX);
+            transferX = xMappingRight - xMappingScale * (windowLeft - displayX);
         } else {
-            transferX = windowLeft + xMappingScale * (displayX - windowRight);
+            transferX = xMappingLeft + xMappingScale * (displayX - windowRight);
         }
         if (transferX < 0) {
             transferX = 0;
