@@ -1330,6 +1330,7 @@ struct AppWindowSceneConfig {
     StartingWindowAnimationConfig startingWindowAnimationConfig_;
     SystemUIStatusBarConfig systemUIStatusBarConfig_;
     WindowImmersive windowImmersive_;
+    std::string deviceType_ = "unknown";
 };
 
 struct SingleHandCompatibleModeConfig {
@@ -1577,6 +1578,7 @@ enum class SessionPropertyFlag {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**

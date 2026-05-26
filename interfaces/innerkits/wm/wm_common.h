@@ -253,6 +253,25 @@ struct WindowModeInfo {
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
     SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
     int32_t splitIndex = SPLIT_INDEX_PRIMARY;
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        uint32_t windowModeValue = 1;
+        int32_t splitStyleValue = 0;
+        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
+            !parcel.ReadInt32(splitIndex)) {
+            return false;
+        }
+        windowMode = static_cast<WindowMode>(windowModeValue);
+        splitStyle = static_cast<SplitStyle>(splitStyleValue);
+        return true;
+    }
 };
 
 /**
@@ -2260,7 +2279,8 @@ enum class FloatViewState : uint32_t {
  */
 enum class FloatViewTemplate : uint32_t {
     ROUNDED_RECTANGLE = 0,
-    END = 1,
+    HORIZONTAL_BAR = 1,
+    END,
 };
 
 /**
@@ -2673,6 +2693,7 @@ struct WindowMetaInfo : public Parcelable {
     uint64_t leashWinSurfaceNodeId = 0;
     bool isPrivacyMode = false;
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    WindowModeInfo windowModeInfo;
     bool isMidScene = false;
     bool isFocused = false;
     bool isTouchable = true;
@@ -2687,6 +2708,7 @@ struct WindowMetaInfo : public Parcelable {
                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
                parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               windowModeInfo.Marshalling(parcel) &&
                parcel.WriteBool(isTouchable) && parcel.WriteInt32(mainWindowPersistentId) &&
                parcel.WriteUint8(static_cast<uint8_t>(controlAppType));
     }
@@ -2705,6 +2727,7 @@ struct WindowMetaInfo : public Parcelable {
             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
             !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
+            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel) ||
             !parcel.ReadBool(windowMetaInfo->isTouchable) ||
             !parcel.ReadInt32(windowMetaInfo->mainWindowPersistentId) || !parcel.ReadUint8(controlAppTypeValue)) {
             delete windowMetaInfo;
@@ -3428,6 +3451,7 @@ enum class WindowInfoKey : int32_t {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**

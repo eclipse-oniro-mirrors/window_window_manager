@@ -117,13 +117,7 @@ napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const
             return;
         }
 
-        auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(option.GetContext());
-        if (context == nullptr) {
-            *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_CREATE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-            return;
-        }
-        if (floatViewController == nullptr) {
+        if (!JsFloatViewManager::UpdateFloatViewControllerMainWindow(floatViewController, option)) {
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_CREATE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
@@ -142,6 +136,27 @@ napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const
     NapiAsyncTask::Schedule("JsFloatViewManager::OnCreateFloatViewController",
         env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
     return result;
+}
+
+bool JsFloatViewManager::UpdateFloatViewControllerMainWindow(
+    const sptr<FloatViewController>& floatViewController, const FvOption& option)
+{
+    auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(option.GetContext());
+    if (context == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert context");
+        return false;
+    }
+    sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
+    if (mainWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get main window from context");
+        return false;
+    }
+    if (floatViewController == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Unexpected null controller");
+        return false;
+    }
+    floatViewController->UpdateMainWindow(mainWindow);
+    return true;
 }
 
 std::string JsFloatViewManager::CheckAndGetParam(napi_env env, napi_callback_info info, FvOption& option)
@@ -335,7 +350,7 @@ napi_value JsFloatViewManager::BindTask(napi_env env, const sptr<FloatViewContro
         if (errCodePtr == nullptr) {
             return;
         }
-        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
+        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Device do not support float view");
             *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
@@ -422,7 +437,7 @@ napi_value JsFloatViewManager::UnBindTask(napi_env env, const sptr<FloatViewCont
         if (errCodePtr == nullptr) {
             return;
         }
-        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::IsSupportFloatingBall()) {
+        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Device do not support float view");
             *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_UNBIND, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);

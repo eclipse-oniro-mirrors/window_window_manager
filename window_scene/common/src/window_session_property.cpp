@@ -3133,6 +3133,11 @@ void SystemSessionConfig::ConvertSupportCreateFloatView(const std::string& itemV
     supportCreateFloatView_ = StringUtil::ConvertStringToBool(itemValue);
 }
 
+void SystemSessionConfig::ConvertSupportCreateFloatingBall(const std::string& itemValue)
+{
+    supportCreateFloatingBall_ = StringUtil::ConvertStringToBool(itemValue);
+}
+
 void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)
 {
     isPrelaunch_ = isPrelaunch;

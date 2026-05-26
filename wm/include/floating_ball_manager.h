@@ -27,6 +27,7 @@ class FloatingBallManager {
 public:
     FloatingBallManager() = default;
     virtual ~FloatingBallManager() = default;
+    static bool isSupportFloatingBall_;
     static bool HasActiveController();
     static bool IsActiveController(const wptr<FloatingBallController>& fbController);
     static void SetActiveController(const sptr<FloatingBallController>& fbController);
@@ -39,8 +40,6 @@ public:
     static void DoDestroy();
 
     static void DoFbActionEvent(const std::string& actionName);
-
-    static bool IsSupportFloatingBall();
 
 private:
     // controller in use

@@ -1076,6 +1076,7 @@ private:
     uint32_t defaultDpi {0};
     float extendDefaultDensity_ {1.0f};
     uint32_t defaultDeviceRotationOffset_ { 0 };
+    uint32_t subDeviceRotationOffset_ { 0 };
     std::atomic<ExtendScreenConnectStatus> extendScreenConnectStatus_ = ExtendScreenConnectStatus::UNKNOWN;
     bool isExtendScreenConnected_ = false;
     std::atomic<bool> isOuterOnlyMode_ = false;
@@ -1269,6 +1270,7 @@ private:
     void AddSecondaryDisplaySuperCapability(std::vector<std::string> specialOrientation,
         nlohmann::ordered_json& jsonDisplayCapabilityList);
     void HandleSuperMultiFoldScreenPowerInit();
+    void InitDeviceRotationOffset(ScreenId screenId, ScreenProperty& screenProperty);
 
     // mirror screen
     bool SetResolutionEffect(ScreenId screenId,  uint32_t width, uint32_t height);

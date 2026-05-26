@@ -88,20 +88,6 @@ HWTEST_F(FloatingBallManagerTest, activeController, TestSize.Level1)
     FloatingBallManager::RemoveActiveController(fbController1);
     FloatingBallManager::RemoveActiveController(fbController);
 }
- 
-/**
- * @tc.name: IsSupportFloatingBall01
- * @tc.desc: IsSupportFloatingBall01
- * @tc.type: FUNC
- */
-HWTEST_F(FloatingBallManagerTest, IsSupportFloatingBall01, TestSize.Level1)
-{
-    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
-    bool isDeviceSupported = (multiWindowUIType == "HandsetSmartWindow"  || multiWindowUIType == "TabletSmartWindow");
-    bool isSupportFloatingBall = FloatingBallManager::IsSupportFloatingBall();
-    ASSERT_EQ(isDeviceSupported, isSupportFloatingBall);
-}
-
 }
 }
 }

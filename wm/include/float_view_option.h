@@ -53,6 +53,7 @@ public:
     bool IsUIPathValid() const;
 
     void GetFvTemplateInfo(FloatViewTemplateInfo& fvTemplateInfo) const;
+    bool isLoadUIByName {false};
 private:
     uint32_t template_ {};
     std::string uiPath_ {};

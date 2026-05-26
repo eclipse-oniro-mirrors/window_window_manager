@@ -380,6 +380,15 @@ bool WindowManagerAgentStub::ReadWindowInfo(MessageParcel& data,
             windowInfo[windowInfoKey] = static_cast<WindowMode>(value);
             break;
         }
+        case WindowInfoKey::WINDOW_MODE_INFO : {
+            WindowModeInfo value;
+            if (!value.Unmarshalling(data)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read WindowModeInfo failed");
+                return false;
+            }
+            windowInfo[windowInfoKey] = value;
+            break;
+        }
         case WindowInfoKey::DISPLAY_ID : {
             uint64_t value = 0;
             if (!data.ReadUint64(value)) {

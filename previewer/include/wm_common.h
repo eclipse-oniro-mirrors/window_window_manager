@@ -228,6 +228,25 @@ struct WindowModeInfo {
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
     SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
     int32_t splitIndex = SPLIT_INDEX_PRIMARY;
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        uint32_t windowModeValue = 1;
+        int32_t splitStyleValue = 0;
+        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
+            !parcel.ReadInt32(splitIndex)) {
+            return false;
+        }
+        windowMode = static_cast<WindowMode>(windowModeValue);
+        splitStyle = static_cast<SplitStyle>(splitStyleValue);
+        return true;
+    }
 };
 
 /**
@@ -1729,6 +1748,7 @@ struct WindowMetaInfo : public Parcelable {
     uint64_t leashWinSurfaceNodeId = 0;
     bool isPrivacyMode = false;
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    WindowModeInfo windowModeInfo;
     bool isMidScene = false;
     bool isFocused = false;
 
@@ -1739,7 +1759,8 @@ struct WindowMetaInfo : public Parcelable {
                parcel.WriteUint32(static_cast<uint32_t>(windowType)) && parcel.WriteUint32(parentWindowId) &&
                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
-               parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode));
+               parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               windowModeInfo.Marshalling(parcel);
     }
 
     static WindowMetaInfo* Unmarshalling(Parcel& parcel)
@@ -1753,7 +1774,8 @@ struct WindowMetaInfo : public Parcelable {
             !parcel.ReadUint32(windowMetaInfo->parentWindowId) || !parcel.ReadUint64(windowMetaInfo->surfaceNodeId) ||
             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
-            !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue)) {
+            !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
+            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel)) {
             delete windowMetaInfo;
             return nullptr;
         }

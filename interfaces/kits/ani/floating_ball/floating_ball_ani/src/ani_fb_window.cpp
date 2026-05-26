@@ -117,7 +117,7 @@ ani_ref AniFbWindow::CreateFbController(ani_env* env, void* contextPtr)
 ani_boolean AniFbWindow::IsFloatingBallEnabledAni(ani_env* env)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
-    bool isSupportFloatingBall = FloatingBallManager::IsSupportFloatingBall();
+    bool isSupportFloatingBall = FloatingBallManager::isSupportFloatingBall_;
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]IsFloatingBallEnabledAni = %{public}d", isSupportFloatingBall);
     return static_cast<ani_boolean>(isSupportFloatingBall);
 }
