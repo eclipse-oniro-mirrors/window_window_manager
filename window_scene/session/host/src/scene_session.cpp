@@ -4633,31 +4633,51 @@ void SceneSession::OnNextVsyncReceivedWhenDrag(
 
 void SceneSession::RequestMoveResampleOnNextVsync()
 {
-    RunOnNextVsync([weakThis = wptr(this), where = __func__](int64_t timestamp, int64_t /*frameCount*/) {
+    RunOnNextVsync([weakThis = wptr(this)](int64_t timestampNs, int64_t /*frameCount*/) {
         auto session = weakThis.promote();
-        RETURN_IF_NULL_IMPL(session, WmsLogTag::WMS_LAYOUT, where);
+        RETURN_IF_NULL(session);
 
-        int64_t vsyncTimeUs = timestamp / 1000; // ns to us
-        session->PostTask([weakThis, vsyncTimeUs, where] {
-            auto session = weakThis.promote();
-            RETURN_IF_NULL_IMPL(session, WmsLogTag::WMS_LAYOUT, where);
+        constexpr int64_t NS_PER_US = 1000;
+        const int64_t vsyncTimeUs = timestampNs / NS_PER_US;
+        // First sampling: execute immediately at current vsync time.
+        session->ScheduleMoveResampleTask(vsyncTimeUs, 0, true);
 
-            session->PerformMoveResampleOnVsync(vsyncTimeUs);
-        }, where);
+        RETURN_IF_NULL(session->moveDragController_);
+        const auto secondaryPhaseDelayMs = session->moveDragController_->GetSecondaryPhaseResamplingDelayMs();
+        if (secondaryPhaseDelayMs.has_value()) {
+            // Second sampling: execute near the end of the current vsync period.
+            session->ScheduleMoveResampleTask(vsyncTimeUs, *secondaryPhaseDelayMs, false);
+        }
     });
 }
 
-void SceneSession::PerformMoveResampleOnVsync(int64_t vsyncTimeUs)
+void SceneSession::ScheduleMoveResampleTask(int64_t vsyncTimeUs, int64_t delayMs, bool needRequestNextVsync)
 {
-    RETURN_IF_NULL_WITH_TAG(moveDragController_, WmsLogTag::WMS_LAYOUT);
-    auto [mode, rect] = moveDragController_->ResampleTargetRectOnVsync(vsyncTimeUs);
-    if (mode != TargetRectUpdateMode::UPDATED_IMMEDIATELY) {
+    constexpr int64_t US_PER_MS = 1000;
+    const int64_t sampleTimeUs = vsyncTimeUs + delayMs * US_PER_MS;
+    PostTask([weakThis = wptr(this), sampleTimeUs , needRequestNextVsync] {
+        auto session = weakThis.promote();
+        RETURN_IF_NULL(session);
+        session->PerformMoveResampleAt(sampleTimeUs, needRequestNextVsync);
+    }, __func__, delayMs);
+}
+
+void SceneSession::PerformMoveResampleAt(int64_t sampleTimeUs, bool shouldRequestNextVsync)
+{
+    RETURN_IF_NULL(moveDragController_);
+
+    auto [mode, rect] = moveDragController_->ResampleTargetRectAt(sampleTimeUs);
+    if (mode == TargetRectUpdateMode::NONE) {
         return;
     }
-    SetSurfaceBounds(rect, true, true);
+    if (mode == TargetRectUpdateMode::UPDATED_IMMEDIATELY) {
+        SetSurfaceBounds(rect, true, true);
+    }
 
     // Continue the move resampling loop by scheduling the next vsync iteration.
-    RequestMoveResampleOnNextVsync();
+    if (shouldRequestNextVsync) {
+        RequestMoveResampleOnNextVsync();
+    }
 }
 
 /** @note @window.drag */
@@ -11275,6 +11295,12 @@ std::optional<uint32_t> SceneSession::GetFpsFromVsync() const
 {
     RETURN_IF_NULL(vsyncStation_, std::nullopt);
     return vsyncStation_->GetFps();
+}
+
+int64_t SceneSession::GetVSyncPeriod() const
+{
+    RETURN_IF_NULL(vsyncStation_, 0);
+    return  vsyncStation_->GetVSyncPeriod();
 }
 
 void SceneSession::RunOnNextVsync(OnCallback&& callback)

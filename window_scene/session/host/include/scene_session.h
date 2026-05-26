@@ -19,9 +19,11 @@
 #include <animation/rs_animation_timing_curve.h>
 #include <animation/rs_animation_timing_protocol.h>
 #include <animation/rs_symbol_animation.h>
+#include <atomic>
 #include <chrono>
 #include <feature/window_keyframe/rs_window_keyframe_node.h>
 #include <modifier/rs_property.h>
+#include <optional>
 #include <pipeline/rs_node_map.h>
 #include <unordered_set>
 
@@ -984,25 +986,6 @@ public:
     void OnNextVsyncReceivedWhenDrag(
         const WSRect& globalRect, bool isGlobal, bool needFlush, bool needSetBoundsNextVsync);
 
-    /**
-     * @brief Request a move resampling operation to run on the next vsync.
-     *
-     * This registers a vsync callback and posts the resample work to the
-     * SSM thread, forming one iteration of the move resampling loop.
-     */
-    void RequestMoveResampleOnNextVsync();
-
-    /**
-     * @brief Perform one move resampling iteration for the given vsync timestamp.
-     *
-     * This method resamples the moving position at the specified vsync moment,
-     * updates the target rectangle, applies the new surface bounds, and then
-     * schedules the next resample iteration.
-     *
-     * @param vsyncTimeUs Vsync timestamp in microseconds.
-     */
-    void PerformMoveResampleOnVsync(int64_t vsyncTimeUs);
-
     void RegisterLayoutFullScreenChangeCallback(NotifyLayoutFullScreenChangeFunc&& callback);
     bool SetFrameGravity(Gravity gravity);
     void RegisterSessionEventCallback(NotifySessionEventFunc&& callback);
@@ -1446,6 +1429,13 @@ private:
     std::optional<uint32_t> GetFpsFromVsync() const;
 
     /**
+     * @brief Get the current vsync period for this session.
+     *
+     * @return Vsync period in nanoseconds;
+     */
+    int64_t GetVSyncPeriod() const;
+
+    /**
      * @brief Run the given callback on the next vsync.
      *
      * Wraps the provided function into a VsyncCallback and schedules it
@@ -1643,6 +1633,31 @@ private:
      * @param isGlobal Indicates whether global positioning is enabled.
      */
     void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
+
+    /**
+     * @brief Request the next vsync-driven move resampling iteration.
+     */
+    void RequestMoveResampleOnNextVsync();
+
+    /**
+     * @brief Schedule a move-resample task on the SSM thread.
+     *
+     * @param vsyncTimeUs Vsync timestamp in microseconds.
+     * @param delayMs Delay in milliseconds before running the task.
+     * @param needRequestNextVsync Whether to request the next resampling vsync after this task.
+     */
+    void ScheduleMoveResampleTask(int64_t vsyncTimeUs, int64_t delayMs, bool needRequestNextVsync);
+
+    /**
+     * @brief Perform one move resampling iteration at the given sample timestamp.
+     *
+     * Resamples the target rectangle at sampleTimeUs, applies surface bounds,
+     * and optionally continues the vsync resampling loop.
+     *
+     * @param sampleTimeUs Sample timestamp in microseconds.
+     * @param shouldRequestNextVsync Whether to continue the resampling loop.
+     */
+    void PerformMoveResampleAt(int64_t sampleTimeUs, bool shouldRequestNextVsync = true);
 
     /*
      * Window Decor

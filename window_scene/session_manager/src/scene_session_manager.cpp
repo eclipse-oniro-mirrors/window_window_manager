@@ -1732,6 +1732,73 @@ bool SceneSessionManager::ConfigMoveDrag(const WindowSceneConfig::ConfigItem& mo
     return true;
 }
 
+void ParseMoveResamplePointerTypesConfig(
+    const WindowSceneConfig::ConfigItem& moveResampleConfig, MoveResampleConfig& config)
+{
+    // The pointer type allow-list is independent from the global enable switch.
+    // If it is missing or empty, no pointer type can activate move resampling.
+    const auto& pointerTypesConfig = moveResampleConfig["resamplePointerTypes"];
+    if (!pointerTypesConfig.IsInts() || !pointerTypesConfig.intsValue_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The resamplePointerTypes config is invalid (not int array).");
+        return;
+    }
+    for (const auto pointerType : *pointerTypesConfig.intsValue_) {
+        config.pointerTypes.insert(pointerType);
+    }
+}
+
+void ParseMoveResampleFpsRangeConfig(
+    const WindowSceneConfig::ConfigItem& moveResampleConfig, MoveResampleConfig& config)
+{
+    const auto& resampleFpsRangeConfig = moveResampleConfig["resampleFpsRange"];
+    if (!resampleFpsRangeConfig.IsInts() || !resampleFpsRangeConfig.intsValue_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "The resampleFpsRange config is invalid (not int array), leave fps range unlimited.");
+        return;
+    }
+    auto fpsRange = *resampleFpsRangeConfig.intsValue_;
+    if (fpsRange.size() != 2) { // 2: only contain minFps and maxFps
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "The resampleFpsRange config size is invalid (expect 2), leave fps range unlimited.");
+        return;
+    }
+    int minVal = std::min(fpsRange[0], fpsRange[1]);
+    int maxVal = std::max(fpsRange[0], fpsRange[1]);
+    if (minVal < 0 || maxVal < 0) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "The resampleFpsRange config contains negative values, leave fps range unlimited.");
+        return;
+    }
+    config.minFps = static_cast<uint32_t>(minVal);
+    config.maxFps = static_cast<uint32_t>(maxVal);
+}
+
+void ParseMoveResampleSecondaryPhaseConfig(const WindowSceneConfig::ConfigItem& moveResampleConfig,
+                                           MoveResampleConfig& config)
+{
+    const auto& secondaryPhaseConfig = moveResampleConfig["secondaryPhase"];
+    if (!secondaryPhaseConfig.IsMap()) {
+        return;
+    }
+
+    const auto& enableProp = secondaryPhaseConfig.GetProp("enable");
+    if (enableProp.IsBool()) {
+        config.secondaryPhaseEnable = enableProp.boolValue_;
+    } else {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The secondaryPhase.enable prop is missing or not a bool.");
+    }
+
+    const auto& leadTimeConfig = secondaryPhaseConfig["leadTimeMs"];
+    if (!leadTimeConfig.IsInts()) {
+        return;
+    }
+    if (!leadTimeConfig.intsValue_ || leadTimeConfig.intsValue_->size() != 1 || (*leadTimeConfig.intsValue_)[0] < 0) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The secondaryPhase.leadTimeMs config is invalid.");
+        return;
+    }
+    config.secondaryPhaseLeadTimeMs = (*leadTimeConfig.intsValue_)[0];
+}
+
 bool SceneSessionManager::ConfigMoveResample(const WindowSceneConfig::ConfigItem& moveResampleConfig)
 {
     if (!moveResampleConfig.IsMap()) {
@@ -1744,24 +1811,13 @@ bool SceneSessionManager::ConfigMoveResample(const WindowSceneConfig::ConfigItem
         return false;
     }
     bool enable = enableMoveResampleProp.boolValue_;
-    const auto& resampleFpsRangeConfig = moveResampleConfig["resampleFpsRange"];
-    if (!resampleFpsRangeConfig.IsInts() || !resampleFpsRangeConfig.intsValue_) {
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "The resampleFpsRange config is invalid (not int array), fallback to default.");
-        MoveDragController::SaveMoveResampleSystemConfig(enable, std::nullopt, std::nullopt);
-        return true;
-    }
-    auto fpsRange = *resampleFpsRangeConfig.intsValue_;
-    if (fpsRange.size() != 2) { // 2: only contain minFps and maxFps
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "The resampleFpsRange config size is invalid (expect 2), fallback to default.");
-        MoveDragController::SaveMoveResampleSystemConfig(enable, std::nullopt, std::nullopt);
-        return true;
-    }
-    int minVal = std::min(fpsRange[0], fpsRange[1]);
-    int maxVal = std::max(fpsRange[0], fpsRange[1]);
-    MoveDragController::SaveMoveResampleSystemConfig(
-        enable, static_cast<uint32_t>(minVal), static_cast<uint32_t>(maxVal));
+
+    MoveResampleConfig config;
+    config.enable = enable;
+    ParseMoveResampleFpsRangeConfig(moveResampleConfig, config);
+    ParseMoveResamplePointerTypesConfig(moveResampleConfig, config);
+    ParseMoveResampleSecondaryPhaseConfig(moveResampleConfig, config);
+    MoveDragController::SaveMoveResampleSystemConfig(config);
     return true;
 }
 
