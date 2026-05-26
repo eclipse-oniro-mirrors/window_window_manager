@@ -2572,7 +2572,7 @@ WmErrorCode AniWindowUtils::ParseTouchableAreas(ani_env* env, ani_array rects, c
     }
     if (size > static_cast<ani_size>(MAX_TOUCHABLE_AREAS)) {
         TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Exceed maximum rects limit, rects size: %{public}zu", size);
-        return errCode;
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     errCode = WmErrorCode::WM_OK;
     for (ani_size i = 0; i < size; i++) {
