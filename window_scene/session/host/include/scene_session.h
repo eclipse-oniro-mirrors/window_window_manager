@@ -166,6 +166,9 @@ using NotifyAnimateToFunc = std::function<void(const WindowAnimationProperty& an
 using GetAllAppUseControlMapFunc =
     std::function<std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>>&()>;
 using GetFbPanelWindowIdFunc =  std::function<WMError(uint32_t& windowId)>;
+using ReportWindowRssFunc =  std::function<void(const bool isForeground,
+ 	                                             const WindowType& type,
+ 	                                             const sptr<SceneSession>& session)>;
 using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RSNode>(DisplayId displayId,
     uint32_t targetZOrder)>;
 using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool isFullScreen)>;
@@ -434,6 +437,7 @@ public:
     virtual void SetFloatingBallStopCallback(NotifyStopFloatingBallFunc&& func) {};
     virtual void SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloatingBallMainWindowFunc&& func) {};
     virtual void RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& func) {};
+    virtual void RegisterReportWindowRssFunc(ReportWindowRssFunc&& func) {};
 
     /**
      * Float view

@@ -20,10 +20,7 @@
 #include "res_type.h"
 #endif
 
-#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
 #include "session_manager/include/scene_session_manager.h"
-#endif
-
 #include "system_ability_definition.h"
 #include "window_manager_hilog.h"
 
@@ -54,6 +51,15 @@ void SceneSystemAbilityListener::OnAddSystemAbility(int32_t systemAbilityId, con
         type = ResourceSchedule::ResType::RES_TYPE_KEY_PERF_SCENE;
         OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(type, userInteraction, payload);
         TLOGI(WmsLogTag::WMS_MAIN, "set RES_TYPE_KEY_PERF_SCENE success");
+        // report RSS event: floatingBall, FloatWindowV1
+        payload = {
+            { "pid", info_.scbPid_ },
+            { "tid", info_.scbTid_ },
+            { "uid", info_.scbUid_ },
+            { "threadName", info_.ssmThreadName_ }
+        };
+        SceneSessionManager::GetInstance().SetResTypeFloatingBall(payload);
+        SceneSessionManager::GetInstance().SetResTypeFloatingWindowV1(payload);
     }
 #endif
 

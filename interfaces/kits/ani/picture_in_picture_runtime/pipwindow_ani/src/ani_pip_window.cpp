@@ -382,16 +382,16 @@ void AniPiPWindow::OptionSetControlGroup(ani_env* env, ani_object optionObject, 
     if (ret != ANI_OK) {
         return;
     }
-    ani_boolean iscontrolGroupUndefined = false;
-    env->Reference_IsUndefined(controlGroup, &iscontrolGroupUndefined);
+    ani_boolean isControlgroupundefined = false;
+    env->Reference_IsUndefined(controlGroup, &isControlgroupundefined);
     std::vector<std::uint32_t> controls {};
-    if (iscontrolGroupUndefined && option.GetPipTemplate() == static_cast<uint32_t>(PiPTemplateType::VIDEO_LIVE)) {
+    if (isControlgroupundefined && option.GetPipTemplate() == static_cast<uint32_t>(PiPTemplateType::VIDEO_LIVE)) {
         TLOGI(WmsLogTag::WMS_PIP, "controls is undefined and templateType is VIDEO_LIVE, use VIDEO_PLAY_PAUSE");
         controls.push_back(static_cast<uint32_t>(PiPControlGroup::VIDEO_PLAY_PAUSE));
         option.SetControlGroup(controls);
         return;
     }
-    if (!controlGroup || iscontrolGroupUndefined) {
+    if (!controlGroup || isControlgroupundefined) {
         return;
     }
     TLOGI(WmsLogTag::WMS_PIP, "[GetPiPOption]set controlGroup begin");
