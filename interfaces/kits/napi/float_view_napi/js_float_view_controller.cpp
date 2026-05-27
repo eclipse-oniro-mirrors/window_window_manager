@@ -555,7 +555,7 @@ napi_value JsFloatViewController::OnRestoreMainWindow(napi_env env, napi_callbac
         napi_value wantValue = argv[INDEX_ZERO];
         if (wantValue != nullptr && !AppExecFwk::UnwrapWantParams(env, wantValue, wantParams)) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameters to wantParameters");
-            return NapiThrowError( env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                 "Failed to convert parameters to wantParameters.", ARKUI_WINDOW_FV_RESTOREMAINWINDOW,
                 ARKUI_WINDOW_FV_RESTOREMAINWINDOW_BOOL);
         }
@@ -579,7 +579,7 @@ napi_value JsFloatViewController::OnRestoreMainWindow(napi_env env, napi_callbac
             if (errCodePtr == nullptr || parameters == nullptr) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
                 HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_RESTOREMAINWINDOW,
-                                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+                    WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
                 return;
             }
             if (*errCodePtr == WmErrorCode::WM_OK) {

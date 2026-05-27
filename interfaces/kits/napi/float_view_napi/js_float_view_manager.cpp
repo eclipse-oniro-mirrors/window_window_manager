@@ -424,7 +424,8 @@ napi_value JsFloatViewManager::OnUnBind(napi_env env, napi_callback_info info)
     if (jsFbController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get floatingBallController from js object");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "Failed to get floatingBallController from js object.", ARKUI_WINDOW_FV_UNBIND, ARKUI_WINDOW_FV_UNBIND_BOOL);
+            "Failed to get floatingBallController from js object.", ARKUI_WINDOW_FV_UNBIND,
+            ARKUI_WINDOW_FV_UNBIND_BOOL);
     }
     auto fvControllerSptr = jsFvController->GetController();
     auto fbControllerSptr = jsFbController->GetController();
