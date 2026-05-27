@@ -1626,7 +1626,6 @@ void ScreenSessionManager::SetScreenCorrection()
         int32_t phyOffset = static_cast<int32_t>(std::stoi(phyOffsets[0]));
         screenRotation = ConvertOffsetToCorrectRotation(phyOffset);
         if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-            screenRotation = static_cast<ScreenRotation>(ROTATION_90);
             screenId = SCREEN_ID_MAIN;
         }
     }
