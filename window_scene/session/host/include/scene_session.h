@@ -170,6 +170,7 @@ using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RS
     uint32_t targetZOrder)>;
 using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool isFullScreen)>;
 using CompatibleModeChangeCallback = std::function<void(CompatibleStyleMode mode)>;
+using SplitRatioChangeCallback = std::function<void(float newRatio)>;
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
 using GetIsRecentStateFunc = std::function<bool()>;
@@ -506,6 +507,7 @@ public:
     virtual void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) {}
     virtual void RegisterPageEnableCallback(PageEnableCallback&& callback) {}
     virtual void RegisterSetSelectModeCallback(SetSelectModeCallback&& callback) {}
+    virtual void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) {}
 
     /*
      * PC Window

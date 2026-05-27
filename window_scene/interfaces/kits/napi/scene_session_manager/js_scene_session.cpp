@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,6 +126,7 @@ const std::string SNAPSHOT_SKIP_CHANGE_CB = "snapshotSkipChange";
 const std::string COMPATIBLE_MODE_CHANGE_CB = "compatibleModeChange";
 const std::string RECOVER_WINDOW_EFFECT_CB = "recoverWindowEffect";
 const std::string PRE_CALC_WINDOW_PROPERTY_CB = "preCalcWindowProperty";
+const std::string SPLIT_RATIO_CHANGE_CB = "splitRatioChange";
 
 constexpr int ARG_COUNT_1 = 1;
 constexpr int ARG_COUNT_2 = 2;
@@ -244,6 +245,7 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {PRE_CALC_WINDOW_PROPERTY_CB,           ListenerFuncType::PRE_CALC_WINDOW_PROPERTY_CB},
     {FLOAT_VIEW_STOP_CB,                    ListenerFuncType::FLOAT_VIEW_STOP_CB},
     {FLOAT_VIEW_UPDATE_CB,                  ListenerFuncType::FLOAT_VIEW_UPDATE_CB},
+    {SPLIT_RATIO_CHANGE_CB,                 ListenerFuncType::SPLIT_RATIO_CHANGE_CB},
 };
 
 const std::vector<std::string> g_syncGlobalPositionPermission {
@@ -3645,6 +3647,9 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
             break;
         case static_cast<uint32_t>(ListenerFuncType::FLOAT_VIEW_UPDATE_CB):
             ProcessFloatViewUpdateRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::SPLIT_RATIO_CHANGE_CB):
+            ProcessSplitRatioChangeRegister();
             break;
         default:
             break;
@@ -9698,6 +9703,23 @@ void JsSceneSession::ProcessCompatibleModeChangeRegister()
     });
 }
 
+void JsSceneSession::ProcessSplitRatioChangeRegister()
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "session is nullptr, id:%{public}d", persistentId_);
+        return;
+    }
+    session->RegisterSplitRatioChangeCallback([weakThis = wptr(this)](float newRatio) {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession) {
+            TLOGNE(WmsLogTag::WMS_COMPAT, "jsSceneSession is null");
+            return;
+        }
+        jsSceneSession->OnSplitRatioChange(newRatio);
+    });
+}
+
 void JsSceneSession::OnCompatibleModeChange(CompatibleStyleMode mode)
 {
     TLOGI(WmsLogTag::WMS_COMPAT, "compatible mode change to: %{public}d", mode);
@@ -9713,6 +9735,25 @@ void JsSceneSession::OnCompatibleModeChange(CompatibleStyleMode mode)
             return;
         }
         napi_value argv[] = { CreateJsValue(env, mode) };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+    }, __func__);
+}
+
+void JsSceneSession::OnSplitRatioChange(float newRatio)
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "split ratio change to: %{public}f", newRatio);
+    taskScheduler_->PostMainThreadTask([weakThis = wptr(this), persistentId = persistentId_, newRatio, env = env_] {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
+            TLOGNE(WmsLogTag::WMS_COMPAT, "jsSceneSession id:%{public}d has been destroyed", persistentId);
+            return;
+        }
+        auto jsCallBack = jsSceneSession->GetJSCallback(SPLIT_RATIO_CHANGE_CB);
+        if (!jsCallBack) {
+            TLOGNE(WmsLogTag::WMS_COMPAT, "jsCallBack is nullptr");
+            return;
+        }
+        napi_value argv[] = { CreateJsValue(env, newRatio) };
         napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
     }, __func__);
 }

@@ -2739,6 +2739,12 @@ HookWindowInfo WindowSessionProperty::GetHookWindowInfo() const
     return hookWindowInfo_;
 }
 
+void WindowSessionProperty::SetWidthHookRatio(float ratio)
+{
+    std::lock_guard<std::mutex> lock(hookWindowInfoMutex_);
+    hookWindowInfo_.widthHookRatio = ratio;
+}
+
 bool WindowSessionProperty::GetPcAppInpadCompatibleMode() const
 {
     return isPcAppInpadCompatibleMode_;
