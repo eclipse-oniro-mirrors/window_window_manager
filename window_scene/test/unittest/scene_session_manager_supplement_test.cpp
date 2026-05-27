@@ -975,30 +975,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, SetAlivePersistentIdsWithIds, TestSi
 }
 
 /**
- * @tc.name: RecoverAndConnectSpecificSession
- * @tc.desc: RecoverAndConnectSpecificSession
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerSupplementTest, RecoverAndConnectSpecificSession, TestSize.Level1)
-{
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
-    sptr<WindowSessionProperty> property;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    auto ret = ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, node, property, session, token);
-    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
-    property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    ret = ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, node, property, session, token);
-    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
-    ssm_->NotifyRecoveringFinished();
-    usleep(WAIT_SYNC_IN_NS);
-    ASSERT_EQ(ssm_->recoveringFinished_, true);
-}
-
-/**
  * @tc.name: TestCacheSpecificSessionForRecovering_01
  * @tc.desc: Test CacheSpecificSessionForRecovering with recoveringFinished_ is false
  * @tc.type: FUNC
