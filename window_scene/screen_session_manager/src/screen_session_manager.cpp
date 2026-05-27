@@ -1625,6 +1625,10 @@ void ScreenSessionManager::SetScreenCorrection()
         std::vector<std::string> phyOffsets = FoldScreenStateInternel::GetPhyRotationOffset();
         int32_t phyOffset = static_cast<int32_t>(std::stoi(phyOffsets[0]));
         screenRotation = ConvertOffsetToCorrectRotation(phyOffset);
+        if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice) {
+            screenRotation = static_cast<ScreenRotation>(ROTATION_90);
+            screenId = SCREEN_ID_MAIN;
+        }
     }
     auto rsUIContext = GetRsUIContextByScreenId(screenId);
     if (rsUIContext == nullptr) {

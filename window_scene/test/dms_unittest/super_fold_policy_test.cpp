@@ -16,7 +16,11 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define private public
 #include "screen_session_manager/include/fold_screen_controller/super_fold_policy.h"
+#include "screen_session_manager/include/screen_session_manager.h"
+#include "session/screen/include/screen_session.h"
+#undef private
 #include "../mock/mock_accesstoken_kit.h"
 #include "window_manager_hilog.h"
 
@@ -611,6 +615,37 @@ HWTEST_F(SuperFoldPolicyTest, NotifyFoldStatus05, TestSize.Level1)
     ScreenClosedState state = ScreenClosedState::CLOSE;
     SuperFoldPolicy::GetInstance().lastFoldStatus_ = FoldStatus::FOLDED;
     SuperFoldPolicy::GetInstance().NotifyFoldStatus(state);
+}
+
+HWTEST_F(SuperFoldPolicyTest, SetScreenCombination01, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 9997;
+    ScreenCombination combination = ScreenCombination::SCREEN_MAIN;
+    SuperFoldPolicy::GetInstance().SetScreenCombination(screenId, combination);
+    EXPECT_TRUE(g_logMsg.find("screenSession is null") != std::string::npos);
+    g_logMsg.clear();
+}
+
+HWTEST_F(SuperFoldPolicyTest, SetScreenCombination02, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 66;
+    sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        ScreenProperty property;
+        ScreenSessionConfig config;
+        config.screenId = screenId;
+        config.name = "test_screen";
+        config.property = property;
+        screenSession = sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+        ScreenSessionManager::GetInstance().screenSessionMap_[screenId] = screenSession;
+    }
+    ScreenCombination combination = ScreenCombination::SCREEN_MAIN;
+    SuperFoldPolicy::GetInstance().SetScreenCombination(screenId, combination);
+    EXPECT_TRUE(g_logMsg.find("screenCombination:5") != std::string::npos);
+    ScreenSessionManager::GetInstance().screenSessionMap_.erase(screenId);
+    g_logMsg.clear();
 }
 }
 }
