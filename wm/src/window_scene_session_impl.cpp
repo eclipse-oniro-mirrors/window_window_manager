@@ -750,7 +750,7 @@ void WindowSceneSessionImpl::UpdateWindowState()
         if (property_->GetIsNeedUpdateWindowMode()) {
             WLOGFI("UpdateWindowMode %{public}u mode %{public}u",
                 GetWindowId(), static_cast<uint32_t>(property_->GetWindowMode()));
-            UpdateWindowModeImmediately(WindowModeInfo{ property_->GetWindowMode() });
+            UpdateWindowModeImmediately(property_->GetWindowModeInfo());
             property_->SetIsNeedUpdateWindowMode(false);
         } else {
             SetWindowMode(windowSystemConfig_.defaultWindowMode_);
@@ -5415,6 +5415,11 @@ WMError WindowSceneSessionImpl::SetGrayScale(float grayScale)
 WindowMode WindowSceneSessionImpl::GetWindowMode() const
 {
     return property_->GetWindowMode();
+}
+
+WindowMode WindowSceneSessionImpl::GetWindowModeCompat() const
+{
+    return property_->GetWindowModeCompat();
 }
 
 WindowModeInfo WindowSceneSessionImpl::GetWindowModeInfo() const

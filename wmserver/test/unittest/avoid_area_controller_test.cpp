@@ -62,7 +62,7 @@ public:
     {
         return WMError::WM_OK;
     }
-    WMError UpdateWindowMode(WindowMode mode) override
+    WMError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override
     {
         return WMError::WM_OK;
     }

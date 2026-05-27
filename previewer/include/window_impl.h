@@ -66,6 +66,7 @@ public:
     virtual Rect GetRequestRect() const override;
     virtual WindowType GetType() const override;
     virtual WindowMode GetWindowMode() const override;
+    virtual WindowMode GetWindowModeCompat() const override;
     virtual float GetAlpha() const override;
     virtual WindowState GetWindowState() const override;
     virtual WMError SetFocusable(bool isFocusable) override;
