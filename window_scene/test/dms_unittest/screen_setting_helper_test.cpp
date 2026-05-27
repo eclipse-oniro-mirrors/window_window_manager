@@ -1957,12 +1957,10 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         uint32_t width = 0;
         uint32_t height = 0;
 
-        if (screenSettingHelper.GetCustomResolution(width, height)) {
-            ASSERT_TRUE(width > 0 && height > 0);
-        } else {
-            ASSERT_EQ(width, 0);
-            ASSERT_EQ(height, 0);
-        }
+        auto ret = screenSettingHelper.GetCustomResolution(width, height);
+        ASSERT_FALSE(ret);
+        ASSERT_EQ(width, 0);
+        ASSERT_EQ(height, 0);
     }
 
     /**
@@ -1977,9 +1975,7 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         uint32_t height = 1080;
 
         auto ret = screenSettingHelper.SetCustomResolution(width, height);
-        if (!ret) {
-            TLOGI(WmsLogTag::DMS, "SetCustomResolution failed in UT environment");
-        }
+        ASSERT_FALSE(ret);
     }
 }
 } // namespace Rosen
