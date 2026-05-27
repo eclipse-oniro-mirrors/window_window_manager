@@ -16,11 +16,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define private public
 #include "screen_session_manager/include/fold_screen_controller/super_fold_policy.h"
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "session/screen/include/screen_session.h"
-#undef private
 #include "../mock/mock_accesstoken_kit.h"
 #include "window_manager_hilog.h"
 
