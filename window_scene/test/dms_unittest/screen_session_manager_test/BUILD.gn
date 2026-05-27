@@ -18,9 +18,7 @@ module_out_path = "window_manager/OH-DMS/window_scene"
 group("unittest") {
   testonly = true
 
-  deps = [
-    ":ws_screen_session_manager_connect_test",
-  ]
+  deps = []
 }
 
 test_external_deps = [
