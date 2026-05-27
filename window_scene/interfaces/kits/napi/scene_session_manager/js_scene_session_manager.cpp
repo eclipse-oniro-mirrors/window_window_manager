@@ -3525,10 +3525,10 @@ napi_value JsSceneSessionManager::OnRedispatchCustomizedTouchEvent(napi_env env,
 
 napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callback_info info)
 {
-    size_t argc = 1;
-    napi_value argv[1] = {nullptr};
+    size_t argc = 2;
+    napi_value argv[2] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARGC_ONE) {
+    if (argc != ARGC_TWO) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
@@ -3548,8 +3548,15 @@ napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callb
             "Failed to convert parameter to FloatViewLimits"));
         return NapiGetUndefined(env);
     }
-
-    SceneSessionManager::GetInstance().SyncFloatViewLimits(limits);
+    napi_value jsIsChanged = argv[1];
+    bool isChanged = false;
+    if (!ConvertFromJsValue(env, jsIsChanged, isChanged)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to isChanged");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Failed to convert parameter to isChanged"));
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().SyncFloatViewLimits(limits, isChanged);
     return NapiGetUndefined(env);
 }
 
@@ -6534,26 +6541,20 @@ void JsSceneSessionManager::RegisterGetFloatViewLimitCallback()
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "RegisterGetFloatViewLimitCallback called");
     SceneSessionManager::GetInstance().RegisterGetFloatViewLimitCallback(
-        [this](std::map<uint32_t, FloatViewLimits>& limit) -> bool {
-            return this->OnRegisterGetFloatViewLimitCallback(limit);
-    });
+        [this]() -> void { this->OnGetFloatViewLimitCallback(); });
 }
 
-bool JsSceneSessionManager::OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit)
+void JsSceneSessionManager::OnGetFloatViewLimitCallback()
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "OnRegisterGetFloatViewLimitCallback called");
-    auto jsCallBack = GetJSCallback(GET_FLOAT_VIEW_LIMIT_CB);
-    if (jsCallBack == nullptr) {
-        TLOGNE(WmsLogTag::WMS_SYSTEM, "jsCallBack is nullptr");
-        return false;
-    }
-    napi_value result = nullptr;
-    napi_value argv[] = {};
-    napi_call_function(env_, NapiGetUndefined(env_), jsCallBack->GetNapiValue(), 0, argv, &result);
-    if (!ConvertFloatViewLimitsFromJs(env_, result, fvlimit)) {
-        return false;
-    }
-    return true;
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnGetFloatViewLimitCallback called");
+    taskScheduler_->PostMainThreadTask(
+        [this, jsCallBack = GetJSCallback(GET_FLOAT_VIEW_LIMIT_CB), env = env_] {
+            if (jsCallBack == nullptr) {
+                TLOGE(WmsLogTag::WMS_SYSTEM, "jsCallBack is nullptr");
+                return;
+            }
+            napi_call_function(env_, NapiGetUndefined(env), jsCallBack->GetNapiValue(), 0, {}, nullptr);
+        }, __func__);
 }
 
 } // namespace OHOS::Rosen

@@ -491,7 +491,7 @@ private:
      */
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
-    bool OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit);
+    void OnGetFloatViewLimitCallback();
 };
 } // namespace OHOS::Rosen
 
