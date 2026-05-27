@@ -500,7 +500,7 @@ void SuperFoldPolicy::SetdisplayModeChangeStatus(bool status, bool isOnBootAnima
 
 bool SuperFoldPolicy::SetAndCheckFoldStatus(FoldStatus foldStatus)
 {
-    std::lock_guard<std::mutex> lock(phyFoldStatusMutex_);
+    std::lock_guard<std::mutex> lock(foldStatusMutex_);
     phyFoldStatus_ = foldStatus;
     if (GetScreenClosedState() == ScreenClosedState::CLOSE) {
         return false;
@@ -517,8 +517,14 @@ bool SuperFoldPolicy::SetAndCheckFoldStatus(FoldStatus foldStatus)
 
 FoldStatus SuperFoldPolicy::GetPhyFoldStatus()
 {
-    std::lock_guard<std::mutex> lock(phyFoldStatusMutex_);
+    std::lock_guard<std::mutex> lock(foldStatusMutex_);
     return phyFoldStatus_;
+}
+
+FoldStatus SuperFoldPolicy::GetFoldStatus()
+{
+    std::lock_guard<std::mutex> lock(foldStatusMutex_);
+    return lastFoldStatus_;
 }
 
 void SuperFoldPolicy::NotifyFoldStatus(ScreenClosedState screenClosedState)
@@ -539,7 +545,7 @@ void SuperFoldPolicy::NotifyFoldStatus(ScreenClosedState screenClosedState)
         return;
     }
     {
-        std::lock_guard<std::mutex> lock(phyFoldStatusMutex_);
+        std::lock_guard<std::mutex> lock(foldStatusMutex_);
         if (lastFoldStatus_ == foldStatus) {
             return;
         }

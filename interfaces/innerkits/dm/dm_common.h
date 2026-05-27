@@ -267,6 +267,7 @@ enum class TentMode : uint32_t {
     UNKNOWN,
     TENT_MODE,
     HOVER,
+    TENT_MODE_MAX
 };
 
 /**
