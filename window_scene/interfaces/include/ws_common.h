@@ -565,7 +565,6 @@ struct SessionInfo {
     /*
      * Compatible Mode
      */
-    std::string pageConfig = "";
     std::vector<std::string> combinedCompatibleConfig;
 
     /**

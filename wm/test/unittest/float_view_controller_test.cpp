@@ -192,8 +192,11 @@ HWTEST_F(FloatViewControllerTest, StartFloatView, TestSize.Level1)
 {
     fvController_->SetBindState(true);
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatView());
+    fvController_->UpdateMainWindow(nullptr);
+    EXPECT_EQ(fvController_->mainWindow_, nullptr);
 
     fvController_->SetBindState(false);
+    fvController_->UpdateMainWindow(mw_);
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatView());
 }
 
@@ -218,7 +221,7 @@ HWTEST_F(FloatViewControllerTest, StartFloatViewSingle, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_FV_START_FAILED, fvController_->StartFloatViewSingle());
     FloatViewManager::SetActiveController(fvController_);
     EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, fvController_->StartFloatViewSingle());
-
+    fvController_->UpdateMainWindow(mw_);
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatViewSingle(false));
     EXPECT_NE(WMError::WM_OK, fvController_->StartFloatViewSingle(true));
 }
@@ -481,16 +484,37 @@ HWTEST_F(FloatViewControllerTest, SetWindowSize, TestSize.Level1)
 {
     Rect rect {0, 0, 100, 100};
     EXPECT_EQ(WMError::WM_OK, fvController_->SetWindowSize(rect));
+}
+
+/**
+ * @tc.name: SetTemplateType
+ * @tc.desc: SetTemplateType with null window
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatViewControllerTest, SetTemplateTypeAndSize, TestSize.Level1)
+{
+    std::shared_ptr<TemplateProperty> tp = std::make_shared<TemplateProperty>(TemplateProperty{0, 100, 100});
+    EXPECT_EQ(WMError::WM_OK, fvController_->SetTemplateTypeAndSize(tp));
+}
+
+/**
+ * @tc.name: UpdateFloatView
+ * @tc.desc: UpdateFloatView with null window
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatViewControllerTest, UpdateFloatView, TestSize.Level1)
+{
+    EXPECT_EQ(WMError::WM_OK, fvController_->UpdateFloatView());
 
     fvController_->ChangeState(FvWindowState::FV_STATE_STARTED);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvController_->SetWindowSize(rect));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvController_->UpdateFloatView());
 
     fvController_->window_ = mw_;
     EXPECT_CALL(*mw_, UpdateFloatView(_)).Times(1).WillOnce(Return(WMError::WM_DO_NOTHING));
-    EXPECT_EQ(WMError::WM_ERROR_SYSTEM_ABNORMALLY, fvController_->SetWindowSize(rect));
+    EXPECT_EQ(WMError::WM_ERROR_SYSTEM_ABNORMALLY, fvController_->UpdateFloatView());
 
     EXPECT_CALL(*mw_, UpdateFloatView(_)).Times(1).WillOnce(Return(WMError::WM_OK));
-    EXPECT_EQ(WMError::WM_OK, fvController_->SetWindowSize(rect));
+    EXPECT_EQ(WMError::WM_OK, fvController_->UpdateFloatView());
     fvController_->window_ = nullptr;
 }
 

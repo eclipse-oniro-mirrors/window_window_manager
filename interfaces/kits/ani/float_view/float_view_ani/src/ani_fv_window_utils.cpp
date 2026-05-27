@@ -314,6 +314,41 @@ bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, std::pair<
     return true;
 }
 
+std::shared_ptr<TemplateProperty> AniFvUtils::ParseTemplateProperty(ani_env* env, ani_object jsObject,
+    std::string& errorMsg, WmErrorCode& errorCode)
+{
+    ani_ref sizeRef;
+    env->Object_GetPropertyByName_Ref(jsObject, "size", &sizeRef);
+    ani_ref templateTypeRef;
+    env->Object_GetPropertyByName_Ref(jsObject, "templateType", &templateTypeRef);
+    ani_boolean isSizeUndefined = true;
+    env->Reference_IsUndefined(sizeRef, &isSizeUndefined);
+    ani_boolean isTemplateTypeUndefined = true;
+    env->Reference_IsUndefined(templateTypeRef, &isTemplateTypeUndefined);
+    if (isSizeUndefined || isTemplateTypeUndefined || sizeRef == nullptr || templateTypeRef == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "jsTemplateType or jsSize is null");
+        errorMsg = "Failed to get templateType or size, check if input is null or undefined.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    std::pair<int32_t, int32_t> size;
+    if (!ParseWindowSize(env, static_cast<ani_object>(sizeRef), size)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]parse window size failed");
+        errorMsg = "Convert window size failed.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    ani_int res;
+    ani_status ret = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(templateTypeRef), &res);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "template type is invalid");
+        errorMsg = "Invalid template type.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    return std::make_shared<TemplateProperty>(TemplateProperty{static_cast<uint32_t>(res), size.first, size.second});
+}
+
 ani_object AniFvUtils::CreateAniFloatViewStateChangeInfoObject(ani_env* env,
     const FloatViewState state, const std::string& reason)
 {

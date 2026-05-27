@@ -16,19 +16,23 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_MOVE_DRAG_CONTROLLER_H
 #define OHOS_ROSEN_WINDOW_SCENE_MOVE_DRAG_CONTROLLER_H
 
+#include <atomic>
 #include <mutex>
 #include <optional>
+#include <set>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
-#include <refbase.h>
-#include <struct_multimodal.h>
-
-#include "common/include/window_session_property.h"
-#include "move_resampler.h"
 #include "property/rs_properties_def.h"
+#include "refbase.h"
+#include "struct_multimodal.h"
+
+#include "move_resampler.h"
 #include "screen_manager.h"
+#include "string_util.h"
 #include "window.h"
+#include "window_session_property.h"
 #include "ws_common_inner.h"
 
 namespace OHOS::MMI {
@@ -45,8 +49,6 @@ using ScreenIdSet = std::unordered_set<ScreenId>;
 using ScreenRectMap = std::unordered_map<ScreenId, WSRect>;
 
 const uint32_t WINDOW_HOT_AREA_TYPE_UNDEFINED = 0;
-const int32_t POSITIVE_CORRELATION = 1;
-const int32_t NEGATIVE_CORRELATION = -1;
 
 enum class MoveDirection : uint32_t {
     UNKNOWN,
@@ -81,6 +83,88 @@ enum class TargetRectUpdateMode {
      * @brief The targetRect has been updated immediately.
      */
     UPDATED_IMMEDIATELY
+};
+
+/**
+ * @brief System-level configuration for move resampling.
+ */
+struct MoveResampleConfig {
+    /**
+     * @brief Whether move resampling is globally enabled.
+     */
+    bool enable = false;
+
+    /**
+     * @brief Minimum FPS required to enable resampling.
+     *
+     * std::nullopt means no minimum FPS limit.
+     */
+    std::optional<uint32_t> minFps = std::nullopt;
+
+    /**
+     * @brief Maximum FPS allowed to enable resampling.
+     *
+     * std::nullopt means no maximum FPS limit.
+     */
+    std::optional<uint32_t> maxFps = std::nullopt;
+
+    /**
+     * @brief Pointer event source types allowed to use move resampling.
+     *
+     * An empty set means resampling is disabled for all pointer types.
+     */
+    std::set<int32_t> pointerTypes;
+
+    /**
+     * @brief Whether a second resampling phase is scheduled within each vsync period.
+     */
+    bool secondaryPhaseEnable = false;
+
+    /**
+     * @brief Time reserved before the next vsync for the secondary resampling phase, in milliseconds.
+     */
+    int32_t secondaryPhaseLeadTimeMs = 0;
+
+    /**
+     * @brief Check whether the given pointer event source type is allowed.
+     *
+     * @param pointerType MMI pointer event source type.
+     * @return True if the source type is configured in pointerTypes; false otherwise.
+     */
+    bool IsPointerTypeAllowed(int32_t pointerType) const
+    {
+        return pointerTypes.find(pointerType) != pointerTypes.end();
+    }
+
+    /**
+     * @brief Check whether the given FPS satisfies the configured range.
+     *
+     * @param fps Current display frame rate.
+     * @return True if fps is within all configured bounds; false otherwise.
+     */
+    bool IsFpsInRange(uint32_t fps) const
+    {
+        return (!minFps || fps >= *minFps) && (!maxFps || fps <= *maxFps);
+    }
+
+    /**
+     * @brief Convert the configuration to a log-friendly string.
+     *
+     * @return Configuration summary string.
+     */
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+
+        oss << "enable: " << enable
+            << ", minFps: " << (minFps ? std::to_string(*minFps) : "unlimited")
+            << ", maxFps: " << (maxFps ? std::to_string(*maxFps) : "unlimited")
+            << ", pointerTypes: " << StringUtil::JoinValueSet(pointerTypes)
+            << ", secondaryPhaseEnable: " << secondaryPhaseEnable
+            << ", secondaryPhaseLeadTimeMs: " << secondaryPhaseLeadTimeMs;
+
+        return oss.str();
+    }
 };
 
 class MoveDragController : public ScreenManager::IScreenListener {
@@ -135,17 +219,24 @@ public:
     WSRect GetTargetRectByDisplayId(DisplayId displayId) const;
 
     /**
-     * @brief Resample the moving position for the given vsync timestamp and update
+     * @brief Resample the moving position for the given sample timestamp and update
      *        the target rectangle.
      *
      * If moving is inactive, no update is performed. Otherwise the resampled
      * position is applied and the resulting rectangle is returned in legacy
      * global (unified) coordinates.
      *
-     * @param vsyncTimeUs  Timestamp of the vsync event, in microseconds.
+     * @param sampleTimeUs Sample timestamp in microseconds.
      * @return Pair of update mode and the resulting target rectangle.
      */
-    std::pair<TargetRectUpdateMode, WSRect> ResampleTargetRectOnVsync(int64_t vsyncTimeUs);
+    std::pair<TargetRectUpdateMode, WSRect> ResampleTargetRectAt(int64_t sampleTimeUs);
+
+    /**
+     * @brief Gets the delay of the secondary resampling phase from the current vsync.
+     *
+     * @return Delay in milliseconds, or std::nullopt if the secondary phase is disabled or invalid.
+     */
+    std::optional<int64_t> GetSecondaryPhaseResamplingDelayMs() const;
 
     void InitMoveDragProperty();
 
@@ -283,14 +374,9 @@ public:
      * the actual resampling behavior is determined by ShouldOpenMoveResample
      * and UpdateResampleActivationByFps at runtime based on these parameters.
      *
-     * @param enable  True to enable move resampling, false to disable.
-     * @param minFps  Optional minimum FPS threshold to enable resampling;
-     *                std::nullopt means no minimum limit.
-     * @param maxFps  Optional maximum FPS threshold to enable resampling;
-     *                std::nullopt means no maximum limit.
+     * @param config Move resampling configuration.
      */
-    static void SaveMoveResampleSystemConfig(
-        bool enable, std::optional<uint32_t> minFps, std::optional<uint32_t> maxFps);
+    static void SaveMoveResampleSystemConfig(const MoveResampleConfig& config);
 
     /**
      * @brief Load the current move resampling configuration.
@@ -299,9 +385,9 @@ public:
      * behavior during move operations is determined by ShouldOpenMoveResample
      * and UpdateResampleActivationByFps.
      *
-     * @return A tuple of (enabled, minFps, maxFps).
+     * @return Move resampling configuration.
      */
-    static std::tuple<bool, std::optional<uint32_t>, std::optional<uint32_t>> LoadMoveResampleSystemConfig();
+    static MoveResampleConfig LoadMoveResampleSystemConfig();
 
     /**
      * @brief Save the moving event throttle configuration.
@@ -370,6 +456,11 @@ private:
          */
         bool isResampleFpsRangeChecked_ = false;
 
+        /**
+         * @brief Latest sample timestamp accepted by move resampling, in microseconds.
+         */
+        int64_t lastResampledTimeUs_ = -1;
+
         bool isEmpty() const
         {
             return (pointerId_ == -1 && originalPointerPosX_ == -1 && originalPointerPosY_ == -1);
@@ -390,6 +481,7 @@ private:
             targetRectChangeReason_ = SizeChangeReason::UNDEFINED;
             isMoveResampleActive_ = false;
             isResampleFpsRangeChecked_ = false;
+            lastResampledTimeUs_ = -1;
         }
     };
 
@@ -1012,28 +1104,9 @@ private:
     MoveResampler moveResampler_;
 
     /**
-     * @brief Whether move resampling is enabled for window moving.
-     *
-     * Note that even when this flag is true, resampling only
-     * occurs if ShouldOpenMoveResample also returns true.
+     * @brief Move resampling configuration loaded from system parameters.
      */
-    bool enableMoveResample_ = false;
-
-    /**
-     * @brief Optional minimum FPS threshold for move resampling.
-     *
-     * Move resampling is enabled only when the current frame rate is greater
-     * than or equal to this value. std::nullopt means no minimum FPS limit.
-     */
-    std::optional<uint32_t> resampleMinFps_ = std::nullopt;
-
-    /**
-     * @brief Optional maximum FPS threshold for move resampling.
-     *
-     * Move resampling is enabled only when the current frame rate is less
-     * than or equal to this value. std::nullopt means no maximum FPS limit.
-     */
-    std::optional<uint32_t> resampleMaxFps_ = std::nullopt;
+    MoveResampleConfig moveResampleConfig_;
 
     /**
      * @brief Throttle interval for pointer events in the moving phase (us).

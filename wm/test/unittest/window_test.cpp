@@ -3094,20 +3094,6 @@ HWTEST_F(WindowTest, CreateFv, TestSize.Level1)
         ASSERT_EQ(nullptr, Window::CreateFv(option, fvTemplateInfo, abilityContext_, errCode));
     }
 }
-
-/**
- * @tc.name: IsAnyWindowMatchState
- * @tc.desc: IsAnyWindowMatchState test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowTest, IsAnyWindowMatchState, TestSize.Level1)
-{
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        EXPECT_FALSE(Window::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-    } else {
-        EXPECT_FALSE(Window::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-    }
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

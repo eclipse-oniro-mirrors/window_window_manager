@@ -2279,7 +2279,8 @@ enum class FloatViewState : uint32_t {
  */
 enum class FloatViewTemplate : uint32_t {
     ROUNDED_RECTANGLE = 0,
-    END = 1,
+    HORIZONTAL_BAR = 1,
+    END,
 };
 
 /**

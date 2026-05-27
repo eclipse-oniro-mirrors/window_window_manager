@@ -104,6 +104,49 @@ HWTEST_F(StringUtilTest, ConvertStringToFloat, TestSize.Level1)
     ASSERT_FALSE(StringUtil::ConvertStringToFloat("inf", value));
     ASSERT_FALSE(StringUtil::ConvertStringToFloat("nan", value));
 }
+
+/**
+ * @tc.name: JoinValueSet
+ * @tc.desc: Test JoinValueSet
+ * @tc.type: FUNC
+ */
+HWTEST_F(StringUtilTest, JoinValueSet, TestSize.Level1)
+{
+    ASSERT_EQ("", StringUtil::JoinValueSet<int32_t>({}));
+    ASSERT_EQ("-1 2 3", StringUtil::JoinValueSet<int32_t>({3, -1, 2}));
+    ASSERT_EQ("1,2,3", StringUtil::JoinValueSet<int32_t>({3, 1, 2}, ','));
+}
+
+/**
+ * @tc.name: ParseValueSet
+ * @tc.desc: Test ParseValueSet
+ * @tc.type: FUNC
+ */
+HWTEST_F(StringUtilTest, ParseValueSet, TestSize.Level1)
+{
+    auto emptyValues = StringUtil::ParseValueSet<int32_t>("");
+    ASSERT_TRUE(emptyValues.empty());
+
+    auto values = StringUtil::ParseValueSet<int32_t>("3 -1 2 3");
+    ASSERT_EQ(values, (std::set<int32_t>{-1, 2, 3}));
+
+    values = StringUtil::ParseValueSet<int32_t>("  4 5  ");
+    ASSERT_EQ(values, (std::set<int32_t>{4, 5}));
+
+    values = StringUtil::ParseValueSet<int32_t>("1,2,3", ',');
+    ASSERT_EQ(values, (std::set<int32_t>{1, 2, 3}));
+
+    // Invalid values should be ignored.
+    values = StringUtil::ParseValueSet<int32_t>("1 abc 2");
+    ASSERT_EQ(values, (std::set<int32_t>{1, 2}));
+
+    values = StringUtil::ParseValueSet<int32_t>("1,abc,2", ',');
+    ASSERT_EQ(values, (std::set<int32_t>{1, 2}));
+
+    // Empty tokens should be ignored.
+    values = StringUtil::ParseValueSet<int32_t>("1,,2,,,3", ',');
+    ASSERT_EQ(values, (std::set<int32_t>{1, 2, 3}));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
