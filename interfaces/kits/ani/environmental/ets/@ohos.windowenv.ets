@@ -84,8 +84,8 @@ export class WindowStaticEnv {
             case 'system.window.size':
                 const sizeVpProps: window.WindowProperties = env_native.getWindowProperties(this.instanceId);
                 const sizeVp: window.SizeInVP = {
-                    width: this.context.px2vp(sizeVpProps.windowRect.width as double),
-                    height: this.context.px2vp(sizeVpProps.windowRect.height as double),
+                    width: this.context.px2vp(sizeVpProps.windowRect.width),
+                    height: this.context.px2vp(sizeVpProps.windowRect.height),
                 };
                 return sizeVp;
             case 'system.window.size.px':
@@ -101,7 +101,7 @@ export class WindowStaticEnv {
                 return env_native.isHighlighted(this.instanceId);
             case 'system.window.density.system':
                 const windowDensityInfo: window.WindowDensityInfo | undefined = this.window?.getWindowDensityInfo();
-                return (windowDensityInfo?.systemDensity ?? -1) as double;
+                return windowDensityInfo?.systemDensity ?? Int.toDouble(-1);
             case 'system.window.displayid':
                 return env_native.getDisplayId(this.instanceId);
             default:
@@ -207,10 +207,10 @@ export class WindowStaticEnv {
 
     private translateRectToVp(rect: window.Rect): window.RectInVP {
         return {
-            left: this.context.px2vp(rect.left as double) ?? (rect.left as double),
-            top: this.context.px2vp(rect.top as double) ?? (rect.top as double),
-            width: this.context.px2vp(rect.width as double) ?? (rect.width as double),
-            height: this.context.px2vp(rect.height as double) ?? (rect.height as double),
+            left: this.context.px2vp(rect.left) ?? Int.toDouble(rect.left),
+            top: this.context.px2vp(rect.top) ?? Int.toDouble(rect.top),
+            width: this.context.px2vp(rect.width) ?? Int.toDouble(rect.width),
+            height: this.context.px2vp(rect.height) ?? Int.toDouble(rect.height),
         }
     }
 
@@ -356,16 +356,16 @@ export class WindowStaticEnv {
             this.windowSizeCbVp = (size: window.Size) => {
                 this.cacheWindowSize = size;
                 const sizeVp: window.SizeInVP = {
-                    width: this.context.px2vp(size.width as double),
-                    height: this.context.px2vp(size.height as double),
+                    width: this.context.px2vp(size.width),
+                    height: this.context.px2vp(size.height),
                 };
                 cb(sizeVp);
             }
             this.windowSizeDensityCbVp = (info: observer.DensityInfo) => {
                 if (this.cacheWindowSize) {
                     const sizeVp: window.SizeInVP = {
-                        width: this.context.px2vp(this.cacheWindowSize!.width as double),
-                        height: this.context.px2vp(this.cacheWindowSize!.height as double),
+                        width: this.context.px2vp(this.cacheWindowSize!.width),
+                        height: this.context.px2vp(this.cacheWindowSize!.height),
                     };
                     cb(sizeVp);
                 }
