@@ -21,7 +21,9 @@
 #include "pointer_event.h"
 #include "ui/rs_surface_node.h"
 
+#include "display_manager.h"
 #include "mock_vsync_station.h"
+#include "pc_fold_screen_manager.h"
 #include "scene_board_judgement.h"
 #include "scene_session.h"
 #include "screen_manager.h"
@@ -2512,21 +2514,86 @@ HWTEST_F(MoveDragControllerTest, UpdateTargetRectWithOffsetAppliesAvoidStrategyB
  */
 HWTEST_F(MoveDragControllerTest, RefreshesCachedScreenRectsFromScreenProperties, TestSize.Level1)
 {
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    constexpr ScreenId screenId = 1;
     ScreenProperty screenProperty;
     screenProperty.SetStartX(10);
     screenProperty.SetStartY(20);
     screenProperty.SetBounds(RRect({ 0, 0, 300, 200 }, 0.0f, 0.0f));
-    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
-        sptr<ScreenSession>::MakeSptr(1, screenProperty, 0);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
+        sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
 
     moveDragController->RefreshGlobalScreenRects();
 
     const WSRect expectedScreenRect = { 10, 20, 300, 200 };
+    EXPECT_EQ(moveDragController->globalScreenRectMap_[screenId], expectedScreenRect);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: FallsBackToPropertyAvailableRectWhenDisplayIsUnavailable
+ * @tc.desc: Verify a missing display keeps the available area from ScreenProperty
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenDisplayIsUnavailable, TestSize.Level1)
+{
+    constexpr ScreenId screenId = DISPLAY_ID_INVALID;
+    ScreenProperty screenProperty;
+    screenProperty.SetStartX(10);
+    screenProperty.SetStartY(20);
+    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
+        sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
+
+    auto& foldManager = PcFoldScreenManager::GetInstance();
+    const DisplayId originalDisplayId = foldManager.GetDisplayId();
+    const SuperFoldStatus originalFoldStatus = foldManager.GetScreenFoldStatus();
+    const auto originalDisplayRects = foldManager.GetDisplayRects();
+    foldManager.UpdateFoldScreenStatus(screenId, SuperFoldStatus::EXPANDED, {}, {}, {});
+
+    moveDragController->RefreshGlobalScreenRects();
+
     const WSRect expectedAvailableRect = { 15, 26, 250, 150 };
-    EXPECT_EQ(moveDragController->globalScreenRectMap_[1], expectedScreenRect);
-    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[1], expectedAvailableRect);
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[screenId], expectedAvailableRect);
+
+    foldManager.UpdateFoldScreenStatus(originalDisplayId,
+                                       originalFoldStatus,
+                                       std::get<0>(originalDisplayRects),
+                                       std::get<1>(originalDisplayRects),
+                                       std::get<2>(originalDisplayRects));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: FallsBackToPropertyAvailableRectWhenExpandAreaIsUnavailable
+ * @tc.desc: Verify a half-folded screen retains its property area when no expanded area is available
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenExpandAreaIsUnavailable, TestSize.Level1)
+{
+    constexpr ScreenId screenId = DISPLAY_ID_INVALID;
+    ScreenProperty screenProperty;
+    screenProperty.SetStartX(10);
+    screenProperty.SetStartY(20);
+    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
+        sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
+
+    auto& foldManager = PcFoldScreenManager::GetInstance();
+    const DisplayId originalDisplayId = foldManager.GetDisplayId();
+    const SuperFoldStatus originalFoldStatus = foldManager.GetScreenFoldStatus();
+    const auto originalDisplayRects = foldManager.GetDisplayRects();
+    foldManager.UpdateFoldScreenStatus(screenId, SuperFoldStatus::HALF_FOLDED, {}, {}, {});
+
+    moveDragController->RefreshGlobalScreenRects();
+
+    const WSRect expectedAvailableRect = { 15, 26, 250, 150 };
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[screenId], expectedAvailableRect);
+
+    foldManager.UpdateFoldScreenStatus(originalDisplayId,
+                                       originalFoldStatus,
+                                       std::get<0>(originalDisplayRects),
+                                       std::get<1>(originalDisplayRects),
+                                       std::get<2>(originalDisplayRects));
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
 }
 

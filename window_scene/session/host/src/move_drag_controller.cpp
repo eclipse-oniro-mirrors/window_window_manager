@@ -36,6 +36,7 @@
 #include "scene_persistent_storage.h"
 #include "scene_session.h"
 #include "screen_session_manager_client.h"
+#include "session/host/include/pc_fold_screen_manager.h"
 #include "session_helper.h"
 #include "session_utils.h"
 #include "window_helper.h"
@@ -86,17 +87,46 @@ const std::map<AreaType, Gravity> DRAG_GRAVITY_MAP = {
 };
 
 /**
- * @brief Get the display's offset in the legacy global coordinate system
+ * @brief Get the display offset in the legacy global coordinate system
  *        (also known as the unified coordinate system).
  *
- * In this coordinate system, (0, 0) corresponds to the top-left corner of the
- * minimum bounding rectangle that covers all displays. The returned offset
- * represents the display's top-left position within this unified coordinate space.
+ * The legacy global coordinate system uses the top-left corner of the minimum
+ * bounding rectangle of all displays as the origin. This differs from the
+ * current global coordinate system, whose origin is always the top-left corner
+ * of the main display.
+ *
+ * For example, when an extended display (1600x900) is positioned at the upper-left
+ * of the main display without overlap:
+ *
+ *  1. Legacy global coordinate system
+ *
+ *      (0, 0)
+ *        +----------------------+
+ *        |                      |
+ *        |   Extended Display   |
+ *        |                      | (1600, 900)
+ *        +----------------------+----------------------+
+ *                               |                      |
+ *                               |     Main Display     |
+ *                               |                      |
+ *                               +----------------------+
+ *
+ *  2. Current global coordinate system
+ *
+ *    (-1600, -900)
+ *        +----------------------+
+ *        |                      |
+ *        |   Extended Display   |
+ *        |                      | (0, 0)
+ *        +----------------------+----------------------+
+ *                               |                      |
+ *                               |     Main Display     |
+ *                               |                      |
+ *                               +----------------------+
  *
  * @param displayId The ID of the display whose offset is requested.
- * @return std::optional<std::pair<int32_t, int32_t>>
- *         (x, y) offset of the display in the legacy global coordinate system,
- *         or std::nullopt if the display session is unavailable.
+ * @return The display offset in legacy global coordinates, or std::nullopt if
+ *         the display session is unavailable.
  */
 std::optional<std::pair<int32_t, int32_t>> GetLegacyGlobalDisplayOffset(DisplayId displayId)
 {
@@ -177,14 +207,63 @@ WSRect BuildScreenRect(const ScreenProperty& prop)
 }
 
 /**
- * @brief Build the available screen rectangle in the legacy global coordinate system.
+ * @brief Get the available screen rectangle used by moving avoidance.
  *
- * @param prop The screen property containing position and available area information.
- * @return The available screen rectangle in the legacy global coordinate system.
+ * @param screenId The target screen id.
+ * @param prop The cached screen property.
+ * @return The available rectangle in the legacy global coordinate system.
  */
-WSRect BuildScreenAvailableRect(const ScreenProperty& prop)
+WSRect GetScreenAvailableRect(ScreenId screenId, const ScreenProperty& prop)
 {
+    // Use ScreenProperty as the default fallback value.
+    //
+    // Do not directly rely on ScreenProperty::GetAvailableArea() currently.
+    // Due to DMS synchronization issues, the available area is not always
+    // correctly synced from DMS server to client(ScreenSessionManagerClient).
+    //
+    // Known issues:
+    // - Before any external display is connected, dock area may not be excluded
+    //   and full screen is incorrectly returned as available area.
+    // - Foldable PC may still report upper-half available area after unfolding.
+    //
+    // Therefore, we temporarily query DMS through IPC to obtain the latest
+    // available area. After DMS fixes the synchronization issue, this logic
+    // can be simplified to directly use ScreenProperty::GetAvailableArea().
     DMRect availableArea = prop.GetAvailableArea();
+
+    // Half-folded PC has legacy behavior:
+    // both ScreenProperty::GetAvailableArea() and
+    // Display::GetAvailableArea() only return the upper-half area.
+    //
+    // In this case, GetExpandAvailableArea() must be used to obtain
+    // the complete available area of the full screen.
+    if (PcFoldScreenManager::GetInstance().IsHalfFolded(screenId)) {
+        DMRect expandArea;
+        const DMError ret = DisplayManager::GetInstance().GetExpandAvailableArea(screenId, expandArea);
+        if (ret == DMError::DM_OK) {
+            availableArea = expandArea;
+        } else {
+            TLOGW(WmsLogTag::WMS_LAYOUT,
+                  "Failed to get expanded available area, screenId: %{public}" PRIu64 ", ret: %{public}d",
+                  screenId, static_cast<int32_t>(ret));
+        }
+    } else {
+        // Query latest available area from DMS server through IPC.
+        sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(screenId);
+        if (display == nullptr) {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "Display is null, screenId: %{public}" PRIu64, screenId);
+        } else {
+            DMRect latestArea;
+            const DMError ret = display->GetAvailableArea(latestArea);
+            if (ret == DMError::DM_OK) {
+                availableArea = latestArea;
+            } else {
+                TLOGW(WmsLogTag::WMS_LAYOUT,
+                      "Failed to get available area, screenId: %{public}" PRIu64 ", ret: %{public}d",
+                      screenId, static_cast<int32_t>(ret));
+            }
+        }
+    }
     return WSRect{
         .posX_ = availableArea.posX_ + static_cast<int32_t>(prop.GetStartX()),
         .posY_ = availableArea.posY_ + static_cast<int32_t>(prop.GetStartY()),
@@ -2059,7 +2138,7 @@ void MoveDragController::RefreshGlobalScreenRects()
 
     for (const auto& [screenId, screenProp] : screenProperties) {
         const WSRect screenRect = BuildScreenRect(screenProp);
-        const WSRect screenAvailableRect = BuildScreenAvailableRect(screenProp);
+        const WSRect screenAvailableRect = GetScreenAvailableRect(screenId, screenProp);
 
         globalScreenRectMap_.emplace(screenId, screenRect);
         globalAvailableScreenRectMap_.emplace(screenId, screenAvailableRect);
