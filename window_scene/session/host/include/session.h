@@ -967,6 +967,8 @@ public:
     void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
+    void SetSurfaceNodeAlpha(float alpha) { property_->SetSurfaceNodeAlpha(alpha); }
+    float GetSurfaceNodeAlpha() const { return property_->GetSurfaceNodeAlpha(); }
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
 
@@ -1300,6 +1302,7 @@ protected:
      * Window Property
      */
     uint32_t propertyDirtyFlags_ = 0;
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;

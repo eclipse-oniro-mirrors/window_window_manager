@@ -1227,6 +1227,14 @@ WMError WindowAdapter::GetWindowStateSnapshot(int32_t persistentId, std::string&
     return wmsProxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
 }
 
+WSError WindowAdapter::NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha)
+{
+    INIT_PROXY_CHECK_RETURN(WSError::WS_DO_NOTHING);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WSError::WS_DO_NOTHING);
+    return wmsProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
+}
+
 WMError WindowAdapter::ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);

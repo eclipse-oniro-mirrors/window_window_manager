@@ -14662,6 +14662,20 @@ WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::s
     return WMError::WM_OK;
 }
 
+WSError SceneSessionManager::NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha)
+{
+    auto session = GetSceneSession(persistentId);
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no session: winId=%{public}d, aplha=%{public}f",
+            persistentId, alpha);
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], alpha=%{public}f",
+        persistentId, session->GetWindowName().c_str(), alpha);
+    session->SetSurfaceNodeAlpha(alpha);
+    return WSError::WS_OK;
+}
+
 void SceneSessionManager::UpdateDarkColorModeToRS()
 {
     std::shared_ptr<AbilityRuntime::ApplicationContext> appContext = AbilityRuntime::Context::GetApplicationContext();
@@ -16530,11 +16544,7 @@ WMError SceneSessionManager::GetAllWindowLayoutInfo(DisplayId displayId,
             Rect resultRect = useHookedSize ? hookedRect : realRect;
             auto windowLayoutInfo = sptr<WindowLayoutInfo>::MakeSptr();
             windowLayoutInfo->rect = resultRect;
-            if (auto surfaceNode = session->GetSurfaceNode()) {
-                windowLayoutInfo->windowAlpha = surfaceNode->GetStagingProperties().GetAlpha();
-                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f", funcName,
-                    session->GetWindowId(), session->GetWindowName().c_str(), windowLayoutInfo->windowAlpha);
-            }
+            windowLayoutInfo->windowAlpha = session->GetSurfaceNodeAlpha();
             infos.emplace_back(windowLayoutInfo);
         }
         return WMError::WM_OK;

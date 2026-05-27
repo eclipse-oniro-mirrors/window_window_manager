@@ -322,6 +322,8 @@ public:
     bool GetRotationLocked() const;
     void SetDragDisabledAreas(const std::vector<Rect>& areas);
     void GetDragDisabledAreas(std::vector<Rect>& areas);
+    void SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
+    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load(); }
 
     /*
      * Window Lifecycle
@@ -727,6 +729,7 @@ private:
     bool isMobileAppInPadLayoutFullScreen_ = false;
     std::atomic<bool> isForceSplitEnabled_ = false;
     bool isRotationLock_ = false;
+    std::atomic<float> surfaceNodeAlpha_ = 1.0f;
     
     mutable std::mutex dragDisabledAreasMutex_;
     std::vector<Rect> dragDisabledAreas_;

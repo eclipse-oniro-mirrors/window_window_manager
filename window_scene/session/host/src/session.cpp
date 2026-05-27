@@ -201,9 +201,29 @@ int32_t Session::GetCurrentRotation() const
     return currentRotation_;
 }
 
+void Session::SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
+{
+    if (surfaceNode == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null, win=[%{public}d, %{public}s]",
+            GetWindowId(), GetWindowName().c_str());
+        return;
+    }
+    surfaceNode->SetAlphaChangedCallback([weak = wptr(this), where = __func__](float alpha) {
+        auto session = weak.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f",
+            where, session->GetWindowId(), session->GetWindowName().c_str(), alpha);
+        session->SetSurfaceNodeAlpha(alpha);
+    });
+}
+
 void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
 {
     RSAdapterUtil::SetRSUIContext(surfaceNode, GetRSUIContext(), true);
+    SetSurfaceNodeAlphaChangedCallback(surfaceNode);
     {
         std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
         surfaceNode_ = surfaceNode;
