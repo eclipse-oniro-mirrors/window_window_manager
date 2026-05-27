@@ -2003,6 +2003,28 @@ WindowType WindowExtensionSessionImpl::GetParentWindowType() const
     return property_->GetParentWindowType();
 }
 
+WMError WindowExtensionSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize)
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowPropertyInfo.windowRect = GetRect();
+    windowPropertyInfo.type = GetType();
+    windowPropertyInfo.isLayoutFullScreen = IsLayoutFullScreen();
+    windowPropertyInfo.isFullScreen = IsFullScreen();
+    windowPropertyInfo.isTouchable = GetTouchable();
+    windowPropertyInfo.isFocusable = GetFocusable();
+    windowPropertyInfo.name = GetWindowName();
+    windowPropertyInfo.isPrivacyMode = IsPrivacyMode();
+    windowPropertyInfo.isKeepScreenOn = IsKeepScreenOn();
+    windowPropertyInfo.brightness = GetBrightness();
+    windowPropertyInfo.isTransparent = IsTransparent();
+    windowPropertyInfo.id = GetWindowId();
+    TLOGD(WmsLogTag::WMS_UIEXT, "winId=%{public}u", GetWindowId());
+    return WMError::WM_OK;
+}
+
 void WindowExtensionSessionImpl::NotifyModalUIExtensionMayBeCovered(bool byLoadContent)
 {
     if (property_->GetUIExtensionUsage() != UIExtensionUsage::MODAL &&

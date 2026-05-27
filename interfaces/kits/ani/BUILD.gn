@@ -23,5 +23,6 @@ group("ani_packages") {
     "floating_ball:fbwindow_ani_pack",
     "float_view:fvwindow_ani_pack",
     "picture_in_picture_runtime:pipwindow_ani_pack",
+    "environmental:window_env_static_packages",
   ]
 }
