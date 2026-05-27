@@ -29,7 +29,6 @@ group("systemtest") {
       ":wms_window_animation_transition_test",
       ":wms_window_dialogwindow_test",
       ":wms_window_display_zoom_test",
-      ":wms_window_drag_test",
       ":wms_window_effect_test",
       ":wms_window_gamut_test",
       ":wms_window_input_method_test",

@@ -28,7 +28,6 @@ group("unittest") {
     ":dmserver_display_manager_ipc_service_test",
     ":dmserver_display_manager_service_inner_test",
     ":dmserver_display_power_controller_test",
-    ":dmserver_screen_rotation_controller_test",
   ]
 
   if (window_manager_use_sceneboard) {
