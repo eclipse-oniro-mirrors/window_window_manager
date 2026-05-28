@@ -127,7 +127,6 @@ public:
     FoldCreaseRegion GetLiveCreaseRegion() const;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const;
     virtual void SetMainScreenRegion(DMRect& mainScreenRegion) {};
-    bool GetLockDisplayStatus() const;
     void SetCurrentDisplayMode(FoldDisplayMode mode);
     virtual void ChangeScreenPowerOnFold(const std::vector<std::pair<ScreenId,
         ScreenPowerStatus>>& screenPowerTaskList);
