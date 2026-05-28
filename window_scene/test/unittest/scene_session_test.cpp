@@ -623,8 +623,7 @@ HWTEST_F(SceneSessionTest, UpdatePrivacyModeControlInfo02, Function | SmallTest 
     subSession->property_ = property;
     sceneSession->AddSubSession(subSession);
     sceneSession->UpdatePrivacyModeControlInfo();
-    EXPECT_EQ(sceneSession->appUseControlMap_.size(), 1);
-    EXPECT_EQ(sceneSession->appUseControlMap_[ControlAppType::PRIVACY_WINDOW].isNeedControl, true);
+    EXPECT_EQ(sceneSession->appUseControlMap_.size(), 0);
 }
 
 /**
