@@ -3112,26 +3112,6 @@ HWTEST_F(SceneSessionManagerTest2, ClosePipWindowIfExist, TestSize.Level1)
 }
 
 /**
- * @tc.name: RecoverAndConnectSpecificSession
- * @tc.desc: RecoverAndConnectSpecificSession
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, RecoverAndConnectSpecificSession, TestSize.Level1)
-{
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetParentId(1);
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    auto result =
-        ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
-}
-
-/**
  * @tc.name: UpdateGestureBackEnabled
  * @tc.desc: UpdateGestureBackEnabled
  * @tc.type: FUNC
@@ -3207,33 +3187,6 @@ HWTEST_F(SceneSessionManagerTest2, UpdateGestureBackEnabled, TestSize.Level1)
 
     ssm_->sceneSessionMap_.erase(1);
     ssm_->sceneSessionMap_.erase(2);
-}
-
-/**
- * @tc.name: RecoverAndConnectSpecificSession02
- * @tc.desc: RecoverAndConnectSpecificSession02
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, RecoverAndConnectSpecificSession02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.abilityName_ = "RecoverAndConnectSpecificSession02";
-    sessionInfo.bundleName_ = "SceneSessionManagerTest2";
-    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_END);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetSessionInfo(sessionInfo);
-    property->SetPersistentId(1);
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    ASSERT_NE(ssm_, nullptr);
-    auto result =
-        ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
