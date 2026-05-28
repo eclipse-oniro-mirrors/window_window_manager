@@ -897,6 +897,7 @@ export enum WindowType {
     TYPE_DYNAMIC = 25,
     TYPE_MUTISCREEN_COLLABORATION = 26,
     TYPE_MAIN = 32,
+    TYPE_UI_EXTENSION = 3000,
 }
 
 export enum Orientation {
