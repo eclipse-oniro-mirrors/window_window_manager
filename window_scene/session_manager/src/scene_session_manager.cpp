@@ -1998,6 +1998,15 @@ void SceneSessionManager::ConfigSupportFollowRelativePositionToParent()
     taskScheduler_->PostAsyncTask(task, "ConfigSupportFollowRelativePositionToParent");
 }
 
+void SceneSessionManager::ConfigStatusBarHeightMode(bool enable)
+{
+    TLOGI(WmsLogTag::DEFAULT, "config status bar height mode: %{public}d", enable);
+    auto task = [this, enable] {
+        systemConfig_.statusBarHeightMode_ = enable;
+    };
+    taskScheduler_->PostAsyncTask(task, "ConfigStatusBarHeightMode");
+}
+
 void SceneSessionManager::SetRootSceneContext(const std::weak_ptr<AbilityRuntime::Context>& contextWeak)
 {
     rootSceneContextWeak_ = contextWeak;

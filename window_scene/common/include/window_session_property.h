@@ -996,6 +996,7 @@ struct SystemSessionConfig : public Parcelable {
     bool supportUIExtensionSubWindow_ = false;
     bool supportCreateFloatView_ = false;
     bool supportCreateFloatingBall_ = false;
+    bool statusBarHeightMode_ = false;  // true: display height, false: component height
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
@@ -1076,6 +1077,9 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportCreateFloatingBall_)) {
             return false;
         }
+        if (!parcel.WriteBool(statusBarHeightMode_)) {
+            return false;
+        }
         return true;
     }
 
@@ -1135,6 +1139,7 @@ struct SystemSessionConfig : public Parcelable {
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
         config->supportCreateFloatingBall_ = parcel.ReadBool();
+        config->statusBarHeightMode_ = parcel.ReadBool();
         return config;
     }
         
