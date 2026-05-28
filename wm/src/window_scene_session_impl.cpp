@@ -5382,7 +5382,7 @@ WMError WindowSceneSessionImpl::SetGrayScale(float grayScale)
 
 WindowMode WindowSceneSessionImpl::GetWindowMode() const
 {
-    return property_->GetWindowModeCompat();
+    return property_->GetWindowMode();
 }
 
 WindowModeInfo WindowSceneSessionImpl::GetWindowModeInfo() const
