@@ -47,7 +47,7 @@ static ani_ref FindWindowById(ani_env* env, ani_long instanceId)
         return nullptr;
     }
     if (window->GetType() == WindowType::WINDOW_TYPE_UI_EXTENSION) {
-        return FindAniExtensionWindowById(env, window->GetWindowPersistentId());
+        return FindAniExtensionWindow(env, window);
     }
     return CreateAniWindowObject(env, window);
 }
