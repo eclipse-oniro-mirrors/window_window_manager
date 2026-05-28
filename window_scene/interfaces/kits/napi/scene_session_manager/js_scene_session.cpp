@@ -392,6 +392,8 @@ static napi_value CreateFvTemplateInfo(napi_env env, const FloatViewTemplateInfo
         CreateJsValue(env, fvTemplateInfo.showWhenCreate_));
     napi_set_named_property(env, fvTemplateInfoValue, "id",
         CreateJsValue(env, fvTemplateInfo.id_));
+    napi_set_named_property(env, fvTemplateInfoValue, "isConfirmOnClose",
+        CreateJsValue(env, fvTemplateInfo.closeConfirm_));
 
     napi_value jsRect = CreateJsSessionRect(env, fvTemplateInfo.rect_);
     if (jsRect == nullptr) {
