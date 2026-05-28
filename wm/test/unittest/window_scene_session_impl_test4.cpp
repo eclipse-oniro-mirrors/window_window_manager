@@ -2663,7 +2663,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo03, TestSize.Level1)
 
     using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
     auto displayMocker = std::make_unique<DisplayMocker>();
-    EXPECT_CALL(*displayMocker->mock_, GetFoldStatus())
+    EXPECT_CALL(displayMocker->Mock(), GetFoldStatus())
         .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
     windowSceneSessionImpl->superFoldOffsetY_ = 100;
@@ -2703,7 +2703,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo04, TestSize.Level1)
 
     using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
     auto displayMocker = std::make_unique<DisplayMocker>();
-    EXPECT_CALL(*displayMocker->mock_, GetFoldStatus())
+    EXPECT_CALL(displayMocker->Mock(), GetFoldStatus())
         .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
     windowSceneSessionImpl->superFoldOffsetY_ = -1;
@@ -2752,7 +2752,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo05, TestSize.Level1)
 
     using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
     auto displayMocker = std::make_unique<DisplayMocker>();
-    EXPECT_CALL(*displayMocker->mock_, GetFoldStatus())
+    EXPECT_CALL(displayMocker->Mock(), GetFoldStatus())
         .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
     windowSceneSessionImpl->superFoldOffsetY_ = -1;

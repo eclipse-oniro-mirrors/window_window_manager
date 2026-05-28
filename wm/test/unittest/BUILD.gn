@@ -516,7 +516,10 @@ ohos_unittest("wm_window_scene_session_impl_test3") {
 
 ohos_unittest("wm_window_scene_session_impl_test4") {
   module_out_path = module_out_path
-  include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/common/include/",
+  ]
   sanitize = {
     cfi = true
     cfi_cross_dso = true
@@ -528,6 +531,7 @@ ohos_unittest("wm_window_scene_session_impl_test4") {
   deps = [
     ":wm_unittest_common",
     "${window_base_path}/test/common/utils:libtestutil",
+    "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
   ]
 
   external_deps = test_external_deps
