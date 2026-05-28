@@ -29,7 +29,9 @@ namespace Rosen {
 using namespace AbilityRuntime;
 namespace {
 const char* ARKUI_WINDOW_FB_CREATE = "ArkUI.window.fb.create";
-const char* ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED = "ArkUI.window.fb.isFloatingBallEnabled";
+
+const char* ARKUI_WINDOW_FB_CREATE_BOOL = "ArkUI.window.fb.create.bool";
+const char* ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED_BOOL = "ArkUI.window.fb.isFloatingBallEnabled.bool";
 }
 
 JsFbWindowManager::JsFbWindowManager()
@@ -55,16 +57,15 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     // 解析应用传参FloatingBallConfiguration对象
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-        return NapiThrowInvalidParam(env,
-            "[fbWindow][create]msg: Missing args when creating fbController");
+        return NapiThrowInvalidParam(env, "[fbWindow][create]msg: Missing args when creating fbController",
+            ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
 
     napi_value config = argv[0];
     if (config == nullptr) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
         return NapiThrowInvalidParam(env,
-            "[fbWindow][create]msg: Failed to convert object to fbConfiguration or fbConfiguration is null");
+            "[fbWindow][create]msg: Failed to convert object to fbConfiguration or fbConfiguration is null",
+            ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
 
     napi_value contextPtrValue = nullptr;
@@ -72,8 +73,8 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     void* contextPtr = nullptr;
     napi_unwrap(env, contextPtrValue, &contextPtr);
     if (contextPtr == nullptr) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_CREATE_FAILED);
-        return NapiThrowInvalidParam(env, "[fbWindow][create]msg: Context is null.");
+        return NapiThrowInvalidParam(env, "[fbWindow][create]msg: Context is null.",
+            ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
     return NapiSendTask(env, contextPtr);
 }
@@ -119,10 +120,11 @@ napi_value JsFbWindowManager::NapiSendTask(napi_env env, void* contextPtr)
             }
         if (*errCodePtr == WmErrorCode::WM_OK) {
             task.Resolve(env, CreateJsFbControllerObject(env, fbController));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_OK);
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_CREATE_BOOL, 1);
         } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "JsFbController::OnStartFloatingBall failed."));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_CREATE_BOOL, 0);
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
+                "JsFbController::OnStartFloatingBall failed."));
         }
     };
     napi_value result = nullptr;
@@ -145,12 +147,7 @@ napi_value JsFbWindowManager::IsFbEnabled(napi_env env, napi_callback_info info)
 napi_value JsFbWindowManager::OnIsFbEnabled(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_SYSTEM, "OnIsFbEnabled called");
-    if (!FloatingBallManager::isSupportFloatingBall_) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED,
-                                         WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
-    } else {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED, WmErrorCode::WM_OK);
-    }
+    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED_BOOL, 1);
     return CreateJsValue(env, FloatingBallManager::isSupportFloatingBall_);
 }
 
