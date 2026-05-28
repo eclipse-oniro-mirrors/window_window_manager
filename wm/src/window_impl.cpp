@@ -2131,6 +2131,7 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
     UpdateWindowStateWhenHide();
     CustomHideAnimation();
     ResetMoveOrDragState();
+    NotifyAfterDidBackground(reason, true);
     escKeyEventTriggered_ = false;
     return ret;
 }
