@@ -932,8 +932,8 @@ struct PointInfo {
  * @brief Event position information for window coordinate conversion.
  */
 struct EventPositionInfo {
-    static constexpr int32_t INVALID_INT32 = -std::numeric_limits<int32_t>::max();
-    static constexpr double INVALID_DOUBLE = -std::numeric_limits<double>::max();
+    static constexpr int32_t INVALID_INT32 = std::numeric_limits<int32_t>::min();
+    static constexpr double INVALID_DOUBLE = std::numeric_limits<double>::lowest();
 
     int32_t displayX = INVALID_INT32;
     int32_t displayY = INVALID_INT32;

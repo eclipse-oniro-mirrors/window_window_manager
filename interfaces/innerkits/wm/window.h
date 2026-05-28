@@ -1280,6 +1280,8 @@ public:
      * @brief Get original event position information.
      *
      * @param eventPositionInfo Input event position information.
+     *        If a field in eventPositionInfo is invalid value (INVALID_INT32 or INVALID_DOUBLE),
+     *        it will not be processed and remain invalid in the output.
      * @param originalEventPositionInfo [out] Output original event position information.
      * @return WMError::WM_OK on success, or appropriate error code on failure.
      */
