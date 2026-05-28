@@ -474,6 +474,30 @@ HWTEST_F(SensorFoldStateMgrTest, TentModeHandleSensorChangeTest03, TestSize.Leve
     SensorFoldStateMgr::GetInstance().TentModeHandleSensorChange(sensorStatus);
     EXPECT_TRUE(g_logMsg.find("Exit tent mode due to angle sensor report angle:180") != std::string::npos);
 }
+
+/**
+ * @tc.name: GetTentModeScreenAxis
+ * @tc.desc: test function : GetTentModeScreenAxis
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, GetTentModeScreenAxis, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance().IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    SensorStatus sensorStatus;
+    auto retAxis = SensorFoldStateMgr::GetInstance().GetTentModeScreenAxis(sensorStatus);
+    EXPECT_EQ(retAxis.hall_, -1);
+    EXPECT_FLOAT_EQ(retAxis.angle_, -1.0F);
+
+    ScreenAxis axis1 = {.angle_ = 60.0f, .hall_ = 1};
+    sensorStatus.axis_.emplace_back(axis1);
+    ScreenAxis axis2 = {.angle_ = 180.0f, .hall_ = 0};
+    sensorStatus.axis_.emplace_back(axis2);
+    retAxis = SensorFoldStateMgr::GetInstance().GetTentModeScreenAxis(sensorStatus);
+    EXPECT_EQ(retAxis.hall_, axis1.hall_);
+    EXPECT_FLOAT_EQ(retAxis.angle_, axis1.angle_);
+}
 }
 }
 } // namespace Rosen

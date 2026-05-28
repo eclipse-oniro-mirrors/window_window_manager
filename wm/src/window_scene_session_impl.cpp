@@ -750,7 +750,7 @@ void WindowSceneSessionImpl::UpdateWindowState()
         if (property_->GetIsNeedUpdateWindowMode()) {
             WLOGFI("UpdateWindowMode %{public}u mode %{public}u",
                 GetWindowId(), static_cast<uint32_t>(property_->GetWindowMode()));
-            UpdateWindowModeImmediately(WindowModeInfo{ property_->GetWindowMode() });
+            UpdateWindowModeImmediately(property_->GetWindowModeInfo());
             property_->SetIsNeedUpdateWindowMode(false);
         } else {
             SetWindowMode(windowSystemConfig_.defaultWindowMode_);
@@ -5417,6 +5417,11 @@ WindowMode WindowSceneSessionImpl::GetWindowMode() const
     return property_->GetWindowMode();
 }
 
+WindowMode WindowSceneSessionImpl::GetWindowModeCompat() const
+{
+    return property_->GetWindowModeCompat();
+}
+
 WindowModeInfo WindowSceneSessionImpl::GetWindowModeInfo() const
 {
     return windowModeInfo_;
@@ -8984,7 +8989,7 @@ WSError WindowSceneSessionImpl::NotifyAppForceLandscapeConfigUpdated()
     WindowType winType = GetType();
     AppForceLandscapeConfig config = {};
     if (WindowHelper::IsMainWindow(winType) && GetAppForceLandscapeConfig(config) == WMError::WM_OK &&
-        (config.containsSysConfig_ || config.containsAppConfig_)) {
+        config.containsConfig_) {
         SetForceSplitConfig(config);
         return WSError::WS_OK;
     }

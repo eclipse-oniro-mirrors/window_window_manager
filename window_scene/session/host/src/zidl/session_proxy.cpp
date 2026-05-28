@@ -366,7 +366,11 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         bool needUpdate = reply.ReadBool();
         property->SetIsNeedUpdateWindowMode(needUpdate);
         if (needUpdate) {
-            property->SetWindowMode(static_cast<WindowMode>(reply.ReadUint32()));
+            WindowModeInfo windowModeInfo;
+            windowModeInfo.windowMode = static_cast<WindowMode>(reply.ReadUint32());
+            windowModeInfo.splitStyle = static_cast<SplitStyle>(reply.ReadInt32());
+            windowModeInfo.splitIndex = reply.ReadInt32();
+            property->SetWindowModeInfo(windowModeInfo);
         }
         Rect preRect = property->GetWindowRect();
         Rect rect = { reply.ReadInt32(), reply.ReadInt32(), reply.ReadUint32(), reply.ReadUint32() };

@@ -201,9 +201,29 @@ int32_t Session::GetCurrentRotation() const
     return currentRotation_;
 }
 
+void Session::SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
+{
+    if (surfaceNode == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null, win=[%{public}d, %{public}s]",
+            GetWindowId(), GetWindowName().c_str());
+        return;
+    }
+    surfaceNode->SetAlphaChangedCallback([weak = wptr(this), where = __func__](float alpha) {
+        auto session = weak.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f",
+            where, session->GetWindowId(), session->GetWindowName().c_str(), alpha);
+        session->SetSurfaceNodeAlpha(alpha);
+    });
+}
+
 void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
 {
     RSAdapterUtil::SetRSUIContext(surfaceNode, GetRSUIContext(), true);
+    SetSurfaceNodeAlphaChangedCallback(surfaceNode);
     {
         std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
         surfaceNode_ = surfaceNode;
@@ -1728,7 +1748,7 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     }
     if (GetSessionProperty()->GetIsNeedUpdateWindowMode()) {
         property->SetIsNeedUpdateWindowMode(true);
-        property->SetWindowMode(GetSessionProperty()->GetWindowMode());
+        property->SetWindowModeInfo(GetSessionProperty()->GetWindowModeInfo());
     }
     if (SessionHelper::IsMainWindow(GetWindowType()) && GetSessionInfo().screenId_ != SCREEN_ID_INVALID) {
         property->SetDisplayId(GetSessionInfo().screenId_);
@@ -2192,6 +2212,16 @@ void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
     return isPendingToBackgroundState_.store(isPendingToBackgroundState);
 }
 
+bool Session::IsNeedNotifyAttachState(bool isAttach)
+{
+    if (WindowHelper::IsMainWindow(GetWindowType()) && (showRecent_ || isAttach == isClientAttach_)) {
+        TLOGI(WmsLogTag::WMS_LIFE, "No need notifyWindowAttachStateChange, persistentId:%{public}d",
+            GetPersistentId());
+        return false;
+    }
+    return true;
+}
+
 void Session::SetAttachState(bool isAttach, WindowMode windowMode)
 {
     isAttach_ = isAttach;
@@ -2201,15 +2231,19 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
     PostTask([weakThis = wptr(this), isAttach]() {
         auto session = weakThis.promote();
         if (session == nullptr) {
-            TLOGND(WmsLogTag::WMS_LIFE, "session is null");
+            TLOGD(WmsLogTag::WMS_LIFE, "session is null");
             return;
         }
-        if (session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
+        if (WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType()) &&
+            session->IsNeedNotifyAttachState(isAttach)) {
+            session->isClientAttach_ = isAttach;
+            TLOGI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
-            session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
+            if (session->sessionStage_) {
+                session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
+            }
         }
-        TLOGND(WmsLogTag::WMS_LIFE, "isAttach:%{public}d persistentId:%{public}d", isAttach,
+        TLOGD(WmsLogTag::WMS_LIFE, "isAttach:%{public}d persistentId:%{public}d", isAttach,
             session->GetPersistentId());
         if (!isAttach && session->detachCallback_ != nullptr) {
             TLOGNI(WmsLogTag::WMS_LIFE, "Session detach, persistentId:%{public}d", session->GetPersistentId());

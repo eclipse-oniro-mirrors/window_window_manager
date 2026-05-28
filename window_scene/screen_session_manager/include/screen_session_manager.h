@@ -441,6 +441,7 @@ public:
         ScreenPropertyChangeType screenPropertyChangeType, const RRect& bounds) override;
     uint32_t GetCurvedCompressionArea() override;
     ScreenProperty GetPhyScreenProperty(ScreenId screenId) override;
+    ScreenProperty GetPhyScreenPropertyInner(ScreenId screenId);
     void SetScreenPrivacyState(bool hasPrivate) override;
     void SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId) override;
     bool CheckNeedNotify(const std::vector<DisplayId>& displayIds,
@@ -1301,7 +1302,6 @@ private:
     void HandleCustomResolutionChange();
     void SetCustomResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height);
     void RecoveryCustomResolutionEffect();
-    bool HasExternalScreen();
     void RestoreCustomResolution();
     uint32_t customResolutionWidth_ = 0;
     uint32_t customResolutionHeight_ = 0;

@@ -4040,52 +4040,6 @@ HWTEST_F(ScreenSessionManagerTest, RecoveryCustomResolutionEffect02, TestSize.Le
 }
 
 /**
- * @tc.name: HasExternalScreen
- * @tc.desc: HasExternalScreen when no external screen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, HasExternalScreen, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-
-    ssm_->screenSessionMap_.clear();
-
-    bool result = ssm_->HasExternalScreen();
-    EXPECT_FALSE(result);
-}
-
-/**
- * @tc.name: HasExternalScreen02
- * @tc.desc: HasExternalScreen with wired external screen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, HasExternalScreen02, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-
-    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
-    ASSERT_NE(nullptr, screenSession1);
-    screenSession1->SetIsCurrentInUse(true);
-    screenSession1->SetScreenType(ScreenType::REAL);
-    screenSession1->isInternal_ = true;
-
-    sptr<ScreenSession> screenSession2 = new ScreenSession(52, ScreenProperty(), 0);
-    ASSERT_NE(nullptr, screenSession2);
-    screenSession2->SetIsCurrentInUse(true);
-    screenSession2->SetScreenType(ScreenType::REAL);
-    screenSession2->isInternal_ = false;
-
-    ssm_->screenSessionMap_[51] = screenSession1;
-    ssm_->screenSessionMap_[52] = screenSession2;
-
-    bool result = ssm_->HasExternalScreen();
-    EXPECT_TRUE(result);
-
-    ssm_->screenSessionMap_.erase(51);
-    ssm_->screenSessionMap_.erase(52);
-}
-
-/**
  * @tc.name: RestoreCustomResolution
  * @tc.desc: RestoreCustomResolution normal restore
  * @tc.type: FUNC

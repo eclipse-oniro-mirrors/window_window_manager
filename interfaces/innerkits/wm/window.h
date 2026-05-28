@@ -1291,6 +1291,13 @@ public:
     virtual WindowMode GetWindowMode() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
 
     /**
+     * @brief Get the compatible window mode.
+     *
+     * @return Compatible WindowMode of window.
+     */
+    virtual WindowMode GetWindowModeCompat() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
+
+    /**
      * @brief Get the window mode info.
      *
      * @return WindowModeInfo of window.

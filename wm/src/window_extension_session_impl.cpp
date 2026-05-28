@@ -2136,6 +2136,11 @@ WindowMode WindowExtensionSessionImpl::GetWindowMode() const
     return property_->GetWindowMode();
 }
 
+WindowMode WindowExtensionSessionImpl::GetWindowModeCompat() const
+{
+    return property_->GetWindowModeCompat();
+}
+
 void WindowExtensionSessionImpl::UpdateExtensionConfig(const std::shared_ptr<AAFwk::Want>& want)
 {
     if (want == nullptr) {

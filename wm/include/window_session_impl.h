@@ -1108,6 +1108,8 @@ protected:
     WSError NotifyWindowDensityChange(float density);
     void RegisterWindowInspectorCallback();
     uint32_t GetTargetAPIVersionByApplicationInfo() const;
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
+    void NotifySurfaceNodeAlphaUpdate(float alpha);
 
     /*
      * Window Input Event

@@ -14,6 +14,7 @@
  */
 
 #include "screen_sensor_connector.h"
+#include "screen_session_manager.h"
 #include <chrono>
 #include <securec.h>
 #include <parameters.h>
@@ -32,6 +33,12 @@ namespace {
     const int32_t DISABLE_SMART_ROTATION = 0;
     const int32_t ENABLE_SMART_ROTATION = 1;
     const int32_t MOTION_TYPE_TENT = 2800;
+    const int32_t TENT_MODE_UNKNOWN = 0;
+    const int32_t TENT_MODE_TENT = 1;
+    const int32_t TENT_MODE_HOVER = 2;
+    const int32_t TENT_MODE_SUPER_DEVICE_HOVER = 3;
+    const int32_t TENT_MODE_SUPER_DEVICE_TENT_ONE = 4;
+    const int32_t TENT_MODE_SUPER_DEVICE_TENT_TWO = 5;
 #endif
 }
 
@@ -40,6 +47,7 @@ bool MotionSubscriber::isMotionSensorSubscribed_ = false;
 bool MotionTentSubscriber::isMotionSensorSubscribed_ = false;
 static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
 static void TentMotionEventCallback(const MotionSensorEvent& motionData);
+static bool GetMatchTentMode(int32_t motionStatus, TentMode& tentMode);
 #endif
 
 void ScreenSensorConnector::SubscribeRotationSensor()
@@ -190,15 +198,36 @@ void TentMotionEventCallback(const MotionSensorEvent& motionData)
         realHall = -1;
     }
 
-    TentMode motionStatus = static_cast<TentMode>(motionData.status);
-    if (motionStatus == TentMode::UNKNOWN ||
-        motionStatus == TentMode::TENT_MODE ||
-        motionStatus == TentMode::HOVER) {
+    TentMode motionStatus = TentMode::TENT_MODE_MAX;
+    if (GetMatchTentMode(motionData.status, motionStatus)) {
+        TLOGI(WmsLogTag::DMS, "tent motion:%{public}d", motionStatus);
         ScreenTentProperty::HandleSensorEventInput(motionData.status, realHall);
         ScreenSessionManager::GetInstance().NotifyTentModeChange(motionStatus);
     } else {
         TLOGE(WmsLogTag::DMS, "tent motion:%{public}d invalid", motionData.status);
     }
+}
+
+bool GetMatchTentMode(int32_t motionStatus, TentMode& tentMode)
+{
+    switch (motionStatus) {
+        case TENT_MODE_UNKNOWN :
+            tentMode = TentMode::UNKNOWN;
+            break;
+        case TENT_MODE_TENT :
+        case TENT_MODE_SUPER_DEVICE_TENT_ONE :
+        case TENT_MODE_SUPER_DEVICE_TENT_TWO :
+            tentMode = TentMode::TENT_MODE;
+            break;
+        case TENT_MODE_HOVER :
+        case TENT_MODE_SUPER_DEVICE_HOVER :
+            tentMode = TentMode::HOVER;
+            break;
+        default:
+            tentMode = TentMode::TENT_MODE_MAX;
+            return false;
+    }
+    return true;
 }
 #endif
 } // Rosen

@@ -526,6 +526,9 @@
               ],
               "header_base": "//foundation/window/window_manager/interfaces/innerkits/wm"
             }
+          },
+          {
+            "name": "//foundation/window/window_manager/interfaces/kits/ani/environmental:copy_window_env_static_ets"
           }
         ],
         "test": [

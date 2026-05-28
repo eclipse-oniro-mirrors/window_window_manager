@@ -2417,8 +2417,11 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
 
-    if (g_setLocalResolution && screenSession != nullptr && screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL &&
-        !screenSession->isInternal_) {
+    const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
+        return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
+    };
+
+    if (g_setLocalResolution && isExternalRealScreen(screenSession)) {
         TLOGNFI(WmsLogTag::DMS, "External screen connected, disable custom resolution");
         RecoveryCustomResolutionEffect();
     }
@@ -2612,12 +2615,13 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
         UnregisterSettingWireCastObserver(screenId);
     }
 
-    if (g_setLocalResolution && screenSession != nullptr && screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL &&
-        !screenSession->isInternal_) {
+    const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
+        return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
+    };
+
+    if (g_setLocalResolution && isExternalRealScreen(screenSession)) {
         TLOGNFI(WmsLogTag::DMS, "External screen disconnected, check if need restore custom resolution");
-        if (!HasExternalScreen()) {
-            RestoreCustomResolution();
-        }
+        RestoreCustomResolution();
     }
     TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
 }
@@ -4320,6 +4324,10 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenProperty
     Rotation targetRotation = ConvertIntToRotation(rotation);
     if (!IsVertical(targetRotation) && (type == ScreenPropertyChangeType::ROTATION_END)) {
         HandleResolutionEffectChange();
+        sptr<ScreenSession> externalSession = GetExternalSession();
+        if (g_setLocalResolution && (externalSession == nullptr || !externalSession->GetIsCurrentInUse())) {
+            HandleCustomResolutionChange();
+        }
     } else if (IsVertical(targetRotation) && (type == ScreenPropertyChangeType::ROTATION_BEGIN ||
         type == ScreenPropertyChangeType::UNSPECIFIED)) {
         //It's need Recovery when start rotate to vertical and in muiltuser the rotato is UNSPECIFIED.
@@ -6511,7 +6519,6 @@ bool ScreenSessionManager::SetScreenPower(ScreenPowerStatus status, PowerStateCh
         gotScreenlockFingerprint_ == true) {
         gotScreenlockFingerprint_ = false;
     }
-    SetLockDisplayModeWhenShutDown(reason, false);
     return NotifyDisplayPowerEvent(notifyEvent, EventStatus::END, reason);
 }
 
@@ -7067,20 +7074,19 @@ void ScreenSessionManager::HandleCustomResolutionChange()
         TLOGNFE(WmsLogTag::DMS, "invalid custom resolution");
         return;
     }
-    customResolutionWidth_ = width;
-    customResolutionHeight_ = height;
-    TLOGNFI(WmsLogTag::DMS, "width:%{public}u, height:%{public}u", width, height);
-
-    if (HasExternalScreen()) {
-        TLOGNFI(WmsLogTag::DMS, "Has external screen, custom resolution not applied");
-        return;
-    }
 
     sptr<ScreenSession> internalSession = GetInternalScreenSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "internalSession is null");
         return;
     }
+
+    if (!IsVertical(internalSession->GetRotation())) {
+        std::swap(width, height);
+    }
+    customResolutionWidth_ = width;
+    customResolutionHeight_ = height;
+    TLOGNFI(WmsLogTag::DMS, "width:%{public}u, height:%{public}u", width, height);
     SetCustomResolutionEffect(internalSession->GetScreenId(), width, height);
 }
 
@@ -7170,16 +7176,6 @@ void ScreenSessionManager::RecoveryCustomResolutionEffect()
     NotifyScreenModeChange();
 }
 
-bool ScreenSessionManager::HasExternalScreen()
-{
-    sptr<ScreenSession> externalSession = GetExternalSession();
-    if (externalSession != nullptr && externalSession->GetIsCurrentInUse()) {
-        TLOGNFI(WmsLogTag::DMS, "Has wired external screen");
-        return true;
-    }
-    return false;
-}
-
 void ScreenSessionManager::RestoreCustomResolution()
 {
     uint32_t width = 0;
@@ -7187,11 +7183,14 @@ void ScreenSessionManager::RestoreCustomResolution()
     if (ScreenSettingHelper::GetCustomResolution(width, height)) {
         TLOGNFI(WmsLogTag::DMS, "Restore custom resolution width:%{public}u, height:%{public}u",
             width, height);
-        customResolutionWidth_ = width;
-        customResolutionHeight_ = height;
         ScreenSettingHelper::SetCustomResolution(width, height);
         sptr<ScreenSession> internalSession = GetInternalScreenSession();
         if (internalSession != nullptr) {
+            if (!IsVertical(internalSession->GetRotation())) {
+                std::swap(width, height);
+            }
+            customResolutionWidth_ = width;
+            customResolutionHeight_ = height;
             SetCustomResolutionEffect(internalSession->GetScreenId(), width, height);
         }
     }
@@ -10941,6 +10940,11 @@ ScreenProperty ScreenSessionManager::GetPhyScreenProperty(ScreenId screenId)
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return {};
     }
+    return GetPhyScreenPropertyInner(screenId);
+}
+
+ScreenProperty ScreenSessionManager::GetPhyScreenPropertyInner(ScreenId screenId)
+{
     std::lock_guard<std::recursive_mutex> lock_phy(phyScreenPropMapMutex_);
     ScreenProperty property;
     auto iter = phyScreenPropMap_.find(screenId);
