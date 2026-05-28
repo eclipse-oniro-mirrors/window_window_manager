@@ -1569,7 +1569,7 @@ void SceneSession::UpdatePrivacyModeControlInfo()
 {
     bool isPrivacyMode = false;
     auto property = GetSessionProperty();
-    if ((property && property->GetPrivacyMode()) || HasChildSessionInPrivacyMode()) {
+    if ((property && property->GetPrivacyMode())) {
         isPrivacyMode = true;
     }
     ControlInfo controlInfo;
@@ -5724,10 +5724,9 @@ void SceneSession::SetPrivacyMode(bool isPrivacy)
         }
     }
     NotifyPrivacyModeChange();
-    auto mainSession = GetMainSession();
-    if (mainSession) {
+    if (SessionHelper::IsMainWindow(GetWindowType())) {
         ControlInfo controlInfo = { .isNeedControl = isPrivacy, .isControlRecentOnly = true };
-        mainSession->NotifyUpdateAppUseControl(ControlAppType::PRIVACY_WINDOW, controlInfo);
+        NotifyUpdateAppUseControl(ControlAppType::PRIVACY_WINDOW, controlInfo);
     }
 }
 
