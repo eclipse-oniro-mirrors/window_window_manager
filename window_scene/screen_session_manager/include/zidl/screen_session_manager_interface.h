@@ -179,6 +179,11 @@ public:
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type) { return DMError::DM_OK; }
     virtual DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
@@ -192,6 +197,10 @@ public:
     virtual bool WakeUpEnd() { return false; }
     virtual bool SuspendBegin(PowerStateChangeReason reason) { return false; }
     virtual bool SuspendEnd() { return false; }
+    virtual DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual ScreenId GetInternalScreenId() { return SCREEN_ID_INVALID; }
     virtual bool SetScreenPowerById(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason)
     {
@@ -205,7 +214,7 @@ public:
     virtual bool SetDisplayState(DisplayState state) { return false; }
     virtual DisplayState GetDisplayState(DisplayId displayId) {return DisplayState::UNKNOWN; }
     virtual bool TryToCancelScreenOff() { return false; }
-    virtual bool SetScreenBrightness(uint64_t screenId, uint32_t level) { return false; }
+    virtual bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData) { return false; }
     virtual uint32_t GetScreenBrightness(uint64_t screenId) { return 0; }
     virtual std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT)
     {
@@ -434,6 +443,8 @@ public:
         bool enable) { return DMError::DM_OK; }
     virtual bool SynchronizePowerStatus(ScreenPowerState state) { return false; }
     virtual void NotifySwitchUserAnimationFinish() {}
+    virtual void SubscribeMotionSensor(int32_t motionType) {}
+    virtual void UnsubscribeMotionSensor(int32_t motionType) {}
     virtual DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty)
     {
         return DMError::DM_OK;

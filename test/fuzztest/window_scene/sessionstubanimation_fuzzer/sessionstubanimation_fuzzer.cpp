@@ -56,6 +56,10 @@ void SessionStubAnimationTest(sptr<Session> sessionStub, MessageParcel& parcel)
     sessionStub->OnRemoteRequest(static_cast<uint32_t>
         (Rosen::SessionInterfaceCode::TRANS_ID_SET_WINDOW_TRANSITION_ANIMATION),
         parcel, reply, option);
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>
+        (Rosen::SessionInterfaceCode::TRANS_ID_SET_PREFERRED_ORIENTATION_WITH_RESULT),
+        parcel, reply, option);
 }
 
 void SessionStageStubAnimationTest(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel)
@@ -74,6 +78,18 @@ void SessionStageStubAnimationTest(sptr<WindowSessionImpl> stageStub, MessagePar
     parcel.RewindRead(0);
     stageStub->OnRemoteRequest(static_cast<uint32_t>
         (Rosen::SessionStageInterfaceCode::TRANS_ID_NOTIFY_ROTATION_CHANGE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>
+        (Rosen::SessionStageInterfaceCode::TRANS_ID_GET_SCREEN_NODE_COUNT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>
+        (Rosen::SessionStageInterfaceCode::TRANS_ID_GET_SCENE_NODE_COUNT_WITH_CALLBACK),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(static_cast<uint32_t>
+        (Rosen::SessionStageInterfaceCode::TRANS_ID_NOTIFY_ORIENTATION_CHANGE),
         parcel, reply, option);
 }
 

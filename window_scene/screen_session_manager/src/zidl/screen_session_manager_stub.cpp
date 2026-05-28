@@ -100,6 +100,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteBool(SuspendEnd());
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE: {
+            ScreenClosedState screenClosedState = static_cast<ScreenClosedState>(data.ReadUint32());
+            bool isScreenOn = data.ReadBool();
+            DMError ret = SetScreenSwitchState(screenClosedState, isScreenOn);
+            reply.WriteUint32(static_cast<uint32_t>(ret));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_INTERNAL_SCREEN_ID: {
             reply.WriteUint64(GetInternalScreenId());
             break;
@@ -157,9 +164,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             break;
         }
         case DisplayManagerMessage::TRANS_ID_SET_SCREEN_BRIGHTNESS: {
-            uint64_t screenId = data.ReadUint64();
-            uint32_t level = data.ReadUint64();
-            reply.WriteBool(SetScreenBrightness(screenId, level));
+            DmsScreenBrightnessData* brightnessDataPtr = DmsScreenBrightnessData::Unmarshalling(data);
+            if (brightnessDataPtr == nullptr) {
+                reply.WriteBool(false);
+            } else {
+                reply.WriteBool(SetScreenBrightness(*brightnessDataPtr));
+                delete brightnessDataPtr;
+            }
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_SCREEN_BRIGHTNESS: {
@@ -262,6 +273,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             if (!reply.WriteFloat(brightnessInfo.sdrNits)) {
                 TLOGE(WmsLogTag::DMS, "write sdrNits failed!");
+                break;
+            }
+            if (!reply.WriteFloat(brightnessInfo.brightnessPosition)) {
+                TLOGE(WmsLogTag::DMS, "write brightnessPosition failed!");
                 break;
             }
             break;
@@ -1708,6 +1723,30 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY: {
+            if (!ProcGetScreenCapability(data, reply)) {
+                return ERR_INVALID_DATA;
+            }
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR: {
+            int32_t motionType = 0;
+            if (!data.ReadInt32(motionType)) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
+                return ERR_INVALID_DATA;
+            }
+            SubscribeMotionSensor(motionType);
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR: {
+            int32_t motionType = 0;
+            if (!data.ReadInt32(motionType)) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
+                return ERR_INVALID_DATA;
+            }
+            UnsubscribeMotionSensor(motionType);
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1966,5 +2005,37 @@ IPCPriority ScreenSessionManagerStub::GetIPCPriority(uint32_t code)
         return IPCPriority::LOW;
     }
     return it->second;
+}
+
+bool ScreenSessionManagerStub::ProcGetScreenCapability(MessageParcel& data, MessageParcel& reply)
+{
+    ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+    ScreenCapability capability;
+    DMError ret = GetScreenCapability(screenId, capability);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::DMS, "Write ret failed.");
+        return false;
+    }
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "Ret %{public}d", static_cast<int32_t>(ret));
+        return true;
+    }
+    if (!reply.WriteUint32(capability.phyWidth_)) {
+        TLOGE(WmsLogTag::DMS, "Write phyWidth failed.");
+        return false;
+    }
+    if (!reply.WriteUint32(capability.phyHeight_)) {
+        TLOGE(WmsLogTag::DMS, "Write phyHeight failed.");
+        return false;
+    }
+    if (!reply.WriteUint32(capability.interfaceType_)) {
+        TLOGE(WmsLogTag::DMS, "Write interfaceType failed.");
+        return false;
+    }
+    if (!reply.WriteUint8(capability.colorBitDepth_)) {
+        TLOGE(WmsLogTag::DMS, "Write colorBitDepth failed.");
+        return false;
+    }
+    return true;
 }
 } // namespace OHOS::Rosen

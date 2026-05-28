@@ -85,6 +85,16 @@ std::vector<DMRect> FoldCreaseRegionController::GetCreaseRegionRects(ScreenId sc
     std::shared_lock<std::shared_mutex> lock(creaseRegionMutex_);
     return RotateRectArray(displayModeRects_[displayMode], bounds.rect_.width_, bounds.rect_.height_, targetRotation);
 }
+
+void FoldCreaseRegionController::SortCreaseRegionRects(std::vector<DMRect>& creaseRegion)
+{
+    std::sort(creaseRegion.begin(), creaseRegion.end(), [](const DMRect& rectA, const DMRect& rectB) {
+        if (rectA.posX_ != rectB.posX_) {
+            return rectA.posX_ < rectB.posX_;
+        }
+        return rectA.posY_ < rectB.posY_;
+    });
+}
  
 void FoldCreaseRegionController::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems)
 {

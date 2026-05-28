@@ -102,10 +102,10 @@ WSError KeyboardSession::Show(sptr<WindowSessionProperty> property)
         if (session->GetKeyboardGravity() == SessionGravity::SESSION_GRAVITY_BOTTOM) {
             session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_SHOW);
         }
-        const auto targetDisplayId = property->GetDisplayId();
+        const auto targetDisplayId = property->GetKeyboardTargetDisplayId();
         auto sessionProperty = session->GetSessionProperty();
         sessionProperty->SetKeyboardEffectOption(property->GetKeyboardEffectOption());
-        sessionProperty->SetDisplayId(targetDisplayId);
+        sessionProperty->SetKeyboardTargetDisplayId(targetDisplayId);
         session->UseFocusIdIfCallingSessionIdInvalid(property->GetCallingSessionId());
         auto panelSession = session->GetKeyboardPanelSession();
         if (const auto callingSession = session->GetSceneSession(
@@ -188,7 +188,7 @@ WSError KeyboardSession::Hide()
     return WSError::WS_OK;
 }
 
-WSError KeyboardSession::Disconnect(bool isFromClient, const std::string& identityToken)
+WSError KeyboardSession::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     PostTask([weakThis = wptr(this), isFromClient]() {
         auto session = weakThis.promote();

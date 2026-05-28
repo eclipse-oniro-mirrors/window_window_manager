@@ -698,6 +698,28 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSensorRotationChanged, Test
 }
 
 /**
+ * @tc.name: HandleOnSmartSensorRotationChanged
+ * @tc.desc: HandleOnSmartSensorRotationChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSmartSensorRotationChanged, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+    ScreenId screenId = 0;
+    data.WriteUint64(screenId);
+    float sensorRotation = 90.0f;
+    data.WriteFloat(sensorRotation);
+    bool isSwitchUser = false;
+    data.WriteBool(isSwitchUser);
+
+    int ret = screenSessionManagerClientStub_->HandleOnSmartSensorRotationChanged(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
  * @tc.name: HandleOnScreenExtendChanged
  * @tc.desc: HandleOnScreenExtendChanged test
  * @tc.type: FUNC
@@ -1257,6 +1279,23 @@ HWTEST_F(ScreenSessionManagerClientStubTest, OnRemoteRequestOnScreenOrientationC
         TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS);
     int res = screenSessionManagerClientStub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: HandleScreenClosedStateChange
+ * @tc.desc: HandleScreenClosedStateChange test with CLOSE state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleScreenClosedStateChange, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    data.WriteUint32(static_cast<uint32_t>(screenClosedState));
+
+    int res = screenSessionManagerClientStub_->HandleScreenClosedStateChange(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -685,11 +685,41 @@ WindowLimits WindowSessionProperty::GetWindowLimitsVP() const
 void WindowSessionProperty::SetWindowMode(WindowMode mode)
 {
     windowMode_ = mode;
+    windowModeInfo_ = {mode, windowModeInfo_.splitStyle, windowModeInfo_.splitIndex};
 }
 
 WindowMode WindowSessionProperty::GetWindowMode() const
 {
     return windowMode_;
+}
+
+WindowMode WindowSessionProperty::GetWindowModeCompat() const
+{
+    if (windowModeInfo_.windowMode != WindowMode::WINDOW_MODE_SPLIT) {
+        return windowMode_;
+    }
+    if (windowModeInfo_.splitStyle != SplitStyle::TWO_WINDOW_HORIZONTAL &&
+        windowModeInfo_.splitStyle != SplitStyle::TWO_WINDOW_VERTICAL) {
+        return windowMode_;
+    }
+    if (windowModeInfo_.splitIndex == SPLIT_INDEX_PRIMARY) {
+        return WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
+    }
+    if (windowModeInfo_.splitIndex == SPLIT_INDEX_SECONDARY) {
+        return WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+    }
+    return windowMode_;
+}
+
+void WindowSessionProperty::SetWindowModeInfo(const WindowModeInfo& windowModeInfo)
+{
+    windowMode_ = windowModeInfo.windowMode;
+    windowModeInfo_ = windowModeInfo;
+}
+
+WindowModeInfo WindowSessionProperty::GetWindowModeInfo() const
+{
+    return windowModeInfo_;
 }
 
 WindowState WindowSessionProperty::GetWindowState() const
@@ -990,6 +1020,18 @@ void WindowSessionProperty::SetRotationLocked(bool locked)
 bool WindowSessionProperty::GetRotationLocked() const
 {
     return isRotationLock_;
+}
+
+void WindowSessionProperty::SetDragDisabledAreas(const std::vector<Rect>& areas)
+{
+    std::lock_guard<std::mutex> lock(dragDisabledAreasMutex_);
+    dragDisabledAreas_ = areas;
+}
+
+void WindowSessionProperty::GetDragDisabledAreas(std::vector<Rect>& areas)
+{
+    std::lock_guard<std::mutex> lock(dragDisabledAreasMutex_);
+    areas = dragDisabledAreas_;
 }
 
 bool WindowSessionProperty::MarshallingWindowLimits(Parcel& parcel) const
@@ -1599,6 +1641,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteString(appInstanceKey_) &&
         parcel.WriteInt32(appIndex_) &&
         parcel.WriteBool(isSystemKeyboard_) &&
+        parcel.WriteUint64(keyboardTargetDisplayId_) &&
         parcel.WriteUint32(avoidAreaOption_) && parcel.WriteBool(isWindowDelayRaiseEnabled_) &&
         parcel.WriteUint8(backgroundAlpha_) && parcel.WriteParcelable(&keyboardEffectOption_) &&
         parcel.WriteFloat(cornerRadius_) && parcel.WriteBool(isExclusivelyHighlighted_) &&
@@ -1629,6 +1672,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isAppBufferReady_) &&
         parcel.WriteBool(isFollowParentLayout_) &&
         parcel.WriteBool(isCrossProcessWindow_) &&
+        parcel.WriteFloat(GetSurfaceNodeAlpha()) &&
         MarshallingFvTemplateInfo(parcel);
 }
 
@@ -1716,6 +1760,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetAppInstanceKey(parcel.ReadString());
     property->SetAppIndex(parcel.ReadInt32());
     property->SetIsSystemKeyboard(parcel.ReadBool());
+    property->SetKeyboardTargetDisplayId(parcel.ReadUint64());
     property->SetAvoidAreaOption(parcel.ReadUint32());
     property->SetWindowDelayRaiseEnabled(parcel.ReadBool());
     property->SetBackgroundAlpha(parcel.ReadUint8());
@@ -1758,6 +1803,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetAppBufferReady(parcel.ReadBool());
     property->SetFollowParentLayout(parcel.ReadBool());
     property->SetIsCrossProcessWindow(parcel.ReadBool());
+    property->SetSurfaceNodeAlpha(parcel.ReadFloat());
     UnmarshallingFvTemplateInfo(parcel, property);
     return property;
 }
@@ -1801,6 +1847,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     accessTokenId_ = property->accessTokenId_;
     maximizeMode_ = property->maximizeMode_;
     windowMode_ = property->windowMode_;
+    windowModeInfo_ = property->windowModeInfo_;
     windowState_ = property->windowState_;
     limits_ = property->limits_;
     limitsVP_ = property->limitsVP_;
@@ -1848,6 +1895,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     appInstanceKey_ = property->appInstanceKey_;
     appIndex_ = property->appIndex_;
     isSystemKeyboard_ = property->isSystemKeyboard_;
+    keyboardTargetDisplayId_ = property->keyboardTargetDisplayId_;
     avoidAreaOption_ = property->avoidAreaOption_;
     isWindowDelayRaiseEnabled_ = property->isWindowDelayRaiseEnabled_;
     backgroundAlpha_ = property->backgroundAlpha_;
@@ -1877,6 +1925,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
         missionInfo_ = property->missionInfo_;
     }
     isRotationLock_ = property->isRotationLock_;
+    SetSurfaceNodeAlpha(property->GetSurfaceNodeAlpha());
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
@@ -2480,6 +2529,16 @@ KeyboardEffectOption WindowSessionProperty::GetKeyboardEffectOption() const
     return keyboardEffectOption_;
 }
 
+void WindowSessionProperty::SetKeyboardTargetDisplayId(DisplayId displayId)
+{
+    keyboardTargetDisplayId_ = displayId;
+}
+
+DisplayId WindowSessionProperty::GetKeyboardTargetDisplayId() const
+{
+    return keyboardTargetDisplayId_;
+}
+
 uint8_t WindowSessionProperty::GetBackgroundAlpha() const
 {
     return backgroundAlpha_;
@@ -3073,6 +3132,11 @@ void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& 
 void SystemSessionConfig::ConvertSupportCreateFloatView(const std::string& itemValue)
 {
     supportCreateFloatView_ = StringUtil::ConvertStringToBool(itemValue);
+}
+
+void SystemSessionConfig::ConvertSupportCreateFloatingBall(const std::string& itemValue)
+{
+    supportCreateFloatingBall_ = StringUtil::ConvertStringToBool(itemValue);
 }
 
 void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)

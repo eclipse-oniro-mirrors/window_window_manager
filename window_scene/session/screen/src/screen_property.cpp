@@ -748,4 +748,34 @@ void ScreenProperty::SetDisplayMode(FoldDisplayMode mode)
     displayMode_ = mode;
 }
 
+void ScreenProperty::SetNeedCastScale(bool needCastScale)
+{
+    needCastScale_ = needCastScale;
+}
+
+bool ScreenProperty::GetNeedCastScale() const
+{
+    return needCastScale_;
+}
+
+void ScreenProperty::SetCastScaleX(float scaleX)
+{
+    castScaleX_ = scaleX;
+}
+
+float ScreenProperty::GetCastScaleX() const
+{
+    return castScaleX_;
+}
+
+void ScreenProperty::SetCastScaleY(float scaleY)
+{
+    castScaleY_ = scaleY;
+}
+
+float ScreenProperty::GetCastScaleY() const
+{
+    return castScaleY_;
+}
+
 } // namespace OHOS::Rosen

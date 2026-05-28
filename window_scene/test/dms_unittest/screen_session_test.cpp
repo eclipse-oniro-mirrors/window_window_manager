@@ -55,6 +55,8 @@ public:
         (DisplayPowerEvent event, EventStatus status, PowerStateChangeReason reason), (override));
     MOCK_METHOD(void, OnSensorRotationChange,
         (float sensorRotation, ScreenId screenId, bool isSwitchUser), (override));
+    MOCK_METHOD(void, OnSmartSensorRotationChange,
+        (float sensorRotation, ScreenId screenId, bool isSwitchUser), (override));
     MOCK_METHOD(void, OnScreenOrientationChange, (float screenOrientation, ScreenId screenId), (override));
     MOCK_METHOD(void, OnScreenRotationLockedChange, (bool isLocked, ScreenId screenId), (override));
     MOCK_METHOD(void, OnScreenExtendChange, (ScreenId mainScreenId, ScreenId extendScreenId), (override));
@@ -188,6 +190,13 @@ HWTEST_F(ScreenSessionTest, CreateDisplayNode, TestSize.Level0)
     sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
         ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
     EXPECT_NE(nullptr, screenSession);
+    screenSession->CreateDisplayNode(rsConfig);
+    // Test cast scale branch: set cast scale property and create display node again
+    ScreenProperty property = screenSession->GetScreenProperty();
+    property.SetNeedCastScale(true);
+    property.SetCastScaleX(1.5f);
+    property.SetCastScaleY(2.0f);
+    screenSession->SetScreenProperty(property);
     screenSession->CreateDisplayNode(rsConfig);
     GTEST_LOG_(INFO) << "ScreenSessionTest: CreateDisplayNode end";
 }
@@ -366,6 +375,62 @@ HWTEST_F(ScreenSessionTest, HandleSensorRotation, TestSize.Level1)
     float sensorRotation = 0.0f;
     screenSession->HandleSensorRotation(sensorRotation);
     GTEST_LOG_(INFO) << "HandleSensorRotation end";
+}
+
+/**
+ * @tc.name: HandleSmartRotation
+ * @tc.desc: test HandleSmartRotation function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, HandleSmartRotation, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "HandleSmartRotation start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+    
+    MockScreenChangeListener* listener = new MockScreenChangeListener();
+    screenSession->RegisterScreenChangeListener(listener);
+    
+    float sensorRotation = 90.0f;
+    EXPECT_CALL(*listener, OnSmartSensorRotationChange(sensorRotation, config.screenId, false)).Times(1);
+    screenSession->HandleSmartRotation(sensorRotation);
+    
+    EXPECT_EQ(screenSession->GetValidSmartSensorRotation(), sensorRotation);
+    GTEST_LOG_(INFO) << "HandleSmartRotation end";
+}
+
+/**
+ * @tc.name: SmartSensorRotationChange
+ * @tc.desc: test SmartSensorRotationChange function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, SmartSensorRotationChange, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SmartSensorRotationChange start";
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+    };
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_VIRTUAL);
+    EXPECT_NE(nullptr, screenSession);
+    
+    MockScreenChangeListener* listener = new MockScreenChangeListener();
+    screenSession->RegisterScreenChangeListener(listener);
+    
+    float sensorRotation = 180.0f;
+    EXPECT_CALL(*listener, OnSmartSensorRotationChange(sensorRotation, config.screenId, false)).Times(1);
+    screenSession->SmartSensorRotationChange(sensorRotation);
+    
+    EXPECT_EQ(screenSession->GetValidSmartSensorRotation(), sensorRotation);
+    GTEST_LOG_(INFO) << "SmartSensorRotationChange end";
 }
 
 /**
@@ -1624,6 +1689,13 @@ HWTEST_F(ScreenSessionTest, InitRSDisplayNode, TestSize.Level1)
     RSDisplayNodeConfig config;
     Point startPoint;
     sessionGroup.InitRSDisplayNode(config, startPoint);
+    // Test cast scale branch in ScreenSession::InitRSDisplayNode
+    ScreenProperty property = session->GetScreenProperty();
+    property.SetNeedCastScale(true);
+    property.SetCastScaleX(1.5f);
+    property.SetCastScaleY(2.0f);
+    session->SetScreenProperty(property);
+    session->InitRSDisplayNode(config, startPoint, false, 0.0f, 0.0f);
     SUCCEED();
     GTEST_LOG_(INFO) << "ScreenSessionTest: InitRSDisplayNode end";
 }
@@ -5549,6 +5621,27 @@ HWTEST_F(ScreenSessionTest, ScreenOrientationChangeFloatWithOptions02, TestSize.
     delete listener1;
     delete listener2;
     GTEST_LOG_(INFO) << "ScreenOrientationChangeFloatWithOptions03 end";
+}
+
+/**
+ * @tc.name: GetScreenCapability
+ * @tc.desc: normal function, real screen with physical rsId
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, GetScreenCapability, TestSize.Level1)
+{
+    ScreenSessionConfig config = {
+        .screenId = 1001,
+        .rsId = 1001,
+        .name = "PhysicalScreen",
+    };
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    ASSERT_NE(screenSession, nullptr);
+    ScreenCapability capability;
+    DMError ret = screenSession->GetScreenCapability(capability);
+    ASSERT_EQ(capability.phyWidth_, 0);
+    ASSERT_EQ(capability.phyHeight_, 0);
 }
 } // namespace
 } // namespace Rosen

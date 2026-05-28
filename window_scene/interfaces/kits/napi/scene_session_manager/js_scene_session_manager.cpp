@@ -384,6 +384,9 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "getJsonProfile", moduleName,
         JsSceneSessionManager::GetJsonProfile);
     BindNativeFunction(env, exportObj, "sendAxisEvent", moduleName, JsSceneSessionManager::SendAxisEvent);
+    BindNativeFunction(env, exportObj, "redispatchTouchEvent", moduleName, JsSceneSessionManager::RedispatchTouchEvent);
+    BindNativeFunction(env, exportObj, "redispatchCustomizedTouchEvent", moduleName,
+        JsSceneSessionManager::RedispatchCustomizedTouchEvent);
     BindNativeFunction(env, exportObj, "syncFloatViewLimits", moduleName, JsSceneSessionManager::SyncFloatViewLimits);
     return NapiGetUndefined(env);
 }
@@ -1232,6 +1235,20 @@ napi_value JsSceneSessionManager::SendAxisEvent(napi_env env, napi_callback_info
     TLOGI(WmsLogTag::WMS_EVENT, "in");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnSendAxisEvent(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::RedispatchTouchEvent(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_EVENT, "in");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnRedispatchTouchEvent(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::RedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "in");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnRedispatchCustomizedTouchEvent(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::SyncFloatViewLimits(napi_env env, napi_callback_info info)
@@ -2324,9 +2341,6 @@ napi_value JsSceneSessionManager::OnRequestSceneSession(napi_env env, napi_callb
             napi_throw(env, CreateJsError(
                 env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY), "System is abnormal"));
         }
-        if (!sessionInfo.pageConfig.empty()) {
-            sceneSession->EditSessionInfo().pageConfig = sessionInfo.pageConfig;
-        }
         if (!sessionInfo.combinedCompatibleConfig.empty()) {
             sceneSession->EditSessionInfo().combinedCompatibleConfig = sessionInfo.combinedCompatibleConfig;
         }
@@ -3131,26 +3145,26 @@ napi_value JsSceneSessionManager::OnUpdateWindowMode(napi_env env, napi_callback
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_TWO) {
-        WLOGFE("Argc is invalid: %{public}zu", argc);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     int32_t persistentId;
     if (!ConvertFromJsValue(env, argv[0], persistentId)) {
-        WLOGFE("Failed to convert parameter to persistentId");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to persistentId");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    int32_t windowMode;
-    if (!ConvertFromJsValue(env, argv[1], windowMode)) {
-        WLOGFE("Failed to convert parameter to windowMode");
+    WindowModeInfo windowModeInfo;
+    if (!ConvertWindowModeInfoFromJs(env, argv[1], windowModeInfo)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to convert parameter to windowModeInfo");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowMode);
+    SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowModeInfo);
     return NapiGetUndefined(env);
 }
 
@@ -3398,6 +3412,114 @@ napi_value JsSceneSessionManager::OnSendAxisEvent(napi_env env, napi_callback_in
     }
     pointerEvent->SetZOrder(zIndex);
     SceneSessionManager::GetInstance().SendAxisEvent(pointerEvent);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnRedispatchTouchEvent(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARGC_THREE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_TWO) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    // get TouchEvent ts pointer
+    napi_value touchEventObj = argv[0];
+    if (touchEventObj == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert touchEventObj");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    // get arkui uiContent pointer
+    const auto& uiContent = RootScene::staticRootScene_->GetUIContent();
+    if (uiContent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "uiContent is null");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
+    // get PointerEvent from arkui
+    auto constPointerEvent = uiContent->GetPointerEventFromTouchEvent(touchEventObj);
+    if (constPointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to Get pointer event from arkui");
+        return NapiGetUndefined(env);
+    }
+    auto pointerEvent = std::make_shared<OHOS::MMI::PointerEvent>(*constPointerEvent);
+    if (pointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to Get pointer event");
+        return NapiGetUndefined(env);
+    }
+    // set new actionTime :us
+    auto actionTime = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    TLOGI(WmsLogTag::WMS_EVENT, "Get action time from pointer event: %{public}" PRId64 ", now: %{public}lld",
+        pointerEvent->GetActionTime(), actionTime);
+    pointerEvent->SetActionTime(actionTime);
+    // get second param zIndex and set
+    uint32_t zIndex;
+    if (!ConvertFromJsValue(env, argv[1], zIndex)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to zIndex");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    pointerEvent->SetZOrder(zIndex);
+    SceneSessionManager::GetInstance().RedispatchTouchEvent(pointerEvent);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnRedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info)
+{
+    size_t argc = 4;
+    napi_value argv[4] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_TWO) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    napi_value touchEventNative = argv[0];
+    if (touchEventNative == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "touchEventNative is null");
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    // Step 1: construct the MMI::PointerEvent from the ts side.
+    auto pointerEvent = MMI::PointerEvent::Create();
+    if (pointerEvent == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Create pointer event failed");
+        return NapiGetUndefined(env);
+    }
+    if (!ConvertPointerEventFromJs(env, touchEventNative, *pointerEvent)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Convert pointer event failed");
+        return NapiGetUndefined(env);
+    }
+
+    // Step 2: set zIndex.
+    uint32_t zIndex;
+    if (!ConvertFromJsValue(env, argv[1], zIndex)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to zIndex");
+        napi_throw(env, CreateJsError(env,
+            static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    pointerEvent->SetZOrder(zIndex);
+
+    TLOGD(WmsLogTag::WMS_EVENT,
+          "Redispatch touch event: pointerId=%{public}d, action=%{public}d, zIndex=%{public}u",
+          pointerEvent->GetPointerId(),
+          pointerEvent->GetPointerAction(),
+          zIndex);
+    SceneSessionManager::GetInstance().RedispatchTouchEvent(pointerEvent);
     return NapiGetUndefined(env);
 }
 
@@ -4319,7 +4441,7 @@ napi_value JsSceneSessionManager::OnGetSessionSnapshotPixelMap(napi_env env, nap
         return NapiGetUndefined(env);
     }
 
-    float scaleParam = GreatOrEqual(scaleValue, 0.0f) && LessOrEqual(scaleValue, 1.0f) ?
+    float scaleParam = GreatOrEqual(scaleValue, 0.0) && LessOrEqual(scaleValue, 1.0) ?
         static_cast<float>(scaleValue) : 0.0f;
     std::shared_ptr<std::shared_ptr<Media::PixelMap>> pixelPtr = std::make_shared<std::shared_ptr<Media::PixelMap>>();
     NapiAsyncTask::ExecuteCallback execute =
@@ -4410,7 +4532,7 @@ napi_value JsSceneSessionManager::OnGetSessionSnapshotPixelMapSync(napi_env env,
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    float scaleParam = GreatOrEqual(scaleValue, 0.0f) && LessOrEqual(scaleValue, 1.0f) ?
+    float scaleParam = GreatOrEqual(scaleValue, 0.0) && LessOrEqual(scaleValue, 1.0) ?
         static_cast<float>(scaleValue) : 0.0f;
     std::shared_ptr<Media::PixelMap> pixelPtr =
         SceneSessionManager::GetInstance().GetSessionSnapshotPixelMap(
@@ -4889,10 +5011,10 @@ napi_value JsSceneSessionManager::SetAppForceLandscapeConfig(napi_env env, napi_
 
 napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfig(napi_env env, napi_callback_info info)
 {
-    size_t argc = ARGC_FOUR;
-    napi_value argv[ARGC_FOUR] = { nullptr };
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != OHOS::Rosen::ARGC_FOUR) {
+    if (argc != OHOS::Rosen::ARGC_TWO) {
         TLOGE(WmsLogTag::DEFAULT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
@@ -4908,36 +5030,20 @@ napi_value JsSceneSessionManager::OnSetAppForceLandscapeConfig(napi_env env, nap
     }
 
     AppForceLandscapeConfig config;
-    napi_value jsContainsSysConfig = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsSysConfig", &jsContainsSysConfig);
-    RETURN_IF_CONVERT_FAIL(env, jsContainsSysConfig, config.containsSysConfig_, "containsSysConfig",
-        WmsLogTag::DEFAULT);
-    napi_value jsContainsAppConfig = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsAppConfig", &jsContainsAppConfig);
-    RETURN_IF_CONVERT_FAIL(env, jsContainsAppConfig, config.containsAppConfig_, "containsAppConfig",
-        WmsLogTag::DEFAULT);
-    napi_value jsIsSysRouter = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_TWO], "isRouter", &jsIsSysRouter);
-    ConvertFromJsValue(env, jsIsSysRouter, config.isSysRouter_);
-    napi_value jsSysConfigJsonStr = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_TWO], "configJsonStr", &jsSysConfigJsonStr);
-    ConvertFromJsValue(env, jsSysConfigJsonStr, config.sysConfigJsonStr_);
-    napi_value jsSysHomePage = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_TWO], "homePage", &jsSysHomePage);
-    ConvertFromJsValue(env, jsSysHomePage, config.sysHomePage_);
-    napi_value jsIsAppRouter = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_THREE], "isRouter", &jsIsAppRouter);
-    ConvertFromJsValue(env, jsIsAppRouter, config.isAppRouter_);
-    napi_value jsAppConfigJsonStr = nullptr;
-    napi_get_named_property(env, argv[ARG_INDEX_THREE], "configJsonStr", &jsAppConfigJsonStr);
-    ConvertFromJsValue(env, jsAppConfigJsonStr, config.appConfigJsonStr_);
+    napi_value containsConfig = nullptr;
+    napi_get_named_property(env, argv[ARG_INDEX_ONE], "containsConfig", &containsConfig);
+    RETURN_IF_CONVERT_FAIL(env, containsConfig, config.containsConfig_, "containsConfig",
+         WmsLogTag::DEFAULT);
+    napi_value jsIsRouter = nullptr;
+    napi_get_named_property(env, argv[ARG_INDEX_ONE], "isRouter", &jsIsRouter);
+    ConvertFromJsValue(env, jsIsRouter, config.isRouter_);
+    napi_value jsConfigJsonStr = nullptr;
+    napi_get_named_property(env, argv[ARG_INDEX_ONE], "configJsonStr", &jsConfigJsonStr);
+    ConvertFromJsValue(env, jsConfigJsonStr, config.configJsonStr_);
 
-    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfig bundleName: %{public}s, containsSysConfig: %{public}d, "
-        "containsAppConfig: %{public}d, isSysRouter: %{public}d, sysConfigJsonStr: %{public}s, "
-        "sysHomePage: %{public}s, isAppRouter: %{public}d, appConfigJsonStr: %{public}s",
-        bundleName.c_str(), config.containsSysConfig_, config.containsAppConfig_, config.isSysRouter_,
-        config.sysConfigJsonStr_.c_str(), config.sysHomePage_.c_str(), config.isAppRouter_,
-        config.appConfigJsonStr_.c_str());
+    TLOGI(WmsLogTag::DEFAULT, "SetAppForceLandscapeConfig bundleName: %{public}s, "
+        "containsConfig: %{public}d, isRouter: %{public}d, configJsonStr: %{public}s",
+        bundleName.c_str(), config.containsConfig_, config.isRouter_, config.configJsonStr_.c_str());
     SceneSessionManager::GetInstance().SetAppForceLandscapeConfig(bundleName, config);
     return NapiGetUndefined(env);
 }

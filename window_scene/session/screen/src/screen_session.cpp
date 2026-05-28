@@ -135,6 +135,10 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
             if (config.isMirrored) {
                 EnableMirrorScreenRegion();
             }
+            if (property_.GetNeedCastScale()) {
+                displayNode_->SetPivot(0.0F, 0.0F);
+                displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+            }
         } else {
             TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
         }
@@ -1131,15 +1135,31 @@ void ScreenSession::HandleSensorRotation(float sensorRotation)
     SensorRotationChange(sensorRotation);
 }
 
+void ScreenSession::HandleSmartRotation(float sensorRotation)
+{
+    SmartSensorRotationChange(sensorRotation);
+}
+
 void ScreenSession::SensorRotationChange(Rotation sensorRotation)
 {
     float rotation = ConvertRotationToFloat(sensorRotation);
     SensorRotationChange(rotation);
 }
 
+void ScreenSession::SmartSensorRotationChange(Rotation sensorRotation)
+{
+    float rotation = ConvertRotationToFloat(sensorRotation);
+    SmartSensorRotationChange(rotation);
+}
+
 void ScreenSession::SensorRotationChange(float sensorRotation)
 {
     SensorRotationChange(sensorRotation, false);
+}
+
+void ScreenSession::SmartSensorRotationChange(float sensorRotation)
+{
+    SmartSensorRotationChange(sensorRotation, false);
 }
 
 void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser)
@@ -1158,9 +1178,29 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
     }
 }
 
+void ScreenSession::SmartSensorRotationChange(float sensorRotation, bool isSwitchUser)
+{
+    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
+    if (sensorRotation >= 0.0f) {
+        currentValidSmartRotation_ = sensorRotation;
+    }
+    for (auto& listener : screenChangeListenerList_) {
+        if (!listener) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "screenChangeListener is null.");
+            continue;
+        }
+        listener->OnSmartSensorRotationChange(sensorRotation, screenId_, isSwitchUser);
+    }
+}
+
 float ScreenSession::GetValidSensorRotation()
 {
     return currentValidSensorRotation_.load();
+}
+
+float ScreenSession::GetValidSmartSensorRotation()
+{
+    return currentValidSmartRotation_.load();
 }
 
 void ScreenSession::HandleHoverStatusChange(int32_t hoverStatus, bool needRotate)
@@ -1994,6 +2034,12 @@ void ScreenSession::SetScreenCombination(ScreenCombination combination)
         static_cast<int32_t>(combination));
     std::lock_guard<std::mutex> lock(combinationMutex_);
     combination_ = combination;
+    if (combination_ == ScreenCombination::SCREEN_MAIN) {
+        auto ret = RSInterfaces::GetInstance().SetAsMainScreen(GetRSScreenId(), true);
+        if (ret != StatusCode::SUCCESS) {
+            TLOGE(WmsLogTag::DMS, "SetAsMainScreen fail! rsId %{public}" PRIu64"", rsId_);
+        }
+    }
 }
 
 ScreenCombination ScreenSession::GetScreenCombination() const
@@ -2399,6 +2445,10 @@ void ScreenSession::InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startP
         screenId_, width, height, positionX, positionY);
     displayNode_->SetFrame(positionX, positionY, static_cast<float>(width), static_cast<float>(height));
     displayNode_->SetBounds(positionX, positionY, static_cast<float>(width), static_cast<float>(height));
+    if (property_.GetNeedCastScale()) {
+        displayNode_->SetPivot(0.0F, 0.0F);
+        displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+    }
     if (config.isMirrored) {
         EnableMirrorScreenRegion();
     }
@@ -3455,6 +3505,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
         screenProperty.SetScreenRealHeight(eventPara.GetScreenRealHeight());
         TLOGI(WmsLogTag::DMS, "ProcPropertyChange : Orientation= %{public}u", deviceOrientation);
     }
+    screenProperty.SetDefaultDeviceRotationOffset(eventPara.GetDefaultDeviceRotationOffset());
     screenProperty.SetPhysicalTouchBounds(GetRotationCorrection(eventPara.GetDisplayMode()));
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() || FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
         screenProperty.SetValidHeight(screenProperty.GetBounds().rect_.GetHeight());
@@ -3660,5 +3711,13 @@ void ScreenSession::SetBootingConnect(const bool bootingConnect)
 bool ScreenSession::IsBootingConnect() const
 {
     return bootingConnect_.load();
+}
+
+void ScreenSession::GetScreenCapability(ScreenCapability& capability)
+{
+    RSScreenCapability rsCapability = RSInterfaces::GetInstance().GetScreenCapability(rsId_);
+    capability.phyWidth_ = rsCapability.GetPhyWidth();
+    capability.phyHeight_ = rsCapability.GetPhyHeight();
+    capability.interfaceType_ = rsCapability.GetType();
 }
 } // namespace OHOS::Rosen

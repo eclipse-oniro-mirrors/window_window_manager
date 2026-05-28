@@ -53,6 +53,8 @@ constexpr int64_t INVALID_TIME_STAMP = 0;
 constexpr float INVALID_SCALE = 0;
 constexpr int32_t MIN_REQUEST_ID_FROM_ABILITY = 1;
 constexpr int32_t DEFAULT_REQUEST_FROM_SCB_ID = -1;
+constexpr int32_t SCB_REQUEST_ID_START = 1;
+constexpr int32_t DEFAULT_REQUEST_ID = 0;
 constexpr int32_t WINDOW_SUPPORT_MODE_MAX_SIZE = 4;
 constexpr uint32_t COMBINED_COMPATIBLE_CONFIG_MAX_SIZE = 5;
 constexpr int32_t DEFAULT_SCALE_RATIO = 100;
@@ -485,7 +487,8 @@ struct SessionInfo {
     bool isPcOrPadEnableActivation_ = false;
     bool canStartAbilityFromBackground_ = false;
     bool isFoundationCall_ = false;
-    int32_t requestId = 0;
+    int32_t requestId = DEFAULT_REQUEST_ID;
+    int32_t scbRequestId = DEFAULT_REQUEST_ID;         // SCB generated global tracking ID
     std::string specifiedFlag_ = "";
     bool disableDelegator = false;
     bool reuseDelegatorWindow = false;
@@ -562,7 +565,6 @@ struct SessionInfo {
     /*
      * Compatible Mode
      */
-    std::string pageConfig = "";
     std::vector<std::string> combinedCompatibleConfig;
 
     /**
@@ -683,6 +685,7 @@ enum class SessionEvent : uint32_t {
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
     EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
+    EVENT_CREATE_WINDOW_WHEN_DRAGGING = 300,
     EVENT_END
 };
 
@@ -692,44 +695,141 @@ enum class BrokerStates: uint32_t {
     BROKER_NOT_START = -1,
 };
 
-inline bool GreatOrEqual(double left, double right)
+/**
+ * @brief Check whether left is greater than right.
+ */
+inline bool GreaterThan(double left, double right)
 {
-    constexpr double epsilon = -0.00001f;
+    constexpr double epsilon = 0.00001;
     return (left - right) > epsilon;
 }
 
+inline bool GreaterThan(float left, float right)
+{
+    constexpr float epsilon = 0.001f;
+    return (left - right) > epsilon;
+}
+
+inline bool GreaterThan(int32_t left, int32_t right)
+{
+    return left > right;
+}
+
+/**
+ * @brief Check whether left is less than right.
+ */
+inline bool LessThan(double left, double right)
+{
+    constexpr double epsilon = 0.00001;
+    return (right - left) > epsilon;
+}
+
+inline bool LessThan(float left, float right)
+{
+    constexpr float epsilon = 0.001f;
+    return (right - left) > epsilon;
+}
+
+inline bool LessThan(int32_t left, int32_t right)
+{
+    return left < right;
+}
+
+/**
+ * @brief Check whether left is greater than or approximately equal to right.
+ */
+inline bool GreatOrEqual(double left, double right)
+{
+    constexpr double epsilon = -0.00001;
+    return (left - right) > epsilon;
+}
+
+inline bool GreaterOrEqual(float left, float right)
+{
+    constexpr float epsilon = 0.001f;
+    return (left - right) > -epsilon;
+}
+
+inline bool GreaterOrEqual(int32_t left, int32_t right)
+{
+    return left >= right;
+}
+
+/**
+ * @brief Check whether left is less than or approximately equal to right.
+ */
 inline bool LessOrEqual(double left, double right)
 {
-    constexpr double epsilon = 0.00001f;
+    constexpr double epsilon = 0.00001;
     return (left - right) < epsilon;
 }
 
-inline bool NearEqual(const double left, const double right, const double epsilon)
+inline bool LessOrEqual(float left, float right)
 {
-    return (std::fabs(left - right) <= epsilon);
+    constexpr float epsilon = 0.001f;
+    return (left - right) < epsilon;
 }
 
-inline bool NearEqual(const float& left, const float& right)
+inline bool LessOrEqual(int32_t left, int32_t right)
 {
-    constexpr double epsilon = 0.001f;
-    return NearEqual(left, right, epsilon);
+    return left <= right;
 }
 
-inline bool NearEqual(const int32_t& left, const int32_t& right)
+/**
+ * @brief Check whether two values are approximately equal.
+ */
+inline bool NearEqual(double left, double right, double epsilon = 0.00001)
+{
+    return std::fabs(left - right) <= epsilon;
+}
+
+inline bool NearEqual(float left, float right, float epsilon = 0.001f)
+{
+    return std::fabs(left - right) <= epsilon;
+}
+
+inline bool NearEqual(int32_t left, int32_t right)
 {
     return left == right;
 }
 
-inline bool NearEqual(const int32_t& left, const int32_t& right, const int32_t threshold)
+inline bool NearEqual(int32_t left, int32_t right, int32_t threshold)
 {
     return std::abs(left - right) <= threshold;
 }
 
-inline bool NearZero(const double left)
+/**
+ * @brief Check whether value is approximately zero.
+ */
+inline bool NearZero(double value)
 {
-    constexpr double epsilon = 0.001f;
-    return NearEqual(left, 0.0, epsilon);
+    return NearEqual(value, 0.0);
 }
+
+inline bool NearZero(float value)
+{
+    return NearEqual(value, 0.0f);
+}
+
+inline bool NearZero(int32_t value)
+{
+    return value == 0;
+}
+
+/**
+ * @brief Relative position of one rect to another.
+ */
+enum class RectRelativePosition {
+    OVERLAP,
+    LEFT,
+    RIGHT,
+    TOP,
+    BOTTOM,
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+};
 
 template<typename T>
 struct WSRectT {
@@ -737,6 +837,47 @@ struct WSRectT {
     T posY_ = 0;
     T width_ = 0;
     T height_ = 0;
+
+    /**
+     * @brief Get the right edge coordinate of the rectangle.
+     *
+     * @return T The x-coordinate of the right edge.
+     */
+    T Right() const { return posX_ + width_; }
+
+    /**
+     * @brief Get the bottom edge coordinate of the rectangle.
+     *
+     * @return T The y-coordinate of the bottom edge.
+     */
+    T Bottom() const { return posY_ + height_; }
+
+    /**
+     * @brief Check if the rectangle has valid width and height.
+     *
+     * @return true if both width and height are greater than 0, false otherwise.
+     */
+    bool HasValidSize() const
+    {
+        return GreaterThan(width_, 0) && GreaterThan(height_, 0);
+    }
+
+    /**
+     * @brief Calculate the area of the rectangle.
+     *
+     * Returns 0 if the rectangle does not have a valid positive size.
+     *
+     * @tparam F The result type for area calculation.
+     *           Allows using higher precision or larger integer types to avoid overflow.
+     *           Defaults to T.
+     *
+     * @return The rectangle area as type F.
+     */
+    template<typename F = T>
+    F Area() const
+    {
+        return HasValidSize() ? static_cast<F>(width_) * static_cast<F>(height_) : static_cast<F>(0);
+    }
 
     bool operator==(const WSRectT<T>& a) const
     {
@@ -757,27 +898,13 @@ struct WSRectT {
 
     bool IsEmpty() const
     {
-        if (NearZero(posX_) && NearZero(posY_) && NearZero(width_) && NearZero(height_)) {
-            return true;
-        }
-        return false;
+        return NearZero(posX_) && NearZero(posY_) && NearZero(width_) && NearZero(height_);
     }
 
-    inline bool IsInRegion(int32_t pointX, int32_t pointY) const
+    inline bool IsInRegion(T pointX, T pointY) const
     {
-        return GreatOrEqual(pointX, posX_) && LessOrEqual(pointX, posX_ + width_) &&
-               GreatOrEqual(pointY, posY_) && LessOrEqual(pointY, posY_ + height_);
-    }
-
-    inline bool IsOverlap(const WSRectT<T>& rect) const
-    {
-        int32_t xStart = std::max(posX_, rect.posX_);
-        int32_t xEnd = std::min(posX_ + static_cast<int32_t>(width_),
-            rect.posX_ + static_cast<int32_t>(rect.width_));
-        int32_t yStart = std::max(posY_, rect.posY_);
-        int32_t yEnd = std::min(posY_ + static_cast<int32_t>(height_),
-            rect.posY_ + static_cast<int32_t>(rect.height_));
-        return (yStart < yEnd) && (xStart < xEnd);
+        return GreatOrEqual(pointX, posX_) && LessOrEqual(pointX, Right()) &&
+               GreatOrEqual(pointY, posY_) && LessOrEqual(pointY, Bottom());
     }
 
     inline bool IsInvalid() const
@@ -798,6 +925,50 @@ struct WSRectT {
     }
 
     /**
+     * @brief Get the smallest rectangle that contains both this rectangle and another rectangle.
+     *
+     * @param other The other rectangle to union with.
+     * @return The union rectangle.
+     */
+    WSRectT<T> Union(const WSRectT<T>& other) const
+    {
+        const T left = std::min(posX_, other.posX_);
+        const T top = std::min(posY_, other.posY_);
+        const T right = std::max(Right(), other.Right());
+        const T bottom = std::max(Bottom(), other.Bottom());
+        return { left, top, right - left, bottom - top };
+    }
+
+    /**
+     * @brief Get the intersection rectangle between this rectangle and another rectangle.
+     *
+     * @param other The other rectangle to intersect with.
+     * @return The intersection rectangle. Returns EMPTY_RECT if the two rectangles do not overlap.
+     */
+    WSRectT<T> Intersect(const WSRectT<T>& other) const
+    {
+        const T left = std::max(posX_, other.posX_);
+        const T top = std::max(posY_, other.posY_);
+        const T right = std::min(Right(), other.Right());
+        const T bottom = std::min(Bottom(), other.Bottom());
+        if (LessOrEqual(right, left) || LessOrEqual(bottom, top)) {
+            return EMPTY_RECT;
+        }
+        return { left, top, right - left, bottom - top };
+    }
+
+    /**
+     * @brief Check whether this rectangle overlaps with another rectangle.
+     *
+     * @param other The rectangle to test against.
+     * @return true if the two rectangles overlap, false otherwise.
+     */
+    bool IsOverlap(const WSRectT<T>& other) const
+    {
+        return Intersect(other).HasValidSize();
+    }
+
+    /**
      * @brief Compute the intersection area with another rectangle.
      *
      * @tparam F The result type for intersection area calculation.
@@ -810,13 +981,7 @@ struct WSRectT {
     template<typename F = T>
     F IntersectionArea(const WSRectT<T>& other) const
     {
-        const T left = std::max(posX_, other.posX_);
-        const T top = std::max(posY_, other.posY_);
-        const T right = std::min(posX_ + width_, other.posX_ + other.width_);
-        const T bottom = std::min(posY_ + height_, other.posY_ + other.height_);
-        const T interWidth = std::max(static_cast<T>(0), right - left);
-        const T interHeight = std::max(static_cast<T>(0), bottom - top);
-        return static_cast<F>(interWidth) * static_cast<F>(interHeight);
+        return Intersect(other).template Area<F>();
     }
 
     /**
@@ -828,6 +993,76 @@ struct WSRectT {
     bool IsSizeEqual(const WSRectT<T>& other) const
     {
         return width_ == other.width_ && height_ == other.height_;
+    }
+
+    /**
+     * @brief Check whether the size of this rectangle exceeds the size of another rectangle.
+     *
+     * @param bounds The rectangle to compare against.
+     * @return true if this rectangle's width or height exceeds the corresponding
+     *         dimension of bounds, false otherwise.
+     */
+    bool ExceedsSizeOf(const WSRectT<T>& bounds) const
+    {
+        return GreaterThan(width_, bounds.width_) || GreaterThan(height_, bounds.height_);
+    }
+
+    /**
+     * @brief Check whether the rectangle is fully inside another rectangle.
+     *
+     * @param outer The rectangle to check against.
+     * @return true if this rectangle is fully inside the outer rectangle, false otherwise.
+     */
+    bool IsInside(const WSRectT<T>& outer) const
+    {
+        return GreatOrEqual(posX_, outer.posX_) &&
+               GreatOrEqual(posY_, outer.posY_) &&
+               LessOrEqual(Right(), outer.Right()) &&
+               LessOrEqual(Bottom(), outer.Bottom());
+    }
+
+    /**
+     * @brief Get the relative position of this rect to another rect.
+     *
+     * The result is determined by comparing the outer boundaries of the two rects:
+     * - If this rect overlaps other, returns OVERLAP.
+     * - If this rect is entirely on one side of other, returns the corresponding direction.
+     * - If this rect is positioned diagonally relative to other, returns a corner direction.
+     *
+     * @param other The target rect used for comparison.
+     * @return The relative position of this rect to other.
+     */
+    RectRelativePosition RelativeTo(const WSRectT<T>& other) const
+    {
+        const bool isLeft = LessOrEqual(Right(), other.posX_);
+        const bool isRight = GreaterOrEqual(posX_, other.Right());
+        const bool isTop = LessOrEqual(Bottom(), other.posY_);
+        const bool isBottom = GreaterOrEqual(posY_, other.Bottom());
+        if (!isLeft && !isRight && !isTop && !isBottom) {
+            return RectRelativePosition::OVERLAP;
+        }
+        if (isLeft && isTop) {
+            return RectRelativePosition::TOP_LEFT;
+        }
+        if (isRight && isTop) {
+            return RectRelativePosition::TOP_RIGHT;
+        }
+        if (isLeft && isBottom) {
+            return RectRelativePosition::BOTTOM_LEFT;
+        }
+        if (isRight && isBottom) {
+            return RectRelativePosition::BOTTOM_RIGHT;
+        }
+        if (isLeft) {
+            return RectRelativePosition::LEFT;
+        }
+        if (isRight) {
+            return RectRelativePosition::RIGHT;
+        }
+        if (isTop) {
+            return RectRelativePosition::TOP;
+        }
+        return RectRelativePosition::BOTTOM;
     }
 
     /**
@@ -1094,6 +1329,7 @@ struct AppWindowSceneConfig {
     StartingWindowAnimationConfig startingWindowAnimationConfig_;
     SystemUIStatusBarConfig systemUIStatusBarConfig_;
     WindowImmersive windowImmersive_;
+    std::string deviceType_ = "unknown";
 };
 
 struct SingleHandCompatibleModeConfig {
@@ -1229,6 +1465,11 @@ struct SessionEventParam {
     int32_t windowGlobalPosY_ = 0;
     uint32_t titleButtonEventType_ = 0;
     SnapshotAnimationConfig snapshotAnimationConfig_;
+
+    // --- Start moving options ---
+    bool needFocused = true;
+    WSRect avoidRect = WSRect::EMPTY_RECT;
+    // ----------------------------
 };
 
 struct BackgroundParams {
@@ -1336,6 +1577,7 @@ enum class SessionPropertyFlag {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**

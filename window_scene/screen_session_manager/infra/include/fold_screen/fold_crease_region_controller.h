@@ -54,6 +54,7 @@ private:
         std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems);
     void GetCreaseRegionByOrientation(const sptr<ScreenSession>& screenSession, FoldDisplayMode displayMode,
         DisplayOrientation orientation, std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems);
+    void SortCreaseRegionRects(std::vector<DMRect>& creaseRegion);
     std::map<FoldDisplayMode, std::vector<DMRect>> displayModeRects_;
     std::atomic<bool> isInitModeCreaseRegion_ = false;
     std::shared_mutex creaseRegionMutex_;

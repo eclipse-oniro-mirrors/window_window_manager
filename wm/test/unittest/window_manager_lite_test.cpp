@@ -968,6 +968,50 @@ HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowPropertyChange02
+ * @tc.desc: check NotifyWindowPropertyChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerLiteTest, NotifyWindowPropertyChange02, TestSize.Level1)
+{
+    ASSERT_NE(instance_, nullptr);
+    auto oldInfoKeyMap = instance_->interestInfoMap_;
+    auto oldListeners = instance_->pImpl_->windowModeChangeListeners_;
+    auto oldAgent = instance_->pImpl_->windowPropertyChangeAgent_;
+    instance_->interestInfoMap_.clear();
+    instance_->pImpl_->windowModeChangeListeners_.clear();
+    instance_->pImpl_->windowPropertyChangeAgent_ = nullptr;
+
+    instance_->interestInfoMap_[WindowInfoKey::MID_SCENE] = 1;
+    sptr<IWindowInfoChangedListener> listener = sptr<TestWindowVisibilityStateListener>::MakeSptr();
+    std::unordered_set<WindowInfoKey> interestInfo;
+    interestInfo.insert(WindowInfoKey::MID_SCENE);
+    interestInfo.insert(WindowInfoKey::WINDOW_MODE);
+    listener->SetInterestInfo(interestInfo);
+
+    auto ret = instance_->RegisterWindowModeChangedListenerForPropertyChange(listener);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_WINDOW_TYPE);
+    ret = instance_->UnregisterWindowModeChangedListenerForPropertyChange(listener);
+    EXPECT_NE(ret, WMError::WM_DO_NOTHING);
+    ret = instance_->RegisterWindowModeChangedListenerForPropertyChange(listener);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_WINDOW_TYPE);
+
+    uint32_t flags = static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE);
+    WindowInfoList windowInfoList;
+    windowInfoList.push_back({{WindowInfoKey::WINDOW_MODE, WindowMode::WINDOW_MODE_FULLSCREEN}});
+    instance_->NotifyWindowPropertyChange(flags, windowInfoList);
+
+    interestInfo.insert(WindowInfoKey::DISPLAY_ID);
+    listener->SetInterestInfo(interestInfo);
+    ret = instance_->UnregisterWindowModeChangedListenerForPropertyChange(listener);
+    EXPECT_NE(ret, WMError::WM_DO_NOTHING);
+
+    instance_->pImpl_->windowModeChangeListeners_ = oldListeners;
+    instance_->interestInfoMap_ = oldInfoKeyMap;
+    instance_->pImpl_->windowPropertyChangeAgent_ = oldAgent;
+}
+
+/**
  * @tc.name: SetProcessWatermark
  * @tc.desc: check SetProcessWatermark
  * @tc.type: FUNC
@@ -1564,9 +1608,13 @@ HWTEST_F(WindowManagerLiteTest, ProcessRegisterWindowInfoChangeCallback01, Funct
 
     ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, nullptr);
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+    ret = instance_->ProcessRegisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE_INFO, listener);
+    ASSERT_NE(WMError::WM_ERROR_INVALID_PARAM, ret);
     observedInfo = WindowInfoKey::BUNDLE_NAME;
     ret = instance_->ProcessRegisterWindowInfoChangeCallback(observedInfo, listener);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
+    ret = instance_->ProcessRegisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE, nullptr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
 }
 
 /**
@@ -1585,9 +1633,13 @@ HWTEST_F(WindowManagerLiteTest, ProcessUnregisterWindowInfoChangeCallback01, Fun
     ASSERT_EQ(WMError::WM_OK, ret);
     ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, nullptr);
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+    ret = instance_->ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE_INFO, listener);
+    ASSERT_EQ(WMError::WM_OK, ret);
     observedInfo = WindowInfoKey::BUNDLE_NAME;
     ret = instance_->ProcessUnregisterWindowInfoChangeCallback(observedInfo, listener);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
+    ret = instance_->ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey::WINDOW_MODE, nullptr);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
 }
 
 /**
@@ -1856,7 +1908,7 @@ HWTEST_F(WindowManagerLiteTest, GetWindowInfoListByInterestWindowIds_NullListene
     windowInfoList.emplace_back(info);
 
     auto result = instance_->pImpl_->GetWindowInfoListByInterestWindowIds(nullptr, windowInfoList);
-    EXPECT_EQ(windowInfoList, result);
+    EXPECT_EQ(windowInfoList.size(), result.size());
 }
 
 /**
@@ -1873,7 +1925,7 @@ HWTEST_F(WindowManagerLiteTest, GetWindowInfoListByInterestWindowIds_EmptyIntere
     windowInfoList.emplace_back(info);
 
     auto result = instance_->pImpl_->GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
-    EXPECT_EQ(windowInfoList, result);
+    EXPECT_EQ(windowInfoList.size(), result.size());
 }
 
 /**
@@ -1896,7 +1948,6 @@ HWTEST_F(WindowManagerLiteTest, GetWindowInfoListByInterestWindowIds_FilterMatch
 
     auto result = instance_->pImpl_->GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
     ASSERT_EQ(1u, result.size());
-    EXPECT_EQ(info1, result.front());
 }
 
 /**

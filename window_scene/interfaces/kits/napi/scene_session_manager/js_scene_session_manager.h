@@ -206,6 +206,8 @@ public:
      * Window Event
      */
     static napi_value SendAxisEvent(napi_env env, napi_callback_info info);
+    static napi_value RedispatchTouchEvent(napi_env env, napi_callback_info info);
+    static napi_value RedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info);
 
     /*
      * Float view
@@ -414,6 +416,8 @@ private:
     void RegisterWatchFocusActiveChangeCallback();
     void OnWatchFocusActiveChange(bool isActive);
     napi_value OnSendAxisEvent(napi_env env, napi_callback_info info);
+    napi_value OnRedispatchTouchEvent(napi_env env, napi_callback_info info);
+    napi_value OnRedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info);
 
     /*
      * Window Lifecycle

@@ -101,6 +101,7 @@ public:
         TRANS_ID_UPDATE_SESSION_SCREENSHOT_LISTENER,
         TRANS_ID_UPDATE_SESSION_OCCLUSION_STATE_LISTENER,
         TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
+        TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE,
         TRANS_ID_SHIFT_APP_WINDOW_FOCUS,
         TRANS_ID_LIST_WINDOW_INFO,
         TRANS_ID_GET_WINDOW_LAYOUT_INFO,
@@ -333,7 +334,10 @@ public:
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) override { return WMError::WM_OK; }
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override
+    {
+        return WMError::WM_OK;
+    }
     WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) override { return WMError::WM_OK; }
@@ -348,7 +352,8 @@ public:
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
         std::string& watermarkName) override { return WMError::WM_OK; }
     WMError RecoverWatermarkImageForApp(const std::string& watermarkName) override { return WMError::WM_OK; }
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override { return WMError::WM_OK; }
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) override { return WMError::WM_OK; }
     WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller) override
     {
         return WMError::WM_OK;
@@ -414,11 +419,12 @@ public:
     {
         return WSError::WS_OK;
     }
-    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect) override
+    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override
     {
         return WSError::WS_OK;
     }
-    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect) override
+    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false) override
     {
         return WSError::WS_OK;
     }

@@ -246,9 +246,9 @@ WMError SceneSessionManagerLite::UpdateScreenLockStatusForApp(const std::string&
     return SceneSessionManager::GetInstance().UpdateScreenLockStatusForApp(bundleName, isRelease);
 }
 
-WSError SceneSessionManagerLite::UpdateWindowMode(int32_t persistentId, int32_t windowMode)
+WSError SceneSessionManagerLite::UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo)
 {
-    return SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowMode);
+    return SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowModeInfo);
 }
 
 WMError SceneSessionManagerLite::GetWindowModeType(WindowModeType& windowModeType)

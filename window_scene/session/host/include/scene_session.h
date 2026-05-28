@@ -19,9 +19,11 @@
 #include <animation/rs_animation_timing_curve.h>
 #include <animation/rs_animation_timing_protocol.h>
 #include <animation/rs_symbol_animation.h>
+#include <atomic>
 #include <chrono>
 #include <feature/window_keyframe/rs_window_keyframe_node.h>
 #include <modifier/rs_property.h>
+#include <optional>
 #include <pipeline/rs_node_map.h>
 #include <unordered_set>
 
@@ -138,7 +140,7 @@ using GetStatusBarConstantlyShowFunc = std::function<void(DisplayId displayId, b
 using NotifySetWindowCornerRadiusFunc = std::function<void(float cornerRadius)>;
 using GetNextAvoidAreaRectInfoFunc = std::function<WSError(DisplayId displayId, AvoidAreaType type,
     std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo)>;
-using GetFloatNavagationInfoFunc = std::function<WSError(DisplayId displayId,
+using GetFloatNavigationInfoFunc = std::function<WSError(DisplayId displayId,
     std::tuple<bool, WSRect, WSRect>& floatNavagationInfo)>;
 using GetLSStateFunc = std::function<bool()>;
 using NotifyFollowParentRectFunc = std::function<void(bool isFollow)>;
@@ -166,6 +168,9 @@ using NotifyAnimateToFunc = std::function<void(const WindowAnimationProperty& an
 using GetAllAppUseControlMapFunc =
     std::function<std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>>&()>;
 using GetFbPanelWindowIdFunc =  std::function<WMError(uint32_t& windowId)>;
+using ReportWindowRssFunc =  std::function<void(const bool isForeground,
+ 	                                             const WindowType& type,
+ 	                                             const sptr<SceneSession>& session)>;
 using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RSNode>(DisplayId displayId,
     uint32_t targetZOrder)>;
 using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool isFullScreen)>;
@@ -211,7 +216,7 @@ public:
         NotifySessionTouchOutsideCallback onSessionTouchOutside_;
         GetAINavigationBarArea onGetAINavigationBarArea_;
         GetNextAvoidAreaRectInfoFunc onGetNextAvoidAreaRectInfo_;
-        GetFloatNavagationInfoFunc onGetFloatNavagationInfo_;
+        GetFloatNavigationInfoFunc onGetFloatNavigationInfo_;
         GetLSStateFunc onGetLSState_;
         OnOutsideDownEvent onOutsideDownEvent_;
         HandleSecureSessionShouldHideCallback onHandleSecureSessionShouldHide_;
@@ -252,11 +257,14 @@ public:
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     WSError BackgroundTask(const bool isSaveSnapshot = true,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError DisconnectTask(bool isFromClient = false, bool isSaveSnapshot = true);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT,
+        bool isFromInnerkits = false);
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError DisconnectTask(bool isFromClient = false, bool isSaveSnapshot = true, bool isFromInnerkits = false);
     void SetClientIdentityToken(const std::string& clientIdentityToken);
     virtual void BindKeyboardPanelSession(sptr<SceneSession> panelSession) {};
     virtual sptr<SceneSession> GetKeyboardPanelSession() const { return nullptr; };
@@ -431,6 +439,7 @@ public:
     virtual void SetFloatingBallStopCallback(NotifyStopFloatingBallFunc&& func) {};
     virtual void SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloatingBallMainWindowFunc&& func) {};
     virtual void RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& func) {};
+    virtual void RegisterReportWindowRssFunc(ReportWindowRssFunc&& func) {};
 
     /**
      * Float view
@@ -460,7 +469,15 @@ public:
     WMError UpdateWindowModeForUITest(int32_t updateMode);
     void RegisterDefaultDensityEnabledCallback(NotifyDefaultDensityEnabledFunc&& callback);
     void SetSessionDisplayIdChangeCallback(NotifySessionDisplayIdChangeFunc&& func);
-    bool IsMovable() const;
+
+    /**
+     * @brief Checks if the window is movable.
+     *
+     * @param needFocused Indicates whether the window needs to be focused to be movable. Default is true.
+     * @return true if the window is movable, false otherwise.
+     */
+    bool IsMovable(bool needFocused = true) const;
+
     bool IsDraggable() const;
 
     WSError SetKeepScreenOn(bool keepScreenOn);
@@ -521,6 +538,8 @@ public:
     void RegisterMainModalTypeChangeCallback(NotifyMainModalTypeChangeFunc&& func);
     void CloneWindow(NodeId surfaceNodeId, bool needOffScreen);
     void RegisterSupportWindowModesCallback(NotifySetSupportedWindowModesFunc&& func);
+    WSError NotifySupportWindowModesChange(
+        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     void AddSidebarBlur();
     void SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimation);
     void SaveLastDensity();
@@ -535,6 +554,7 @@ public:
      */
     void SetIsLayoutFullScreen(bool isLayoutFullScreen);
     bool IsLayoutFullScreen() const;
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) override;
 
@@ -568,6 +588,8 @@ public:
     WMError UnlockCursor(const std::vector<int32_t>& parameters) override;
     void RegisterRecoverWindowEffectCallback(NotifyRecoverWindowEffectFunc&& func);
     WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    std::vector<Rect> GetDragDisabledAreas() const;
 
     /*
      * Window Immersive
@@ -631,6 +653,7 @@ public:
     WSRect GetSessionTargetRectByDisplayId(DisplayId displayId) const;
     std::string GetUpdatedIconPath() const;
     int32_t GetParentPersistentId() const;
+    WSRect GetParentSessionRectSync();
     int32_t GetMainSessionId();
     int32_t GetMainSessionOrLoosenedSessionId();
     virtual int32_t GetMissionId() const { return persistentId_; };
@@ -796,8 +819,6 @@ public:
     bool SendKeyEventToUI(std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent = false);
     bool IsStartMoving() override;
     void SetIsStartMoving(bool startMoving);
-    bool IsSystemSpecificSession() const;
-    void SetIsSystemSpecificSession(bool isSystemSpecificSession);
     void SetShouldHideNonSecureWindows(bool shouldHide);
     void UpdateExtWindowFlags(int32_t extPersistentId, const ExtensionWindowFlags& extWindowFlags,
         const ExtensionWindowFlags& extWindowActions);
@@ -920,6 +941,7 @@ public:
     bool IsDragMoving() const override;
     bool IsDragZooming() const override;
     bool IsCrossDisplayDragSupported() const;
+    
     // KeyFrame
     WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) override;
@@ -963,25 +985,6 @@ public:
      */
     void OnNextVsyncReceivedWhenDrag(
         const WSRect& globalRect, bool isGlobal, bool needFlush, bool needSetBoundsNextVsync);
-
-    /**
-     * @brief Request a move resampling operation to run on the next vsync.
-     *
-     * This registers a vsync callback and posts the resample work to the
-     * SSM thread, forming one iteration of the move resampling loop.
-     */
-    void RequestMoveResampleOnNextVsync();
-
-    /**
-     * @brief Perform one move resampling iteration for the given vsync timestamp.
-     *
-     * This method resamples the moving position at the specified vsync moment,
-     * updates the target rectangle, applies the new surface bounds, and then
-     * schedules the next resample iteration.
-     *
-     * @param vsyncTimeUs Vsync timestamp in microseconds.
-     */
-    void PerformMoveResampleOnVsync(int64_t vsyncTimeUs);
 
     void RegisterLayoutFullScreenChangeCallback(NotifyLayoutFullScreenChangeFunc&& callback);
     bool SetFrameGravity(Gravity gravity);
@@ -1426,6 +1429,13 @@ private:
     std::optional<uint32_t> GetFpsFromVsync() const;
 
     /**
+     * @brief Get the current vsync period for this session.
+     *
+     * @return Vsync period in nanoseconds;
+     */
+    int64_t GetVSyncPeriod() const;
+
+    /**
      * @brief Run the given callback on the next vsync.
      *
      * Wraps the provided function into a VsyncCallback and schedules it
@@ -1566,7 +1576,6 @@ private:
     SessionEventParam sessionEventParam_ = { 0, 0, 0, 0, 0 };
     std::atomic_bool isStartMoving_ { false };
     std::atomic_bool isVisibleForAccessibility_ { true };
-    bool isSystemSpecificSession_ { false };
 
     /**
      * Keyboard(private)
@@ -1624,6 +1633,31 @@ private:
      * @param isGlobal Indicates whether global positioning is enabled.
      */
     void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
+
+    /**
+     * @brief Request the next vsync-driven move resampling iteration.
+     */
+    void RequestMoveResampleOnNextVsync();
+
+    /**
+     * @brief Schedule a move-resample task on the SSM thread.
+     *
+     * @param vsyncTimeUs Vsync timestamp in microseconds.
+     * @param delayMs Delay in milliseconds before running the task.
+     * @param needRequestNextVsync Whether to request the next resampling vsync after this task.
+     */
+    void ScheduleMoveResampleTask(int64_t vsyncTimeUs, int64_t delayMs, bool needRequestNextVsync);
+
+    /**
+     * @brief Perform one move resampling iteration at the given sample timestamp.
+     *
+     * Resamples the target rectangle at sampleTimeUs, applies surface bounds,
+     * and optionally continues the vsync resampling loop.
+     *
+     * @param sampleTimeUs Sample timestamp in microseconds.
+     * @param shouldRequestNextVsync Whether to continue the resampling loop.
+     */
+    void PerformMoveResampleAt(int64_t sampleTimeUs, bool shouldRequestNextVsync = true);
 
     /*
      * Window Decor

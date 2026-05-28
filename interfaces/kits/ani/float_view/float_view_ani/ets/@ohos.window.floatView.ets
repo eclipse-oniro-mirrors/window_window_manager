@@ -30,8 +30,10 @@ export default namespace floatView {
     start(): Promise<void>;
     stop(): Promise<void>;
     setUIContext(path: string, contentStorage?: LocalStorage): Promise<void>;
+    setUIContextByName(name: string, contentStorage?: LocalStorage): Promise<void>;
     setFloatViewVisibilityInApp(visibleInApp: boolean): Promise<void>;
     setWindowSize(size: window.Size): Promise<void>;
+    switchTemplate(templateProperty: TemplateProperty): Promise<void>;
     getWindowProperties(): FloatViewProperties;
     restoreMainWindow(wantParameters?: Record<string, object>): Promise<void>;
     onStateChange(callback: Callback<FloatViewStateChangeInfo>): void;
@@ -40,6 +42,11 @@ export default namespace floatView {
     offRectChange(callback?: Callback<FloatViewRectChangeInfo>): void;
     onLimitsChange(callback: Callback<FloatViewLimits>): void;
     offLimitsChange(callback?: Callback<FloatViewLimits>): void;
+  }
+
+  export interface TemplateProperty {
+    templateType: FloatViewTemplateType;
+    size: window.Size;
   }
 
   export interface FloatViewConfiguration {
@@ -150,6 +157,7 @@ export default namespace floatView {
 
   export enum FloatViewTemplateType {
     ROUNDED_RECTANGLE = 0,
+    HORIZONTAL_BAR = 1,
   }
 
   function runOnStateChangeEvent(cb: object, info: FloatViewStateChangeInfo): void {
@@ -220,7 +228,7 @@ export default namespace floatView {
   }
 
   export native function fvControllerFinalizerCallback(nativeObj: long): void;
-  let fvControllerFinalizerRegister = new FinalizationRegistry<long>(fvControllerFinalizerCallback);
+  let fvControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(fvControllerFinalizerCallback);
 
   export class FvControllerInternal implements FloatViewController {
     private nativeObj: long = 0;
@@ -269,6 +277,18 @@ export default namespace floatView {
       });
     }
 
+    public native setUIContextByNameNative(nativeObj: long, name: string, contentStorage?: LocalStorage): void;
+    public setUIContextByName(name: string, contentStorage?: LocalStorage): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        try {
+          this.setUIContextByNameNative(this.nativeObj, name, contentStorage);
+          resolve(undefined);
+        } catch (err) {
+          reject(err as BusinessError);
+        }
+      });
+    }
+
     public native setFloatViewVisibilityInAppNative(nativeObj: long, visibleInApp: boolean): void;
     public setFloatViewVisibilityInApp(visibleInApp: boolean): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
@@ -287,6 +307,19 @@ export default namespace floatView {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.setWindowSizeNative(this.nativeObj, size);
+        }).then((ret: Any) :void => {
+          resolve(undefined);
+        }).catch((err: Any) :void => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public native switchTemplateNative(nativeObj: long, templateProperty: TemplateProperty): void;
+    public switchTemplate(templateProperty: TemplateProperty): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.switchTemplateNative(this.nativeObj, templateProperty);
         }).then((ret: Any) :void => {
           resolve(undefined);
         }).catch((err: Any) :void => {

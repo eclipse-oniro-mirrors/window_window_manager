@@ -85,11 +85,11 @@ HWTEST_F(WindowAgentTest, UpdateWindowRect, TestSize.Level1)
  */
 HWTEST_F(WindowAgentTest, UpdateWindowMode, TestSize.Level1)
 {
-    WMError err = windowAgent_->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    WMError err = windowAgent_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
     ASSERT_EQ(err, WMError::WM_OK);
 
     windowAgent_->window_ = nullptr;
-    err = windowAgent_->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    err = windowAgent_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
     ASSERT_EQ(err, WMError::WM_ERROR_NULLPTR);
 }
 

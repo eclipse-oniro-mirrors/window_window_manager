@@ -421,6 +421,7 @@ HWTEST_F(SessionLayoutTest, SetDragActivated01, TestSize.Level1)
     sptr<Session> session = sptr<Session>::MakeSptr(info);
     uint32_t layoutBit = static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT);
     uint32_t appLockBit = static_cast<uint32_t>(DragActivateSource::APP_LOCK);
+    session->dragActivatedBitmap_ = 0;
 
     session->SetDragActivated(DragActivateSource::FOLLOW_PARENT_LAYOUT, true);
     EXPECT_EQ(layoutBit, session->GetDragActivatedBitmap());
