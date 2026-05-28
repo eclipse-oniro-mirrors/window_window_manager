@@ -17,7 +17,9 @@
 #include <parameters.h>
 #include "ability_context_impl.h"
 #include "display_info.h"
+#include "fold_screen_state_internel.h"
 #include "mock_ability_context_impl.h"
+#include "mock_display_manager_adapter.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
 #include "mock_window_adapter.h"
@@ -2442,6 +2444,191 @@ HWTEST_F(WindowSceneSessionImplTest4, GetRotationLocked, TestSize.Level0)
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     ret = window->GetRotationLocked(locked);
     EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: GetOriginalEventInfo01
+ * @tc.desc: Test GetOriginalEventInfo with invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetOriginalEventInfo01");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    EventPositionInfo eventPositionInfo;
+    EventPositionInfo originalEventPositionInfo;
+
+    windowSceneSessionImpl->hostSession_ = nullptr;
+    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+}
+
+/**
+ * @tc.name: GetOriginalEventInfo02
+ * @tc.desc: Test GetOriginalEventInfo with condition combination not satisfied
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetOriginalEventInfo02");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+
+    windowSceneSessionImpl->property_->SetDisplayId(0);
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+
+    EventPositionInfo originalEventPositionInfo;
+    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, EventPositionInfo::INVALID_INT32);
+    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
+}
+
+/**
+ * @tc.name: GetOriginalEventInfo03
+ * @tc.desc: Test GetOriginalEventInfo with superFoldOffsetY_ not equal to -1
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo03, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        return;
+    }
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetOriginalEventInfo03");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+    windowSceneSessionImpl->property_->SetDisplayId(999);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(*displayMocker->mock_, GetFoldStatus())
+        .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
+
+    windowSceneSessionImpl->superFoldOffsetY_ = 100;
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+
+    EventPositionInfo originalEventPositionInfo;
+    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, EventPositionInfo::INVALID_INT32);
+    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
+}
+
+/**
+ * @tc.name: GetOriginalEventInfo04
+ * @tc.desc: Test GetOriginalEventInfo with partial valid fields
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo04, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        return;
+    }
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetOriginalEventInfo04");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+    windowSceneSessionImpl->property_->SetDisplayId(999);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(*displayMocker->mock_, GetFoldStatus())
+        .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
+
+    windowSceneSessionImpl->superFoldOffsetY_ = -1;
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = EventPositionInfo::INVALID_INT32;
+    eventPositionInfo.displayXPos = 100.5;
+    eventPositionInfo.displayYPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalX = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalY = 400.0;
+
+    EventPositionInfo originalEventPositionInfo;
+    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.5);
+    EXPECT_EQ(originalEventPositionInfo.displayYPos, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_EQ(originalEventPositionInfo.globalX, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
+}
+
+/**
+ * @tc.name: GetOriginalEventInfo05
+ * @tc.desc: Test GetOriginalEventInfo with SuperFold device conditions
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo05, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        return;
+    }
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetOriginalEventInfo05");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+
+    windowSceneSessionImpl->property_->SetDisplayId(999);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(*displayMocker->mock_, GetFoldStatus())
+        .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
+
+    windowSceneSessionImpl->superFoldOffsetY_ = -1;
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    eventPositionInfo.displayXPos = 100.5;
+    eventPositionInfo.displayYPos = 200.5;
+    eventPositionInfo.globalX = 300.0;
+    eventPositionInfo.globalY = 400.0;
+
+    EventPositionInfo originalEventPositionInfo;
+    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.5);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.5);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, 300.0);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
 }
 } // namespace
 } // namespace Rosen

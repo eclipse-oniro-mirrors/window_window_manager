@@ -1262,14 +1262,14 @@ public:
     }
 
     /**
-     * @brief Get original display position coordinates.
+     * @brief Get original event position information.
      *
-     * @param displayPos Input display position.
-     * @param originalPos [out] Output original display position after calculation.
+     * @param eventPositionInfo Input event position information.
+     * @param originalEventPositionInfo [out] Output original event position information.
      * @return WMError::WM_OK on success, or appropriate error code on failure.
      */
-    virtual WMError GetOriginalDisplayXY(const DisplayPosition& displayPos,
-        DisplayPosition& originalPos) const
+    virtual WMError GetOriginalEventInfo(const EventPositionInfo& eventPositionInfo,
+        EventPositionInfo& originalEventPositionInfo) const
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

@@ -17,6 +17,7 @@
 #define OHOS_ROSEN_WM_COMMON_H
 
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -879,13 +880,20 @@ struct PointInfo {
 };
 
 /**
- * @struct DisplayPosition.
+ * @struct EventPositionInfo.
  *
- * @brief Display coordinate position for window coordinate conversion.
+ * @brief Event position information for window coordinate conversion.
  */
-struct DisplayPosition {
-    int32_t displayX = 0;
-    int32_t displayY = 0;
+struct EventPositionInfo {
+    static constexpr int32_t INVALID_INT32 = -std::numeric_limits<int32_t>::max();
+    static constexpr double INVALID_DOUBLE = -std::numeric_limits<double>::max();
+
+    int32_t displayX = INVALID_INT32;
+    int32_t displayY = INVALID_INT32;
+    double displayXPos = INVALID_DOUBLE;
+    double displayYPos = INVALID_DOUBLE;
+    double globalX = INVALID_DOUBLE;
+    double globalY = INVALID_DOUBLE;
 };
 
 /**

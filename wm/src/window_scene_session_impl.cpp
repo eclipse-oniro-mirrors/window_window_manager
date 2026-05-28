@@ -2856,15 +2856,37 @@ WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
     return static_cast<WMError>(ret);
 }
 
-WMError WindowSceneSessionImpl::GetOriginalDisplayXY(const DisplayPosition& displayPos,
-    DisplayPosition& originalPos) const
+WMError WindowSceneSessionImpl::GetOriginalEventInfo(const EventPositionInfo& eventPositionInfo,
+    EventPositionInfo& originalEventPositionInfo) const
 {
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    originalPos.displayX = displayPos.displayX;
-    originalPos.displayY = displayPos.displayY;
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
+        property_->GetDisplayId() == DISPLAY_ID_C &&
+        DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
+        if (superFoldOffsetY_ == -1) {
+            if (eventPositionInfo.displayX != EventPositionInfo::INVALID_INT32) {
+                originalEventPositionInfo.displayX = eventPositionInfo.displayX;
+            }
+            if (eventPositionInfo.displayY != EventPositionInfo::INVALID_INT32) {
+                originalEventPositionInfo.displayY = eventPositionInfo.displayY + superFoldOffsetY_;
+            }
+            if (eventPositionInfo.displayXPos != EventPositionInfo::INVALID_DOUBLE) {
+                originalEventPositionInfo.displayXPos = eventPositionInfo.displayXPos;
+            }
+            if (eventPositionInfo.displayYPos != EventPositionInfo::INVALID_DOUBLE) {
+                originalEventPositionInfo.displayYPos = eventPositionInfo.displayYPos + superFoldOffsetY_;
+            }
+            if (eventPositionInfo.globalX != EventPositionInfo::INVALID_DOUBLE) {
+                originalEventPositionInfo.globalX = eventPositionInfo.globalX;
+            }
+            if (eventPositionInfo.globalY != EventPositionInfo::INVALID_DOUBLE) {
+                originalEventPositionInfo.globalY = eventPositionInfo.globalY;
+            }
+        }
+    }
     return WMError::WM_OK;
 }
 
