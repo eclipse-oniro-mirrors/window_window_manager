@@ -46,7 +46,7 @@ export class WindowStaticEnv {
     private context: UIContext;
     private window: window.Window | undefined = undefined;
     private windowProxy: uiExtension.WindowProxy | undefined = undefined;
-    private hostWindowProxy: uiExtensionHost.uiExtensionHostWindowProxy | undefined = undefined;
+    private hostWindowProxy: uiExtensionHost.UIExtensionHostWindowProxy | undefined = undefined;
     private windowEventCb: Callback<window.WindowEventType> | undefined;
     private cacheEnvAvoidArea: window.UIEnvWindowAvoidAreaInfoPX | undefined;
     private avoidAreaCbVp: Callback<window.AvoidAreaOptions> | undefined;
@@ -69,8 +69,8 @@ export class WindowStaticEnv {
                 this.window = win as window.Window;
             } else if (win instanceof uiExtension.WindowProxy) {
                 this.windowProxy = win as uiExtension.WindowProxy;
-            } else if (win instanceof uiExtensionHost.uiExtensionHostWindowProxy) {
-                this.hostWindowProxy = win as uiExtensionHost.uiExtensionHostWindowProxy;
+            } else if (win instanceof uiExtensionHost.UIExtensionHostWindowProxy) {
+                this.hostWindowProxy = win as uiExtensionHost.UIExtensionHostWindowProxy;
             }
         } catch (error) {
             hilog.error(ATTR_DOMAIN, ATTR_TAG, `[env] env constructor failed, ${error.message}`);
@@ -186,7 +186,7 @@ export class WindowStaticEnv {
     }
 
     private initEnvAvoidArea(): void {
-        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.uiExtensionHostWindowProxy |
+        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.UIExtensionHostWindowProxy |
             undefined = this.window ?? this.windowProxy ?? this.hostWindowProxy;
         if (!this.cacheEnvAvoidArea) {
             const envObj: window.UIEnvWindowAvoidAreaInfoPX = {
@@ -359,7 +359,7 @@ export class WindowStaticEnv {
     }
 
     registerWindowSizeVpEnv(cb: Callback<window.SizeInVP>): void {
-        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.uiExtensionHostWindowProxy |
+        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.UIExtensionHostWindowProxy |
             undefined = this.window ?? this.windowProxy ?? this.hostWindowProxy;
         if (!this.windowSizeCbVp && !this.windowSizeDensityCbVp) {
             this.windowSizeCbVp = (size: window.Size) => {
@@ -404,7 +404,7 @@ export class WindowStaticEnv {
     }
 
     registerWindowSizePxEnv(cb: Callback<window.Size>): void {
-        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.uiExtensionHostWindowProxy |
+        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.UIExtensionHostWindowProxy |
             undefined = this.window ?? this.windowProxy ?? this.hostWindowProxy;
         try {
             win?.onWindowSizeChange(cb);
@@ -414,7 +414,7 @@ export class WindowStaticEnv {
     }
 
     unregisterWindowSizePxEnv(cb: Callback<window.Size>): void {
-        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.uiExtensionHostWindowProxy |
+        const win: window.Window | uiExtension.WindowProxy | uiExtensionHost.UIExtensionHostWindowProxy |
             undefined = this.window ?? this.windowProxy ?? this.hostWindowProxy;
         try {
             win?.offWindowSizeChange(cb);
