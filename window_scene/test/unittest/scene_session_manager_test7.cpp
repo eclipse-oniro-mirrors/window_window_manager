@@ -194,7 +194,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChangeByDpiChange, Te
     ASSERT_NE(nullptr, ssm_);
     displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
     displayInfo->SetDensityInCurResolution(virtualPixelRatio);
-    ProcessVirtualPixelRatioChangeFunc func = [&isCallbackCalled, virtualPixelRatio](
+    ProcessVirtualPixelRatioChangeFunc func = [&isCallbackCalled](
         float ratio, const OHOS::Rosen::Rect& rect) {
         isCallbackCalled = true;
         EXPECT_FLOAT_EQ(ratio, virtualPixelRatio);
