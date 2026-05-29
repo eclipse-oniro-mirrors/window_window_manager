@@ -2642,7 +2642,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo02, TestSize.Level1)
 
 /**
  * @tc.name: GetOriginalEventInfo03
- * @tc.desc: Test GetOriginalEventInfo with superFoldOffsetY_ not equal to -1
+ * @tc.desc: Test GetOriginalEventInfo with superFoldOffsetY_ equal to -1 (invalid offset)
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo03, TestSize.Level1)
@@ -2666,7 +2666,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo03, TestSize.Level1)
     EXPECT_CALL(displayMocker->Mock(), GetFoldStatus())
         .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
-    windowSceneSessionImpl->superFoldOffsetY_ = 100;
+    windowSceneSessionImpl->superFoldOffsetY_ = -1;
 
     EventPositionInfo eventPositionInfo;
     eventPositionInfo.displayX = 100;
@@ -2682,7 +2682,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo03, TestSize.Level1)
 
 /**
  * @tc.name: GetOriginalEventInfo04
- * @tc.desc: Test GetOriginalEventInfo with partial valid fields
+ * @tc.desc: Test GetOriginalEventInfo with valid superFoldOffsetY_ and partial valid fields
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo04, TestSize.Level1)
@@ -2706,12 +2706,13 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo04, TestSize.Level1)
     EXPECT_CALL(displayMocker->Mock(), GetFoldStatus())
         .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
-    windowSceneSessionImpl->superFoldOffsetY_ = -1;
+    // superFoldOffsetY_ = 100 (valid offset)
+    windowSceneSessionImpl->superFoldOffsetY_ = 100;
 
     EventPositionInfo eventPositionInfo;
     eventPositionInfo.displayX = 100;
-    eventPositionInfo.displayY = EventPositionInfo::INVALID_INT32;
-    eventPositionInfo.displayXPos = 100.5;
+    eventPositionInfo.displayY = 200;
+    eventPositionInfo.displayXPos = EventPositionInfo::INVALID_DOUBLE;
     eventPositionInfo.displayYPos = EventPositionInfo::INVALID_DOUBLE;
     eventPositionInfo.globalX = EventPositionInfo::INVALID_DOUBLE;
     eventPositionInfo.globalY = 400.0;
@@ -2721,8 +2722,8 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo04, TestSize.Level1)
 
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
-    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
-    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.5);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200 + 100);
+    EXPECT_EQ(originalEventPositionInfo.displayXPos, EventPositionInfo::INVALID_DOUBLE);
     EXPECT_EQ(originalEventPositionInfo.displayYPos, EventPositionInfo::INVALID_DOUBLE);
     EXPECT_EQ(originalEventPositionInfo.globalX, EventPositionInfo::INVALID_DOUBLE);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
@@ -2730,7 +2731,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo04, TestSize.Level1)
 
 /**
  * @tc.name: GetOriginalEventInfo05
- * @tc.desc: Test GetOriginalEventInfo with SuperFold device conditions
+ * @tc.desc: Test GetOriginalEventInfo with valid superFoldOffsetY_ and all valid fields
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo05, TestSize.Level1)
@@ -2747,7 +2748,6 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo05, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-
     windowSceneSessionImpl->property_->SetDisplayId(999);
 
     using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
@@ -2755,7 +2755,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo05, TestSize.Level1)
     EXPECT_CALL(displayMocker->Mock(), GetFoldStatus())
         .WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
-    windowSceneSessionImpl->superFoldOffsetY_ = -1;
+    windowSceneSessionImpl->superFoldOffsetY_ = 100;
 
     EventPositionInfo eventPositionInfo;
     eventPositionInfo.displayX = 100;
@@ -2769,9 +2769,9 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo05, TestSize.Level1)
     auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
-    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200 + 100);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.5);
-    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.5);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.5 + 100);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, 300.0);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
 }

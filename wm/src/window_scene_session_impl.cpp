@@ -2956,7 +2956,7 @@ WMError WindowSceneSessionImpl::GetOriginalEventInfo(const EventPositionInfo& ev
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
         property_->GetDisplayId() == DISPLAY_ID_C &&
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
-        if (superFoldOffsetY_ == -1) {
+        if (superFoldOffsetY_ != -1) {
             if (eventPositionInfo.displayX != EventPositionInfo::INVALID_INT32) {
                 originalEventPositionInfo.displayX = eventPositionInfo.displayX;
             }
