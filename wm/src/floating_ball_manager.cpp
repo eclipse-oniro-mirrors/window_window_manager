@@ -102,7 +102,8 @@ void FloatingBallManager::DoFbActionEvent(const std::string& actionName)
 
 bool FloatingBallManager::IsSupportFloatingBall()
 {
-    return false;
+    std::string deviceType = system::GetParameter("const.product.devicetype", "unknown");
+ 	return deviceType == "phone" || deviceType == "default" || deviceType == "tablet";
 }
 // LCOV_EXCL_STOP
 
