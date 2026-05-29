@@ -117,7 +117,6 @@
 namespace OHOS::Rosen {
 namespace {
 const std::string SCENE_BOARD_BUNDLE_NAME = "com.ohos.sceneboard";
-const std::string SCENE_BOARD_APP_IDENTIFIER = "5765880207853062833";
 const std::string SCENE_SESSION_MANAGER_THREAD = "OS_SceneSessionManager";
 const std::string WINDOW_INFO_REPORT_THREAD = "OS_WindowInfoReportThread";
 const std::string SUPER_LAUNCHER = "SuperLauncher";
@@ -8115,8 +8114,7 @@ WMError SceneSessionManager::RequestFocusStatus(int32_t persistentId, bool isFoc
         return WMError::WM_ERROR_NULLPTR;
     }
     int32_t callingPid = IPCSkeleton::GetCallingPid();
-    if (callingPid != sceneSession->GetCallingPid() &&
-        !SessionPermission::IsSameAppAsCalling(SCENE_BOARD_BUNDLE_NAME, SCENE_BOARD_APP_IDENTIFIER)) {
+    if (callingPid != sceneSession->GetCallingPid() && callingPid != GetPid()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied, not call by the same process");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
