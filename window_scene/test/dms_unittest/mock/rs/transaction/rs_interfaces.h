@@ -26,6 +26,7 @@
 #include "transaction/rs_render_service_client.h"
 #include "screen_manager/rs_screen_mode_info.h"
 #include "common/rs_event_def.h"
+#include "screen_manager/rs_surface_region_config.h"
 
 
 namespace OHOS {
@@ -94,6 +95,8 @@ public:
     int32_t SetMirrorScreenVisibleRect(ScreenId id, const Rect& mainScreenRect, bool supportRotation = false);
     int32_t SetCastScreenEnableSkipWindow(ScreenId id, bool enable);
     int32_t SetVirtualScreenSurface(ScreenId id, sptr<Surface> surface);
+    int32_t AddVirtualScreenSurface(ScreenId id, const std::vector<SurfaceRegionConfig> surfaceRegionConfigs);
+    int32_t RemoveVirtualScreenSurface(ScreenId id, const std::vector<SurfaceRegionConfig> surfaceRegionConfigs);
     void RemoveVirtualScreen(ScreenId id);
     int32_t SetScreenChangeCallback(const ScreenChangeCallback& callback);
     int32_t SetScreenSwitchingNotifyCallback(const ScreenSwitchingNotifyCallback& callback);

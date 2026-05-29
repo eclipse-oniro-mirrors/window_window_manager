@@ -990,6 +990,42 @@ export function setVirtualScreenSurface(screenId: long, surfaceId: string): Prom
  
 export native function setVirtualScreenSurfaceNative(screenId: long, surfaceId: string, nativeObj: long): void;
 
+export function addVirtualScreenSurface(screenId: long, surfaceId: string, surfaceRegion?: Rect): Promise<void> {
+    if (screenId < 0) {
+        throw new BusinessError(ERROR_INVALID_PARAM, new Error(`[ANI] screenId is invalid: ${screenId}`));
+    }
+    return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ) :void => {
+        taskpool.execute((): void => {
+            let region: Rect = surfaceRegion?? new RectImpl();
+            addVirtualScreenSurfaceNative(screenId, surfaceId, region, displayMgrRef);
+        }).then((ret: Any) :void => {
+            resolve(undefined);
+        }).catch((err: Any) :void => {
+            reject(err as BusinessError);
+        });
+    });
+}
+
+export native function addVirtualScreenSurfaceNative(screenId: long, surfaceId: string, 
+    surfaceRegion: Rect, nativeObj: long): void;
+
+export function removeVirtualScreenSurface(screenId: long, surfaceId: string): Promise<void> {
+    if (screenId < 0) {
+        throw new BusinessError(ERROR_INVALID_PARAM, new Error(`[ANI] screenId is invalid: ${screenId}`));
+    }
+    return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ) :void => {
+        taskpool.execute((): void => {
+            removeVirtualScreenSurfaceNative(screenId, surfaceId, displayMgrRef);
+        }).then((ret: Any) :void => {
+            resolve(undefined);
+        }).catch((err: Any) :void => {
+            reject(err as BusinessError);
+        });
+    });
+}
+
+export native function removeVirtualScreenSurfaceNative(screenId: long, surfaceId: string, nativeObj: long): void;
+
 export function disposeDisplay(display: DisplayImpl): void {
     finalizerDisplayNative(display as object, displayMgrRef);
 }

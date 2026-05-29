@@ -443,6 +443,38 @@ DMError ScreenManagerAdapter::SetVirtualScreenSurface(ScreenId screenId, sptr<Su
     return ConvertToDMError(errCode, dmError);
 }
 
+DMError ScreenManagerAdapter::AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface,
+    const DMRect& surfaceRegion)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Surface is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::DMS, "enter AddVirtualScreenSurface");
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->AddVirtualScreenSurface(screenId, surface->GetProducer(),
+            surfaceRegion);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError ScreenManagerAdapter::RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Surface is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::DMS, "enter RemoveVirtualScreenSurface");
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError ScreenManagerAdapter::AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);

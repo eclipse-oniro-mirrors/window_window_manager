@@ -56,6 +56,15 @@ int32_t RSInterfaces::SetVirtualScreenSurface(ScreenId id, sptr<Surface> surface
 {
     return 0;
 }
+int32_t RSInterfaces::AddVirtualScreenSurface(ScreenId id, 
+     const std::vector<SurfaceRegionConfig> surfaceRegionConfigs)
+{
+    return 0;
+}
+int32_t RSInterfaces::RemoveVirtualScreenSurface(ScreenId id,  const std::vector<SurfaceRegionConfig> surfaceRegionConfigs)
+{
+    return 0;
+}
 void RSInterfaces::RemoveVirtualScreen(ScreenId id) {}
 int32_t RSInterfaces::SetScreenChangeCallback(const ScreenChangeCallback& callback)
 {

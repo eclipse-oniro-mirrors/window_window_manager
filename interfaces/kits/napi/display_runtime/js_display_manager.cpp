@@ -45,6 +45,7 @@ using namespace AbilityRuntime;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_TWO = 2;
 constexpr size_t ARGC_THREE = 3;
+constexpr size_t ARGC_FOUR = 4;
 constexpr size_t ARGS_MAX = 4;
 constexpr int32_t INDEX_ONE = 1;
 constexpr size_t BUNDLE_NAME_LIST_MAX_SIZE = 100;
@@ -192,6 +193,18 @@ static napi_value SetVirtualScreenSurface(napi_env env, napi_callback_info info)
 {
     auto* me = CheckParamsAndGetThis<JsDisplayManager>(env, info);
     return (me != nullptr) ? me->OnSetVirtualScreenSurface(env, info) : nullptr;
+}
+
+static napi_value AddVirtualScreenSurface(napi_env env, napi_callback_info info)
+{
+    auto* me = CheckParamsAndGetThis<JsDisplayManager>(env, info);
+    return (me != nullptr) ? me->OnAddVirtualScreenSurface(env, info) : nullptr;
+}
+
+static napi_value RemoveVirtualScreenSurface(napi_env env, napi_callback_info info)
+{
+    auto* me = CheckParamsAndGetThis<JsDisplayManager>(env, info);
+    return (me != nullptr) ? me->OnRemoveVirtualScreenSurface(env, info) : nullptr;
 }
 
 static napi_value AddVirtualScreenBlockList(napi_env env, napi_callback_info info)
@@ -1500,6 +1513,132 @@ napi_value OnSetVirtualScreenSurface(napi_env env, napi_callback_info info)
         delete task;
     };
     NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnSetVirtualScreenSurface");
+    return result;
+}
+
+
+napi_value OnAddVirtualScreenSurface(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    DmErrorCode errCode = DmErrorCode::DM_OK;
+    int64_t screenId = -1LL;
+    sptr<Surface> surface;
+    DMRect surfaceRegion = {0, 0, 0, 0};
+    bool hasSurfaceRegion = false;
+    size_t argc = 4;
+    std::string errMsg = "";
+    napi_value argv[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_TWO) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Argc is invalid: %{public}zu", argc);
+        errMsg = "Invalid args count, need 2 args at least!";
+        errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+    } else {
+        if (!ConvertFromJsValue(env, argv[0], screenId)) {
+            errMsg = "Failed to convert parameter to screen id.";
+            errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
+        if (!GetSurfaceFromJs(env, argv[1], surface)) {
+            errMsg = "Failed to convert parameter.";
+            errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
+        if (argc >= ARGC_THREE && argv[ARGC_THREE-1] != nullptr && GetType(env, argv[ARGC_THREE-1]) == napi_object) {
+            napi_value xValue = nullptr;
+            napi_value yValue = nullptr;
+            napi_value widthValue = nullptr;
+            napi_value heightValue = nullptr;
+            napi_get_named_property(env, argv[ARGC_THREE-1], "left", &xValue);
+            napi_get_named_property(env, argv[ARGC_THREE-1], "top", &yValue);
+            napi_get_named_property(env, argv[ARGC_THREE-1], "width", &widthValue);
+            napi_get_named_property(env, argv[ARGC_THREE-1], "height", &heightValue);
+            if (xValue != nullptr && yValue != nullptr && widthValue != nullptr && heightValue != nullptr) {
+                ConvertFromJsValue(env, xValue, surfaceRegion.posX_);
+                ConvertFromJsValue(env, yValue, surfaceRegion.posY_);
+                ConvertFromJsValue(env, widthValue, surfaceRegion.width_);
+                ConvertFromJsValue(env, heightValue, surfaceRegion.height_);
+                hasSurfaceRegion = true;
+            }
+        }
+    }
+    if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM || surface == nullptr) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg, "addVirtualScreenSurface");
+    }
+    napi_value lastParam = nullptr;
+    if (argc >= ARGC_FOUR && argv[ARGC_FOUR - 1] != nullptr &&
+        GetType(env, argv[ARGC_FOUR - 1]) == napi_function) {
+        lastParam = argv[ARGC_FOUR - 1];
+    } else if (argc == ARGC_THREE && argv[ARGC_THREE - 1] != nullptr &&
+        GetType(env, argv[ARGC_THREE - 1]) == napi_function) {
+        lastParam = argv[ARGC_THREE - 1];
+    }
+    napi_value result = nullptr;
+    std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
+    auto asyncTask = [screenId, surface, surfaceRegion, hasSurfaceRegion, env, task = napiAsyncTask.get()]() {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayManager::OnAddVirtualScreenSurface");
+        DMRect region = hasSurfaceRegion ? surfaceRegion : DMRect{0, 0, 0, 0};
+        auto res = DM_JS_TO_ERROR_CODE_MAP.at(
+            SingletonContainer::Get<ScreenManager>().AddVirtualScreenSurface(screenId, surface, region));
+        res = (res == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : res;
+        if (res != DmErrorCode::DM_OK) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][addVirtualScreenSurface]"));
+            TLOGNE(WmsLogTag::DMS, "JsDisplayManager::AddVirtualScreenSurface failed.");
+        } else {
+            task->Resolve(env, NapiGetUndefined(env));
+        }
+        delete task;
+    };
+    NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnAddVirtualScreenSurface");
+    return result;
+}
+
+napi_value OnRemoveVirtualScreenSurface(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    DmErrorCode errCode = DmErrorCode::DM_OK;
+    int64_t screenId = -1LL;
+    sptr<Surface> surface;
+    size_t argc = 4;
+    std::string errMsg = "";
+    napi_value argv[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_TWO) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Argc is invalid: %{public}zu", argc);
+        errMsg = "Invalid args count, need 2 args at least!";
+        errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+    } else {
+        if (!ConvertFromJsValue(env, argv[0], screenId)) {
+            errMsg = "Failed to convert parameter to screen id.";
+            errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
+        if (!GetSurfaceFromJs(env, argv[1], surface)) {
+            errMsg = "Failed to convert parameter.";
+            errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
+    }
+    if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM || surface == nullptr) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg, "removeVirtualScreenSurface");
+    }
+    napi_value lastParam = nullptr;
+    if (argc >= ARGC_THREE && argv[ARGC_THREE - 1] != nullptr &&
+        GetType(env, argv[ARGC_THREE - 1]) == napi_function) {
+        lastParam = argv[ARGC_THREE - 1];
+    }
+    napi_value result = nullptr;
+    std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
+    auto asyncTask = [screenId, surface, env, task = napiAsyncTask.get()]() {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayManager::OnRemoveVirtualScreenSurface");
+        auto res = DM_JS_TO_ERROR_CODE_MAP.at(
+            SingletonContainer::Get<ScreenManager>().RemoveVirtualScreenSurface(screenId, surface));
+        res = (res == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : res;
+        if (res != DmErrorCode::DM_OK) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][removeVirtualScreenSurface]"));
+            TLOGNE(WmsLogTag::DMS, "JsDisplayManager::RemoveVirtualScreenSurface failed.");
+        } else {
+            task->Resolve(env, NapiGetUndefined(env));
+        }
+        delete task;
+    };
+    NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnRemoveVirtualScreenSurface");
     return result;
 }
 
