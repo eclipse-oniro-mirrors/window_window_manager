@@ -152,7 +152,6 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         }
         task->Resolve(env, NapiGetUndefined(env));
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STARTPIP_BOOL, 1);
-
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStartPictureInPicture") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, CreateJsError(env,
@@ -191,7 +190,6 @@ napi_value JsPipController::OnStopPictureInPicture(napi_env env, napi_callback_i
         }
         task->Resolve(env, NapiGetUndefined(env));
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STOPPIP_BOOL, 1);
-
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStopPictureInPicture") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, CreateJsError(env,

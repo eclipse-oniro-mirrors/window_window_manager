@@ -398,8 +398,7 @@ napi_value JsFbController::OnRestoreMainWindow(napi_env env, napi_callback_info 
         TLOGE(WmsLogTag::WMS_SYSTEM, "unWrap want failed.");
         return NapiThrowInvalidParam(env, "[fbWindow][restoreMainWindow]msg: "
                                           "Incorrect parameter, parameter must be want.",
-                                          ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW,
-                                          ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW_BOOL);
+            ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW, ARKUI_WINDOW_FB_ONRESTOREMAINWINDOW_BOOL);
     }
 
     std::shared_ptr<AAFwk::Want> abilityWant = std::make_shared<AAFwk::Want>(want);
