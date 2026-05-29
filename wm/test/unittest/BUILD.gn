@@ -516,10 +516,7 @@ ohos_unittest("wm_window_scene_session_impl_test3") {
 
 ohos_unittest("wm_window_scene_session_impl_test4") {
   module_out_path = module_out_path
-  include_dirs = [
-    "${window_base_path}/test/common/utils/include/",
-    "${window_base_path}/window_scene/common/include/",
-  ]
+  include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
   sanitize = {
     cfi = true
     cfi_cross_dso = true
