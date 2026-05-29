@@ -241,9 +241,7 @@ void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
 
             FoldScreenBasePolicy::GetInstance().SetFoldStatus(globalFoldStatus_);
             ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(globalFoldStatus_);
-            if (!FoldScreenBasePolicy::GetInstance().GetLockDisplayStatus()) {
-                FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
-            }
+            FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
         } else {
             TLOGD(WmsLogTag::DMS, "fold state doesn't change, foldState = %{public}d.", globalFoldStatus_);
         }
