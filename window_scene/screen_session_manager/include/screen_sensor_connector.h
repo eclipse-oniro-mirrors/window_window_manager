@@ -40,6 +40,27 @@ public:
     static void UnsubscribeTentSensor();
 };
 
+#ifdef SENSOR_ENABLE
+class GravitySensorSubscriber {
+friend ScreenSensorConnector;
+public:
+    GravitySensorSubscriber() = delete;
+    ~GravitySensorSubscriber() = default;
+private:
+    static void SubscribeGravitySensor();
+    static void UnsubscribeGravitySensor();
+
+    static void HandleGravitySensorEventCallback(SensorEvent *event);
+    static bool CheckCallbackTimeInterval();
+    static int CalcRotationDegree(GravityData* gravityData);
+    // static SensorRotation CalcSensorRotation(int sensorDegree);
+
+    static SensorUser user_;
+    static bool isGravitySensorSubscribed_;
+    static long lastCallbackTime_;
+};
+#endif
+
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 class MotionSubscriber {
 friend ScreenSensorConnector;
