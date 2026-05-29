@@ -14471,7 +14471,8 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
     }
     taskScheduler_->PostSyncTask([this, displayInfo, type, where = __func__]() {
         if (processVirtualPixelRatioChangeFunc_ != nullptr &&
-            type == DisplayStateChangeType::RESOLUTION_CHANGE &&
+            (type == DisplayStateChangeType::RESOLUTION_CHANGE ||
+                type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE) &&
             displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) {
             Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
                           displayInfo->GetWidth(), displayInfo->GetHeight() };
