@@ -1781,6 +1781,30 @@ HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSi
 }
 
 /**
+ * @tc.name: ApplyVirtualScreenScale_ValidDimensions
+ * @tc.desc: Verify ApplyVirtualScreenScale sets cast scale when width and height are non-zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ApplyVirtualScreenScale_ValidDimensions, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: ApplyVirtualScreenScale_ValidDimensions start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("applyScaleValid", screenId);
+    uint32_t width = 720;
+    uint32_t height = 1280;
+    uint32_t renderWidth = 1440;
+    uint32_t renderHeight = 2560;
+    ssm_->ApplyVirtualScreenScale(screenSession, width, height, renderWidth, renderHeight);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), static_cast<float>(renderWidth) / width);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), static_cast<float>(renderHeight) / height);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: ApplyVirtualScreenScale_ValidDimensions end";
+}
+
+/**
  * @tc.name: GetScreenCapability01
  * @tc.desc: GetScreenCapability with invalid screenId
  * @tc.type: FUNC
