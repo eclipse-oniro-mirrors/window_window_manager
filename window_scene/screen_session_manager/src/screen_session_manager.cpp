@@ -15850,7 +15850,7 @@ void ScreenSessionManager::SetRSScreenPowerStatus(ScreenId screenId, ScreenPower
 bool ScreenSessionManager::SetRSScreenPowerStatusExt(ScreenId screenId, ScreenPowerStatus status)
 {
 #ifdef FOLD_ABILITY_ENABLE
-    if (foldScreenController_ != nullptr) {
+    if (foldScreenController_ != nullptr || FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         bool isNeedToCancelSetScreenStatus = false;
         CheckAnotherScreenStatus(screenId, status, isNeedToCancelSetScreenStatus);
         if (isNeedToCancelSetScreenStatus) {
