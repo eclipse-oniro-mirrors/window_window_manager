@@ -134,8 +134,8 @@ bool ScreenSessionManagerClient::CheckIfNeedConnectScreen(SessionOption option)
 void ScreenSessionManagerClient::OnScreenConnectionChanged(SessionOption option, ScreenEvent screenEvent)
 {
     TLOGI(WmsLogTag::DMS,
-        "sId: %{public}" PRIu64 " sEvent: %{public}d rsId: %{public}" PRIu64 " serialNumber: %{public}s" 
-        "name: %{public}s iName: %{public}s", option.screenId_, static_cast<int>(screenEvent), option.rsId_, 
+        "sId: %{public}" PRIu64 " sEvent: %{public}d rsId: %{public}" PRIu64 " serialNumber: %{public}s"
+        "name: %{public}s iName: %{public}s", option.screenId_, static_cast<int>(screenEvent), option.rsId_,
         option.serialNumber_.c_str(), option.name_.c_str(), option.innerName_.c_str());
     std::unique_lock<std::mutex> lock(screenEventMutex_);
     auto iter = connectedScreenSet_.find(option.screenId_);

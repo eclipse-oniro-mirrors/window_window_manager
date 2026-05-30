@@ -100,8 +100,7 @@ napi_value JsScreenSession::Create(napi_env env, const sptr<ScreenSession>& scre
         JsScreenSession::RegisterMotionSensor);
     BindNativeFunction(env, objValue, "unregisterMotionSensor", moduleName,
         JsScreenSession::UnregisterMotionSensor);
-    BindNativeFunction(env, objValue, "destroyContent", moduleName,
-        JsScreenSession::DestroyContent);
+    BindNativeFunction(env, objValue, "destroyContent", moduleName, JsScreenSession::DestroyContent);
     BindNativeFunction(env, objValue, "releaseResource", moduleName,
         JsScreenSession::ReleaseResource);
     return objValue;
