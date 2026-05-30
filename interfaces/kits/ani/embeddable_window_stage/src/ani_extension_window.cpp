@@ -50,21 +50,44 @@ void AddAniExtensionWindow(int32_t id, ani_ref ref)
 }
 }
 
-ani_ref FindAniExtensionWindowById(ani_env* env, int32_t id)
+ani_ref FindAniExtensionWindow(ani_env* env, const sptr<Rosen::Window>& window)
 {
-    std::lock_guard<std::mutex> lock(g_extensionMutex);
-    auto it = g_aniExtensionWindowMap.find(id);
-    if (it == g_aniExtensionWindowMap.end()) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] extension window not found, id: %{public}d", id);
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] window is nullptr");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "The extensionWindow is destroyed.");
     }
-    if (it->second == nullptr) {
+    int32_t id = window->GetWindowPersistentId();
+
+    {
+        std::lock_guard<std::mutex> lock(g_extensionMutex);
+        auto iter = g_aniExtensionWindowMap.find(id);
+        if (iter != g_aniExtensionWindowMap.end()) {
+            if (iter->second == nullptr) {
+                TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] aniExtensionWindowRef is nullptr, id: %{public}d", id);
+                return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    "The extensionWindow is destroyed.");
+            }
+            return iter->second;
+        }
+    }
+
+    ani_object obj = AniExtensionWindow::CreateAniExtensionWindow(
+        env, window, window->GetHostWindowId(), false);
+    if (obj == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] Create extensionWindow failed");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Create extensionWindow failed.");
+    }
+
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    auto iter = g_aniExtensionWindowMap.find(id);
+    if (iter == g_aniExtensionWindowMap.end() || iter->second == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] get extension window failed, id: %{public}d", id);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "The extensionWindow is destroyed.");
     }
-    return it->second;
+    return iter->second;
 }
 
 AniExtensionWindow::AniExtensionWindow(

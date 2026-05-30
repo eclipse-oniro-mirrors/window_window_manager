@@ -29,7 +29,7 @@ namespace Rosen {
 #define WINDOW_EXPORT __attribute__((visibility("default")))
 #endif
 
-ani_ref FindAniExtensionWindowById(ani_env* env, int32_t id);
+ani_ref FindAniExtensionWindow(ani_env* env, const sptr<Rosen::Window>& window);
 
 class AniExtensionWindow {
 public:
