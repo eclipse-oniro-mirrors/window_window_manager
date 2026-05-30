@@ -14473,7 +14473,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
         if (processVirtualPixelRatioChangeFunc_ != nullptr &&
             ((type == DisplayStateChangeType::RESOLUTION_CHANGE &&
             displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
-                type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE){
+                type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE)){
             Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
                           displayInfo->GetWidth(), displayInfo->GetHeight() };
             processVirtualPixelRatioChangeFunc_(displayInfo->GetVirtualPixelRatio(), rect);
