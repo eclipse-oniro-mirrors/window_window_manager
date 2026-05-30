@@ -733,6 +733,8 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::SetDragDisabledAreas);
     BindNativeFunction(env, objValue, "sendFvActionEvent", moduleName, JsSceneSession::SendFvActionEvent);
     BindNativeFunction(env, objValue, "syncFvWindowInfo", moduleName, JsSceneSession::SyncFvWindowInfo);
+    BindNativeFunction(env, objValue, "updateSceneLastUsedPosition", moduleName,
+        JsSceneSession::UpdateSceneLastUsedPosition);
 }
 
 void JsSceneSession::BindNativeMethodForKeyboard(napi_env env, napi_value objValue, const char* moduleName)
@@ -9859,6 +9861,37 @@ napi_value JsSceneSession::OnSetDragDisabledAreas(napi_env env, napi_callback_in
 
     TLOGI(WmsLogTag::WMS_EVENT, "dragDisabledAreas size: %{public}zu", dragDisabledAreas.size());
     session->SetDragDisabledAreas(dragDisabledAreas);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::UpdateSceneLastUsedPosition(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnUpdateSceneLastUsedPosition(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::OnUpdateSceneLastUsedPosition(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARG_COUNT_1;
+    napi_value argv[ARG_COUNT_1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARG_COUNT_1) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        return NapiGetUndefined(env);
+    }
+    std::string position;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_0], position)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to string");
+        return NapiGetUndefined(env);
+    }
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->SetSceneLastUsedPosition(position);
+    TLOGD(WmsLogTag::WMS_LIFE, "position: %{public}s", position.c_str());
     return NapiGetUndefined(env);
 }
 
