@@ -14,16 +14,16 @@
  */
 #include "js_float_view_manager.h"
 
- #include "js_err_utils.h"	 
- #include "js_float_view_utils.h" 
- #include "float_view_controller.h"	 
- #include "float_view_manager.h"	 
- #include "floating_ball_manager.h" 
- #include "float_window_manager.h"	 
- #include "window_manager_hilog.h"	 
- #include "window_manager.h"	 
- #include "singleton_container.h"	 
- #include "permission.h"
+#include "js_err_utils.h"	 
+#include "js_float_view_utils.h" 
+#include "float_view_controller.h"	 
+#include "float_view_manager.h"	 
+#include "floating_ball_manager.h" 
+#include "float_window_manager.h"	 
+#include "window_manager_hilog.h"	 
+#include "window_manager.h"	 
+#include "singleton_container.h"	 
+#include "permission.h"
 
 namespace OHOS {
 namespace Rosen {
