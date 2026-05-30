@@ -2623,93 +2623,110 @@ void WindowSessionProperty::SetCompatibleModeProperty(const sptr<CompatibleModeP
 
 bool WindowSessionProperty::IsAdaptToImmersive() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToImmersive();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToImmersive();
 }
 
 bool WindowSessionProperty::IsAdaptToEventMapping() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToEventMapping();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToEventMapping();
 }
 
 bool WindowSessionProperty::IsAdaptToProportionalScale() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToProportionalScale();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToProportionalScale();
 }
 
 bool WindowSessionProperty::IsAdaptToBackButton() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToBackButton();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToBackButton();
 }
 
 bool WindowSessionProperty::IsAdaptToDragScale() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToDragScale();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToDragScale();
 }
 
 bool WindowSessionProperty::IsDragResizeDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsDragResizeDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsDragResizeDisabled();
 }
 
 bool WindowSessionProperty::IsResizeWithDpiDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsResizeWithDpiDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsResizeWithDpiDisabled();
 }
 
 bool WindowSessionProperty::IsFullScreenDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsFullScreenDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsFullScreenDisabled();
 }
 
 bool WindowSessionProperty::IsSplitDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsSplitDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsSplitDisabled();
 }
 
 bool WindowSessionProperty::IsWindowLimitDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsWindowLimitDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsWindowLimitDisabled();
 }
 
 bool WindowSessionProperty::IsDecorFullscreenDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsDecorFullscreenDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsDecorFullscreenDisabled();
 }
 
 bool WindowSessionProperty::IsFullScreenStart() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsFullScreenStart();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsFullScreenStart();
 }
 
 bool WindowSessionProperty::IsSupportRotateFullScreen() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsSupportRotateFullScreen();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsSupportRotateFullScreen();
 }
 
 bool WindowSessionProperty::IsAdaptToSubWindow() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToSubWindow();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToSubWindow();
 }
 
 bool WindowSessionProperty::IsAdaptToSimulationScale() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToSimulationScale();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToSimulationScale();
 }
 
 bool WindowSessionProperty::IsAdaptToCompatibleDevice() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToCompatibleDevice();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToCompatibleDevice();
 }
 
 RealTimeSwitchInfo WindowSessionProperty::GetRealTimeSwitchInfo() const
 {
-    if (!compatibleModeProperty_) {
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    if (!compatibleModeProperty) {
         RealTimeSwitchInfo switchInfo;
         switchInfo.isNeedChange_ = false;
         switchInfo.showTypes_ = 0;
         return switchInfo;
     }
-    return compatibleModeProperty_->GetRealTimeSwitchInfo();
+    return compatibleModeProperty->GetRealTimeSwitchInfo();
 }
 
 void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInForceSplitMode)
