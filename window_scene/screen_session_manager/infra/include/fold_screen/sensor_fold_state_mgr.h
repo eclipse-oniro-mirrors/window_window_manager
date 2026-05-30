@@ -58,7 +58,7 @@ protected:
     virtual bool IsGetFoldStatusByHalls(const SensorStatus& sensorStatus);
     virtual FoldStatus GetFoldStatusByHalls(const SensorStatus& sensorStatus);
     virtual ScreenAxis GetTentModeScreenAxis(const SensorStatus& sensorStatus);
-    void HandleSensorChange(FoldStatus nextStatus);
+    virtual void HandleSensorChange(FoldStatus nextStatus);
     void UpdateFoldAlgorithmStrategy(const std::vector<ScreenAxis>& axis);
     void ReportTentStatusChange(ReportTentModeStatus tentStatus);
     void SetTentMode(int tentType);
@@ -67,6 +67,7 @@ protected:
     SensorStatus currentSensorStatus_;
     std::vector<FoldStatus> currentFoldStatus_;
     int32_t tentModeType_ = 0;
+    FoldStatus globalFoldStatus_ = FoldStatus::UNKNOWN;
 
 private:
     std::vector<std::string> getHallSwitchAppList();
@@ -77,7 +78,6 @@ private:
     std::vector<int32_t> foldAlgorithmStrategy_;
     class Impl;
     std::unique_ptr<Impl> pImpl_;
-    FoldStatus globalFoldStatus_ = FoldStatus::UNKNOWN;
     TaskSequenceProcess* taskProcess_;
 };
 

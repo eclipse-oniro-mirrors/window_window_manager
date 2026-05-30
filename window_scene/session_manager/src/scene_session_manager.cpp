@@ -7234,7 +7234,8 @@ std::shared_ptr<AppExecFwk::AbilityInfo> SceneSessionManager::QueryAbilityInfoFr
     }
     auto abilityInfoFlag = (AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_APPLICATION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_PERMISSION |
-        AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA);
+        AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA |
+        AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_FUSION);
     if (isTargetPlugin) {
         int32_t pluginRet = bundleMgr_->GetPluginAbilityInfo(hostBundleName, bundleName, moduleName,
             abilityName, uId, *abilityInfo);
@@ -11613,6 +11614,7 @@ __attribute__((no_sanitize("cfi"))) WSError SceneSessionManager::GetAllAbilityIn
     auto flag = (AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_APPLICATION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_PERMISSION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA |
+        AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_FUSION |
         static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_ABILITY) |
         static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_APPLICATION) |
         static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_HAP_MODULE));
@@ -11654,6 +11656,7 @@ __attribute__((no_sanitize("cfi"))) WSError SceneSessionManager::GetBatchAbility
     auto flag = AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_APPLICATION |
                 AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_PERMISSION |
                 AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA |
+                AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_FUSION |
                 static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_ABILITY) |
                 static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_APPLICATION) |
                 static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_HAP_MODULE);
@@ -11676,6 +11679,7 @@ WSError SceneSessionManager::GetAbilityInfo(const std::string& bundleName, const
     auto flags = (AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_APPLICATION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_PERMISSION |
         AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_METADATA |
+        AppExecFwk::AbilityInfoFlag::GET_ABILITY_INFO_WITH_FUSION |
         static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_ABILITY) |
         static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_APPLICATION) |
         static_cast<int32_t>(AppExecFwk::GetBundleInfoFlag::GET_BUNDLE_INFO_WITH_HAP_MODULE));
@@ -13516,6 +13520,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
 #ifdef MEMMGR_WINDOW_ENABLE
     std::vector<sptr<Memory::MemMgrWindowInfo>> memMgrWindowInfos;
+    std::string memLogInfo = "memMgrWindowInfos [name, lastUsedPosition]";
 #endif
 
     std::string visibilityInfo = "WindowVisibilityInfos [name, winId, visibleState]: ";
@@ -13540,7 +13545,8 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
         UpdateSubWindowVisibility(session, visibleState, visibilityChangeInfo, windowVisibilityInfos, visibilityInfo, currVisibleData);
 #ifdef MEMMGR_WINDOW_ENABLE
         memMgrWindowInfos.emplace_back(new Memory::MemMgrWindowInfo(session->GetWindowId(), session->GetCallingPid(),
-            session->GetCallingUid(), isVisible));
+            session->GetCallingUid(), isVisible, session->GetSceneLastUsedPosition()));
+        memLogInfo += "[" + session->GetWindowName() + ", " + session->GetSceneLastUsedPosition() + "] ";
 #endif
         CheckAndNotifyWaterMarkChangedResult();
     }
@@ -13552,6 +13558,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     ProcessWindowModeType();
 #ifdef MEMMGR_WINDOW_ENABLE
     if (memMgrWindowInfos.size() != 0) {
+        TLOGD(WmsLogTag::WMS_LIFE, "memMgrWindowInfos: %{public}s", memLogInfo.c_str());
         taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
             TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
             Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
@@ -14721,8 +14728,9 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
     }
     taskScheduler_->PostSyncTask([this, displayInfo, type, where = __func__]() {
         if (processVirtualPixelRatioChangeFunc_ != nullptr &&
-            type == DisplayStateChangeType::RESOLUTION_CHANGE &&
-            displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) {
+            ((type == DisplayStateChangeType::RESOLUTION_CHANGE &&
+            displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
+                type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE)){
             Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
                           displayInfo->GetWidth(), displayInfo->GetHeight() };
             processVirtualPixelRatioChangeFunc_(displayInfo->GetVirtualPixelRatio(), rect);

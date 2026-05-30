@@ -202,6 +202,33 @@ HWTEST_F(ScreenSessionTest, CreateDisplayNode, TestSize.Level0)
 }
 
 /**
+ * @tc.name: CreateDisplayNodeWithCastScale
+ * @tc.desc: Test CreateDisplayNode with needCastScale=true via config to cover cast scale branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, CreateDisplayNodeWithCastScale, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionTest: CreateDisplayNodeWithCastScale start";
+    ScreenProperty property;
+    property.SetNeedCastScale(true);
+    property.SetCastScaleX(1.5f);
+    property.SetCastScaleY(2.0f);
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+        .property = property,
+    };
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    Rosen::RSDisplayNodeConfig rsConfig;
+    rsConfig.screenId = 101;
+    screenSession->CreateDisplayNode(rsConfig);
+    GTEST_LOG_(INFO) << "ScreenSessionTest: CreateDisplayNodeWithCastScale end";
+}
+
+/**
  * @tc.name: SetMirrorScreenType
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -1698,6 +1725,35 @@ HWTEST_F(ScreenSessionTest, InitRSDisplayNode, TestSize.Level1)
     session->InitRSDisplayNode(config, startPoint, false, 0.0f, 0.0f);
     SUCCEED();
     GTEST_LOG_(INFO) << "ScreenSessionTest: InitRSDisplayNode end";
+}
+
+/**
+ * @tc.name: InitRSDisplayNodeWithCastScale
+ * @tc.desc: Test InitRSDisplayNode with needCastScale=true via config to cover cast scale branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, InitRSDisplayNodeWithCastScale, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionTest: InitRSDisplayNodeWithCastScale start";
+    ScreenProperty property;
+    property.SetNeedCastScale(true);
+    property.SetCastScaleX(1.5f);
+    property.SetCastScaleY(2.0f);
+    ScreenSessionConfig config = {
+        .screenId = 100,
+        .rsId = 101,
+        .name = "OpenHarmony",
+        .property = property,
+    };
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    Rosen::RSDisplayNodeConfig rsConfig;
+    rsConfig.screenId = 101;
+    screenSession->CreateDisplayNode(rsConfig);
+    Point startPoint(0, 0);
+    screenSession->InitRSDisplayNode(rsConfig, startPoint, false, 0.0f, 0.0f);
+    GTEST_LOG_(INFO) << "ScreenSessionTest: InitRSDisplayNodeWithCastScale end";
 }
 
 /**

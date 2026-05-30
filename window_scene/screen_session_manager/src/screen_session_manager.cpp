@@ -1625,6 +1625,9 @@ void ScreenSessionManager::SetScreenCorrection()
         std::vector<std::string> phyOffsets = FoldScreenStateInternel::GetPhyRotationOffset();
         int32_t phyOffset = static_cast<int32_t>(std::stoi(phyOffsets[0]));
         screenRotation = ConvertOffsetToCorrectRotation(phyOffset);
+        if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+            screenId = SCREEN_ID_MAIN;
+        }
     }
     auto rsUIContext = GetRsUIContextByScreenId(screenId);
     if (rsUIContext == nullptr) {
@@ -2461,10 +2464,13 @@ void ScreenSessionManager::ScreenConnectionChanged(sptr<ScreenSession>& screenSe
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         SuperFoldStateManager::GetInstance().RefreshExternalRegion();
     }
-    if (foldScreenController_ != nullptr) {
-        HandleFoldDeviceScreenConnect(screenId, screenSession, phyMirrorEnable, screenEvent);
-        return;
+    if (!g_isPcDevice) {
+        if (foldScreenController_ != nullptr) {
+            HandleFoldDeviceScreenConnect(screenId, screenSession, phyMirrorEnable, screenEvent);
+            return;
+        }
     }
+
 #endif
     if (IsConcurrentUser()) {
         NotifyUserClientProxy(screenSession, screenId, screenEvent);
@@ -8270,11 +8276,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
             screenIdManager_.DeleteScreenId(smsScreenId);
             return SCREEN_ID_INVALID;
         }
-        if (option.width_ != 0 && option.height_ != 0) {
-            auto scaleX = static_cast<float>(option.renderWidth_) / option.width_;
-            auto scaleY = static_cast<float>(option.renderHeight_) / option.height_;
-            SetScreenSessionScale(screenSession, scaleX, scaleY);
-        }
+        ApplyVirtualScreenScale(screenSession, option.width_, option.height_, option.renderWidth_, option.renderHeight_);
         screenSession->SetName(option.name_);
         screenSession->SetVirtualScreenType(option.virtualScreenType_);
         screenSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
@@ -8324,6 +8326,16 @@ void ScreenSessionManager::SetScreenSessionScale(const sptr<ScreenSession>& scre
         displayNode->SetPivot(0.0f, 0.0f);
         displayNode->SetScale(scaleX, scaleY);
         RSTransactionAdapter::FlushImplicitTransaction(screenSession->GetRSUIContext());
+    }
+}
+
+void ScreenSessionManager::ApplyVirtualScreenScale(const sptr<ScreenSession>& screenSession,
+    uint32_t width, uint32_t height, uint32_t renderWidth, uint32_t renderHeight)
+{
+    if (width != 0 && height != 0) {
+        auto scaleX = static_cast<float>(renderWidth) / width;
+        auto scaleY = static_cast<float>(renderHeight) / height;
+        SetScreenSessionScale(screenSession, scaleX, scaleY);
     }
 }
 
@@ -8714,11 +8726,7 @@ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
         TLOGNFE(WmsLogTag::DMS, "RS side failed in resizing virtual screen, rsRet: %{public}d", rsRet);
         return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
     }
-    if (width != 0 && height != 0) {
-        auto scaleX = static_cast<float>(renderWidth) / width;
-        auto scaleY = static_cast<float>(renderHeight) / height;
-        SetScreenSessionScale(screenSession, scaleX, scaleY);
-    }
+    ApplyVirtualScreenScale(screenSession, width, height, renderWidth, renderHeight);
     screenSession->Resize(width, height);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE);

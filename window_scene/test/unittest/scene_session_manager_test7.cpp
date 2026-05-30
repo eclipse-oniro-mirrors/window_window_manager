@@ -178,6 +178,37 @@ HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChange01, TestSize.Le
 }
 
 /**
+ * @tc.name: ProcessVirtualPixelRatioChangeByDpiChange
+ * @tc.desc: ProcessVirtualPixelRatioChange when display DPI changes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChangeByDpiChange, TestSize.Level1)
+{
+    DisplayId defaultDisplayId = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    std::map<DisplayId, sptr<DisplayInfo>> displayInfoMap;
+    bool isCallbackCalled = false;
+    constexpr float virtualPixelRatio = 2.0f;
+
+    ASSERT_NE(nullptr, displayInfo);
+    ASSERT_NE(nullptr, ssm_);
+    displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
+    displayInfo->SetDensityInCurResolution(virtualPixelRatio);
+    ProcessVirtualPixelRatioChangeFunc func = [&isCallbackCalled](
+        float ratio, const OHOS::Rosen::Rect& rect) {
+        isCallbackCalled = true;
+        EXPECT_FLOAT_EQ(ratio, virtualPixelRatio);
+    };
+    ssm_->SetVirtualPixelRatioChangeListener(func);
+
+    ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap,
+        DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
+
+    EXPECT_TRUE(isCallbackCalled);
+    ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
+}
+
+/**
  * @tc.name: ProcessUpdateRotationChange
  * @tc.desc: ProcessUpdateRotationChange
  * @tc.type: FUNC

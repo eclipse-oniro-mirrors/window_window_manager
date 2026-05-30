@@ -1253,6 +1253,16 @@ int32_t Session::GetCallingUid() const
     return callingUid_;
 }
 
+void Session::SetSceneLastUsedPosition(const std::string& position)
+{
+    sceneLastUsedPosition_ = position;
+}
+
+const std::string Session::GetSceneLastUsedPosition() const
+{
+    return sceneLastUsedPosition_;
+}
+
 void Session::SetAbilityToken(sptr<IRemoteObject> token)
 {
     abilityToken_ = token;

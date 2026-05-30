@@ -21,11 +21,13 @@
 
 #include "wm_common.h"
 #include "window.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
 napi_value NapiGetUndefined(napi_env env);
-napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg);
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg, const char* enumerationName,
+    const char* boolName);
 bool NapiIsCallable(napi_env env, napi_value value);
 napi_status InitFvEnums(napi_env env, napi_value exports);
 napi_value GetRectAndConvertToJsValue(napi_env env, const Rect& rect);

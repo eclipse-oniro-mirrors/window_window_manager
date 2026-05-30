@@ -373,9 +373,11 @@ void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isSc
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: off screenId: %{public}" PRIu64"", offScreenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(offScreenId,
                 ScreenPowerStatus::POWER_STATUS_OFF);
+            SetScreenCombination(offScreenId, ScreenCombination::SCREEN_ALONE);
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: on screenId: %{public}" PRIu64"", screenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(screenId,
                 ScreenPowerStatus::POWER_STATUS_ON);
+            SetScreenCombination(offScreenId, ScreenCombination::SCREEN_MAIN);
             SetdisplayModeChangeStatus(false);
         };
         ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
@@ -384,6 +386,17 @@ void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isSc
         SetdisplayModeChangeStatus(false);
     }
     SetCurrentScreenId(screenId);
+}
+
+void SuperFoldPolicy::SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination)
+{
+    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "ScreenId:%{public}" PRIu64" screenCombination:%{public}d", screenId, screenCombination);
+    screenSession->SetScreenCombination(screenCombination);
 }
 
 DMError SuperFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode)
@@ -446,6 +459,7 @@ void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on main screenId");
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
+        SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
         SetdisplayModeChangeStatus(false);
     };
     ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
@@ -460,6 +474,7 @@ void SuperFoldPolicy::ExitCoordination()
     }
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);
+    SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_ALONE);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
     RecoverDisplayMode();
 }
