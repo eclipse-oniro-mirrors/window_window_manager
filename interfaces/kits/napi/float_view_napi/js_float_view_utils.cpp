@@ -28,8 +28,11 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg)
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg, const char* enumerationName,
+    const char* boolName)
 {
+    HISTOGRAM_ENUMERATION_ERROR_CODE(enumerationName, errCode);
+    HISTOGRAM_BOOLEAN(boolName, 0);
     napi_throw(env, JsErrUtils::CreateJsError(env, errCode, msg));
     return NapiGetUndefined(env);
 }
