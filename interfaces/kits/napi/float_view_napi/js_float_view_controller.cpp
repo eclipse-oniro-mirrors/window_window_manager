@@ -16,11 +16,10 @@
 
 #include "js_float_view_utils.h"
 
-#include "../../../../utils/include/window_histogram_management.h"
-#include "js_err_utils.h"
-#include "napi_common_want.h"
-#include "permission.h"
-#include "window_manager_hilog.h"
+ #include "js_err_utils.h"	 
+ #include "window_manager_hilog.h" 
+ #include "napi_common_want.h"	 
+ #include "permission.h"
 
 namespace OHOS {
 namespace Rosen {
