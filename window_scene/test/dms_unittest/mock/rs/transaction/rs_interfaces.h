@@ -32,6 +32,7 @@
 namespace OHOS {
 namespace Rosen {
 constexpr float EPSILON = std::numeric_limits<float>::epsilon();
+
 struct BrightnessInfo {
     float currentHeadroom = 1.0f;
     float maxHeadroom = 1.0f;
@@ -96,7 +97,7 @@ public:
     int32_t SetCastScreenEnableSkipWindow(ScreenId id, bool enable);
     int32_t SetVirtualScreenSurface(ScreenId id, sptr<Surface> surface);
     int32_t AddVirtualScreenSurface(ScreenId id, const std::vector<SurfaceRegionConfig> surfaceRegionConfigs);
-    int32_t RemoveVirtualScreenSurface(ScreenId id, const std::vector<SurfaceRegionConfig> surfaceRegionConfigs);
+    int32_t RemoveVirtualScreenSurface(ScreenId id, const std::vector<sptr<Surface>> surfaces);
     void RemoveVirtualScreen(ScreenId id);
     int32_t SetScreenChangeCallback(const ScreenChangeCallback& callback);
     int32_t SetScreenSwitchingNotifyCallback(const ScreenSwitchingNotifyCallback& callback);

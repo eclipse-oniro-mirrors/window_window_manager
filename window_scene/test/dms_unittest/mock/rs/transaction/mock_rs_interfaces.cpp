@@ -56,12 +56,12 @@ int32_t RSInterfaces::SetVirtualScreenSurface(ScreenId id, sptr<Surface> surface
 {
     return 0;
 }
-int32_t RSInterfaces::AddVirtualScreenSurface(ScreenId id, 
+int32_t RSInterfaces::AddVirtualScreenSurface(ScreenId id,
      const std::vector<SurfaceRegionConfig> surfaceRegionConfigs)
 {
     return 0;
 }
-int32_t RSInterfaces::RemoveVirtualScreenSurface(ScreenId id,  const std::vector<SurfaceRegionConfig> surfaceRegionConfigs)
+int32_t RSInterfaces::RemoveVirtualScreenSurface(ScreenId id, const std::vector<sptr<Surface>> surfaces)
 {
     return 0;
 }
