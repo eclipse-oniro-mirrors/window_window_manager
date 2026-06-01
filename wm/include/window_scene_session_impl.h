@@ -75,7 +75,7 @@ public:
     WMError MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true) override;
-    WMError GetOriginalEventInfo(const EventPositionInfo& eventPositionInfo,
+    WMError GetEventOriginalPosition(const EventPositionInfo& eventPositionInfo,
         EventPositionInfo& originalEventPositionInfo) const override;
     WMError Resize(uint32_t width, uint32_t height) override;
     WMError ResizeAsync(uint32_t width, uint32_t height) override;

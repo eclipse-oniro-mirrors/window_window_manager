@@ -2592,21 +2592,21 @@ HWTEST_F(WindowSceneSessionImplTest4, GetRotationLocked, TestSize.Level0)
 }
 
 /**
- * @tc.name: GetOriginalEventInfo
- * @tc.desc: Test GetOriginalEventInfo with various conditions
+ * @tc.name: GetEventOriginalPosition
+ * @tc.desc: Test GetEventOriginalPosition with various conditions
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetOriginalEventInfo");
+    option->SetWindowName("GetEventOriginalPosition");
     sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     EventPositionInfo eventPositionInfo;
     EventPositionInfo originalEventPositionInfo;
 
     windowSceneSessionImpl->hostSession_ = nullptr;
-    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    auto ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
 
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
@@ -2617,7 +2617,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo, TestSize.Level1)
 
     eventPositionInfo.displayX = 100;
     eventPositionInfo.displayY = 200;
-    ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
     EXPECT_EQ(originalEventPositionInfo.displayY, 200);
@@ -2632,25 +2632,25 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo, TestSize.Level1)
     EXPECT_CALL(displayMocker->Mock(), GetFoldStatus()).WillRepeatedly(Return(FoldStatus::HALF_FOLD));
 
     windowSceneSessionImpl->superFoldOffsetY_ = -1;
-    ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
     EXPECT_EQ(originalEventPositionInfo.displayY, 200);
 }
 
 /**
- * @tc.name: GetOriginalEventInfo01
- * @tc.desc: Test GetOriginalEventInfo with valid superFoldOffsetY_
+ * @tc.name: GetEventOriginalPosition01
+ * @tc.desc: Test GetEventOriginalPosition with valid superFoldOffsetY_
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo01, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition01, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         return;
     }
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("GetOriginalEventInfo01");
+    option->SetWindowName("GetEventOriginalPosition01");
     sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
@@ -2674,7 +2674,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo01, TestSize.Level1)
     eventPositionInfo.globalY = 400.0;
 
     EventPositionInfo originalEventPositionInfo;
-    auto ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    auto ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
     EXPECT_EQ(originalEventPositionInfo.displayY, 200 + 100);
@@ -2686,7 +2686,7 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo01, TestSize.Level1)
     eventPositionInfo.displayXPos = 100.5;
     eventPositionInfo.displayYPos = 200.5;
     eventPositionInfo.globalX = 300.0;
-    ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
     EXPECT_EQ(originalEventPositionInfo.displayY, 200 + 100);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.5);

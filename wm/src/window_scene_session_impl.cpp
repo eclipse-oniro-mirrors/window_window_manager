@@ -2946,7 +2946,7 @@ WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool
     return static_cast<WMError>(ret);
 }
 
-WMError WindowSceneSessionImpl::GetOriginalEventInfo(const EventPositionInfo& eventPositionInfo,
+WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo& eventPositionInfo,
     EventPositionInfo& originalEventPositionInfo) const
 {
     if (IsWindowSessionInvalid()) {
