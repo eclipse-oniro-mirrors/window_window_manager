@@ -6808,9 +6808,20 @@ void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
         TLOGE(WmsLogTag::DEFAULT, "abilityInfo is nullptr!");
         return;
     }
-    std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
-        ExtractSupportWindowModeFromMetaData(abilityInfo);
-    auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
+    uint32_t windowModeSupportType = 0;
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    property_->GetSupportedWindowModes(supportedWindowModes);
+    auto size = supportedWindowModes.size();
+    if (windowSystemConfig_.freeMultiWindowEnable_ && size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
+        windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
+        if (auto hostSession = GetHostSession()) {
+            hostSession->NotifySupportWindowModesChange(supportedWindowModes);
+        }
+    } else {
+        std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
+            ExtractSupportWindowModeFromMetaData(abilityInfo);
+        windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
+    }
     property_->SetWindowModeSupportType(windowModeSupportType);
 }
 
