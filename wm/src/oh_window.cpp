@@ -558,7 +558,8 @@ WindowManager_MainWindowInfo* PackMainWindowInfoList(
         infosInner[i].windowId = infos[i]->persistentId_;
         infosInner[i].showing = infos[i]->showing_;
         size_t labelLen = infos[i]->label_.size() + 1;
-        errno_t ret = memcpy_s(labelArea + labelOffset, infos[i]->label_.c_str(), labelLen);
+        errno_t ret = memcpy_s(labelArea + labelOffset, totalLabelLen - labelOffset,
+            infos[i]->label_.c_str(), labelLen);
         if (ret != EOK) {
             labelArea[labelOffset] = '\0';
         }
