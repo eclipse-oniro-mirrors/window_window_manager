@@ -56,6 +56,33 @@ constexpr size_t INDEX_ONE = 1;
 constexpr size_t FOUR_PARAMS_SIZE = 4;
 constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "JsWindowStage"};
+
+WmErrorCode ParseImageSourceForRecent(napi_env env, napi_value imageSource, uint32_t& imgResourceId,
+    std::shared_ptr<Media::PixelMap>& pixelMap)
+{
+    napi_valuetype imageSourceType = GetType(env, imageSource);
+    if (imageSourceType == napi_number) {
+        if (!ConvertFromJsValue(env, imageSource, imgResourceId)) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "Get imgResourceId error");
+            return WmErrorCode::WM_ERROR_INVALID_PARAM;
+        }
+        if (imgResourceId < MIN_RESOURCE_ID || imgResourceId > MAX_RESOURCE_ID) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "imgRsourceId invalid: %{public}d", imgResourceId);
+            return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+        }
+        return WmErrorCode::WM_OK;
+    }
+    if (imageSourceType == napi_object) {
+        pixelMap = OHOS::Media::PixelMapNapi::GetPixelMap(env, imageSource);
+        if (pixelMap == nullptr) {
+            TLOGE(WmsLogTag::WMS_PATTERN, "Get pixelMap error");
+            return WmErrorCode::WM_ERROR_INVALID_PARAM;
+        }
+        return WmErrorCode::WM_OK;
+    }
+    TLOGE(WmsLogTag::WMS_PATTERN, "Get imgResourceId or pixelMap error");
+    return WmErrorCode::WM_ERROR_INVALID_PARAM;
+}
 } // namespace
 
 std::unique_ptr<JsWindowRegisterManager> g_listenerManager = std::make_unique<JsWindowRegisterManager>();
@@ -1222,45 +1249,32 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
     }
     uint32_t imgResourceId = 0;
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-    if (GetType(env, argv[INDEX_ZERO]) == napi_number) {
-        if (!ConvertFromJsValue(env, argv[INDEX_ZERO], imgResourceId)) {
-            TLOGE(WmsLogTag::WMS_PATTERN, "Get imgResourceId error");
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", WmErrorCode::WM_ERROR_INVALID_PARAM);
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        }
-        if (imgResourceId < MIN_RESOURCE_ID || imgResourceId > MAX_RESOURCE_ID) {
-            TLOGE(WmsLogTag::WMS_PATTERN, "imgRsourceId invalid: %{public}d", imgResourceId);
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        }
-    } else if (GetType(env, argv[INDEX_ZERO]) == napi_object) {
-        pixelMap = OHOS::Media::PixelMapNapi::GetPixelMap(env, argv[INDEX_ZERO]);
-        if (pixelMap == nullptr) {
-            TLOGE(WmsLogTag::WMS_PATTERN, "Get pixelMap error");
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", WmErrorCode::WM_ERROR_INVALID_PARAM);
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        }
-    } else {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Get imgResourceId or pixelMap error");
+    WmErrorCode errCode = ParseImageSourceForRecent(env, argv[INDEX_ZERO], imgResourceId, pixelMap);
+    if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
     ImageFit imageFit = ImageFit::FILL;
-    if (!ConvertFromJsValue(env, argv[INDEX_ONE], imageFit)) {
+    if (errCode == WmErrorCode::WM_OK && !ConvertFromJsValue(env, argv[INDEX_ONE], imageFit)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Get imageFit error");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
-    if (imageFit < ImageFit::FILL || imageFit > ImageFit::MATRIX) {
+    if (errCode == WmErrorCode::WM_OK && (imageFit < ImageFit::FILL || imageFit > ImageFit::MATRIX)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "imageFit invalid: %{public}d", imageFit);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        errCode = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
 
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     const char* const where = __func__;
-    auto asyncTask = [weakWindow = windowScene_, where, env, imgResourceId, pixelMap, imageFit, task = napiAsyncTask] {
+    auto asyncTask = [weakWindow = windowScene_, where, env, errCode, imgResourceId, pixelMap, imageFit,
+        task = napiAsyncTask] {
+        if (errCode != WmErrorCode::WM_OK) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", errCode);
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode));
+            return;
+        }
         auto windowScene = weakWindow.lock();
         if (windowScene == nullptr) {
             TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s windowScene is null", where);
