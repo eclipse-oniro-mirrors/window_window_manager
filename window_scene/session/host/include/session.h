@@ -419,7 +419,7 @@ public:
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT, bool windowSync = true);
     void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowKey);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;

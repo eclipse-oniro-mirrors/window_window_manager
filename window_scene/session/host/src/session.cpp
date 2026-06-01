@@ -3629,7 +3629,7 @@ void Session::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& persistent
 }
 
 void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media::PixelMap> persistentPixelMap,
-    bool updateSnapshot, LifeCycleChangeReason reason)
+    bool updateSnapshot, LifeCycleChangeReason reason, bool windowSync)
 {
     if (scenePersistence_ == nullptr) {
         return;
@@ -3649,7 +3649,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         reason == LifeCycleChangeReason::EXPAND_TO_FOLD_SINGLE_POCKET));
     const char* const where = __func__;
     auto task = [weakThis = wptr(this), runInFfrt = useFfrt, requirePersist = needPersist, persistentPixelMap,
-        updateSnapshot, key, rotate, needCacheSnapshot, reason, where]() {
+        updateSnapshot, key, rotate, needCacheSnapshot, reason, windowSync, where]() {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "session is null");
@@ -3663,7 +3663,8 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         Session::SnapshotOptions options;
         options.runInFfrt = runInFfrt;
         options.useCurWindow = updateSnapshot;
-        options.windowSync = session->GetDeviceType() == "phone" || session->GetDeviceType() == "tablet";
+        options.windowSync = windowSync &&
+            (session->GetDeviceType() == "phone" || session->GetDeviceType() == "tablet");
         auto pixelMap = persistentPixelMap ? persistentPixelMap : session->Snapshot(options);
         if (pixelMap == nullptr) {
             return;
