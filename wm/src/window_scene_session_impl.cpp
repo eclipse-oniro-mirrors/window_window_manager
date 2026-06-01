@@ -2964,6 +2964,8 @@ WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo
         if (originalEventPositionInfo.displayYPos != EventPositionInfo::INVALID_DOUBLE) {
             originalEventPositionInfo.displayYPos += superFoldOffsetY_;
         }
+        TLOGD(WmsLogTag::WMS_EVENT, "displayY:%{private}d, displayYPos:%{private}f",
+            originalEventPositionInfo.displayY, originalEventPositionInfo.displayYPos);
     }
     return WMError::WM_OK;
 }
