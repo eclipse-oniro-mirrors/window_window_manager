@@ -19,7 +19,7 @@ group("wms_etc") {
     ":wms.para",
     ":wms.para.dac",
   ]
-  if (!window_manager_use_sceneboard) {
+  if (window_manager_use_sceneboard) {
     deps += [ ":sceneboard.config" ]
   }
 }
@@ -38,7 +38,7 @@ ohos_prebuilt_etc("wms.para.dac") {
   subsystem_name = "window"
 }
 
-if (!window_manager_use_sceneboard) {
+if (window_manager_use_sceneboard) {
   ohos_prebuilt_etc("sceneboard.config") {
     source = "sceneboard.config"
     module_install_dir = "etc"
