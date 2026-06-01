@@ -2953,28 +2953,16 @@ WMError WindowSceneSessionImpl::GetOriginalEventInfo(const EventPositionInfo& ev
         TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    originalEventPositionInfo = eventPositionInfo;
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
         property_->GetDisplayId() == DISPLAY_ID_C &&
-        DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
-        if (superFoldOffsetY_ != -1) {
-            if (eventPositionInfo.displayX != EventPositionInfo::INVALID_INT32) {
-                originalEventPositionInfo.displayX = eventPositionInfo.displayX;
-            }
-            if (eventPositionInfo.displayY != EventPositionInfo::INVALID_INT32) {
-                originalEventPositionInfo.displayY = eventPositionInfo.displayY + superFoldOffsetY_;
-            }
-            if (eventPositionInfo.displayXPos != EventPositionInfo::INVALID_DOUBLE) {
-                originalEventPositionInfo.displayXPos = eventPositionInfo.displayXPos;
-            }
-            if (eventPositionInfo.displayYPos != EventPositionInfo::INVALID_DOUBLE) {
-                originalEventPositionInfo.displayYPos = eventPositionInfo.displayYPos + superFoldOffsetY_;
-            }
-            if (eventPositionInfo.globalX != EventPositionInfo::INVALID_DOUBLE) {
-                originalEventPositionInfo.globalX = eventPositionInfo.globalX;
-            }
-            if (eventPositionInfo.globalY != EventPositionInfo::INVALID_DOUBLE) {
-                originalEventPositionInfo.globalY = eventPositionInfo.globalY;
-            }
+        DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
+        superFoldOffsetY_ != -1) {
+        if (originalEventPositionInfo.displayY != EventPositionInfo::INVALID_INT32) {
+            originalEventPositionInfo.displayY += superFoldOffsetY_;
+        }
+        if (originalEventPositionInfo.displayYPos != EventPositionInfo::INVALID_DOUBLE) {
+            originalEventPositionInfo.displayYPos += superFoldOffsetY_;
         }
     }
     return WMError::WM_OK;

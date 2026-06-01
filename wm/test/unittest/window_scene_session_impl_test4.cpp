@@ -2619,8 +2619,8 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo, TestSize.Level1)
     eventPositionInfo.displayY = 200;
     ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_OK);
-    EXPECT_EQ(originalEventPositionInfo.displayX, EventPositionInfo::INVALID_INT32);
-    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
 
     if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         return;
@@ -2634,8 +2634,8 @@ HWTEST_F(WindowSceneSessionImplTest4, GetOriginalEventInfo, TestSize.Level1)
     windowSceneSessionImpl->superFoldOffsetY_ = -1;
     ret = windowSceneSessionImpl->GetOriginalEventInfo(eventPositionInfo, originalEventPositionInfo);
     EXPECT_EQ(ret, WMError::WM_OK);
-    EXPECT_EQ(originalEventPositionInfo.displayX, EventPositionInfo::INVALID_INT32);
-    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
 }
 
 /**
