@@ -668,20 +668,15 @@ void ScreenSessionManager::WaitForDefaultDisplayReady()
         TLOGNFI(WmsLogTag::DMS, "has build in screen, no need to wait");
         return;
     }
-    auto timeout = std::chrono::milliseconds(WAIT_FOR_DEFAULT_DISPLAY_TIMEOUT_MS);
-    auto startTime = std::chrono::steady_clock::now();
     TLOGNFI(WmsLogTag::DMS, "waiting for physical screen to be detected");
-    while (!HasRealScreenConnect() && virtualScreenCount_ == 0 && !g_isVirtualScreenBoot) {
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - startTime);
-        
-        if (elapsed >= timeout) {
-            TLOGNFW(WmsLogTag::DMS, "timeout waiting for default display");
-            OnScreenChange(INVALID_SCREEN_ID ,ScreenEvent::CONNECTED);
-            return;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    } 
+    
+    auto task = [this] {
+        TLOGNFW(WmsLogTag::DMS, "timeout waiting for default display");
+        OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED);
+    };
+    
+    taskScheduler_->RemoveTask("WaitForDefaultDisplayReady");
+    taskScheduler_->PostAsyncTask(task, "WaitForDefaultDisplayReady", WAIT_FOR_DEFAULT_DISPLAY_TIMEOUT_MS);
 }
 
 
@@ -1717,8 +1712,10 @@ void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenE
 {
     if(screenId == INVALID_SCREEN_ID && screenEvent == ScreenEvent::CONNECTED) {
         if (!g_isVirtualScreenBoot && reason == ScreenChangeReason::DEFAULT){
-            TLOGNFW(WmsLogTag::DMS, "manual active CreateScreenForBoot");
+            TLOGNFW(WmsLogTag::DMS, "invaild screenid,Create virtual screen for boot");
+            taskScheduler_->RemoveTask("WaitForDefaultDisplayReady");
             CreateScreenForBoot();
+            return;
         }
         if (reason == ScreenChangeReason::HWCDEAD){
             ClearAllVirtualScreens();
@@ -1730,6 +1727,7 @@ void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenE
             return;
         }
     } 
+    taskScheduler_->RemoveTask("WaitForDefaultDisplayReady");
     if (reason == ScreenChangeReason::HWCDEAD && screenEvent == ScreenEvent::DISCONNECTED) {
         TLOGNFW(WmsLogTag::DMS, "composer dead, ignore");
         return;
@@ -7415,7 +7413,7 @@ ScreenPowerState ScreenSessionManager::GetScreenPower(ScreenId screenId)
         return ScreenPowerState::INVALID_STATE;
     }
     ScreenId rsScreenId = screenId;
-    if (IsConcurrentUser()) {
+    if (IsConcurrentUser() || g_isPcDevice) {
         if (!screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
             TLOGNFE(WmsLogTag::DMS, "convert rsScreenId failed, screenId: %{public}" PRIu64"", screenId);
             rsScreenId = screenId;
