@@ -2611,13 +2611,13 @@ bool WindowSessionProperty::GetIsAbilityHook() const
 
 sptr<CompatibleModeProperty> WindowSessionProperty::GetCompatibleModeProperty() const
 {
-    std::lock_guard lock(compatibleModeMutex_);
+    std::shared_lock<std::share_mutex> lock(compatibleModePropertyMutex_);
     return compatibleModeProperty_;
 }
 
 void WindowSessionProperty::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> property)
 {
-    std::lock_guard lock(compatibleModeMutex_);
+    std::unique_lock<std::share_mutex> lock(compatibleModePropertyMutex_);
     compatibleModeProperty_ = property;
 }
 
