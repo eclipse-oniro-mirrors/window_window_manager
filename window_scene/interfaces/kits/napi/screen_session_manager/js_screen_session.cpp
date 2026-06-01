@@ -66,6 +66,8 @@ napi_value JsScreenSession::Create(napi_env env, const sptr<ScreenSession>& scre
     napi_wrap(env, objValue, jsScreenSession.release(), JsScreenSession::Finalizer, nullptr, nullptr);
     napi_set_named_property(env, objValue, "screenId",
         CreateJsValue(env, static_cast<int64_t>(screenSession->GetScreenId())));
+    napi_set_named_property(env, objValue, "serialNumber",
+        CreateJsValue(env, static_cast<std::string>(screenSession->GetSerialNumber())));
     napi_set_named_property(env, objValue, "name",
         CreateJsValue(env, static_cast<std::string>(screenSession->GetName())));
     napi_set_named_property(env, objValue, "isExtend", CreateJsValue(env, screenSession->GetIsExtend()));
@@ -98,8 +100,7 @@ napi_value JsScreenSession::Create(napi_env env, const sptr<ScreenSession>& scre
         JsScreenSession::RegisterMotionSensor);
     BindNativeFunction(env, objValue, "unregisterMotionSensor", moduleName,
         JsScreenSession::UnregisterMotionSensor);
-    BindNativeFunction(env, objValue, "destroyContent", moduleName,
-        JsScreenSession::DestroyContent);
+    BindNativeFunction(env, objValue, "destroyContent", moduleName, JsScreenSession::DestroyContent);
     BindNativeFunction(env, objValue, "releaseResource", moduleName,
         JsScreenSession::ReleaseResource);
     return objValue;

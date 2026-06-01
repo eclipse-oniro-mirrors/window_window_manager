@@ -227,6 +227,7 @@ int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParce
 {
     TLOGD(WmsLogTag::DMS, "enter");
     auto rsId = static_cast<ScreenId>(data.ReadUint64());
+    auto serialNumber = data.ReadString();
     auto name = data.ReadString();
     bool isExtend = data.ReadBool();
     auto innerName = data.ReadString();
@@ -263,6 +264,7 @@ int ScreenSessionManagerClientStub::HandleOnScreenConnectionChanged(MessageParce
     SessionOption option = {
         .rsId_ = rsId,
         .name_ = name,
+        .serialNumber_ = serialNumber,
         .isExtend_ = isExtend,
         .innerName_ = innerName,
         .screenId_ = screenId,

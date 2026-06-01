@@ -15250,6 +15250,7 @@ SessionOption ScreenSessionManager::GetSessionOption(sptr<ScreenSession> screenS
 {
     SessionOption option = {
         .rsId_ = screenSession->GetRSScreenId(),
+        .serialNumber_ = screenSession->GetSerialNumber(),
         .name_ = screenSession->GetName(),
         .isExtend_ = screenSession->GetIsExtend(),
         .innerName_ = screenSession->GetInnerName(),
@@ -15267,6 +15268,7 @@ SessionOption ScreenSessionManager::GetSessionOption(sptr<ScreenSession> screenS
 {
     SessionOption option = {
         .rsId_ = screenSession->GetRSScreenId(),
+        .serialNumber_ = screenSession->GetSerialNumber(),
         .name_ = screenSession->GetName(),
         .isExtend_ = screenSession->GetIsExtend(),
         .innerName_ = screenSession->GetInnerName(),

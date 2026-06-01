@@ -117,6 +117,10 @@ bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOptio
         TLOGE(WmsLogTag::DMS, "Write rsId failed");
         return false;
     }
+    if (!data.WriteString(sessionOption.serialNumber_)) {
+        TLOGE(WmsLogTag::DMS, "Write serialNumber failed");
+        return false;
+    }
     if (!data.WriteString(sessionOption.name_)) {
         TLOGE(WmsLogTag::DMS, "Write name failed");
         return false;
