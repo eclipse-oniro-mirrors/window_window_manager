@@ -140,10 +140,6 @@ public:
     Rect GetGlobalDisplayRect(bool useHookedSize = false) const override;
     WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition) const override;
     WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const override;
-    WMError GetOriginalEventInfo(const EventPositionInfo& eventPositionInfo,
-        EventPositionInfo& originalEventPositionInfo) const override {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
     WindowType GetType() const override;
     const std::string& GetWindowName() const override;
