@@ -5490,11 +5490,17 @@ void SceneSession::UpdateWinRectForSystemBar(WSRect& rect)
         if (!(statusBar->isVisible_)) {
             continue;
         }
+        // System status bar height
+        int32_t systemStatusBarHeight = GetStatusBarHeight();
+        // Status bar component rect
         WSRect statusBarRect = statusBar->GetSessionRect();
-        if ((rect.posY_ < statusBarRect.posY_ + static_cast<int32_t>(statusBarRect.height_)) &&
-            (rect.height_ != GetSessionRect().height_ || rect.width_ != GetSessionRect().width_)) {
+        // Effective status bar height for avoidance
+        int32_t effectiveStatusBarHeight = systemConfig_.statusBarHeightMode_ ? 
+            systemStatusBarHeight : statusBarRect.height_;
+        if ((rect.posY_ < statusBarRect.posY_ + static_cast<int32_t>(effectiveStatusBarHeight) &&
+            (rect.height_ != GetSessionRect().height_ || rect.width_ != GetSessionRect().width_))) {
             tmpPosY = rect.posY_ + rect.height_;
-            rect.posY_ = statusBarRect.posY_ + statusBarRect.height_;
+            rect.posY_ = statusBarRect.posY_ + effectiveStatusBarHeight;
             rect.height_ = tmpPosY - rect.posY_;
         }
     }

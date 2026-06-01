@@ -138,6 +138,7 @@ public:
     static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
+    static napi_value SetStatusBarHeightMode(napi_env env, napi_callback_info info);
     static napi_value UpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
     static napi_value SupportZLevel(napi_env env, napi_callback_info info);
     static napi_value SetSupportFunctionType(napi_env env, napi_callback_info info);
@@ -293,6 +294,7 @@ private:
     napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
+    napi_value OnSetStatusBarHeightMode(napi_env env, napi_callback_info info);
     napi_value OnUpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
     napi_value OnSupportZLevel(napi_env env, napi_callback_info info);
     napi_value OnUpdateRecentMainSessionInfos(napi_env env, napi_callback_info info);

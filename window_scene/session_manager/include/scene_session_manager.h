@@ -666,6 +666,7 @@ public:
     const SingleHandBackgroundLayoutConfig& GetSingleHandBackgroundLayoutConfig() const;
     void ConfigSupportFollowParentWindowLayout();
     void ConfigSupportFollowRelativePositionToParent();
+    void ConfigStatusBarHeightMode(bool enable);
     void SetHasRootSceneRequestedVsyncFunc(HasRootSceneRequestedVsyncFunc&& func);
     void SetRequestVsyncByRootSceneWhenModeChangeFunc(RequestVsyncByRootSceneWhenModeChangeFunc&& func);
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
