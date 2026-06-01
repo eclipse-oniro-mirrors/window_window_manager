@@ -17,6 +17,7 @@
 #define OHOS_ROSEN_WM_COMMON_H
 
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -923,6 +924,23 @@ enum class GestureBackType : uint8_t {
 struct PointInfo {
     int32_t x;
     int32_t y;
+};
+
+/**
+ * @struct EventPositionInfo.
+ *
+ * @brief Event position information for window coordinate conversion.
+ */
+struct EventPositionInfo {
+    static constexpr int32_t INVALID_INT32 = std::numeric_limits<int32_t>::min();
+    static constexpr double INVALID_DOUBLE = std::numeric_limits<double>::lowest();
+
+    int32_t displayX = INVALID_INT32;
+    int32_t displayY = INVALID_INT32;
+    double displayXPos = INVALID_DOUBLE;
+    double displayYPos = INVALID_DOUBLE;
+    double globalX = INVALID_DOUBLE;
+    double globalY = INVALID_DOUBLE;
 };
 
 /**

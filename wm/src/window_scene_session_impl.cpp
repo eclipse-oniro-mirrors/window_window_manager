@@ -2951,6 +2951,30 @@ WMError WindowSceneSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool
     return static_cast<WMError>(ret);
 }
 
+WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo& eventPositionInfo,
+    EventPositionInfo& originalEventPositionInfo) const
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    originalEventPositionInfo = eventPositionInfo;
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
+        property_->GetDisplayId() == DISPLAY_ID_C &&
+        DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
+        superFoldOffsetY_ != -1) {
+        if (originalEventPositionInfo.displayY != EventPositionInfo::INVALID_INT32) {
+            originalEventPositionInfo.displayY += superFoldOffsetY_;
+        }
+        if (originalEventPositionInfo.displayYPos != EventPositionInfo::INVALID_DOUBLE) {
+            originalEventPositionInfo.displayYPos += superFoldOffsetY_;
+        }
+        TLOGD(WmsLogTag::WMS_EVENT, "displayY:%{private}d, displayYPos:%{private}f",
+            originalEventPositionInfo.displayY, originalEventPositionInfo.displayYPos);
+    }
+    return WMError::WM_OK;
+}
+
 void WindowSceneSessionImpl::LimitCameraFloatWindowMininumSize(uint32_t& width, uint32_t& height, float& vpr)
 {
     // Float camera window has a special limit:

@@ -52,6 +52,8 @@ public:
     MOCK_METHOD2(GetDisplayHDRSnapshotWithOption, std::vector<std::shared_ptr<Media::PixelMap>>(
         const CaptureOption& captureOption, DmErrorCode& errorCode));
     MOCK_METHOD1(GetAllDisplayIds, std::vector<DisplayId>(int32_t userId));
+    MOCK_METHOD0(GetFoldStatus, FoldStatus());
+    MOCK_METHOD0(IsFoldable, bool());
 };
 
 class MockScreenManagerAdapter : public ScreenManagerAdapter {
