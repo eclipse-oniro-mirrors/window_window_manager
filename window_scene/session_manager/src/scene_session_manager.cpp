@@ -8729,6 +8729,10 @@ WMError SceneSessionManager::RequestFocusStatusBySCB(int32_t persistentId, bool 
                 RequestSessionFocusImmediately(persistentId);
                 return;
             }
+            if (reason == FocusChangeReason::FORCE_FOCUSED) {
+                RequestSessionFocusImmediately(persistentId, true, reason);
+                return;
+            }
             if (reason == FocusChangeReason::MOVE_UP) {
                 auto session = GetSceneSession(persistentId);
                 if (session && !session->IsFocused()) {
@@ -8793,9 +8797,11 @@ void SceneSessionManager::RequestAllAppSessionUnfocus()
  * request focus and ignore its state
  * only used when app main window start before foreground
  */
-WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId, bool blockNotifyUntilVisible)
+WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId, bool blockNotifyUntilVisible,
+    FocusChangeReason reason)
 {
-    TLOGD(WmsLogTag::WMS_FOCUS, "id: %{public}d, blockNotify: %{public}d", persistentId, blockNotifyUntilVisible);
+    TLOGD(WmsLogTag::WMS_FOCUS, "id: %{public}d, blockNotify: %{public}d, reason: %{public}d",
+        persistentId, blockNotifyUntilVisible, reason);
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "[WMSComm]session is nullptr");
@@ -9206,23 +9212,19 @@ WSError SceneSessionManager::RequestFocusSpecificCheck(DisplayId displayId, cons
     auto focusedSessionId = windowFocusController_->GetFocusedSessionId(displayId);
     auto focusedSession = GetSceneSession(focusedSessionId);
     if (focusedSession) {
-        TLOGD(WmsLogTag::WMS_FOCUS, "reason: %{public}d, byForeground: %{public}d",  reason,
-            byForeground);
+        TLOGD(WmsLogTag::WMS_FOCUS, "reason: %{public}d, byForeground: %{public}d",  reason, byForeground);
         if (CheckTopmostWindowFocus(focusedSession, sceneSession)) {
             // return ok if focused session is topmost
             return WSError::WS_OK;
         }
-        if (reason == FocusChangeReason::CLIENT_REQUEST && sceneSession->IsAppSession() &&
-            sceneSession->GetMissionId() == focusedSession->GetMissionId()) {
-            TLOGD(WmsLogTag::WMS_FOCUS, "client request from the same app, skip blocking check");
-            byForeground = false;
-        }
-        if (byForeground && CheckFocusIsDownThroughBlockingType(sceneSession,  focusedSession,  true))  {
+        bool shouldCheckBlocking = windowFocusController_->GetShouldCheckBlocking(
+            sceneSession, focusedSession, byForeground, reason);
+        if (shouldCheckBlocking && CheckFocusIsDownThroughBlockingType(sceneSession,  focusedSession,  true))  {
             TLOGD(WmsLogTag::WMS_FOCUS, "check, need to be intercepted");
             return WSError::WS_DO_NOTHING;
         }
         if ((reason == FocusChangeReason::SPLIT_SCREEN || reason == FocusChangeReason::FLOATING_SCENE) &&
-            !byForeground)  {
+            !shouldCheckBlocking)  {
             if (!CheckFocusIsDownThroughBlockingType(sceneSession, focusedSession, false)
                 && focusedSession->IsAppSession()) {
                 TLOGD(WmsLogTag::WMS_FOCUS, "in split or floting , ok");

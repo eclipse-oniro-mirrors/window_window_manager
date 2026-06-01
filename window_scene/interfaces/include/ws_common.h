@@ -297,7 +297,7 @@ enum class FocusChangeReason {
     SCB_SESSION_REQUEST_UNFOCUS,
 
     /**
-     * focus change for client requerst.10
+     * focus change for client request.10
      */
     CLIENT_REQUEST,
 
@@ -327,7 +327,7 @@ enum class FocusChangeReason {
     SCB_START_APP,
 
     /**
-     * focus for setting focuable.
+     * focus for setting focusable.
      */
     FOCUSABLE,
 
@@ -355,6 +355,26 @@ enum class FocusChangeReason {
      * focus change when pressing alt+tab or dock click
      */
     REQUEST_WITH_CHECK_SUB_WINDOW,
+
+    /**
+     * focus change for force
+     */
+    FORCE_FOCUSED,
+
+    /**
+     * focus change for midScene
+     */
+    MID_SCENE,
+
+    /**
+     * focus change for opening action menu
+     */
+    CLICK_MENU,
+
+    /**
+     * focus change when back gesture from big luoShu
+     */
+    BACK_FROM_LUOSHU,
 
     /**
      * focus change max.
