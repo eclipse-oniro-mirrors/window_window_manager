@@ -4357,7 +4357,7 @@ WMError WindowSceneSessionImpl::Maximize()
     }
     if (WindowHelper::IsMainWindow(GetType()) || IsSubWindowMaximizeSupported()) {
         UpdateIsShowDecorInFreeMultiWindow(true);
-        isMaximizeInvoked_ = enableImmersiveMode_ ? false : true;
+        isMaximizeInvoked_ = !enableImmersiveMode_;
         SetLayoutFullScreen(enableImmersiveMode_);
     }
     return WMError::WM_OK;
@@ -4469,7 +4469,7 @@ WMError WindowSceneSessionImpl::ExecuteMaximizeWithOptions(MaximizePresentation 
 {
     ApplyMaximizePresentation(presentation);
     UpdateIsShowDecorInFreeMultiWindow(true);
-    isMaximizeInvoked_ = enableImmersiveMode_ ? false : true;
+    isMaximizeInvoked_ = !enableImmersiveMode_;
     property_->SetIsLayoutFullScreen(enableImmersiveMode_);
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
