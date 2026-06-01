@@ -538,13 +538,34 @@ void TransformedToWindowManagerRect(const Rect& rect, WindowManager_Rect& wmRect
     wmRect.height = rect.height_;
 }
 
-void TransformedToMainWindowInfo(const OHOS::sptr<MainWindowInfo> mainWindowInfo,
-    WindowManager_MainWindowInfo& wmMainWindowInfo)
+WindowManager_MainWindowInfo* PackMainWindowInfoList(
+    const std::vector<OHOS::sptr<MainWindowInfo>>& infos)
 {
-    wmMainWindowInfo.displayId = mainWindowInfo->displayId_;
-    wmMainWindowInfo.windowId = mainWindowInfo->persistentId_;
-    wmMainWindowInfo.showing = mainWindowInfo->showing_;
-    wmMainWindowInfo.label = mainWindowInfo->label_.c_str();
+    size_t totalLabelLen = 0;
+    for (size_t i = 0; i < infos.size(); i++) {
+        totalLabelLen += infos[i]->label_.size() + 1;
+    }
+    size_t arrayBytes = sizeof(WindowManager_MainWindowInfo) * infos.size();
+    WindowManager_MainWindowInfo* infosInner =
+        static_cast<WindowManager_MainWindowInfo*>(malloc(arrayBytes + totalLabelLen));
+    if (infosInner == nullptr) {
+        return nullptr;
+    }
+    char* labelArea = reinterpret_cast<char*>(infosInner) + arrayBytes;
+    size_t labelOffset = 0;
+    for (size_t i = 0; i < infos.size(); i++) {
+        infosInner[i].displayId = infos[i]->displayId_;
+        infosInner[i].windowId = infos[i]->persistentId_;
+        infosInner[i].showing = infos[i]->showing_;
+        size_t labelLen = infos[i]->label_.size() + 1;
+        errno_t ret = memcpy_s(labelArea + labelOffset, infos[i]->label_.c_str(), labelLen);
+        if (ret != EOK) {
+            labelArea[labelOffset] = '\0';
+        }
+        infosInner[i].label = labelArea + labelOffset;
+        labelOffset += labelLen;
+    }
+    return infosInner;
 }
  
 void TransformedToWindowSnapshotConfig(WindowSnapshotConfiguration& windowSnapshotConfiguration,
@@ -1289,30 +1310,13 @@ int32_t OH_WindowManager_GetAllMainWindowInfo(
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             return;
         }
-        size_t totalLabelLen = 0;
-        for (size_t i = 0; i < infos.size(); i++) {
-            totalLabelLen += infos[i]->label_.size() + 1;
-        }
-        size_t arrayBytes = sizeof(WindowManager_MainWindowInfo) * infos.size();
-        WindowManager_MainWindowInfo* infosInner =
-            static_cast<WindowManager_MainWindowInfo*>(malloc(arrayBytes + totalLabelLen));
+        WindowManager_MainWindowInfo* infosInner = PackMainWindowInfoList(infos);
         if (infosInner == nullptr) {
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s infosInner is nullptr", where);
             return;
         }
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s infos size: %{public}d", where, static_cast<int32_t>(infos.size()));
-        char* labelArea = reinterpret_cast<char*>(infosInner) + arrayBytes;
-        size_t labelOffset = 0;
-        for (size_t i = 0; i < infos.size(); i++) {
-            infosInner[i].displayId = infos[i]->displayId_;
-            infosInner[i].windowId = infos[i]->persistentId_;
-            infosInner[i].showing = infos[i]->showing_;
-            size_t labelLen = infos[i]->label_.size() + 1;
-            memcpy(labelArea + labelOffset, infos[i]->label_.c_str(), labelLen);
-            infosInner[i].label = labelArea + labelOffset;
-            labelOffset += labelLen;
-        }
         *infoList = infosInner;
         *mainWindowInfoSize = infos.size();
         }, __func__);
