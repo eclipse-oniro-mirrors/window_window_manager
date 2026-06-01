@@ -15,7 +15,9 @@
 
 #include "oh_window.h"
 
+#include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <mutex>
 #include <unordered_map>
@@ -1287,15 +1289,29 @@ int32_t OH_WindowManager_GetAllMainWindowInfo(
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             return;
         }
-        WindowManager_MainWindowInfo* infosInner = new WindowManager_MainWindowInfo[infos.size()];
+        size_t totalLabelLen = 0;
+        for (size_t i = 0; i < infos.size(); i++) {
+            totalLabelLen += infos[i]->label_.size() + 1;
+        }
+        size_t arrayBytes = sizeof(WindowManager_MainWindowInfo) * infos.size();
+        WindowManager_MainWindowInfo* infosInner =
+            static_cast<WindowManager_MainWindowInfo*>(malloc(arrayBytes + totalLabelLen));
         if (infosInner == nullptr) {
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s infosInner is nullptr", where);
             return;
         }
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s infos size: %{public}d", where, static_cast<int32_t>(infos.size()));
+        char* labelArea = reinterpret_cast<char*>(infosInner) + arrayBytes;
+        size_t labelOffset = 0;
         for (size_t i = 0; i < infos.size(); i++) {
-            TransformedToMainWindowInfo(infos[i], infosInner[i]);
+            infosInner[i].displayId = infos[i]->displayId_;
+            infosInner[i].windowId = infos[i]->persistentId_;
+            infosInner[i].showing = infos[i]->showing_;
+            size_t labelLen = infos[i]->label_.size() + 1;
+            memcpy(labelArea + labelOffset, infos[i]->label_.c_str(), labelLen);
+            infosInner[i].label = labelArea + labelOffset;
+            labelOffset += labelLen;
         }
         *infoList = infosInner;
         *mainWindowInfoSize = infos.size();
