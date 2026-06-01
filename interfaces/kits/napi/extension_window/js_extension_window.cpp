@@ -49,9 +49,7 @@ const std::unordered_set<std::string> g_emptyListener = {
     "dialogTargetTouch",
     "windowEvent",
     "windowTitleButtonRectChange",
-    "windowRectChange",
     "rotationChange",
-    "touchOutside",
 };
 const std::unordered_set<std::string> g_unsupportListener = {
     "windowWillClose",

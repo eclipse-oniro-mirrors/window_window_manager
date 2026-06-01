@@ -23,7 +23,7 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 const std::string WINDOW_SIZE_CHANGE_CB = "windowSizeChange";
-const std::string WINDOW_RECT_CHANGE_CB = "rectChange";
+const std::string COMPONENT_RECT_CHANGE_CB = "rectChange";
 const std::string AVOID_AREA_CHANGE_CB = "avoidAreaChange";
 const std::string WINDOW_STAGE_EVENT_CB = "windowStageEvent";
 const std::string WINDOW_EVENT_CB = "windowEvent";
@@ -35,6 +35,8 @@ const std::string KEYBOARD_DID_SHOW_CB = "keyboardDidShow";
 const std::string KEYBOARD_DID_HIDE_CB = "keyboardDidHide";
 const std::string KEYBOARD_HEIGHT_CHANGE_CB = "keyboardHeightChange";
 const std::string WINDOW_STATUS_CHANGE_CB = "windowStatusChange";
+const std::string TOUCH_OUTSIDE_CB = "touchOutside";
+const std::string WINDOW_RECT_CHANGE_CB = "windowRectChange";
 }
 
 JsExtensionWindowRegisterManager::JsExtensionWindowRegisterManager()
@@ -42,7 +44,7 @@ JsExtensionWindowRegisterManager::JsExtensionWindowRegisterManager()
     // white register list for window
     listenerCodeMap_[CaseType::CASE_WINDOW] = {
         {WINDOW_SIZE_CHANGE_CB, ListenerType::WINDOW_SIZE_CHANGE_CB},
-        {WINDOW_RECT_CHANGE_CB, ListenerType::WINDOW_RECT_CHANGE_CB},
+        {COMPONENT_RECT_CHANGE_CB, ListenerType::COMPONENT_RECT_CHANGE_CB},
         {AVOID_AREA_CHANGE_CB, ListenerType::AVOID_AREA_CHANGE_CB},
         {WINDOW_EVENT_CB, ListenerType::WINDOW_EVENT_CB},
         {WINDOW_DISPLAYID_CHANGE_CB, ListenerType::WINDOW_DISPLAYID_CHANGE_CB},
@@ -53,6 +55,8 @@ JsExtensionWindowRegisterManager::JsExtensionWindowRegisterManager()
         {KEYBOARD_DID_HIDE_CB, ListenerType::KEYBOARD_DID_HIDE_CB},
         {KEYBOARD_HEIGHT_CHANGE_CB, ListenerType::KEYBOARD_HEIGHT_CHANGE_CB},
         {WINDOW_STATUS_CHANGE_CB, ListenerType::WINDOW_STATUS_CHANGE_CB},
+        {TOUCH_OUTSIDE_CB, ListenerType::TOUCH_OUTSIDE_CB},
+        {WINDOW_RECT_CHANGE_CB, ListenerType::WINDOW_RECT_CHANGE_CB},
     };
     // white register list for window stage
     listenerCodeMap_[CaseType::CASE_STAGE] = {
@@ -86,7 +90,7 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowChangeRegister(sptr<J
     return ret;
 }
 
-WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowRectChangeRegister(
+WmErrorCode JsExtensionWindowRegisterManager::ProcessComponentRectChangeRegister(
     const sptr<JsExtensionWindowListener>& listener, const sptr<Window>& window, bool isRegister)
 {
     if (window == nullptr) {
@@ -258,6 +262,40 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessOccupiedAreaChangeRegister(
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterOccupiedAreaChangeListener(thisListener));
     } else {
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterOccupiedAreaChangeListener(thisListener));
+    }
+    return ret;
+}
+
+WmErrorCode JsExtensionWindowRegisterManager::ProcessTouchOutsideRegister(
+    const sptr<JsExtensionWindowListener>& listener, const sptr<Window>& window, bool isRegister)
+{
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<ITouchOutsideListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    if (isRegister) {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterTouchOutsideListener(thisListener));
+    } else {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterTouchOutsideListener(thisListener));
+    }
+    return ret;
+}
+
+WmErrorCode JsExtensionWindowRegisterManager::ProcessWindowRectChangeRegister(
+    const sptr<JsExtensionWindowListener>& listener, const sptr<Window>& window, bool isRegister)
+{
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Window is nullptr");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<IWindowRectChangeListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    if (isRegister) {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterHostWindowRectChangeListener(thisListener));
+    } else {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterHostWindowRectChangeListener(thisListener));
     }
     return ret;
 }
@@ -461,8 +499,8 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessRegister(CaseType caseType,
             case ListenerType::WINDOW_SIZE_CHANGE_CB:
                 ret = ProcessWindowChangeRegister(listener, window, isRegister);
                 break;
-            case ListenerType::WINDOW_RECT_CHANGE_CB:
-                ret = ProcessWindowRectChangeRegister(listener, window, isRegister);
+            case ListenerType::COMPONENT_RECT_CHANGE_CB:
+                ret = ProcessComponentRectChangeRegister(listener, window, isRegister);
                 break;
             case ListenerType::AVOID_AREA_CHANGE_CB:
                 ret = ProcessAvoidAreaChangeRegister(listener, window, isRegister);
@@ -493,6 +531,12 @@ WmErrorCode JsExtensionWindowRegisterManager::ProcessRegister(CaseType caseType,
                 break;
             case ListenerType::WINDOW_STATUS_CHANGE_CB:
                 ret = ProcessWindowStatusChangeRegister(listener, window, isRegister);
+                break;
+            case ListenerType::TOUCH_OUTSIDE_CB:
+                ret = ProcessTouchOutsideRegister(listener, window, isRegister);
+                break;
+            case ListenerType::WINDOW_RECT_CHANGE_CB:
+                ret = ProcessWindowRectChangeRegister(listener, window, isRegister);
                 break;
             default:
                 break;
