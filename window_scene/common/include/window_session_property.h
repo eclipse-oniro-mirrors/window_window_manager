@@ -28,6 +28,7 @@
 #include "pixel_map.h"
 #include "floating_ball_template_info.h"
 #include "float_view_template_info.h"
+#include <shared_mutex>
 
 namespace OHOS {
 namespace Rosen {
