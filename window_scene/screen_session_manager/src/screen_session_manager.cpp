@@ -1726,6 +1726,9 @@ void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenE
             CreateScreenForBoot();
             return;
         }
+        if (g_isVirtualScreenBoot && reason == ScreenChangeReason::DEFAULT){
+            return;
+        }
     } 
     if (reason == ScreenChangeReason::HWCDEAD && screenEvent == ScreenEvent::DISCONNECTED) {
         TLOGNFW(WmsLogTag::DMS, "composer dead, ignore");
