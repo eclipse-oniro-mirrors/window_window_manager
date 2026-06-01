@@ -8472,10 +8472,6 @@ DMError ScreenSessionManager::AddVirtualScreenSurface(ScreenId screenId,
         TLOGNFE(WmsLogTag::DMS, "No such screen.");
         return isCallingByThirdParty ? DMError::DM_ERROR_NULLPTR : DMError::DM_ERROR_INVALID_PARAM;
     }
-    if (screenSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
-        TLOGNFE(WmsLogTag::DMS, "screen is not in mirror mode");
-        return DMError::DM_ERROR_INVALID_PARAM;
-    }
     ScreenId rsScreenId;
     int32_t res = -1;
     if (screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
@@ -8512,10 +8508,6 @@ DMError ScreenSessionManager::RemoveVirtualScreenSurface(ScreenId screenId, sptr
     if (screenSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "No such screen.");
         return isCallingByThirdParty ? DMError::DM_ERROR_NULLPTR : DMError::DM_ERROR_INVALID_PARAM;
-    }
-    if (screenSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
-        TLOGNFE(WmsLogTag::DMS, "screen is not in mirror mode");
-        return DMError::DM_ERROR_INVALID_PARAM;
     }
     TLOGNFW(WmsLogTag::DMS, "enter remove virtual screen surface, screenId:%{public}" PRIu64, screenId);
     ScreenId rsScreenId;

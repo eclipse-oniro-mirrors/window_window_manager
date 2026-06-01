@@ -2515,6 +2515,10 @@ napi_value JsDisplayManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "destroyVirtualScreen", moduleName, JsDisplayManager::DestroyVirtualScreen);
     BindNativeFunction(env, exportObj, "setVirtualScreenSurface", moduleName,
         JsDisplayManager::SetVirtualScreenSurface);
+    BindNativeFunction(env, exportObj, "addVirtualScreenSurface", moduleName,
+        JsDisplayManager::AddVirtualScreenSurface);
+    BindNativeFunction(env, exportObj, "removeVirtualScreenSurface", moduleName,
+        JsDisplayManager::RemoveVirtualScreenSurface);
     BindNativeFunction(env, exportObj, "addVirtualScreenBlocklist", moduleName,
         JsDisplayManager::AddVirtualScreenBlockList);
     BindNativeFunction(env, exportObj, "removeVirtualScreenBlocklist", moduleName,
