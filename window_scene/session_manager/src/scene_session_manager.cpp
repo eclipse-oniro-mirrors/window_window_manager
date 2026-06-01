@@ -8827,8 +8827,6 @@ WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId
         return WSError::WS_DO_NOTHING;
     }
 
-    // specific block
-    FocusChangeReason reason = FocusChangeReason::SCB_START_APP;
     WSError specificCheckRet = RequestFocusSpecificCheck(displayId, sceneSession, true, reason);
     if (specificCheckRet != WSError::WS_OK) {
         return specificCheckRet;
