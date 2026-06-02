@@ -25,6 +25,7 @@
 #include "zidl/screen_session_manager_stub.h"
 #include "zidl/window_manager_agent_interface.h"
 #include "motion_manager.h"
+#include "screen_scene_config.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -47,7 +48,7 @@ public:
     void TearDown() override;
     sptr<ScreenSessionManagerStub> stub_;
 };
-
+bool g_isPcDevice = ScreenSceneConfig::GetExternalScreenDefaultMode() == "none";
 void ScreenSessionManagerStubTest::SetUpTestCase()
 {
 }
@@ -3914,6 +3915,9 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetOrientationWithOptions,
  */
 HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability, TestSize.Level1)
 {
+    if(!g_isPcDevice) {
+        GTEST_SKIP();
+    }
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
