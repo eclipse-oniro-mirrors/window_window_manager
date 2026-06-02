@@ -4402,14 +4402,14 @@ WMError WindowSceneSessionImpl::SwitchCompatibleMode(CompatibleStyleMode styleMo
 
 WMError WindowSceneSessionImpl::Maximize()
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "id: %{public}d", GetPersistentId());
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "Maximize id: %{public}d", GetPersistentId());
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (WindowHelper::IsMainWindow(GetType()) || IsSubWindowMaximizeSupported()) {
         UpdateIsShowDecorInFreeMultiWindow(true);
-        isMaximizeInvoked_ = true;
+        isMaximizeInvoked_ = !enableImmersiveMode_;
         SetLayoutFullScreen(enableImmersiveMode_);
     }
     return WMError::WM_OK;
@@ -4521,7 +4521,7 @@ WMError WindowSceneSessionImpl::ExecuteMaximizeWithOptions(MaximizePresentation 
 {
     ApplyMaximizePresentation(presentation);
     UpdateIsShowDecorInFreeMultiWindow(true);
-    isMaximizeInvoked_ = true;
+    isMaximizeInvoked_ = !enableImmersiveMode_;
     property_->SetIsLayoutFullScreen(enableImmersiveMode_);
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
@@ -6811,8 +6811,8 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
         return WSError::WS_ERROR_INVALID_PARAM;
     }
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-    if (isPcMode && windowSystemConfig_.isDockAutoHide_ && (isDecorHiddenByApp_ || isMaximizeInvoked_) && !IsAnco() &&
-        GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
+    if (isPcMode && windowSystemConfig_.isDockAutoHide_ && (isDecorHiddenByApp_ || isMaximizeInvoked_ ||
+        property_->IsAdaptToImmersive()) && !IsAnco() && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
         TLOGI(WmsLogTag::WMS_DECOR, "dock auto hide skip updateTitleInTargetPos");
         return WSError::WS_OK;
     }

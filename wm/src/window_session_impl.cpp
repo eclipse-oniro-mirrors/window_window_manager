@@ -2964,7 +2964,7 @@ bool WindowSessionImpl::updateDecorWhenDockAutoHide(bool decorVisible)
 {
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
     if (isPcMode && windowSystemConfig_.isDockAutoHide_ && !isDecorHiddenByApp_ && !isMaximizeInvoked_ && !IsAnco() &&
-        GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
+        GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsAdaptToImmersive()) {
         decorVisible = false;
     }
     return decorVisible;
