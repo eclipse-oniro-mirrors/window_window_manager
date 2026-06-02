@@ -137,6 +137,8 @@ scene_session_manager_external_deps = [
   "resource_management:global_resmgr",
   "safwk:system_ability_fwk",
   "samgr:samgr_proxy",
+  "egl:libEGL",
+  "opengles:libGLES",
 ]
 
 ## Build libscene_session_manager_static.a
@@ -158,6 +160,8 @@ ohos_static_library("scene_session_manager_static") {
     "c_utils:utils",
     "graphic_2d:window_animation",
     "input:libmmi-napi",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   defines = []
@@ -362,6 +366,8 @@ ohos_static_library("session_manager_static") {
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   part_name = "window_manager"

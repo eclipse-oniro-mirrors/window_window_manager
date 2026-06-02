@@ -58,6 +58,9 @@ ohos_shared_library("libintention_event") {
     "init:libbegetutil",
     "input:libmmi-client",
     "libxml2:libxml2",
+    "egl:libEGL",
+    "opengles:libGLES",
+    "jsoncpp:jsoncpp",
   ]
 
   defines = []
