@@ -1374,6 +1374,12 @@ bool ConvertPointerEventFromJs(napi_env env, napi_value jsObject, MMI::PointerEv
     }
     pointerEvent.SetActionTime(std::round(timestamp / US_PER_NS));
 
+    int32_t targetDisplayId;
+    if (!GetPropertyFromJs(env, jsObject, "targetDisplayId", targetDisplayId)) {
+        return false;
+    }
+    pointerEvent.SetTargetDisplayId(targetDisplayId);
+
     int32_t sourceTool;
     if (!GetPropertyFromJs(env, jsObject, "sourceTool", sourceTool)) {
         return false;
