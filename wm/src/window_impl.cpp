@@ -2028,7 +2028,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::TOGGLING) {
         state_ = WindowState::STATE_SHOWN;
         NotifyAfterForeground();
-
+        NotifyAfterDidForeground(reason, true);
         if (static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::KEYGUARD) {
             if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
                 NotifyAfterDidForeground(reason, true);
@@ -2051,6 +2051,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         } else {
             NotifyAfterForeground(true, false);
         }
+        NotifyAfterDidForeground(reason, true);
         return WMError::WM_OK;
     }
     WMError ret = PreProcessShow(reason, withAnimation);
@@ -2063,6 +2064,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
     ret = SingletonContainer::Get<WindowAdapter>().AddWindow(property_);
     RecordLifeCycleExceptionEvent(LifeCycleEvent::SHOW_EVENT, ret);
     if (ret == WMError::WM_OK) {
+        NotifyAfterDidForeground(reason, true);
         UpdateWindowStateWhenShow();
     } else {
         NotifyForegroundFailed(ret);
