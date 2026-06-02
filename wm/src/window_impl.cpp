@@ -2028,7 +2028,6 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::TOGGLING) {
         state_ = WindowState::STATE_SHOWN;
         NotifyAfterForeground();
-        NotifyAfterDidForeground(reason, true);
         if (static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::KEYGUARD) {
             if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
                 NotifyAfterDidForeground(reason, true);
@@ -2051,7 +2050,9 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         } else {
             NotifyAfterForeground(true, false);
         }
-        NotifyAfterDidForeground(reason, true);
+        if (WindowHelper::IsMainWindow(property_->GetWindowType())) { 
+            NotifyAfterDidForeground(reason, true); 
+        }
         return WMError::WM_OK;
     }
     WMError ret = PreProcessShow(reason, withAnimation);
@@ -2064,8 +2065,10 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
     ret = SingletonContainer::Get<WindowAdapter>().AddWindow(property_);
     RecordLifeCycleExceptionEvent(LifeCycleEvent::SHOW_EVENT, ret);
     if (ret == WMError::WM_OK) {
-        NotifyAfterDidForeground(reason, true);
         UpdateWindowStateWhenShow();
+        if (WindowHelper::IsMainWindow(property_->GetWindowType())) { 
+            NotifyAfterDidForeground(reason, true); 
+        }
     } else {
         NotifyForegroundFailed(ret);
         WLOGFE("show window id:%{public}u errCode:%{public}d", property_->GetWindowId(), static_cast<int32_t>(ret));
@@ -2133,7 +2136,9 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
     UpdateWindowStateWhenHide();
     CustomHideAnimation();
     ResetMoveOrDragState();
-    NotifyAfterDidBackground(reason, true);
+     if (WindowHelper::IsMainWindow(property_->GetWindowType())) { 
+        NotifyAfterDidBackground(reason); 
+     }
     escKeyEventTriggered_ = false;
     return ret;
 }
