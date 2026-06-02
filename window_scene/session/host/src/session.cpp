@@ -2998,35 +2998,31 @@ WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool i
 {
     const auto& property = GetSessionProperty();
     if (property == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "id: %{public}d property is nullptr", persistentId_);
         return WSError::WS_ERROR_NULLPTR;
     }
     auto parentSession = GetParentSession();
     if (property->GetSubWindowZLevel() < DIALOG_SUB_WINDOW_Z_LEVEL && parentSession &&
         parentSession->CheckDialogOnForeground()) {
-        TLOGD(WmsLogTag::WMS_DIALOG, "Its main window has dialog on foreground, id: %{public}d", GetPersistentId());
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
     bool raiseEnabled = property->GetRaiseEnabled();
     bool isHoverDown = action == MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER &&
-        sourceType ==  MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+        sourceType == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
     bool isPointDown = action == MMI::PointerEvent::POINTER_ACTION_DOWN ||
         action == MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN || isHoverDown;
-    bool isPointMove = action == MMI::PointerEvent::POINTER_ACTION_MOVE;
     bool isLoosenedWithFreeMultiMode = IsLoosenedWithFreeMultiMode();
     if (isExecuteDelayRaise) {
         if (raiseEnabled && action == MMI::PointerEvent::POINTER_ACTION_BUTTON_UP) {
             RaiseToAppTopForPointDown();
         }
-        if (!raiseEnabled && parentSession && !isPointMove && !isLoosenedWithFreeMultiMode) {
+        if (!raiseEnabled && parentSession && action != MMI::PointerEvent::POINTER_ACTION_MOVE &&
+            !isLoosenedWithFreeMultiMode) {
             parentSession->NotifyClick(!IsScbCoreEnabled());
         }
         return WSError::WS_OK;
     }
     bool isModal = WindowHelper::IsModalWindow(property->GetWindowFlags());
-    TLOGD(WmsLogTag::WMS_EVENT,
-        "id: %{public}d, raiseEnabled: %{public}d, isPointDown: %{public}d, "
-        "isModal: %{public}d, isLoosenedWithFreeMultiMode: %{public}d",
+    TLOGD(WmsLogTag::WMS_EVENT, "id:%{public}d raise:%{public}d down:%{public}d modal:%{public}d loose:%{public}d",
         GetPersistentId(), raiseEnabled, isPointDown, isModal, isLoosenedWithFreeMultiMode);
     if (!isPointDown) {
         return WSError::WS_OK;
@@ -3037,16 +3033,12 @@ WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool i
             return WSError::WS_OK;
         }
         if (auto mainSession = GetMainSessionOrLoosenedSession()) {
-            if (mainSession->IsLoosenedWithFreeMultiMode()) {
-                mainSession->RaiseToAppTopForPointDown();
-            } else {
+            mainSession->IsLoosenedWithFreeMultiMode() ? mainSession->RaiseToAppTopForPointDown() :
                 mainSession->NotifyClick(false);
-            }
         }
         return WSError::WS_OK;
     }
     if (parentSession && !isLoosenedWithFreeMultiMode) {
-        // sub window is forbidden to raise to top after click, but its parent should raise
         parentSession->NotifyClick(!IsScbCoreEnabled());
     }
     return WSError::WS_OK;
