@@ -806,6 +806,8 @@ bool WindowSessionProperty::IsDecorEnable()
 
 void WindowSessionProperty::SetWindowModeSupportType(uint32_t windowModeSupportType)
 {
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, old:%{public}u, new:%{public}u",
+        persistentId_, windowModeSupportType_, windowModeSupportType);
     windowModeSupportType_ = windowModeSupportType;
 }
 
