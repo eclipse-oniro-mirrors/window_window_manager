@@ -392,9 +392,13 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
 HWTEST_F(SessionManagerTest, GetMockSessionManagerServiceProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sm_);
-    sm_->GetMockSessionManagerServiceProxy();
-    sm_->GetMockSessionManagerServiceProxy();
-    ASSERT_NE(sm_->mockFoundationDeathRecipient_, nullptr);
+    auto proxy = sm_->GetMockSessionManagerServiceProxy();
+    EXPECT_EQ(nullptr, proxy);
+
+    auto ret = sm_->InitMockSMSProxy();
+    EXPECT_EQ(WMError::WM_OK, ret);
+    proxy = sm_->GetMockSessionManagerServiceProxy();
+    ASSERT_NE(nullptr, proxy);
 }
 } // namespace
 } // namespace Rosen
