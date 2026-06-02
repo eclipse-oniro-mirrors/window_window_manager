@@ -28,6 +28,7 @@
 #include "pixel_map.h"
 #include "floating_ball_template_info.h"
 #include "float_view_template_info.h"
+#include <shared_mutex>
 
 namespace OHOS {
 namespace Rosen {
@@ -619,6 +620,7 @@ private:
     bool isPcAppInPad_ = false;
     sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
     mutable std::mutex compatibleModeMutex_;
+    mutable std::shared_mutex compatibleModePropertyMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
     std::vector<std::string> combinedCompatibleConfig_;
