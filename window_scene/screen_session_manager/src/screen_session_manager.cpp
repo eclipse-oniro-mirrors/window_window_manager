@@ -669,12 +669,15 @@ void ScreenSessionManager::WaitForDefaultDisplayReady()
         return;
     }
     TLOGNFI(WmsLogTag::DMS, "waiting for physical screen to be detected");
-    
     auto task = [this] {
+        std::lock_guard<std::mutex> lock(onScreenChangeMutex_);
+        if (HasRealScreenConnect()) {
+            TLOGNFW(WmsLogTag::DMS, "has hotpluged screen");
+            return;
+        }
         TLOGNFW(WmsLogTag::DMS, "timeout waiting for default display");
         OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED);
     };
-    
     taskScheduler_->RemoveTask("WaitForDefaultDisplayReady");
     taskScheduler_->PostAsyncTask(task, "WaitForDefaultDisplayReady", WAIT_FOR_DEFAULT_DISPLAY_TIMEOUT_MS);
 }
@@ -1324,6 +1327,7 @@ void ScreenSessionManager::RegisterScreenChangeListener()
     auto res = rsInterface_.SetScreenChangeCallback(
         DmUtils::wrap_callback([this](ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason, 
             sptr<IRemoteObject> connectToRenderToken) {
+            std::lock_guard<std::mutex> lock(onScreenChangeMutex_);
             OnScreenChange(screenId, screenEvent, reason, connectToRenderToken);
         })
     );

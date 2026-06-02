@@ -1320,6 +1320,7 @@ private:
     int32_t retryCount_ = 50;
     std::mutex screenActiveModeRectMapMutex_;
     std::map<FoldDisplayMode, RRect> screenActiveModeRectMap_ = {};
+    std::mutex onScreenChangeMutex_;
 
 private:
     class ScbClientListenerDeathRecipient : public IRemoteObject::DeathRecipient {
