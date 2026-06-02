@@ -3915,7 +3915,7 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetOrientationWithOptions,
  */
 HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability, TestSize.Level1)
 {
-    if(!g_isPcDevice) {
+    if (!g_isPcDevice) {
         GTEST_SKIP();
     }
     MessageParcel data;
