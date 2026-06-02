@@ -2996,12 +2996,17 @@ bool Session::IsLoosenedWithFreeMultiMode() const
 
 WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise)
 {
+    const auto& property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "id: %{public}d property is nullptr", persistentId_);
+        return WSError::WS_ERROR_NULLPTR;
+    }
     auto parentSession = GetParentSession();
-    if (parentSession && parentSession->CheckDialogOnForeground()) {
+    if (property->GetSubWindowZLevel() < DIALOG_SUB_WINDOW_Z_LEVEL && parentSession &&
+        parentSession->CheckDialogOnForeground()) {
         TLOGD(WmsLogTag::WMS_DIALOG, "Its main window has dialog on foreground, id: %{public}d", GetPersistentId());
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
-    const auto& property = GetSessionProperty();
     bool raiseEnabled = property->GetRaiseEnabled();
     bool isHoverDown = action == MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER &&
         sourceType ==  MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;

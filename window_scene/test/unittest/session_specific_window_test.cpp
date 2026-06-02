@@ -779,6 +779,196 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick09, Function | SmallTest
         MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
     EXPECT_EQ(ret, WSError::WS_OK);
 }
+
+/**
+ * @tc.name: HandleSubWindowClick10
+ * @tc.desc: property is nullptr returns error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick10, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "subSession";
+    info.moduleName_ = "subSession";
+    info.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(info);
+    subSession->property_ = nullptr;
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: HandleSubWindowClick11
+ * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with parent dialog on foreground returns error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick11, Function | SmallTest | Level2)
+{
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "mainSession";
+    mainInfo.bundleName_ = "mainSession";
+    sptr<Session> mainSession = sptr<Session>::MakeSptr(mainInfo);
+
+    SessionInfo dialogInfo;
+    dialogInfo.abilityName_ = "dialogSession";
+    dialogInfo.bundleName_ = "dialogSession";
+    sptr<Session> dialogSession = sptr<Session>::MakeSptr(dialogInfo);
+    dialogSession->SetSessionState(SessionState::STATE_ACTIVE);
+    mainSession->BindDialogToParentSession(dialogSession);
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "subSession";
+    subInfo.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(subInfo);
+    subSession->SetParentSession(mainSession);
+    subSession->property_->SetSubWindowZLevel(0);
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: HandleSubWindowClick12
+ * @tc.desc: ZLevel >= DIALOG_SUB_WINDOW_Z_LEVEL with parent dialog on foreground returns OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick12, Function | SmallTest | Level2)
+{
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "mainSession";
+    mainInfo.bundleName_ = "mainSession";
+    sptr<Session> mainSession = sptr<Session>::MakeSptr(mainInfo);
+
+    SessionInfo dialogInfo;
+    dialogInfo.abilityName_ = "dialogSession";
+    dialogInfo.bundleName_ = "dialogSession";
+    sptr<Session> dialogSession = sptr<Session>::MakeSptr(dialogInfo);
+    dialogSession->SetSessionState(SessionState::STATE_ACTIVE);
+    mainSession->BindDialogToParentSession(dialogSession);
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "subSession";
+    subInfo.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(subInfo);
+    subSession->SetParentSession(mainSession);
+    subSession->property_->SetSubWindowZLevel(DIALOG_SUB_WINDOW_Z_LEVEL);
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+
+    subSession->property_->SetSubWindowZLevel(DIALOG_SUB_WINDOW_Z_LEVEL + 1000);
+    ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: HandleSubWindowClick13
+ * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with parent dialog not active returns OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick13, Function | SmallTest | Level2)
+{
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "mainSession";
+    mainInfo.bundleName_ = "mainSession";
+    sptr<Session> mainSession = sptr<Session>::MakeSptr(mainInfo);
+
+    SessionInfo dialogInfo;
+    dialogInfo.abilityName_ = "dialogSession";
+    dialogInfo.bundleName_ = "dialogSession";
+    sptr<Session> dialogSession = sptr<Session>::MakeSptr(dialogInfo);
+    dialogSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    mainSession->BindDialogToParentSession(dialogSession);
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "subSession";
+    subInfo.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(subInfo);
+    subSession->SetParentSession(mainSession);
+    subSession->property_->SetSubWindowZLevel(0);
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: HandleSubWindowClick14
+ * @tc.desc: ZLevel at boundary DIALOG_SUB_WINDOW_Z_LEVEL - 1 with parent dialog foreground returns error
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick14, Function | SmallTest | Level2)
+{
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "mainSession";
+    mainInfo.bundleName_ = "mainSession";
+    sptr<Session> mainSession = sptr<Session>::MakeSptr(mainInfo);
+
+    SessionInfo dialogInfo;
+    dialogInfo.abilityName_ = "dialogSession";
+    dialogInfo.bundleName_ = "dialogSession";
+    sptr<Session> dialogSession = sptr<Session>::MakeSptr(dialogInfo);
+    dialogSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->BindDialogToParentSession(dialogSession);
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "subSession";
+    subInfo.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(subInfo);
+    subSession->SetParentSession(mainSession);
+    subSession->property_->SetSubWindowZLevel(DIALOG_SUB_WINDOW_Z_LEVEL - 1);
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: HandleSubWindowClick15
+ * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with no parentSession returns OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick15, Function | SmallTest | Level2)
+{
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "subSession";
+    subInfo.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(subInfo);
+    subSession->property_->SetSubWindowZLevel(0);
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: HandleSubWindowClick16
+ * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with parentSession but no dialog returns OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick16, Function | SmallTest | Level2)
+{
+    SessionInfo mainInfo;
+    mainInfo.abilityName_ = "mainSession";
+    mainInfo.bundleName_ = "mainSession";
+    sptr<Session> mainSession = sptr<Session>::MakeSptr(mainInfo);
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "subSession";
+    subInfo.bundleName_ = "subSession";
+    sptr<Session> subSession = sptr<Session>::MakeSptr(subInfo);
+    subSession->SetParentSession(mainSession);
+    subSession->property_->SetSubWindowZLevel(0);
+
+    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
