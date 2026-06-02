@@ -89,6 +89,11 @@ void ScreenSessionManagerVirtualSurfaceTest::TearDown()
 }
 
 namespace {
+/**
+ * @tc.name: AddVirtualScreenSurface_SurfaceIsNull
+ * @tc.desc: AddVirtualScreenSurface_SurfaceIsNull test
+ * @tc.type: FUNC
+ */ 
 HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_SurfaceIsNull, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
@@ -110,57 +115,11 @@ HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_Surface
     ssm_->DestroyVirtualScreen(screenId);
 }
 
-HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_ScreenSessionIsNull, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ScreenId invalidScreenId = 999999;
-    sptr<IConsumerSurface> surface = IConsumerSurface::Create();
-    DMRect surfaceRegion = {0, 0, 100, 100};
-    
-    auto result = ssm_->AddVirtualScreenSurface(invalidScreenId, surface->GetProducer(), surfaceRegion);
-    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, result);
-}
-
-HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_ScreenNotMirrorMode, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IDisplayManagerAgent> displayManagerAgent = new (std::nothrow) DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "testAddVirtualScreenSurface03";
-    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
-
-    sptr<IConsumerSurface> surface = IConsumerSurface::Create();
-    DMRect surfaceRegion = {0, 0, 100, 100};
-    
-    auto result = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
-    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, result);
-
-    ssm_->DestroyVirtualScreen(screenId);
-}
-
-HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_Success, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IDisplayManagerAgent> displayManagerAgent = new (std::nothrow) DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "testAddVirtualScreenSurface04";
-    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
-
-    std::vector<ScreenId> mirrorScreenIds;
-    ScreenId mainScreenId(DEFAULT_SCREEN_ID_TEST);
-    ScreenId screenGroupId = 1;
-    mirrorScreenIds.push_back(screenId);
-    ssm_->MakeMirror(mainScreenId, mirrorScreenIds, screenGroupId);
-
-    sptr<IConsumerSurface> surface = IConsumerSurface::Create();
-    DMRect surfaceRegion = {0, 0, 100, 100};
-    
-    auto result = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
-    ASSERT_EQ(DMError::DM_OK, result);
-
-    ssm_->DestroyVirtualScreen(screenId);
-}
-
+/**
+ * @tc.name: AddVirtualScreenSurface_RemoteIsNull
+ * @tc.desc: RemoveVirtualScreenSurface_SurfaceIsNull test
+ * @tc.type: FUNC
+ */  
 HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, RemoveVirtualScreenSurface_SurfaceIsNull, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
@@ -177,56 +136,6 @@ HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, RemoveVirtualScreenSurface_Surf
 
     auto result = ssm_->RemoveVirtualScreenSurface(screenId, nullptr);
     ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, result);
-
-    ssm_->DestroyVirtualScreen(screenId);
-}
-
-HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, RemoveVirtualScreenSurface_ScreenSessionIsNull, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ScreenId invalidScreenId = 999999;
-    sptr<IConsumerSurface> surface = IConsumerSurface::Create();
-    
-    auto result = ssm_->RemoveVirtualScreenSurface(invalidScreenId, surface->GetProducer());
-    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, result);
-}
-
-HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, RemoveVirtualScreenSurface_ScreenNotMirrorMode, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IDisplayManagerAgent> displayManagerAgent = new (std::nothrow) DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "testRemoveVirtualScreenSurface03";
-    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
-
-    sptr<IConsumerSurface> surface = IConsumerSurface::Create();
-    
-    auto result = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
-    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, result);
-
-    ssm_->DestroyVirtualScreen(screenId);
-}
-
-HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, RemoveVirtualScreenSurface_Success, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    sptr<IDisplayManagerAgent> displayManagerAgent = new (std::nothrow) DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "testRemoveVirtualScreenSurface04";
-    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
-
-    std::vector<ScreenId> mirrorScreenIds;
-    ScreenId mainScreenId(DEFAULT_SCREEN_ID_TEST);
-    ScreenId screenGroupId = 1;
-    mirrorScreenIds.push_back(screenId);
-    ssm_->MakeMirror(mainScreenId, mirrorScreenIds, screenGroupId);
-
-    sptr<IConsumerSurface> surface = IConsumerSurface::Create();
-    DMRect surfaceRegion = {0, 0, 100, 100};
-    
-    ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
-    auto result = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
-    ASSERT_EQ(DMError::DM_OK, result);
 
     ssm_->DestroyVirtualScreen(screenId);
 }
@@ -254,6 +163,11 @@ void ScreenSessionManagerProxyVirtualSurfaceTest::SetUp()
 }
 
 namespace {
+/**
+ * @tc.name: AddVirtualScreenSurface_RemoteIsNull
+ * @tc.desc: AddVirtualScreenSurface_RemoteIsNull test
+ * @tc.type: FUNC
+ */  
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_RemoteIsNull, TestSize.Level1)
 {
     auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
@@ -265,7 +179,13 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Re
     ASSERT_EQ(DMError::DM_ERROR_REMOTE_CREATE_FAILED, result);
 }
 
-HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_WriteInterfaceTokenFailed, TestSize.Level1)
+/**
+ * @tc.name: AddVirtualScreenSurface_WriteInterfaceTokenFailed
+ * @tc.desc: AddVirtualScreenSurface_WriteInterfaceTokenFailed test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest,
+    AddVirtualScreenSurface_WriteInterfaceTokenFailed, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
@@ -280,6 +200,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Wr
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 }
 
+/**
+ * @tc.name: AddVirtualScreenSurface_WriteFailed
+ * @tc.desc: AddVirtualScreenSurface_WriteFailed test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_WriteFailed, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -295,6 +220,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Wr
     MockMessageParcel::SetWriteUint64ErrorFlag(false);
 }
 
+/**
+ * @tc.name: AddVirtualScreenSurface_SendRequestFailed
+ * @tc.desc: AddVirtualScreenSurface_SendRequestFailed test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_SendRequestFailed, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -310,6 +240,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Se
     remoteMocker->SetRequestResult(ERR_NONE);
 }
 
+/**
+ * @tc.name: AddVirtualScreenSurface_SurfaceIsNull
+ * @tc.desc: AddVirtualScreenSurface_SurfaceIsNull test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_SurfaceIsNull, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -326,6 +261,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Su
     LOG_SetCallback(nullptr);
 }
 
+/**
+ * @tc.name: AddVirtualScreenSurface_Success
+ * @tc.desc: AddVirtualScreenSurface_Success test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Success, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -344,6 +284,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_Su
     }
 }
 
+/**
+ * @tc.name: RemoveVirtualScreenSurface_RemoteIsNull
+ * @tc.desc: RemoveVirtualScreenSurface_RemoteIsNull test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_RemoteIsNull, TestSize.Level1)
 {
     auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
@@ -354,6 +299,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
     ASSERT_EQ(DMError::DM_ERROR_REMOTE_CREATE_FAILED, result);
 }
 
+/**
+ * @tc.name: RemoveVirtualScreenSurface_WriteInterfaceTokenFailed
+ * @tc.desc: RemoveVirtualScreenSurface_WriteInterfaceTokenFailed test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_WriteInterfaceTokenFailed, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -369,6 +319,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 }
 
+/**
+ * @tc.name: RemoveVirtualScreenSurface_WriteFailed
+ * @tc.desc: RemoveVirtualScreenSurface_WriteFailed test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_WriteFailed, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -384,6 +339,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
     MockMessageParcel::SetWriteUint64ErrorFlag(false);
 }
 
+/**
+ * @tc.name: RemoveVirtualScreenSurface_SendRequestFailed
+ * @tc.desc: RemoveVirtualScreenSurface_SendRequestFailed test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_SendRequestFailed, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -399,6 +359,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
     remoteMocker->SetRequestResult(ERR_NONE);
 }
 
+/**
+ * @tc.name: RemoveVirtualScreenSurface_SurfaceIsNull
+ * @tc.desc: RemoveVirtualScreenSurface_SurfaceIsNull test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_SurfaceIsNull, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -414,6 +379,11 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
     LOG_SetCallback(nullptr);
 }
 
+/**
+ * @tc.name: RemoveVirtualScreenSurface_Success
+ * @tc.desc: RemoveVirtualScreenSurface_Success test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_Success, TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
@@ -431,7 +401,6 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
     }
 }
 }
-
 class ScreenSessionManagerStubVirtualSurfaceTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -460,101 +429,13 @@ void ScreenSessionManagerStubVirtualSurfaceTest::TearDown()
 }
 
 namespace {
-HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_AddVirtualScreenSurface, TestSize.Level1)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-
-    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
-    ScreenId screenId = 1001;
-    data.WriteUint64(static_cast<uint64_t>(screenId));
-    DMRect surfaceRegion;
-    surfaceRegion.posX_ = 0;
-    surfaceRegion.posY_ = 0;
-    surfaceRegion.width_ = 100;
-    surfaceRegion.height_ = 100;
-    data.WriteInt32(surfaceRegion.posX_);
-    data.WriteInt32(surfaceRegion.posY_);
-    data.WriteUint32(surfaceRegion.width_);
-    data.WriteUint32(surfaceRegion.height_);
-    data.WriteBool(false);
-
-    uint32_t code = static_cast<uint32_t>(
-        DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE);
-
-    int res = stub_->OnRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, 0);
-}
-
-HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_AddVirtualScreenSurfaceWithSurface, TestSize.Level1)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-
-    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
-    ScreenId screenId = 1001;
-    data.WriteUint64(static_cast<uint64_t>(screenId));
-    DMRect surfaceRegion;
-    surfaceRegion.posX_ = 0;
-    surfaceRegion.posY_ = 0;
-    surfaceRegion.width_ = 100;
-    surfaceRegion.height_ = 100;
-    data.WriteInt32(surfaceRegion.posX_);
-    data.WriteInt32(surfaceRegion.posY_);
-    data.WriteUint32(surfaceRegion.width_);
-    data.WriteUint32(surfaceRegion.height_);
-    data.WriteBool(true);
-    sptr<IRemoteObject> surfaceObject = sptr<IRemoteObjectMocker>::MakeSptr();
-    data.WriteRemoteObject(surfaceObject);
-
-    uint32_t code = static_cast<uint32_t>(
-        DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE);
-
-    int res = stub_->OnRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, 0);
-}
-
-HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_RemoveVirtualScreenSurface, TestSize.Level1)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-
-    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
-    ScreenId screenId = 1001;
-    data.WriteUint64(static_cast<uint64_t>(screenId));
-    data.WriteBool(false);
-
-    uint32_t code = static_cast<uint32_t>(
-        DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE);
-
-    int res = stub_->OnRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, 0);
-}
-
-HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_RemoveVirtualScreenSurfaceWithSurface, TestSize.Level1)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    MessageOption option;
-
-    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
-    ScreenId screenId = 1001;
-    data.WriteUint64(static_cast<uint64_t>(screenId));
-    data.WriteBool(true);
-    sptr<IRemoteObject> surfaceObject = sptr<IRemoteObjectMocker>::MakeSptr();
-    data.WriteRemoteObject(surfaceObject);
-
-    uint32_t code = static_cast<uint32_t>(
-        DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE);
-
-    int res = stub_->OnRemoteRequest(code, data, reply, option);
-    EXPECT_EQ(res, 0);
-}
-
-HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_AddVirtualScreenSurface_InvalidToken, TestSize.Level1)
+/**
+ * @tc.name: OnRemoteRequest_AddVirtualScreenSurface_InvalidToken
+ * @tc.desc: OnRemoteRequest_AddVirtualScreenSurface_InvalidToken test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest,
+    OnRemoteRequest_AddVirtualScreenSurface_InvalidToken, TestSize.Level1)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -571,6 +452,11 @@ HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_AddVirtualS
     EXPECT_NE(res, 0);
 }
 
+/**
+ * @tc.name: OnRemoteRequest_RemoveVirtualScreenSurface_InvalidToken
+ * @tc.desc: OnRemoteRequest_RemoveVirtualScreenSurface_InvalidToken test
+ * @tc.type: FUNC
+ */
 HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_RemoveVirtualScreenSurface_InvalidToken, TestSize.Level1)
 {
     MessageParcel data;
