@@ -1994,11 +1994,11 @@ WMError WindowImpl::PreProcessShow(uint32_t reason, bool withAnimation)
     return WMError::WM_OK;
 }
 
- void WindowImpl::NotifyMainWindowDidForeground(uint32_t reason) 
- { 
-    if (WindowHelper::IsMainWindow(property_->GetWindowType())) { 
-        NotifyAfterDidForeground(reason, true); 
-    } 
+ void WindowImpl::NotifyMainWindowDidForeground(uint32_t reason)
+ {
+    if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+        NotifyAfterDidForeground(reason, true);
+    }
  }
 
 void WindowImpl::SetShowWithOptions(bool showWithOptions)
@@ -2137,8 +2137,8 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
         return ret;
     }
     UpdateWindowStateWhenHide();
-    if (WindowHelper::IsMainWindow(property_->GetWindowType())) { 
-        NotifyAfterDidBackground(reason, true); 
+    if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+        NotifyAfterDidBackground(reason, true);
     }
     CustomHideAnimation();
     ResetMoveOrDragState();
