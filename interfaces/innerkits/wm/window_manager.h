@@ -693,7 +693,6 @@ class WindowManager : public RefBase {
 public:
     static WindowManager& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
-    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register WMS connection status changed listener.

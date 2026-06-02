@@ -139,6 +139,12 @@ SessionManagerLite& SessionManagerLite::GetInstance(const int32_t userId)
         TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
         return GetInstance();
     }
+
+    if (!IsMultiInstanceEnabled()) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
+        return GetInstance();
+    }
+
     std::lock_guard<std::mutex> lock(sessionManagerLiteMapMutex_);
     auto iter = sessionManagerLiteMap_.find(userId);
     if (iter != sessionManagerLiteMap_.end() && iter->second) {
