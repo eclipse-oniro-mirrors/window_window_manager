@@ -2997,9 +2997,6 @@ bool Session::IsLoosenedWithFreeMultiMode() const
 WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise)
 {
     const auto& property = GetSessionProperty();
-    if (property == nullptr) {
-        return WSError::WS_ERROR_NULLPTR;
-    }
     auto parentSession = GetParentSession();
     if (property->GetSubWindowZLevel() < DIALOG_SUB_WINDOW_Z_LEVEL && parentSession &&
         parentSession->CheckDialogOnForeground()) {
@@ -3033,8 +3030,11 @@ WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool i
             return WSError::WS_OK;
         }
         if (auto mainSession = GetMainSessionOrLoosenedSession()) {
-            mainSession->IsLoosenedWithFreeMultiMode() ? mainSession->RaiseToAppTopForPointDown() :
+            if (mainSession->IsLoosenedWithFreeMultiMode()) {
+                mainSession->RaiseToAppTopForPointDown();
+            } else {
                 mainSession->NotifyClick(false);
+            }
         }
         return WSError::WS_OK;
     }
