@@ -3007,13 +3007,13 @@ WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool i
         sourceType == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
     bool isPointDown = action == MMI::PointerEvent::POINTER_ACTION_DOWN ||
         action == MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN || isHoverDown;
+    bool isPointMove = action == MMI::PointerEvent::POINTER_ACTION_MOVE;
     bool isLoosenedWithFreeMultiMode = IsLoosenedWithFreeMultiMode();
     if (isExecuteDelayRaise) {
         if (raiseEnabled && action == MMI::PointerEvent::POINTER_ACTION_BUTTON_UP) {
             RaiseToAppTopForPointDown();
         }
-        if (!raiseEnabled && parentSession && action != MMI::PointerEvent::POINTER_ACTION_MOVE &&
-            !isLoosenedWithFreeMultiMode) {
+        if (!raiseEnabled && parentSession && !isPointMove && !isLoosenedWithFreeMultiMode) {
             parentSession->NotifyClick(!IsScbCoreEnabled());
         }
         return WSError::WS_OK;
