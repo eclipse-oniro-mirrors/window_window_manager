@@ -782,29 +782,10 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick09, Function | SmallTest
 
 /**
  * @tc.name: HandleSubWindowClick10
- * @tc.desc: property is nullptr returns error
- * @tc.type: FUNC
- */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick10, Function | SmallTest | Level2)
-{
-    SessionInfo info;
-    info.abilityName_ = "subSession";
-    info.moduleName_ = "subSession";
-    info.bundleName_ = "subSession";
-    sptr<Session> subSession = sptr<Session>::MakeSptr(info);
-    subSession->property_ = nullptr;
-
-    auto ret = subSession->HandleSubWindowClick(MMI::PointerEvent::POINTER_ACTION_DOWN,
-        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
-}
-
-/**
- * @tc.name: HandleSubWindowClick11
  * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with parent dialog on foreground returns error
  * @tc.type: FUNC
  */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick11, Function | SmallTest | Level2)
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick10, Function | SmallTest | Level2)
 {
     SessionInfo mainInfo;
     mainInfo.abilityName_ = "mainSession";
@@ -831,11 +812,11 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick11, Function | SmallTest
 }
 
 /**
- * @tc.name: HandleSubWindowClick12
+ * @tc.name: HandleSubWindowClick11
  * @tc.desc: ZLevel >= DIALOG_SUB_WINDOW_Z_LEVEL with parent dialog on foreground returns OK
  * @tc.type: FUNC
  */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick12, Function | SmallTest | Level2)
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick11, Function | SmallTest | Level2)
 {
     SessionInfo mainInfo;
     mainInfo.abilityName_ = "mainSession";
@@ -867,11 +848,11 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick12, Function | SmallTest
 }
 
 /**
- * @tc.name: HandleSubWindowClick13
+ * @tc.name: HandleSubWindowClick12
  * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with parent dialog not active returns OK
  * @tc.type: FUNC
  */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick13, Function | SmallTest | Level2)
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick12, Function | SmallTest | Level2)
 {
     SessionInfo mainInfo;
     mainInfo.abilityName_ = "mainSession";
@@ -898,11 +879,11 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick13, Function | SmallTest
 }
 
 /**
- * @tc.name: HandleSubWindowClick14
+ * @tc.name: HandleSubWindowClick13
  * @tc.desc: ZLevel at boundary DIALOG_SUB_WINDOW_Z_LEVEL - 1 with parent dialog foreground returns error
  * @tc.type: FUNC
  */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick14, Function | SmallTest | Level2)
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick13, Function | SmallTest | Level2)
 {
     SessionInfo mainInfo;
     mainInfo.abilityName_ = "mainSession";
@@ -929,11 +910,11 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick14, Function | SmallTest
 }
 
 /**
- * @tc.name: HandleSubWindowClick15
+ * @tc.name: HandleSubWindowClick14
  * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with no parentSession returns OK
  * @tc.type: FUNC
  */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick15, Function | SmallTest | Level2)
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick14, Function | SmallTest | Level2)
 {
     SessionInfo subInfo;
     subInfo.abilityName_ = "subSession";
@@ -947,11 +928,11 @@ HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick15, Function | SmallTest
 }
 
 /**
- * @tc.name: HandleSubWindowClick16
+ * @tc.name: HandleSubWindowClick15
  * @tc.desc: ZLevel < DIALOG_SUB_WINDOW_Z_LEVEL with parentSession but no dialog returns OK
  * @tc.type: FUNC
  */
-HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick16, Function | SmallTest | Level2)
+HWTEST_F(SessionSpecificWindowTest, HandleSubWindowClick15, Function | SmallTest | Level2)
 {
     SessionInfo mainInfo;
     mainInfo.abilityName_ = "mainSession";
