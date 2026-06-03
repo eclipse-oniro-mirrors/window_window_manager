@@ -274,7 +274,7 @@ void WindowFocusController::LogDisplayIds()
 
 
 bool WindowFocusController::GetShouldCheckBlocking(const sptr<SceneSession>& sceneSession,
-    const sptr<SceneSession>& focusedSession, bool byForeground, FocusChangeReason reason)
+    const sptr<SceneSession>& focusedSession, bool byForeground, FocusChangeReason reason) const
 {
     bool shouldCheckBlocking = byForeground;
     if (reason == FocusChangeReason::CLIENT_REQUEST && sceneSession != nullptr && focusedSession != nullptr &&

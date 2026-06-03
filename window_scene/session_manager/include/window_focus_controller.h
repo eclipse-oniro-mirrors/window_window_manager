@@ -81,7 +81,7 @@ public:
     std::unordered_map<DisplayId, DisplayGroupId> GetDisplayId2GroupIdMap();
     void GetAllFocusGroup(std::unordered_map<DisplayGroupId, sptr<FocusGroup>>& focusGroupMap);
     bool GetShouldCheckBlocking(const sptr<SceneSession>& sceneSession, const sptr<SceneSession>& focusedSession,
-        bool byForeground, FocusChangeReason reason);
+        bool byForeground, FocusChangeReason reason) const;
 
 private:
     sptr<FocusGroup> GetFocusGroupInner(DisplayId displayId);
