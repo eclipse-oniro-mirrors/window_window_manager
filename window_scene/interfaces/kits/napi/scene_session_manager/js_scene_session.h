@@ -138,6 +138,7 @@ public:
     sptr<SceneSession> GetNativeSession() const;
 
 private:
+    void RegisterClearCallbackMap(const sptr<SceneSession>& session);
 
     /*
      * Window Lifecycle

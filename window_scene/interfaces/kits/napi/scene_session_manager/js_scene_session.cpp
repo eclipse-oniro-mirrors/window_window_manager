@@ -480,6 +480,7 @@ napi_value JsSceneSession::Create(napi_env env, const sptr<SceneSession>& sessio
     }
     sptr<JsSceneSession> jsSceneSession = sptr<JsSceneSession>::MakeSptr(env, session);
     jsSceneSession->IncStrongRef(nullptr);
+    jsSceneSession->RegisterClearCallbackMap(session);
     napi_wrap(env, objValue, jsSceneSession.GetRefPtr(), JsSceneSession::Finalizer, nullptr, nullptr);
     napi_set_named_property(env, objValue, "persistentId",
         CreateJsValue(env, static_cast<int32_t>(session->GetPersistentId())));
@@ -795,6 +796,11 @@ JsSceneSession::JsSceneSession(napi_env env, const sptr<SceneSession>& session)
     : env_(env), weakSession_(session), persistentId_(session->GetPersistentId()),
       taskScheduler_(std::make_shared<MainThreadScheduler>(env))
 {
+    TLOGI(WmsLogTag::WMS_LIFE, "created, id:%{public}d", persistentId_);
+}
+
+void JsSceneSession::RegisterClearCallbackMap(const sptr<SceneSession>& session)
+{
     session->RegisterClearCallbackMapCallback([weakThis = wptr(this)](bool needRemove) {
         if (!needRemove) {
             TLOGND(WmsLogTag::WMS_LIFE, "clearCallbackFunc needRemove is false");
@@ -807,8 +813,6 @@ JsSceneSession::JsSceneSession(napi_env env, const sptr<SceneSession>& session)
         }
         jsSceneSession->ClearCbMap();
     });
-
-    TLOGI(WmsLogTag::WMS_LIFE, "created, id:%{public}d", persistentId_);
 }
 
 JsSceneSession::~JsSceneSession()
