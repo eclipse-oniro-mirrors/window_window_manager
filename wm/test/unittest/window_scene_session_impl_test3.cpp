@@ -2400,6 +2400,87 @@ HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModesForDialogWindow01, 
     EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
 }
 
+/**
+ * @tc.name: SetSupportedWindowModesWithAnchorEnabled01
+ * @tc.desc: SetSupportedWindowModes with anchor enabled for main window should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModesWithAnchorEnabled01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSupportedWindowModesWithAnchorEnabled01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    WindowAnchorInfo anchorInfo(true);
+    window->property_->SetWindowAnchorInfo(anchorInfo);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FULLSCREEN);
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FLOATING);
+    auto ret = window->SetSupportedWindowModes(supportedWindowModes);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetSupportedWindowModesWithAnchorEnabled02
+ * @tc.desc: SetSupportedWindowModes with anchor enabled for sub window should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModesWithAnchorEnabled02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSupportedWindowModesWithAnchorEnabled02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+
+    WindowAnchorInfo anchorInfo(true);
+    window->property_->SetWindowAnchorInfo(anchorInfo);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FULLSCREEN);
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FLOATING);
+    auto ret = window->SetSupportedWindowModes(supportedWindowModes);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: SetSupportedWindowModesWithAnchorEnabled03
+ * @tc.desc: SetSupportedWindowModes with anchor disabled for sub window should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest3, SetSupportedWindowModesWithAnchorEnabled03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSupportedWindowModesWithAnchorEnabled03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+
+    WindowAnchorInfo anchorInfo(false);
+    window->property_->SetWindowAnchorInfo(anchorInfo);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FULLSCREEN);
+    supportedWindowModes.push_back(AppExecFwk::SupportWindowMode::FLOATING);
+    auto ret = window->SetSupportedWindowModes(supportedWindowModes);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

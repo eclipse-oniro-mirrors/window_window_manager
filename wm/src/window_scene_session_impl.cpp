@@ -4892,7 +4892,8 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
     }
     bool isMainWindow = WindowHelper::IsMainWindow(GetType());
     bool isSubWindow = WindowHelper::IsSubWindow(GetType());
-    if ((!isMainWindow && !isSubWindow) || property_->GetWindowAnchorInfo().isAnchorEnabled_) {
+    if ((!isMainWindow && !isSubWindow) ||
+        (isSubWindow && property_->GetWindowAnchorInfo().isAnchorEnabled_)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Only support main window and sub window without attachment");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
