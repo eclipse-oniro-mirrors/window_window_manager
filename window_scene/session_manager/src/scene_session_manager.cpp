@@ -17774,13 +17774,11 @@ void SceneSessionManager::FilterSceneSessionCovered(std::vector<sptr<SceneSessio
             }
             unaccountedSpaceMap[displayId] = unaccountedSpace;
         }
+        if (unaccountedSpace->isEmpty()) {
+            continue;
+        }
         if (SubtractIntersectArea(unaccountedSpace, sceneSession)) {
             result.push_back(sceneSession);
-        }
-        if (unaccountedSpace->isEmpty()) {
-            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "break after: inWid=%{public}d, zOrder=%{public}u",
-                static_cast<int32_t>(sceneSession->GetPersistentId()), sceneSession->GetZOrder());
-            break;
         }
     }
     sceneSessionList = result;
@@ -17830,9 +17828,9 @@ bool SceneSessionManager::SubtractIntersectArea(std::shared_ptr<SkRegion>& unacc
         unaccountedSpace->op(windowRegion, SkRegion::Op::kDifference_Op);
         if (unaccountedSpace->isEmpty()) {
             TLOGD(WmsLogTag::WMS_ATTRIBUTE, "break hot area: inWid=%{public}d, "
-                "bounds=[l=%{public}d, t=%{public}d, r=%{public}d, b=%{public}d]",
-                static_cast<int32_t>(sceneSession->GetPersistentId()),
-                windowBounds.fLeft, windowBounds.fTop, windowBounds.fRight, windowBounds.fBottom);
+                "bounds=[l=%{public}d, t=%{public}d, r=%{public}d, b=%{public}d], displayId=%{public}" PRIu64,
+                static_cast<int32_t>(sceneSession->GetPersistentId()), windowBounds.fLeft, windowBounds.fTop,
+                windowBounds.fRight, windowBounds.fBottom, sceneSession->GetSessionProperty()->GetDisplayId());
             break;
         }
     }
