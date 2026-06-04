@@ -4312,7 +4312,7 @@ static inline bool IsVertical(Rotation rotation)
     return rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180;
 }
 
-void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation)
+void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation, ScreenId screenId)
 {
     TLOGNFI(WmsLogTag::DMS, "start");
     if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
@@ -4323,6 +4323,10 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenProperty
     sptr<ScreenSession> internalSession = GetInternalScreenSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Internal Session null");
+        return;
+    }
+    if (screenId != internalSession->GetScreenId()) {
+        TLOGNFI(WmsLogTag::DMS, "external screen not support");
         return;
     }
     Rotation targetRotation = ConvertIntToRotation(rotation);
@@ -7604,7 +7608,7 @@ void ScreenSessionManager::UpdateScreenRotationProperty(ScreenId screenId, const
         }
         NotifyScreenModeChange();
     }
-    HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation);
+    HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation, screenId);
     SetFoldDisplayModeAfterRotation(GetFoldDisplayMode());
     SetFirstSCBConnect(false);
     sptr<DisplayInfo> displayInfo = screenSession->ConvertToDisplayInfo();
@@ -7623,7 +7627,7 @@ void ScreenSessionManager::UpdateScreenRotationPropertyForRs(sptr<ScreenSession>
         // Rs is used to mark the end of the rotation animation
         TLOGNFI(WmsLogTag::DMS, "DisableCacheForRotation");
         RSInterfaces::GetInstance().DisableCacheForRotation();
-        HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation);
+        HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation, screenSession->GetScreenId());
         return;
     } else if (screenPropertyChangeType == ScreenPropertyChangeType::ROTATION_UPDATE_PROPERTY_ONLY ||
         screenPropertyChangeType == ScreenPropertyChangeType::ROTATION_UPDATE_PROPERTY_ONLY_NOT_NOTIFY) {
