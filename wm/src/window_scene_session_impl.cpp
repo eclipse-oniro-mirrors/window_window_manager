@@ -3983,10 +3983,10 @@ void WindowSceneSessionImpl::MobileAppInPadLayoutFullScreenChange(bool statusBar
     if (property_->GetMobileAppInPadLayoutFullScreen() && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
         TLOGI(WmsLogTag::WMS_COMPAT, "statusProperty %{public}d, navigationIndicatorPorperty %{public}d",
             statusBarEnable, navigationEnable);
-        if (!statusBarEnable && !navigationEnable) {
+        if (!statusBarEnable && !navigationEnable && !enableImmersiveMode_) {
             Maximize(MaximizePresentation::ENTER_IMMERSIVE);
         }
-        if (statusBarEnable && navigationEnable) {
+        if (statusBarEnable && navigationEnable && enableImmersiveMode_) {
             Maximize(MaximizePresentation::EXIT_IMMERSIVE);
         }
     }

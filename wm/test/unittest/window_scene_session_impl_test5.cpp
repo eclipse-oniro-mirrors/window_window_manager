@@ -1135,6 +1135,16 @@ HWTEST_F(WindowSceneSessionImplTest5, MobileAppInPadLayoutFullScreenChange, Test
     statusBarEnable = true;
     navigationEnable = false;
     window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    statusBarEnable = false;
+    navigationEnable = false;
+    window->enableImmersiveMode_ = true;
+    window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    EXPECT_EQ(true, window->enableImmersiveMode_);
+    window->enableImmersiveMode_ = false;
+    statusBarEnable = true;
+    navigationEnable = true;
+    window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    EXPECT_EQ(false, window->enableImmersiveMode_);
 }
 
 /**
