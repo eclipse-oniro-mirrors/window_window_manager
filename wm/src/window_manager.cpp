@@ -244,7 +244,7 @@ void WindowManager::Impl::NotifyWindowModeChange(WindowModeType type)
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowModeListeners.assign(windowModeListeners_.begin(), windowModeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, size=%{public}u",
+    TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
         type, static_cast<uint32_t>(windowModeListeners.size()));
     for (auto& listener : windowModeListeners) {
         listener->OnWindowModeUpdate(type);
@@ -404,7 +404,7 @@ void WindowManager::Impl::NotifyWaterMarkFlagChangedResult(bool showWaterMark)
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         waterMarkFlagChangeListeners.assign(waterMarkFlagChangeListeners_.begin(), waterMarkFlagChangeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "showWaterMark=%{public}d, size=%{public}u",
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "showWaterMark=%{public}d, size=%{public}u",
         showWaterMark, static_cast<uint32_t>(waterMarkFlagChangeListeners.size()));
     for (auto& listener : waterMarkFlagChangeListeners) {
         listener->OnWaterMarkFlagUpdate(showWaterMark);

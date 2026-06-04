@@ -416,7 +416,7 @@ void WindowManagerLite::Impl::NotifyWindowModeChange(WindowModeType type)
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowModeListeners.assign(windowModeListeners_.begin(), windowModeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, size=%{public}u",
+    TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
         type, static_cast<uint32_t>(windowModeListeners.size()));
     for (auto &listener : windowModeListeners) {
         listener->OnWindowModeUpdate(type);
