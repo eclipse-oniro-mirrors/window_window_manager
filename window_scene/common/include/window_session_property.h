@@ -319,6 +319,7 @@ public:
     bool GetForceSplitEnable() const;
     void SetHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     HookWindowInfo GetHookWindowInfo() const;
+    void SetWidthHookRatio(float ratio);
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
     void SetDragDisabledAreas(const std::vector<Rect>& areas);

@@ -7059,7 +7059,37 @@ void WindowSceneSessionImpl::NotifyIsFullScreenInForceSplitMode(bool isFullScree
 
 WMError WindowSceneSessionImpl::NotifySplitRatioChanged(float newRatio)
 {
-    return WMError::WM_OK;
+    TLOGI(WmsLogTag::WMS_COMPAT, "windowId: %{public}u, new ratio is: %{public}f", GetWindowId(), newRatio);
+    auto hookWindowInfo = GetProperty()->GetHookWindowInfo();
+    if (!hookWindowInfo.enableHookWindow || !WindowHelper::IsMainWindow(GetType())
+        || MathHelper::NearEqual(hookWindowInfo.widthHookRatio, newRatio)) {
+        TLOGW(WmsLogTag::WMS_COMPAT, "windowId: %{public}u, enableHookWindow: %{public}u, widthHookRatio: %{public}f, "
+            "no need to update hook info", GetWindowId(), static_cast<uint32_t>(hookWindowInfo.enableHookWindow),
+            hookWindowInfo.widthHookRatio);
+        return WMError::WM_DO_NOTHING;
+    }
+
+    // Check if the new parameter is one of 1:2, 1:1, or 2:1
+    bool isValid = std::any_of(VALID_SPLIT_RATIOS.begin(), VALID_SPLIT_RATIOS.end(),
+        [newRatio](float ratio) { return MathHelper::NearEqual(newRatio, ratio); });
+    if (!isValid) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "invalid split ratio: %{public}f", newRatio);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+
+    // notify server split ratio changed
+    auto hostSession = GetHostSession();
+    if (!hostSession) {
+        TLOGW(WmsLogTag::WMS_COMPAT, "hostSession is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    WMError ret = hostSession->NotifySplitRatioChanged(newRatio);
+    if (ret == WMError::WM_OK) {
+        // update window hook info
+        hookWindowInfo.widthHookRatio = newRatio;
+        SetAppHookWindowInfo(hookWindowInfo);
+    }
+    return ret;
 }
 
 WSError WindowSceneSessionImpl::NotifyCompatibleModePropertyChange(const sptr<CompatibleModeProperty> property)

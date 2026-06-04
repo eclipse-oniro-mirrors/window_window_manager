@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WM_COMMON_INNER_H
 #define OHOS_ROSEN_WM_COMMON_INNER_H
 
+#include <array>
 #include <cfloat>
 #include <cinttypes>
 #include <unordered_set>
@@ -318,6 +319,14 @@ struct AbilityInfo {
 
 namespace {
     constexpr float DEFAULT_SPLIT_RATIO = 0.5;
+    constexpr float SMALL_SPLIT_RATIO = 1.0f / 3.0f;
+    constexpr float MIDDLE_SPLIT_RATIO = 1.0f / 2.0f;
+    constexpr float LARGE_SPLIT_RATIO = 2.0f / 3.0f;
+    constexpr std::array<float, 3> VALID_SPLIT_RATIOS = {
+        SMALL_SPLIT_RATIO,
+        MIDDLE_SPLIT_RATIO,
+        LARGE_SPLIT_RATIO
+    };
     constexpr float DEFAULT_ASPECT_RATIO = 0.67;
     constexpr float DISPLAY_ZOOM_OFF_SCALE = 1.0;
     constexpr float DISPLAY_ZOOM_MIN_SCALE = 2.0;

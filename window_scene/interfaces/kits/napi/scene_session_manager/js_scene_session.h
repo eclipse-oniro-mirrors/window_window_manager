@@ -125,6 +125,7 @@ enum class ListenerFuncType : uint32_t {
     PRE_CALC_WINDOW_PROPERTY_CB,
     FLOAT_VIEW_STOP_CB,
     FLOAT_VIEW_UPDATE_CB,
+    SPLIT_RATIO_CHANGE_CB,
 };
 
 class SceneSession;
@@ -632,6 +633,8 @@ private:
      */
     void ProcessCompatibleModeChangeRegister();
     void OnCompatibleModeChange(CompatibleStyleMode mode);
+    void ProcessSplitRatioChangeRegister();
+    void OnSplitRatioChange(float newRatio);
 
     bool HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env env,
         napi_value argv[], int index, KeyboardBaseInfo& keyboardBaseInfo);
