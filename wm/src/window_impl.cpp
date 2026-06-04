@@ -1994,6 +1994,13 @@ WMError WindowImpl::PreProcessShow(uint32_t reason, bool withAnimation)
     return WMError::WM_OK;
 }
 
+void WindowImpl::NotifyMainWindowDidForeground(uint32_t reason)
+{
+    if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+        NotifyAfterDidForeground(reason, true);
+    }
+}
+
 void WindowImpl::SetShowWithOptions(bool showWithOptions)
 {
     showWithOptions_ = showWithOptions;
@@ -2028,7 +2035,6 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::TOGGLING) {
         state_ = WindowState::STATE_SHOWN;
         NotifyAfterForeground();
-
         if (static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::KEYGUARD) {
             if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
                 NotifyAfterDidForeground(reason, true);
@@ -2051,6 +2057,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         } else {
             NotifyAfterForeground(true, false);
         }
+        NotifyMainWindowDidForeground(reason);
         return WMError::WM_OK;
     }
     WMError ret = PreProcessShow(reason, withAnimation);
@@ -2064,6 +2071,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
     RecordLifeCycleExceptionEvent(LifeCycleEvent::SHOW_EVENT, ret);
     if (ret == WMError::WM_OK) {
         UpdateWindowStateWhenShow();
+        NotifyMainWindowDidForeground(reason);
     } else {
         NotifyForegroundFailed(ret);
         WLOGFE("show window id:%{public}u errCode:%{public}d", property_->GetWindowId(), static_cast<int32_t>(ret));
@@ -2129,8 +2137,12 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
         return ret;
     }
     UpdateWindowStateWhenHide();
+    if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+        NotifyAfterDidBackground(reason, true);
+    }
     CustomHideAnimation();
     ResetMoveOrDragState();
+    
     escKeyEventTriggered_ = false;
     return ret;
 }
