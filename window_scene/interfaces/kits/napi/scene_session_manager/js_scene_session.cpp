@@ -6235,6 +6235,8 @@ napi_value JsSceneSession::OnSetIsGamePrelaunch(napi_env env, napi_callback_info
         return NapiGetUndefined(env);
     }
     session->EditSessionInfo().isGamePrelaunch_ = isGamePrelaunch;
+    TLOGI(WmsLogTag::WMS_LIFE, "[gameprelaunch]id: %{public}d, isGamePrelaunch: %{public}d",
+        session->GetPersistentId(), isGamePrelaunch);
     return NapiGetUndefined(env);
 }
 
