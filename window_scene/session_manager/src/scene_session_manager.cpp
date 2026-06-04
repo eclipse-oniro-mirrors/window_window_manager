@@ -4668,6 +4668,11 @@ WSError SceneSessionManager::RequestSceneSessionDestruction(const sptr<SceneSess
             "isSaveSnapshot:%{public}d isForceClean:%{public}d isUserRequestedExit:%{public}d",
             persistentId, sceneSession->GetSessionInfoScbRequestId(),
             needRemoveSession, isSaveSnapshot, isForceClean, isUserRequestedExit);
+        if (WindowHelper::IsSubWindow(sceneSession->GetWindowType()) && sceneSession->IsLoosenedWithFreeMultiMode()) {
+            TLOGNI(WmsLogTag::WMS_SUB, "No-parent subWindow destroy, id: %{public}d", persistentId);
+            sceneSession->DestroySubWindowZLevelAboveParentLoosened();
+            return WSError::WS_OK;
+        }
         RequestSessionUnfocus(persistentId, FocusChangeReason::SCB_SESSION_REQUEST_UNFOCUS);
         avoidAreaListenerSessionSet_.erase(persistentId);
         screenshotListenerSessionSet_.erase(persistentId);

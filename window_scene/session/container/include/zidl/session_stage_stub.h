@@ -135,6 +135,7 @@ private:
     int HandleSyncFvLimits(MessageParcel& data, MessageParcel& reply);
     int HandleHideSubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
     int HandleShowSubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
+    int HandleDestroySubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply);
     int HandleSetIsStartMoving(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen

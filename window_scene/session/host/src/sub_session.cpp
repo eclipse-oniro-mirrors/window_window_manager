@@ -674,4 +674,21 @@ WSError SubSession::ShowSubWindowZLevelAboveParentLoosened()
         }, __func__);
     return WSError::WS_OK;
 }
+
+WSError SubSession::DestroySubWindowZLevelAboveParentLoosened()
+{
+    PostTask([weakThis = wptr(this), funcName = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: session is null", funcName);
+            return;
+        }
+        if (session->sessionStage_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: sessionStage_ is nullptr", funcName);
+            return;
+        }
+        session->sessionStage_->DestroySubWindowZLevelAboveParentLoosened();
+        }, __func__);
+    return WSError::WS_OK;
+}
 } // namespace OHOS::Rosen

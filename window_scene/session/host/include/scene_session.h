@@ -577,6 +577,7 @@ public:
      */
     virtual WSError HideSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
     virtual WSError ShowSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
+    virtual WSError DestroySubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
 
     /*
      * Window Event
