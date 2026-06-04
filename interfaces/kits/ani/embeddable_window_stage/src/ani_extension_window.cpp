@@ -390,6 +390,10 @@ ani_object AniExtensionWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_st
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Get invalid options param");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
+    if (option->IsSubWindowZLevelAboveParentLoosened()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Get invalid options param zLevelAboveParentLoosened");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
+    }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !extensionWindow_->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI]device not support");
