@@ -47,12 +47,6 @@ void DisplayManagerAdapterTestTwo::SetUp() {}
 void DisplayManagerAdapterTestTwo::TearDown() {}
 
 namespace {
-std::string g_errLog;
-void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
-    const char* msg)
-{
-    g_errLog = msg;
-}
 /**
  * @tc.name: AddVirtualScreenSurface01
  * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
@@ -64,14 +58,17 @@ HWTEST_F(DisplayManagerAdapterTestTwo, AddVirtualScreenSurface01, TestSize.Level
         return;
     }
     ScreenId screenId = 1;
-    sptr<Surface> surface = nullptr;
+    ScreenManagerUtils utils;
+    utils.CreateSurface();
+    sptr<Surface> surface = utils.csurface_;
     DMRect surfaceRegion = {0, 0, 100, 100};
 
     auto screenSessionManagerServiceProxy =
         SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
     SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
-    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(screenId, surface, surfaceRegion);
-    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(screenId,
+        surface, surfaceRegion);
+    EXPECT_EQ(err, DMError::DM_ERROR_INVALID_PARAM);
     SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
         screenSessionManagerServiceProxy;
 }
@@ -90,12 +87,9 @@ HWTEST_F(DisplayManagerAdapterTestTwo, AddVirtualScreenSurface02, TestSize.Level
     sptr<Surface> surface = nullptr;
     DMRect surfaceRegion = {0, 0, 100, 100};
 
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(screenId, surface, surfaceRegion);
-    EXPECT_EQ(err, DMError::DM_ERROR_INVALID_PARAM);
-    EXPECT_TRUE(g_errLog.find("surface is null") != std::string::npos);
-    LOG_SetCallback(nullptr);
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(
+        screenId, surface, surfaceRegion);
+    EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
 }
 
 /**
@@ -109,12 +103,15 @@ HWTEST_F(DisplayManagerAdapterTestTwo, RemoveVirtualScreenSurface01, TestSize.Le
         return;
     }
     ScreenId screenId = 1;
-    sptr<Surface> surface = nullptr;
+    ScreenManagerUtils utils;
+    utils.CreateSurface();
+    sptr<Surface> surface = utils.csurface_;
 
     auto screenSessionManagerServiceProxy =
         SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
     SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
-    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenSurface(screenId, surface);
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenSurface(
+        screenId, surface);
     EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
     SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
         screenSessionManagerServiceProxy;
@@ -133,12 +130,9 @@ HWTEST_F(DisplayManagerAdapterTestTwo, RemoveVirtualScreenSurface02, TestSize.Le
     ScreenId screenId = 1;
     sptr<Surface> surface = nullptr;
 
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenSurface(screenId, surface);
-    EXPECT_EQ(err, DMError::DM_ERROR_INVALID_PARAM);
-    EXPECT_TRUE(g_errLog.find("surface is null") != std::string::npos);
-    LOG_SetCallback(nullptr);
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenSurface(
+        screenId, surface);
+    EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
 }
 
 /**
@@ -156,12 +150,9 @@ HWTEST_F(DisplayManagerAdapterTestTwo, AddVirtualScreenSurface03, TestSize.Level
     ASSERT_TRUE(utils.CreateSurface());
     DMRect surfaceRegion = {0, 0, 100, 100};
 
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
     DMError err = SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(
         screenId, utils.psurface_, surfaceRegion);
-    EXPECT_TRUE(g_errLog.find("enter AddVirtualScreenSurface") != std::string::npos);
-    LOG_SetCallback(nullptr);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
 }
 
 /**

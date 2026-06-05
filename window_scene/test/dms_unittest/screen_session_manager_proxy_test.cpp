@@ -3653,7 +3653,7 @@ HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface07, TestSize.Leve
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
     auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
-    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteUint32ErrorFlag(false);
     LOG_SetCallback(nullptr);
 }

@@ -1516,7 +1516,6 @@ napi_value OnSetVirtualScreenSurface(napi_env env, napi_callback_info info)
     return result;
 }
 
-
 napi_value OnAddVirtualScreenSurface(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");

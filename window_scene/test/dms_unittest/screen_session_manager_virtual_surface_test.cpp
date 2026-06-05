@@ -119,7 +119,7 @@ HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_Surface
  * @tc.name: AddVirtualScreenSurface_RemoteIsNull
  * @tc.desc: RemoveVirtualScreenSurface_SurfaceIsNull test
  * @tc.type: FUNC
- */  
+ */
 HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, RemoveVirtualScreenSurface_SurfaceIsNull, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
@@ -304,7 +304,8 @@ HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface
  * @tc.desc: RemoveVirtualScreenSurface_WriteInterfaceTokenFailed test
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_WriteInterfaceTokenFailed, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, RemoveVirtualScreenSurface_WriteInterfaceTokenFailed,
+    TestSize.Level1)
 {
     MockMessageParcel::ClearAllErrorFlag();
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
@@ -457,7 +458,8 @@ HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest,
  * @tc.desc: OnRemoteRequest_RemoveVirtualScreenSurface_InvalidToken test
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_RemoveVirtualScreenSurface_InvalidToken, TestSize.Level1)
+HWTEST_F(ScreenSessionManagerStubVirtualSurfaceTest, OnRemoteRequest_RemoveVirtualScreenSurface_InvalidToken,
+    TestSize.Level1)
 {
     MessageParcel data;
     MessageParcel reply;
