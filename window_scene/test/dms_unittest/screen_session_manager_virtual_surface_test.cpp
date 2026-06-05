@@ -93,7 +93,7 @@ namespace {
  * @tc.name: AddVirtualScreenSurface_SurfaceIsNull
  * @tc.desc: AddVirtualScreenSurface_SurfaceIsNull test
  * @tc.type: FUNC
- */ 
+ */
 HWTEST_F(ScreenSessionManagerVirtualSurfaceTest, AddVirtualScreenSurface_SurfaceIsNull, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
@@ -167,7 +167,7 @@ namespace {
  * @tc.name: AddVirtualScreenSurface_RemoteIsNull
  * @tc.desc: AddVirtualScreenSurface_RemoteIsNull test
  * @tc.type: FUNC
- */  
+ */
 HWTEST_F(ScreenSessionManagerProxyVirtualSurfaceTest, AddVirtualScreenSurface_RemoteIsNull, TestSize.Level1)
 {
     auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
