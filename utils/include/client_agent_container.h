@@ -219,7 +219,17 @@ std::set<sptr<T1>> ClientAgentContainer<T1, T2>::GetAgentsByType(T2 type)
         WLOGFD("no such type of agent registered! type:%{public}u", type);
         return std::set<sptr<T1>>();
     }
-    return agentMap_.at(type);
+    auto agents = agentMap_.at(type);
+    std::string pids;
+    for (const auto& agent : agents) {
+        auto it = agentPidMap_.find(agent);
+        if (it != agentPidMap_.end()) {
+            pids += std::to_string(it->second) + ",";
+        }
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, #agents=%{public}u, pids=[%{public}s]",
+        type, static_cast<uint32_t>(agents.size()), pids.c_str());
+    return agents;
 }
 
 template<typename T1, typename T2>
