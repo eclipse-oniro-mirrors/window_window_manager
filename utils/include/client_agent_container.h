@@ -220,15 +220,15 @@ std::set<sptr<T1>> ClientAgentContainer<T1, T2>::GetAgentsByType(T2 type)
         return std::set<sptr<T1>>();
     }
     auto agents = agentMap_.at(type);
-    std::string pids;
+    std::ostringstream pids;
     for (const auto& agent : agents) {
         auto it = agentPidMap_.find(agent);
         if (it != agentPidMap_.end()) {
-            pids += std::to_string(it->second) + ",";
+            pids << it->second << ",";
         }
     }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, #agents=%{public}u, pids=[%{public}s]",
-        type, static_cast<uint32_t>(agents.size()), pids.c_str());
+        type, static_cast<uint32_t>(agents.size()), pids.str().c_str());
     return agents;
 }
 

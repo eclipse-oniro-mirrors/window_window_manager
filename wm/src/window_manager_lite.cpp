@@ -417,7 +417,7 @@ void WindowManagerLite::Impl::NotifyWindowModeChange(WindowModeType type)
         windowModeListeners.assign(windowModeListeners_.begin(), windowModeListeners_.end());
     }
     TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
-        type, static_cast<uint32_t>(windowModeListeners.size()));
+        static_cast<uint8_t>(type), static_cast<uint32_t>(windowModeListeners.size()));
     for (auto &listener : windowModeListeners) {
         listener->OnWindowModeUpdate(type);
     }
