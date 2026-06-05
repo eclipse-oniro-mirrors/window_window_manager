@@ -786,7 +786,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
@@ -811,8 +810,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     property->SetParentPersistentId(1);
  
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
-        id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res.errCode, WSError::WS_OK);
+        id, session, systemConfig, renderSession, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
     ssm_->sceneSessionMap_.clear();
 }
@@ -833,7 +831,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
@@ -858,8 +855,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     property->SetParentPersistentId(1);
  
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
-        id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res.errCode, WSError::WS_OK);
+        id, session, systemConfig, renderSession, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, false);
     ssm_->sceneSessionMap_.clear();
 }
@@ -879,7 +875,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NoParent
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
@@ -891,10 +886,8 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NoParent
     property->SetParentPersistentId(9999);
  
     systemConfig.freeMultiWindowEnable_ = true;
- 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
-        id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res.errCode, WSError::WS_OK);
+        id, session, systemConfig, renderSession, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
 }
  
@@ -913,7 +906,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NonPcWin
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
@@ -938,11 +930,9 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NonPcWin
     property->SetParentPersistentId(1);
  
     systemConfig.freeMultiWindowEnable_ = false;
- 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
-        id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res.errCode, WSError::WS_OK);
-    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, false);
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
     ssm_->sceneSessionMap_.clear();
 }
  
@@ -961,7 +951,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_FreeMult
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
@@ -986,11 +975,9 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_FreeMult
     property->SetParentPersistentId(1);
  
     systemConfig.freeMultiWindowEnable_ = false;
- 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
-        id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res.errCode, WSError::WS_OK);
-    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, false);
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
     ssm_->sceneSessionMap_.clear();
 }
 
