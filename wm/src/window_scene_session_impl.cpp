@@ -4893,8 +4893,8 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
     bool isMainWindow = WindowHelper::IsMainWindow(GetType());
     bool isSubWindow = WindowHelper::IsSubWindow(GetType());
     if ((!isMainWindow && !isSubWindow) ||
-        (isSubWindow && property_->GetWindowAnchorInfo().isAnchorEnabled_)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Only support main window and sub window without attachment");
+        (isSubWindow && (property_->GetWindowAnchorInfo().isAnchorEnabled_ || property_->IsFollowParentLayout()))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Only support main window and sub window not following parent");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (isSubWindow && std::find(supportedWindowModes.begin(), supportedWindowModes.end(),

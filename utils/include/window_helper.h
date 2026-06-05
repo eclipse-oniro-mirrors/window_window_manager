@@ -640,8 +640,8 @@ public:
 
     static bool IsOnlySupportFullScreen(uint32_t windowModeSupportType)
     {
-        return IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
-            !IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+        return (windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) &&
+               !(windowModeSupportType & ~WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
     }
 
     static bool IsInvalidWindowInTileLayoutMode(uint32_t supportModeInfo, WindowLayoutMode layoutMode)
