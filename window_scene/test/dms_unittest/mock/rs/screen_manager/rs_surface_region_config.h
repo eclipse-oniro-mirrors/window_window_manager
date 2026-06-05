@@ -20,8 +20,7 @@
 #include <surface.h>
 #include "common/rs_rect.h"
 
-namespace OHOS::Rosen
-{
+namespace OHOS::Rosen {
     struct SurfaceRegionConfig {
         sptr<Surface> surface = nullptr;
         RectI region;
