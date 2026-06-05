@@ -775,7 +775,8 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_08, Func
  * @tc.desc: Test CreateAndConnectSpecificSession inherits freeMultiWindowEnable=true from parent in PC mode
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritFreeMultiWindowEnable_True, TestSize.Level1)
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritFreeMultiWindowEnable_True,
+    TestSize.Level1)
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
@@ -821,7 +822,8 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
  * @tc.desc: Test CreateAndConnectSpecificSession inherits freeMultiWindowEnable=false from parent in PC mode
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritFreeMultiWindowEnable_False, TestSize.Level1)
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritFreeMultiWindowEnable_False,
+    TestSize.Level1)
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
