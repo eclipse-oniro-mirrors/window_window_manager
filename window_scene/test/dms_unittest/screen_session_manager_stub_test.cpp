@@ -4161,7 +4161,7 @@ HWTEST_F(ScreenSessionManagerStubTest, RemoveVirtualScreenSurface03, TestSize.Le
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption op tion;
+    MessageOption option;
 
     data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
     ScreenId screenId = 1001;
