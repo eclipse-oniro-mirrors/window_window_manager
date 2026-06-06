@@ -1598,7 +1598,6 @@ napi_value OnAddVirtualScreenSurface(napi_env env, napi_callback_info info)
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
             SingletonContainer::Get<ScreenManager>().AddVirtualScreenSurface(
                 params.screenId, params.surface, region));
-        res = (res == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : res;
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][addVirtualScreenSurface]"));
             TLOGNE(WmsLogTag::DMS, "JsDisplayManager::AddVirtualScreenSurface failed.");
@@ -1649,7 +1648,6 @@ napi_value OnRemoveVirtualScreenSurface(napi_env env, napi_callback_info info)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayManager::OnRemoveVirtualScreenSurface");
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
             SingletonContainer::Get<ScreenManager>().RemoveVirtualScreenSurface(screenId, surface));
-        res = (res == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : res;
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][removeVirtualScreenSurface]"));
             TLOGNE(WmsLogTag::DMS, "JsDisplayManager::RemoveVirtualScreenSurface failed.");
