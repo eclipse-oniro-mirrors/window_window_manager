@@ -1436,6 +1436,10 @@ bool ScreenSettingHelper::GetCustomResolution(uint32_t& width, uint32_t& height,
         TLOGE(WmsLogTag::DMS, "json missing required fields");
         return false;
     }
+    if (!jsonValue["width"].is_number_unsigned() || !jsonValue["height"].is_number_unsigned()) {
+        TLOGE(WmsLogTag::DMS, "width or height is not a uint32_t integer");
+        return false;
+    }
     width = jsonValue["width"].get<uint32_t>();
     height = jsonValue["height"].get<uint32_t>();
     TLOGI(WmsLogTag::DMS, "width:%{public}u, height:%{public}u", width, height);
