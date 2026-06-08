@@ -1302,12 +1302,12 @@ void WindowSessionImpl::UpdateVirtualPixelRatio(const sptr<Display>& display)
         TLOGE(WmsLogTag::WMS_LAYOUT, "displayInfo is null when rotation!");
         return;
     }
-    auto tempVirtualPixelRatio = GetVirtualPixelRatio(displayInfo);
+    float tempVirtualPixelRatio = GetVirtualPixelRatio(displayInfo);
     {
         std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
         virtualPixelRatio_ = tempVirtualPixelRatio;
     }
-    TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", virtualPixelRatio_);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", tempVirtualPixelRatio);
 }
 
 void WindowSessionImpl::UpdateRectForResizeAnimation(const Rect& wmRect, const Rect& preRect,
