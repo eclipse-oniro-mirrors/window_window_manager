@@ -4925,7 +4925,7 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
     auto pid = IPCSkeleton::GetCallingRealPid();
     auto uid = IPCSkeleton::GetCallingUid();
     auto task = [this, sessionStage, eventChannel, surfaceNode, property, &persistentId, &session, &systemConfig, token,
-                &renderSession, pid, uid, isSystemCalling, initClientDisplayId]() {
+                &renderSession, pid, uid, isSystemCalling, initClientDisplayId, parentSession]() {
         if (property == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "property is nullptr");
             return WSError::WS_ERROR_NULLPTR;
@@ -4958,6 +4958,9 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         auto errCode = newSession->ConnectInner(
             sessionStage, eventChannel, surfaceNode, systemConfig_, property, token, pid, uid);
         systemConfig = systemConfig_;
+        if (parentSession != nullptr && systemConfig_.IsPcWindow() && systemConfig_.freeMultiWindowSupport_) {
+            systemConfig.freeMultiWindowEnable_ = parentSession->GetSystemConfig().freeMultiWindowEnable_;
+        }
         persistentId = property->GetPersistentId();
 
         NotifyCreateSpecificSession(newSession, property, type);
