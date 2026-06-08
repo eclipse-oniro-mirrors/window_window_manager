@@ -1379,11 +1379,20 @@ void WindowSessionImpl::UpdateRectForResizeAnimation(const Rect& wmRect, const R
             RSTransactionAdapter::FlushImplicitTransaction(rsUIContext);
             rsTransaction->Begin();
         }
-
+        window->sceneAnimationCount_++;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(config.animationDuration_);
         protocol.SetStartDelay(config.animationDelay_);
-        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, nullptr);
+        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak]() {
+            auto window = weak.promote();
+            if (!window) {
+                return;
+            }
+            window->sceneAnimationCount_--;
+            if (window->sceneAnimationCount_ == 0) {
+                window->NotifyRotationAnimationEnd();
+            }
+        });
         if ((wmRect != preRect) || (wmReason != window->lastSizeChangeReason_)) {
             window->NotifySizeChange(wmRect, wmReason);
             window->lastSizeChangeReason_ = wmReason;
@@ -1414,9 +1423,9 @@ RSAnimationTimingCurve WindowSessionImpl::updateConfigCurve(const WindowAnimatio
             break;
         case WindowAnimationCurve::INTERPOLATION_SPRING:
             TLOGD(WmsLogTag::WMS_LAYOUT, "Spring params: %{public}f, %{public}f, %{public}f, %{public}f",
-                paramFirst, paramSecond, paramThird, paramFourth);
-            curve = RSAnimationTimingCurve::CreateInterpolatingSpring(paramFirst,
-                paramSecond, paramThird, paramFourth);
+                paramSecond, paramThird, paramFourth, paramFirst);
+            curve = RSAnimationTimingCurve::CreateInterpolatingSpring(
+                paramSecond, paramThird, paramFourth, paramFirst);
             break;
         case WindowAnimationCurve::CUBIC_BEZIER:
             TLOGD(WmsLogTag::WMS_LAYOUT, "Bezier params: %{public}f, %{public}f, %{public}f, %{public}f",
