@@ -1019,6 +1019,7 @@ public:
     void ResetPreloadStartingWindow();
     void InitPersistentScaledSnapshotParam(bool enabled);
     bool IsPersistentScaledSnapshotEnabled() { return enablePersistentScaledSnapshot_; };
+    void LoadSnapshotToMem();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
