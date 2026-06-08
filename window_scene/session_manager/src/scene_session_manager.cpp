@@ -13546,7 +13546,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
         if (session == nullptr) {
             continue;
         }
-        if ((WindowHelper::IsSubWindow(session->GetWindowType()) ||
+        if (((WindowHelper::IsSubWindow(session->GetWindowType()) && !session->IsLoosenedWithFreeMultiMode()) ||
             session->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) && isVisible == true) {
             WindowVisibilityState parentWinVisibleState = visibleState;
             if (session->GetParentSession() != nullptr &&
