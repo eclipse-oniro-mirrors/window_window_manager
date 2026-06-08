@@ -21,7 +21,6 @@
 
 #include "input_manager.h"
 #include "marshalling_helper.h"
-#include "parameters.h"
 #include "window_adapter.h"
 #include "window_display_change_adapter.h"
 #include "window_manager_agent.h"
@@ -698,7 +697,7 @@ WindowManager& WindowManager::GetInstance(const int32_t userId)
         return GetInstance();
     }
 
-    if (!WindowManager::IsMultiInstanceEnabled()) {
+    if (!IsMultiInstanceEnabled()) {
         TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
         return GetInstance();
     }
@@ -729,16 +728,6 @@ WMError WindowManager::RemoveInstanceByUserId(const int32_t userId)
     std::unique_lock<std::shared_mutex> lock(windowManagerMapMutex_);
     windowManagerMap_.erase(userId);
     return WMError::WM_OK;
-}
-
-bool WindowManager::IsMultiInstanceEnabled()
-{
-    static bool enabled = [] {
-        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", true);
-        TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
-        return isConcurrentUser;
-    }();
-    return enabled;
 }
 
 WMError WindowManager::ActiveFaultAgentReregister(const WindowManagerAgentType type,

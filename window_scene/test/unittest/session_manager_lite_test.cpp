@@ -20,6 +20,7 @@
 #include "iremote_object_mocker.h"
 #include "iremote_screen_session_manager_mocker.h"
 #include "iremote_session_manager_mocker.h"
+#include "parameters.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
 #include "session_manager_lite.h"
@@ -70,6 +71,7 @@ public:
 private:
     int32_t userId_ = -1;
     sptr<SessionManagerLite> instance_ = nullptr;
+    std::string isConcurrentuser_;
 };
 
 void SessionManagerLiteTest::SetUpTestCase() {}
@@ -78,11 +80,15 @@ void SessionManagerLiteTest::TearDownTestCase() {}
 
 void SessionManagerLiteTest::SetUp()
 {
+    isConcurrentuser_ = OHOS::system::GetParameter("persist.dms.concurrentuser", "");
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "true");
     instance_ = sptr<SessionManagerLite>::MakeSptr(userId_);
 }
 
 void SessionManagerLiteTest::TearDown()
 {
+    SessionManagerLite::sessionManagerLiteMap_.clear();
+    OHOS::system::SetParameter("persist.dms.concurrentuser", isConcurrentuser_);
     instance_ = nullptr;
 }
 

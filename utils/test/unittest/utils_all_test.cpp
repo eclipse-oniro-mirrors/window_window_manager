@@ -21,6 +21,7 @@
 #include "agent_death_recipient.h"
 #include "color_parser.h"
 #include "iremote_object_mocker.h"
+#include "parameters.h"
 #include "perform_reporter.h"
 #include "singleton_container.h"
 #include "surface_reader_handler_impl.h"
@@ -47,11 +48,21 @@ public:
     std::map<std::string, int32_t> oldStringMap_;
     std::map<int32_t, SingletonContainer::Singleton> oldSingletonMap_;
     std::map<int32_t, std::set<int32_t>> oldDependencySetMap_;
+    static std::string isConcurrentuser_;
 };
 
-void UtilsAllTest::SetUpTestCase() {}
+std::string UtilsAllTest::isConcurrentuser_;
 
-void UtilsAllTest::TearDownTestCase() {}
+void UtilsAllTest::SetUpTestCase()
+{
+    isConcurrentuser_ = OHOS::system::GetParameter("persist.dms.concurrentuser", "");
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "true");
+}
+
+void UtilsAllTest::TearDownTestCase()
+{
+    OHOS::system::SetParameter("persist.dms.concurrentuser", isConcurrentuser_);
+}
 
 void UtilsAllTest::SetUp() {}
 
@@ -225,6 +236,16 @@ HWTEST_F(UtilsAllTest, ConvertErrorToCode, TestSize.Level1)
         WmErrorCode::WM_ERROR_FB_RESTORE_MAIN_WINDOW_FAILED);
     WMError error = static_cast<WMError>(-1);
     EXPECT_EQ(ConvertErrorToCode(error), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+}
+
+/**
+ * @tc.name: IsMultiInstanceEnabled01
+ * @tc.desc: test IsMultiInstanceEnabled when concurrentuser is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(UtilsAllTest, IsMultiInstanceEnabled01, TestSize.Level1)
+{
+    EXPECT_TRUE(IsMultiInstanceEnabled());
 }
 
 /**
