@@ -180,7 +180,7 @@ HWTEST_F(WindowInputChannelTest, HandlePointEvent02, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(inputChannel, nullptr);
 
-    window_->GetWindowProperty()->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    window->GetWindowProperty()->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     pointerEvent->SetAgentWindowId(0);
     pointerEvent->SetTargetWindowId(1);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_UP);
