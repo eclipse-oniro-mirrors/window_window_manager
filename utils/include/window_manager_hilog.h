@@ -16,6 +16,7 @@
 #ifndef OHOS_WM_INCLUDE_WINDOW_MANAGER_HILOG_H
 #define OHOS_WM_INCLUDE_WINDOW_MANAGER_HILOG_H
 
+#include <chrono>
 #include <cstdint>
 #include <unordered_map>
 #include "hilog/log.h"
@@ -80,6 +81,23 @@ enum class WmsLogTag : uint8_t {
 };
 
 extern const char* g_domainContents[static_cast<uint32_t>(WmsLogTag::END)];
+
+struct TLogInfo {
+    uint32_t domain;
+    const char* content;
+};
+
+TLogInfo GetTLogInfo(WmsLogTag tag);
+
+struct WinPrintLimitState {
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> last{};
+    uint32_t supressed = 0;
+    int printCount = 0;
+};
+
+bool WinPrintLimit(WmsLogTag tag, LogLevel level, uint32_t intervals,
+                   WinPrintLimitState& state, uint32_t frequency, const char* funcName);
+
 #ifdef IS_RELEASE_VERSION
 #define WMS_FILE_NAME ""
 #define FMT_PREFIX "%{public}s%{public}s: "
@@ -92,12 +110,10 @@ extern const char* g_domainContents[static_cast<uint32_t>(WmsLogTag::END)];
 #endif
 #define WMS_NO_FILE_NAME ""
 
-#define PRINT_TLOG(level, tag, ...)                                                                     \
-    do {                                                                                                \
-        uint32_t hilogDomain = HILOG_DOMAIN_WINDOW + static_cast<uint32_t>(tag);                        \
-        const char *domainContent = (tag >= WmsLogTag::DEFAULT && tag < WmsLogTag::END) ?               \
-            g_domainContents[static_cast<uint32_t>(tag)] : "";                                          \
-        HILOG_IMPL(LOG_CORE, level, hilogDomain, domainContent, ##__VA_ARGS__);                         \
+#define PRINT_TLOG(level, tag, fmt, ...) \
+    do { \
+        auto tlogInfo_ = GetTLogInfo(tag); \
+        HiLogPrint(LOG_CORE, level, tlogInfo_.domain, tlogInfo_.content, fmt, ##__VA_ARGS__); \
     } while (0)
 
 #define TLOGD(tag, fmt, ...) \
@@ -131,34 +147,10 @@ PRINT_TLOG(LOG_WARN, tag, FMT_PREFIX fmt, WMS_NO_FILE_NAME, C_W_FUNC, ##__VA_ARG
 #define TLOGNFE(tag, fmt, ...) \
 PRINT_TLOG(LOG_ERROR, tag, FMT_PREFIX fmt, WMS_NO_FILE_NAME, C_W_FUNC, ##__VA_ARGS__)
 
-#define WIN_PRINT_LIMIT(tag, level, intervals, canPrint, frequency)                                      \
-    do {                                                                                                 \
-        uint32_t hilogDomain = HILOG_DOMAIN_WINDOW + static_cast<uint32_t>(tag);                         \
-        const char *domainContent = ((tag) >= WmsLogTag::DEFAULT && (tag) < WmsLogTag::END) ?            \
-            g_domainContents[static_cast<uint32_t>(tag)] : "";                                           \
-        static auto last = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>();   \
-        static uint32_t supressed = 0;                                                                   \
-        static int printCount = 0;                                                                       \
-        auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()); \
-        auto duration = now - last;                                                                      \
-        if (duration.count() >= (intervals)) {                                                           \
-            last = now;                                                                                  \
-            uint32_t supressedCnt = supressed;                                                           \
-            supressed = 0;                                                                               \
-            printCount = 1;                                                                              \
-            if (supressedCnt != 0) {                                                                     \
-                ((void)HILOG_IMPL(LOG_CORE, (level), hilogDomain, domainContent,                         \
-                    "%{public}s log suppressed cnt %{public}u", __func__, supressedCnt));                \
-            }                                                                                            \
-            (canPrint) = true;                                                                           \
-        } else {                                                                                         \
-            if ((printCount++) < (frequency)) {                                                          \
-                (canPrint) = true;                                                                       \
-            } else {                                                                                     \
-                supressed++;                                                                             \
-                (canPrint) = false;                                                                      \
-            }                                                                                            \
-        }                                                                                                \
+#define WIN_PRINT_LIMIT(tag, level, intervals, canPrint, frequency) \
+    do { \
+        static WinPrintLimitState state; \
+        (canPrint) = WinPrintLimit(tag, level, intervals, state, frequency, __func__); \
     } while (0)
 
 #define TLOGI_LIMITN_HOUR(tag, freq, fmt, ...)                                                           \
