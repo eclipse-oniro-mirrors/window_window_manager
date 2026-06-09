@@ -102,20 +102,20 @@ struct WinPrintLimitConfig {
     uint32_t printFrequency;
     const char* functionName;
     
-    WinPrintLimitConfig() 
-        : logTag(WmsLogTag::DEFAULT)
-        , logLevel(LOG_INFO)
-        , timeIntervals(WIN_LOG_LIMIT_MINUTE)
-        , printFrequency(TEN_TIMES)
-        , functionName("") {}
+    WinPrintLimitConfig()
+        : logTag(WmsLogTag::DEFAULT),
+        logLevel(LOG_INFO),
+        timeIntervals(WIN_LOG_LIMIT_MINUTE),
+        printFrequency(TEN_TIMES),
+        functionName("") {}
     
     WinPrintLimitConfig(WmsLogTag tag, LogLevel level, uint32_t intervals,
-                         uint32_t frequency, const char* funcName)
-        : logTag(tag)
-        , logLevel(level)
-        , timeIntervals(intervals)
-        , printFrequency(frequency)
-        , functionName(funcName) {}
+        uint32_t frequency, const char* funcName)
+        : logTag(tag),
+        logLevel(level),
+        timeIntervals(intervals),
+        printFrequency(frequency),
+        functionName(funcName) {}
 };
 
 bool WinPrintLimit(const WinPrintLimitConfig& config, WinPrintLimitState& state);
