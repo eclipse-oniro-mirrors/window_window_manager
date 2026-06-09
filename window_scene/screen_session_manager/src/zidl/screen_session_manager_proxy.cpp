@@ -1258,6 +1258,85 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenSurface(ScreenId screenId, sp
     return static_cast<DMError>(reply.ReadInt32());
 }
 
+DMError ScreenSessionManagerProxy::AddVirtualScreenSurface(ScreenId screenId,
+    sptr<IBufferProducer> surface, const DMRect& surfaceRegion)
+{
+    TLOGW(WmsLogTag::DMS, "SCB: ENTER AddVirtualScreenSurface");
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "SCB: remote is nullptr");
+        return DMError::DM_ERROR_REMOTE_CREATE_FAILED;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "SCB: WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    bool res = data.WriteUint64(static_cast<uint64_t>(screenId));
+    res = res && data.WriteInt32(surfaceRegion.posX_);
+    res = res && data.WriteInt32(surfaceRegion.posY_);
+    res = res && data.WriteUint32(surfaceRegion.width_);
+    res = res && data.WriteUint32(surfaceRegion.height_);
+    if (surface != nullptr) {
+        res = res &&
+            data.WriteBool(true) &&
+            data.WriteRemoteObject(surface->AsObject());
+    } else {
+        TLOGW(WmsLogTag::DMS, "SCB: surface is nullptr");
+        res = res && data.WriteBool(false);
+    }
+    if (!res) {
+        TLOGW(WmsLogTag::DMS, "SCB: Write screenId/surface/surfaceRegion failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SCB: SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadInt32());
+}
+
+DMError ScreenSessionManagerProxy::RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
+{
+    TLOGW(WmsLogTag::DMS, "SCB: ENTER RemoveVirtualScreenSurface");
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "SCB: remote is nullptr");
+        return DMError::DM_ERROR_REMOTE_CREATE_FAILED;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "SCB: WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    bool res = data.WriteUint64(static_cast<uint64_t>(screenId));
+    if (surface != nullptr) {
+        res = res &&
+            data.WriteBool(true) &&
+            data.WriteRemoteObject(surface->AsObject());
+    } else {
+        TLOGW(WmsLogTag::DMS, "SCB: surface is nullptr");
+        res = res && data.WriteBool(false);
+    }
+    if (!res) {
+        TLOGW(WmsLogTag::DMS, "SCB: Write screenId/surface failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SCB: SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadInt32());
+}
+
 DMError ScreenSessionManagerProxy::AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds)
 {
     sptr<IRemoteObject> remote = Remote();

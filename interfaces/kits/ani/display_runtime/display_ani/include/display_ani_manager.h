@@ -59,6 +59,9 @@ public:
     static void CreateVirtualScreen(ani_env* env, ani_object virtualScreenConfig, ani_long nativeObj);
     static void DestroyVirtualScreen(ani_env* env, ani_long screenId, ani_long nativeObj);
     static void SetVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId, ani_long nativeObj);
+    static void AddVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId,
+        ani_object surfaceRegionObj, ani_long nativeObj);
+    static void RemoveVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId, ani_long nativeObj);
     static void MakeUnique(ani_env* env, ani_long screenId, ani_long nativeObj);
     static void AddVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj, ani_long nativeObj);
     static void RemoveVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj, ani_long nativeObj);
@@ -80,6 +83,8 @@ private:
     ani_long OnCreateVirtualScreen(ani_env* env, ani_object virtualScreenConfig);
     void OnDestroyVirtualScreen(ani_env* env, ani_long screenId);
     void OnSetVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId);
+    void OnAddVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId, ani_object surfaceRegionObj);
+    void OnRemoveVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId);
     void OnMakeUnique(ani_env* env, ani_long screenId);
     void OnAddVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj);
     void OnRemoveVirtualScreenBlocklist(ani_env* env, ani_object windowIdsObj);

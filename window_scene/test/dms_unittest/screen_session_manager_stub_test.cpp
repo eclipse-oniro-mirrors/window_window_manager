@@ -4046,6 +4046,138 @@ HWTEST_F(ScreenSessionManagerStubTest, UnsubscribeMotionSensor03, TestSize.Level
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, -1);
 }
+
+/**
+ * @tc.name: AddVirtualScreenSurface01
+ * @tc.desc: normal function, TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, AddVirtualScreenSurface01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    data.WriteInt32(surfaceRegion.posX_);
+    data.WriteInt32(surfaceRegion.posY_);
+    data.WriteUint32(surfaceRegion.width_);
+    data.WriteUint32(surfaceRegion.height_);
+    bool isSurfaceValid = false;
+    data.WriteBool(isSurfaceValid);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface02
+ * @tc.desc: invalid data, TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE test without data
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, AddVirtualScreenSurface02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface03
+ * @tc.desc: normal function, TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE test with surface valid
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, AddVirtualScreenSurface03, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    DMRect surfaceRegion = {10, 20, 200, 300};
+    data.WriteInt32(surfaceRegion.posX_);
+    data.WriteInt32(surfaceRegion.posY_);
+    data.WriteUint32(surfaceRegion.width_);
+    data.WriteUint32(surfaceRegion.height_);
+    bool isSurfaceValid = true;
+    data.WriteBool(isSurfaceValid);
+    data.WriteRemoteObject(nullptr);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface01
+ * @tc.desc: normal function, TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, RemoveVirtualScreenSurface01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    bool isSurfaceValid = false;
+    data.WriteBool(isSurfaceValid);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface02
+ * @tc.desc: invalid data, TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE test without data
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, RemoveVirtualScreenSurface02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_TRANSACTION_FAILED);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface03
+ * @tc.desc: normal function, TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE test with surface valid
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, RemoveVirtualScreenSurface03, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1001;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    bool isSurfaceValid = true;
+    data.WriteBool(isSurfaceValid);
+    data.WriteRemoteObject(nullptr);
+
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
