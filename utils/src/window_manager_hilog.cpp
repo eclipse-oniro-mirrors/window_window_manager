@@ -60,24 +60,23 @@ TLogInfo GetTLogInfo(WmsLogTag tag)
     return {domain, content};
 }
 
-bool WinPrintLimit(WmsLogTag tag, LogLevel level, uint32_t intervals,
-                   WinPrintLimitState& state, uint32_t frequency, const char* funcName)
+bool WinPrintLimit(const WinPrintLimitConfig& config, WinPrintLimitState& state)
 {
-    auto info = GetTLogInfo(tag);
+    auto info = GetTLogInfo(config.logTag);
     auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now());
     auto duration = now - state.last;
-    if (duration.count() >= intervals) {
+    if (duration.count() >= config.timeIntervals) {
         state.last = now;
         uint32_t supressedCnt = state.supressed;
         state.supressed = 0;
         state.printCount = 1;
         if (supressedCnt != 0) {
-            HiLogPrint(LOG_CORE, level, info.domain, info.content,
-                "%{public}s log suppressed cnt %{public}u", funcName, supressedCnt);
+            HiLogPrint(LOG_CORE, config.logLevel, info.domain, info.content,
+                "%{public}s log suppressed cnt %{public}u", config.functionName, supressedCnt);
         }
         return true;
     } else {
-        if (state.printCount++ < frequency) {
+        if (state.printCount++ < config.printFrequency) {
             return true;
         } else {
             state.supressed++;

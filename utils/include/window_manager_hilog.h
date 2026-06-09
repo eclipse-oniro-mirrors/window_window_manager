@@ -95,8 +95,30 @@ struct WinPrintLimitState {
     int printCount = 0;
 };
 
-bool WinPrintLimit(WmsLogTag tag, LogLevel level, uint32_t intervals,
-                   WinPrintLimitState& state, uint32_t frequency, const char* funcName);
+struct WinPrintLimitConfig {
+    WmsLogTag logTag;
+    LogLevel logLevel;
+    uint32_t timeIntervals;
+    uint32_t printFrequency;
+    const char* functionName;
+    
+    WinPrintLimitConfig() 
+        : logTag(WmsLogTag::DEFAULT)
+        , logLevel(LOG_INFO)
+        , timeIntervals(WIN_LOG_LIMIT_MINUTE)
+        , printFrequency(TEN_TIMES)
+        , functionName("") {}
+    
+    WinPrintLimitConfig(WmsLogTag tag, LogLevel level, uint32_t intervals,
+                         uint32_t frequency, const char* funcName)
+        : logTag(tag)
+        , logLevel(level)
+        , timeIntervals(intervals)
+        , printFrequency(frequency)
+        , functionName(funcName) {}
+};
+
+bool WinPrintLimit(const WinPrintLimitConfig& config, WinPrintLimitState& state);
 
 #ifdef IS_RELEASE_VERSION
 #define WMS_FILE_NAME ""
@@ -150,7 +172,8 @@ PRINT_TLOG(LOG_ERROR, tag, FMT_PREFIX fmt, WMS_NO_FILE_NAME, C_W_FUNC, ##__VA_AR
 #define WIN_PRINT_LIMIT(tag, level, intervals, canPrint, frequency) \
     do { \
         static WinPrintLimitState state; \
-        (canPrint) = WinPrintLimit(tag, level, intervals, state, frequency, __func__); \
+        WinPrintLimitConfig config(tag, level, intervals, frequency, __func__); \
+        (canPrint) = WinPrintLimit(config, state); \
     } while (0)
 
 #define TLOGI_LIMITN_HOUR(tag, freq, fmt, ...)                                                           \
