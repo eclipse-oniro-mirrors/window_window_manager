@@ -509,13 +509,6 @@ void MoveDragController::InitCrossDisplayProperty(DisplayId displayId)
         std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
         displayIdSetDuringMoveDrag_.insert(displayId);
     }
-    moveDragStartDisplayId_ = displayId;
-    auto offset = GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_);
-    RETURN_IF_NULL(offset);
-    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) = *offset;
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-          "moveDragStartDisplayId: %{public}" PRIu64 ", originalDisplayOffset: [%{public}d, %{public}d]",
-          moveDragStartDisplayId_, originalDisplayOffsetX_, originalDisplayOffsetY_);
 }
 
 /** @note @window.drag */
@@ -2096,13 +2089,19 @@ bool MoveDragController::SyncPropertiesFromSceneSession()
     limits_ = session->GetWindowLimits();
     decoration_ = session->GetWindowDecoration();
     supportCrossDisplay_ = session->IsCrossDisplayDragSupported();
+
+    auto property = session->GetSessionProperty();
+    moveDragStartDisplayId_ = property->GetDisplayId();
+    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) =
+        GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_).value_or(std::pair { 0, 0 });
+
     TLOGD(WmsLogTag::WMS_LAYOUT,
-          "windowId: %{public}d, aspectRatio: %{public}f, "
-          "limits: %{public}s, decoration: %{public}s, "
-          "supportCrossDisplay: %{public}d",
-          persistentId_, aspectRatio_,
-          limits_.ToString().c_str(), decoration_.ToString().c_str(),
-          supportCrossDisplay_);
+        "windowId: %{public}d, aspectRatio: %{public}f, limits: %{public}s, decoration: %{public}s, "
+        "supportCrossDisplay: %{public}d, startDisplayId: %{public}" PRIu64
+        ", originalDisplayOffset: [%{public}d, %{public}d]",
+        persistentId_, aspectRatio_, limits_.ToString().c_str(), decoration_.ToString().c_str(),
+        supportCrossDisplay_, moveDragStartDisplayId_,
+        originalDisplayOffsetX_, originalDisplayOffsetY_);
     return true;
 }
 

@@ -195,17 +195,6 @@ HWTEST_F(MoveDragControllerTest, GetTargetRect, TestSize.Level1)
 HWTEST_F(MoveDragControllerTest, InitCrossDisplayProperty, TestSize.Level0)
 {
     moveDragController->InitCrossDisplayProperty(1);
-    ASSERT_EQ(1, moveDragController->GetMoveDragStartDisplayId());
-    ASSERT_EQ(true,
-              moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
-                  moveDragController->GetDisplayIdsDuringMoveDrag().end());
-    ScreenId screenId = 1;
-    ScreenSessionConfig config;
-    sptr<ScreenSession> screenSession =
-        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
-    moveDragController->InitCrossDisplayProperty(1);
-    ASSERT_EQ(1, moveDragController->GetMoveDragStartDisplayId());
     ASSERT_EQ(true,
               moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
                   moveDragController->GetDisplayIdsDuringMoveDrag().end());
