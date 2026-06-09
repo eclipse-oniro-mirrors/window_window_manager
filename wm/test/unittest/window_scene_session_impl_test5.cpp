@@ -2474,7 +2474,7 @@ HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo02, TestSiz
     EXPECT_EQ(window->enableImmersiveMode_, false);
 }
 
-  /**
+/**
  * @tc.name: GetConfigurationFromAbilityInfo03
  * @tc.desc: Test GetConfigurationFromAbilityInfo with !windowSystemConfig_.IsPcWindow() condition
  * @tc.type: FUNC

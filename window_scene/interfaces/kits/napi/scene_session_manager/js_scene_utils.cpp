@@ -620,19 +620,19 @@ static bool IsJsIsAncoApplicationUndefind(napi_env env, napi_value jsIsAncoAppli
     return true;
 }
 
-static bool IsJsIsStartInMultiWindowModeUndefined(napi_env env, napi_value jsIsStartInMultiWindowMode,
+static bool IsJsIsStartInFMWindowModeDisabledUndefined(napi_env env, napi_value jsIsStartInFMWindowModeDisabled,
     SessionInfo& sessionInfo)
-    {
-        if (GetType(env, jsIsStartInMultiWindowMode) != napi_undefined) {
-            bool isStartInMultiWindowMode = false;
-            if (!ConvertFromJsValue(env, jsIsStartInMultiWindowMode, isStartInMultiWindowMode)) {
-                TLOGE(WmsLogTag::WMS_PC, "Failed to convert parameter to isStartInMultiWindowMode");
-                return false;
-            }
-            sessionInfo.isStartInMultiWindowMode = isStartInMultiWindowMode;
+{
+    if (GetType(env, jsIsStartInFMWindowModeDisabled) != napi_undefined) {
+        bool isStartInFMWindowModeDisabled = false;
+        if (!ConvertFromJsValue(env, jsIsStartInFMWindowModeDisabled, isStartInFMWindowModeDisabled)) {
+            TLOGE(WmsLogTag::WMS_PC, "Failed to convert parameter to isStartInFMWindowModeDisabled");
+            return false;
         }
-        return true;
+        sessionInfo.isStartInFMWindowModeDisabled = isStartInFMWindowModeDisabled;
     }
+    return true;
+}
 
 static napi_value CreateJsValueFromStringArray(napi_env env, const std::vector<std::string>& stringArray)
 {
@@ -711,8 +711,8 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
     napi_get_named_property(env, jsObject, "specifiedReason", &jsRequestId);
     napi_value jsIsAncoApplication = nullptr;
     napi_get_named_property(env, jsObject, "isAncoApplication", &jsIsAncoApplication);
-    napi_value jsIsStartInMultiWindowMode = nullptr;
-    napi_get_named_property(env, jsObject, "isStartInMultiWindowMode", &jsIsStartInMultiWindowMode);
+    napi_value jsIsStartInFMWindowModeDisabled = nullptr;
+    napi_get_named_property(env, jsObject, "isStartInFMWindowModeDisabled", &jsIsStartInFMWindowModeDisabled);
     if (!IsJsBundleNameUndefind(env, jsBundleName, sessionInfo)) {
         return false;
     }
@@ -735,7 +735,7 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
         !IsJsRequestIdUndefind(env, jsRequestId, sessionInfo) ||
         !IsJsSpecifiedReasonUndefined(env, jsSpecifiedReason, sessionInfo) ||
         !IsJsIsAncoApplicationUndefind(env, jsIsAncoApplication, sessionInfo) ||
-        !IsJsIsStartInMultiWindowModeUndefined(env, jsIsStartInMultiWindowMode, sessionInfo)) {
+        !IsJsIsStartInFMWindowModeDisabledUndefined(env, jsIsStartInFMWindowModeDisabled, sessionInfo)) {
         return false;
     }
     return true;

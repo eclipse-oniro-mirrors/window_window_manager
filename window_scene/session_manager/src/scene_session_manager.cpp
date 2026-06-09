@@ -3301,8 +3301,8 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     }
     InitFbWindow(sceneSession, property);
     auto systemConfig = systemConfig_;
-    if (sessionInfo.isStartInMultiWindowMode) {
-        systemConfig.freeMultiWindowEnable_ = !sessionInfo.isStartInMultiWindowMode;
+    if (sessionInfo.isStartInFMWindowModeDisabled) {
+        systemConfig.freeMultiWindowEnable_ = false;
         systemConfig.defaultWindowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
     }
     SetWindowStatusDeduplicationBySystemConfig(sessionInfo, systemConfig);
@@ -19657,7 +19657,7 @@ WMError SceneSessionManager::UpdateScreenLockState(int32_t persistentId)
 }
 
 void SceneSessionManager::NotifySessionScreenLockedChange(bool isScreenLocked) {
-    if (!systemConfig_.freeMultiWindowSupport_) {
+    if (!systemConfig_.freeMultiWindowSupport_ || systemConfig_.IsPcWindow()) {
         return;
     }
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);

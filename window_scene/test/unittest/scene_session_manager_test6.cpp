@@ -1313,7 +1313,7 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession02, TestSize.Level1)
 
 /**
  * @tc.name: InitSceneSession03
- * @tc.desc: InitSceneSession03:test isStartInMultiWindowMode branch
+ * @tc.desc: InitSceneSession03:test isStartInFMWindowModeDisabled branch
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerTest6, InitSceneSession03, TestSize.Level1)
@@ -1328,7 +1328,7 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession03, TestSize.Level1)
  
     ssm_->systemConfig_.freeMultiWindowEnable_ = true;
     ssm_->systemConfig_.defaultWindowMode_ = WindowMode::WINDOW_MODE_FLOATING;
-    sessionInfo.isStartInMultiWindowMode = true;
+    sessionInfo.isStartInFMWindowModeDisabled = true;
     ssm_->InitSceneSession(sceneSession, sessionInfo, nullptr);
  
     auto systemConfig = sceneSession->GetSystemConfig();

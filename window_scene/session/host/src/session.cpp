@@ -1545,7 +1545,7 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     property->SetMobileAppInPadLayoutFullScreen(GetSessionProperty()->GetMobileAppInPadLayoutFullScreen());
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
     const bool isShow = !(isScreenLockedCallback_ && isScreenLockedCallback_() &&
-        systemConfig_.freeMultiWindowSupport_ && !isPcMode && !systemConfig_.IsPcWindow());
+        systemConfig_.freeMultiWindowSupport_ && !isPcMode && !IsPcWindow());
     property->SetIsShowDecorInFreeMultiWindow(isShow);
     SetSessionProperty(property);
     GetSessionProperty()->SetIsNeedUpdateWindowMode(false);
