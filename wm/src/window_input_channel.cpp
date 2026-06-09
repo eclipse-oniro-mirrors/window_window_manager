@@ -17,6 +17,9 @@
 #ifdef IMF_ENABLE
 #include <input_method_controller.h>
 #endif // IMF_ENABLE
+#ifdef DEVICE_STATUS_ENABLE
+#include <interaction_manager.h>
+#endif //DEVICE_STATUS_ENABLE
 #include "window_manager_hilog.h"
 #include "window_helper.h"
 
@@ -164,11 +167,18 @@ void WindowInputChannel::HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& 
     if ((window_->GetType() == WindowType::WINDOW_TYPE_DIALOG ||
          WindowHelper::IsModalSubWindow(window_->GetType(), window_->GetWindowFlags()) ||
          WindowHelper::IsModalMainWindow(window_->GetType(), window_->GetWindowFlags())) &&
-        pointerEvent->GetAgentWindowId() != pointerEvent->GetTargetWindowId() &&
-        action != MMI::PointerEvent::POINTER_ACTION_PULL_UP) {
+         pointerEvent->GetAgentWindowId() != pointerEvent->GetTargetWindowId()) {
         if (isPointDown && isValidPointItem) {
             window_->NotifyTouchDialogTarget(pointerItem.GetDisplayX(), pointerItem.GetDisplayY());
         }
+#ifdef DEVICE_STATUS_ENABLE
+            if (action == MMI::PointerEvent::POINTER_ACTION_PULL_UP) {
+                Msdp::DeviceStatus::DragDropResult dropResult { Msdp::DeviceStatus::DragResult::DRAG_CANCEL, false,
+                    window_->GetWindowId(), Msdp::DeviceStatus::DragBehavior::UNKNOWN };
+                Msdp::DeviceStatus::InteractionManager::GetInstance()->StopDrag(dropResult);
+                TLOGI(WmsLogTag::WMS_EVENT, "StopDrag");
+            }
+#endif //DEVICE_STATUS_ENABLE
         pointerEvent->MarkProcessed();
         return;
     }
