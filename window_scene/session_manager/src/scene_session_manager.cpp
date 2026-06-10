@@ -616,6 +616,9 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
                 recoverSceneSessionFunc_(sceneSession, sessionInfo);
                 sceneSession->SetWindowShadowEnabled(property->GetWindowShadowEnabled());
                 sceneSession->SetAppBufferReady(property->IsAppBufferReady());
+                if (systemConfig_.windowUIType_ == WindowUIType::PC_WINDOW) {
+                    sceneSession->LoadSnapshotToMem();
+                }
             } else {
                 sceneSession->NotifyFollowParentMultiScreenPolicy(sessionInfo.isFollowParentMultiScreenPolicy);
                 NotifyCreateSpecificSession(sceneSession, property, property->GetWindowType());
