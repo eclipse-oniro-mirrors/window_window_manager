@@ -638,6 +638,7 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         moduleName, JsSceneSession::MarkSystemSceneUIFirst);
     BindNativeFunction(env, objValue, "setFloatingScale", moduleName, JsSceneSession::SetFloatingScale);
     BindNativeFunction(env, objValue, "setIsMidScene", moduleName, JsSceneSession::SetIsMidScene);
+    BindNativeFunction(env, objValue, "setIsGamePrelaunch", moduleName, JsSceneSession::SetIsGamePrelaunch);
     BindNativeFunction(env, objValue, "setScale", moduleName, JsSceneSession::SetScale);
     BindNativeFunction(env, objValue, "setWindowLastSafeRect", moduleName, JsSceneSession::SetWindowLastSafeRect);
     BindNativeFunction(env, objValue, "getParentWindowRect", moduleName, JsSceneSession::GetParentWindowRect);
@@ -2861,6 +2862,13 @@ napi_value JsSceneSession::SetIsMidScene(napi_env env, napi_callback_info info)
     TLOGD(WmsLogTag::WMS_MULTI_WINDOW, "[NAPI]");
     JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
     return (me != nullptr) ? me->OnSetIsMidScene(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::SetIsGamePrelaunch(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnSetIsGamePrelaunch(env, info) : nullptr;
 }
 
 napi_value JsSceneSession::SetSCBKeepKeyboard(napi_env env, napi_callback_info info)
@@ -6207,6 +6215,37 @@ napi_value JsSceneSession::OnSetIsMidScene(napi_env env, napi_callback_info info
         return NapiGetUndefined(env);
     }
     session->SetIsMidScene(isMidScene);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnSetIsGamePrelaunch(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_FOUR;
+    napi_value argv[ARGC_FOUR] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    bool isGamePrelaunch = false;
+    if (!ConvertFromJsValue(env, argv[0], isGamePrelaunch)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to isGamePrelaunch");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->EditSessionInfo().isGamePrelaunch_ = isGamePrelaunch;
+    TLOGI(WmsLogTag::WMS_LIFE, "[gameprelaunch]id: %{public}d, isGamePrelaunch: %{public}d",
+        session->GetPersistentId(), isGamePrelaunch);
     return NapiGetUndefined(env);
 }
 
