@@ -2011,6 +2011,77 @@ HWTEST_F(SceneSessionManagerSupplementTest, RegisterBindDialogTargetListener, Te
     ssm_->bindDialogTargetFuncMap_.clear();
     ASSERT_EQ(ssm_->bindDialogTargetFuncMap_.find(persistentId), ssm_->bindDialogTargetFuncMap_.end());
 }
+
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_DeviceNotSupport
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId when device not support
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_DeviceNotSupport, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = false;
+    auto res = ssm_->SwitchFreeMultiWindow(true, 1);
+    ASSERT_EQ(res, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_InvalidSession
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId but session is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_InvalidSession, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    sptr<SceneSession> sceneSession;
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, 1);
+    ASSERT_EQ(res, WSError::WS_ERROR_INVALID_WINDOW);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_ValidSession
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId and session exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_ValidSession, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowWithWindowId_ValidSession";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    int32_t windowId = 1;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, windowId);
+    ASSERT_EQ(res, WSError::WS_OK);
+ 
+    res = ssm_->SwitchFreeMultiWindow(false, windowId);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_Zero
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId equals 0 (global switch)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_Zero, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowWithWindowId_Zero";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, 0);
+    ASSERT_EQ(res, WSError::WS_OK);
+    auto config = ssm_->GetSystemSessionConfig();
+    ASSERT_EQ(config.freeMultiWindowEnable_, true);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -8699,7 +8699,7 @@ void SceneSession::SetTemporarilyShowWhenLocked(bool isTemporarilyShowWhenLocked
     isTemporarilyShowWhenLocked_.store(isTemporarilyShowWhenLocked);
     TLOGI(WmsLogTag::WMS_SCB, "SetTemporarilyShowWhenLocked successfully, target:%{public}u",
         isTemporarilyShowWhenLocked);
-    if (systemConfig_.freeMultiWindowSupport_) {
+    if (systemConfig_.freeMultiWindowSupport_ && !IsPcWindow()) {
         const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
         const bool isShow = !(isTemporarilyShowWhenLocked && !isPcMode);
         GetSessionProperty()->SetIsShowDecorInFreeMultiWindow(isShow);

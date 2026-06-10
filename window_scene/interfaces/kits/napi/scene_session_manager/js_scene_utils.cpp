@@ -660,6 +660,20 @@ static bool IsJsIsAncoApplicationUndefind(napi_env env, napi_value jsIsAncoAppli
     return true;
 }
 
+static bool IsJsIsStartInFMWindowModeDisabledUndefined(napi_env env, napi_value jsIsStartInFMWindowModeDisabled,
+    SessionInfo& sessionInfo)
+{
+    if (GetType(env, jsIsStartInFMWindowModeDisabled) != napi_undefined) {
+        bool isStartInFMWindowModeDisabled = false;
+        if (!ConvertFromJsValue(env, jsIsStartInFMWindowModeDisabled, isStartInFMWindowModeDisabled)) {
+            TLOGE(WmsLogTag::WMS_PC, "Failed to convert parameter to isStartInFMWindowModeDisabled");
+            return false;
+        }
+        sessionInfo.isStartInFMWindowModeDisabled = isStartInFMWindowModeDisabled;
+    }
+    return true;
+}
+
 static napi_value CreateJsValueFromStringArray(napi_env env, const std::vector<std::string>& stringArray)
 {
     napi_value arrayValue = nullptr;
@@ -724,6 +738,8 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
     napi_get_named_property(env, jsObject, "specifiedReason", &jsSpecifiedReason);
     napi_value jsIsAncoApplication = nullptr;
     napi_get_named_property(env, jsObject, "isAncoApplication", &jsIsAncoApplication);
+    napi_value jsIsStartInFMWindowModeDisabled = nullptr;
+    napi_get_named_property(env, jsObject, "isStartInFMWindowModeDisabled", &jsIsStartInFMWindowModeDisabled);
     if (!IsJsBundleNameUndefind(env, jsBundleName, sessionInfo)) {
         return false;
     }
@@ -745,7 +761,8 @@ bool ConvertSessionInfoName(napi_env env, napi_value jsObject, SessionInfo& sess
         !IsJsIsAbilityHookUndefind(env, jsIsAbilityHook, sessionInfo) ||
         !IsJsRequestIdUndefind(env, jsRequestId, sessionInfo) ||
         !IsJsSpecifiedReasonUndefined(env, jsSpecifiedReason, sessionInfo) ||
-        !IsJsIsAncoApplicationUndefind(env, jsIsAncoApplication, sessionInfo)) {
+        !IsJsIsAncoApplicationUndefind(env, jsIsAncoApplication, sessionInfo) ||
+        !IsJsIsStartInFMWindowModeDisabledUndefined(env, jsIsStartInFMWindowModeDisabled, sessionInfo)) {
         return false;
     }
     return true;

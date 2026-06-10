@@ -624,6 +624,7 @@ public:
      * Free Multi Window
      */
     WSError SwitchFreeMultiWindow(bool enable);
+    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId);
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     void RegisterSetForegroundWindowNumCallback(SetForegroundWindowNumFunc&& func);

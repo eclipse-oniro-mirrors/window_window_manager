@@ -4626,8 +4626,8 @@ void WindowSceneSessionImpl::MaximizeEvent(const sptr<ISession> &hostSession)
     }
     if (GetGlobalMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
         const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-        if (IsFreeMultiWindowMode() && !isPcMode && !property_->GetIsPcAppInPad() &&
-            WindowHelper::IsMainWindow(GetType())) {
+        if (IsFreeMultiWindowMode() && !isPcMode && !windowSystemConfig_.IsPcWindow() &&
+            !property_->GetIsPcAppInPad() && WindowHelper::IsMainWindow(GetType())) {
             UpdateIsShowDecorInFreeMultiWindow(false);
             hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE_FULLSCREEN);
         } else {

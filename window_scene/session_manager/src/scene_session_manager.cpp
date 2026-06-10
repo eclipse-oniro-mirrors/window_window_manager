@@ -1038,9 +1038,29 @@ const SystemSessionConfig& SceneSessionManager::GetSystemSessionConfig() const
 
 WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable)
 {
+    return SwitchFreeMultiWindow(enable, 0);
+}
+
+WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId)
+{
     if (!systemConfig_.freeMultiWindowSupport_) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "device not support");
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    if (windowId != INVALID_SESSION_ID) {
+        // if has windowId, only update window systemConfig
+        auto sceneSession = GetSceneSession(windowId);
+        if (!sceneSession) {
+            TLOGE(WmsLogTag::WMS_LAYOUT_PC, "session is nullptr, windowId: %{public}d", windowId);
+            return WSError::WS_ERROR_INVALID_WINDOW;
+        }
+        auto systemConfig = systemConfig_;
+        systemConfig.freeMultiWindowEnable_ = enable;
+        systemConfig.defaultWindowMode_ = enable ? WindowMode::WINDOW_MODE_FLOATING: WindowMode::WINDOW_MODE_FULLSCREEN;
+        sceneSession->SwitchFreeMultiWindow(systemConfig);
+        TLOGD(WmsLogTag::WMS_LAYOUT_PC, "Switch single window, windowId: %{public}d, enable: %{public}d",
+            windowId, enable);
+        return WSError::WS_OK;
     }
     LoadFreeMultiWindowConfig(enable);
     {
@@ -3558,6 +3578,10 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     InitFbWindow(sceneSession, property);
     InitFvWindow(sceneSession, property);
     auto systemConfig = systemConfig_;
+    if (sessionInfo.isStartInFMWindowModeDisabled) {
+        systemConfig.freeMultiWindowEnable_ = false;
+        systemConfig.defaultWindowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    }
     SetWindowStatusDeduplicationBySystemConfig(sessionInfo, systemConfig);
     sceneSession->SetSystemConfig(systemConfig);
     sceneSession->InitSnapshotCapacity();
@@ -21175,7 +21199,7 @@ WMError SceneSessionManager::UpdateScreenLockState(int32_t persistentId)
 }
 
 void SceneSessionManager::NotifySessionScreenLockedChange(bool isScreenLocked) {
-    if (!systemConfig_.freeMultiWindowSupport_) {
+    if (!systemConfig_.freeMultiWindowSupport_ || systemConfig_.IsPcWindow()) {
         return;
     }
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
