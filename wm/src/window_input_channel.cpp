@@ -178,7 +178,7 @@ void WindowInputChannel::HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& 
                 Msdp::DeviceStatus::InteractionManager::GetInstance()->StopDrag(dropResult);
                 TLOGI(WmsLogTag::WMS_EVENT, "StopDrag");
             }
-#endif //DEVICE_STATUS_ENABLE
+#endif // DEVICE_STATUS_ENABLE
         pointerEvent->MarkProcessed();
         return;
     }
