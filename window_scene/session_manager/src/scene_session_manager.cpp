@@ -1023,7 +1023,7 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "device not support");
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
-    if (windowId != 0) {
+    if (windowId != INVALID_SESSION_ID) {
         // if has windowId, only update window systemConfig
         auto sceneSession = GetSceneSession(windowId);
         if (!sceneSession) {
