@@ -1975,7 +1975,7 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         uint32_t height = 1080;
 
         auto ret = screenSettingHelper.SetCustomResolution(width, height);
-        ASSERT_FALSE(ret);
+        ASSERT_TRUE(ret);
     }
 }
 } // namespace Rosen

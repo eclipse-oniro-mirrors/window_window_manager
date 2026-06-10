@@ -300,6 +300,25 @@ public:
     DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
 
     /**
+     * @brief Add virtual screen surface for multi-screen display
+     *
+     * @param screenId Screen id.
+     * @param surface Surface object.
+     * @param surfaceRegion Surface display region (optional).
+     * @return DM_OK means add success, others means add failed.
+     */
+    DMError AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion);
+
+    /**
+     * @brief Remove virtual screen surface for multi-screen display
+     *
+     * @param screenId Screen id.
+     * @param surface Surface object.
+     * @return DM_OK means remove success, others means remove failed.
+     */
+    DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
+
+    /**
      * @brief Add black window list in virtual screen
      *
      * @param persistentIds Black list window ids.

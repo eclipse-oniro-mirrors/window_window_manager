@@ -24,7 +24,6 @@
 #include "window_manager_agent_lite.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "parameters.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -551,7 +550,7 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
         return GetInstance();
     }
 
-    if (!WindowManagerLite::IsMultiInstanceEnabled()) {
+    if (!IsMultiInstanceEnabled()) {
         TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance in multi, userId: %{public}d", userId);
         return GetInstance();
     }
@@ -585,16 +584,6 @@ WMError WindowManagerLite::RemoveInstanceByUserId(const int32_t userId)
     std::unique_lock<std::shared_mutex> lock(windowManagerLiteMapMutex_);
     windowManagerLiteMap_.erase(userId);
     return WMError::WM_OK;
-}
-
-bool WindowManagerLite::IsMultiInstanceEnabled()
-{
-    static bool enabled = [] {
-        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", true);
-        TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
-        return isConcurrentUser;
-    }();
-    return enabled;
 }
 
 WMError WindowManagerLite::ActiveFaultAgentReregister(const WindowManagerAgentType type,

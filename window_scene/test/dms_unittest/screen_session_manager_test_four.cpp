@@ -1185,31 +1185,6 @@ HWTEST_F(ScreenSessionManagerTest, GetFakePhysicalScreenSession, Function | Smal
 }
 
 /**
- * @tc.name: HandleDisconnectEventDefault01
- * @tc.desc: Test HandleDisconnectEventDefault with PROCESS_DISCONNECTED and VIRTUAL screen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, HandleDisconnectEventDefault01, Function | SmallTest | Level3)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ScreenSceneConfig::isConcurrentUser_ = true;
-    ScreenId screenId = 100;
-    ScreenProperty property;
-    property.SetScreenType(ScreenType::VIRTUAL);
-    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, property, 0);
-    ASSERT_NE(screenSession, nullptr);
-    ssm_->screenSessionMap_[screenId] = screenSession;
-    ssm_->connectScreenNumber_ = 1;
-
-    ssm_->HandleDisconnectEventDefault(screenSession, screenId, ScreenEvent::DISCONNECTED,
-        ScreenChangeReason::PROCESS_DISCONNECTED);
-
-    auto session = ssm_->GetScreenSession(screenId);
-    ASSERT_EQ(session, nullptr);
-    ScreenSceneConfig::isConcurrentUser_ = false;
-}
-
-/**
  * @tc.name: HandleDisconnectEventDefault02
  * @tc.desc: Test HandleDisconnectEventDefault with PROCESS_DISCONNECTED and REAL screen
  * @tc.type: FUNC

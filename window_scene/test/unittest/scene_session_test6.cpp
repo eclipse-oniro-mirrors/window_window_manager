@@ -1228,6 +1228,7 @@ HWTEST_F(SceneSessionTest6, GetScreenWidthAndHeightFromClient, Function | SmallT
     uint32_t screenWidth = 0;
     uint32_t screenHeight = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetDisplayId(0);
     EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
 
     sceneSession->SetIsSystemKeyboard(true);

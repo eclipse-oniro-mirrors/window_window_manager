@@ -4237,6 +4237,8 @@ struct StartMovingOptions {
         return oss.str();
     }
 };
+
+bool IsMultiInstanceEnabled();
 }
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

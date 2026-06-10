@@ -94,6 +94,7 @@
 #include "sensor_fold_state_mgr.h"
 #include "fold_screen_base_controller.h"
 #include "product_ext_wrapper.h"
+#include "screen_manager/rs_surface_region_config.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -4312,7 +4313,7 @@ static inline bool IsVertical(Rotation rotation)
     return rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180;
 }
 
-void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation)
+void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation, ScreenId screenId)
 {
     TLOGNFI(WmsLogTag::DMS, "start");
     if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
@@ -4323,6 +4324,10 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenProperty
     sptr<ScreenSession> internalSession = GetInternalScreenSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Internal Session null");
+        return;
+    }
+    if (screenId != internalSession->GetScreenId()) {
+        TLOGNFI(WmsLogTag::DMS, "external screen not support");
         return;
     }
     Rotation targetRotation = ConvertIntToRotation(rotation);
@@ -7604,7 +7609,7 @@ void ScreenSessionManager::UpdateScreenRotationProperty(ScreenId screenId, const
         }
         NotifyScreenModeChange();
     }
-    HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation);
+    HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation, screenId);
     SetFoldDisplayModeAfterRotation(GetFoldDisplayMode());
     SetFirstSCBConnect(false);
     sptr<DisplayInfo> displayInfo = screenSession->ConvertToDisplayInfo();
@@ -7623,7 +7628,7 @@ void ScreenSessionManager::UpdateScreenRotationPropertyForRs(sptr<ScreenSession>
         // Rs is used to mark the end of the rotation animation
         TLOGNFI(WmsLogTag::DMS, "DisableCacheForRotation");
         RSInterfaces::GetInstance().DisableCacheForRotation();
-        HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation);
+        HandleResolutionEffectChangeWhenRotate(screenPropertyChangeType, rotation, screenSession->GetScreenId());
         return;
     } else if (screenPropertyChangeType == ScreenPropertyChangeType::ROTATION_UPDATE_PROPERTY_ONLY ||
         screenPropertyChangeType == ScreenPropertyChangeType::ROTATION_UPDATE_PROPERTY_ONLY_NOT_NOTIFY) {
@@ -8463,6 +8468,79 @@ DMError ScreenSessionManager::SetVirtualScreenSurface(ScreenId screenId, sptr<IB
     }
     return DMError::DM_OK;
 }
+
+DMError ScreenSessionManager::AddVirtualScreenSurface(ScreenId screenId,
+    sptr<IBufferProducer> surface, const DMRect& surfaceRegion)
+{
+    bool isCallingByThirdParty = Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION);
+    DMError err = CheckVirtualScreenPermission();
+    if (err != DMError::DM_OK) {
+        return err;
+    }
+    if (surface == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "surface is null");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "No such screen.");
+        return isCallingByThirdParty ? DMError::DM_ERROR_NULLPTR : DMError::DM_ERROR_INVALID_PARAM;
+    }
+    ScreenId rsScreenId;
+    int32_t res = -1;
+    if (screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
+        sptr<Surface> pSurface = Surface::CreateSurfaceAsProducer(surface);
+        if (pSurface != nullptr) {
+            std::vector<SurfaceRegionConfig> surfaceRegionConfigs;
+            RectI region(surfaceRegion.posX_, surfaceRegion.posY_, surfaceRegion.width_, surfaceRegion.height_);
+            SurfaceRegionConfig surfaceRegionConfig;
+            surfaceRegionConfig.surface = pSurface;
+            surfaceRegionConfig.region = region;
+            surfaceRegionConfigs.emplace_back(surfaceRegionConfig);
+            res = rsInterface_.AddVirtualScreenSurface(rsScreenId, surfaceRegionConfigs);
+        }
+    }
+    if (res != 0) {
+        TLOGNFE(WmsLogTag::DMS, "fail to add virtual screen surface in RenderService");
+        return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
+    }
+    return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
+{
+    bool isCallingByThirdParty = Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION);
+    DMError err = CheckVirtualScreenPermission();
+    if (err != DMError::DM_OK) {
+        return err;
+    }
+    if (surface == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "surface is null");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "No such screen.");
+        return isCallingByThirdParty ? DMError::DM_ERROR_NULLPTR : DMError::DM_ERROR_INVALID_PARAM;
+    }
+    TLOGNFW(WmsLogTag::DMS, "enter remove virtual screen surface, screenId:%{public}" PRIu64, screenId);
+    ScreenId rsScreenId;
+    int32_t res = -1;
+    if (screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
+        sptr<Surface> pSurface = Surface::CreateSurfaceAsProducer(surface);
+        if (pSurface != nullptr) {
+            std::vector<sptr<Surface>> surfaces;
+            surfaces.emplace_back(pSurface);
+            res = rsInterface_.RemoveVirtualScreenSurface(rsScreenId, surfaces);
+        }
+    }
+    if (res != 0) {
+        TLOGNFE(WmsLogTag::DMS, "fail to remove virtual screen surface in RenderService");
+        return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
+    }
+    return DMError::DM_OK;
+}
+
 
 DMError ScreenSessionManager::AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds)
 {
