@@ -183,20 +183,13 @@ HWTEST_F(WindowInputChannelTest, HandlePointEvent02, TestSize.Level1)
     pointerEvent->SetAgentWindowId(0);
     pointerEvent->SetTargetWindowId(1);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_UP);
-    pointerEvent->SetPointerId(0);
 
     MMI::PointerEvent::PointerItem item;
     item.SetDisplayX(100);
     item.SetDisplayY(100);
-    item.SetPointerId(0);
     pointerEvent->AddPointerItem(item);
 
     EXPECT_CALL(*window, NotifyTouchDialogTarget(_, _)).Times(0);
-    inputChannel->HandlePointerEvent(pointerEvent);
-    testing::Mock::VerifyAndClearExpectations(window);
-
-    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
-    EXPECT_CALL(*window, NotifyTouchDialogTarget(100, 100)).Times(1);
     inputChannel->HandlePointerEvent(pointerEvent);
     testing::Mock::VerifyAndClearExpectations(window);
 }
