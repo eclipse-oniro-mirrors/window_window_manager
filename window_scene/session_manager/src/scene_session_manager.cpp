@@ -17777,7 +17777,7 @@ void SceneSessionManager::FilterSceneSessionCovered(std::vector<sptr<SceneSessio
             }
             unaccountedSpaceMap[displayId] = unaccountedSpace;
         }
-        if (unaccountedSpace->isEmpty()) {
+        if (unaccountedSpace == nullptr || unaccountedSpace->isEmpty()) {
             continue;
         }
         if (SubtractIntersectArea(unaccountedSpace, sceneSession)) {
