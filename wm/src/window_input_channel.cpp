@@ -176,7 +176,7 @@ void WindowInputChannel::HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& 
             Msdp::DeviceStatus::DragDropResult dropResult { Msdp::DeviceStatus::DragResult::DRAG_CANCEL, false,
                 window_->GetWindowId(), Msdp::DeviceStatus::DragBehavior::UNKNOWN };
             Msdp::DeviceStatus::InteractionManager::GetInstance()->StopDrag(dropResult);
-            TLOGI(WmsLogTag::WMS_EVENT, "is modal window, stopDrag");
+            TLOGI(WmsLogTag::WMS_EVENT, "is modal window, cancel drag drop.");
         }
 #endif // DEVICE_STATUS_ENABLE
         pointerEvent->MarkProcessed();
