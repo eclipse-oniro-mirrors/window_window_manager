@@ -36,6 +36,8 @@
 #include "uea_list_config.h"
 #include "process_options.h"
 #include "wm_common.h"
+#include <cstdint>
+#include <privacy_kit.h>
 
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
 #include <display_power_mgr_client.h>
@@ -4871,6 +4873,17 @@ void SceneSessionManager::DestroySpecificSession(const sptr<IRemoteObject>& remo
     }, __func__);
 }
 
+void SceneSessionManager::AddPermissionUsedRecord(const std::string& permission, int32_t successCount,
+    int32_t failCount, int32_t tokenId)
+{
+    int32_t ret = Security::AccessToken::PrivacyKit::AddPermissionUsedRecord(tokenId,
+        permission, successCount, failCount);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::DMS, "permission:%{public}s, successCount %{public}d, failedCount %{public}d",
+            permission.c_str(), successCount, failCount);
+    }
+}
+
 WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
@@ -4948,8 +4961,9 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
     // Get pid and uid before posting task.
     auto pid = IPCSkeleton::GetCallingRealPid();
     auto uid = IPCSkeleton::GetCallingUid();
+    auto tokenId = IPCSkeleton::GetCallingTokenID();
     auto task = [this, sessionStage, eventChannel, surfaceNode, property, &persistentId, &session, &systemConfig, token,
-                &renderSession, pid, uid, isSystemCalling, initClientDisplayId, parentSession]() {
+                &renderSession, pid, uid, isSystemCalling, initClientDisplayId, parentSession, tokenId]() {
         if (property == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "property is nullptr");
             return WSError::WS_ERROR_NULLPTR;
@@ -4997,6 +5011,9 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         }
 
         UpdateSubSessionBlackList(newSession);
+        if (errCode == WSError::WS_OK && property->GetWindowType() == WindowType::WINDOW_TYPE_FV) {
+            AddPermissionUsedRecord(PermissionConstants::PERMISSION_FLOAT_VIEW, 1, 0, tokenId);
+        }
         TLOGNI(WmsLogTag::WMS_LIFE, "create specific session success, id: %{public}d, "
             "parentId: %{public}d, type: %{public}d",
             newSession->GetPersistentId(), newSession->GetParentPersistentId(), type);

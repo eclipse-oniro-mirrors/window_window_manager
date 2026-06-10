@@ -1688,6 +1688,8 @@ private:
     void NotifyCreateSpecificSession(sptr<SceneSession> session,
         sptr<WindowSessionProperty> property, const WindowType& type);
     sptr<SceneSession> CreateSceneSession(const SessionInfo& sessionInfo, sptr<WindowSessionProperty> property);
+    void AddPermissionUsedRecord(const std::string& permission, int32_t successCount, int32_t failCount, 
+        int32_t tokenId);
 
     /*
      * Keyboard
