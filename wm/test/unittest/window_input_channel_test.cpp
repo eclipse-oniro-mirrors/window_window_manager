@@ -34,6 +34,7 @@ public:
     MOCK_METHOD(bool, OnPointDown, (int32_t eventId, int32_t posX, int32_t posY), (override));
     MOCK_METHOD(bool, IsHitTitleBar, (std::shared_ptr<MMI::PointerEvent>& pointerEvent), (const, override));
     MOCK_METHOD(void, NotifyTouchDialogTarget, (int32_t posX, int32_t posY), (override));
+    MOCK_METHOD(WindowType, GetType, (), (const, override));
 };
 
 using WindowMocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
@@ -125,9 +126,6 @@ HWTEST_F(WindowInputChannelTest, HandlePointerEvent, TestSize.Level1)
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_MOVE);
     inputChannel->HandlePointerEvent(pointerEvent);
 
-    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_UP);
-    inputChannel->HandlePointerEvent(pointerEvent);
-
     window_->GetWindowProperty()->SetWindowRect({ 0, 0, 8, 8 });
     inputChannel->HandlePointerEvent(pointerEvent);
     inputChannel->Destroy();
@@ -180,17 +178,25 @@ HWTEST_F(WindowInputChannelTest, HandlePointEvent02, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     ASSERT_NE(inputChannel, nullptr);
 
-    window->GetWindowProperty()->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    EXPECT_CALL(*window, GetType()).WillRepeatedly(Return(WindowType::WINDOW_TYPE_DIALOG));
+    
     pointerEvent->SetAgentWindowId(0);
     pointerEvent->SetTargetWindowId(1);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_UP);
+    pointerEvent->SetPointerId(0);
 
     MMI::PointerEvent::PointerItem item;
     item.SetDisplayX(100);
     item.SetDisplayY(100);
+    item.SetPointerId(0);
     pointerEvent->AddPointerItem(item);
 
     EXPECT_CALL(*window, NotifyTouchDialogTarget(_, _)).Times(0);
+    inputChannel->HandlePointerEvent(pointerEvent);
+    testing::Mock::VerifyAndClearExpectations(window);
+
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
+    EXPECT_CALL(*window, NotifyTouchDialogTarget(100, 100)).Times(1);
     inputChannel->HandlePointerEvent(pointerEvent);
     testing::Mock::VerifyAndClearExpectations(window);
 }

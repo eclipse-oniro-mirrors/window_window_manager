@@ -394,6 +394,8 @@ ohos_unittest("wm_window_input_channel_test") {
 
   external_deps = test_external_deps
 
+  defines = []
+
   if (device_status_enable == true) {
     external_deps += [ "device_status:devicestatus_client" ]
     defines += [ "DEVICE_STATUS_ENABLE" ]
