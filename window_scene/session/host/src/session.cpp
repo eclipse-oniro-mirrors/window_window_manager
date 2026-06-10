@@ -3242,7 +3242,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         .scaleY = scaleValue,
         .useDma = true,
         .useCurWindow = options.useCurWindow,
-        .windowSync = false,
+        .windowSync = options.windowSync,
         .backGroundColor = GetBackgroundColor(),
         .needErrorCode = true,
     };

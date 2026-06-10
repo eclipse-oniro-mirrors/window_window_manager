@@ -1868,6 +1868,38 @@ HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotPixelMapWithFreeMultiWindow,
     result = scenePersistence->GetLocalSnapshotPixelMap(1.0, 1.0, defaultStatus, false);
     ASSERT_EQ(result, nullptr);
 }
+
+/**
+ * @tc.name: SnapshotWithWindowSyncTrue
+ * @tc.desc: Test Snapshot with windowSync
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SnapshotWithWindowSync, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    int32_t persistentId = 1424;
+    std::string bundleName = "testBundleName";
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(sceneSession->scenePersistence_, nullptr);
+    
+    struct RSSurfaceNodeConfig config;
+    sceneSession->surfaceNode_ = RSSurfaceNode::Create(config);
+    ASSERT_NE(sceneSession->surfaceNode_, nullptr);
+    
+    sceneSession->bufferAvailable_ = true;
+    sceneSession->surfaceNode_->bufferAvailable_ = true;
+    sceneSession->property_->SetPrivacyMode(false);
+    
+    Session::SnapshotOptions options;
+    options.windowSync = true;
+    options.scaleParam = 1.0f;
+    
+    auto result = sceneSession->Snapshot(options);
+    ASSERT_EQ(result, nullptr);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
