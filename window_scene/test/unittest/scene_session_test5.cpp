@@ -3384,7 +3384,6 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     info.abilityName_ = "TransferPointerEventInner_SubWindowDrag";
     info.bundleName_ = "TransferPointerEventInner_SubWindowDrag";
     info.windowType_ = static_cast<uint32_t>(WindowType::APP_SUB_WINDOW_BASE);
-
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
 
@@ -3393,44 +3392,27 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     session->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     session->SetSessionState(SessionState::STATE_ACTIVE);
     session->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
-
-    WindowLimits limits;
-    limits.minWidth_ = 100;
-    limits.maxWidth_ = 1000;
-    limits.minHeight_ = 50;
-    limits.maxHeight_ = 800;
+    WindowLimits limits = {100, 1000, 50, 800, FLT_MAX, 0.0f};
     session->property_->SetWindowLimits(limits);
-
     WSRect rect = {0, 0, 800, 600};
     session->SetSessionRect(rect);
-
     SystemSessionConfig systemConfig;
     systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
-    systemConfig.isSystemDecorEnable_ = true;
     session->SetSystemConfig(systemConfig);
 
     session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
-    ASSERT_NE(session->moveDragController_, nullptr);
-
     session->moveDragController_->limits_ = limits;
     session->moveDragController_->moveDragProperty_.originalRect_ = rect;
     session->moveDragController_->decoration_ = {0, 0, 0, 0};
-
     bool raiseToTopCalled = false;
-    NotifyRaiseToTopForPointDownFunc raiseFunc = [&raiseToTopCalled]() {
-        raiseToTopCalled = true;
-    };
-    session->SetRaiseToAppTopForPointDownFunc(raiseFunc);
+    session->SetRaiseToAppTopForPointDownFunc([&raiseToTopCalled]() { raiseToTopCalled = true; });
 
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
-    ASSERT_NE(pointerEvent, nullptr);
-
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     pointerEvent->SetPointerId(0);
     pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
     pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
     pointerEvent->SetTargetDisplayId(0);
-
     MMI::PointerEvent::PointerItem pointerItem;
     pointerItem.SetPointerId(0);
     pointerItem.SetDisplayX(100);
@@ -3441,9 +3423,7 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     pointerEvent->AddPointerItem(pointerItem);
 
     WSError result = session->TransferPointerEventInner(pointerEvent, false);
-
     EXPECT_TRUE(WindowHelper::IsSubWindow(session->GetWindowType()));
-
     if (result == WSError::WS_OK) {
         EXPECT_TRUE(raiseToTopCalled);
     }
@@ -3460,7 +3440,6 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     info.abilityName_ = "TransferPointerEventInner_MainWindowDrag";
     info.bundleName_ = "TransferPointerEventInner_MainWindowDrag";
     info.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
-
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
 
@@ -3469,44 +3448,27 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     session->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     session->SetSessionState(SessionState::STATE_ACTIVE);
     session->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
-
-    WindowLimits limits;
-    limits.minWidth_ = 100;
-    limits.maxWidth_ = 1000;
-    limits.minHeight_ = 50;
-    limits.maxHeight_ = 800;
+    WindowLimits limits = {100, 1000, 50, 800, FLT_MAX, 0.0f};
     session->property_->SetWindowLimits(limits);
-
     WSRect rect = {0, 0, 800, 600};
     session->SetSessionRect(rect);
-
     SystemSessionConfig systemConfig;
     systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
-    systemConfig.isSystemDecorEnable_ = true;
     session->SetSystemConfig(systemConfig);
 
     session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
-    ASSERT_NE(session->moveDragController_, nullptr);
-
     session->moveDragController_->limits_ = limits;
     session->moveDragController_->moveDragProperty_.originalRect_ = rect;
     session->moveDragController_->decoration_ = {0, 0, 0, 0};
-
     bool raiseToTopCalled = false;
-    NotifyRaiseToTopForPointDownFunc raiseFunc = [&raiseToTopCalled]() {
-        raiseToTopCalled = true;
-    };
-    session->SetRaiseToAppTopForPointDownFunc(raiseFunc);
+    session->SetRaiseToAppTopForPointDownFunc([&raiseToTopCalled]() { raiseToTopCalled = true; });
 
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
-    ASSERT_NE(pointerEvent, nullptr);
-
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     pointerEvent->SetPointerId(0);
     pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
     pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
     pointerEvent->SetTargetDisplayId(0);
-
     MMI::PointerEvent::PointerItem pointerItem;
     pointerItem.SetPointerId(0);
     pointerItem.SetDisplayX(100);
@@ -3517,9 +3479,7 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     pointerEvent->AddPointerItem(pointerItem);
 
     WSError result = session->TransferPointerEventInner(pointerEvent, false);
-
     EXPECT_TRUE(WindowHelper::IsMainWindow(session->GetWindowType()));
-
     if (result == WSError::WS_OK) {
         EXPECT_FALSE(raiseToTopCalled);
     }
