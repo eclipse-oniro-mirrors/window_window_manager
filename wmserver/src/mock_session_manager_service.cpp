@@ -88,8 +88,8 @@ public:
     }
 
 private:
-    int32_t clientUserId_;    // 用于区分系统用户/非系统用户
-    int32_t instanceUserId_;  // 用于 map 删除的 key
+    int32_t clientUserId_;    // Used to distinguish system/non-system user
+    int32_t instanceUserId_;  // Used as key for map removal
     int32_t pid_;
     bool isLite_;
 };
@@ -103,7 +103,10 @@ MockSessionManagerService::SMSDeathRecipient::SMSDeathRecipient(int32_t userId)
 void MockSessionManagerService::SMSDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& object)
 {
     TLOGI(WmsLogTag::WMS_MULTI_USER, "Scb died with userId_=%{public}d, screenId_=%{public}d", userId_, screenId_);
-    MockSessionManagerService::GetInstance().NotifyWMSConnectionChanged(userId_, screenId_, false);
+    MockSessionManagerService::GetInstance().NotifyWMSConnectionChanged(
+        userId_, screenId_, false, INVALID_USER_ID, INVALID_PID);
+    MockSessionManagerService::GetInstance().RemoveScreenUserMappingIfMatched(screenId_, userId_);
+
     MockSessionManagerService::GetInstance().RemoveSMSDeathRecipientByUserId(userId_);
     MockSessionManagerService::GetInstance().RemoveSessionManagerServiceByUserId(userId_);
     auto sessionManagerService = object.promote();
@@ -528,8 +531,19 @@ void MockSessionManagerService::NotifyWMSConnected(int32_t userId, DisplayId scr
 {
     TLOGI(WmsLogTag::WMS_MULTI_USER, "userId: %{public}d, screenId: [%{public}" PRIu64"], isColdStart: %{public}d",
         userId, screenId, isColdStart);
-
     UpdateUserId2PidMapping(userId, IPCSkeleton::GetCallingPid());
+
+    int32_t fromUserId = INVALID_USER_ID;
+    int32_t fromPid = INVALID_PID;
+    fromUserId = GetUserIdOnScreen(screenId, userId);
+    fromPid = GetWmsPidByUserId(fromUserId);
+
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "userId: %{public}d, screenId: [%{public}" PRIu64"], isColdStart: %{public}d, "
+        "fromUserId: %{public}d, fromPid: %{public}d",
+        userId, screenId, isColdStart, fromUserId, fromPid);
+
+    UpdateScreenUserInfo(userId, screenId);
 
     if (screenId == defaultScreenId_) {
         // Note: Adapt to multi user and multi screen. When default screen notified by DMS,
@@ -537,10 +551,6 @@ void MockSessionManagerService::NotifyWMSConnected(int32_t userId, DisplayId scr
         std::lock_guard<std::mutex> lock(defaultWMSUserIdMutex_);
         defaultWMSUserId_ = userId;
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Set defaultWMSUserId_=%{public}d", defaultWMSUserId_);
-    }
-    {
-        std::lock_guard<std::mutex> lock(userId2ScreenIdMapMutex_);
-        userId2ScreenIdMap_[userId] = screenId;
     }
     auto smsDeathRecipient = GetSMSDeathRecipientByUserId(userId);
     if (smsDeathRecipient != nullptr) {
@@ -552,30 +562,30 @@ void MockSessionManagerService::NotifyWMSConnected(int32_t userId, DisplayId scr
         TLOGI(WmsLogTag::WMS_MULTI_USER, "User switched");
         GetSceneSessionManager();
     }
-    NotifyWMSConnectionChanged(userId, screenId, true);
+    NotifyWMSConnectionChanged(userId, screenId, true, fromUserId, fromPid);
 }
 
-void MockSessionManagerService::NotifyWMSConnectionChanged(int32_t wmsUserId, DisplayId screenId, bool isConnected)
+void MockSessionManagerService::NotifyWMSConnectionChanged(int32_t wmsUserId,
+    DisplayId screenId, bool isConnected, int32_t fromUserId, int32_t fromPid)
 {
     int32_t pid = GetWmsPidByUserId(wmsUserId);
 
     TLOGI(WmsLogTag::WMS_MULTI_USER,
-        "wmsUserId = %{public}d, isConnected = %{public}d, pid = %{public}d",
-        wmsUserId, isConnected, pid);
+        "wmsUserId=%{public}d, isConnected=%{public}d, pid=%{public}d, "
+        "fromUserId=%{public}d, fromPid=%{public}d",
+        wmsUserId, isConnected, pid, fromUserId, fromPid);
     {
         std::lock_guard<std::mutex> lock(wmsConnectionStatusLock_);
         wmsConnectionStatusMap_[wmsUserId] = isConnected;
     }
 
-    NotifyWMSConnectionChangedToClient(wmsUserId, screenId, isConnected, true, pid);
-    NotifyWMSConnectionChangedToClient(wmsUserId, screenId, isConnected, false, pid);
+    NotifyWMSConnectionChangedToClient(wmsUserId, screenId, isConnected, true, pid, fromUserId, fromPid);
+    NotifyWMSConnectionChangedToClient(wmsUserId, screenId, isConnected, false, pid, fromUserId, fromPid);
 }
 
 void MockSessionManagerService::NotifyWMSConnectionChangedToClient(int32_t wmsUserId,
-                                                                   DisplayId screenId,
-                                                                   bool isConnected,
-                                                                   bool isLite,
-                                                                   int32_t wmsPid)
+    DisplayId screenId, bool isConnected, bool isLite,
+    int32_t wmsPid, int32_t fromUserId, int32_t fromPid)
 {
     auto sessionManagerService = GetSessionManagerServiceInner(wmsUserId);
     if (!sessionManagerService) {
@@ -586,10 +596,12 @@ void MockSessionManagerService::NotifyWMSConnectionChangedToClient(int32_t wmsUs
     auto listeners = CollectListenersByClientUserId(SYSTEM_USERID, isLite);
     TLOGI(WmsLogTag::WMS_MULTI_USER,
         "wmsUserId: %{public}d, isLite: %{public}d, isConnected: %{public}d, screenId: %{public}" PRIu64
-        " remote count: %{public}zu", wmsUserId, isLite, isConnected, screenId, listeners.size());
+        " remote count: %{public}zu, fromUserId: %{public}d, fromPid: %{public}d",
+        wmsUserId, isLite, isConnected, screenId, listeners.size(), fromUserId, fromPid);
     for (auto& [pid, listener] : listeners) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "OnWMSConnectionChanged pid: %{public}d, wmsPid: %{public}d", pid, wmsPid);
-        listener->OnWMSConnectionChanged(wmsUserId, screenId, isConnected, sessionManagerService, wmsPid);
+        listener->OnWMSConnectionChanged(wmsUserId, screenId,
+            isConnected, wmsPid, fromUserId, fromPid, sessionManagerService);
     }
 }
 
@@ -1111,13 +1123,14 @@ ErrCode MockSessionManagerService::NotifyWMSConnectionStatus(int32_t userId,
         TLOGI(WmsLogTag::WMS_MULTI_USER, "wms is already connected, notify client");
         DisplayId screenId = DEFAULT_SCREEN_ID;
         {
-            std::lock_guard<std::mutex> lock(userId2ScreenIdMapMutex_);
-            screenId = userId2ScreenIdMap_[userId];
+            std::lock_guard<std::mutex> lock(userId2ScreenIdMutex_);
+            screenId = userId2ScreenId_[userId];
         }
         int32_t wmsPid = GetWmsPidByUserId(userId);
         TLOGI(WmsLogTag::WMS_MULTI_USER,
             "OnWMSConnectionChanged userId: %{public}d, wmsPid: %{public}d", userId, wmsPid);
-        smsListener->OnWMSConnectionChanged(userId, screenId, true, sessionManagerService, wmsPid);
+        smsListener->OnWMSConnectionChanged(userId, screenId, true,
+            wmsPid, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     }
     return ERR_OK;
 }
@@ -1306,5 +1319,69 @@ bool MockSessionManagerService::AddClientDeathRecipient(const sptr<IRemoteObject
           "isLite: %{public}d", clientUserId, pid, instanceUserId, isLite);
     return true;
 }
+
+ErrCode MockSessionManagerService::GetActiveUserIds(std::vector<int32_t>& activeUserIds)
+{
+    activeUserIds.clear();
+    {
+        std::lock_guard<std::mutex> lock(screenId2UserIdMutex_);
+        for (const auto& [screenId, uid] : screenId2UserId_) {
+            if (uid > INVALID_USER_ID) {
+                activeUserIds.push_back(uid);
+            }
+        }
+    }
+    TLOGD(WmsLogTag::WMS_MULTI_USER,
+        "GetActiveUserIds returns %{public}zu active users",
+        activeUserIds.size());
+    return ERR_OK;
+}
+
+void MockSessionManagerService::UpdateScreenUserInfo(int32_t userId, DisplayId screenId)
+{
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "UpdateScreenUserInfo userId: %{public}d, screenId: %{public}" PRIu64,
+        userId, screenId);
+    {
+        std::lock_guard<std::mutex> lock(screenId2UserIdMutex_);
+        screenId2UserId_[screenId] = userId;
+        TLOGD(WmsLogTag::WMS_MULTI_USER,
+            "screenId2UserId_ updated: screenId=%{public}" PRIu64 " -> userId=%{public}d", screenId, userId);
+    }
+    {
+        std::lock_guard<std::mutex> lock(userId2ScreenIdMutex_);
+        userId2ScreenId_[userId] = screenId;
+        TLOGD(WmsLogTag::WMS_MULTI_USER,
+            "userId2ScreenId_ updated: userId=%{public}d -> screenId=%{public}" PRIu64, userId, screenId);
+    }
+}
+
+int32_t MockSessionManagerService::GetUserIdOnScreen(DisplayId screenId, int32_t userId)
+{
+    int32_t prevUserId = INVALID_USER_ID;
+    {
+        std::lock_guard<std::mutex> lock(screenId2UserIdMutex_);
+        auto iter = screenId2UserId_.find(screenId);
+        if (iter != screenId2UserId_.end() && iter->second != userId) {
+            prevUserId = iter->second;
+        }
+        TLOGD(WmsLogTag::WMS_MULTI_USER,
+            "GetUserIdOnScreen: screenId=%{public}" PRIu64 ", userId=%{public}d, prevUserId=%{public}d",
+            screenId, userId, prevUserId);
+    }
+    return prevUserId;
+}
+
+void MockSessionManagerService::RemoveScreenUserMappingIfMatched(DisplayId screenId, int32_t userId)
+{
+    std::lock_guard<std::mutex> lock(screenId2UserIdMutex_);
+    auto iter = screenId2UserId_.find(screenId);
+    if (iter != screenId2UserId_.end() && iter->second == userId) {
+        screenId2UserId_.erase(iter);
+        TLOGI(WmsLogTag::WMS_MULTI_USER,
+            "screenId2UserId_ erased: screenId=%{public}" PRIu64 " (userId=%{public}d matched)",
+            screenId, userId);
+    }
+}
+
 } // namespace Rosen
 } // namespace OHOS
