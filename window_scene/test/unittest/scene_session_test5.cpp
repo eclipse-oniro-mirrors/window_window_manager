@@ -3392,6 +3392,7 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     session->property_->SetDragEnabled(true);
     session->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     session->SetSessionState(SessionState::STATE_ACTIVE);
+    session->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
 
     WindowLimits limits;
     limits.minWidth_ = 100;
@@ -3427,6 +3428,7 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     pointerEvent->SetPointerId(0);
     pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
     pointerEvent->SetTargetDisplayId(0);
 
     MMI::PointerEvent::PointerItem pointerItem;
@@ -3466,6 +3468,7 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     session->property_->SetDragEnabled(true);
     session->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     session->SetSessionState(SessionState::STATE_ACTIVE);
+    session->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
 
     WindowLimits limits;
     limits.minWidth_ = 100;
@@ -3501,6 +3504,7 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     pointerEvent->SetPointerId(0);
     pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
     pointerEvent->SetTargetDisplayId(0);
 
     MMI::PointerEvent::PointerItem pointerItem;
