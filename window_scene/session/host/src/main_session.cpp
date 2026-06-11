@@ -42,7 +42,7 @@ MainSession::MainSession(const SessionInfo& info, const sptr<SpecificSessionCall
     WLOGFD("Create MainSession");
 }
 
-MainSession::~MainSession()
+MainSession::~MainSession() 
 {
     WLOGD("~MainSession, id: %{public}d", GetPersistentId());
     // exclude when user deletes session in recent.
