@@ -107,7 +107,7 @@ bool FloatingBallManager::IsSupportFloatingBall()
     if (deviceType != "phone" && deviceType != "tablet") {
         return false;
     }
-    if (system::GetParameter("const.window.support_window_pcmode_switch", "false") == "true" && 
+    if (system::GetParameter("const.window.support_window_pcmode_switch", "false") == "true" &&
         system::GetParameter("persist.sceneboard.ispcmode", "false") == "true") {
         TLOGI(WmsLogTag::WMS_SYSTEM, "device support pcmode switch and now is pc mode");
         return false;
