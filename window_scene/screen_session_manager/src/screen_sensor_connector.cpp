@@ -47,6 +47,15 @@ namespace {
     constexpr int64_t ORIENTATION_SENSOR_REPORTING_RATE = 0;
     constexpr long ORIENTATION_SENSOR_CALLBACK_TIME_INTERVAL = 1000; // 1000ms
     constexpr int VALID_INCLINATION_ANGLE_THRESHOLD_COEFFICIENT = 3;
+    constexpr int DEGREE_0 = 0;
+    constexpr int DEGREE_30 = 30;
+    constexpr int DEGREE_60 = 60;
+    constexpr int DEGREE_120 = 120;
+    constexpr int DEGREE_150 = 150;
+    constexpr int DEGREE_210 = 210;
+    constexpr int DEGREE_240 = 240;
+    constexpr int DEGREE_300 = 300;
+    constexpr int DEGREE_330 = 330;
 #endif
 }
 
@@ -160,13 +169,13 @@ void GravitySensorSubscriber::HandleGravitySensorEventCallback(SensorEvent *even
     int sensorDegree = CalcRotationDegree(gravityData);
     DeviceRotation motionRotation = DeviceRotation::INVALID;
     // 当前传感器返回数据有问题，临时修正
-    if (sensorDegree >= 0 && (sensorDegree <= 30 || sensorDegree >= 330)) {
+    if (sensorDegree >= DEGREE_0 && (sensorDegree <= DEGREE_30 || sensorDegree >= DEGREE_330)) {
         motionRotation = DeviceRotation::ROTATION_LANDSCAPE_INVERTED;
-    } else if (sensorDegree >= 60 && sensorDegree <= 120) { // Use ROTATION_90 when degree range is [60, 120]
+    } else if (sensorDegree >= DEGREE_60 && sensorDegree <= DEGREE_120) {
         motionRotation = DeviceRotation::ROTATION_PORTRAIT_INVERTED;
-    } else if (sensorDegree >= 150 && sensorDegree <= 210) { // Use ROTATION_180 when degree range is [150, 210]
+    } else if (sensorDegree >= DEGREE_150 && sensorDegree <= DEGREE_210) {
         motionRotation = DeviceRotation::ROTATION_LANDSCAPE;
-    } else if (sensorDegree >= 240 && sensorDegree <= 300) { // Use ROTATION_270 when degree range is [240, 300]
+    } else if (sensorDegree >= DEGREE_240 && sensorDegree <= DEGREE_300) {
         motionRotation = DeviceRotation::ROTATION_PORTRAIT;
     }
     ScreenRotationProperty::HandleSensorEventInput(motionRotation);
