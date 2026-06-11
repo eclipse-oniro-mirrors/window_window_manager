@@ -49,7 +49,7 @@ public:
     WMError SetUIContext(const std::string &contextUrl,
         const std::shared_ptr<NativeReference>& contentStorage, bool isLoadByName);
     WMError SetUIContext(const std::string &contextUrl,
-        const ani_object& contentStorage, bool isLoadByName);
+        const ani_ref& contentStorage, bool isLoadByName);
     WMError SetVisibilityInApp(bool visibleInApp);
     WMError SetWindowSize(const Rect &rect);
     WMError SetTemplateTypeAndSize(const std::shared_ptr<TemplateProperty>& templateProperty);

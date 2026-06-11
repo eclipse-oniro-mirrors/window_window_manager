@@ -433,7 +433,7 @@ HWTEST_F(FloatViewControllerTest, ANISetUIContext, TestSize.Level1)
     sptr<FloatViewController> aniController =
         sptr<FloatViewController>::MakeSptr(*option_, static_cast<ani_env*>(nullptr));
     std::string contextUrl = "test_url";
-    ani_object contentStorage = nullptr;
+    ani_ref contentStorage = nullptr;
 
     std::shared_ptr<NativeReference> fakeStorage = nullptr;
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, aniController->SetUIContext(contextUrl, fakeStorage, false));
