@@ -102,8 +102,17 @@ void FloatingBallManager::DoFbActionEvent(const std::string& actionName)
 
 bool FloatingBallManager::IsSupportFloatingBall()
 {
-    std::string deviceType = system::GetParameter("const.product.devicetype", "unknown");
-    return deviceType == "phone" || deviceType == "default" || deviceType == "tablet";
+    const std::string deviceType = system::GetParameter("const.product.devicetype", "");
+    TLOGI(WmsLogTag::WMS_SYSTEM, "deviceType: %{public}s", deviceType.c_str());
+    if (deviceType != "phone" && deviceType != "tablet") {
+        return false;
+    }
+    if (system::GetParameter("const.window.support_window_pcmode_switch", "false") == "true" && 
+        system::GetParameter("persist.sceneboard.ispcmode", "false") == "true") {
+        TLOGI(WmsLogTag::WMS_SYSTEM, "device support pcmode switch and now is pc mode");
+        return false;
+    }
+    return true;
 }
 // LCOV_EXCL_STOP
 
