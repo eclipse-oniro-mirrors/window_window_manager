@@ -569,6 +569,7 @@ bool SurfaceDraw::GetSurfaceSnapshot(const std::shared_ptr<RSSurfaceNode> surfac
     RSSurfaceCaptureConfig config = {
         .scaleX = scaleW,
         .scaleY = scaleH,
+        .useDma = true,
     };
     if (RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config)) {
         pixelMap = callback->GetResult(timeoutMs); // get pixelmap time out ms
