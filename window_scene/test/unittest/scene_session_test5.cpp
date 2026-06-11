@@ -3393,6 +3393,16 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     session->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     session->SetSessionState(SessionState::STATE_ACTIVE);
 
+    WindowLimits limits;
+    limits.minWidth_ = 100;
+    limits.maxWidth_ = 1000;
+    limits.minHeight_ = 50;
+    limits.maxHeight_ = 800;
+    session->property_->SetWindowLimits(limits);
+
+    WSRect rect = {0, 0, 800, 600};
+    session->SetSessionRect(rect);
+
     SystemSessionConfig systemConfig;
     systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
     systemConfig.isSystemDecorEnable_ = true;
@@ -3400,6 +3410,10 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
 
     session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
     ASSERT_NE(session->moveDragController_, nullptr);
+
+    session->moveDragController_->limits_ = limits;
+    session->moveDragController_->moveDragProperty_.originalRect_ = rect;
+    session->moveDragController_->decoration_ = {0, 0, 0, 0};
 
     bool raiseToTopCalled = false;
     NotifyRaiseToTopForPointDownFunc raiseFunc = [&raiseToTopCalled]() {
@@ -3412,14 +3426,16 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     pointerEvent->SetPointerId(0);
-    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    pointerEvent->SetTargetDisplayId(0);
 
     MMI::PointerEvent::PointerItem pointerItem;
     pointerItem.SetPointerId(0);
     pointerItem.SetDisplayX(100);
     pointerItem.SetDisplayY(100);
-    pointerItem.SetWindowX(50);
-    pointerItem.SetWindowY(50);
+    pointerItem.SetWindowX(-5);
+    pointerItem.SetWindowY(-5);
+    pointerItem.SetOriginPointerId(0);
     pointerEvent->AddPointerItem(pointerItem);
 
     WSError result = session->TransferPointerEventInner(pointerEvent, false);
@@ -3451,6 +3467,16 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     session->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     session->SetSessionState(SessionState::STATE_ACTIVE);
 
+    WindowLimits limits;
+    limits.minWidth_ = 100;
+    limits.maxWidth_ = 1000;
+    limits.minHeight_ = 50;
+    limits.maxHeight_ = 800;
+    session->property_->SetWindowLimits(limits);
+
+    WSRect rect = {0, 0, 800, 600};
+    session->SetSessionRect(rect);
+
     SystemSessionConfig systemConfig;
     systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
     systemConfig.isSystemDecorEnable_ = true;
@@ -3458,6 +3484,10 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
 
     session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
     ASSERT_NE(session->moveDragController_, nullptr);
+
+    session->moveDragController_->limits_ = limits;
+    session->moveDragController_->moveDragProperty_.originalRect_ = rect;
+    session->moveDragController_->decoration_ = {0, 0, 0, 0};
 
     bool raiseToTopCalled = false;
     NotifyRaiseToTopForPointDownFunc raiseFunc = [&raiseToTopCalled]() {
@@ -3470,14 +3500,16 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
 
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     pointerEvent->SetPointerId(0);
-    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
+    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    pointerEvent->SetTargetDisplayId(0);
 
     MMI::PointerEvent::PointerItem pointerItem;
     pointerItem.SetPointerId(0);
     pointerItem.SetDisplayX(100);
     pointerItem.SetDisplayY(100);
-    pointerItem.SetWindowX(50);
-    pointerItem.SetWindowY(50);
+    pointerItem.SetWindowX(-5);
+    pointerItem.SetWindowY(-5);
+    pointerItem.SetOriginPointerId(0);
     pointerEvent->AddPointerItem(pointerItem);
 
     WSError result = session->TransferPointerEventInner(pointerEvent, false);
