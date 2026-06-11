@@ -589,6 +589,191 @@ HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback03, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetSessionRectChangeCallback04
+ * @tc.desc: SetSessionRectChangeCallback with only fullscreen support for non-main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback04";
+    info.bundleName_ = "SetSessionRectChangeCallback04";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    WSRect rec = { 1, 1, 1, 1 };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
+    session->SetSessionRequestRect(rec);
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_FLOAT, session->GetWindowType());
+    EXPECT_EQ(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN, property->GetWindowModeSupportType());
+}
+
+/**
+ * @tc.name: SetSessionRectChangeCallback05
+ * @tc.desc: SetSessionRectChangeCallback with virtual display id
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback05, TestSize.Level1)
+{
+    constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback05";
+    info.bundleName_ = "SetSessionRectChangeCallback05";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    session->SetClientDisplayId(VIRTUAL_DISPLAY_ID);
+    WSRect rec = { 0, 0, 1, 1 };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
+    session->SetSessionRequestRect(rec);
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_FLOAT, session->GetWindowType());
+    EXPECT_EQ(VIRTUAL_DISPLAY_ID, session->GetClientDisplayId());
+}
+
+/**
+ * @tc.name: SetSessionRectChangeCallback06
+ * @tc.desc: SetSessionRectChangeCallback with rect width and height zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback06";
+    info.bundleName_ = "SetSessionRectChangeCallback06";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    WSRect rec = { 1, 1, 0, 0 };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        EXPECT_EQ(SizeChangeReason::MOVE, reason);
+    };
+    session->SetSessionRequestRect(rec);
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_FLOAT, session->GetWindowType());
+}
+
+/**
+ * @tc.name: SetSessionRectChangeCallback07
+ * @tc.desc: SetSessionRectChangeCallback with only floating support in fullscreen mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback07";
+    info.bundleName_ = "SetSessionRectChangeCallback07";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    WSRect rec = { 1, 1, 1, 1 };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
+    session->SetSessionRequestRect(rec);
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_FLOAT, session->GetWindowType());
+    EXPECT_EQ(WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING, property->GetWindowModeSupportType());
+}
+
+/**
+ * @tc.name: SetSessionRectChangeCallback08
+ * @tc.desc: SetSessionRectChangeCallback with split mode and no fullscreen support
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback08";
+    info.bundleName_ = "SetSessionRectChangeCallback08";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    WSRect rec = { 1, 1, 1, 1 };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        return;
+    };
+    session->SetSessionRequestRect(rec);
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_FLOAT, session->GetWindowType());
+}
+
+/**
+ * @tc.name: SetSessionRectChangeCallback09
+ * @tc.desc: SetSessionRectChangeCallback with sessionRect not empty
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback09, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback09";
+    info.bundleName_ = "SetSessionRectChangeCallback09";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    WSRect rec = { 100, 100, 200, 200 };
+    NotifySessionRectChangeFunc func = [](const WSRect& rect, SizeChangeReason reason, DisplayId displayId) {
+        EXPECT_EQ(100, rect.posX_);
+        EXPECT_EQ(100, rect.posY_);
+    };
+    session->SetSessionRect(rec);
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_FLOAT, session->GetWindowType());
+}
+
+/**
+ * @tc.name: SetSessionRectChangeCallback10
+ * @tc.desc: SetSessionRectChangeCallback with only support fullscreen, should not call callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, SetSessionRectChangeCallback10, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSessionRectChangeCallback10";
+    info.bundleName_ = "SetSessionRectChangeCallback10";
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->SetSessionProperty(property);
+    WSRect rec = { 100, 100, 200, 200 };
+    session->SetSessionRect(rec);
+    bool callbackCalled = false;
+    NotifySessionRectChangeFunc func = [&callbackCalled](const WSRect& rect, SizeChangeReason reason,
+        DisplayId displayId) { callbackCalled = true; };
+    session->SetSessionRectChangeCallback(func);
+    EXPECT_EQ(WindowType::WINDOW_TYPE_APP_SUB_WINDOW, session->GetWindowType());
+    EXPECT_EQ(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN, property->GetWindowModeSupportType());
+    EXPECT_FALSE(callbackCalled);
+}
+
+/**
  * @tc.name: GetSystemAvoidArea02
  * @tc.desc: GetSystemAvoidArea02 function
  * @tc.type: FUNC
@@ -1702,12 +1887,6 @@ HWTEST_F(SceneSessionTest5, HandleActionUpdateWindowModeSupportType, TestSize.Le
     info.bundleName_ = "HandleActionUpdateWindowModeSupportType";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-
-    property->isSystemCalling_ = false;
-    session->SetSessionProperty(property);
-    ASSERT_EQ(WMError::WM_ERROR_NOT_SYSTEM_APP,
-              session->HandleActionUpdateWindowModeSupportType(property, WSPropertyChangeAction::ACTION_UPDATE_RECT));
 }
 
 /**

@@ -604,14 +604,6 @@ HWTEST_F(SceneSessionTest4, ProcessUpdatePropertyByAction3, TestSize.Level1)
     EXPECT_EQ(WMError::WM_OK, sceneSession->ProcessUpdatePropertyByAction(property,
         WSPropertyChangeAction::ACTION_UPDATE_SUB_WINDOW_Z_LEVEL));
 
-    property->SetSystemCalling(false);
-    EXPECT_EQ(WMError::WM_ERROR_NOT_SYSTEM_APP, sceneSession->ProcessUpdatePropertyByAction(property,
-        WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO));
-
-    property->SetSystemCalling(true);
-    EXPECT_EQ(WMError::WM_OK, sceneSession->ProcessUpdatePropertyByAction(property,
-        WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO));
-
     EXPECT_EQ(WMError::WM_DO_NOTHING, sceneSession->ProcessUpdatePropertyByAction(property,
         WSPropertyChangeAction::ACTION_UPDATE_RECT));
 

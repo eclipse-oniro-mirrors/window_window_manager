@@ -2303,15 +2303,15 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
         return;
     }
     WindowType windowType = GetType();
+    auto windowModeSupportType = property_->GetWindowModeSupportType();
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
+    bool onlySupportFullScreen = WindowHelper::IsOnlySupportFullScreen(windowModeSupportType);
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
-        uiContent->HideWindowTitleButton(true, !IsSubWindowMaximizeSupported(), true, false);
+        uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
         return;
     }
-    auto windowModeSupportType = property_->GetWindowModeSupportType();
     bool hideSplitButton = !(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY);
-    // not support fullscreen in split and floating mode, or not support float in fullscreen mode
     bool hideMaximizeButton = (!(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) &&
         (GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING || WindowHelper::IsSplitWindowMode(GetWindowMode()))) ||
         (!(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING) &&
@@ -2320,6 +2320,10 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool hideCloseButton = false;
     GetTitleButtonVisible(hideMaximizeButton, hideMinimizeButton, hideSplitButton, hideCloseButton);
     hideMaximizeButton = hideMaximizeButton && !grayOutMaximizeButton_;
+    if (IsZLevelAboveParentLoosened()) {
+        hideMaximizeButton = hideMaximizeButton || !IsSubWindowMaximizeSupported();
+        hideSplitButton = true;
+    }
     TLOGI(WmsLogTag::WMS_DECOR, "id:%{public}d, [hideSplit, hideMaximize, hideMinimizeButton, hideCloseButton]:"
         "[%{public}d, %{public}d, %{public}d, %{public}d]",
         GetPersistentId(), hideSplitButton, hideMaximizeButton, hideMinimizeButton, hideCloseButton);
