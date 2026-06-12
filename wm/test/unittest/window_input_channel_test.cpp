@@ -191,7 +191,12 @@ HWTEST_F(WindowInputChannelTest, HandlePointEvent02, TestSize.Level1)
 
     EXPECT_CALL(*window, NotifyTouchDialogTarget(_, _)).Times(0);
     inputChannel->HandlePointerEvent(pointerEvent);
+    EXPECT_EQ(pointerEvent->GetPointerAction(), POINTER_ACTION_PULL_CANCEL); 
     testing::Mock::VerifyAndClearExpectations(window);
+
+    pointerEvent->SetPointerAction(POINTER_ACTION_DOWN);
+    inputChannel->HandlePointerEvent(pointerEvent);
+    EXPECT_EQ(pointerEvent->GetPointerAction(), POINTER_ACTION_DOWN);
 }
 
 /**
