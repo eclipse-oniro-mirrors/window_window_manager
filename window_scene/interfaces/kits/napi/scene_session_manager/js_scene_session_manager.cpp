@@ -6757,7 +6757,7 @@ napi_value JsSceneSessionManager::OnGetConfigByApp(napi_env env, napi_callback_i
 napi_value JsSceneSessionManager::GetConfigByKeys(napi_env env, napi_callback_info info)
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnGetConfigByApp(env, info) : nullptr; 
+    return (me != nullptr) ? me->OnGetConfigByApp(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::GetConfigByKeys(napi_env env, napi_callback_info info)
