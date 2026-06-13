@@ -215,6 +215,12 @@ public:
      */
     static napi_value SyncFloatViewLimits(napi_env env, napi_callback_info info);
 
+    /**
+     * Config
+     */
+    static napi_value GetConfigByApp(napi_env env, napi_callback_info info);
+    static napi_value GetConfigByKeys(napi_env env, napi_callback_info info);
+
 private:
     napi_value OnSetBehindWindowFilterEnabled(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
@@ -496,6 +502,12 @@ private:
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
     void OnGetFloatViewLimitCallback();
+
+    /**
+     * Config
+     */
+    napi_value OnGetConfigByApp(napi_env env, napi_callback_info info);
+    napi_value OnGetConfigByKeys(napi_env env, napi_callback_info info);
 };
 } // namespace OHOS::Rosen
 

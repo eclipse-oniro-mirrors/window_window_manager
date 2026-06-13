@@ -71,6 +71,12 @@ declare_args() {
       !defined(global_parts_info.hiviewdfx_api_metrics)) {
     window_manager_feature_support_api_metrics = false
   }
+
+  win_compatibility_config_center_enabled = true
+  if (defined(global_parts_info) &&
+      !defined(global_parts_info.multidevicecompatibility_compatibility_config_center)) {
+    win_compatibility_config_center_enabled = false
+  }
 }
 
 if (window_manager_feature_asbng_path == "") {
