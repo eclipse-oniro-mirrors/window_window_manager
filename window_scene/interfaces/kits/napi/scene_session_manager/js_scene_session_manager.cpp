@@ -38,9 +38,9 @@
 #ifdef SOC_PERF_ENABLE
 #include "socperf_client.h"
 #endif
-#endif
 #ifdef COMPATIBILITY_CONFIG_CENTER_ENABLE
 #include "comp_config_read_util.h"
+#endif
 #ifdef RESOURCE_SCHEDULE_SERVICE_ENABLE
 #include "res_sched_client.h"
 #endif
@@ -6667,7 +6667,7 @@ napi_value CreateCompConfigPropertyValueMap(napi_env env,
         return NapiGetUndefined(env);
     }
 
-    for(const auto& [key, value] : propertyValuePair.second) {
+    for (const auto& [key, value] : propertyValuePair.second) {
         napi_value jsVal = nullptr;
         napi_create_string_utf8(env, value.c_str(), NAPI_AUTO_LENGTH, &jsVal);
         napi_set_named_property(env, propertyValue, key.c_str(), jsVal);
@@ -6692,7 +6692,7 @@ napi_value CreateCompConfigAppPropertyValueMap(napi_env env,
 
     napi_value appPropertyValue = nullptr;
     napi_create_object(env, &appPropertyValue);
-    if(appPropertyValue == nullptr) {
+    if (appPropertyValue == nullptr) {
         TLOGE(WmsLogTag::WMS_COMPAT, "appPropertyValue is null!");
         return NapiGetUndefined(env);
     }
@@ -6719,7 +6719,7 @@ napi_value CreateCompConfigAppPropertyValueMap(napi_env env,
 napi_value JsSceneSessionManager::GetConfigByApp(napi_env env, napi_callback_info info)
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnGetConfigByApp(env, info) : nullptr; 
+    return (me != nullptr) ? me-> OnGetConfigByApp(env, info) : nullptr; 
 }
 
 napi_value JsSceneSessionManager::OnGetConfigByApp(napi_env env, napi_callback_info info)
@@ -6757,7 +6757,7 @@ napi_value JsSceneSessionManager::OnGetConfigByApp(napi_env env, napi_callback_i
 napi_value JsSceneSessionManager::GetConfigByKeys(napi_env env, napi_callback_info info)
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnGetConfigByKeys(env, info) : nullptr; 
+    return (me != nullptr) ? me-> OnGetConfigByKeys(env, info) : nullptr; 
 }
 
 napi_value JsSceneSessionManager::GetConfigByKeys(napi_env env, napi_callback_info info)
