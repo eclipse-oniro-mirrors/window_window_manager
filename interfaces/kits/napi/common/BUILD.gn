@@ -27,6 +27,7 @@ config("wm_napi_util_config") {
 config("wm_napi_util_public_config") {
   include_dirs = [
     ".",
+    "../../../../utils/include",
     "../../../innerkits/dm",
   ]
 }
