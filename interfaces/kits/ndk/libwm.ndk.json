@@ -192,6 +192,10 @@
         "name":"OH_PictureInPicture_UnregisterAllResizeListeners"
     },
     {
+        "first_instroduced":"26.0.0",
+        "name":"OH_PictureInPicture_SetAutoStartEnabled"
+    },
+    {
         "first_instroduced":"20",
         "name":"OH_WindowManager_InjectTouchEvent"
     },
