@@ -2214,7 +2214,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
             ", id: %{public}d", static_cast<int32_t>(ret), property_->GetWindowName().c_str(), GetPersistentId());
         return ret;
     }
-    UpdateTitleButtonVisibility(); 
+    UpdateTitleButtonVisibility();
     property_->SetFocusableOnShow(withFocus);
     if (WindowHelper::IsMainWindow(type)) {
         ret = static_cast<WMError>(hostSession->Foreground(property_, true, identityToken_));
