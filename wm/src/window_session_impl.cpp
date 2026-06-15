@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1756,9 +1756,12 @@ WMError WindowSessionImpl::NotifySnapshotUpdate()
 void WindowSessionImpl::GetTitleButtonVisible(bool& hideMaximizeButton, bool& hideMinimizeButton,
     bool& hideSplitButton, bool& hideCloseButton)
 {
-    if (!IsPcOrPadFreeMultiWindowMode()) {
-        TLOGE(WmsLogTag::WMS_DECOR, "device not support");
-        return;
+    {
+        HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::IsPcOrPadFreeMultiWindowMode");
+        if (!IsPcOrPadFreeMultiWindowMode()) {
+            TLOGE(WmsLogTag::WMS_DECOR, "device not support");
+            return;
+        }
     }
     if (hideMaximizeButton > !windowTitleVisibleFlags_.isMaximizeVisible) {
         TLOGW(WmsLogTag::WMS_DECOR, "isMaximizeVisible param INVALID");
@@ -4412,6 +4415,7 @@ WMError WindowSessionImpl::SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap
 
 WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetDecorVisible");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4443,6 +4447,7 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
 
 WMError WindowSessionImpl::GetDecorVisible(bool& isVisible)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetDecorVisible");
     TLOGD(WmsLogTag::WMS_DECOR, "%{public}u in", GetWindowId());
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -4458,6 +4463,7 @@ WMError WindowSessionImpl::GetDecorVisible(bool& isVisible)
 
 WMError WindowSessionImpl::SetWindowTitleMoveEnabled(bool enable)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetWindowTitleMoveEnabled");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4557,6 +4563,7 @@ WMError WindowSessionImpl::SetWindowModal(bool isModal)
 
 WMError WindowSessionImpl::SetDecorHeight(int32_t decorHeight)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetDecorHeight");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4583,6 +4590,7 @@ WMError WindowSessionImpl::SetDecorHeight(int32_t decorHeight)
 
 WMError WindowSessionImpl::GetDecorHeight(int32_t& height)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetDecorHeight");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4609,6 +4617,7 @@ WMError WindowSessionImpl::GetDecorHeight(int32_t& height)
 
 WMError WindowSessionImpl::SetDecorButtonStyle(const DecorButtonStyle& decorButtonStyle)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetDecorButtonStyle");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4638,6 +4647,7 @@ WMError WindowSessionImpl::SetDecorButtonStyle(const DecorButtonStyle& decorButt
 
 WMError WindowSessionImpl::GetDecorButtonStyle(DecorButtonStyle& decorButtonStyle)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetDecorButtonStyle");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4652,6 +4662,7 @@ WMError WindowSessionImpl::GetDecorButtonStyle(DecorButtonStyle& decorButtonStyl
 
 WMError WindowSessionImpl::GetTitleButtonArea(TitleButtonRect& titleButtonRect)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetTitleButtonArea");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -5790,6 +5801,7 @@ void WindowSessionImpl::SetInputEventConsumer(const std::shared_ptr<IInputEventC
 WMError WindowSessionImpl::SetTitleButtonVisible(bool isMaximizeVisible, bool isMinimizeVisible, bool isSplitVisible,
     bool isCloseVisible)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetTitleButtonVisible");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
