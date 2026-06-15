@@ -178,6 +178,11 @@ Rect WindowImpl::GetRect() const
     return Rect{0, 0, 0, 0};
 }
 
+Rect WindowImpl::GetRect(bool useHookedSize) const
+{
+    return Rect{0, 0, 0, 0};
+}
+
 Rect WindowImpl::GetRequestRect() const
 {
     return Rect{0, 0, 0, 0};
@@ -189,6 +194,11 @@ WindowType WindowImpl::GetType() const
 }
 
 WindowMode WindowImpl::GetWindowMode() const
+{
+    return windowMode_;
+}
+
+WindowMode WindowImpl::GetWindowModeCompat() const
 {
     return windowMode_;
 }
@@ -741,6 +751,12 @@ WMError WindowImpl::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& list
 }
 
 WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    return WMError::WM_OK;
+}
+
+WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+    bool useHookedSize)
 {
     return WMError::WM_OK;
 }

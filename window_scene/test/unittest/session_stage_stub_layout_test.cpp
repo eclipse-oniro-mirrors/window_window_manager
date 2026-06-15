@@ -462,6 +462,44 @@ HWTEST_F(SessionStageStubLayoutTest, HandleSyncAllAttachedLimitsToChild09, TestS
 }
 
 /**
+ * @tc.name: HandleSyncAllAttachedLimitsToChild10
+ * @tc.desc: Test HandleSyncAllAttachedLimitsToChild with limitsCount exceeds MAX_ATTACHED_LIMITS_COUNT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubLayoutTest, HandleSyncAllAttachedLimitsToChild10, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteUint32(257); // exceeds MAX_ATTACHED_LIMITS_COUNT (256)
+
+    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->HandleSyncAllAttachedLimitsToChild(data, reply));
+}
+
+/**
+ * @tc.name: HandleSyncAllAttachedLimitsToChild11
+ * @tc.desc: Test HandleSyncAllAttachedLimitsToChild with optionsCount exceeds MAX_ATTACHED_LIMITS_COUNT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubLayoutTest, HandleSyncAllAttachedLimitsToChild11, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+
+    // Write valid limits list
+    data.WriteUint32(1);
+    data.WriteInt32(800);
+    WindowLimits limits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    limits.Marshalling(data);
+
+    data.WriteUint32(257); // exceeds MAX_ATTACHED_LIMITS_COUNT (256)
+
+    EXPECT_EQ(ERR_INVALID_DATA, sessionStageStub_->HandleSyncAllAttachedLimitsToChild(data, reply));
+}
+
+/**
  * @tc.name: HandleNotifyRebindAttachAfterParentChange01
  * @tc.desc: Test HandleNotifyRebindAttachAfterParentChange with valid newParentWindowId
  * @tc.type: FUNC

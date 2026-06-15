@@ -256,15 +256,6 @@ sptr<Window> Window::CreateFv(sptr<WindowOption>& option, const FloatViewTemplat
     return windowSessionImpl;
 }
 
-bool Window::IsAnyWindowMatchState(const WindowState& state)
-{
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        return WindowSessionImpl::IsAnyWindowMatchState(state);
-    } else {
-        return false;
-    }
-}
-
 sptr<Window> Window::Find(const std::string& windowName)
 {
     if (SceneBoardJudgement::IsSceneBoardEnabled()) {

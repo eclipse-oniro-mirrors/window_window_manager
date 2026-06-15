@@ -787,6 +787,217 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_08, Func
 }
 
 /**
+ * @tc.name: TestCreateAndConnectSession_InheritFreeMultiWindowEnable_True
+ * @tc.desc: Test CreateAndConnectSpecificSession inherits freeMultiWindowEnable=true from parent in PC mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritFreeMultiWindowEnable_True,
+    TestSize.Level1)
+{
+    sptr<ISessionStage> sessionStage;
+    sptr<IWindowEventChannel> eventChannel;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<ISession> session;
+    SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
+    int32_t id = 0;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetFloatingWindowAppType(true);
+ 
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+ 
+    SessionInfo parentInfo;
+    parentInfo.bundleName_ = "testParent";
+    parentInfo.abilityName_ = "testParentAbility";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    sptr<WindowSessionProperty> parentProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(parentProperty, nullptr);
+    parentProperty->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionProperty(parentProperty);
+    SystemSessionConfig parentConfig = parentSession->GetSystemConfig();
+    parentConfig.freeMultiWindowEnable_ = true;
+    parentSession->SetSystemConfig(parentConfig);
+    ssm_->sceneSessionMap_.insert({ 1, parentSession });
+    property->SetParentPersistentId(1);
+ 
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
+    ssm_->sceneSessionMap_.clear();
+}
+ 
+/**
+ * @tc.name: TestCreateAndConnectSession_InheritFreeMultiWindowEnable_False
+ * @tc.desc: Test CreateAndConnectSpecificSession inherits freeMultiWindowEnable=false from parent in PC mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritFreeMultiWindowEnable_False,
+    TestSize.Level1)
+{
+    sptr<ISessionStage> sessionStage;
+    sptr<IWindowEventChannel> eventChannel;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<ISession> session;
+    SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
+    int32_t id = 0;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetFloatingWindowAppType(true);
+ 
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+ 
+    SessionInfo parentInfo;
+    parentInfo.bundleName_ = "testParent";
+    parentInfo.abilityName_ = "testParentAbility";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    sptr<WindowSessionProperty> parentProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(parentProperty, nullptr);
+    parentProperty->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionProperty(parentProperty);
+    SystemSessionConfig parentConfig = parentSession->GetSystemConfig();
+    parentConfig.freeMultiWindowEnable_ = false;
+    parentSession->SetSystemConfig(parentConfig);
+    ssm_->sceneSessionMap_.insert({ 1, parentSession });
+    property->SetParentPersistentId(1);
+ 
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, false);
+    ssm_->sceneSessionMap_.clear();
+}
+ 
+/**
+ * @tc.name: TestCreateAndConnectSession_NoParentSession
+ * @tc.desc: Test CreateAndConnectSpecificSession when parentSession is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NoParentSession, TestSize.Level1)
+{
+    sptr<ISessionStage> sessionStage;
+    sptr<IWindowEventChannel> eventChannel;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<ISession> session;
+    SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
+    int32_t id = 0;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetFloatingWindowAppType(true);
+ 
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+ 
+    property->SetParentPersistentId(9999);
+ 
+    systemConfig.freeMultiWindowEnable_ = true;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
+}
+ 
+/**
+ * @tc.name: TestCreateAndConnectSession_NonPcWindow
+ * @tc.desc: Test CreateAndConnectSpecificSession when windowUIType is not PC_WINDOW
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NonPcWindow, TestSize.Level1)
+{
+    sptr<ISessionStage> sessionStage;
+    sptr<IWindowEventChannel> eventChannel;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<ISession> session;
+    SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
+    int32_t id = 0;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetFloatingWindowAppType(true);
+ 
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+ 
+    SessionInfo parentInfo;
+    parentInfo.bundleName_ = "testParent";
+    parentInfo.abilityName_ = "testParentAbility";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    sptr<WindowSessionProperty> parentProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(parentProperty, nullptr);
+    parentProperty->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionProperty(parentProperty);
+    SystemSessionConfig parentConfig = parentSession->GetSystemConfig();
+    parentConfig.freeMultiWindowEnable_ = true;
+    parentSession->SetSystemConfig(parentConfig);
+    ssm_->sceneSessionMap_.insert({ 1, parentSession });
+    property->SetParentPersistentId(1);
+ 
+    systemConfig.freeMultiWindowEnable_ = true;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
+    ssm_->sceneSessionMap_.clear();
+}
+ 
+/**
+ * @tc.name: TestCreateAndConnectSession_FreeMultiWindowNotSupport
+ * @tc.desc: Test CreateAndConnectSpecificSession when freeMultiWindowSupport is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_FreeMultiWindowNotSupport, TestSize.Level1)
+{
+    sptr<ISessionStage> sessionStage;
+    sptr<IWindowEventChannel> eventChannel;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<ISession> session;
+    SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
+    int32_t id = 0;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetFloatingWindowAppType(true);
+ 
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = false;
+ 
+    SessionInfo parentInfo;
+    parentInfo.bundleName_ = "testParent";
+    parentInfo.abilityName_ = "testParentAbility";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    sptr<WindowSessionProperty> parentProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(parentProperty, nullptr);
+    parentProperty->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionProperty(parentProperty);
+    SystemSessionConfig parentConfig = parentSession->GetSystemConfig();
+    parentConfig.freeMultiWindowEnable_ = true;
+    parentSession->SetSystemConfig(parentConfig);
+    ssm_->sceneSessionMap_.insert({ 1, parentSession });
+    property->SetParentPersistentId(1);
+ 
+    systemConfig.freeMultiWindowEnable_ = true;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
+        id, session, systemConfig, renderSession, token);
+    ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
  * @tc.name: ClosePipWindowIfExist
  * @tc.desc: ClosePipWindowIfExist
  * @tc.type: FUNC
@@ -988,30 +1199,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, SetAlivePersistentIdsWithIds, TestSi
     ASSERT_EQ(res, true);
     res = ssm_->IsNeedRecover(2);
     ASSERT_EQ(res, true);
-}
-
-/**
- * @tc.name: RecoverAndConnectSpecificSession
- * @tc.desc: RecoverAndConnectSpecificSession
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerSupplementTest, RecoverAndConnectSpecificSession, TestSize.Level1)
-{
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
-    sptr<WindowSessionProperty> property;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    auto ret = ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, node, property, session, token);
-    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
-    property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    ret = ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, node, property, session, token);
-    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
-    ssm_->NotifyRecoveringFinished();
-    usleep(WAIT_SYNC_IN_NS);
-    ASSERT_EQ(ssm_->recoveringFinished_, true);
 }
 
 /**
@@ -1372,7 +1559,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1
     std::map<uint32_t, FloatViewLimits> limits;
     limits.emplace(0, limit);
     
-    auto ret = ssm_->SyncFloatViewLimits(limits);
+    auto ret = ssm_->SyncFloatViewLimits(limits, false);
     EXPECT_EQ(ret, WSError::WS_OK);
     
     SessionInfo info;
@@ -1390,7 +1577,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1
     ssm_->sceneSessionMap_.insert({ fakeSession->GetPersistentId(), fakeSession });
     ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), nullptr });
     ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), fvSession });
-    ret = ssm_->SyncFloatViewLimits(limits);
+    ret = ssm_->SyncFloatViewLimits(limits, true);
     EXPECT_EQ(ret, WSError::WS_OK);
 }
 
@@ -1401,14 +1588,22 @@ HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1
  */
 HWTEST_F(SceneSessionManagerSupplementTest, GetFloatViewLimits, TestSize.Level1)
 {
+    FloatViewLimits limits;
+    ssm_->sceneSessionMap_.clear();
+    ssm_->getFloatViewLimitFunc_ = nullptr;
+    auto ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    ssm_->getFloatViewLimitFunc_ = []() -> void {};
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
     FloatViewLimits testLimits;
     testLimits.minWidth_ = 100;
     testLimits.minHeight_ = 100;
     testLimits.maxWidth_ = 1000;
     testLimits.maxHeight_ = 1000;
     ssm_->floatViewLimits_.emplace(0, testLimits);
-    FloatViewLimits limits;
-    auto ret = ssm_->GetFloatViewLimits(0, limits);
+    ret = ssm_->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(limits.minWidth_, 100);
     EXPECT_EQ(limits.minHeight_, 100);
@@ -1417,6 +1612,28 @@ HWTEST_F(SceneSessionManagerSupplementTest, GetFloatViewLimits, TestSize.Level1)
     
     ret = ssm_->GetFloatViewLimits(2, limits);
     EXPECT_EQ(ret, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
+    SessionInfo info;
+    info.bundleName_ = "test1";
+    info.abilityName_ = "test2";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV);
+    sptr<SceneSession> fvSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(fvSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), nullptr });
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), fvSession });
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    SessionInfo info1;
+    info1.bundleName_ = "test11";
+    info1.abilityName_ = "test22";
+    info1.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB);
+    sptr<SceneSession> fvSession1 = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    ASSERT_NE(fvSession1, nullptr);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.insert({ fvSession1->GetPersistentId(), fvSession1 });
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_OK);
 }
 
 /**
@@ -1839,6 +2056,77 @@ HWTEST_F(SceneSessionManagerSupplementTest, RegisterBindDialogTargetListener, Te
     ASSERT_NE(ssm_->bindDialogTargetFuncMap_.find(persistentId), ssm_->bindDialogTargetFuncMap_.end());
     ssm_->bindDialogTargetFuncMap_.clear();
     ASSERT_EQ(ssm_->bindDialogTargetFuncMap_.find(persistentId), ssm_->bindDialogTargetFuncMap_.end());
+}
+
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_DeviceNotSupport
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId when device not support
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_DeviceNotSupport, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = false;
+    auto res = ssm_->SwitchFreeMultiWindow(true, 1);
+    ASSERT_EQ(res, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_InvalidSession
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId but session is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_InvalidSession, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    sptr<SceneSession> sceneSession;
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, 1);
+    ASSERT_EQ(res, WSError::WS_ERROR_INVALID_WINDOW);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_ValidSession
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId and session exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_ValidSession, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowWithWindowId_ValidSession";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    int32_t windowId = 1;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, windowId);
+    ASSERT_EQ(res, WSError::WS_OK);
+ 
+    res = ssm_->SwitchFreeMultiWindow(false, windowId);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowWithWindowId_Zero
+ * @tc.desc: Test SwitchFreeMultiWindow with windowId equals 0 (global switch)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_Zero, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowWithWindowId_Zero";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, 0);
+    ASSERT_EQ(res, WSError::WS_OK);
+    auto config = ssm_->GetSystemSessionConfig();
+    ASSERT_EQ(config.freeMultiWindowEnable_, true);
 }
 } // namespace
 } // namespace Rosen

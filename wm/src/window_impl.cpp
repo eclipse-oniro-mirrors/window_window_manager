@@ -355,6 +355,11 @@ Rect WindowImpl::GetRect() const
     return property_->GetWindowRect();
 }
 
+Rect WindowImpl::GetRect(bool useHookedSize) const
+{
+    return property_->GetWindowRect();
+}
+
 Rect WindowImpl::GetRequestRect() const
 {
     return property_->GetRequestRect();
@@ -366,6 +371,11 @@ WindowType WindowImpl::GetType() const
 }
 
 WindowMode WindowImpl::GetWindowMode() const
+{
+    return property_->GetWindowMode();
+}
+
+WindowMode WindowImpl::GetWindowModeCompat() const
 {
     return property_->GetWindowMode();
 }
@@ -1984,6 +1994,13 @@ WMError WindowImpl::PreProcessShow(uint32_t reason, bool withAnimation)
     return WMError::WM_OK;
 }
 
+void WindowImpl::NotifyMainWindowDidForeground(uint32_t reason)
+{
+    if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+        NotifyAfterDidForeground(reason, true);
+    }
+}
+
 void WindowImpl::SetShowWithOptions(bool showWithOptions)
 {
     showWithOptions_ = showWithOptions;
@@ -2018,7 +2035,6 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::TOGGLING) {
         state_ = WindowState::STATE_SHOWN;
         NotifyAfterForeground();
-
         if (static_cast<WindowStateChangeReason>(reason) == WindowStateChangeReason::KEYGUARD) {
             if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
                 NotifyAfterDidForeground(reason, true);
@@ -2041,6 +2057,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
         } else {
             NotifyAfterForeground(true, false);
         }
+        NotifyMainWindowDidForeground(reason);
         return WMError::WM_OK;
     }
     WMError ret = PreProcessShow(reason, withAnimation);
@@ -2054,6 +2071,7 @@ WMError WindowImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bo
     RecordLifeCycleExceptionEvent(LifeCycleEvent::SHOW_EVENT, ret);
     if (ret == WMError::WM_OK) {
         UpdateWindowStateWhenShow();
+        NotifyMainWindowDidForeground(reason);
     } else {
         NotifyForegroundFailed(ret);
         WLOGFE("show window id:%{public}u errCode:%{public}d", property_->GetWindowId(), static_cast<int32_t>(ret));
@@ -2119,8 +2137,12 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
         return ret;
     }
     UpdateWindowStateWhenHide();
+    if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
+        NotifyAfterDidBackground(reason, true);
+    }
     CustomHideAnimation();
     ResetMoveOrDragState();
+    
     escKeyEventTriggered_ = false;
     return ret;
 }
@@ -2728,6 +2750,14 @@ WMError WindowImpl::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& li
 }
 
 WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    WLOGFD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(windowChangeListeners_[GetWindowId()], listener);
+}
+
+WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+    bool useHookedSize)
 {
     WLOGFD("Start register");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
@@ -4938,7 +4968,7 @@ uint32_t WindowImpl::GetApiTargetVersion() const
     return version;
 }
 
-WMError WindowImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo)
+WMError WindowImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize)
 {
     if (!IsWindowValid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;

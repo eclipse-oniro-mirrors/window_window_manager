@@ -267,6 +267,7 @@ enum class TentMode : uint32_t {
     UNKNOWN,
     TENT_MODE,
     HOVER,
+    TENT_MODE_MAX
 };
 
 /**
@@ -960,7 +961,7 @@ enum class DisplayModeChangeReason : uint32_t {
 
 enum class ScreenClosedState : uint32_t {
     UNKNOWN = 0,
-    CLOSE = 0,
+    CLOSE,
     OPEN
 };
 }

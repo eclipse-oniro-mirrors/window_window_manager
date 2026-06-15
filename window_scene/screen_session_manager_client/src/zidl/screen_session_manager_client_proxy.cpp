@@ -117,6 +117,10 @@ bool ScreenSessionManagerClientProxy::ScreenConnectWriteParam(const SessionOptio
         TLOGE(WmsLogTag::DMS, "Write rsId failed");
         return false;
     }
+    if (!data.WriteString(sessionOption.serialNumber_)) {
+        TLOGE(WmsLogTag::DMS, "Write serialNumber failed");
+        return false;
+    }
     if (!data.WriteString(sessionOption.name_)) {
         TLOGE(WmsLogTag::DMS, "Write name failed");
         return false;
@@ -374,25 +378,61 @@ void ScreenSessionManagerClientProxy::OnSensorRotationChanged(ScreenId screenId,
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
         return;
     }
     if (!data.WriteUint64(screenId)) {
-        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write screenId failed");
         return;
     }
     if (!data.WriteFloat(sensorRotation)) {
-        TLOGE(WmsLogTag::DMS, "Write sensorRotation failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write sensorRotation failed");
         return;
     }
     if (!data.WriteBool(isSwitchUser)) {
-        TLOGE(WmsLogTag::DMS, "Write isSwitchUser failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write isSwitchUser failed");
         return;
     }
     if (remote->SendRequest(
         static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SENSOR_ROTATION_CHANGED),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
+        return;
+    }
+}
+
+void ScreenSessionManagerClientProxy::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
+    bool isSwitchUser)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteFloat(sensorRotation)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write sensorRotation failed");
+        return;
+    }
+    if (!data.WriteBool(isSwitchUser)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write isSwitchUser failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_ON_SMART_SENSOR_ROTATION_CHANGED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
         return;
     }
 }
@@ -1285,5 +1325,36 @@ bool ScreenSessionManagerClientProxy::WriteRSEventToParcel(MessageParcel& data, 
     }
 
     return true;
+}
+
+void ScreenSessionManagerClientProxy::SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(screenId)) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+    if (!data.WriteUint64(rsScreenId)) {
+        TLOGE(WmsLogTag::DMS, "Write rsScreenId failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(ScreenSessionManagerClientMessage::TRANS_ID_SET_DISPLAY_NODE_RS_SCREEN_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
 }
 } // namespace OHOS::Rosen

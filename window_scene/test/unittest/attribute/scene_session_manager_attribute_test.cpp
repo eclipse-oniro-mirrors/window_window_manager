@@ -110,6 +110,28 @@ HWTEST_F(SceneSessionManagerAttributeTest, GetTopNavDestinationName, TestSize.Le
 }
 
 /**
+ * @tc.name: NotifySurfaceNodeAlphaUpdate
+ * @tc.desc: test NotifySurfaceNodeAlphaUpdate.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, NotifySurfaceNodeAlphaUpdate, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    ssm_->sceneSessionMap_.clear();
+
+    EXPECT_EQ(ssm_->NotifySurfaceNodeAlphaUpdate(1000, 0.1f), WSError::WS_ERROR_INVALID_WINDOW);
+    ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession));
+    EXPECT_EQ(ssm_->NotifySurfaceNodeAlphaUpdate(2, 0.1f), WSError::WS_OK);
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
+
+/**
  * @tc.name: GetRealSessionState
  * @tc.desc: test get the real session state
  * @tc.type: FUNC

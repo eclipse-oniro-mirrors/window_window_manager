@@ -403,6 +403,29 @@ HWTEST_F(FoldScreenBaseControllerTest, GetScreenActiveModeRectMap, TestSize.Leve
     auto screenActiveModeRectMap = controller.GetScreenActiveModeRectMap();
     EXPECT_EQ(screenActiveModeRectMapTemp.size(), screenActiveModeRectMap.size());
 }
+
+/**
+ * @tc.name: SortCreaseRegionRects
+ * @tc.desc: test function : SortCreaseRegionRects
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldCreaseRegionControllerTest, SortCreaseRegionRects, TestSize.Level1)
+{
+    auto controller = FoldCreaseRegionController();
+    std::vector<DMRect> testRects = {
+        {10, 20, 100, 50},
+        {5, 30, 100, 50},
+        {10, 15, 100, 50}
+    };
+    controller.SortCreaseRegionRects(testRects);
+    ASSERT_EQ(testRects.size(), 3);
+    EXPECT_EQ(testRects[0].posX_, 5);
+    EXPECT_EQ(testRects[0].posY_, 30);
+    EXPECT_EQ(testRects[1].posX_, 10);
+    EXPECT_EQ(testRects[1].posY_, 15);
+    EXPECT_EQ(testRects[2].posX_, 10);
+    EXPECT_EQ(testRects[2].posY_, 20);
+}
 } // namespace
 } // namespace DMS
 } // namespace Rosen

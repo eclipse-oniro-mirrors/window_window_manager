@@ -150,6 +150,8 @@ public:
         const sptr<IDisplayManagerAgent>& displayManagerAgent);
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion);
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
     virtual DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds);
     virtual DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds);
     virtual DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds);

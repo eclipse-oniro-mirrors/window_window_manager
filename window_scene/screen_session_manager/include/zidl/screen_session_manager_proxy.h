@@ -86,6 +86,11 @@ public:
 
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
 
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
+        const DMRect& surfaceRegion) override;
+
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
+
     DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
 
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
@@ -276,6 +281,8 @@ public:
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) override;
     void NotifySwitchUserAnimationFinish() override;
+    void SubscribeMotionSensor(int32_t motionType) override;
+    void UnsubscribeMotionSensor(int32_t motionType) override;
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
 

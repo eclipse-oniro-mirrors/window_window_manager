@@ -138,6 +138,7 @@ public:
     static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
+    static napi_value SetStatusBarHeightMode(napi_env env, napi_callback_info info);
     static napi_value UpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
     static napi_value SupportZLevel(napi_env env, napi_callback_info info);
     static napi_value SetSupportFunctionType(napi_env env, napi_callback_info info);
@@ -207,6 +208,7 @@ public:
      */
     static napi_value SendAxisEvent(napi_env env, napi_callback_info info);
     static napi_value RedispatchTouchEvent(napi_env env, napi_callback_info info);
+    static napi_value RedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info);
 
     /*
      * Float view
@@ -227,6 +229,7 @@ private:
     napi_value OnRequestSceneSessionByCall(napi_env env, napi_callback_info info);
     napi_value OnStartAbilityBySpecified(napi_env env, napi_callback_info info);
     napi_value OnStartUIAbilityBySCB(napi_env env, napi_callback_info info);
+    napi_value OnNotifyStartWindowsAbility(napi_env env, napi_callback_info info);
     napi_value OnChangeUIAbilityVisibilityBySCB(napi_env env, napi_callback_info info);
     napi_value OnGetWindowSceneConfig(napi_env env, napi_callback_info info);
     napi_value OnGetSystemConfig(napi_env env, napi_callback_info info);
@@ -292,6 +295,7 @@ private:
     napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
+    napi_value OnSetStatusBarHeightMode(napi_env env, napi_callback_info info);
     napi_value OnUpdateRsCmdBlockingCount(napi_env env, napi_callback_info info);
     napi_value OnSupportZLevel(napi_env env, napi_callback_info info);
     napi_value OnUpdateRecentMainSessionInfos(napi_env env, napi_callback_info info);
@@ -416,6 +420,7 @@ private:
     void OnWatchFocusActiveChange(bool isActive);
     napi_value OnSendAxisEvent(napi_env env, napi_callback_info info);
     napi_value OnRedispatchTouchEvent(napi_env env, napi_callback_info info);
+    napi_value OnRedispatchCustomizedTouchEvent(napi_env env, napi_callback_info info);
 
     /*
      * Window Lifecycle
@@ -430,6 +435,7 @@ private:
     static napi_value RequestSceneSessionByCall(napi_env env, napi_callback_info info);
     static napi_value StartAbilityBySpecified(napi_env env, napi_callback_info info);
     static napi_value StartUIAbilityBySCB(napi_env env, napi_callback_info info);
+    static napi_value NotifyStartWindowsAbility(napi_env env, napi_callback_info info);
     napi_value OnGetApplicationInfo(napi_env env, napi_callback_info info);
     napi_value OnSupportCreateFloatWindow(napi_env env, napi_callback_info info);
     void RegisterSceneSessionDestructCallback();
@@ -489,7 +495,7 @@ private:
      */
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
-    bool OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit);
+    void OnGetFloatViewLimitCallback();
 };
 } // namespace OHOS::Rosen
 

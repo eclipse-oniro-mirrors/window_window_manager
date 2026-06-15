@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_SESSION_IMPL_H
 #define OHOS_ROSEN_WINDOW_SESSION_IMPL_H
 
+#include <algorithm>
 #include <atomic>
 
 #include <shared_mutex>
@@ -98,7 +99,6 @@ public:
     static sptr<Window> Find(const std::string& name);
     static std::vector<sptr<Window>> GetSubWindow(int parentId);
     static sptr<WindowSessionImpl> GetWindowWithId(uint32_t windowId);
-    static bool IsAnyWindowMatchState(const WindowState &state);
 
     virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession,
@@ -137,7 +137,7 @@ public:
     const std::shared_ptr<AbilityRuntime::Context> GetContext() const override;
     void SetContext(const std::shared_ptr<AbilityRuntime::Context>& context);
     Rect GetRequestRect() const override;
-    Rect GetGlobalDisplayRect() const override;
+    Rect GetGlobalDisplayRect(bool useHookedSize = false) const override;
     WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition) const override;
     WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const override;
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
@@ -229,7 +229,10 @@ public:
     uint32_t GetWindowId() const override;
     uint64_t GetDisplayId() const override;
     Rect GetRect() const override;
+    Rect GetRect(bool useHookedSize) const override;
     bool GetFocusable() const override;
+    void SetViewportConfigUseHookedSize(bool useHookedSize) override;
+    bool GetViewportConfigUseHookedSize() const override;
     std::string GetContentInfo(BackupAndRestoreType type = BackupAndRestoreType::CONTINUATION) override;
     WMError SetRestoredRouterStack(const std::string& routerStack) override;
     Ace::UIContent* GetUIContent() const override;
@@ -299,6 +302,8 @@ public:
     WMError RegisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError UnregisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
+    WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) override;
     WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
     WMError RegisterWindowCrossAxisListener(const sptr<IWindowCrossAxisListener>& listener) override;
     WMError UnregisterWindowCrossAxisListener(const sptr<IWindowCrossAxisListener>& listener) override;
@@ -368,6 +373,10 @@ public:
     virtual WMError HandleUIExtRegisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data);
     virtual WMError HandleUIExtUnregisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
+    virtual WMError HandleUIExtRegisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
+    virtual WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data);
 
     WMError SetBackgroundColor(const std::string& color) override;
@@ -505,14 +514,15 @@ public:
     void RecoverSessionListener();
     void RecoverDensityChangeListener();
     void SetDefaultDisplayIdIfNeed();
-    WMError RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
+    WMError RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener,
+        bool useHookedSize = true) override;
     WMError UnregisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
     WMError RegisterWindowTitleChangeListener(const sptr<IWindowTitleChangeListener>& listener) override;
     WMError UnregisterWindowTitleChangeListener(const sptr<IWindowTitleChangeListener>& listener) override;
     WMError RegisterWindowTitleOrHotAreasListener(const sptr<IWindowTitleOrHotAreasListener>& listener) override;
     WMError UnregisterWindowTitleOrHotAreasListener(const sptr<IWindowTitleOrHotAreasListener>& listener) override;
     WMError RegisterRectChangeInGlobalDisplayListener(
-        const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
+        const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize = true) override;
     WMError UnregisterRectChangeInGlobalDisplayListener(
         const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
     WMError RegisterExtensionSecureLimitChangeListener(
@@ -583,6 +593,7 @@ public:
     {
         windowSystemConfig_.freeMultiWindowEnable_ = enable;
     }
+    virtual void UpdateSubWindowDragEnabledByDecorVisible() {}
     void SwitchSubWindow(bool freeMultiWindowEnable, int32_t parentId);
     void SwitchSystemWindow(bool freeMultiWindowEnable, int32_t parentId);
 
@@ -728,6 +739,24 @@ protected:
     void NotifyBeforeDestroy(std::string windowName);
     void NotifyAfterDestroy();
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
+    template<typename T> WMError RegisterListener(std::vector<std::pair<sptr<T>, bool>>& holder,
+        const std::pair<sptr<T>, bool>& listener)
+    {
+        if (listener.first == nullptr) {
+            TLOGE(WmsLogTag::DEFAULT, "listener is null");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        auto it = std::find_if(holder.begin(), holder.end(),
+            [&listener](const std::pair<sptr<T>, bool>& registered) {
+                return registered.first == listener.first;
+            });
+        if (it != holder.end()) {
+            TLOGE(WmsLogTag::DEFAULT, "already registered");
+            return WMError::WM_OK;
+        }
+        holder.emplace_back(listener);
+        return WMError::WM_OK;
+    }
     template<typename T> WMError UnregisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener)
     {
         if (listener == nullptr) {
@@ -737,6 +766,19 @@ protected:
         holder.erase(std::remove_if(holder.begin(), holder.end(),
             [listener](sptr<T> registeredListener) {
                 return registeredListener == listener;
+            }), holder.end());
+        return WMError::WM_OK;
+    }
+    template<typename T> WMError UnregisterListener(std::vector<std::pair<sptr<T>, bool>>& holder,
+        const sptr<T>& listener)
+    {
+        if (listener == nullptr) {
+            TLOGE(WmsLogTag::DEFAULT, "listener could not be null");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        holder.erase(std::remove_if(holder.begin(), holder.end(),
+            [listener](const std::pair<sptr<T>, bool>& registered) {
+                return registered.first == listener;
             }), holder.end());
         return WMError::WM_OK;
     }
@@ -758,6 +800,21 @@ protected:
  
     template<typename T>
     WMError UnregisterListenerInMap(std::unordered_map<int32_t, std::vector<sptr<T>>>& listenerMap,
+        int32_t persistentId, const sptr<T>& listener)
+    {
+        if (listener == nullptr) {
+            TLOGE(WmsLogTag::DEFAULT, "listener could not be null");
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        auto it = listenerMap.find(persistentId);
+        if (it == listenerMap.end()) {
+            return WMError::WM_OK;
+        }
+        return UnregisterListener(listenerMap[persistentId], listener);
+    }
+
+    template<typename T>
+    WMError UnregisterListenerInMap(std::map<int32_t, std::vector<std::pair<sptr<T>, bool>>>& listenerMap,
         int32_t persistentId, const sptr<T>& listener)
     {
         if (listener == nullptr) {
@@ -854,8 +911,10 @@ protected:
     std::unordered_set<int32_t> keyboardDidShowUIExtListenerIds_;
     std::unordered_set<int32_t> keyboardDidHideUIExtListenerIds_;
     std::unordered_set<int32_t> rectChangeInGlobalDisplayUIExtListenerIds_;
+    std::unordered_set<int32_t> touchOutsideUIExtListenerIds_;
     std::unordered_map<int32_t, sptr<IKeyboardDidShowListener>> keyboardDidShowUIExtListeners_;
     std::unordered_map<int32_t, sptr<IKeyboardDidHideListener>> keyboardDidHideUIExtListeners_;
+    std::unordered_map<int32_t, sptr<ITouchOutsideListener>> touchOutsideUIExtListeners_;
     bool followCreatorLifecycle_ = false;
     bool isHiddenFollowingUIExtension_ = false;
     void WriteKeyboardInfoToWant(AAFwk::Want& want, const KeyboardPanelInfo& keyboardPanelInfo) const;
@@ -868,6 +927,7 @@ protected:
     bool IsHiddenFollowingUIExtension() { return isHiddenFollowingUIExtension_; }
     std::mutex hostWindowRectChangeListenerMutex_;
     std::mutex hostRectChangeInGlobalDisplayListenerMutex_;
+    void NotifyUIExtTouchOutside();
 
     /*
      * Sub Window
@@ -943,6 +1003,7 @@ protected:
     float compatScaleY_ = 1.0f;
     mutable std::mutex compatScaleListenerMutex_;
     std::atomic_bool isFullScreenInForceSplit_ { false };
+    std::atomic_bool viewportUseHookedSize_ { false };
     std::vector<sptr<IUIContentCreateListener>> uiContentCreateListeners_;
     std::atomic_bool notifySizeChangeInCompatibleMode_ { false };
     std::atomic_bool notifyRectChangeInCompatibleMode_ { false };
@@ -1008,7 +1069,7 @@ protected:
     void NotifyWindowStatusDidChange(WindowMode mode);
     void NotifyFirstValidLayoutUpdate(const Rect& preRect, const Rect& newRect);
     std::atomic_bool hasSetEnableDrag_ = false;
-    void HookWindowSizeByHookWindowInfo(Rect& rect);
+    void HookWindowSizeByHookWindowInfo(Rect& rect) const;
     void SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
 
@@ -1056,6 +1117,8 @@ protected:
     WSError NotifyWindowDensityChange(float density);
     void RegisterWindowInspectorCallback();
     uint32_t GetTargetAPIVersionByApplicationInfo() const;
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
+    void NotifySurfaceNodeAlphaUpdate(float alpha);
 
     /*
      * Window Input Event
@@ -1063,11 +1126,12 @@ protected:
     bool GetWatchGestureConsumed() const;
     void SetWatchGestureConsumed(bool isWatchGestureConsumed);
     bool dialogSessionBackGestureEnabled_ = false;
-
+    static std::map<int32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     /*
      * Window Rotation
      */
     int16_t rotationAnimationCount_ { 0 };
+    int16_t sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
     mutable std::mutex virtualPixelRatioMutex_;
 
@@ -1106,7 +1170,8 @@ private:
     EnableIfSame<T, IWindowStageLifeCycle, std::vector<sptr<IWindowStageLifeCycle>>> GetListeners();
     template<typename T> EnableIfSame<T, IDisplayMoveListener, std::vector<sptr<IDisplayMoveListener>>> GetListeners();
     template<typename T>
-    EnableIfSame<T, IWindowChangeListener, std::vector<sptr<IWindowChangeListener>>> GetListeners();
+    EnableIfSame<T, IWindowChangeListener,
+        std::vector<std::pair<sptr<IWindowChangeListener>, bool>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IAvoidAreaChangedListener, std::vector<sptr<IAvoidAreaChangedListener>>> GetListeners();
     template<typename T>
@@ -1152,13 +1217,15 @@ private:
     EnableIfSame<T, IParentWindowStatusChangeListener, std::vector<sptr<IParentWindowStatusChangeListener>>>
         GetListeners();
     template<typename T>
-    EnableIfSame<T, IWindowRectChangeListener, std::vector<sptr<IWindowRectChangeListener>>> GetListeners();
+    EnableIfSame<T, IWindowRectChangeListener,
+        std::vector<std::pair<sptr<IWindowRectChangeListener>, bool>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IWindowTitleChangeListener, std::vector<sptr<IWindowTitleChangeListener>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IWindowTitleOrHotAreasListener, std::vector<sptr<IWindowTitleOrHotAreasListener>>> GetListeners();
     template<typename T>
-    EnableIfSame<T, IRectChangeInGlobalDisplayListener, std::vector<sptr<IRectChangeInGlobalDisplayListener>>>
+    EnableIfSame<T, IRectChangeInGlobalDisplayListener,
+        std::vector<std::pair<sptr<IRectChangeInGlobalDisplayListener>, bool>>>
         GetListeners();
     template<typename T>
     EnableIfSame<T, IExtensionSecureLimitChangeListener, std::vector<sptr<IExtensionSecureLimitChangeListener>>>
@@ -1297,7 +1364,7 @@ private:
     static std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowStageLifeCycle>>> windowStageLifecycleListeners_;
     static std::map<int32_t, std::vector<sptr<IDisplayMoveListener>>> displayMoveListeners_;
-    static std::map<int32_t, std::vector<sptr<IWindowChangeListener>>> windowChangeListeners_;
+    static std::map<int32_t, std::vector<std::pair<sptr<IWindowChangeListener>, bool>>> windowChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowCrossAxisListener>>> windowCrossAxisListeners_;
     static std::map<int32_t, std::vector<sptr<IAvoidAreaChangedListener>>> avoidAreaChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IDialogDeathRecipientListener>>> dialogDeathRecipientListeners_;
@@ -1310,7 +1377,6 @@ private:
     static std::map<int32_t, std::vector<sptr<IScreenshotListener>>> screenshotListeners_;
     static std::recursive_mutex screenshotAppEventListenerMutex_;
     static std::unordered_map<int32_t, std::vector<IScreenshotAppEventListenerSptr>> screenshotAppEventListeners_;
-    static std::map<int32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     static std::map<int32_t, std::vector<IWindowVisibilityListenerSptr>> windowVisibilityChangeListeners_;
     static std::mutex displayIdChangeListenerMutex_;
     static std::map<int32_t, std::vector<IDisplayIdChangeListenerSptr>> displayIdChangeListeners_;
@@ -1326,10 +1392,11 @@ private:
     static std::map<int32_t, std::vector<sptr<IWindowStatusDidChangeListener>>> windowStatusDidChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IParentWindowSizeChangeListener>>> parentWindowSizeChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IParentWindowStatusChangeListener>>> parentWindowStatusChangeListeners_;
-    static std::map<int32_t, std::vector<sptr<IWindowRectChangeListener>>> windowRectChangeListeners_;
+    static std::map<int32_t, std::vector<std::pair<sptr<IWindowRectChangeListener>, bool>>> windowRectChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowTitleChangeListener>>> windowTitleChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowTitleOrHotAreasListener>>> windowTitleOrHotAreasListeners_;
-    static std::map<int32_t, std::vector<sptr<IRectChangeInGlobalDisplayListener>>> rectChangeInGlobalDisplayListeners_;
+    static std::map<int32_t, std::vector<std::pair<sptr<IRectChangeInGlobalDisplayListener>, bool>>>
+        rectChangeInGlobalDisplayListeners_;
     static std::map<int32_t, std::vector<sptr<IExtensionSecureLimitChangeListener>>> secureLimitChangeListeners_;
     static std::map<int32_t, std::vector<sptr<ISwitchFreeMultiWindowListener>>> switchFreeMultiWindowListeners_;
     static std::map<int32_t, sptr<IPreferredOrientationChangeListener>> preferredOrientationChangeListener_;

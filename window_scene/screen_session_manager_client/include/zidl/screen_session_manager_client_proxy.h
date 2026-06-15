@@ -36,6 +36,7 @@ public:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
+    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
     void OnScreenOrientationChangedWithOptions(ScreenId screenId,
@@ -74,7 +75,9 @@ public:
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;
     void OnTentModeChange(TentMode tentMode) override;
     void OnTransRSEvent(const sptr<RSEventDataBase>& param) override;
+    void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
     void OnScreenClosedStateChange(ScreenClosedState screenClosedState) override;
+
 private:
     static inline BrokerDelegator<ScreenSessionManagerClientProxy> delegator_;
     bool ScreenConnectWriteParam(const SessionOption& SessionOption, ScreenEvent screenEvent, MessageParcel& data);

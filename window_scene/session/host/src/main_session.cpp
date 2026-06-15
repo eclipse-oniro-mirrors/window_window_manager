@@ -665,8 +665,27 @@ void MainSession::RegisterSetSelectModeCallback(SetSelectModeCallback&& callback
     setSelectModeCallback_ = std::move(callback);
 }
 
+void MainSession::RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback)
+{
+    splitRatioChangeCallback_ = std::move(callback);
+}
+
 WMError MainSession::NotifySplitRatioChanged(float newRatio)
 {
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "id: %{public}d property is null", persistentId_);
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "windowId: %{public}d, update hook window info ratio "
+        "to %{public}f", persistentId_, newRatio);
+    property->SetWidthHookRatio(newRatio);
+    
+    if (!splitRatioChangeCallback_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "id: %{public}d, split ratio change callback is null", persistentId_);
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    splitRatioChangeCallback_(newRatio);
     return WMError::WM_OK;
 }
 

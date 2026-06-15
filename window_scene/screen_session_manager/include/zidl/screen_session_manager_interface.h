@@ -59,6 +59,16 @@ public:
         return DMError::DM_OK;
     }
 
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
+        const DMRect& surfaceRegion)
+    {
+        return DMError::DM_OK;
+    }
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
+    {
+        return DMError::DM_OK;
+    }
+
     virtual DMError AddVirtualScreenBlockList(const std::vector<int32_t> &persistentIds)
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
@@ -443,6 +453,8 @@ public:
         bool enable) { return DMError::DM_OK; }
     virtual bool SynchronizePowerStatus(ScreenPowerState state) { return false; }
     virtual void NotifySwitchUserAnimationFinish() {}
+    virtual void SubscribeMotionSensor(int32_t motionType) {}
+    virtual void UnsubscribeMotionSensor(int32_t motionType) {}
     virtual DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty)
     {
         return DMError::DM_OK;

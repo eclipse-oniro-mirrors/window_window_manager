@@ -44,7 +44,6 @@ class WindowManagerLite : public RefBase {
 public:
     static WindowManagerLite& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
-    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register focus changed listener.
@@ -551,6 +550,8 @@ private:
     WMError UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo);
 };
 } // namespace Rosen

@@ -27,6 +27,7 @@ namespace OHOS::Rosen {
 
 struct SessionOption {
     ScreenId rsId_;
+    std::string serialNumber_;
     std::string name_;
     bool isExtend_;
     std::string innerName_;

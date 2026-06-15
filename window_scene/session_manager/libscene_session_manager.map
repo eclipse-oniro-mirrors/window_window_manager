@@ -42,6 +42,7 @@
             OHOS::Rosen::SceneSessionManager::ConfigSupportCacheLockedSessionSnapshot*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportCreateFloatWindow*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportFollowParentWindowLayout*;
+            OHOS::Rosen::SceneSessionManager::ConfigStatusBarHeightMode*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportFollowRelativePositionToParent*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportFunctionType*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportPreloadStartingWindow*;
@@ -199,6 +200,7 @@
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;
             OHOS::Rosen::SceneSessionManager::StartUIAbilityBySCB*;
+            OHOS::Rosen::SceneSessionManager::NotifyStartWindowsAbility*;
             OHOS::Rosen::SceneSessionManager::SwitchFreeMultiWindow*;
             OHOS::Rosen::SceneSessionManager::UnregisterSpecificSessionCreateListener*;
             OHOS::Rosen::SceneSessionManager::UpdateAllStartingWindowRdb*;

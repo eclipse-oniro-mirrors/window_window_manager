@@ -4527,6 +4527,87 @@ HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_SubWindowCustomConfig01, 
     WMError ret = window->Recover(1, config);
     ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
 }
+
+/**
+ * @tc.name: StartMovingWithOptionsValidatesWindowAndSessionState
+ * @tc.desc: StartMovingWithOptions rejects invalid window types, invalid rects, and missing sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsValidatesWindowAndSessionState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    StartMovingOptions options;
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(window->StartMovingWithOptions(options), WMError::WM_ERROR_INVALID_CALLING);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
+    options.avoidRect = { INT32_MAX, INT32_MAX, 1, 1 };
+    EXPECT_EQ(window->StartMovingWithOptions(options), WMError::WM_ERROR_ILLEGAL_PARAM);
+
+    options.avoidRect = Rect::EMPTY_RECT;
+    EXPECT_EQ(window->StartMovingWithOptions(options), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsReturnsSuccessForPcAppInPadFullscreen
+ * @tc.desc: StartMovingWithOptions keeps the existing no-op success path for pc apps in pad fullscreen mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsReturnsSuccessForPcAppInPadFullscreen, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetIsPcAppInPad(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+
+    EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsForwardsRequestToHostSession
+ * @tc.desc: StartMovingWithOptions forwards valid options to the host session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsForwardsRequestToHostSession, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    window->hostSession_ = sceneSession;
+
+    EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsReturnsHostSessionError
+ * @tc.desc: StartMovingWithOptions propagates a non-success result returned by the host session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsReturnsHostSessionError, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->isStartMove_ = true;
+    window->hostSession_ = sceneSession;
+
+    EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_ERROR_REPEAT_OPERATION);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

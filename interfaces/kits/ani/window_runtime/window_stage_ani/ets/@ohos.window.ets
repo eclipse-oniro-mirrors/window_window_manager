@@ -897,6 +897,7 @@ export enum WindowType {
     TYPE_DYNAMIC = 25,
     TYPE_MUTISCREEN_COLLABORATION = 26,
     TYPE_MAIN = 32,
+    TYPE_UI_EXTENSION = 3000,
 }
 
 export enum Orientation {
@@ -1596,6 +1597,11 @@ export interface RotationChangeResult {
 
 export interface MoveConfiguration {
     displayId?: long;
+}
+
+export interface StartMovingOptions {
+  needFocused?: boolean;
+  avoidRect?: Rect;
 }
 
 export class MoveConfigurationInternal implements MoveConfiguration {
@@ -3189,6 +3195,7 @@ export class WindowInternal implements Window {
     private native maximize(nativeObj: long, presentation?: MaximizePresentation, acrossDisplay?: boolean): void;
     private native maximizeWithOptionsSync(nativeObj: long, maximizeOptions?: MaximizeOptions): void;
     private native startMoving(nativeObj: long): void;
+    private native startMovingWithOptions(nativeObj: long, startMovingOptions?: StartMovingOptions): void;
     private native startMoveWindowWithCoordinate(nativeObj: long, offsetX: int, offsetY: int): void;
     private native stopMoving(nativeObj: long): void;
     private native setResizeByDragEnabled(nativeObj: long, enable: boolean): void;
@@ -5111,6 +5118,18 @@ export class WindowInternal implements Window {
       });
     }
 
+    public startMovingWithOptions(startMovingOptions?: StartMovingOptions): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
+        taskpool.execute((): void => {
+          this.startMovingWithOptions(this.nativeObj, startMovingOptions);
+        }).then((ret: Any): void => {
+            resolve(undefined);
+        }).catch((err: Any): void => {
+            reject(err as BusinessError);
+        });
+      });
+    }
+
     public startMoving(offsetX: int, offsetY: int): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
@@ -5675,6 +5694,7 @@ export interface Window {
     maximize(presentation?: MaximizePresentation, acrossDisplay?: boolean): Promise<void>;
     maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void>;
     startMoving(): Promise<void>;
+    startMovingWithOptions(startMovingOptions?: StartMovingOptions): Promise<void>;
     startMoving(offsetX: int, offsetY: int): Promise<void>;
     stopMoving(): Promise<void>;
     enableLandscapeMultiWindow(): Promise<void>;

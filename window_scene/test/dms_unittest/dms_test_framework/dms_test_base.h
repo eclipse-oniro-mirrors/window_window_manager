@@ -45,6 +45,8 @@ public:
                 (DisplayPowerEvent event, EventStatus status, PowerStateChangeReason reason), (override));
     MOCK_METHOD(void, OnSensorRotationChanged, (ScreenId screenId, float sensorRotation, bool isSwitchUser),
                 (override));
+    MOCK_METHOD(void, OnSmartSensorRotationChanged, (ScreenId screenId, float sensorRotation, bool isSwitchUser),
+                (override));
     MOCK_METHOD(void, OnHoverStatusChanged, (ScreenId screenId, int32_t hoverStatus, bool needRotate), (override));
     MOCK_METHOD(void, OnScreenOrientationChanged, (ScreenId screenId, float screenOrientation), (override));
     MOCK_METHOD(void, OnScreenOrientationChangedWithOptions, (ScreenId screenId,
@@ -90,6 +92,7 @@ public:
     MOCK_METHOD(void, SetInternalClipToBounds, (ScreenId screenId, bool clipToBounds), (override));
     MOCK_METHOD(void, OnTentModeChange, (TentMode tentMode), (override));
     MOCK_METHOD(void, OnTransRSEvent, (const sptr<RSEventDataBase>& param), (override));
+    MOCK_METHOD(void, SetDisplayNodeRSScreenId, (ScreenId screenId, ScreenId rsScreenId), (override));
     MOCK_METHOD(void, OnScreenClosedStateChange, (ScreenClosedState screenClosedState), (override));
 };
 
@@ -128,13 +131,16 @@ public:
 class DmsTestBase : public testing::Test {
 public:
     DmsTestBase();
-    void TriggerScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
-    void TriggerScreenConnect(ScreenId screenId);
-    void TriggerScreenDisconnect(ScreenId screenId);
-    bool WaitScreenConnectFinish(ScreenId screenId);
-    bool WaitScreenDisconnectFinish(ScreenId screenId);
+    static void TriggerScreenChange(ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason);
+    static void TriggerScreenConnect(ScreenId screenId);
+    static void TriggerScreenDisconnect(ScreenId screenId);
+    static bool WaitScreenConnectFinish(ScreenId screenId);
+    static bool WaitScreenDisconnectFinish(ScreenId screenId);
 
-    bool CreatScreen(ScreenId screenId);
+    static void TriggerRotationSensorEvent(int32_t rotationStatus);
+    static void TriggerTentSensorEvent(int32_t status, int32_t dataLen, int32_t* data);
+
+    static bool CreatScreen(ScreenId screenId);
 };
 
 }  // namespace Rosen

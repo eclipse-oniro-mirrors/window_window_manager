@@ -3176,6 +3176,29 @@ WSError SessionStageProxy::ShowSubWindowZLevelAboveParentLoosened()
     return WSError::WS_OK;
 }
 
+WSError SessionStageProxy::DestroySubWindowZLevelAboveParentLoosened()
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_DESTROY_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
 WSError SessionStageProxy::SetIsStartMoving(bool isStartMoving)
 {
     MessageParcel data;

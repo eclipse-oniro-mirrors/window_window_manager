@@ -137,12 +137,15 @@ public:
     void SetScreenCombination(ScreenId mainScreenId, ScreenId extendScreenId,
         ScreenCombination extendCombination) override;
     std::string OnDumperClientScreenSessions() override;
+    void DumpClientScreenProperty(std::ostringstream& oss, ScreenProperty prop);
     void SetDefaultMultiScreenModeWhenSwitchUser();
     void NotifyExtendScreenCreateFinish();
     void NotifyExtendScreenDestroyFinish();
     void NotifyScreenMaskAppear();
     void NotifySwitchUserAnimationFinish(const std::string& description);
     void NotifySwitchUserAnimationFinishByWindow();
+    void SubscribeMotionSensor(int32_t motionType);
+    void UnsubscribeMotionSensor(int32_t motionType);
     void RegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
     void OnTentModeChange(TentMode tentMode) override;
@@ -178,6 +181,7 @@ private:
     bool CheckIfNeedConnectScreen(SessionOption option);
     void OnScreenConnectionChanged(SessionOption option, ScreenEvent screenEvent) override;
     bool HandleScreenConnection(SessionOption option);
+    void HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config, sptr<ScreenSession>& screenSession);
     void HandleScreenDisconnectEvent(SessionOption option, ScreenEvent screenEvent);
     bool HandleScreenDisconnection(SessionOption option);
     void NotifyClientScreenConnect(sptr<ScreenSession>& screenSession);
@@ -186,6 +190,7 @@ private:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
+    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
     void OnScreenOrientationChangedWithOptions(ScreenId screenId,
@@ -201,6 +206,7 @@ private:
     void OnScreenModeChanged(ScreenModeChangeEvent screenModeChangeEvent) override;
 
     void SetDisplayNodeScreenId(ScreenId screenId, ScreenId displayNodeScreenId) override;
+    void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
     void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) override;
 
     void NotifyScreenConnect(const sptr<ScreenSession>& screenSession);

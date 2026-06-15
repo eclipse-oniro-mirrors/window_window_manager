@@ -749,7 +749,8 @@ WMError WindowManagerProxy::GetUnreliableWindowInfo(int32_t windowId,
     return static_cast<WMError>(reply.ReadInt32());
 }
 
-WMError WindowManagerProxy::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
+WMError WindowManagerProxy::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize)
 {
     MessageParcel data;
     MessageParcel reply;

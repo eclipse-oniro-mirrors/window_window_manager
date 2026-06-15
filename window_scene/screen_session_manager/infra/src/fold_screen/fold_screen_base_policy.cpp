@@ -672,6 +672,9 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayM
 
 void FoldScreenBasePolicy::SendSensorResult(FoldStatus foldStatus)
 {
+    if (lockDisplayStatus_) {
+        return;
+    }
     TLOGI(WmsLogTag::DMS, "SendSensorResult FoldStatus: %{public}d", foldStatus);
     FoldDisplayMode displayMode = GetModeMatchStatus();
     ChangeScreenDisplayMode(displayMode);
@@ -987,11 +990,6 @@ DMError FoldScreenBasePolicy::SetFoldStatusAndLockControl(bool isLocked, FoldSta
 FoldStatus FoldScreenBasePolicy::GetPhysicalFoldStatus()
 {
     return lastFoldStatus_;
-}
-
-bool FoldScreenBasePolicy::GetLockDisplayStatus() const
-{
-    return lockDisplayStatus_;
 }
 
 void FoldScreenBasePolicy::SetCurrentDisplayMode(FoldDisplayMode mode)

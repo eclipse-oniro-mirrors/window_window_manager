@@ -201,9 +201,29 @@ int32_t Session::GetCurrentRotation() const
     return currentRotation_;
 }
 
+void Session::SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
+{
+    if (surfaceNode == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is null, win=[%{public}d, %{public}s]",
+            GetWindowId(), GetWindowName().c_str());
+        return;
+    }
+    surfaceNode->SetAlphaChangedCallback([weak = wptr(this), where = __func__](float alpha) {
+        auto session = weak.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], alpha=%{public}f",
+            where, session->GetWindowId(), session->GetWindowName().c_str(), alpha);
+        session->SetSurfaceNodeAlpha(alpha);
+    });
+}
+
 void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
 {
     RSAdapterUtil::SetRSUIContext(surfaceNode, GetRSUIContext(), true);
+    SetSurfaceNodeAlphaChangedCallback(surfaceNode);
     {
         std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
         surfaceNode_ = surfaceNode;
@@ -589,6 +609,16 @@ bool Session::GetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition)
 void Session::SetSessionInfoWindowMode(int32_t windowMode)
 {
     sessionInfo_.windowMode = windowMode;
+}
+
+void Session::SetDeviceType(const std::string& deviceType)
+{
+    deviceType_ = deviceType;
+}
+
+const std::string& Session::GetDeviceType() const
+{
+    return deviceType_;
 }
 
 void Session::SetSessionInfoRequestId(int32_t requestId)
@@ -1223,6 +1253,16 @@ int32_t Session::GetCallingUid() const
     return callingUid_;
 }
 
+void Session::SetSceneLastUsedPosition(const std::string& position)
+{
+    sceneLastUsedPosition_ = position;
+}
+
+const std::string Session::GetSceneLastUsedPosition() const
+{
+    return sceneLastUsedPosition_;
+}
+
 void Session::SetAbilityToken(sptr<IRemoteObject> token)
 {
     abilityToken_ = token;
@@ -1766,7 +1806,7 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     }
     if (GetSessionProperty()->GetIsNeedUpdateWindowMode()) {
         property->SetIsNeedUpdateWindowMode(true);
-        property->SetWindowMode(GetSessionProperty()->GetWindowMode());
+        property->SetWindowModeInfo(GetSessionProperty()->GetWindowModeInfo());
     }
     if (SessionHelper::IsMainWindow(GetWindowType()) && GetSessionInfo().screenId_ != SCREEN_ID_INVALID) {
         property->SetDisplayId(GetSessionInfo().screenId_);
@@ -1842,7 +1882,7 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     property->SetMobileAppInPadLayoutFullScreen(GetSessionProperty()->GetMobileAppInPadLayoutFullScreen());
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
     const bool isShow = !(isScreenLockedCallback_ && isScreenLockedCallback_() &&
-        systemConfig_.freeMultiWindowSupport_ && !isPcMode);
+        systemConfig_.freeMultiWindowSupport_ && !isPcMode && !IsPcWindow());
     property->SetIsShowDecorInFreeMultiWindow(isShow);
     SetSessionProperty(property);
     GetSessionProperty()->SetIsNeedUpdateWindowMode(false);
@@ -2230,6 +2270,16 @@ void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
     return isPendingToBackgroundState_.store(isPendingToBackgroundState);
 }
 
+bool Session::IsNeedNotifyAttachState(bool isAttach)
+{
+    if (WindowHelper::IsMainWindow(GetWindowType()) && (showRecent_ || isAttach == isClientAttach_)) {
+        TLOGI(WmsLogTag::WMS_LIFE, "No need notifyWindowAttachStateChange, persistentId:%{public}d",
+            GetPersistentId());
+        return false;
+    }
+    return true;
+}
+
 void Session::SetAttachState(bool isAttach, WindowMode windowMode)
 {
     isAttach_ = isAttach;
@@ -2239,15 +2289,19 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
     PostTask([weakThis = wptr(this), isAttach]() {
         auto session = weakThis.promote();
         if (session == nullptr) {
-            TLOGND(WmsLogTag::WMS_LIFE, "session is null");
+            TLOGD(WmsLogTag::WMS_LIFE, "session is null");
             return;
         }
-        if (session->sessionStage_ && WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType())) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
+        if (WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType()) &&
+            session->IsNeedNotifyAttachState(isAttach)) {
+            session->isClientAttach_ = isAttach;
+            TLOGI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
-            session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
+            if (session->sessionStage_) {
+                session->sessionStage_->NotifyWindowAttachStateChange(isAttach);
+            }
         }
-        TLOGND(WmsLogTag::WMS_LIFE, "isAttach:%{public}d persistentId:%{public}d", isAttach,
+        TLOGD(WmsLogTag::WMS_LIFE, "isAttach:%{public}d persistentId:%{public}d", isAttach,
             session->GetPersistentId());
         if (!isAttach && session->detachCallback_ != nullptr) {
             TLOGNI(WmsLogTag::WMS_LIFE, "Session detach, persistentId:%{public}d", session->GetPersistentId());
@@ -2990,15 +3044,15 @@ bool Session::IsLoosenedWithFreeMultiMode() const
 
 WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise)
 {
+    const auto& property = GetSessionProperty();
     auto parentSession = GetParentSession();
-    if (parentSession && parentSession->CheckDialogOnForeground()) {
-        TLOGD(WmsLogTag::WMS_DIALOG, "Its main window has dialog on foreground, id: %{public}d", GetPersistentId());
+    if (property->GetSubWindowZLevel() < DIALOG_SUB_WINDOW_Z_LEVEL && parentSession &&
+        parentSession->CheckDialogOnForeground()) {
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
-    const auto& property = GetSessionProperty();
     bool raiseEnabled = property->GetRaiseEnabled();
     bool isHoverDown = action == MMI::PointerEvent::POINTER_ACTION_HOVER_ENTER &&
-        sourceType ==  MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+        sourceType == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
     bool isPointDown = action == MMI::PointerEvent::POINTER_ACTION_DOWN ||
         action == MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN || isHoverDown;
     bool isPointMove = action == MMI::PointerEvent::POINTER_ACTION_MOVE;
@@ -3013,9 +3067,7 @@ WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool i
         return WSError::WS_OK;
     }
     bool isModal = WindowHelper::IsModalWindow(property->GetWindowFlags());
-    TLOGD(WmsLogTag::WMS_EVENT,
-        "id: %{public}d, raiseEnabled: %{public}d, isPointDown: %{public}d, "
-        "isModal: %{public}d, isLoosenedWithFreeMultiMode: %{public}d",
+    TLOGD(WmsLogTag::WMS_EVENT, "id:%{public}d raise:%{public}d down:%{public}d modal:%{public}d loose:%{public}d",
         GetPersistentId(), raiseEnabled, isPointDown, isModal, isLoosenedWithFreeMultiMode);
     if (!isPointDown) {
         return WSError::WS_OK;
@@ -3035,7 +3087,6 @@ WSError Session::HandleSubWindowClick(int32_t action, int32_t sourceType, bool i
         return WSError::WS_OK;
     }
     if (parentSession && !isLoosenedWithFreeMultiMode) {
-        // sub window is forbidden to raise to top after click, but its parent should raise
         parentSession->NotifyClick(!IsScbCoreEnabled());
     }
     return WSError::WS_OK;
@@ -3657,7 +3708,7 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         Session::SnapshotOptions options;
         options.runInFfrt = runInFfrt;
         options.useCurWindow = updateSnapshot;
-        options.windowSync = session->systemConfig_.IsPhoneWindow() || session->systemConfig_.IsPadWindow();
+        options.windowSync = session->GetDeviceType() == "phone" || session->GetDeviceType() == "tablet";
         auto pixelMap = persistentPixelMap ? persistentPixelMap : session->Snapshot(options);
         if (pixelMap == nullptr) {
             return;
@@ -4111,7 +4162,8 @@ void Session::NotifySessionStateChange(const SessionState& state)
             session->keyboardStateChangeFunc_) {
             const sptr<WindowSessionProperty>& property = session->GetSessionProperty();
             session->keyboardStateChangeFunc_(
-                state, property->GetKeyboardEffectOption(), property->GetCallingSessionId(), property->GetDisplayId());
+                state, property->GetKeyboardEffectOption(), property->GetCallingSessionId(),
+                property->GetKeyboardTargetDisplayId());
         } else if (session->sessionStateChangeFunc_) {
             session->sessionStateChangeFunc_(state);
         } else {
@@ -4587,11 +4639,13 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
             GetPersistentId(), static_cast<int32_t>(mode));
         property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
         property->SetIsNeedUpdateWindowMode(true);
         UpdateGestureBackEnabled();
     } else {
         property->SetWindowModeInfo(windowModeInfo);
         NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+        NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
         RequestNextVsyncWhenModeChange();
         if (WindowHelper::IsSplitWindowMode(mode)) {
             property->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
@@ -5081,6 +5135,36 @@ void Session::InitPersistentScaledSnapshotParam(bool enabled)
     }
 }
 
+void Session::LoadSnapshotToMem()
+{
+    auto task = [weakThis = wptr(this), where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s session is nullptr", where);
+            return;
+        }
+        if (session->scenePersistence_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s scenePersistence is nullptr id: %{public}d",
+                where, session->GetPersistentId());
+            return;
+        }
+        auto pixelMap = session->scenePersistence_->GetLocalSnapshotPixelMap(1, 1);
+        if (pixelMap == nullptr) {
+            TLOGNW(WmsLogTag::WMS_PATTERN, "%{public}s pixelMap is nullptr id: %{public}d",
+                where, session->GetPersistentId());
+            return;
+        }
+        std::lock_guard<std::mutex> lock(session->snapshotMutex_);
+        session->snapshot_ = pixelMap;
+        session->saveSnapshotCallback_();
+        TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s done, id: %{public}d", where, session->GetPersistentId());
+    };
+    auto snapshotFfrtHelper = scenePersistence_->GetSnapshotFfrtHelper();
+    std::string taskName = "Session::LoadSnapshotToMem" + std::to_string(GetPersistentId());
+    snapshotFfrtHelper->CancelTask(taskName);
+    snapshotFfrtHelper->SubmitTask(std::move(task), taskName);
+}
+
 WSError Session::ProcessBackEvent()
 {
     if (!IsSessionValid()) {
@@ -5233,6 +5317,26 @@ WindowMode Session::GetWindowMode() const
         return WindowMode::WINDOW_MODE_UNDEFINED;
     }
     return property->GetWindowMode();
+}
+
+WindowModeInfo Session::GetWindowModeInfo() const
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        WLOGFW("null property.");
+        return WindowModeInfo {};
+    }
+    return property->GetWindowModeInfo();
+}
+
+WindowMode Session::GetWindowModeCompat() const
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        WLOGFW("null property.");
+        return WindowMode::WINDOW_MODE_UNDEFINED;
+    }
+    return property->GetWindowModeCompat();
 }
 
 WSError Session::UpdateMaximizeMode(bool isMaximize)
@@ -6031,8 +6135,9 @@ WindowMetaInfo Session::GetWindowMetaInfoForWindowInfo() const
     windowMetaInfo.appIndex = GetSessionInfo().appIndex_;
     windowMetaInfo.pid = GetCallingPid();
     windowMetaInfo.windowType = GetWindowType();
-    windowMetaInfo.windowMode = GetWindowMode();
     windowMetaInfo.isMidScene = GetIsMidScene();
+    windowMetaInfo.windowMode = GetWindowModeCompat();
+    windowMetaInfo.windowModeInfo = GetWindowModeInfo();
     windowMetaInfo.isFocused = IsFocused();
     if (auto parentSession = GetParentSession()) {
         windowMetaInfo.parentWindowId = static_cast<uint32_t>(parentSession->GetWindowId());

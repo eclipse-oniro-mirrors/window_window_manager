@@ -88,6 +88,34 @@ int ReadBasicAbilitySessionInfo(MessageParcel& data, sptr<AAFwk::SessionInfo> ab
     abilitySessionInfo->processOptions.reset(data.ReadParcelable<AAFwk::ProcessOptions>());
     return ERR_NONE;
 }
+
+/**
+ * @brief Read a Rect from MessageParcel.
+ *
+ * @param data The MessageParcel to read from.
+ * @return The parsed Rect, or std::nullopt if reading fails.
+ */
+std::optional<Rect> ReadRect(MessageParcel& data)
+{
+    Rect rect;
+    if (!data.ReadInt32(rect.posX_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to read posX.");
+        return std::nullopt;
+    }
+    if (!data.ReadInt32(rect.posY_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to read posY.");
+        return std::nullopt;
+    }
+    if (!data.ReadUint32(rect.width_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to read width.");
+        return std::nullopt;
+    }
+    if (!data.ReadUint32(rect.height_)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to read height.");
+        return std::nullopt;
+    }
+    return rect;
+}
 } // namespace
 
 int SessionStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option)
@@ -293,6 +321,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleChangeKeyboardEffectOption(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_WINDOW_CORNER_RADIUS):
             return HandleSetWindowCornerRadius(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_MOVING_WITH_OPTIONS):
+            return HandleStartMovingWithOptions(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_MOVING_WITH_COORDINATE):
             return HandleStartMovingWithCoordinate(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_CROSS_AXIS_STATE):
@@ -563,7 +593,10 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         bool needUpdate = property->GetIsNeedUpdateWindowMode();
         reply.WriteBool(needUpdate);
         if (needUpdate) {
-            reply.WriteUint32(static_cast<uint32_t>(property->GetWindowMode()));
+            auto windowModeInfo = property->GetWindowModeInfo();
+            reply.WriteUint32(static_cast<uint32_t>(windowModeInfo.windowMode));
+            reply.WriteInt32(static_cast<int32_t>(windowModeInfo.splitStyle));
+            reply.WriteInt32(windowModeInfo.splitIndex);
         }
         property->SetIsNeedUpdateWindowMode(false);
         Rect winRect = property->GetWindowRect();
@@ -1930,7 +1963,6 @@ int SessionStub::HandleGetFloatingBallWindowId(MessageParcel& data, MessageParce
     }
     return ERR_NONE;
 }
-// LCOV_EXCL_STOP
 
 int SessionStub::HandleStopFloatView(MessageParcel& data, MessageParcel& reply)
 {
@@ -1942,6 +1974,7 @@ int SessionStub::HandleStopFloatView(MessageParcel& data, MessageParcel& reply)
     }
     return ERR_NONE;
 }
+// LCOV_EXCL_STOP
 
 int SessionStub::HandleUpdateFloatView(MessageParcel& data, MessageParcel& reply)
 {
@@ -2481,6 +2514,29 @@ int SessionStub::HandleSetDragKeyFramePolicy(MessageParcel& data, MessageParcel&
     WSError errCode = SetDragKeyFramePolicy(*keyFramePolicy);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "write errCode fail.");
+        return IPC_STUB_WRITE_PARCEL_ERR;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleStartMovingWithOptions(MessageParcel& data, MessageParcel& reply)
+{
+    StartMovingOptions options;
+    if (!data.ReadBool(options.needFocused)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read needFocused.");
+        return ERR_INVALID_DATA;
+    }
+
+    auto avoidRectOpt = ReadRect(data);
+    if (!avoidRectOpt) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to read avoidRect.");
+        return ERR_INVALID_DATA;
+    }
+    options.avoidRect = *avoidRectOpt;
+
+    WMError errCode = StartMovingWithOptions(options);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to write errCode.");
         return IPC_STUB_WRITE_PARCEL_ERR;
     }
     return ERR_NONE;

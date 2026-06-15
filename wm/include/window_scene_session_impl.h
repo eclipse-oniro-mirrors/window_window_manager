@@ -56,6 +56,7 @@ public:
     WMError Minimize() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
+    WindowMode GetWindowModeCompat() const override;
     WindowModeInfo GetWindowModeInfo() const override;
     WMError SetHookTargetElementInfo(const AppExecFwk::ElementName& elementName) override;
     class WindowScreenListener : public ScreenManager::IScreenListener {
@@ -73,7 +74,9 @@ public:
     WMError MoveToAsync(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
     WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
-    WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true) override;
+    WMError GetEventOriginalPosition(const EventPositionInfo& eventPositionInfo,
+        EventPositionInfo& originalEventPositionInfo) const override;
     WMError Resize(uint32_t width, uint32_t height) override;
     WMError ResizeAsync(uint32_t width, uint32_t height) override;
     WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
@@ -210,6 +213,7 @@ public:
      */
     WSError HideSubWindowZLevelAboveParentLoosened() override;
     WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
     /*
      * PC Window
@@ -247,6 +251,7 @@ public:
     WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
         bool grayOutMaximizeButton = false) override;
     WmErrorCode StartMoveWindow() override;
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY) override;
     WmErrorCode StopMoveWindow() override;
     WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
@@ -320,7 +325,7 @@ public:
     WMError SetCustomDensity(float density, bool applyToSubWindow) override;
     WMError GetWindowDensityInfo(WindowDensityInfo& densityInfo) override;
     WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) override;
-    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true) override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetRotationLocked(bool locked) override;
     WMError GetRotationLocked(bool& locked) override;
@@ -582,6 +587,7 @@ private:
      */
     void CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
+    void UpdateSubWindowDragEnabledByDecorVisible() override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);

@@ -403,6 +403,35 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_SURFACE: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            DMRect surfaceRegion;
+            surfaceRegion.posX_ = data.ReadInt32();
+            surfaceRegion.posY_ = data.ReadInt32();
+            surfaceRegion.width_ = data.ReadUint32();
+            surfaceRegion.height_ = data.ReadUint32();
+            bool isSurfaceValid = data.ReadBool();
+            sptr<IBufferProducer> bp = nullptr;
+            if (isSurfaceValid) {
+                sptr<IRemoteObject> surfaceObject = data.ReadRemoteObject();
+                bp = iface_cast<IBufferProducer>(surfaceObject);
+            }
+            DMError result = AddVirtualScreenSurface(screenId, bp, surfaceRegion);
+            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_REMOVE_VIRTUAL_SCREEN_SURFACE: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            bool isSurfaceValid = data.ReadBool();
+            sptr<IBufferProducer> bp = nullptr;
+            if (isSurfaceValid) {
+                sptr<IRemoteObject> surfaceObject = data.ReadRemoteObject();
+                bp = iface_cast<IBufferProducer>(surfaceObject);
+            }
+            DMError result = RemoveVirtualScreenSurface(screenId, bp);
+            static_cast<void>(reply.WriteInt32(static_cast<int32_t>(result)));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_ADD_VIRTUAL_SCREEN_BLOCK_LIST: {
             uint64_t size = 0;
             if (!data.ReadUint64(size)) {
@@ -1727,6 +1756,24 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             if (!ProcGetScreenCapability(data, reply)) {
                 return ERR_INVALID_DATA;
             }
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR: {
+            int32_t motionType = 0;
+            if (!data.ReadInt32(motionType)) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
+                return ERR_INVALID_DATA;
+            }
+            SubscribeMotionSensor(motionType);
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR: {
+            int32_t motionType = 0;
+            if (!data.ReadInt32(motionType)) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
+                return ERR_INVALID_DATA;
+            }
+            UnsubscribeMotionSensor(motionType);
             break;
         }
         default:
