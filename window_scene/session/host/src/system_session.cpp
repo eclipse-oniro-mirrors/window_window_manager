@@ -443,7 +443,7 @@ WMError SystemSession::UpdateFloatingBall(const FloatingBallTemplateInfo& fbTemp
         WMError result = IsFloatingBallValid(fbTemplateInfo);
         if (result != WMError::WM_OK) {
             return result;
-        }      
+        }
     }
 
     int32_t callingPid = IPCSkeleton::GetCallingPid();
