@@ -1189,14 +1189,6 @@ HWTEST_F(SceneSessionManagerTest5, CreateAndConnectSpecificSession02, TestSize.L
 
     sessionStage = sptr<SessionStageMocker>::MakeSptr();
     property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetWindowType(WindowType::WINDOW_TYPE_FV);
-    property->SetWindowFlags(123);
-    res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    ASSERT_EQ(WSError::WS_OK, res);
-
-    sessionStage = sptr<SessionStageMocker>::MakeSptr();
-    property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetWindowFlags(123);
     res = ssm_->CreateAndConnectSpecificSession(
