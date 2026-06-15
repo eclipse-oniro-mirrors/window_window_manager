@@ -987,7 +987,9 @@ WMError WindowManagerService::CreateWindow(sptr<IWindow>& window, sptr<WindowPro
         return windowController_->CreateWindow(window, property, surfaceNode, windowId, token, pid, uid);
     };
     WMError ret = PostSyncTask(task, "CreateWindow");
-    accessTokenIdMaps_.insert(std::pair(windowId, IPCSkeleton::GetCallingTokenID()));
+    if (ret == WMError::WM_OK) {
+        accessTokenIdMaps_.insert(std::pair(windowId, IPCSkeleton::GetCallingTokenID()));
+    }
     return ret;
 }
 
