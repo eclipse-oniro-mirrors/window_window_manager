@@ -824,12 +824,13 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     parentSession->SetSystemConfig(parentConfig);
     ssm_->sceneSessionMap_.insert({ 1, parentSession });
     property->SetParentPersistentId(1);
- 
-    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
-        id, session, systemConfig, renderSession, token);
+    uint64_t nodeId = 0;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
     ssm_->sceneSessionMap_.clear();
 }
+
  
 /**
  * @tc.name: TestCreateAndConnectSession_InheritFreeMultiWindowEnable_False
@@ -870,8 +871,9 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     ssm_->sceneSessionMap_.insert({ 1, parentSession });
     property->SetParentPersistentId(1);
  
-    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
-        id, session, systemConfig, renderSession, token);
+    uint64_t nodeId = 0;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, false);
     ssm_->sceneSessionMap_.clear();
 }
@@ -902,11 +904,12 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NoParent
     property->SetParentPersistentId(9999);
  
     systemConfig.freeMultiWindowEnable_ = true;
-    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
-        id, session, systemConfig, renderSession, token);
+    uint64_t nodeId = 0;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
 }
- 
+
 /**
  * @tc.name: TestCreateAndConnectSession_NonPcWindow
  * @tc.desc: Test CreateAndConnectSpecificSession when windowUIType is not PC_WINDOW
@@ -946,12 +949,13 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_NonPcWin
     property->SetParentPersistentId(1);
  
     systemConfig.freeMultiWindowEnable_ = true;
-    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
-        id, session, systemConfig, renderSession, token);
+    uint64_t nodeId = 0;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
     ssm_->sceneSessionMap_.clear();
 }
- 
+
 /**
  * @tc.name: TestCreateAndConnectSession_FreeMultiWindowNotSupport
  * @tc.desc: Test CreateAndConnectSpecificSession when freeMultiWindowSupport is false
@@ -991,8 +995,9 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_FreeMult
     property->SetParentPersistentId(1);
  
     systemConfig.freeMultiWindowEnable_ = true;
-    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property,
-        id, session, systemConfig, renderSession, token);
+    uint64_t nodeId = 0;
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, true);
     ssm_->sceneSessionMap_.clear();
 }
