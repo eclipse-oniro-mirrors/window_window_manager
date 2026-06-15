@@ -13288,7 +13288,7 @@ bool SceneSessionManager::FillWindowInfo(std::vector<sptr<AccessibilityWindowInf
     }
     info->uiNodeId_ = sceneSession->GetUINodeId();
     info->type_ = sceneSession->GetWindowType();
-    info->mode_ = sceneSession->GetWindowMode();
+    info->mode_ = sceneSession->GetWindowModeCompat();
     info->layer_ = sceneSession->GetZOrder();
     info->scaleVal_ = sceneSession->GetFloatingScale();
     info->scaleX_ = sceneSession->GetScaleX();
