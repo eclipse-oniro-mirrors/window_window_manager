@@ -6701,7 +6701,7 @@ napi_value CreateCompConfigAppPropertyValueMap(napi_env env,
         napi_value propertyValue = nullptr;
         napi_create_object(env, &propertyValue);
         if (propertyValue == nullptr) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "porpertyValue is null!");
+        TLOGE(WmsLogTag::WMS_COMPAT, "propertyValue is null!");
         return NapiGetUndefined(env);
         }
         for (const auto& [subKey, subValue] : appValue) {
