@@ -7830,8 +7830,11 @@ WMError WindowSceneSessionImpl::UnregisterWindowAttachStateChangeListener()
 WSError WindowSceneSessionImpl::NotifyWindowAttachStateChange(bool isAttach)
 {
     TLOGI(WmsLogTag::WMS_SUB, "id: %{public}d, isAttach:%{public}u.", GetPersistentId(), isAttach);
-    if (uiContent_ != nullptr) {
-        uiContent_->NotifyWindowAttachStateChange(isAttach);
+    {
+        std::unique_lock<std::shared_mutex> lock(uiContentMutex_);
+        if (uiContent_ != nullptr) {
+            uiContent_->NotifyWindowAttachStateChange(isAttach);
+        }
     }
     if (handler_) {
         handler_->PostTask(
