@@ -8746,6 +8746,7 @@ void SceneSession::SetSkipSelfWhenShowOnVirtualScreen(bool isSkip)
             return;
         }
         session->GetSessionProperty()->SetSkipSelfWhenShowOnVirtualScreen(isSkip);
+        session->isSkipSelfWhenShowOnVirtualScreen_ = isSkip;
         std::shared_ptr<RSSurfaceNode> surfaceNode = session->GetSurfaceNode();
         if (!surfaceNode) {
             TLOGNE(WmsLogTag::WMS_SCB, "%{public}s surfaceNode_ is null", where);
@@ -8759,7 +8760,6 @@ void SceneSession::SetSkipSelfWhenShowOnVirtualScreen(bool isSkip)
             } else {
                 session->specificCallback_->onSetSkipSelfWhenShowOnVirtualScreen_(session->GetMissionId(), isSkip);
             }
-            session->isSkipSelfWhenShowOnVirtualScreen_ = isSkip;
         }
         return;
     }, __func__);
