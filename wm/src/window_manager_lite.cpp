@@ -366,7 +366,6 @@ WindowInfoList WindowManagerLite::Impl::GetWindowInfoListByInterestWindowIds(
     }
     return windowInfoListForNotify;
 }
-
 void WindowManagerLite::Impl::PackWindowChangeInfo(const std::unordered_set<WindowInfoKey>& interestInfo,
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos, WindowInfoList& windowChangeInfos)
 {
@@ -573,8 +572,8 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
     auto instance = sptr<WindowManagerLite>::MakeSptr(userId);
     windowManagerLiteMap_.insert({ userId, instance });
     TLOGI(WmsLogTag::WMS_MULTI_USER,
-        "After insert, map size: %{public}zu, userId: %{public}d, instance ptr: %{public}p",
-        windowManagerLiteMap_.size(), userId, instance.GetRefPtr());
+        "After insert, map size: %{public}zu, userId: %{public}d",
+        windowManagerLiteMap_.size(), userId);
     return *instance;
 }
 
