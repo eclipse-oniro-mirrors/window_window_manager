@@ -47,6 +47,7 @@ public:
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground) override;
     void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override;
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) override {};
+    void NotifySessionSaveSnapShotComplete(int32_t persistentId) override {};
 
 private:
     // Adapt to multi user and multi screen.

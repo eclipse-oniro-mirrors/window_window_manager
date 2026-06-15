@@ -76,6 +76,7 @@ public:
     void NotifyWindowGlobalRectChange(const WindowInfoList& windowInfoList);
     void NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycleInfo, void* jsWindowNapiValue);
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
+    void NotifySessionSaveSnapShotComplete(int32_t persistentId);
 
     static inline SingletonDelegator<WindowManager> delegator_;
     template<typename T>
@@ -95,6 +96,10 @@ public:
     // Window support rotation
     sptr<WindowManagerAgent> windowSupportRotationListenerAgent_;
     ListenerSet<IWindowSupportRotationListener> windowSupportRotationListeners_;
+
+    // Session save snapshot complete
+    sptr<WindowManagerAgent> sessionSaveSnapshotCompleteListenerAgent_;
+    ListenerSet<ISessionSaveSnapShotCompleteListener> sessionSaveSnapshotCompleteListeners_;
     // Above locked by mutex_
 
     ListenerSet<IApplicationFocusChangedListener> applicationFocusChangeListeners_;
@@ -678,6 +683,21 @@ void WindowManager::Impl::NotifySupportRotationChange(const SupportRotationInfo&
     for (auto& listener : windowSupportRotationListener) {
         TLOGD(WmsLogTag::WMS_ROTATION, "Notify supportRotationInfo to caller");
         listener->OnSupportRotationChange(supportRotationInfo);
+    }
+}
+
+void WindowManager::Impl::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    std::vector<sptr<ISessionSaveSnapShotCompleteListener>> sessionSaveSnapshotCompleteListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        sessionSaveSnapshotCompleteListeners.assign(
+            sessionSaveSnapshotCompleteListeners_.begin(), sessionSaveSnapshotCompleteListeners_.end());
+    }
+    for (const auto& listener : sessionSaveSnapshotCompleteListeners) {
+        if (listener != nullptr) {
+            listener->OnSessionSaveSnapShotComplete(persistentId);
+        }
     }
 }
 
@@ -2895,6 +2915,68 @@ WMError WindowManager::UnregisterWindowSupportRotationListener(const sptr<IWindo
 void WindowManager::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)
 {
     pImpl_->NotifySupportRotationChange(supportRotationInfo);
+}
+
+WMError WindowManager::RegisterSessionSaveSnapShotCompleteListener(
+    const sptr<ISessionSaveSnapShotCompleteListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->sessionSaveSnapshotCompleteListenerAgent_ == nullptr) {
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
+    }
+    ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+            pImpl_->sessionSaveSnapshotCompleteListenerAgent_);
+    }
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "RegisterWindowManagerAgent failed");
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_ = nullptr;
+        return ret;
+    }
+    if (pImpl_->sessionSaveSnapshotCompleteListeners_.count(listener)) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "Listener is already registered");
+        return WMError::WM_OK;
+    }
+    pImpl_->sessionSaveSnapshotCompleteListeners_.insert(listener);
+    return ret;
+}
+
+WMError WindowManager::UnregisterSessionSaveSnapShotCompleteListener(
+    const sptr<ISessionSaveSnapShotCompleteListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    pImpl_->sessionSaveSnapshotCompleteListeners_.erase(listener);
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->sessionSaveSnapshotCompleteListeners_.empty() &&
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_ != nullptr) {
+        ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+            pImpl_->sessionSaveSnapshotCompleteListenerAgent_);
+        if (ret == WMError::WM_OK) {
+            pImpl_->sessionSaveSnapshotCompleteListenerAgent_ = nullptr;
+        }
+    }
+    return ret;
+}
+
+void WindowManager::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    pImpl_->NotifySessionSaveSnapShotComplete(persistentId);
 }
 
 void WindowManager::SetIsModuleHookOffToSet(const std::string& moduleName)

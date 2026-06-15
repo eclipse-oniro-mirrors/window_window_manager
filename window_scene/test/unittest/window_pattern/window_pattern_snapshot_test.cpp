@@ -673,9 +673,21 @@ HWTEST_F(WindowPatternSnapshotTest, SaveSnapshot02, TestSize.Level1)
     session_->SaveSnapshot(false, true, nullptr, false, LifeCycleChangeReason::QUICK_BATCH_BACKGROUND);
     ASSERT_EQ(session_->snapshot_, nullptr);
 
+    int32_t callbackCount = 0;
+    int32_t callbackPersistentId = INVALID_SESSION_ID;
+    session_->SetSessionSaveSnapshotCompleteListener(
+        [&callbackCount, &callbackPersistentId](int32_t persistentId) {
+            callbackCount++;
+            callbackPersistentId = persistentId;
+        });
+    session_->SaveSnapshot(false, true, nullptr);
+    ASSERT_EQ(callbackCount, 0);
+
     auto pixelMap = std::make_shared<Media::PixelMap>();
     session_->SaveSnapshot(false, true, pixelMap, true);
     ASSERT_NE(session_->snapshot_, nullptr);
+    ASSERT_EQ(callbackCount, 1);
+    ASSERT_EQ(callbackPersistentId, session_->persistentId_);
 
     session_->freeMultiWindow_.store(true);
     session_->SaveSnapshot(false, true, pixelMap, false, LifeCycleChangeReason::EXPAND_TO_FOLD_SINGLE_POCKET);
