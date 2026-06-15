@@ -6184,6 +6184,16 @@ WMError SceneSessionManager::GetCrossProcessWindowInfo(CrossProcessWindowInfo& c
         TLOGE(WmsLogTag::WMS_LIFE, "Scene session is nullptr, id:%{public}d", crossProcessWindowInfo.persistentId);
  	    return WMError::WM_ERROR_INVALID_PARENT;
     }
+    if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Scene session is not main window, id:%{public}d", crossProcessWindowInfo.persistentId);
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
+    if (sceneSession->GetSessionState() == SessionState::STATE_DISCONNECT ||
+        sceneSession->GetSessionState() == SessionState::STATE_END) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Scene session state is invalid, id:%{public}d",
+            crossProcessWindowInfo.persistentId);
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
     crossProcessWindowInfo.displayId = static_cast<uint64_t>(sceneSession->GetDisplayId());
     crossProcessWindowInfo.isPcAppInPad = sceneSession->GetSessionProperty()->GetIsPcAppInPad();
     crossProcessWindowInfo.isPcAppInpadCompatibleMode = sceneSession->GetSessionProperty()->GetPcAppInpadCompatibleMode();
