@@ -2650,6 +2650,15 @@ void Session::SetSessionSnapshotListener(const NotifySessionSnapshotFunc& func)
     notifySessionSnapshotFunc_ = func;
 }
 
+void Session::SetSessionSaveSnapshotCompleteListener(const NotifySessionSaveSnapshotCompleteFunc& func)
+{
+    if (func == nullptr) {
+        WLOGFE("func is nullptr");
+        return;
+    }
+    notifySessionSaveSnapshotCompleteFunc_ = func;
+}
+
 void Session::SetPendingSessionToForegroundListener(NotifyPendingSessionToForegroundFunc&& func)
 {
     PostTask([weakThis = wptr(this), func = std::move(func), where = __func__] {
@@ -3242,7 +3251,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         .scaleY = scaleValue,
         .useDma = true,
         .useCurWindow = options.useCurWindow,
-        .windowSync = false,
+        .windowSync = options.windowSync,
         .backGroundColor = GetBackgroundColor(),
         .needErrorCode = true,
     };
@@ -3664,6 +3673,9 @@ void Session::SaveSnapshot(bool useFfrt, bool needPersist, std::shared_ptr<Media
         auto pixelMap = persistentPixelMap ? persistentPixelMap : session->Snapshot(options);
         if (pixelMap == nullptr) {
             return;
+        }
+        if (session->notifySessionSaveSnapshotCompleteFunc_) {
+            session->notifySessionSaveSnapshotCompleteFunc_(session->persistentId_);
         }
         session->SetBufferNameForPixelMap(where, pixelMap);
         {
@@ -5085,6 +5097,36 @@ void Session::InitPersistentScaledSnapshotParam(bool enabled)
     if (scenePersistence_) {
         scenePersistence_->InitPersistentScaledSnapshotParam(enabled);
     }
+}
+
+void Session::LoadSnapshotToMem()
+{
+    auto task = [weakThis = wptr(this), where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s session is nullptr", where);
+            return;
+        }
+        if (session->scenePersistence_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PATTERN, "%{public}s scenePersistence is nullptr id: %{public}d",
+                where, session->GetPersistentId());
+            return;
+        }
+        auto pixelMap = session->scenePersistence_->GetLocalSnapshotPixelMap(1, 1);
+        if (pixelMap == nullptr) {
+            TLOGNW(WmsLogTag::WMS_PATTERN, "%{public}s pixelMap is nullptr id: %{public}d",
+                where, session->GetPersistentId());
+            return;
+        }
+        std::lock_guard<std::mutex> lock(session->snapshotMutex_);
+        session->snapshot_ = pixelMap;
+        session->saveSnapshotCallback_();
+        TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s done, id: %{public}d", where, session->GetPersistentId());
+    };
+    auto snapshotFfrtHelper = scenePersistence_->GetSnapshotFfrtHelper();
+    std::string taskName = "Session::LoadSnapshotToMem" + std::to_string(GetPersistentId());
+    snapshotFfrtHelper->CancelTask(taskName);
+    snapshotFfrtHelper->SubmitTask(std::move(task), taskName);
 }
 
 WSError Session::ProcessBackEvent()

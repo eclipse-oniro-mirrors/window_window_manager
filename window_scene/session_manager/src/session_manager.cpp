@@ -48,16 +48,19 @@ int32_t SessionManagerServiceRecoverListener::OnRemoteRequest(uint32_t code,
             int32_t screenId = DEFAULT_SCREEN_ID;
             bool isConnected = false;
             int32_t pid = INVALID_PID;
+            int32_t fromUserId = INVALID_USER_ID;
+            int32_t fromPid = INVALID_PID;
             if (!data.ReadInt32(wmsUserId) || !data.ReadInt32(screenId) ||
-                !data.ReadBool(isConnected) || !data.ReadInt32(pid)) {
+                !data.ReadBool(isConnected) || !data.ReadInt32(pid) ||
+                !data.ReadInt32(fromUserId) || !data.ReadInt32(fromPid)) {
                 TLOGE(WmsLogTag::WMS_RECOVER, "Read data failed, userId=%{public}d", userId_);
                 return ERR_TRANSACTION_FAILED;
             }
             if (isConnected) {
-                // Even if data.ReadRemoteObject() is null, WMS connection still needs to be notified.
-                OnWMSConnectionChanged(wmsUserId, screenId, isConnected, data.ReadRemoteObject(), pid);
+                OnWMSConnectionChanged(wmsUserId, screenId, isConnected, pid, fromUserId,
+                    fromPid, data.ReadRemoteObject());
             } else {
-                OnWMSConnectionChanged(wmsUserId, screenId, isConnected, nullptr, pid);
+                OnWMSConnectionChanged(wmsUserId, screenId, isConnected, pid, fromUserId, fromPid, nullptr);
             }
             break;
         }
@@ -79,15 +82,15 @@ void SessionManagerServiceRecoverListener::OnSessionManagerServiceRecover(
     SessionManager::GetInstance(userId_).RecoverSessionManagerService(sms);
 }
 
-void SessionManagerServiceRecoverListener::OnWMSConnectionChanged(int32_t wmsUserId,
-                                                                  int32_t screenId,
-                                                                  bool isConnected,
-                                                                  const sptr<IRemoteObject>& sessionManagerService,
-                                                                  int32_t pid)
+void SessionManagerServiceRecoverListener::OnWMSConnectionChanged(
+    int32_t wmsUserId, int32_t screenId, bool isConnected, int32_t pid,
+    int32_t fromUserId, int32_t fromPid,
+    const sptr<IRemoteObject>& sessionManagerService)
 {
     TLOGD(WmsLogTag::WMS_RECOVER, "enter, userId=%{public}d", userId_);
     auto sms = iface_cast<ISessionManagerService>(sessionManagerService);
-    SessionManager::GetInstance(userId_).OnWMSConnectionChanged(wmsUserId, screenId, isConnected, sms, pid);
+    SessionManager::GetInstance(userId_).OnWMSConnectionChanged(wmsUserId, screenId, isConnected,
+        pid, fromUserId, fromPid, sms);
 }
 
 SessionManager::~SessionManager()
@@ -136,7 +139,8 @@ void SessionManager::OnWMSConnectionChangedCallback(int32_t userId, int32_t scre
     {
         std::lock_guard<std::mutex> lock(wmsConnectionMutex_);
         if (!wmsConnectionChangedFunc_) {
-            TLOGE(WmsLogTag::WMS_MULTI_USER, "callback func is null");
+            TLOGE(WmsLogTag::WMS_MULTI_USER,
+                "callback func is null, inst=%{public}d", userId_);
             return;
         }
         callbackFunc = wmsConnectionChangedFunc_;
@@ -146,42 +150,48 @@ void SessionManager::OnWMSConnectionChangedCallback(int32_t userId, int32_t scre
         userId, screenId, isConnected, pid);
     callbackFunc(userId, screenId, isConnected, pid);
 }
-
 void SessionManager::OnWMSConnectionChanged(
     int32_t userId, int32_t screenId, bool isConnected,
-    const sptr<ISessionManagerService>& sessionManagerService, int32_t pid)
+    int32_t pid, int32_t fromUserId, int32_t fromPid,
+    const sptr<ISessionManagerService>& sessionManagerService)
 {
-    int32_t lastUserId = INVALID_USER_ID;
-    int32_t lastScreenId = DEFAULT_SCREEN_ID;
-    int32_t lastPid = INVALID_PID;
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "OnWMSConnectionChanged: inst=%{public}d, userId=%{public}d, screenId=%{public}d, "
+        "isConnected=%{public}d, pid=%{public}d, fromUserId=%{public}d, fromPid=%{public}d",
+        userId_, userId, screenId, isConnected, pid, fromUserId, fromPid);
+    bool shouldUpdateCurrentState = false;
     {
-        // The mutex ensures a timing of the following variable states in multiple threads
         std::lock_guard<std::mutex> lock(wmsConnectionMutex_);
-        lastUserId = currentWMSUserId_;
-        lastScreenId = currentScreenId_;
-        lastPid = currentWMSPid_;
-        if (isConnected) {
-            currentWMSUserId_ = userId;
-            currentScreenId_ = screenId;
-            currentWMSPid_ = pid;
+        if (userId_ == INVALID_USER_ID) {
+            if (isConnected) {
+                shouldUpdateCurrentState = screenId == currentServer_.screenId
+                    || currentServer_.screenId == INVALID_SCREEN_ID_INT32;
+            } else {
+                shouldUpdateCurrentState = userId == currentServer_.userId;
+            }
+        } else {
+            shouldUpdateCurrentState = userId == userId_;
         }
-        // isWMSConnected_ only represents the wms connection status of the active user
-        if (currentWMSUserId_ == userId) {
+        if (isConnected && shouldUpdateCurrentState) {
+            currentServer_ = { userId, screenId, pid };
+        }
+        if (shouldUpdateCurrentState) {
             isWMSConnected_ = isConnected;
         }
     }
-    TLOGD(WmsLogTag::WMS_MULTI_USER,
-        "curUserId=%{public}d, oldUserId=%{public}d, screenId=%{public}d, "
-        "isConnected=%{public}d, instanceUserId=%{public}d, wmsPid=%{public}d",
-        userId, lastUserId, screenId, isConnected, userId_, pid);
-    if (isConnected && lastUserId > INVALID_USER_ID && lastUserId != userId) {
-        // Notify the user that the old wms has been disconnected.
-        OnWMSConnectionChangedCallback(lastUserId, lastScreenId, false, lastPid);
-        if (userId_ == INVALID_USER_ID) {
+    bool isUserSwitched = fromUserId != INVALID_USER_ID;
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "State updated: inst=%{public}d, shouldUpdate=%{public}d, isUserSwitched=%{public}d, "
+        "currentServer userId=%{public}d screenId=%{public}d pid=%{public}d, isWMSConnected=%{public}d",
+        userId_, shouldUpdateCurrentState, isUserSwitched,
+        currentServer_.userId, currentServer_.screenId, currentServer_.pid, isWMSConnected_);
+    if (isConnected && isUserSwitched) {
+        OnWMSConnectionChangedCallback(fromUserId, screenId, false, fromPid);
+        if (userId_ == INVALID_USER_ID && shouldUpdateCurrentState) {
             OnUserSwitch(sessionManagerService);
         }
     }
-    // Notify the user that the current wms connection has changed.
+
     OnWMSConnectionChangedCallback(userId, screenId, isConnected, pid);
 }
 
@@ -196,8 +206,10 @@ void SessionManager::ClearSessionManagerProxy()
             sessionManagerServiceProxy_ = nullptr;
         }
     }
-    std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
-    sceneSessionManagerProxy_ = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
+        sceneSessionManagerProxy_ = nullptr;
+    }
 }
 
 __attribute__((no_sanitize("cfi"))) sptr<ISceneSessionManager> SessionManager::GetSceneSessionManagerProxy()
@@ -419,7 +431,8 @@ void SessionManager::OnUserSwitch(const sptr<ISessionManagerService>& sessionMan
     {
         std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
         if (sceneSessionManagerProxy_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_MULTI_USER, "init ssm proxy failed, userId=%{public}d", userId_);
+            TLOGE(WmsLogTag::WMS_MULTI_USER,
+                "OnUserSwitch init ssm failed, inst=%{public}d", userId_);
             return;
         }
     }
@@ -489,13 +502,12 @@ WMError SessionManager::RegisterWMSConnectionChangedListener(const WMSConnection
         return WMError::WM_ERROR_NULLPTR;
     }
     {
-        // The mutex ensures a timing of the following variable states in multiple threads
         std::lock_guard<std::mutex> lock(wmsConnectionMutex_);
         wmsConnectionChangedFunc_ = callbackFunc;
-        isWMSAlreadyConnected = isWMSConnected_ && (currentWMSUserId_ > INVALID_USER_ID);
-        userId = currentWMSUserId_;
-        screenId = currentScreenId_;
-        pid = currentWMSPid_;
+        isWMSAlreadyConnected = isWMSConnected_ && (currentServer_.userId > INVALID_USER_ID);
+        userId = currentServer_.userId;
+        screenId = currentServer_.screenId;
+        pid = currentServer_.pid;
     }
     if (isWMSAlreadyConnected) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS already connected, notify immediately");
@@ -533,10 +545,12 @@ void SessionManager::OnFoundationDied()
     {
         std::lock_guard<std::mutex> lock(wmsConnectionMutex_);
         isWMSConnected_ = false;
+        currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
     }
     {
         std::lock_guard<std::mutex> lock(recoverListenerMutex_);
         isRecoverListenerRegistered_ = false;
+        smsRecoverListener_ = nullptr;
     }
     {
         std::lock_guard<std::mutex> lock(sessionManagerServiceMutex_);

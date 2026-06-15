@@ -1355,8 +1355,12 @@ void WindowSessionImpl::UpdateVirtualPixelRatio(const sptr<Display>& display)
         TLOGE(WmsLogTag::WMS_LAYOUT, "displayInfo is null when rotation!");
         return;
     }
-    virtualPixelRatio_ = GetVirtualPixelRatio(displayInfo);
-    TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", virtualPixelRatio_);
+    float tempVirtualPixelRatio = GetVirtualPixelRatio(displayInfo);
+    {
+        std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+        virtualPixelRatio_ = tempVirtualPixelRatio;
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", tempVirtualPixelRatio);
 }
 
 void WindowSessionImpl::UpdateRectForResizeAnimation(const Rect& wmRect, const Rect& preRect,
@@ -2091,6 +2095,7 @@ WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo
 /** @note @window.layout */
 float WindowSessionImpl::GetVirtualPixelRatio()
 {
+    std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
     TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", virtualPixelRatio_);
     return virtualPixelRatio_;
 }
@@ -2298,15 +2303,15 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
         return;
     }
     WindowType windowType = GetType();
+    auto windowModeSupportType = property_->GetWindowModeSupportType();
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
+    bool onlySupportFullScreen = WindowHelper::IsOnlySupportFullScreen(windowModeSupportType);
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
-        uiContent->HideWindowTitleButton(true, !IsSubWindowMaximizeSupported(), true, false);
+        uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
         return;
     }
-    auto windowModeSupportType = property_->GetWindowModeSupportType();
     bool hideSplitButton = !(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY);
-    // not support fullscreen in split and floating mode, or not support float in fullscreen mode
     bool hideMaximizeButton = (!(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) &&
         (GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING || WindowHelper::IsSplitWindowMode(GetWindowMode()))) ||
         (!(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING) &&
@@ -2315,6 +2320,10 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool hideCloseButton = false;
     GetTitleButtonVisible(hideMaximizeButton, hideMinimizeButton, hideSplitButton, hideCloseButton);
     hideMaximizeButton = hideMaximizeButton && !grayOutMaximizeButton_;
+    if (IsZLevelAboveParentLoosened()) {
+        hideMaximizeButton = hideMaximizeButton || !IsSubWindowMaximizeSupported();
+        hideSplitButton = true;
+    }
     TLOGI(WmsLogTag::WMS_DECOR, "id:%{public}d, [hideSplit, hideMaximize, hideMinimizeButton, hideCloseButton]:"
         "[%{public}d, %{public}d, %{public}d, %{public}d]",
         GetPersistentId(), hideSplitButton, hideMaximizeButton, hideMinimizeButton, hideCloseButton);

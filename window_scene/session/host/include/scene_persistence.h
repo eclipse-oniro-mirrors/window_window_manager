@@ -51,7 +51,7 @@ public:
     void ClearSnapshotPath();
     void ClearAbilityIconPath();
     void ClearSnapshot();
-    bool IsSnapshotExisted(SnapshotStatus key = defaultStatus);
+    bool IsSnapshotExisted(SnapshotStatus key = defaultStatus, bool freeMultiWindow = false);
     std::string GetSnapshotFilePath(SnapshotStatus& key, bool useKey = false, bool freeMultiWindow = false);
     std::string GetSnapshotScaledFilePath() { return snapshotScaledPath_; };
     bool FindClosestFormSnapshot(SnapshotStatus& key);

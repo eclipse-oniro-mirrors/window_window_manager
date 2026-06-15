@@ -17,6 +17,7 @@
 #include "iremote_object_mocker.h"
 #include "mock_message_parcel.h"
 #include "session_manager_service_recover_proxy.h"
+#include "wm_common.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -121,7 +122,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged01, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 0, true, sessionManagerService, 9999);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        1, 0, true, 9999, INVALID_USER_ID, INVALID_PID, sessionManagerService);
 }
 
 /**
@@ -138,7 +140,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged02, TestSi
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 0, true, sessionManagerService, 8888);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        1, 0, true, 8888, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     MockMessageParcel::ClearAllErrorFlag();
 }
 
@@ -155,7 +158,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged03, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(-1, 0, true, sessionManagerService, 7777);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        -1, 0, true, 7777, INVALID_USER_ID, INVALID_PID, sessionManagerService);
 }
 
 /**
@@ -171,7 +175,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged04, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, -1, true, sessionManagerService, 6666);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        1, -1, true, 6666, INVALID_USER_ID, INVALID_PID, sessionManagerService);
 }
 
 /**
@@ -188,7 +193,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged05, TestSi
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
     MockMessageParcel::SetWriteBoolErrorFlag(true);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService, 5555);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        1, 1, true, 5555, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     MockMessageParcel::ClearAllErrorFlag();
 }
 
@@ -205,7 +211,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged06, TestSi
     sessionManagerServiceRecoverProxy_ = sptr<SessionManagerServiceRecoverProxy>::MakeSptr(mockIRemoteObject);
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = nullptr;
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService, 4444);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        1, 1, true, 4444, INVALID_USER_ID, INVALID_PID, sessionManagerService);
 }
 
 /**
@@ -222,7 +229,8 @@ HWTEST_F(SessionManagerServiceRecoverProxyTest, OnWMSConnectionChanged07, TestSi
     ASSERT_NE(sessionManagerServiceRecoverProxy_, nullptr);
     sptr<IRemoteObject> sessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
     ASSERT_NE(sessionManagerService, nullptr);
-    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(1, 1, true, sessionManagerService, 3333);
+    sessionManagerServiceRecoverProxy_->OnWMSConnectionChanged(
+        1, 1, true, 3333, INVALID_USER_ID, INVALID_PID, sessionManagerService);
 }
 } // namespace
 } // namespace Rosen

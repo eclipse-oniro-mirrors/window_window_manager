@@ -234,7 +234,7 @@ HWTEST_F(SessionManagerLiteTest, OnWMSConnectionChangedCallback, TestSize.Level1
     // branch 1
     instance_->wmsConnectionChangedFunc_ = nullptr;
     instance_->OnWMSConnectionChangedCallback(userId, screenId, isConnected, pid);
-    EXPECT_TRUE(g_errLog.find("Callback is null") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("callback func is null") != std::string::npos);
 
     // branch 2
     instance_->wmsConnectionChangedFunc_ = callback;
@@ -258,15 +258,15 @@ HWTEST_F(SessionManagerLiteTest, OnWMSConnectionChanged1, TestSize.Level1)
     int32_t pid = 12345;
 
     // branch 1: Into all 'if' branch
-    instance_->currentWMSUserId_ = 200;
-    instance_->OnWMSConnectionChanged(userId, screenId, isConnected, service, pid);
-    EXPECT_EQ(instance_->currentWMSUserId_, userId);
+    instance_->currentServer_.userId = 200;
+    instance_->OnWMSConnectionChanged(userId, screenId, isConnected, pid, INVALID_USER_ID, INVALID_PID, service);
+    EXPECT_EQ(instance_->currentServer_.userId, userId);
 
     // branch 2: Cover all branches
     isConnected = false;
     userId = 300;
-    instance_->OnWMSConnectionChanged(userId, screenId, isConnected, service, pid);
-    EXPECT_NE(instance_->currentWMSUserId_, userId);
+    instance_->OnWMSConnectionChanged(userId, screenId, isConnected, pid, INVALID_USER_ID, INVALID_PID, service);
+    EXPECT_NE(instance_->currentServer_.userId, userId);
 }
 
 /**
@@ -279,7 +279,7 @@ HWTEST_F(SessionManagerLiteTest, OnWMSConnectionChanged2, TestSize.Level1)
     // Just cover branch, no need to assert.
     auto listener = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(userId_);
     ASSERT_NE(nullptr, listener);
-    listener->OnWMSConnectionChanged(100, 100, true, nullptr, 12345);
+    listener->OnWMSConnectionChanged(100, 100, true, 12345, INVALID_USER_ID, INVALID_PID, nullptr);
 }
 
 /**
@@ -560,6 +560,8 @@ HWTEST_F(SessionManagerLiteTest, SMSRecoverListener3, TestSize.Level1)
     int32_t screenId = DEFAULT_SCREEN_ID;
     bool isConnected = false;
     int32_t pid = -1;
+    int32_t fromUserId = INVALID_USER_ID;
+    int32_t fromPid = INVALID_PID;
     auto listener = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(userId_);
 
     // branch 4: TRANS_ID_ON_WMS_CONNECTION_CHANGED
@@ -570,6 +572,8 @@ HWTEST_F(SessionManagerLiteTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
     data.WriteInt32(pid);
+    data.WriteInt32(fromUserId);
+    data.WriteInt32(fromPid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 
@@ -580,6 +584,8 @@ HWTEST_F(SessionManagerLiteTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
     data.WriteInt32(pid);
+    data.WriteInt32(fromUserId);
+    data.WriteInt32(fromPid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 

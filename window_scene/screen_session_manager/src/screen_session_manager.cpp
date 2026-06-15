@@ -5444,6 +5444,11 @@ void ScreenSessionManager::OnGetHdrFormats(ScreenId screenId, const sptr<ScreenS
         return static_cast<uint32_t>(val);
     });
     session->AddHdrFormats(hdrFormats);
+    sptr<ScreenSession> fakeScreenSession = session->GetFakeScreenSession();
+    if (fakeScreenSession != nullptr) {
+        std::vector<uint32_t> hdrFormatsFake = session->GetHdrFormats();
+        fakeScreenSession->AddHdrFormats(std::move(hdrFormatsFake));
+    }
 }
 
 void ScreenSessionManager::SetHdrFormats(ScreenId screenId, sptr<ScreenSession>& session)

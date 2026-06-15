@@ -186,7 +186,7 @@ using NotifyMoveMainWindowToTargetDisplayFunc = std::function<void(DisplayId dis
 using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 using PageEnableFunc = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
-using GetFloatViewLimitFunc = std::function<bool(std::map<uint32_t, FloatViewLimits>& limit)>;
+using GetFloatViewLimitFunc = std::function<void()>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
     void OnAppDebugStarted(const std::vector<AppExecFwk::AppDebugInfo>& debugInfos) override;
@@ -383,7 +383,7 @@ public:
     /*
      * Float view
      */
-    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits);
+    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits, bool isChanged);
     WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
     void RegisterGetFloatViewLimitCallback(GetFloatViewLimitFunc&& func);
 
@@ -502,6 +502,7 @@ public:
     void GetSceneSessionPrivacyModeBundles(DisplayId displayId,
         std::unordered_map<DisplayId, std::unordered_set<std::string>>& privacyBundles);
     BrokerStates CheckIfReuseSession(SessionInfo& sessionInfo);
+    BrokerStates NotifyStartWindowsAbility(SessionInfo& sessionInfo);
     sptr<SceneSession> FindSessionByAffinity(const std::string& affinity);
     void AddWindowDragHotArea(DisplayId displayId, uint32_t type, WSRect& area);
     void PreloadInLakeApp(const std::string& bundleName);
@@ -1338,6 +1339,7 @@ private:
     sptr<SceneSession> SelectSesssionFromMap(const uint64_t& surfaceId);
     void WindowDestroyNotifyVisibility(const sptr<SceneSession>& sceneSession);
     void RegisterSessionSnapshotFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterSessionSaveSnapshotCompleteFunc(const sptr<SceneSession>& sceneSession);
 
     /*
      * Window Property
@@ -2106,6 +2108,7 @@ private:
     std::mutex floatViewLimitsMutex_;
     GetFloatViewLimitFunc getFloatViewLimitFunc_;
     std::map<uint32_t, FloatViewLimits> floatViewLimits_{};
+    std::condition_variable getLimitsFinishCv_;
 };
 } // namespace OHOS::Rosen
 

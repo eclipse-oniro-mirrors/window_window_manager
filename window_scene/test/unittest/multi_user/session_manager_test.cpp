@@ -66,13 +66,15 @@ HWTEST_F(SessionManagerTest, OnWMSConnectionChanged1, Function | SmallTest | Lev
     sptr<SessionManager> sm = &SessionManager::GetInstance(100);
     sptr<ISessionManagerService> sessionManagerService;
     sm->isWMSConnected_ = true;
-    sm->currentWMSUserId_ = 100;
-    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService, INVALID_PID);
+    sm->currentServer_.userId = 100;
+    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sm->isWMSConnected_, false);
 
-    sm->currentWMSUserId_ = 101;
+    sm->currentServer_.userId = 101;
     sm->isWMSConnected_ = true;
-    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService, INVALID_PID);
+    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sm->isWMSConnected_, true);
 }
 
@@ -86,14 +88,15 @@ HWTEST_F(SessionManagerTest, OnWMSConnectionChanged2, Function | SmallTest | Lev
     sptr<SessionManager> sm = &SessionManager::GetInstance(100);
     sptr<ISessionManagerService> sessionManagerService;
     sm->isWMSConnected_ = false;
-    sm->currentWMSUserId_ = INVALID_USER_ID;
-    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true, sessionManagerService, INVALID_PID);
+    sm->currentServer_.userId = INVALID_USER_ID;
+    sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sm->isWMSConnected_, true);
 
     // user switch
-    sm->currentWMSUserId_ = 100;
+    sm->currentServer_.userId = 100;
     sm->isWMSConnected_ = true;
-    sm->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, sessionManagerService, INVALID_PID);
+    sm->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, INVALID_PID, 100, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sm->isWMSConnected_, true);
 }
 
@@ -158,8 +161,8 @@ HWTEST_F(SessionManagerTest, RegisterWMSConnectionChangedListener1, Function | S
 {
     sptr<SessionManager> sm = &SessionManager::GetInstance(100);
     sm->isRecoverListenerRegistered_ = true;
-    sm->currentWMSUserId_ = 100;
-    sm->currentScreenId_ = 0;
+    sm->currentServer_.userId = 100;
+    sm->currentServer_.screenId = 0;
     sm->isWMSConnected_ = true;
     auto callbackFunc = [](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {};
     auto ret = sm->RegisterWMSConnectionChangedListener(callbackFunc);
@@ -178,6 +181,177 @@ HWTEST_F(SessionManagerTest, UnregisterWMSConnectionChangedListener, Function | 
     sm->mockSessionManagerServiceProxy_ = iface_cast<IMockSessionManagerInterface>(remoteObject);
     auto ret = sm->UnregisterWMSConnectionChangedListener();
     ASSERT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedGlobalScreenMatch
+ * @tc.desc: global instance shouldUpdate=true when screenId matches
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedGlobalScreenMatch, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    smGlobal->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, sms);
+    EXPECT_EQ(smGlobal->currentServer_.userId, 200);
+    EXPECT_EQ(smGlobal->currentServer_.screenId, 0);
+    EXPECT_EQ(smGlobal->isWMSConnected_, true);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedGlobalScreenMismatch
+ * @tc.desc: global instance shouldUpdate=false when screenId doesn't match
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedGlobalScreenMismatch, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    smGlobal->OnWMSConnectionChanged(200, 1, true, 23456, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(smGlobal->currentServer_.userId, 100);
+    EXPECT_EQ(smGlobal->currentServer_.screenId, 0);
+    EXPECT_EQ(smGlobal->isWMSConnected_, true);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedGlobalInitialScreen
+ * @tc.desc: global instance shouldUpdate=true when currentServer.screenId=INVALID_SCREEN_ID_INT32
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedGlobalInitialScreen, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
+    smGlobal->isWMSConnected_ = false;
+
+    smGlobal->OnWMSConnectionChanged(100, 0, true, 12345, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(smGlobal->currentServer_.userId, 100);
+    EXPECT_EQ(smGlobal->currentServer_.screenId, 0);
+    EXPECT_EQ(smGlobal->isWMSConnected_, true);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedGlobalDisconnectMatch
+ * @tc.desc: global instance disconnect shouldUpdate=true when userId matches
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedGlobalDisconnectMatch, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    smGlobal->OnWMSConnectionChanged(100, 0, false, INVALID_PID, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(smGlobal->isWMSConnected_, false);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedGlobalDisconnectMismatch
+ * @tc.desc: global instance disconnect shouldUpdate=false when userId doesn't match
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedGlobalDisconnectMismatch, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    smGlobal->OnWMSConnectionChanged(200, 0, false, INVALID_PID, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(smGlobal->isWMSConnected_, true);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedPerUserMatch
+ * @tc.desc: per-user instance shouldUpdate=true when userId matches userId_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedPerUserMatch, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> sm = &SessionManager::GetInstance(100);
+    sptr<ISessionManagerService> sms;
+    sm->isWMSConnected_ = false;
+
+    sm->OnWMSConnectionChanged(100, 0, true, 12345, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(sm->currentServer_.userId, 100);
+    EXPECT_EQ(sm->isWMSConnected_, true);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedPerUserMismatch
+ * @tc.desc: per-user instance shouldUpdate=false when userId doesn't match userId_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedPerUserMismatch, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> sm = &SessionManager::GetInstance(100);
+    sptr<ISessionManagerService> sms;
+    sm->currentServer_ = { 100, 0, 12345 };
+    sm->isWMSConnected_ = true;
+
+    sm->OnWMSConnectionChanged(200, 0, true, 23456, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(sm->currentServer_.userId, 100);
+    EXPECT_EQ(sm->isWMSConnected_, true);
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedIsUserSwitched
+ * @tc.desc: test isUserSwitched triggers old user disconnect callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedIsUserSwitched, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    int32_t disconnectUserId = INVALID_USER_ID;
+    smGlobal->wmsConnectionChangedFunc_ = [&](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
+        if (!isConnected) {
+            disconnectUserId = userId;
+        }
+    };
+
+    smGlobal->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, sms);
+    EXPECT_EQ(disconnectUserId, 100);
+    EXPECT_EQ(smGlobal->currentServer_.userId, 200);
+
+    smGlobal->wmsConnectionChangedFunc_ = nullptr;
+}
+
+/**
+ * @tc.name: OnWMSConnectionChangedIsUserSwitchedFalse
+ * @tc.desc: test no disconnect callback when isUserSwitched=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, OnWMSConnectionChangedIsUserSwitchedFalse, Function | SmallTest | Level2)
+{
+    sptr<SessionManager> smGlobal = &SessionManager::GetInstance(INVALID_USER_ID);
+    sptr<ISessionManagerService> sms;
+    smGlobal->currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
+    smGlobal->isWMSConnected_ = false;
+
+    int32_t disconnectUserId = INVALID_USER_ID;
+    smGlobal->wmsConnectionChangedFunc_ = [&](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
+        if (!isConnected) {
+            disconnectUserId = userId;
+        }
+    };
+
+    smGlobal->OnWMSConnectionChanged(100, 0, true, 12345, INVALID_USER_ID, INVALID_PID, sms);
+    EXPECT_EQ(disconnectUserId, INVALID_USER_ID);
+    EXPECT_EQ(smGlobal->currentServer_.userId, 100);
+
+    smGlobal->wmsConnectionChangedFunc_ = nullptr;
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -232,7 +232,7 @@ WMError WindowAdapter::UnregisterWindowManagerAgent(WindowManagerAgentType type,
         auto it = windowManagerAgentFaultMap_.find(type);
         if (it != windowManagerAgentFaultMap_.end()) {
             it->second.erase(windowManagerAgent);
-            TLOGD(WmsLogTag::DEFAULT, "earse fault agent,  type=%{public}d", type);
+            TLOGD(WmsLogTag::DEFAULT, "erase fault agent,  type=%{public}d", type);
             if (it->second.empty()) {
                 windowManagerAgentFaultMap_.erase(it);
             }

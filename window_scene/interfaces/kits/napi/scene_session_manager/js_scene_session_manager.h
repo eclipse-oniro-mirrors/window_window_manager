@@ -229,6 +229,7 @@ private:
     napi_value OnRequestSceneSessionByCall(napi_env env, napi_callback_info info);
     napi_value OnStartAbilityBySpecified(napi_env env, napi_callback_info info);
     napi_value OnStartUIAbilityBySCB(napi_env env, napi_callback_info info);
+    napi_value OnNotifyStartWindowsAbility(napi_env env, napi_callback_info info);
     napi_value OnChangeUIAbilityVisibilityBySCB(napi_env env, napi_callback_info info);
     napi_value OnGetWindowSceneConfig(napi_env env, napi_callback_info info);
     napi_value OnGetSystemConfig(napi_env env, napi_callback_info info);
@@ -434,6 +435,7 @@ private:
     static napi_value RequestSceneSessionByCall(napi_env env, napi_callback_info info);
     static napi_value StartAbilityBySpecified(napi_env env, napi_callback_info info);
     static napi_value StartUIAbilityBySCB(napi_env env, napi_callback_info info);
+    static napi_value NotifyStartWindowsAbility(napi_env env, napi_callback_info info);
     napi_value OnGetApplicationInfo(napi_env env, napi_callback_info info);
     napi_value OnSupportCreateFloatWindow(napi_env env, napi_callback_info info);
     void RegisterSceneSessionDestructCallback();
@@ -493,7 +495,7 @@ private:
      */
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
-    bool OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit);
+    void OnGetFloatViewLimitCallback();
 };
 } // namespace OHOS::Rosen
 

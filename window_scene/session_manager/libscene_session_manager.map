@@ -200,6 +200,7 @@
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;
             OHOS::Rosen::SceneSessionManager::StartUIAbilityBySCB*;
+            OHOS::Rosen::SceneSessionManager::NotifyStartWindowsAbility*;
             OHOS::Rosen::SceneSessionManager::SwitchFreeMultiWindow*;
             OHOS::Rosen::SceneSessionManager::UnregisterSpecificSessionCreateListener*;
             OHOS::Rosen::SceneSessionManager::UpdateAllStartingWindowRdb*;

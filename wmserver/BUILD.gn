@@ -355,6 +355,7 @@ if (window_manager_use_sceneboard) {
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
       "image_framework:image_native",
+      "icu:shared_icuuc",
       "input:libmmi-client",
       "ipc:ipc_single",
       "libxml2:libxml2",

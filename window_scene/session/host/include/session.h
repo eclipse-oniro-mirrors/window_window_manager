@@ -86,6 +86,7 @@ using NofitySessionIconUpdatedFunc = std::function<void(const std::string& iconP
 using NotifySessionExceptionFunc =
     std::function<void(const SessionInfo& info, const ExceptionInfo& exceptionInfo, bool startFail)>;
 using NotifySessionSnapshotFunc = std::function<void(const int32_t& persistentId)>;
+using NotifySessionSaveSnapshotCompleteFunc = std::function<void(int32_t persistentId)>;
 using NotifyPendingSessionToForegroundFunc = std::function<void(const SessionInfo& info)>;
 using NotifyPendingSessionToBackgroundFunc = std::function<void(const SessionInfo& info,
     const BackgroundParams& params)>;
@@ -250,6 +251,7 @@ public:
     void SetPendingSessionToBackgroundListener(NotifyPendingSessionToBackgroundFunc&& func);
     void SetPendingSessionToBackgroundForDelegatorListener(NotifyPendingSessionToBackgroundForDelegatorFunc&& func);
     void SetSessionSnapshotListener(const NotifySessionSnapshotFunc& func);
+    void SetSessionSaveSnapshotCompleteListener(const NotifySessionSaveSnapshotCompleteFunc& func);
     WSError TerminateSessionNew(const sptr<AAFwk::SessionInfo> info, bool needStartCaller, bool isFromBroker);
     WSError TerminateSessionTotal(const sptr<AAFwk::SessionInfo> info, TerminateType terminateType);
     std::string GetSessionLabel() const;
@@ -1019,6 +1021,7 @@ public:
     void ResetPreloadStartingWindow();
     void InitPersistentScaledSnapshotParam(bool enabled);
     bool IsPersistentScaledSnapshotEnabled() { return enablePersistentScaledSnapshot_; };
+    void LoadSnapshotToMem();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -1155,6 +1158,7 @@ protected:
     NofitySessionLabelUpdatedFunc updateSessionLabelFunc_;
     NofitySessionIconUpdatedFunc updateSessionIconFunc_;
     NotifySessionSnapshotFunc notifySessionSnapshotFunc_;
+    NotifySessionSaveSnapshotCompleteFunc notifySessionSaveSnapshotCompleteFunc_;
     NotifyRaiseToTopForPointDownFunc raiseToTopForPointDownFunc_;
     NotifySessionInfoLockedStateChangeFunc sessionInfoLockedStateChangeFunc_;
     NotifySystemSessionPointerEventFunc systemSessionPointerEventFunc_;

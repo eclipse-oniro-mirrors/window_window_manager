@@ -1543,7 +1543,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1
     std::map<uint32_t, FloatViewLimits> limits;
     limits.emplace(0, limit);
     
-    auto ret = ssm_->SyncFloatViewLimits(limits);
+    auto ret = ssm_->SyncFloatViewLimits(limits, false);
     EXPECT_EQ(ret, WSError::WS_OK);
     
     SessionInfo info;
@@ -1561,7 +1561,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1
     ssm_->sceneSessionMap_.insert({ fakeSession->GetPersistentId(), fakeSession });
     ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), nullptr });
     ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), fvSession });
-    ret = ssm_->SyncFloatViewLimits(limits);
+    ret = ssm_->SyncFloatViewLimits(limits, true);
     EXPECT_EQ(ret, WSError::WS_OK);
 }
 
@@ -1572,14 +1572,22 @@ HWTEST_F(SceneSessionManagerSupplementTest, SyncFloatViewLimits, TestSize.Level1
  */
 HWTEST_F(SceneSessionManagerSupplementTest, GetFloatViewLimits, TestSize.Level1)
 {
+    FloatViewLimits limits;
+    ssm_->sceneSessionMap_.clear();
+    ssm_->getFloatViewLimitFunc_ = nullptr;
+    auto ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    ssm_->getFloatViewLimitFunc_ = []() -> void {};
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
     FloatViewLimits testLimits;
     testLimits.minWidth_ = 100;
     testLimits.minHeight_ = 100;
     testLimits.maxWidth_ = 1000;
     testLimits.maxHeight_ = 1000;
     ssm_->floatViewLimits_.emplace(0, testLimits);
-    FloatViewLimits limits;
-    auto ret = ssm_->GetFloatViewLimits(0, limits);
+    ret = ssm_->GetFloatViewLimits(0, limits);
     EXPECT_EQ(ret, WMError::WM_OK);
     EXPECT_EQ(limits.minWidth_, 100);
     EXPECT_EQ(limits.minHeight_, 100);
@@ -1588,6 +1596,28 @@ HWTEST_F(SceneSessionManagerSupplementTest, GetFloatViewLimits, TestSize.Level1)
     
     ret = ssm_->GetFloatViewLimits(2, limits);
     EXPECT_EQ(ret, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+
+    SessionInfo info;
+    info.bundleName_ = "test1";
+    info.abilityName_ = "test2";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV);
+    sptr<SceneSession> fvSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(fvSession, nullptr);
+    ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), nullptr });
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.insert({ fvSession->GetPersistentId(), fvSession });
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    SessionInfo info1;
+    info1.bundleName_ = "test11";
+    info1.abilityName_ = "test22";
+    info1.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB);
+    sptr<SceneSession> fvSession1 = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    ASSERT_NE(fvSession1, nullptr);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_.insert({ fvSession1->GetPersistentId(), fvSession1 });
+    ret = ssm_->GetFloatViewLimits(0, limits);
+    EXPECT_EQ(ret, WMError::WM_OK);
 }
 
 /**
