@@ -9511,34 +9511,40 @@ sptr<SceneSession> SceneSessionManager::GetTopNearestBlockingFocusSession(Displa
 
 bool SceneSessionManager::CheckBlockingFocus(const sptr<SceneSession>& session, bool includingAppSession)
 {
+    if (session == nullptr) {
+        return false;
+    }
     if (session->GetSessionInfo().isSystem_ && session->GetBlockingFocus()) {
-        TLOGD(WmsLogTag::WMS_FOCUS, "system window blocked");
         return true;
     }
 
+    WindowType windowType = session->GetWindowType();
     bool isPhoneOrPad = systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow();
-    if (isPhoneOrPad && (session->GetWindowType() == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
-        session->GetWindowType() == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD)) {
+    if (isPhoneOrPad &&
+        (windowType == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
+         windowType == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD)) {
         return true;
     }
-    if (includingAppSession && session->IsAppSession()) {
-        TLOGD(WmsLogTag::WMS_FOCUS,
-              "id: %{public}d, isFloatType: %{public}d, isFloatMode: %{public}d", session->GetPersistentId(),
-              session->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT,
-              session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING);
-        bool isPcOrPcMode =
-            systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
-        if (isPcOrPcMode && session->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT) {
-            return false;
+    if (windowType == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW) {
+        auto ancestorSession = session->GetMainOrFloatSession();
+        if (ancestorSession != nullptr) {
+            return CheckBlockingFocus(ancestorSession, includingAppSession);
         }
-        bool isPhoneOrPadWithoutPcMode = isPhoneOrPad && !systemConfig_.IsFreeMultiWindowMode();
-        if (isPhoneOrPadWithoutPcMode && session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING &&
-            SessionHelper::IsMainWindow(session->GetWindowType()) && !session->GetIsMidScene()) {
-            return false;
-        }
-        return true;
+        return false;
     }
-    return false;
+    if (!includingAppSession || !session->IsAppSession()) {
+        return false;
+    }
+    bool isPcOrPcMode = systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
+    if (isPcOrPcMode && windowType == WindowType::WINDOW_TYPE_FLOAT) {
+        return false;
+    }
+    if (isPhoneOrPad && !systemConfig_.IsFreeMultiWindowMode() &&
+        session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING &&
+        SessionHelper::IsMainWindow(windowType) && !session->GetIsMidScene()) {
+        return false;
+    }
+    return true;
 }
 
 sptr<SceneSession> SceneSessionManager::GetTopFocusableNonAppSession()
