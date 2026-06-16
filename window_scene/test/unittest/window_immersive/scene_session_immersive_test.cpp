@@ -740,6 +740,27 @@ HWTEST_F(SceneSessionImmersiveTest, SetFloatNavigationEnabled, TestSize.Level1)
     EXPECT_EQ(session->SetFloatNavigationEnabled(true), WMError::WM_OK);
     EXPECT_EQ(session->SetFloatNavigationEnabled(false), WMError::WM_OK);
 }
+
+/*
+ * @tc.name: CheckGetAvoidAreaAvailable
+ * @tc.desc: CheckGetAvoidAreaAvailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CheckGetAvoidAreaAvailable, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckGetAvoidAreaAvailable";
+    info.bundleName_ = "CheckGetAvoidAreaAvailable";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_FLOAT_NAVIGATION), false);
+    session->rotation_ = Rotation::ROTATION_90;
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), true);
+    session->rotation_ = Rotation::ROTATION_0;
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), false);
+}
 }
 }
 }

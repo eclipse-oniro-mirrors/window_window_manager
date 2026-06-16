@@ -3554,6 +3554,12 @@ bool SceneSession::CheckGetAvoidAreaAvailable(AvoidAreaType type)
     }
     WindowMode winMode = GetWindowMode();
     WindowType winType = GetWindowType();
+    bool isSplit = winMode == WindowMode::WINDOW_MODE_SPLIT || winMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
+        winMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
+    if (type == AvoidAreaType::TYPE_CUTOUT && GetRotation() == Rotation::ROTATION_0 && isSplit) {
+        TLOGI(WmsLogTag::WMS_IMMS, "win %{public}d no calcu cutout in split", GetPersistentId());
+        return false;
+    }
     bool isAvailable = false;
     if (WindowHelper::IsSubWindow(winType)) {
         isAvailable = CheckGetSubWindowAvoidAreaAvailable(winMode, type);
