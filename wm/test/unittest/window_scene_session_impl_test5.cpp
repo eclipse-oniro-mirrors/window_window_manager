@@ -178,10 +178,10 @@ HWTEST_F(WindowSceneSessionImplTest5, TestCheckAcrossDisplayPresentation, TestSi
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 
-    // Case 2: Sub window, only UNSPECIFIED should return true
+    // Case 2: Sub window, only UNSPECIFIED and FOLLOW_ACROSS_DISPLAY_SETTING should return true
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::UNSPECIFIED));
-    EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
+    EXPECT_TRUE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE));
     EXPECT_FALSE(window->CheckAcrossDisplayPresentation(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE));
 }
@@ -1135,6 +1135,16 @@ HWTEST_F(WindowSceneSessionImplTest5, MobileAppInPadLayoutFullScreenChange, Test
     statusBarEnable = true;
     navigationEnable = false;
     window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    statusBarEnable = false;
+    navigationEnable = false;
+    window->enableImmersiveMode_ = true;
+    window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    EXPECT_EQ(true, window->enableImmersiveMode_);
+    window->enableImmersiveMode_ = false;
+    statusBarEnable = true;
+    navigationEnable = true;
+    window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    EXPECT_EQ(false, window->enableImmersiveMode_);
 }
 
 /**
@@ -2459,6 +2469,120 @@ HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo02, TestSiz
 }
 
 /**
+ * @tc.name: GetConfigurationFromAbilityInfo03
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with !windowSystemConfig_.IsPcWindow() condition
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+    window->GetConfigurationFromAbilityInfo();
+    EXPECT_EQ(window->enableImmersiveMode_, false);
+}
+ 
+/**
+ * @tc.name: GetConfigurationFromAbilityInfo04
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with IsAncoSupportFreeWindow condition on PAD
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo04");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+    
+    window->GetConfigurationFromAbilityInfo();
+    bool isAncoSupportFreeWindow = window->IsAncoSupportFreeWindow();
+    EXPECT_FALSE(isAncoSupportFreeWindow);
+}
+ 
+/**
+ * @tc.name: GetConfigurationFromAbilityInfo05
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with IsAncoSupportFreeWindow condition on PC window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo05");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+ 
+    window->GetConfigurationFromAbilityInfo();
+    bool isAncoSupportFreeWindow = window->IsAncoSupportFreeWindow();
+    EXPECT_FALSE(isAncoSupportFreeWindow);
+}
+ 
+/**
+ * @tc.name: GetConfigurationFromAbilityInfo06
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with IsAncoSupportFreeWindow condition on PHONE window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo06");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+ 
+    window->GetConfigurationFromAbilityInfo();
+    bool isAncoSupportFreeWindow = window->IsAncoSupportFreeWindow();
+    EXPECT_FALSE(isAncoSupportFreeWindow);
+}
+
+/**
  * @tc.name: UpdateDecorEnable
  * @tc.desc: UpdateDecorEnable test
  * @tc.type: FUNC
@@ -3156,6 +3280,79 @@ HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck06, TestSi
     result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
     EXPECT_EQ(result, false);
     result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck07
+ * @tc.desc: Verify WINDOW_MODE_SPLIT and WINDOW_MODE_SUPPORT_SPLIT are handled correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck07");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // WINDOW_MODE_SUPPORT_SPLIT with FLOATING mode: should skip (has split support but no fullscreen)
+    uint32_t windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT;
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, true);
+
+    // WINDOW_MODE_SUPPORT_SPLIT with SPLIT mode itself
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck08
+ * @tc.desc: Verify WINDOW_MODE_SPLIT mode on phone/pad without free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck08");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+
+    uint32_t windowModeSupportType = WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY;
+    // WINDOW_MODE_SPLIT is a split mode — should skip on phone without free multi window
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(result, true);
+
+    // FLOATING mode with split support on phone — should also skip
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, true);
+}
+
+/**
+ * @tc.name: ShouldSkipSupportWindowModeCheck09
+ * @tc.desc: Verify WINDOW_MODE_SUPPORT_SPLIT combined with other support types
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, ShouldSkipSupportWindowModeCheck09, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ShouldSkipSupportWindowModeCheck09");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // SPLIT + FULLSCREEN both supported — FLOATING should NOT skip (has fullscreen)
+    uint32_t windowModeSupportType =
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN;
+    bool result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_EQ(result, false);
+
+    // SPLIT mode with SPLIT + FULLSCREEN support
+    result = window->ShouldSkipSupportWindowModeCheck(windowModeSupportType, WindowMode::WINDOW_MODE_SPLIT);
     EXPECT_EQ(result, false);
 }
 

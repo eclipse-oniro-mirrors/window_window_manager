@@ -241,9 +241,7 @@ void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
 
             FoldScreenBasePolicy::GetInstance().SetFoldStatus(globalFoldStatus_);
             ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(globalFoldStatus_);
-            if (!FoldScreenBasePolicy::GetInstance().GetLockDisplayStatus()) {
-                FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
-            }
+            FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
         } else {
             TLOGD(WmsLogTag::DMS, "fold state doesn't change, foldState = %{public}d.", globalFoldStatus_);
         }
@@ -421,7 +419,7 @@ bool SensorFoldStateMgr::TriggerTentExit(const ScreenAxis& axis)
 
 void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorStatus)
 {
-    const ScreenAxis& axis = sensorStatus.axis_[0];
+    const ScreenAxis& axis = GetTentModeScreenAxis(sensorStatus);
     if (TriggerTentExit(axis)) {
         FoldStatus nextStatus = GetNextFoldStatus(sensorStatus);
         HandleSensorChange(nextStatus);
@@ -435,6 +433,15 @@ void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorSt
         ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_CANCEL);
         PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
     }
+}
+
+ScreenAxis SensorFoldStateMgr::GetTentModeScreenAxis(const SensorStatus& sensorStatus)
+{
+    ScreenAxis screenAxis = {.angle_ = -1.0F, .hall_ = -1};
+    if (sensorStatus.axis_.size() > 0) {
+        screenAxis = sensorStatus.axis_[0];
+    }
+    return screenAxis;
 }
 
 void SensorFoldStateMgr::SetDeviceStatusAndParam(uint32_t deviceStatus)

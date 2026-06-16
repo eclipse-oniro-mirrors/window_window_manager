@@ -18,6 +18,7 @@
 #include <iservice_registry.h>
 #include <system_ability_definition.h>
 #include "iremote_object_mocker.h"
+#include "parameters.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
 #include "session_manager_lite.h"
@@ -40,6 +41,7 @@ public:
 private:
     sptr<SessionManager> sm_ = nullptr;
     int32_t userId_ = 100;
+    std::string isConcurrentuser_;
 };
 
 void SessionManagerTest::SetUpTestCase() {}
@@ -48,11 +50,15 @@ void SessionManagerTest::TearDownTestCase() {}
 
 void SessionManagerTest::SetUp()
 {
+    isConcurrentuser_ = OHOS::system::GetParameter("persist.dms.concurrentuser", "");
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "true");
     sm_ = &SessionManager::GetInstance(userId_);
 }
 
 void SessionManagerTest::TearDown()
 {
+    SessionManager::sessionManagerMap_.clear();
+    OHOS::system::SetParameter("persist.dms.concurrentuser", isConcurrentuser_);
     sm_ = nullptr;
 }
 
@@ -348,6 +354,8 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     int32_t screenId = DEFAULT_SCREEN_ID;
     bool isConnected = false;
     int32_t pid = -1;
+    int32_t fromUserId = INVALID_USER_ID;
+    int32_t fromPid = INVALID_PID;
     auto listener = sptr<SessionManagerServiceRecoverListener>::MakeSptr(userId_);
 
     // branch 4: TRANS_ID_ON_WMS_CONNECTION_CHANGED
@@ -358,6 +366,8 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
     data.WriteInt32(pid);
+    data.WriteInt32(fromUserId);
+    data.WriteInt32(fromPid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 
@@ -368,6 +378,8 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
     data.WriteInt32(pid);
+    data.WriteInt32(fromUserId);
+    data.WriteInt32(fromPid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 
@@ -386,9 +398,13 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
 HWTEST_F(SessionManagerTest, GetMockSessionManagerServiceProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sm_);
-    sm_->GetMockSessionManagerServiceProxy();
-    sm_->GetMockSessionManagerServiceProxy();
-    ASSERT_NE(sm_->mockFoundationDeathRecipient_, nullptr);
+    auto proxy = sm_->GetMockSessionManagerServiceProxy();
+    EXPECT_EQ(nullptr, proxy);
+
+    auto ret = sm_->InitMockSMSProxy();
+    EXPECT_EQ(WMError::WM_OK, ret);
+    proxy = sm_->GetMockSessionManagerServiceProxy();
+    ASSERT_NE(nullptr, proxy);
 }
 } // namespace
 } // namespace Rosen

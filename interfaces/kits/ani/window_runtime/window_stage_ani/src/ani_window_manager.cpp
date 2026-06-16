@@ -685,7 +685,7 @@ bool ParseConfigOption(ani_env* env, ani_object configuration, WindowOption &opt
         auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
         if (context == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "[ANI] context is nullptr");
-            return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "Stage mode without context");
+            return false;
         }
     }
 
@@ -705,7 +705,7 @@ ani_ref AniWindowManager::OnCreateWindow(ani_env* env, ani_object configuration)
     } else if (WindowHelper::IsSubWindow(option.GetWindowType())) {
         return CreateAniSubWindow(env, windowOption);
     } else {
-        return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "[ANI] Create window failed");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "[ANI] Create window failed");
     }
 }
 

@@ -120,7 +120,7 @@ struct PiPContent {
 
   aboutToAppear(): void {
     try {
-      this.windowId = this.getUIContext()?.getWindowId()?? 0;
+      this.windowId = this.getUIContext()?.getWindowId() ?? 0;
       this.nodeController = pip.getCustomUIController(this.windowId);
       this.registerUpdateNodeListener();
       this.xComponent = pip.getTypeNode(this.windowId);

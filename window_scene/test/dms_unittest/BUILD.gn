@@ -26,6 +26,7 @@ group("unittest") {
     ":ws_screen_power_utils_test",
     ":ws_screen_property_test",
     ":ws_screen_rotation_property_test",
+    ":ws_motion_manager_test",
     ":ws_screen_session_manager_adapter_test",
     ":ws_screen_session_manager_lite_proxy_test",
     ":ws_screen_session_manager_lite_stub_test",
@@ -50,6 +51,7 @@ group("unittest") {
       ":ws_screen_session_manager_test_six",
       ":ws_screen_session_manager_test_seven",
       ":ws_screen_session_manager_test_eight",
+      ":ws_screen_session_manager_virtual_surface_test",
       ":ws_screen_aod_plugin_test",
       ":ws_screen_scene_config_test",
       ":ws_setting_provider_test",
@@ -88,6 +90,7 @@ group("unittest") {
       ":ws_single_display_sensor_pocket_fold_state_manager_test",
       ":ws_super_fold_sensor_manager_test",
       ":ws_super_fold_state_manager_test",
+      ":ws_super_fold_policy_test",
       ":ws_screen_sensor_mgr_test",
       ":ws_sensor_fold_state_mgr_test",
       ":ws_fold_screen_base_policy_test",
@@ -542,6 +545,12 @@ ohos_unittest("ws_screen_session_manager_lite_stub_test") {
 
 ohos_unittest("ws_screen_session_manager_stub_test") {
   module_out_path = module_out_path
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   sources = [ "screen_session_manager_stub_test.cpp" ]
 
@@ -1076,6 +1085,46 @@ ohos_unittest("ws_screen_session_manager_test_eight") {
   }
 }
 
+ohos_unittest("ws_screen_session_manager_virtual_surface_test") {
+  module_out_path = module_out_path
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  sources = [
+    "../mock/mock_message_parcel.cpp",
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "screen_session_manager_virtual_surface_test.cpp"
+  ]
+
+  include_dirs = [ "../mock" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_runtime:ability_context_native",
+    "ability_runtime:runtime",
+    "init:libbegetutil",
+  ]
+
+  defines = []
+
+  if (window_manager_fold_ability) {
+    defines += [ "FOLD_ABILITY_ENABLE" ]
+  }
+
+  if (window_manager_feature_multi_screen) {
+    defines += [ "WM_MULTI_SCREEN_ENABLE" ]
+  }
+}
+
 ohos_unittest("ws_screen_aod_plugin_test") {
   module_out_path = module_out_path
   sanitize = {
@@ -1106,6 +1155,28 @@ ohos_unittest("ws_screen_rotation_property_test") {
   external_deps = test_external_deps
 
   defines = []
+  if (defined(global_parts_info) && defined(global_parts_info.sensors_sensor)) {
+    external_deps += [ "sensor:sensor_interface_native" ]
+    defines += [ "SENSOR_ENABLE" ]
+  }
+}
+
+ohos_unittest("ws_motion_manager_test") {
+  module_out_path = module_out_path
+
+  sources = [ "motion_manager_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = []
+  if (window_manager_feature_subscribe_motion) {
+    if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
+      defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+    }
+  }
+
   if (defined(global_parts_info) && defined(global_parts_info.sensors_sensor)) {
     external_deps += [ "sensor:sensor_interface_native" ]
     defines += [ "SENSOR_ENABLE" ]
@@ -1204,6 +1275,22 @@ if (window_manager_fold_ability) {
     module_out_path = module_out_path
 
     sources = [ "single_display_fold_policy_test.cpp" ]
+
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+
+    deps = [ ":ws_unittest_common" ]
+
+    external_deps = test_external_deps
+  }
+
+  ohos_unittest("ws_super_fold_policy_test") {
+    module_out_path = module_out_path
+
+    sources = [ "super_fold_policy_test.cpp" ]
 
     sanitize = {
       cfi = true

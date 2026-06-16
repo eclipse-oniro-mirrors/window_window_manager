@@ -1524,6 +1524,21 @@ HWTEST_F(WindowSessionPropertyTest, GetDisplayId, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetKeyboardTargetDisplayId
+ * @tc.desc: GetKeyboardTargetDisplayId
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetKeyboardTargetDisplayId, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    DisplayId keyboardTargetDisplayId = 100;
+    property->SetKeyboardTargetDisplayId(keyboardTargetDisplayId);
+    auto result = property->GetKeyboardTargetDisplayId();
+    ASSERT_EQ(result, keyboardTargetDisplayId);
+}
+
+/**
  * @tc.name: GetPersistentId
  * @tc.desc: GetPersistentId
  * @tc.type: FUNC
@@ -2334,18 +2349,16 @@ HWTEST_F(WindowSessionPropertyTest, GetKeyboardLayoutParamsByScreenId, TestSize.
 
 /**
  * @tc.name: IsSameForceSplitConfig01
- * @tc.desc: Test IsSameForceSplitConfig when configs are identical
+ * @tc.desc: Test IsSameForceSplitConfig when both containsConfig_ are false
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig01, TestSize.Level1)
 {
     AppForceLandscapeConfig preconfig;
-    preconfig.containsSysConfig_ = false;
-    preconfig.containsAppConfig_ = false;
+    preconfig.containsConfig_ = false;
 
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = false;
-    config.containsAppConfig_ = false;
+    config.containsConfig_ = false;
 
     bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
     EXPECT_EQ(result, true);
@@ -2353,24 +2366,18 @@ HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig01, TestSize.Level1)
 
 /**
  * @tc.name: IsSameForceSplitConfig02
- * @tc.desc: Test IsSameForceSplitConfig when containsSysConfig is true and sys configs match
+ * @tc.desc: Test IsSameForceSplitConfig when containsConfig_ is true and isRouter_ matches
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig02, TestSize.Level1)
 {
     AppForceLandscapeConfig preconfig;
-    preconfig.containsSysConfig_ = true;
-    preconfig.isSysRouter_ = true;
-    preconfig.sysHomePage_ = "home";
-    preconfig.sysConfigJsonStr_ = "sysConfig";
-    preconfig.containsAppConfig_ = false;
+    preconfig.containsConfig_ = true;
+    preconfig.isRouter_ = true;
 
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = true;
-    config.isSysRouter_ = true;
-    config.sysHomePage_ = "home";
-    config.sysConfigJsonStr_ = "sysConfig";
-    config.containsAppConfig_ = false;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
 
     bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
     EXPECT_EQ(result, true);
@@ -2378,24 +2385,16 @@ HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig02, TestSize.Level1)
 
 /**
  * @tc.name: IsSameForceSplitConfig03
- * @tc.desc: Test IsSameForceSplitConfig when containsSysConfig is true and sysHomePage differs
+ * @tc.desc: Test IsSameForceSplitConfig when containsConfig_ differs
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig03, TestSize.Level1)
 {
     AppForceLandscapeConfig preconfig;
-    preconfig.containsSysConfig_ = true;
-    preconfig.isSysRouter_ = true;
-    preconfig.sysHomePage_ = "home1";
-    preconfig.sysConfigJsonStr_ = "sysConfig";
-    preconfig.containsAppConfig_ = false;
+    preconfig.containsConfig_ = true;
 
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = true;
-    config.isSysRouter_ = true;
-    config.sysHomePage_ = "home2";
-    config.sysConfigJsonStr_ = "sysConfig";
-    config.containsAppConfig_ = false;
+    config.containsConfig_ = false;
 
     bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
     EXPECT_EQ(result, false);
@@ -2403,74 +2402,81 @@ HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig03, TestSize.Level1)
 
 /**
  * @tc.name: IsSameForceSplitConfig04
- * @tc.desc: Test IsSameForceSplitConfig when containsAppConfig is true and app configs match
+ * @tc.desc: Test IsSameForceSplitConfig when containsConfig_ is true but isRouter_ differs
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig04, TestSize.Level1)
 {
     AppForceLandscapeConfig preconfig;
-    preconfig.containsSysConfig_ = false;
-    preconfig.containsAppConfig_ = true;
-    preconfig.isAppRouter_ = true;
-    preconfig.appConfigJsonStr_ = "appConfig";
+    preconfig.containsConfig_ = true;
+    preconfig.isRouter_ = true;
 
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = false;
-    config.containsAppConfig_ = true;
-    config.isAppRouter_ = true;
-    config.appConfigJsonStr_ = "appConfig";
-
-    bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
-    EXPECT_EQ(result, true);
-}
-
-/**
- * @tc.name: IsSameForceSplitConfig05
- * @tc.desc: Test IsSameForceSplitConfig when containsAppConfig is true and appConfigJsonStr differs
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig05, TestSize.Level1)
-{
-    AppForceLandscapeConfig preconfig;
-    preconfig.containsSysConfig_ = false;
-    preconfig.containsAppConfig_ = true;
-    preconfig.isAppRouter_ = true;
-    preconfig.appConfigJsonStr_ = "appConfig1";
-
-    AppForceLandscapeConfig config;
-    config.containsSysConfig_ = false;
-    config.containsAppConfig_ = true;
-    config.isAppRouter_ = true;
-    config.appConfigJsonStr_ = "appConfig2";
+    config.containsConfig_ = true;
+    config.isRouter_ = false;
 
     bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
     EXPECT_EQ(result, false);
 }
 
 /**
+ * @tc.name: IsSameForceSplitConfig05
+ * @tc.desc: Test IsSameForceSplitConfig when containsConfig_ is true and all fields match
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig05, TestSize.Level1)
+{
+    AppForceLandscapeConfig preconfig;
+    preconfig.containsConfig_ = true;
+    preconfig.isRouter_ = false;
+    preconfig.configJsonStr_ = "config1";
+
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "config1";
+
+    bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
+    EXPECT_EQ(result, true);
+}
+
+/**
  * @tc.name: IsSameForceSplitConfig06
- * @tc.desc: Test IsSameForceSplitConfig when containsSysConfig and containsAppConfig are both true
+ * @tc.desc: Test IsSameForceSplitConfig when containsConfig_ is true but configJsonStr_ differs
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig06, TestSize.Level1)
 {
     AppForceLandscapeConfig preconfig;
-    preconfig.containsSysConfig_ = true;
-    preconfig.isSysRouter_ = true;
-    preconfig.sysHomePage_ = "home";
-    preconfig.sysConfigJsonStr_ = "sysConfig";
-    preconfig.containsAppConfig_ = true;
-    preconfig.isAppRouter_ = true;
-    preconfig.appConfigJsonStr_ = "appConfig";
+    preconfig.containsConfig_ = true;
+    preconfig.isRouter_ = true;
+    preconfig.configJsonStr_ = "config1";
 
     AppForceLandscapeConfig config;
-    config.containsSysConfig_ = true;
-    config.isSysRouter_ = true;
-    config.sysHomePage_ = "home";
-    config.sysConfigJsonStr_ = "sysConfig";
-    config.containsAppConfig_ = true;
-    config.isAppRouter_ = true;
-    config.appConfigJsonStr_ = "appConfig";
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "config2";
+
+    bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: IsSameForceSplitConfig07
+ * @tc.desc: Test IsSameForceSplitConfig when both containsConfig_ are false but other fields differ
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, IsSameForceSplitConfig07, TestSize.Level1)
+{
+    AppForceLandscapeConfig preconfig;
+    preconfig.containsConfig_ = false;
+    preconfig.isRouter_ = true;
+    preconfig.configJsonStr_ = "config1";
+
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = false;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "config2";
 
     bool result = AppForceLandscapeConfig::IsSameForceSplitConfig(preconfig, config);
     EXPECT_EQ(result, true);
@@ -2711,6 +2717,101 @@ HWTEST_F(WindowSessionPropertyTest, MarshallingUnmarshallingWithHookWindowInfo, 
     ASSERT_EQ(targetProperty->GetHookWindowInfo().widthHookRatio, 0.8f);
     ASSERT_EQ(targetProperty->GetHookWindowInfo().drawableRectHook, true);
     ASSERT_EQ(targetProperty->GetForceSplitEnable(), true);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat001
+ * @tc.desc: Non-SPLIT mode returns original window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat001, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_FULLSCREEN);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_FLOATING });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_FLOATING);
+
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    property->SetWindowModeInfo(WindowModeInfo{ WindowMode::WINDOW_MODE_SPLIT_PRIMARY });
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat002
+ * @tc.desc: SPLIT mode with TWO_WINDOW_HORIZONTAL and PRIMARY index maps to SPLIT_PRIMARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat002, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = SPLIT_INDEX_PRIMARY;
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat003
+ * @tc.desc: SPLIT mode with TWO_WINDOW_VERTICAL and SECONDARY index maps to SPLIT_SECONDARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat003, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_VERTICAL;
+    splitInfo.splitIndex = SPLIT_INDEX_SECONDARY;
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat004
+ * @tc.desc: SPLIT mode with non-TWO_WINDOW style returns original mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat004, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::THREE_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = SPLIT_INDEX_PRIMARY;
+    property->SetWindowModeInfo(splitInfo);
+    // THREE_WINDOW_HORIZONTAL is not TWO_WINDOW_HORIZONTAL/VERTICAL, return original
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
+}
+
+/**
+ * @tc.name: GetWindowModeCompat005
+ * @tc.desc: SPLIT mode with invalid splitIndex returns original mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat005, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    WindowModeInfo splitInfo;
+    splitInfo.windowMode = WindowMode::WINDOW_MODE_SPLIT;
+    splitInfo.splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    splitInfo.splitIndex = 99; // Invalid index
+    property->SetWindowModeInfo(splitInfo);
+    EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
 }
 } // namespace
 } // namespace Rosen

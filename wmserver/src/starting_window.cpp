@@ -497,7 +497,6 @@ void StartingWindow::AddNodeOnRSTree(sptr<WindowNode>& node, bool isMultiDisplay
             winRect.posX_, winRect.posY_, winRect.width_, winRect.height_);
         if (weak->leashWinSurfaceNode_) {
             weak->leashWinSurfaceNode_->SetBounds(winRect.posX_, winRect.posY_, winRect.width_, winRect.height_);
-            weak->leashWinSurfaceNode_->SetAnimationFinished();
         }
         RSTransactionAdapter::FlushImplicitTransaction(weak->leashWinSurfaceNode_);
     };

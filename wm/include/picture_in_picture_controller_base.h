@@ -121,6 +121,7 @@ public:
     void SetStateChangeReason(PiPStateChangeReason reason);
     PiPStateChangeReason GetStateChangeReason() const;
     int64_t GetCreateTimestamp() const;
+    int64_t GetStartTimestamp() const;
     uint32_t GetPipTemplate() const;
     virtual std::string GetPiPNavigationId() const { return ""; };
     inline sptr<PipOption> GetPipOption() const { return pipOption_; }
@@ -217,6 +218,7 @@ protected:
     uint64_t surfaceId_ = 0;
     PiPStateChangeReason stateChangeReason_ = PiPStateChangeReason::OTHER;
     int64_t createTimestamp_ = 0;
+    int64_t startTimestamp_ = 0;
 
     // diffrent between normal and web
     virtual WMError CreatePictureInPictureWindow(StartPipType startType) = 0;

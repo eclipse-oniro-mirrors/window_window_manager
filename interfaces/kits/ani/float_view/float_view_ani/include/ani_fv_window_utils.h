@@ -17,6 +17,9 @@
 #define ANI_FV_WINDOW_UTILS_H
 
 #include "ani.h"
+
+#include "float_view_model.h"
+
 #include "window.h"
 #include "js_runtime_utils.h"
 
@@ -38,7 +41,10 @@ public:
         ani_object aniObj, const std::string& className, const std::string& field, ani_long& nativeAddress);
     static ani_status CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...);
     static ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
-    static bool ParseWindowSize(ani_env* env, ani_object windowSize, Rect& rect);
+    static bool ParseWindowSize(ani_env* env, ani_object windowSize, std::pair<int32_t, int32_t>& size);
+    static std::shared_ptr<TemplateProperty> ParseTemplateProperty(ani_env* env, ani_object jsObject,
+        std::string& errorMsg, WmErrorCode& errorCode);
+
     static ani_object CreateAniFloatViewStateChangeInfoObject(ani_env* env,
         const FloatViewState state, const std::string& reason);
     static ani_object CreateAniFloatViewRectChangeInfoObject(ani_env* env,

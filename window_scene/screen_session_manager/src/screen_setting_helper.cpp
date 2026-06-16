@@ -42,6 +42,7 @@ sptr<SettingObserver> ScreenSettingHelper::borderingAreaPercentObserver_;
 sptr<SettingObserver> ScreenSettingHelper::coordinationReadyObserver_;
 sptr<SettingObserver> ScreenSettingHelper::wiredScreenGamutObserver_;
 sptr<SettingObserver> ScreenSettingHelper::osSwitchStatusObserver_;
+sptr<SettingObserver> ScreenSettingHelper::customResolutionObserver_;
 constexpr int32_t PARAM_NUM_TEN = 10;
 constexpr uint32_t EXPECT_ACTIVE_MODE_SIZE = 4;
 constexpr uint32_t EXPECT_SCREEN_MODE_SIZE = 2;
@@ -1381,6 +1382,83 @@ bool ScreenSettingHelper::GetOsSwitchStatus(std::string& status, const std::stri
         return false;
     }
     status = value;
+    return true;
+}
+
+void ScreenSettingHelper::RegisterSettingCustomResolutionObserver(SettingObserver::UpdateFunc func)
+{
+    if (customResolutionObserver_) {
+        TLOGE(WmsLogTag::DMS, "setting observer is registered");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    customResolutionObserver_ = provider.CreateObserver(SETTING_CUSTOM_RESOLUTION_KEY, func);
+    if (customResolutionObserver_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "create observer failed");
+        return;
+    }
+    ErrCode ret = provider.RegisterObserver(customResolutionObserver_);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        customResolutionObserver_ = nullptr;
+    }
+}
+
+void ScreenSettingHelper::UnregisterSettingCustomResolutionObserver()
+{
+    if (customResolutionObserver_ == nullptr) {
+        TLOGD(WmsLogTag::DMS, "setting observer is nullptr");
+        return;
+    }
+    SettingProvider& provider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = provider.UnregisterObserver(customResolutionObserver_);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+    }
+    customResolutionObserver_ = nullptr;
+}
+
+bool ScreenSettingHelper::GetCustomResolution(uint32_t& width, uint32_t& height, const std::string& key)
+{
+    std::string value = "";
+    SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = settingProvider.GetStringValue(key, value);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return false;
+    }
+    nlohmann::json jsonValue = nlohmann::json::parse(value, nullptr, false);
+    if (jsonValue.is_discarded() || !jsonValue.is_object()) {
+        TLOGE(WmsLogTag::DMS, "parse json failed");
+        return false;
+    }
+    if (!jsonValue.contains("width") || !jsonValue.contains("height")) {
+        TLOGE(WmsLogTag::DMS, "json missing required fields");
+        return false;
+    }
+    if (!jsonValue["width"].is_number_unsigned() || !jsonValue["height"].is_number_unsigned()) {
+        TLOGE(WmsLogTag::DMS, "width or height is not a uint32_t integer");
+        return false;
+    }
+    width = jsonValue["width"].get<uint32_t>();
+    height = jsonValue["height"].get<uint32_t>();
+    TLOGI(WmsLogTag::DMS, "width:%{public}u, height:%{public}u", width, height);
+    return true;
+}
+
+bool ScreenSettingHelper::SetCustomResolution(uint32_t width, uint32_t height, const std::string& key)
+{
+    nlohmann::json jsonValue;
+    jsonValue["width"] = width;
+    jsonValue["height"] = height;
+    std::string value = jsonValue.dump();
+    SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = settingProvider.PutStringValue(key, value);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "failed, ret=%{public}d", ret);
+        return false;
+    }
+    TLOGI(WmsLogTag::DMS, "set width:%{public}u, height:%{public}u", width, height);
     return true;
 }
 // LCOV_EXCL_STOP

@@ -34,7 +34,7 @@ struct WebPiPContent {
 
   @Builder
   buildXComponent() {
-    this.windowId = this.getUIContext()?.getWindowId()?? 0;
+    this.windowId = this.getUIContext()?.getWindowId() ?? 0;
     XComponent({ id: this.xComponentId, type: this.xComponentType, controller: this.xComponentController })
       .onLoad(() => {
         try {

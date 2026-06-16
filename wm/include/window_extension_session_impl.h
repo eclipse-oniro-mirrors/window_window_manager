@@ -59,17 +59,20 @@ public:
     WMError RegisterHostWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
     WMError UnregisterHostWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener) override;
     WMError RegisterRectChangeInGlobalDisplayListener(
-        const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
+        const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize = true) override;
     WMError UnregisterRectChangeInGlobalDisplayListener(
         const sptr<IRectChangeInGlobalDisplayListener>& listener) override;
     WMError RegisterKeyboardDidShowListener(const sptr<IKeyboardDidShowListener>& listener) override;
     WMError UnregisterKeyboardDidShowListener(const sptr<IKeyboardDidShowListener>& listener) override;
     WMError RegisterKeyboardDidHideListener(const sptr<IKeyboardDidHideListener>& listener) override;
     WMError UnregisterKeyboardDidHideListener(const sptr<IKeyboardDidHideListener>& listener) override;
+    WMError RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
+    WMError UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
     void TriggerBindModalUIExtension() override;
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     WindowMode GetWindowMode() const override;
+    WindowMode GetWindowModeCompat() const override;
     WMError SetWindowMode(WindowMode mode) override;
 
     /*
@@ -103,7 +106,8 @@ public:
     WMError TransferAccessibilityEvent(const Accessibility::AccessibilityEventInfo& info,
         int64_t uiExtensionIdLevel) override;
     WMError Destroy(bool needNotifyServer, bool needClearListener = true,
-        uint32_t reason = static_cast<uint32_t>(WindowStateChangeReason::NORMAL)) override;
+        uint32_t reason = static_cast<uint32_t>(WindowStateChangeReason::NORMAL),
+        bool isFromInnerkits = false) override;
 
     WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) override;
     WMError UnregisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) override;
@@ -132,8 +136,10 @@ public:
         const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager) override;
     static void UpdateConfigurationForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration,
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
-    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue) override;
@@ -143,7 +149,8 @@ public:
     WMError HideNonSecureWindows(bool shouldHide) override;
     WMError SetWaterMarkFlag(bool isEnable) override;
     Rect GetHostWindowRect(int32_t hostWindowId) override;
-    WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
+    Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
     bool IsComponentFocused() const override;
 
     /*
@@ -170,7 +177,9 @@ public:
     bool PreNotifyKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     void NotifyExtensionTimeout(int32_t errorCode) override;
     int32_t GetRealParentId() const override;
+    int32_t GetHostWindowId() const override;
     WindowType GetParentWindowType() const override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize) override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
@@ -208,6 +217,10 @@ public:
     WMError HandleRegisterHostRectChangeInGlobalDisplayListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
     WMError HandleUnregisterHostRectChangeInGlobalDisplayListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
+    WMError HandleUIExtRegisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
+    WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
     uint32_t GetHostStatusBarContentColor() const override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
@@ -262,6 +275,7 @@ private:
     WMError OnHostRectChangeInGlobalDisplay(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnRecover(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnHostWindowStatusChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
+    WMError OnTouchOutside(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
 
     /*
      * Compatible Mode
@@ -291,6 +305,7 @@ private:
     std::mutex keyboardDidShowListenerMutex_;
     std::mutex keyboardDidHideListenerMutex_;
     std::mutex occupiedAreaChangeListenerMutex_;
+    std::mutex touchOutsideListenerMutex_;
     std::vector<sptr<IWindowRectChangeListener>> hostWindowRectChangeListener_;
     std::vector<sptr<IKeyboardDidShowListener>> keyboardDidShowListenerList_;
     std::vector<sptr<IKeyboardDidHideListener>> keyboardDidHideListenerList_;

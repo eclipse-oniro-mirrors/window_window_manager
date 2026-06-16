@@ -1106,6 +1106,28 @@ HWTEST_F(ScreenPropertyTest, SetPhysicalTouchBoundsDirectly, TestSize.Level1)
         EXPECT_EQ(property->physicalTouchBounds_.rect_.height_, 1080);
     }
 }
+
+/**
+ * @tc.name: CastScalePropertyCombination
+ * @tc.desc: Set cast scale properties together and verify
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenPropertyTest, CastScalePropertyCombination, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: CastScalePropertyCombination start";
+    ScreenProperty* property = new(std::nothrow) ScreenProperty();
+    ASSERT_NE(property, nullptr);
+    float scaleX = 1920.0f / 1080.0f;
+    float scaleY = 1080.0f / 720.0f;
+    property->SetCastScaleX(scaleX);
+    property->SetCastScaleY(scaleY);
+    property->SetNeedCastScale(true);
+    EXPECT_TRUE(property->GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property->GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property->GetCastScaleY(), scaleY);
+    delete property;
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: CastScalePropertyCombination end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

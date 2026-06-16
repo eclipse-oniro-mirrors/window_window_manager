@@ -178,7 +178,7 @@ void* AniPipUtils::GetAbilityContext(ani_env *env, ani_object aniObj)
         TLOGE(WmsLogTag::WMS_PIP,  "get field fail, status : %{public}d", status);
         return nullptr;
     }
-    return (void*)nativeContextLong;
+    return reinterpret_cast<void*>(nativeContextLong);
 }
 
 ani_status AniPipUtils::CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, const char* signature, ...)

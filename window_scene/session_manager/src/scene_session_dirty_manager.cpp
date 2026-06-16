@@ -331,8 +331,7 @@ void SceneSessionDirtyManager::UpdateDefaultHotAreas(sptr<SceneSession> sceneSes
         sceneSession->IsDragAccessible();
     bool isSingleHandAffectedWindow = singleHandData.mode != SingleHandMode::MIDDLE &&
         windowSessionProperty->GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
-    bool isWindowSplit = windowSessionProperty->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        windowSessionProperty->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY;
+    bool isWindowSplit = WindowHelper::IsSplitWindowMode(windowSessionProperty->GetWindowMode());
     if ((isAppPipWindow || isAppMainWindow || (isSystemOrSubWindow && isDragAccessibleWindow)) &&
         !isMidScene && !isSingleHandAffectedWindow && !isWindowSplit) {
         float vpr = 1.5f; // 1.5: default vp
@@ -443,6 +442,38 @@ void SceneSessionDirtyManager::UpdateHotAreas(const sptr<SceneSession>& sceneSes
     }
     if (touchHotAreas.empty()) {
         return UpdateDefaultHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
+    }
+}
+
+void SceneSessionDirtyManager::UpdateDragDisabledAreas(const sptr<SceneSession>& sceneSession,
+    std::vector<MMI::Rect>& dragDisabledAreas) const
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "sceneSession is null");
+        return;
+    }
+    std::unordered_set<MMI::Rect, InputRectHash, InputRectEqual> areaHashSet;
+    const auto& areas = sceneSession->GetDragDisabledAreas();
+    for (const auto& area : areas) {
+        MMI::Rect rect;
+        rect.x = area.posX_;
+        rect.y = area.posY_;
+        rect.width = static_cast<int32_t>(area.width_);
+        rect.height = static_cast<int32_t>(area.height_);
+        if (areaHashSet.count(rect)) {
+            auto sessionId = sceneSession->GetWindowId();
+            TLOGW(WmsLogTag::WMS_EVENT, "duplicate rect for sessionId: %{public}d, [%{public}d, "
+                "%{public}d, %{public}d, %{public}d]", sessionId, rect.x, rect.y, rect.width, rect.height);
+            continue;
+        }
+        areaHashSet.insert(rect);
+        dragDisabledAreas.emplace_back(rect);
+        if (dragDisabledAreas.size() >= static_cast<uint32_t>(MMI::WindowInfo::MAX_HOTAREA_COUNT)) {
+            auto sessionId = sceneSession->GetWindowId();
+            TLOGW(WmsLogTag::WMS_EVENT, "sessionId: %{public}d, areas size > %{public}d, skip the reminding areas",
+                sessionId, static_cast<int>(dragDisabledAreas.size()));
+            break;
+        }
     }
 }
 
@@ -942,6 +973,8 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
     std::vector<MMI::Rect> touchHotAreas;
     std::vector<MMI::Rect> pointerHotAreas;
     UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
+    std::vector<MMI::Rect> dragDisabledAreas;
+    UpdateDragDisabledAreas(sceneSession, dragDisabledAreas);
     int windowNameType = WINDOW_NAME_TYPE_UNKNOWN;
     std::string windowName = sceneSession->GetWindowNameAllType();
     auto startsWith = [](const std::string& str, const std::string& prefix) {
@@ -976,6 +1009,7 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
         .isSkipSelfWhenShowOnVirtualScreen = sceneSession->GetSessionProperty()->GetSkipEventOnCastPlus(),
         .windowNameType = windowNameType,
         .agentPid = sceneSession->IsStartMoving() ? static_cast<int32_t>(getpid()) : pid,
+        .dragDisabledAreas = std::move(dragDisabledAreas)
     };
     UpdateWindowFlags(displayId, sceneSession, windowInfo);
     if (windowSessionProperty->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_HANDWRITING)) {

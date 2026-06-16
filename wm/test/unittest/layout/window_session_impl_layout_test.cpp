@@ -647,6 +647,74 @@ HWTEST_F(WindowSessionImplLayoutTest, ClearParentWindowListeners02, TestSize.Lev
     window->ClearParentWindowListeners(persistentId);
     EXPECT_EQ(WindowSessionImpl::parentWindowSizeChangeListeners_.count(persistentId), 0u);
 }
+
+/**
+ * @tc.name: GetRectUseHookedSize
+ * @tc.desc: Test GetRect returns hooked/real size based on useHookedSize
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplLayoutTest, GetRectUseHookedSize, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRectUseHookedSize");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    Rect realRect = { 10, 20, 100, 200 };
+    window->property_->SetWindowRect(realRect);
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    // useHookedSize=true: width should be hooked
+    auto hookedResult = window->GetRect(true);
+    EXPECT_EQ(hookedResult.posX_, 10);
+    EXPECT_EQ(hookedResult.posY_, 20);
+    EXPECT_EQ(hookedResult.width_, static_cast<uint32_t>(100 * 0.5f));
+    EXPECT_EQ(hookedResult.height_, 200);
+
+    // useHookedSize=false: should return real size
+    auto realResult = window->GetRect(false);
+    EXPECT_EQ(realResult.posX_, 10);
+    EXPECT_EQ(realResult.posY_, 20);
+    EXPECT_EQ(realResult.width_, 100u);
+    EXPECT_EQ(realResult.height_, 200);
+}
+
+/**
+ * @tc.name: GetGlobalDisplayRectUseHookedSize
+ * @tc.desc: Test GetGlobalDisplayRect returns hooked/real size based on useHookedSize
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplLayoutTest, GetGlobalDisplayRectUseHookedSize, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetGlobalDisplayRectUseHookedSize");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+    Rect globalDisplayRect = { 10, 20, 100, 200 };
+    window->property_->SetGlobalDisplayRect(globalDisplayRect);
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    // useHookedSize=true: width should be hooked
+    auto hookedResult = window->GetGlobalDisplayRect(true);
+    EXPECT_EQ(hookedResult.posX_, 10);
+    EXPECT_EQ(hookedResult.posY_, 20);
+    EXPECT_EQ(hookedResult.width_, static_cast<uint32_t>(100 * 0.5f));
+    EXPECT_EQ(hookedResult.height_, 200);
+
+    // useHookedSize=false: should return real size
+    auto realResult = window->GetGlobalDisplayRect(false);
+    EXPECT_EQ(realResult.posX_, 10);
+    EXPECT_EQ(realResult.posY_, 20);
+    EXPECT_EQ(realResult.width_, 100u);
+    EXPECT_EQ(realResult.height_, 200);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

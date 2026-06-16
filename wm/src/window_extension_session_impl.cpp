@@ -295,10 +295,12 @@ void WindowExtensionSessionImpl::UpdateDefaultStatusBarColor()
     SetStatusBarColorForExtensionInner(contentColor);
 }
 
-WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason)
+WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClearListener, uint32_t reason,
+    bool isFromInnerkits)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d Destroy, state:%{public}u, needNotifyServer:%{public}d, "
-        "needClearListener:%{public}d", GetPersistentId(), state_, needNotifyServer, needClearListener);
+        "needClearListener:%{public}d, isFromInnerkits:%{public}d",
+        GetPersistentId(), state_, needNotifyServer, needClearListener, isFromInnerkits);
 
     auto usage = property_->GetUIExtensionUsage();
     if ((usage == UIExtensionUsage::MODAL) || SessionHelper::IsSecureUIExtension(usage)) {
@@ -514,7 +516,7 @@ WMError WindowExtensionSessionImpl::UnregisterHostWindowRectChangeListener(
 }
 
 WMError WindowExtensionSessionImpl::RegisterRectChangeInGlobalDisplayListener(
-    const sptr<IRectChangeInGlobalDisplayListener>& listener)
+    const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize)
 {
     AAFwk::Want dataToSend;
     auto ret = SendExtensionMessageToHost(
@@ -624,6 +626,50 @@ WMError WindowExtensionSessionImpl::UnregisterKeyboardDidHideListener(const sptr
         AAFwk::Want want;
         ret = SendExtensionMessageToHost(
             static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER), want);
+    }
+    return ret;
+}
+
+WMError WindowExtensionSessionImpl::RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "in");
+    WMError ret = WMError::WM_OK;
+    auto persistentId = GetPersistentId();
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        ret = RegisterListener(touchOutsideListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            return ret;
+        }
+    }
+    AAFwk::Want want;
+    ret = SendExtensionMessageToHost(
+        static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER), want);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Send register listener message failed, errCode: %{public}d", ret);
+        return ret;
+    }
+    return ret;
+}
+
+WMError WindowExtensionSessionImpl::UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "in");
+    WMError ret = WMError::WM_OK;
+    bool needNotifyHost = false;
+    auto persistentId = GetPersistentId();
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        ret = UnregisterListener(touchOutsideListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            return ret;
+        }
+        needNotifyHost = touchOutsideListeners_[persistentId].empty() && touchOutsideUIExtListenerIds_.empty();
+    }
+    if (needNotifyHost) {
+        AAFwk::Want want;
+        ret = SendExtensionMessageToHost(
+            static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER), want);
     }
     return ret;
 }
@@ -846,7 +892,7 @@ std::unique_ptr<Ace::UIContent> WindowExtensionSessionImpl::CreateUIContent(AppE
             Ace::UIContent::Create(GetContext().get(), reinterpret_cast<NativeEngine*>(env));
     }
 }
- 
+
 WMError WindowExtensionSessionImpl::NapiSetUIContent(const std::string& contentInfo, napi_env env, napi_value storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
@@ -1382,16 +1428,18 @@ WMError WindowExtensionSessionImpl::UnregisterAvoidAreaChangeListener(const sptr
     return UnregisterExtensionAvoidAreaChangeListener(listener);
 }
 
-WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus)
+WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus,
+    int32_t requestId, int32_t scbRequestId)
 {
-    return Show(reason, withAnimation, withFocus, false);
+    return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach)
+WMError WindowExtensionSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
 {
     CheckAndAddExtWindowFlags();
     UpdateSystemViewportConfig();
-    WMError ret = WindowSessionImpl::Show(reason, withAnimation, withFocus, waitAttach);
+    WMError ret = WindowSessionImpl::Show(reason, withAnimation, withFocus, waitAttach, requestId, scbRequestId);
     if (ret == WMError::WM_OK) {
         RecordWindowLifecycleChange("show");
     }
@@ -1663,18 +1711,24 @@ WMError WindowExtensionSessionImpl::UpdateExtWindowFlags(const ExtensionWindowFl
 
 Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId)
 {
+    return GetHostWindowRect(hostWindowId, false);
+}
+
+Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId, bool useHookedSize)
+{
     Rect rect;
     if (hostWindowId != property_->GetParentId()) {
         TLOGE(WmsLogTag::WMS_UIEXT, "hostWindowId is invalid");
         return rect;
     }
-    SingletonContainer::Get<WindowAdapter>().GetHostWindowRect(hostWindowId, rect);
+    SingletonContainer::Get<WindowAdapter>().GetHostWindowRect(hostWindowId, rect, useHookedSize);
     return rect;
 }
 
-WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect)
+WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize)
 {
-    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(property_->GetParentId(), globalScaledRect);
+    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(
+        property_->GetParentId(), globalScaledRect, useHookedSize);
 }
 
 WMError WindowExtensionSessionImpl::GetGestureBackEnabled(bool& enable) const
@@ -1983,9 +2037,36 @@ int32_t WindowExtensionSessionImpl::GetRealParentId() const
     return property_->GetRealParentId();
 }
 
+int32_t WindowExtensionSessionImpl::GetHostWindowId() const
+{
+    return property_->GetParentId();
+}
+
 WindowType WindowExtensionSessionImpl::GetParentWindowType() const
 {
     return property_->GetParentWindowType();
+}
+
+WMError WindowExtensionSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize)
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowPropertyInfo.windowRect = GetRect();
+    windowPropertyInfo.type = GetType();
+    windowPropertyInfo.isLayoutFullScreen = IsLayoutFullScreen();
+    windowPropertyInfo.isFullScreen = IsFullScreen();
+    windowPropertyInfo.isTouchable = GetTouchable();
+    windowPropertyInfo.isFocusable = GetFocusable();
+    windowPropertyInfo.name = GetWindowName();
+    windowPropertyInfo.isPrivacyMode = IsPrivacyMode();
+    windowPropertyInfo.isKeepScreenOn = IsKeepScreenOn();
+    windowPropertyInfo.brightness = GetBrightness();
+    windowPropertyInfo.isTransparent = IsTransparent();
+    windowPropertyInfo.id = GetWindowId();
+    TLOGD(WmsLogTag::WMS_UIEXT, "winId=%{public}u", GetWindowId());
+    return WMError::WM_OK;
 }
 
 void WindowExtensionSessionImpl::NotifyModalUIExtensionMayBeCovered(bool byLoadContent)
@@ -2099,6 +2180,11 @@ WindowMode WindowExtensionSessionImpl::GetWindowMode() const
     return property_->GetWindowMode();
 }
 
+WindowMode WindowExtensionSessionImpl::GetWindowModeCompat() const
+{
+    return property_->GetWindowModeCompat();
+}
+
 void WindowExtensionSessionImpl::UpdateExtensionConfig(const std::shared_ptr<AAFwk::Want>& want)
 {
     if (want == nullptr) {
@@ -2158,39 +2244,36 @@ WMError WindowExtensionSessionImpl::OnExtensionMessage(uint32_t code, int32_t pe
     switch (code) {
         case static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE): {
             return HandleHostWindowRaise(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleRegisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleUnregisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtRegisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtRegisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleRegisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER): {
+            return HandleUIExtRegisterTouchOutsideListener(code, persistentId, data);
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
+            return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
         }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
@@ -2274,6 +2357,40 @@ WMError WindowExtensionSessionImpl::HandleUnregisterHostRectChangeInGlobalDispla
     TLOGI(WmsLogTag::WMS_UIEXT, "No need to send message to host to unregister, size of "
         "listener: %{public}zu, size of rectChangeUIExtListenerIds_: %{public}zu",
         hostRectChangeInGlobalDisplayListenerList_.size(), rectChangeInGlobalDisplayUIExtListenerIds_.size());
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::HandleUIExtRegisterTouchOutsideListener(uint32_t code,
+    int32_t persistentId, const AAFwk::Want& data)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    auto ret = SendExtensionMessageToHost(code, data);
+    if (ret != WMError::WM_OK) {
+        return ret;
+    }
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        touchOutsideUIExtListenerIds_.emplace(persistentId);
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::HandleUIExtUnregisterTouchOutsideListener(uint32_t code,
+    int32_t persistentId, const AAFwk::Want& data)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
+    bool needNotifyHost = false;
+    {
+        std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
+        touchOutsideUIExtListenerIds_.erase(persistentId);
+        needNotifyHost = touchOutsideListeners_[persistentId].empty() && touchOutsideUIExtListenerIds_.empty();
+    }
+    if (needNotifyHost) {
+        return SendExtensionMessageToHost(code, data);
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "No need to send message to host to unregister, size of "
+        "listener: %{public}zu, size of touchOutsideUIExtListenerIds_: %{public}zu",
+        touchOutsideListeners_[persistentId].size(), touchOutsideUIExtListenerIds_.size());
     return WMError::WM_OK;
 }
 
@@ -2575,6 +2692,9 @@ void WindowExtensionSessionImpl::RegisterDataConsumer()
     RegisterConsumer(Extension::Businesscode::SYNC_HOST_WINDOW_STATUS,
         std::bind(&WindowExtensionSessionImpl::OnHostWindowStatusChange,
         this, std::placeholders::_1, std::placeholders::_2));
+    RegisterConsumer(Extension::Businesscode::NOTIFY_TOUCH_OUTSIDE,
+        std::bind(&WindowExtensionSessionImpl::OnTouchOutside,
+        this, std::placeholders::_1, std::placeholders::_2));
 
     auto consumersEntry = [weakThis = wptr(this)](SubSystemId id, uint32_t customId, AAFwk::Want&& data,
                                                   std::optional<AAFwk::Want>& reply) -> int32_t {
@@ -2754,6 +2874,19 @@ void WindowExtensionSessionImpl::NotifyOccupiedAreaChange(sptr<OccupiedAreaChang
             listener->OnSizeChange(info);
         }
     }
+}
+
+WMError WindowExtensionSessionImpl::OnTouchOutside(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "in");
+    auto persistentId = GetPersistentId();
+    for (const auto& listener : touchOutsideListeners_[persistentId]) {
+        if (listener != nullptr) {
+            listener->OnTouchOutside();
+        }
+    }
+    NotifyUIExtTouchOutside();
+    return WMError::WM_OK;
 }
 } // namespace Rosen
 } // namespace OHOS

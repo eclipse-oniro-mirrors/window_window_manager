@@ -16,6 +16,7 @@ group("fuzztest") {
 
   deps = [
     "fb_fuzzer:fuzztest",
+    "floatwindowmanager_fuzzer:fuzztest",
     "pip_fuzzer:fuzztest",
     "window_fuzzer:fuzztest",
     "window01_fuzzer:fuzztest",

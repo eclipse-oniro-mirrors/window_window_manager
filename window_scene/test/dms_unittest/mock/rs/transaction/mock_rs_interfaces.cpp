@@ -56,6 +56,15 @@ int32_t RSInterfaces::SetVirtualScreenSurface(ScreenId id, sptr<Surface> surface
 {
     return 0;
 }
+int32_t RSInterfaces::AddVirtualScreenSurface(ScreenId id,
+    const std::vector<SurfaceRegionConfig> surfaceRegionConfigs)
+{
+    return 0;
+}
+int32_t RSInterfaces::RemoveVirtualScreenSurface(ScreenId id, const std::vector<sptr<Surface>> surfaces)
+{
+    return 0;
+}
 void RSInterfaces::RemoveVirtualScreen(ScreenId id) {}
 int32_t RSInterfaces::SetScreenChangeCallback(const ScreenChangeCallback& callback)
 {
@@ -140,7 +149,7 @@ int32_t RSInterfaces::GetScreenBacklight(ScreenId id)
     return 0;
 }
 
-void RSInterfaces::SetScreenBacklight(ScreenId id, uint32_t level) {}
+void RSInterfaces::SetScreenBacklight(const RsScreenBrightnessData& brightnessData) {}
 int32_t RSInterfaces::GetScreenSupportedColorGamuts(ScreenId id, std::vector<ScreenColorGamut>& mode)
 {
     return 0;
@@ -271,6 +280,16 @@ int32_t RSInterfaces::SetLogicalCameraRotationCorrection(ScreenId id, ScreenRota
 }
 
 ScreenId RSInterfaces::GetActiveScreenId()
+{
+    return 0;
+}
+
+ScreenId RSInterfaces::GetMainScreenId()
+{
+    return 0;
+}
+
+int32_t RSInterfaces::SetAsMainScreen(ScreenId id, bool isMainScreen)
 {
     return 0;
 }

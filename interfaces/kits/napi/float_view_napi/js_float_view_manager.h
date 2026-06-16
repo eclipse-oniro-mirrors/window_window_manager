@@ -39,12 +39,15 @@ private:
     napi_value OnCreateFloatViewController(napi_env env, napi_callback_info info);
     std::string CheckAndGetParam(napi_env env, napi_callback_info info, FvOption& option);
     napi_value CreateFloatViewControllerTask(napi_env env, const FvOption &option);
+    static bool UpdateFloatViewControllerMainWindow(
+        const sptr<FloatViewController>& floatViewController, const FvOption& option);
     napi_value OnIsFloatViewEnabled(napi_env env, napi_callback_info info);
     napi_value OnGetFloatViewLimits(napi_env env, napi_callback_info info);
     napi_value OnBind(napi_env env, napi_callback_info info);
     napi_value OnUnBind(napi_env env, napi_callback_info info);
 
-    std::pair<void*, void*> GetBindControllers(napi_env env, napi_value argv[]);
+    JsFbController* GetFbControllers(napi_env env, napi_value fbController);
+    JsFloatViewController* GetFvControllers(napi_env env, napi_value fvController);
     napi_value BindTask(napi_env env, const sptr<FloatViewController> &fwController,
         const sptr<FloatingBallController> &fbController, const FbOption &option);
     napi_value UnBindTask(napi_env env, const sptr<FloatViewController> &fwController,

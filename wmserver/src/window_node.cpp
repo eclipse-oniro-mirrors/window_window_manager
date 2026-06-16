@@ -356,8 +356,7 @@ const std::unordered_map<WindowType, SystemBarProperty>& WindowNode::GetSystemBa
 
 bool WindowNode::IsSplitMode() const
 {
-    return (property_->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        property_->GetWindowMode() == WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    return WindowHelper::IsSplitWindowMode(property_->GetWindowMode());
 }
 
 WindowSizeChangeReason WindowNode::GetWindowSizeChangeReason() const

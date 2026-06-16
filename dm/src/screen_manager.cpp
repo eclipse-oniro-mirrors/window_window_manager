@@ -58,7 +58,8 @@ public:
     DMError UnregisterDisplayManagerAgent();
     void OnRemoteDied();
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
-    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height);
+    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth = 0, uint32_t renderHeight = 0);
 
 private:
     void NotifyScreenConnect(sptr<ScreenInfo> info);
@@ -747,6 +748,16 @@ DMError ScreenManager::SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> 
     return SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualScreenSurface(screenId, surface);
 }
 
+DMError ScreenManager::AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion)
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+}
+
+DMError ScreenManager::RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenSurface(screenId, surface);
+}
+
 DMError ScreenManager::AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds)
 {
     return SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenBlockList(persistentIds);
@@ -768,16 +779,19 @@ DMError ScreenManager::SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, b
     return SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualMirrorScreenCanvasRotation(screenId, rotation);
 }
 
-DMError ScreenManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
     TLOGI(WmsLogTag::DMS, "BoundName: %{public}s, pid: %{public}d", SysCapUtil::GetBundleName().c_str(),
         IPCSkeleton::GetCallingPid());
-    return pImpl_->ResizeVirtualScreen(screenId, width, height);
+    return pImpl_->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
 }
 
-DMError ScreenManager::Impl::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenManager::Impl::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
-    return SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(screenId, width, height);
+    return SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(screenId, width, height,
+        renderWidth, renderHeight);
 }
 
 DMError ScreenManager::SetVirtualMirrorScreenScaleMode(ScreenId screenId, ScreenScaleMode scaleMode)

@@ -24,7 +24,6 @@
 #include "window_manager_agent_lite.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "parameters.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -48,6 +47,8 @@ public:
     void NotifyWindowVisibilityStateChanged(const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos);
     void NotifyDisplayIdChange(const WindowInfoList& windowInfoList);
     void NotifyMidSceneStatusChange(const WindowInfoList& windowInfoList);
+    void NotifyWindowModeChangeForPropertyChange(const WindowInfoList& windowInfoList);
+    void NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList);
     WindowInfoList GetWindowInfoListByInterestWindowIds(
         const sptr<IWindowInfoChangedListener>& listener, const WindowInfoList& windowInfoList);
     void PackWindowChangeInfo(const std::unordered_set<WindowInfoKey>& interestInfo,
@@ -93,6 +94,8 @@ public:
 
     ListenerSet<IWindowInfoChangedListener> windowDisplayIdChangeListeners_;
     ListenerSet<IWindowInfoChangedListener> midSceneStatusChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowModeChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowModeInfoChangeListeners_;
     sptr<WindowManagerAgentLite> windowPropertyChangeAgent_;
 
     // Window drawing content
@@ -243,6 +246,7 @@ void WindowManagerLite::Impl::NotifyWindowVisibilityInfoChanged(
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         visibilityChangeListeners.assign(windowVisibilityListeners_.begin(), windowVisibilityListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(visibilityChangeListeners.size()));
     for (auto& listener : visibilityChangeListeners) {
         if (listener == nullptr) {
             continue;
@@ -254,13 +258,13 @@ void WindowManagerLite::Impl::NotifyWindowVisibilityInfoChanged(
 void WindowManagerLite::Impl::NotifyWindowVisibilityStateChanged(
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in");
     std::vector<sptr<IWindowInfoChangedListener>> windowVisibilityStateListeners;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowVisibilityStateListeners.assign(
             windowVisibilityStateListeners_.begin(), windowVisibilityStateListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowVisibilityStateListeners.size()));
     for (auto& listener : windowVisibilityStateListeners) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
@@ -282,7 +286,40 @@ void WindowManagerLite::Impl::NotifyMidSceneStatusChange(const WindowInfoList& w
         midSceneStatusChangeListeners.assign(
             midSceneStatusChangeListeners_.begin(), midSceneStatusChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(midSceneStatusChangeListeners.size()));
     for (auto& listener : midSceneStatusChangeListeners) {
+        WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
+        if (listener != nullptr && !windowInfoListForNotify.empty()) {
+            listener->OnWindowInfoChanged(windowInfoListForNotify);
+        }
+    }
+}
+
+void WindowManagerLite::Impl::NotifyWindowModeChangeForPropertyChange(const WindowInfoList& windowInfoList)
+{
+    std::vector<sptr<IWindowInfoChangedListener>> windowModeChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowModeChangeListeners.assign(windowModeChangeListeners_.begin(), windowModeChangeListeners_.end());
+    }
+    for (auto& listener : windowModeChangeListeners) {
+        WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
+        if (listener != nullptr && !windowInfoListForNotify.empty()) {
+            listener->OnWindowInfoChanged(windowInfoListForNotify);
+        }
+    }
+}
+
+void WindowManagerLite::Impl::NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList)
+{
+    std::vector<sptr<IWindowInfoChangedListener>> windowModeInfoChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowModeInfoChangeListeners.assign(windowModeInfoChangeListeners_.begin(),
+            windowModeInfoChangeListeners_.end());
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowModeInfoChangeListeners.size()));
+    for (auto& listener : windowModeInfoChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
             listener->OnWindowInfoChanged(windowInfoListForNotify);
@@ -298,6 +335,7 @@ void WindowManagerLite::Impl::NotifyDisplayIdChange(const WindowInfoList& window
         windowDisplayIdChangeListeners.assign(
             windowDisplayIdChangeListeners_.begin(), windowDisplayIdChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowDisplayIdChangeListeners.size()));
     for (auto& listener : windowDisplayIdChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -328,7 +366,6 @@ WindowInfoList WindowManagerLite::Impl::GetWindowInfoListByInterestWindowIds(
     }
     return windowInfoListForNotify;
 }
-
 void WindowManagerLite::Impl::PackWindowChangeInfo(const std::unordered_set<WindowInfoKey>& interestInfo,
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos, WindowInfoList& windowChangeInfos)
 {
@@ -372,13 +409,13 @@ void WindowManagerLite::Impl::NotifyWindowDrawingContentInfoChanged(
 
 void WindowManagerLite::Impl::NotifyWindowModeChange(WindowModeType type)
 {
-    TLOGI(WmsLogTag::WMS_MAIN, "WindowManager::Impl UpdateWindowModeTypeInfo type: %{public}d",
-          static_cast<uint8_t>(type));
     std::vector<sptr<IWindowModeChangedListener>> windowModeListeners;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowModeListeners.assign(windowModeListeners_.begin(), windowModeListeners_.end());
     }
+    TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
+        static_cast<uint8_t>(type), static_cast<uint32_t>(windowModeListeners.size()));
     for (auto &listener : windowModeListeners) {
         listener->OnWindowModeUpdate(type);
     }
@@ -414,6 +451,7 @@ void WindowManagerLite::Impl::NotifyAccessibilityWindowInfo(const std::vector<sp
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowUpdateListeners.assign(windowUpdateListeners_.begin(), windowUpdateListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowUpdateListeners.size()));
     for (auto& listener : windowUpdateListeners) {
         listener->OnWindowUpdate(infos, type);
     }
@@ -511,7 +549,7 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
         return GetInstance();
     }
 
-    if (!WindowManagerLite::IsMultiInstanceEnabled()) {
+    if (!IsMultiInstanceEnabled()) {
         TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance in multi, userId: %{public}d", userId);
         return GetInstance();
     }
@@ -534,8 +572,8 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
     auto instance = sptr<WindowManagerLite>::MakeSptr(userId);
     windowManagerLiteMap_.insert({ userId, instance });
     TLOGI(WmsLogTag::WMS_MULTI_USER,
-        "After insert, map size: %{public}zu, userId: %{public}d, instance ptr: %{public}p",
-        windowManagerLiteMap_.size(), userId, instance.GetRefPtr());
+        "After insert, map size: %{public}zu, userId: %{public}d",
+        windowManagerLiteMap_.size(), userId);
     return *instance;
 }
 
@@ -545,16 +583,6 @@ WMError WindowManagerLite::RemoveInstanceByUserId(const int32_t userId)
     std::unique_lock<std::shared_mutex> lock(windowManagerLiteMapMutex_);
     windowManagerLiteMap_.erase(userId);
     return WMError::WM_OK;
-}
-
-bool WindowManagerLite::IsMultiInstanceEnabled()
-{
-    static bool enabled = [] {
-        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", true);
-        TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
-        return isConcurrentUser;
-    }();
-    return enabled;
 }
 
 WMError WindowManagerLite::ActiveFaultAgentReregister(const WindowManagerAgentType type,
@@ -877,6 +905,170 @@ WMError WindowManagerLite::UnregisterDisplayIdChangedListener(const sptr<IWindow
     return ret;
 }
 
+WMError WindowManagerLite::RegisterWindowModeChangedListenerForPropertyChange(
+    const sptr<IWindowInfoChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    sptr<WindowManagerAgentLite> windowPropertyChangeAgent;
+    uint32_t interestInfo = 0;
+    {
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+        if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
+            pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+        }
+        windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
+        for (auto windowInfoKey : listener->GetInterestInfo()) {
+            if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
+                interestInfoMap_[windowInfoKey] = 1;
+            } else {
+                interestInfoMap_[windowInfoKey]++;
+            }
+            interestInfo |= static_cast<uint32_t>(windowInfoKey);
+        }
+    }
+    auto ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
+        WindowInfoKey::WINDOW_MODE, interestInfo, windowPropertyChangeAgent);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
+            windowPropertyChangeAgent);
+    }
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
+        pImpl_->windowPropertyChangeAgent_ = nullptr;
+    } else {
+        if (pImpl_->windowModeChangeListeners_.count(listener)) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
+            return WMError::WM_OK;
+        }
+        pImpl_->windowModeChangeListeners_.insert(listener);
+    }
+    return ret;
+}
+
+WMError WindowManagerLite::UnregisterWindowModeChangedListenerForPropertyChange(
+    const sptr<IWindowInfoChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    sptr<WindowManagerAgentLite> windowPropertyChangeAgent;
+    uint32_t interestInfo = 0;
+    bool needUnregister = false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+        pImpl_->windowModeChangeListeners_.erase(listener);
+        needUnregister = pImpl_->windowModeChangeListeners_.empty();
+        windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
+        for (auto windowInfoKey : listener->GetInterestInfo()) {
+            if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
+                continue;
+            } else if (interestInfoMap_[windowInfoKey] == 1) {
+                interestInfoMap_.erase(windowInfoKey);
+                interestInfo |= static_cast<uint32_t>(windowInfoKey);
+            } else {
+                interestInfoMap_[windowInfoKey]--;
+            }
+        }
+    }
+    WMError ret = WMError::WM_OK;
+    if (needUnregister && windowPropertyChangeAgent != nullptr) {
+        ret = WindowAdapterLite::GetInstance(userId_).UnregisterWindowPropertyChangeAgent(WindowInfoKey::WINDOW_MODE,
+            interestInfo, windowPropertyChangeAgent);
+        if (ret == WMError::WM_OK) {
+            std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+            pImpl_->windowPropertyChangeAgent_ = nullptr;
+        }
+    }
+    return ret;
+}
+
+WMError WindowManagerLite::RegisterWindowModeInfoChangedListenerForPropertyChange(
+    const sptr<IWindowInfoChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    sptr<WindowManagerAgentLite> windowPropertyChangeAgent;
+    uint32_t interestInfo = 0;
+    {
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+        if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
+            pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
+        }
+        windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
+        for (auto windowInfoKey : listener->GetInterestInfo()) {
+            if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
+                interestInfoMap_[windowInfoKey] = 1;
+            } else {
+                interestInfoMap_[windowInfoKey]++;
+            }
+            interestInfo |= static_cast<uint32_t>(windowInfoKey);
+        }
+    }
+    auto ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
+        WindowInfoKey::WINDOW_MODE_INFO, interestInfo, windowPropertyChangeAgent);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
+            windowPropertyChangeAgent);
+    }
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
+        pImpl_->windowPropertyChangeAgent_ = nullptr;
+    } else {
+        if (pImpl_->windowModeInfoChangeListeners_.count(listener)) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
+            return WMError::WM_OK;
+        }
+        pImpl_->windowModeInfoChangeListeners_.insert(listener);
+    }
+    return ret;
+}
+
+WMError WindowManagerLite::UnregisterWindowModeInfoChangedListenerForPropertyChange(
+    const sptr<IWindowInfoChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    sptr<WindowManagerAgentLite> windowPropertyChangeAgent;
+    uint32_t interestInfo = 0;
+    bool needUnregister = false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+        pImpl_->windowModeInfoChangeListeners_.erase(listener);
+        needUnregister = pImpl_->windowModeInfoChangeListeners_.empty();
+        windowPropertyChangeAgent = pImpl_->windowPropertyChangeAgent_;
+        for (auto windowInfoKey : listener->GetInterestInfo()) {
+            if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
+                continue;
+            } else if (interestInfoMap_[windowInfoKey] == 1) {
+                interestInfoMap_.erase(windowInfoKey);
+                interestInfo |= static_cast<uint32_t>(windowInfoKey);
+            } else {
+                interestInfoMap_[windowInfoKey]--;
+            }
+        }
+    }
+    WMError ret = WMError::WM_OK;
+    if (needUnregister && windowPropertyChangeAgent != nullptr) {
+        ret = WindowAdapterLite::GetInstance(userId_).UnregisterWindowPropertyChangeAgent(
+            WindowInfoKey::WINDOW_MODE_INFO, interestInfo, windowPropertyChangeAgent);
+        if (ret == WMError::WM_OK) {
+            std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+            pImpl_->windowPropertyChangeAgent_ = nullptr;
+        }
+    }
+    return ret;
+}
+
 void WindowManagerLite::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "lite flags=%{public}u", propertyDirtyFlags);
@@ -885,6 +1077,12 @@ void WindowManagerLite::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, 
     }
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::MID_SCENE)) {
         pImpl_->NotifyMidSceneStatusChange(windowInfoList);
+    }
+    if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE)) {
+        pImpl_->NotifyWindowModeChangeForPropertyChange(windowInfoList);
+    }
+    if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE_INFO)) {
+        pImpl_->NotifyWindowModeInfoChangeForPropertyChange(windowInfoList);
     }
 }
 
@@ -1671,6 +1869,10 @@ WMError WindowManagerLite::ProcessRegisterWindowInfoChangeCallback(WindowInfoKey
             return RegisterDisplayIdChangedListener(listener);
         case WindowInfoKey::MID_SCENE :
             return RegisterMidSceneChangedListener(listener);
+        case WindowInfoKey::WINDOW_MODE:
+            return RegisterWindowModeChangedListenerForPropertyChange(listener);
+        case WindowInfoKey::WINDOW_MODE_INFO:
+            return RegisterWindowModeInfoChangedListenerForPropertyChange(listener);
         default:
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Invalid observedInfo: %{public}d", static_cast<uint32_t>(observedInfo));
             return WMError::WM_ERROR_INVALID_PARAM;
@@ -1687,6 +1889,10 @@ WMError WindowManagerLite::ProcessUnregisterWindowInfoChangeCallback(WindowInfoK
             return UnregisterDisplayIdChangedListener(listener);
         case WindowInfoKey::MID_SCENE :
             return UnregisterMidSceneChangedListener(listener);
+        case WindowInfoKey::WINDOW_MODE:
+            return UnregisterWindowModeChangedListenerForPropertyChange(listener);
+        case WindowInfoKey::WINDOW_MODE_INFO:
+            return UnregisterWindowModeInfoChangedListenerForPropertyChange(listener);
         default:
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Invalid observedInfo: %{public}d", static_cast<uint32_t>(observedInfo));
             return WMError::WM_ERROR_INVALID_PARAM;
@@ -1709,12 +1915,13 @@ WMError WindowManagerLite::RegisterWindowInfoChangeCallback(const std::unordered
             listener->AddInterestInfo(info);
         }
         ret = ProcessRegisterWindowInfoChangeCallback(info, listener);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: infoKey=%{public}d, ret=%{public}d", info, ret);
         if (ret != WMError::WM_OK) {
             observedInfoForLog << "failed";
             break;
         }
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s", observedInfoForLog.str().c_str());
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: %{public}s", observedInfoForLog.str().c_str());
     return ret;
 }
 
@@ -1734,12 +1941,13 @@ WMError WindowManagerLite::UnregisterWindowInfoChangeCallback(const std::unorder
             listener->AddInterestInfo(info);
         }
         ret = ProcessUnregisterWindowInfoChangeCallback(info, listener);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: infoKey=%{public}d, ret=%{public}d", info, ret);
         if (ret != WMError::WM_OK) {
             observedInfoForLog << "failed";
             break;
         }
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s", observedInfoForLog.str().c_str());
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: %{public}s", observedInfoForLog.str().c_str());
     return ret;
 }
 

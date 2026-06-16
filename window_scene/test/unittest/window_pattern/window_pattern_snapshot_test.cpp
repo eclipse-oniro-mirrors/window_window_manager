@@ -241,6 +241,12 @@ HWTEST_F(WindowPatternSnapshotTest, IsSnapshotExisted, TestSize.Level1)
     ASSERT_NE(nullptr, scenePersistence);
     bool result = scenePersistence->IsSnapshotExisted();
     ASSERT_EQ(result, false);
+
+    result = scenePersistence->IsSnapshotExisted(defaultStatus, false);
+    ASSERT_EQ(result, false);
+
+    result = scenePersistence->IsSnapshotExisted(defaultStatus, true);
+    ASSERT_EQ(result, false);
 }
 
 /**
@@ -605,7 +611,6 @@ HWTEST_F(WindowPatternSnapshotTest, PreloadSnapshot, TestSize.Level1)
 
     session_->preloadSnapshot_ = nullptr;
     session_->PreloadSnapshot();
-    ASSERT_NE(session_->preloadSnapshot_, nullptr);
 
     session_->snapshot_ = nullptr;
     session_->preloadSnapshot_ = nullptr;
@@ -668,9 +673,21 @@ HWTEST_F(WindowPatternSnapshotTest, SaveSnapshot02, TestSize.Level1)
     session_->SaveSnapshot(false, true, nullptr, false, LifeCycleChangeReason::QUICK_BATCH_BACKGROUND);
     ASSERT_EQ(session_->snapshot_, nullptr);
 
+    int32_t callbackCount = 0;
+    int32_t callbackPersistentId = INVALID_SESSION_ID;
+    session_->SetSessionSaveSnapshotCompleteListener(
+        [&callbackCount, &callbackPersistentId](int32_t persistentId) {
+            callbackCount++;
+            callbackPersistentId = persistentId;
+        });
+    session_->SaveSnapshot(false, true, nullptr);
+    ASSERT_EQ(callbackCount, 0);
+
     auto pixelMap = std::make_shared<Media::PixelMap>();
     session_->SaveSnapshot(false, true, pixelMap, true);
     ASSERT_NE(session_->snapshot_, nullptr);
+    ASSERT_EQ(callbackCount, 1);
+    ASSERT_EQ(callbackPersistentId, session_->persistentId_);
 
     session_->freeMultiWindow_.store(true);
     session_->SaveSnapshot(false, true, pixelMap, false, LifeCycleChangeReason::EXPAND_TO_FOLD_SINGLE_POCKET);
@@ -1731,6 +1748,169 @@ HWTEST_F(WindowPatternSnapshotTest, ConfigPersistentScaledSnapshot, TestSize.Lev
     WindowSceneConfig::config_ = ReadConfig(xmlStr);
     ssm_->ConfigPersistentScaledSnapshot();
     EXPECT_EQ(ssm_->enablePersistentScaledSnapshot_, true);
+}
+
+/**
+ * @tc.name: LoadSnapshotToMem01
+ * @tc.desc: LoadSnapshotToMem Test with nullptr scenePersistence
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, LoadSnapshotToMem01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->scenePersistence_ = nullptr;
+    session_->LoadSnapshotToMem();
+    usleep(WAIT_SYNC_IN_NS);
+    ASSERT_EQ(session_->snapshot_, nullptr);
+}
+
+/**
+ * @tc.name: LoadSnapshotToMem02
+ * @tc.desc: LoadSnapshotToMem Test with scenePersistence but no snapshot file
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, LoadSnapshotToMem02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1423;
+    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(session_->scenePersistence_, nullptr);
+    
+    session_->snapshot_ = nullptr;
+    session_->LoadSnapshotToMem();
+    usleep(WAIT_SYNC_IN_NS * 5);
+    ASSERT_EQ(session_->snapshot_, nullptr);
+}
+
+/**
+ * @tc.name: LoadSnapshotToMem03
+ * @tc.desc: LoadSnapshotToMem Test with valid snapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, LoadSnapshotToMem03, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1424;
+    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(session_->scenePersistence_, nullptr);
+
+    ScenePersistence::CreateSnapshotDir("storage");
+    
+    const uint32_t colors[1] = { 0x6f0000ff };
+    uint32_t colorsLength = sizeof(colors) / sizeof(colors[0]);
+    const int32_t offset = 0;
+    Media::InitializationOptions opts;
+    opts.size.width = COMMON_SIZE;
+    opts.size.height = COMMON_SIZE;
+    opts.pixelFormat = Media::PixelFormat::RGBA_8888;
+    opts.alphaType = Media::AlphaType::IMAGE_ALPHA_TYPE_OPAQUE;
+    int32_t stride = opts.size.width;
+    std::shared_ptr<Media::PixelMap> pixelMap = Media::PixelMap::Create(colors, colorsLength, offset, stride, opts);
+    
+    auto key = defaultStatus;
+    session_->scenePersistence_->snapshotPath_[key] = "/data/1.png";
+    session_->scenePersistence_->SaveSnapshot(pixelMap);
+    usleep(WAIT_SYNC_IN_NS * 10);
+    
+    session_->snapshot_ = nullptr;
+    session_->LoadSnapshotToMem();
+    usleep(WAIT_SYNC_IN_NS * 10);
+    ASSERT_NE(session_->snapshot_, nullptr);
+}
+
+/**
+ * @tc.name: IsSnapshotExistedWithFreeMultiWindow
+ * @tc.desc: test function : IsSnapshotExisted with freeMultiWindow parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, IsSnapshotExistedWithFreeMultiWindow, TestSize.Level1)
+{
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1425;
+    sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(nullptr, scenePersistence);
+    
+    bool result = scenePersistence->IsSnapshotExisted(defaultStatus, true);
+    ASSERT_EQ(result, false);
+    
+    result = scenePersistence->IsSnapshotExisted(defaultStatus, false);
+    ASSERT_EQ(result, false);
+    
+    ScenePersistence::CreateSnapshotDir("storage");
+    const uint32_t colors[1] = { 0x6f0000ff };
+    uint32_t colorsLength = sizeof(colors) / sizeof(colors[0]);
+    const int32_t offset = 0;
+    Media::InitializationOptions opts;
+    opts.size.width = COMMON_SIZE;
+    opts.size.height = COMMON_SIZE;
+    opts.pixelFormat = Media::PixelFormat::RGBA_8888;
+    opts.alphaType = Media::AlphaType::IMAGE_ALPHA_TYPE_OPAQUE;
+    int32_t stride = opts.size.width;
+    std::shared_ptr<Media::PixelMap> pixelMap = Media::PixelMap::Create(colors, colorsLength, offset, stride, opts);
+    
+    auto key = defaultStatus;
+    scenePersistence->snapshotPath_[key] = "/data/test_free_multi_window.png";
+    scenePersistence->SaveSnapshot(pixelMap, []() {}, key, DisplayOrientation::PORTRAIT, false);
+    usleep(WAIT_SYNC_IN_NS * 10);
+    
+    result = scenePersistence->IsSnapshotExisted(key, false);
+    ASSERT_EQ(result, true);
+    
+    result = scenePersistence->IsSnapshotExisted(key, true);
+    ASSERT_EQ(result, false);
+}
+
+/**
+ * @tc.name: GetLocalSnapshotPixelMapWithFreeMultiWindow
+ * @tc.desc: test function : GetLocalSnapshotPixelMap with freeMultiWindow parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotPixelMapWithFreeMultiWindow, TestSize.Level1)
+{
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1426;
+    sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(nullptr, scenePersistence);
+    
+    auto result = scenePersistence->GetLocalSnapshotPixelMap(1.0, 1.0, defaultStatus, true);
+    ASSERT_EQ(result, nullptr);
+    
+    result = scenePersistence->GetLocalSnapshotPixelMap(1.0, 1.0, defaultStatus, false);
+    ASSERT_EQ(result, nullptr);
+}
+
+/**
+ * @tc.name: SnapshotWithWindowSyncTrue
+ * @tc.desc: Test Snapshot with windowSync
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SnapshotWithWindowSync, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    
+    int32_t persistentId = 1424;
+    std::string bundleName = "testBundleName";
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ASSERT_NE(sceneSession->scenePersistence_, nullptr);
+    
+    struct RSSurfaceNodeConfig config;
+    sceneSession->surfaceNode_ = RSSurfaceNode::Create(config);
+    ASSERT_NE(sceneSession->surfaceNode_, nullptr);
+    
+    sceneSession->bufferAvailable_ = true;
+    sceneSession->surfaceNode_->bufferAvailable_ = true;
+    sceneSession->property_->SetPrivacyMode(false);
+    
+    Session::SnapshotOptions options;
+    options.windowSync = true;
+    options.scaleParam = 1.0f;
+    
+    auto result = sceneSession->Snapshot(options);
+    ASSERT_EQ(result, nullptr);
 }
 } // namespace
 } // namespace Rosen

@@ -221,7 +221,7 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
     auto it = mainWindowToAutoStartControllersMap_.find(controller->GetMainWindowId());
     if (it != mainWindowToAutoStartControllersMap_.end()) {
         for (const auto& wptr : it->second) {
-            if(wptr.GetRefPtr() == pipController.GetRefPtr()) {
+            if (wptr.GetRefPtr() == pipController.GetRefPtr()) {
                 return;
             }
         }
@@ -285,13 +285,19 @@ sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t 
     if (!pipMultiConfig_.FindGroupConfig(type, group)) {
         return nullptr;
     }
+    auto firstController = static_cast<sptr<PictureInPictureControllerBase>>(nullptr);
     for (auto& pair : windowToControllerMap_) {
         auto& controller = pair.second;
         auto type = static_cast<PiPTemplateType>(controller->GetPipTemplate());
         if (controller != nullptr && controller->GetMainWindowId() == windowId &&
             std::find(group.types.begin(), group.types.end(), type) != group.types.end()) {
-            return controller->GetPipWindow();
+            if (firstController == nullptr || firstController->GetStartTimestamp() > controller->GetStartTimestamp()) {
+                firstController = controller;
+            }
         }
+    }
+    if (firstController != nullptr) {
+        return firstController->GetPipWindow();
     }
     return nullptr;
 }

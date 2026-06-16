@@ -57,7 +57,7 @@ public:
     WSError NotifyTouchOutside() override;
     WSError NotifyWindowVisibility(bool isVisible) override;
     WSError NotifyWindowOcclusionState(const WindowVisibilityState state) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
     WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
@@ -102,6 +102,7 @@ public:
     RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo) override;
     WSError HideSubWindowZLevelAboveParentLoosened() override;
     WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
     // UIExtension
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;

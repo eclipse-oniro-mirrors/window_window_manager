@@ -1365,6 +1365,20 @@ HWTEST_F(WindowAdapterTest, GetWindowStateSnapshot01, Function | SmallTest | Lev
 }
 
 /**
+ * @tc.name: NotifySurfaceNodeAlphaUpdate01
+ * @tc.desc: WindowAdapter/NotifySurfaceNodeAlphaUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, NotifySurfaceNodeAlphaUpdate01, Function | SmallTest | Level2)
+{
+    ASSERT_NE(instance_, nullptr);
+    int32_t persistentId = 1;
+    float alpha = 0.1f;
+    auto err = instance_->NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
+    EXPECT_NE(err, WSError::WS_ERROR_NO_MEM);
+}
+
+/**
  * @tc.name: CreateUIEffectController
  * @tc.desc: WindowAdapter/CreateUIEffectController
  * @tc.type: FUNC

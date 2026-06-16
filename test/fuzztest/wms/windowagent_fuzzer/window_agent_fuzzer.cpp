@@ -59,7 +59,7 @@ void CheckWindowAgentFunctionsPart1(sptr<WindowAgent> agent, const uint8_t* data
 
     WindowMode mode;
     startPos += GetObject<WindowMode>(mode, data + startPos, size - startPos);
-    agent->UpdateWindowMode(mode);
+    agent->UpdateWindowMode(WindowModeInfo{ mode });
 
     uint32_t windowModeSupportType;
     startPos += GetObject<uint32_t>(windowModeSupportType, data + startPos, size - startPos);

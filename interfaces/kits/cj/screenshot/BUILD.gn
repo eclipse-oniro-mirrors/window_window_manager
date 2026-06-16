@@ -44,6 +44,7 @@ ohos_shared_library("cj_screenshot_ffi") {
       "napi:ace_napi",
       "napi:cj_bind_ffi",
       "napi:cj_bind_native",
+      "c_utils:utils",
     ]
   } else {
     defines += [ "PREVIEWER" ]

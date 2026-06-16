@@ -14,6 +14,7 @@
  */
 
 #include "scene_session_converter.h"
+
 #include "ability_info.h"
 #include "display_manager.h"
 
@@ -83,6 +84,7 @@ WSError SceneSessionConverter::ConvertToMissionInfo(const sptr<SceneSession>& sc
         (sceneSession->GetSessionInfo().continueState - Rosen::ContinueState::CONTINUESTATE_UNKNOWN));
     return WSError::WS_OK;
 }
+
 WSError SceneSessionConverter::ConvertToMissionInfo(const sptr<SceneSession>& sceneSession,
                                                     AAFwk::MissionInfo& missionInfo,
                                                     AAFwk::DisplayInfo& displayInfo)
@@ -91,7 +93,8 @@ WSError SceneSessionConverter::ConvertToMissionInfo(const sptr<SceneSession>& sc
     if (ret != WSError::WS_OK || sceneSession == nullptr) {
         return ret;
     }
-    displayInfo.id = static_cast<int32_t>(sceneSession->GetSessionProperty()->GetDisplayId());
+    auto windowDisplayInfo = sceneSession->GetWindowDisplayInfoForWindowInfo();
+    displayInfo.id = static_cast<int32_t>(windowDisplayInfo.displayId);
     auto display = DisplayManager::GetInstance().GetDisplayById(displayInfo.id);
     if (display != nullptr) {
         displayInfo.displayName = display->GetName();

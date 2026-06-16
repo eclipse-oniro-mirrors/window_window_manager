@@ -262,7 +262,7 @@ napi_value JsPipManager::OnSetTypeNodeEnabled(napi_env env, napi_callback_info i
     if (!ConvertFromJsValue(env, argv[0], windowId)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
         return NapiThrowInvalidParam(env);
-    }   
+    }
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
@@ -386,7 +386,7 @@ napi_value JsPipManager::OnUnregisterCallback(napi_env env, napi_callback_info i
     if (!ConvertFromJsValue(env, argv[0], windowId)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
         return NapiThrowInvalidParam(env);
-    }   
+    }
     std::string cbType;
     if (!ConvertFromJsValue(env, argv[1], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert param to cbType");

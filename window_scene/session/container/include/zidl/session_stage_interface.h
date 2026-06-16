@@ -133,7 +133,7 @@ public:
     virtual WSError NotifyTouchOutside() = 0;
     virtual WSError NotifyWindowVisibility(bool isVisible) = 0;
     virtual WSError NotifyWindowOcclusionState(const WindowVisibilityState state) = 0;
-    virtual WSError UpdateWindowMode(WindowMode mode) = 0;
+    virtual WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) = 0;
     virtual WSError GetTopNavDestinationName(std::string& topNavDestName) = 0;
     virtual WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) = 0;
     virtual WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) = 0;
@@ -500,6 +500,15 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError ShowSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
+
+    /**
+     * @brief Destroy SubWindow whose zLevel above parent loosened.
+     *
+     * Destroy SubWindow whose zLevel above parent loosened.
+     *
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError DestroySubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
 
     /**
      * @brief Set isStartMoving flag to client.

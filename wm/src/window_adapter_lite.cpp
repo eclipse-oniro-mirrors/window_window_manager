@@ -135,7 +135,7 @@ WMError WindowAdapterLite::UnregisterWindowManagerAgent(WindowManagerAgentType t
         auto it = windowManagerLiteFaultAgentMap_.find(type);
         if (it != windowManagerLiteFaultAgentMap_.end()) {
             it->second.erase(windowManagerAgent);
-            TLOGD(WmsLogTag::DEFAULT, "earse fault agent,  type=%{public}d", type);
+            TLOGD(WmsLogTag::DEFAULT, "erase fault agent,  type=%{public}d", type);
             if (it->second.empty()) {
                 windowManagerLiteFaultAgentMap_.erase(it);
             }

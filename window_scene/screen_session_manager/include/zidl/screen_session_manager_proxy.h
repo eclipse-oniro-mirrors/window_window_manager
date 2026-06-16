@@ -42,6 +42,8 @@ public:
     virtual DMError GetScreenGamutMap(ScreenId screenId, ScreenGamutMap& gamutMap) override;
     virtual DMError SetScreenGamutMap(ScreenId screenId, ScreenGamutMap gamutMap) override;
     virtual DMError SetScreenColorTransform(ScreenId screenId) override;
+    
+    virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability) override;
 
     DMError GetPixelFormat(ScreenId screenId, GraphicPixelFormat& pixelFormat) override;
     DMError SetPixelFormat(ScreenId screenId, GraphicPixelFormat pixelFormat) override;
@@ -84,6 +86,11 @@ public:
 
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
 
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
+        const DMRect& surfaceRegion) override;
+
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
+
     DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
 
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
@@ -100,7 +107,8 @@ public:
 
     DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay) override;
 
-    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height) override;
+    virtual DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth, uint32_t renderHeight) override;
 
     virtual DMError SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, bool autoRotate) override;
 
@@ -273,6 +281,8 @@ public:
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) override;
     void NotifySwitchUserAnimationFinish() override;
+    void SubscribeMotionSensor(int32_t motionType) override;
+    void UnsubscribeMotionSensor(int32_t motionType) override;
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
 

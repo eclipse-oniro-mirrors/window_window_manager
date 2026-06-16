@@ -60,8 +60,6 @@ public:
     bool IsModal() const override;
     bool IsApplicationModal() const override;
     WSError NotifyMainModalTypeChange(bool isModal) override;
-    WSError NotifySupportWindowModesChange(
-        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     WSError UpdateFlag(const std::string& flag) override;
 
     /*
@@ -93,6 +91,7 @@ public:
     WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) override;
 
     /*
      * Window Pattern
@@ -175,6 +174,7 @@ private:
     CompatibleModeChangeCallback compatibleModeChangeCallback_;
     PageEnableCallback pageEnableCallback_;
     SetSelectModeCallback setSelectModeCallback_;
+    SplitRatioChangeCallback splitRatioChangeCallback_;
 
     /*
      * Prelaunch check

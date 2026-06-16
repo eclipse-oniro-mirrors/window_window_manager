@@ -46,7 +46,7 @@ struct SystemBarRegionTint {
 using SystemBarRegionTints = std::vector<SystemBarRegionTint>;
 using GetJSWindowObjFunc = std::function<void*(const std::string& windowName)>;
 using WindowChangeInfoType = std::variant<int32_t, uint32_t, int64_t, uint64_t, std::string, float, Rect, WindowMode,
-    WindowVisibilityState, bool>;
+    WindowModeInfo, WindowVisibilityState, bool>;
 using WindowInfoList = std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>;
 
 struct VisibleWindowNumInfo {
@@ -259,6 +259,21 @@ public:
      * @param styleType
      */
     virtual void OnWindowStyleUpdate(WindowStyleType styleType) = 0;
+};
+
+/**
+ * @class ISessionSaveSnapShotCompleteListener
+ *
+ * @brief Listener to observe session snapshot save completion.
+ */
+class ISessionSaveSnapShotCompleteListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when session save snapshot is complete.
+     *
+     * @param persistentId Persistent id of the session.
+     */
+    virtual void OnSessionSaveSnapShotComplete(int32_t persistentId) = 0;
 };
 
 /**
@@ -693,7 +708,6 @@ class WindowManager : public RefBase {
 public:
     static WindowManager& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
-    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register WMS connection status changed listener.
@@ -1048,7 +1062,7 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) const;
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) const;
 
     /**
      * @brief Get global window mode.
@@ -1127,7 +1141,8 @@ public:
      * @param infos Visible window infos
      * @return WM_OK means get success, others means get failed.
      */
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const;
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) const;
 
     /**
      * @brief Set gesture navigation enabled.
@@ -1556,6 +1571,29 @@ public:
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
 
     /**
+     * @brief Register session save snapshot complete listener.
+     *
+     * @param listener ISessionSaveSnapShotCompleteListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    WMError RegisterSessionSaveSnapShotCompleteListener(
+        const sptr<ISessionSaveSnapShotCompleteListener>& listener);
+
+    /**
+     * @brief Unregister session save snapshot complete listener.
+     *
+     * @param listener ISessionSaveSnapShotCompleteListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    WMError UnregisterSessionSaveSnapShotCompleteListener(
+        const sptr<ISessionSaveSnapShotCompleteListener>& listener);
+
+    /*
+     * notify session save snapshot complete to listener
+     */
+    void NotifySessionSaveSnapShotComplete(int32_t persistentId);
+
+    /**
      * @brief Register get js window callback.
      * @param getJSWindowFunc get js window obj callback.
      */
@@ -1665,6 +1703,8 @@ private:
     WMError UnregisterGlobalRectChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);

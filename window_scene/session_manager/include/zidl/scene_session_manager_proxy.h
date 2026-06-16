@@ -103,7 +103,8 @@ public:
     WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener) override;
-    virtual WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
+    WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
+    WSError NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha) override;
     WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,
                                SessionSnapshot& snapshot, bool isLowResolution) override;
     WSError GetUIContentRemoteObj(int32_t persistentId, sptr<IRemoteObject>& uiContentRemoteObj) override;
@@ -124,7 +125,7 @@ public:
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) override;
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) override;
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override;
     WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos) override;
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) override;
@@ -140,7 +141,8 @@ public:
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
         std::string& watermarkName) override;
     WMError RecoverWatermarkImageForApp(const std::string& watermarkName) override;
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) override;
     WSError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId) override;
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override;
     WSError ResetSpecificWindowZIndex(int32_t pid) override;
@@ -155,8 +157,9 @@ public:
     WSError AddOrRemoveSecureSession(int32_t persistentId, bool shouldHide) override;
     WSError UpdateExtWindowFlags(const sptr<IRemoteObject>& token, uint32_t extWindowFlags,
         uint32_t extWindowActions) override;
-    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect) override;
-    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect) override;
+    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override;
+    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false) override;
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) override;
     WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) override;

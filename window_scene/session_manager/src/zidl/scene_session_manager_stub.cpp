@@ -163,6 +163,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUpdateSessionOcclusionStateListener(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_STATE_SNAPSHOT):
             return HandleGetWindowStateSnapshot(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE):
+            return HandleNotifySurfaceNodeAlphaUpdate(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SHIFT_APP_WINDOW_FOCUS):
             return HandleShiftAppWindowFocus(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_LIST_WINDOW_INFO):
@@ -365,6 +367,7 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     reply.WriteUint32(property->GetSubWindowLevel());
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
+    reply.WriteBool(property->GetSystemCalling());
     reply.WriteUint32(static_cast<uint32_t>(WSError::WS_OK));
     return ERR_NONE;
 }
@@ -1557,6 +1560,26 @@ int SceneSessionManagerStub::HandleGetWindowStateSnapshot(MessageParcel& data, M
     return ERR_NONE;
 }
 
+int SceneSessionManagerStub::HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    float alpha = 0.0f;
+    if (!data.ReadFloat(alpha)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read alpha failed");
+        return ERR_INVALID_DATA;
+    }
+    auto errCode = NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed, errCode=%{public}d", errCode);
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
 int SceneSessionManagerStub::HandleShiftAppWindowFocus(MessageParcel& data, MessageParcel& reply)
 {
     int32_t sourcePersistentId = 0;
@@ -1626,8 +1649,13 @@ int SceneSessionManagerStub::HandleGetAllWindowLayoutInfo(MessageParcel& data, M
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to read foregroundBelowWindow");
         return ERR_INVALID_DATA;
     }
+    bool useHookedSize = true;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to read useHookedSize");
+        return ERR_INVALID_DATA;
+    }
     std::vector<sptr<WindowLayoutInfo>> infos;
-    WMError errCode = GetAllWindowLayoutInfo(displayId, infos, option);
+    WMError errCode = GetAllWindowLayoutInfo(displayId, infos, option, useHookedSize);
     if (!MarshallingHelper::MarshallingVectorParcelableObj<WindowLayoutInfo>(reply, infos)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to write window layout info");
         return ERR_INVALID_DATA;
@@ -1891,8 +1919,13 @@ int SceneSessionManagerStub::HandleRecoverWatermarkImageForApp(MessageParcel& da
 
 int SceneSessionManagerStub::HandleGetVisibilityWindowInfo(MessageParcel& data, MessageParcel& reply)
 {
+    bool useHookedSize = true;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to read useHookedSize");
+        return ERR_INVALID_DATA;
+    }
     std::vector<sptr<WindowVisibilityInfo>> infos;
-    WMError errCode = GetVisibilityWindowInfo(infos);
+    WMError errCode = GetVisibilityWindowInfo(infos, useHookedSize);
     if (!MarshallingHelper::MarshallingVectorParcelableObj<WindowVisibilityInfo>(reply, infos)) {
         WLOGFE("Write visibility window infos failed");
         return ERR_INVALID_DATA;
@@ -2053,8 +2086,13 @@ int SceneSessionManagerStub::HandleGetHostWindowRect(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_UIEXT, "read hostWindowId fail");
         return ERR_INVALID_DATA;
     }
+    bool useHookedSize = false;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read useHookedSize fail");
+        return ERR_INVALID_DATA;
+    }
     Rect rect;
-    WSError ret = GetHostWindowRect(hostWindowId, rect);
+    WSError ret = GetHostWindowRect(hostWindowId, rect, useHookedSize);
     reply.WriteInt32(rect.posX_);
     reply.WriteInt32(rect.posY_);
     reply.WriteUint32(rect.width_);
@@ -2071,8 +2109,13 @@ int SceneSessionManagerStub::HandleGetHostGlobalScaledRect(MessageParcel& data, 
         TLOGE(WmsLogTag::WMS_UIEXT, "read hostWindowId fail");
         return ERR_INVALID_DATA;
     }
+    bool useHookedSize = false;
+    if (!data.ReadBool(useHookedSize)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read useHookedSize fail");
+        return ERR_INVALID_DATA;
+    }
     Rect rect;
-    WSError ret = GetHostGlobalScaledRect(hostWindowId, rect);
+    WSError ret = GetHostGlobalScaledRect(hostWindowId, rect, useHookedSize);
     reply.WriteInt32(rect.posX_);
     reply.WriteInt32(rect.posY_);
     reply.WriteUint32(rect.width_);

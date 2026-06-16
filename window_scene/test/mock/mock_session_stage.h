@@ -48,7 +48,7 @@ public:
     MOCK_METHOD0(NotifyScreenshot, void(void));
     MOCK_METHOD1(NotifyScreenshotAppEvent, WSError(ScreenshotEventType type));
     MOCK_METHOD0(NotifyTouchOutside, WSError(void));
-    MOCK_METHOD1(UpdateWindowMode, WSError(WindowMode mode));
+    MOCK_METHOD1(UpdateWindowMode, WSError(const WindowModeInfo& windowModeInfo));
     MOCK_METHOD1(GetTopNavDestinationName, WSError(std::string& topNavDestName));
     MOCK_METHOD1(NotifyLayoutFinishAfterWindowModeChange, WSError(WindowMode mode));
     MOCK_METHOD1(NotifySubWindowAfterParentWindowSizeChange, WSError(Rect rect));

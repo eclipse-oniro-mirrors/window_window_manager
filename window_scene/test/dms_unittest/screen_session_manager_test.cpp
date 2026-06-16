@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "screen_session_manager/include/screen_session_manager.h"
+#include "motion_manager.h"
 #include "display_manager_agent_default.h"
 #include "iconsumer_surface.h"
 #include "connection/screen_cast_connection.h"
@@ -36,6 +37,25 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+int32_t g_addVirtualScreenSurfaceRet = 0;
+int32_t g_removeVirtualScreenSurfaceRet = 0;
+
+void SetAddVirtualScreenSurfaceRet(int32_t ret)
+{
+    g_addVirtualScreenSurfaceRet = ret;
+}
+
+void SetRemoveVirtualScreenSurfaceRet(int32_t ret)
+{
+    g_removeVirtualScreenSurfaceRet = ret;
+}
+
+void ResetRsInterfacesMockRet()
+{
+    g_addVirtualScreenSurfaceRet = 0;
+    g_removeVirtualScreenSurfaceRet = 0;
+}
+
 const int32_t CV_WAIT_SCREENOFF_MS = 1500;
 const int32_t CV_WAIT_SCREENON_MS = 300;
 const int32_t CV_WAIT_SCREENOFF_MS_MAX = 3500;
@@ -1479,6 +1499,50 @@ HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SubscribeMotionSensor01
+ * @tc.desc: SubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: SubscribeMotionSensor02
+ * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor01
+ * @tc.desc: UnsubscribeMotionSensor test with DEVICE_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+}
+
+/**
+ * @tc.name: UnsubscribeMotionSensor02
+ * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+}
+
+/**
  * @tc.name: SetOrientationWithOptions02
  * @tc.desc: SetOrientation with options invalid orientation
  * @tc.type: FUNC
@@ -1643,6 +1707,658 @@ HWTEST_F(ScreenSessionManagerTest, OnScreenOrientationChangeWithOptions02, TestS
     EXPECT_TRUE(g_logMsg.find("ClientProxy_ is null") == std::string::npos);
 
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_ValidScale
+ * @tc.desc: Verify SetScreenSessionScale sets cast scale properties with valid scale values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_ValidScale, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleValid", screenId);
+    float scaleX = 1920.0f / 1080.0f;
+    float scaleY = 1080.0f / 720.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_ValidScale end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleZero
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleZero, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleZero", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 0.0f, 1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleZero end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_InvalidScaleNegative
+ * @tc.desc: Verify SetScreenSessionScale skips when scale is negative
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_InvalidScaleNegative, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNeg", screenId);
+    ssm_->SetScreenSessionScale(screenSession, 1.0f, -1.0f);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_FALSE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), 1.0f);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), 1.0f);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_InvalidScaleNegative end";
+}
+
+/**
+ * @tc.name: SetScreenSessionScale_WithDisplayNode
+ * @tc.desc: Verify SetScreenSessionScale applies scale on displayNode when it is not null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("castScaleNode", screenId);
+    // Create displayNode first so GetDisplayNode returns non-null
+    RSDisplayNodeConfig rsConfig;
+    rsConfig.screenId = screenId;
+    rsConfig.isMirrored = false;
+    screenSession->CreateDisplayNode(rsConfig);
+    ASSERT_NE(screenSession->GetDisplayNode(), nullptr);
+    float scaleX = 1.5f;
+    float scaleY = 2.0f;
+    ssm_->SetScreenSessionScale(screenSession, scaleX, scaleY);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), scaleX);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), scaleY);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: SetScreenSessionScale_WithDisplayNode end";
+}
+
+/**
+ * @tc.name: ApplyVirtualScreenScale_ValidDimensions
+ * @tc.desc: Verify ApplyVirtualScreenScale sets cast scale when width and height are non-zero
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ApplyVirtualScreenScale_ValidDimensions, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: ApplyVirtualScreenScale_ValidDimensions start";
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = INVALID_SCREEN_ID;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("applyScaleValid", screenId);
+    uint32_t width = 720;
+    uint32_t height = 1280;
+    uint32_t renderWidth = 1440;
+    uint32_t renderHeight = 2560;
+    ssm_->ApplyVirtualScreenScale(screenSession, width, height, renderWidth, renderHeight);
+    ScreenProperty property = screenSession->GetScreenProperty();
+    EXPECT_TRUE(property.GetNeedCastScale());
+    EXPECT_FLOAT_EQ(property.GetCastScaleX(), static_cast<float>(renderWidth) / width);
+    EXPECT_FLOAT_EQ(property.GetCastScaleY(), static_cast<float>(renderHeight) / height);
+    ssm_->DestroyVirtualScreen(screenId);
+    GTEST_LOG_(INFO) << "ScreenSessionManagerTest: ApplyVirtualScreenScale_ValidDimensions end";
+}
+
+/**
+ * @tc.name: GetScreenCapability01
+ * @tc.desc: GetScreenCapability with invalid screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(SCREEN_ID_INVALID, capability);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetScreenCapability02
+ * @tc.desc: GetScreenCapability with non-existent screenId (screenSession is null)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = 99999;
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(invalidScreenId, capability);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetScreenCapability03
+ * @tc.desc: GetScreenCapability success with virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("GetScreenCapability", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    ScreenCapability capability;
+    DMError ret = ssm_->GetScreenCapability(screenId, capability);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: GetScreenCapability04
+ * @tc.desc: GetScreenCapability with virtual screen, GetEdid fails, colorBitDepth remains default
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetScreenCapability04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("GetScreenCapabilityEdid", screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    ScreenCapability capability;
+    capability.colorBitDepth_ = 0;
+    DMError ret = ssm_->GetScreenCapability(screenId, capability);
+    EXPECT_EQ(ret, DMError::DM_OK);
+    EXPECT_EQ(capability.colorBitDepth_, 0);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface01
+ * @tc.desc: AddVirtualScreenSurface with nullptr surface
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurface01", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, nullptr, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface02
+ * @tc.desc: AddVirtualScreenSurface with non-existent screenId (screenSession nullptr)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(99999, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface03
+ * @tc.desc: AddVirtualScreenSurface with screen not in mirror mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurface03", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->screenSessionMap_.erase(screenId);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface04
+ * @tc.desc: AddVirtualScreenSurface with mirror mode success
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurface04", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface05
+ * @tc.desc: AddVirtualScreenSurface with valid DMRect
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurface05", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {10, 20, 200, 300};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface01
+ * @tc.desc: RemoveVirtualScreenSurface with nullptr surface
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualScreenSurface01", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(screenId, nullptr);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface02
+ * @tc.desc: RemoveVirtualScreenSurface with non-existent screenId (screenSession nullptr)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(99999, surface->GetProducer());
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface03
+ * @tc.desc: RemoveVirtualScreenSurface with screen not in mirror mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualScreenSurface03", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->screenSessionMap_.erase(screenId);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface04
+ * @tc.desc: RemoveVirtualScreenSurface with mirror mode success
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualScreenSurface04", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface05
+ * @tc.desc: RemoveVirtualScreenSurface after adding surface
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualScreenSurface05", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError addRet = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(addRet, DMError::DM_OK);
+
+    DMError removeRet = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    EXPECT_EQ(removeRet, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface06
+ * @tc.desc: AddVirtualScreenSurface with invalid screenId (ConvertToRsScreenId returns false)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = SCREEN_ID_INVALID;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(invalidScreenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface07
+ * @tc.desc: AddVirtualScreenSurface with SCREEN_ID_INVALID and nullptr surface
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface07, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = SCREEN_ID_INVALID;
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(invalidScreenId, nullptr, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface06
+ * @tc.desc: RemoveVirtualScreenSurface with invalid screenId (ConvertToRsScreenId returns false)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = SCREEN_ID_INVALID;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(invalidScreenId, surface->GetProducer());
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface07
+ * @tc.desc: RemoveVirtualScreenSurface with SCREEN_ID_INVALID and nullptr surface
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurface07, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId invalidScreenId = SCREEN_ID_INVALID;
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(invalidScreenId, nullptr);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface08
+ * @tc.desc: AddVirtualScreenSurface with zero DMRect values
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurface08, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurface08", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 0, 0};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface08
+ * @tc.desc: RemoveVirtualScreenSurface with non-existent screenId then add surface again
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualSurfaceThenAdd, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualSurfaceThenAdd", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface1 = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface1, nullptr);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError addRet1 = ssm_->AddVirtualScreenSurface(screenId, surface1->GetProducer(), surfaceRegion);
+    EXPECT_EQ(addRet1, DMError::DM_OK);
+
+    DMError removeRet = ssm_->RemoveVirtualScreenSurface(screenId, surface1->GetProducer());
+    EXPECT_EQ(removeRet, DMError::DM_OK);
+
+    sptr<IConsumerSurface> surface2 = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface2, nullptr);
+
+    DMError addRet2 = ssm_->AddVirtualScreenSurface(screenId, surface2->GetProducer(), surfaceRegion);
+    EXPECT_EQ(addRet2, DMError::DM_OK);
+
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurfacePermissionFail01
+ * @tc.desc: AddVirtualScreenSurface with permission denied (not system app)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurfacePermissionFail01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurfacePermFail01", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
+
+    MockAccesstokenKit::ChangeMockStateToInit();
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurfacePermissionFail02
+ * @tc.desc: AddVirtualScreenSurface with permission denied (invalid permission)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurfacePermissionFail02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurfacePermFail02", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockIsUseTokenMap(true);
+    MockAccesstokenKit::MockTokenMap("ohos.permission.ACCESS_VIRTUAL_SCREEN", -1);
+    MockAccesstokenKit::MockTokenMap("ohos.permission.CAPTURE_SCREEN", -1);
+
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PERMISSION);
+
+    MockAccesstokenKit::ChangeMockStateToInit();
+    ssm_->screenSessionMap_.erase(screenId);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurfacePermissionFail01
+ * @tc.desc: RemoveVirtualScreenSurface with permission denied (not system app)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurfacePermissionFail01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualScreenSurfacePermFail01", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+
+    DMError ret = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    EXPECT_EQ(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
+
+    MockAccesstokenKit::ChangeMockStateToInit();
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurfaceRsFail01
+ * @tc.desc: AddVirtualScreenSurface with RS interface returning failure
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurfaceRsFail01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurfaceRsFail01", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    SetAddVirtualScreenSurfaceRet(-1);
+    DMRect surfaceRegion = {0, 0, 100, 100};
+    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ResetRsInterfacesMockRet();
+    ssm_->screenSessionMap_.erase(screenId);
+    ssm_->DestroyVirtualScreen(screenId);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurfaceRsFail01
+ * @tc.desc: RemoveVirtualScreenSurface with RS interface returning failure
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurfaceRsFail01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId;
+    sptr<ScreenSession> screenSession = InitTestScreenSession("RemoveVirtualScreenSurfaceRsFail01", screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    ssm_->screenSessionMap_[screenId] = screenSession;
+
+    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
+    ASSERT_NE(surface, nullptr);
+
+    SetRemoveVirtualScreenSurfaceRet(-1);
+    DMError ret = ssm_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    ResetRsInterfacesMockRet();
+    ssm_->screenSessionMap_.erase(screenId);
+    ssm_->DestroyVirtualScreen(screenId);
 }
 } // namespace
 } // namespace Rosen

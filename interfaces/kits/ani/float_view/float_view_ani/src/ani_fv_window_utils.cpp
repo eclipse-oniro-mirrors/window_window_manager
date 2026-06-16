@@ -294,9 +294,9 @@ ani_status AniFvUtils::GetAniString(ani_env* env, const std::string& str, ani_st
     return env->String_NewUTF8(str.c_str(), static_cast<ani_size>(str.size()), result);
 }
 
-bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, Rect& rect)
+bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, std::pair<int32_t, int32_t>& size)
 {
-    auto getAndAssign = [&, where = __func__](const char* name, uint32_t& field) -> ani_status {
+    auto getAndAssign = [&, where = __func__](const char* name, int32_t& field) -> ani_status {
         ani_int int_value;
         ani_status ret = env->Object_GetPropertyByName_Int(windowSize, name, &int_value);
         if (ret != ANI_OK) {
@@ -304,14 +304,49 @@ bool AniFvUtils::ParseWindowSize(ani_env* env, ani_object windowSize, Rect& rect
                 "[ANI]Object_GetPropertyByName_Int failed,ret:%{public}d", static_cast<int32_t>(ret));
             return ret;
         }
-        field = static_cast<uint32_t>(int_value);
+        field = static_cast<int32_t>(int_value);
         return ANI_OK;
     };
-    if (getAndAssign("width", rect.width_) != ANI_OK ||
-        getAndAssign("height", rect.height_) != ANI_OK) {
+    if (getAndAssign("width", size.first) != ANI_OK ||
+        getAndAssign("height", size.second) != ANI_OK) {
         return false;
     }
     return true;
+}
+
+std::shared_ptr<TemplateProperty> AniFvUtils::ParseTemplateProperty(ani_env* env, ani_object jsObject,
+    std::string& errorMsg, WmErrorCode& errorCode)
+{
+    ani_ref sizeRef;
+    env->Object_GetPropertyByName_Ref(jsObject, "size", &sizeRef);
+    ani_ref templateTypeRef;
+    env->Object_GetPropertyByName_Ref(jsObject, "templateType", &templateTypeRef);
+    ani_boolean isSizeUndefined = true;
+    env->Reference_IsUndefined(sizeRef, &isSizeUndefined);
+    ani_boolean isTemplateTypeUndefined = true;
+    env->Reference_IsUndefined(templateTypeRef, &isTemplateTypeUndefined);
+    if (isSizeUndefined || isTemplateTypeUndefined || sizeRef == nullptr || templateTypeRef == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "jsTemplateType or jsSize is null");
+        errorMsg = "Failed to get templateType or size, check if input is null or undefined.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    std::pair<int32_t, int32_t> size;
+    if (!ParseWindowSize(env, static_cast<ani_object>(sizeRef), size)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]parse window size failed");
+        errorMsg = "Convert window size failed.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    ani_int res;
+    ani_status ret = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(templateTypeRef), &res);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "template type is invalid");
+        errorMsg = "Invalid template type.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    return std::make_shared<TemplateProperty>(TemplateProperty{static_cast<uint32_t>(res), size.first, size.second});
 }
 
 ani_object AniFvUtils::CreateAniFloatViewStateChangeInfoObject(ani_env* env,
@@ -394,7 +429,7 @@ ani_object AniFvUtils::CreateAniFloatViewPropertiesObject(ani_env* env, uint32_t
     }
     ani_object windowRect = AniWindowUtils::CreateAniRect(env, windowInfo.windowRect_);
     ani_object avoidArea = AniWindowUtils::CreateAniAvoidArea(env,
-        windowInfo.avoidArea_, AvoidAreaType::TYPE_CUTOUT, false);
+        windowInfo.avoidArea_, AvoidAreaType::TYPE_START, false);
     ani_boolean isSidebar = ani_boolean(state == FvWindowState::FV_STATE_IN_SIDEBAR);
     ani_object infoObj = nullptr;
     ret = env->Object_New(infoClass, ctor, &infoObj,

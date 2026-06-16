@@ -234,6 +234,14 @@ public:
     bool SuspendEnd();
 
     /**
+     * @brief Set the open/close lid status.
+     *
+     * @param screenClosedState open or close state.
+     * @param isScreenOn power status.
+     */
+    DMError SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn);
+
+    /**
      * @brief Get id of internal screen.
      *
      * @return Internal screen id.
@@ -278,10 +286,9 @@ public:
     /**
      * @brief Set the brightness level of the target screen.
      *
-     * @param screenId Target screen.
-     * @param level Brightness level.
+     * @param brightnessData Brightness data including screenId, level, and brightnessPosition.
      */
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
 
     /**
      * @brief Get the brightness level of the target screen.

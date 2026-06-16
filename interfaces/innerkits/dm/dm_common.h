@@ -267,6 +267,7 @@ enum class TentMode : uint32_t {
     UNKNOWN,
     TENT_MODE,
     HOVER,
+    TENT_MODE_MAX
 };
 
 /**
@@ -738,6 +739,38 @@ struct ScreenBrightnessInfo {
     float currentHeadroom = DEFAULT_HEADROOM;
     float maxHeadroom = DEFAULT_HEADROOM;
     float sdrNits = DEFAULT_SDR_NITS;
+    float brightnessPosition = -1.0f;
+};
+
+/*
+ * @brief Defines the screen brightness data. This structure must align with RsScreenBrightnessData.
+ */
+class DmsScreenBrightnessData : public Parcelable {
+public:
+    ScreenId screenId;
+    uint32_t level;
+    float brightnessPosition;
+ 
+    DmsScreenBrightnessData() : screenId(0), level(0), brightnessPosition(-1.0f) {}
+ 
+    DmsScreenBrightnessData(ScreenId id, uint32_t lvl, float position = -1.0f)
+        : screenId(id), level(lvl), brightnessPosition(position) {}
+ 
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteUint64(screenId) && parcel.WriteUint32(level) && parcel.WriteFloat(brightnessPosition);
+    }
+ 
+    static DmsScreenBrightnessData* Unmarshalling(Parcel& parcel)
+    {
+        ScreenId screenId;
+        uint32_t level;
+        float brightnessPosition;
+        if (!(parcel.ReadUint64(screenId) && parcel.ReadUint32(level) && parcel.ReadFloat(brightnessPosition))) {
+            return nullptr;
+        }
+        return new (std::nothrow) DmsScreenBrightnessData(screenId, level, brightnessPosition);
+    }
 };
 
 struct MultiScreenPositionOptions {
@@ -924,6 +957,12 @@ enum class DisplayModeChangeReason : uint32_t {
     INVALID,
     SETMODE,
     FORCE_SET
+};
+
+enum class ScreenClosedState : uint32_t {
+    UNKNOWN = 0,
+    CLOSE,
+    OPEN
 };
 }
 #endif // OHOS_ROSEN_DM_COMMON_H

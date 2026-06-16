@@ -68,13 +68,14 @@ export namespace PiPWindow {
   export type ControlPanelActionEventCallback = (event: PiPActionEventType, status?: int) => void;
 
 
-  export type PiPControlGroup = VideoPlayControlGroup | VideoCallControlGroup | VideoMeetingControlGroup | VideoLiveControlGroup;
+  export type PiPControlGroup = VideoPlayControlGroup | VideoCallControlGroup | VideoMeetingControlGroup | VideoLiveControlGroup | VideoDriveControlGroup;
 
   export enum PiPTemplateType {
     VIDEO_PLAY,
     VIDEO_CALL,
     VIDEO_MEETING,
     VIDEO_LIVE,
+    VIDEO_DRIVE,
   }
 
   export enum VideoPlayControlGroup {
@@ -100,6 +101,8 @@ export namespace PiPWindow {
     VIDEO_PLAY_PAUSE = 401,
     MUTE_SWITCH = 402,
   }
+
+  export enum VideoDriveControlGroup {}
 
   export interface PiPWindowSize {
     width: int;
@@ -229,7 +232,7 @@ export namespace PiPWindow {
   }
 
   export native function pipControllerFinalizerCallback(nativeObj: long): void;
-  let pipControllerFinalizerRegister = new FinalizationRegistry<long>(pipControllerFinalizerCallback);
+  let pipControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(pipControllerFinalizerCallback);
 
   export class PiPControllerInternal implements PiPController {
     public nativeObj: long = 0;

@@ -483,6 +483,11 @@ int64_t PictureInPictureControllerBase::GetCreateTimestamp() const
     return createTimestamp_;
 }
 
+int64_t PictureInPictureControllerBase::GetStartTimestamp() const
+{
+    return startTimestamp_;
+}
+
 void PictureInPictureControllerBase::ActiveStatusChange(bool status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "notify active status: %{public}u", status);
@@ -653,9 +658,8 @@ void PictureInPictureControllerBase::GetPipPossible(bool& pipPossible)
 
 bool PictureInPictureControllerBase::GetPipEnabled()
 {
-    const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "");
-    return multiWindowUIType == "HandsetSmartWindow" || multiWindowUIType == "FreeFormMultiWindow" ||
-        multiWindowUIType == "TabletSmartWindow";
+    bool isPipEnabled = PictureInPictureManager::GetPipEnabled();
+    return isPipEnabled;
 }
 
 bool PictureInPictureControllerBase::GetPipSettingSwitchStatusEnabled()

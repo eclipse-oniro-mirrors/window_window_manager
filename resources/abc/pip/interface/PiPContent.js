@@ -171,7 +171,7 @@ class PiPContent extends ViewPU {
     }
     aboutToAppear() {
         try {
-            this.windowId = this.getUIContext()?.getWindowId()?? 0;
+            this.windowId = this.getUIContext()?.getWindowId() ?? 0;
             this.nodeController = pip.getCustomUIController();
             this.registerUpdateNodeListener();
             this.xComponent = pip.getTypeNode(this.windowId);

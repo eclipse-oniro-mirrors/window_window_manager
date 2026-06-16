@@ -85,9 +85,9 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/screen_power_utils.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_rotation_property.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_sensor_connector.cpp",
-  "${window_base_path}/window_scene/screen_session_manager/src/screen_sensor_plugin.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_dumper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/motion_manager.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_setting_helper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_tent_property.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_power_fsm/session_display_power_controller.cpp",
@@ -151,6 +151,8 @@ test_source_common = [
 
   # mock
   "../mock/sensor/sensor_agent.cpp",
+  "../mock/sensor/screen_sensor_plugin_mock.cpp",
+  "../mock/sensor/sensor_plugin_mock_impl.cpp",
   "../mock/inner_mock/mock_scene_board_judgement.cpp",
   "../mock/inner_mock/mock_session_permission.cpp",
   "../mock/rs/transaction/mock_rs_interfaces.cpp",
@@ -166,6 +168,24 @@ ohos_unittest("ws_screen_session_manager_connect_test") {
 
   sources = [
     "screen_session_manager_connect_test.cpp",
+  ]
+
+  deps = [ ":dms_unittest_base" ]
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_screen_sensor_tent_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "screen_sensor_tent_test.cpp",
   ]
 
   deps = [ ":dms_unittest_base" ]
@@ -251,6 +271,7 @@ ohos_static_library("dms_unittest_base") {
     "POWER_MANAGER_ENABLE",
     "SENSOR_ENABLE",
     "DMS_UNIT_TEST",
+    "WM_SUBSCRIBE_MOTION_ENABLE",
   ]
 
   part_name = "window_manager"

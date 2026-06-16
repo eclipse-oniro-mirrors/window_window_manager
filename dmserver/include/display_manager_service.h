@@ -92,7 +92,7 @@ public:
     DMError RemoveSurfaceNodeFromDisplay(DisplayId displayId, std::shared_ptr<RSSurfaceNode>& surfaceNode);
     DisplayState GetDisplayState(DisplayId displayId);
     bool TryToCancelScreenOff();
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
     uint32_t GetScreenBrightness(uint64_t screenId);
     void NotifyDisplayEvent(DisplayEvent event);
     bool SetFreeze(std::vector<DisplayId> displayIds, bool isFreeze);
