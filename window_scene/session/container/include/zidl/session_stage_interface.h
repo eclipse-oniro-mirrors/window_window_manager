@@ -382,7 +382,7 @@ public:
      * @param reason Indicates the reason for the action.
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
-    virtual WSError SendFbActionEvent(const std::string& action， const std::string& reason) = 0;
+    virtual WSError SendFbActionEvent(const std::string& action, const std::string& reason) = 0;
 
     /**
      * @brief update if show decor in free multi window.
