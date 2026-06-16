@@ -468,6 +468,7 @@ bool WindowSessionImpl::IsPcOrFreeMultiWindowCapabilityEnabled() const
 
 bool WindowSessionImpl::IsPcOrPadFreeMultiWindowMode() const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::IsPcOrPadFreeMultiWindowMode");
     return windowSystemConfig_.IsPcWindow() || IsFreeMultiWindowMode();
 }
 
@@ -1756,12 +1757,9 @@ WMError WindowSessionImpl::NotifySnapshotUpdate()
 void WindowSessionImpl::GetTitleButtonVisible(bool& hideMaximizeButton, bool& hideMinimizeButton,
     bool& hideSplitButton, bool& hideCloseButton)
 {
-    {
-        HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::IsPcOrPadFreeMultiWindowMode");
-        if (!IsPcOrPadFreeMultiWindowMode()) {
-            TLOGE(WmsLogTag::WMS_DECOR, "device not support");
-            return;
-        }
+    if (!IsPcOrPadFreeMultiWindowMode()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "device not support");
+        return;
     }
     if (hideMaximizeButton > !windowTitleVisibleFlags_.isMaximizeVisible) {
         TLOGW(WmsLogTag::WMS_DECOR, "isMaximizeVisible param INVALID");
