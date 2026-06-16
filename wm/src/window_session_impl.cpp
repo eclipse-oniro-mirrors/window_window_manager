@@ -468,7 +468,6 @@ bool WindowSessionImpl::IsPcOrFreeMultiWindowCapabilityEnabled() const
 
 bool WindowSessionImpl::IsPcOrPadFreeMultiWindowMode() const
 {
-    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::IsPcOrPadFreeMultiWindowMode");
     return windowSystemConfig_.IsPcWindow() || IsFreeMultiWindowMode();
 }
 
