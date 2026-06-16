@@ -453,6 +453,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
+    virtual void SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func) {};
     virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
@@ -1305,6 +1306,7 @@ protected:
      */
     virtual void NotifyStopFloatView() {};
     virtual void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) {};
+    virtual void NotifyClickFloatView() {};
     FloatViewTemplateInfo fvTemplateInfo_ = {};
     mutable std::mutex fvTemplateMutex_;
 
