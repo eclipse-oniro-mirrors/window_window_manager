@@ -432,7 +432,7 @@ public:
     WSError StopFloatingBall() override { return WSError::WS_OK; };
     WMError GetFloatingBallWindowId(uint32_t& windowId) override { return WMError::WM_OK; };
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override { return WMError::WM_OK; };
-    virtual WSError SendFbActionEvent(const std::string& action) { return WSError::WS_OK; };
+    virtual WSError SendFbActionEvent(const std::string& action, const std::string& reason) { return WSError::WS_OK; };
     virtual FloatingBallTemplateInfo GetFbTemplateInfo() const { return fbTemplateInfo_; };
     virtual void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) {};
     virtual uint32_t GetFbWindowId() const { return 0; };

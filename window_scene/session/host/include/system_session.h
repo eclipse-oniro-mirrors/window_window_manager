@@ -53,7 +53,7 @@ public:
     WSError StopFloatingBall() override;
     WMError GetFloatingBallWindowId(uint32_t& windowId) override;
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     FloatingBallTemplateInfo GetFbTemplateInfo() const override;
     void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) override;
     uint32_t GetFbWindowId() const override;
