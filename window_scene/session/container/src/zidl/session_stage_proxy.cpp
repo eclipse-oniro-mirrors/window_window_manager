@@ -1532,7 +1532,7 @@ WSError SessionStageProxy::SetPipActionEvent(const std::string& action, int32_t 
     return WSError::WS_OK;
 }
 
-WSError SessionStageProxy::SendFbActionEvent(const std::string& action)
+WSError SessionStageProxy::SendFbActionEvent(const std::string& action, const std::string& reason)
 {
     MessageParcel data;
     MessageParcel reply;

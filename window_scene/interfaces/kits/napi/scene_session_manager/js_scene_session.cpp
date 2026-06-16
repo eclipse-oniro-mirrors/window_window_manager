@@ -6757,13 +6757,13 @@ napi_value JsSceneSession::OnSendFbActionEvent(napi_env env, napi_callback_info 
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-
+    std::string reason = "";
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "session is nullptr, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
-    session->SendFbActionEvent(action);
+    session->SendFbActionEvent(action, reason);
     return NapiGetUndefined(env);
 }
 
