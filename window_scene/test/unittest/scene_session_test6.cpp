@@ -1215,28 +1215,6 @@ HWTEST_F(SceneSessionTest6, RegisterUpdateAppUseControlCallbackHasPrivacyModeCon
 }
 
 /**
- * @tc.name: GetScreenWidthAndHeightFromClient
- * @tc.desc: GetScreenWidthAndHeightFromClient
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest6, GetScreenWidthAndHeightFromClient, Function | SmallTest | Level3)
-{
-    SessionInfo info;
-    info.bundleName_ = "GetScreenWidthAndHeightFromClient";
-    info.abilityName_ = "GetScreenWidthAndHeightFromClient";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    uint32_t screenWidth = 0;
-    uint32_t screenHeight = 0;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    property->SetDisplayId(0);
-    EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
-
-    sceneSession->SetIsSystemKeyboard(true);
-    EXPECT_EQ(sceneSession->IsSystemKeyboard(), true);
-    EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
-}
-
-/**
  * @tc.name: SetFrameRectForPartialZoomIn
  * @tc.desc: SetFrameRectForPartialZoomIn
  * @tc.type: FUNC
