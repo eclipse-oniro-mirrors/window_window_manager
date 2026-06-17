@@ -542,8 +542,8 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
     sptr<ISessionStage> sessionStage = iface_cast<ISessionStage>(sessionStageObject);
     sptr<IRemoteObject> eventChannelObject = data.ReadRemoteObject();
     sptr<IWindowEventChannel> eventChannel = iface_cast<IWindowEventChannel>(eventChannelObject);
-    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Unmarshalling(data);
-    if (sessionStage == nullptr || eventChannel == nullptr || surfaceNode == nullptr) {
+    uint64_t surfaceNodeId = data.ReadUint64();
+    if (sessionStage == nullptr || eventChannel == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
         return ERR_INVALID_DATA;
     }
@@ -577,9 +577,16 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         return ERR_INVALID_DATA;
     }
     SystemSessionConfig systemConfig;
-    WSError errCode = Connect(sessionStage, eventChannel, surfaceNode, systemConfig, property, token,
-        identityToken);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    WSError errCode = Connect(sessionStage, eventChannel, surfaceNodeId, systemConfig, renderSession, surfaceNode,
+        property, token, identityToken);
     reply.WriteParcelable(&systemConfig);
+    reply.WriteRemoteObject(renderSession);
+    if (surfaceNode == nullptr || !surfaceNode->Marshalling(reply)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write surfaceNode to reply failed");
+        return ERR_INVALID_DATA;
+    }
     if (property) {
         reply.WriteInt32(property->GetPersistentId());
         reply.WriteUint64(property->GetDisplayId());

@@ -93,7 +93,7 @@ HWTEST_F(WindowRecoverTest, RecoverAndReconnectSceneSession, TestSize.Level1)
     context->stageContext_ = stageContent;
 
     struct RSSurfaceNodeConfig config;
-    std::shared_ptr<RSSurfaceNode> windowSceneSessionSurfaceNode = RSSurfaceNode::Create(config);
+    std::shared_ptr<RSSurfaceNode> windowSceneSessionSurfaceNode = RSSurfaceNode::CreateSurfaceNode(config, true);
     windowSceneSession->surfaceNode_ = windowSceneSessionSurfaceNode;
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(context, session));
 
@@ -135,7 +135,7 @@ HWTEST_F(WindowRecoverTest, RecoverAndConnectSpecificSession, TestSize.Level1)
     ASSERT_NE(nullptr, sessionToken);
     context->SetToken(sessionToken);
     struct RSSurfaceNodeConfig config;
-    std::shared_ptr<RSSurfaceNode> windowSceneSessionSurfaceNode = RSSurfaceNode::Create(config);
+    std::shared_ptr<RSSurfaceNode> windowSceneSessionSurfaceNode = RSSurfaceNode::CreateSurfaceNode(config, true);
     ASSERT_NE(nullptr, windowSceneSessionSurfaceNode);
     windowSceneSession->surfaceNode_ = windowSceneSessionSurfaceNode;
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(context, session));

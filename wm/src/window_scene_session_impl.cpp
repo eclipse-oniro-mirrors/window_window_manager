@@ -280,8 +280,7 @@ std::mutex WindowSceneSessionImpl::windowAttachStateChangeListenerMutex_;
 std::atomic<bool> WindowSceneSessionImpl::hasSentCombinedCompatibleConfig_ = false;
 
 WindowSceneSessionImpl::WindowSceneSessionImpl(const sptr<WindowOption>& option,
-    const std::shared_ptr<RSUIContext>& rsUIContext, sptr<IRemoteObject> renderSession)
-    : WindowSessionImpl(option, rsUIContext, renderSession)
+    const std::shared_ptr<RSUIContext>& rsUIContext) : WindowSessionImpl(option, rsUIContext)
 {
     WLOGFI("[WMSCom] Constructor %{public}s", GetWindowName().c_str());
 }
@@ -472,8 +471,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         SetDefaultDisplayIdIfNeed();
         property_->SetIsUIExtensionAbilityProcess(isUIExtensionAbilityProcess_);
         // create sub session by parent session
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-            surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+            property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         if (!hasToastFlag) {
             AddSubWindowMapForExtensionWindow();
         }
@@ -491,7 +490,7 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(crossProcessWindowInfo.isPcAppInPad);
             property_->SetPcAppInpadCompatibleMode(crossProcessWindowInfo.isPcAppInpadCompatibleMode);
             SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-                surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+                nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         } else {
             sptr<WindowSessionImpl> parentSession = nullptr;
             auto ret = WindowSceneSessionImpl::GetParentSessionAndVerify(hasToastFlag, parentSession);
@@ -506,7 +505,7 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetPcAppInpadCompatibleMode(parentSession->GetProperty()->GetPcAppInpadCompatibleMode());
             // creat sub session by parent session
             SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-                surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+                nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
             {
                 std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
                 // update subWindowSessionMap_
@@ -524,8 +523,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
         }
         PreProcessCreate();
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
-            surfaceNode_, property_, persistentId, session, windowSystemConfig_, renderSession, token);
+        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+            property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
     }
     property_->SetPersistentId(persistentId);
     if (session == nullptr) {
@@ -534,6 +533,11 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         RecordLifeCycleExceptionEvent(WMError::WM_ERROR_NULLPTR,
             WMErrorReason::WM_REASON_SUB_WINDOW_IPC_CREATE_ERR, "sub window create failed when ipc");
         return WMError::WM_ERROR_NULLPTR;
+    }
+    if (surfaceNode_ == nullptr) {
+        TLOGI(WmsLogTag::WMS_LIFE, "create specific failed, surfaceNode is nullptr, name: %{public}s",
+            property_->GetWindowName().c_str());
+            return WMError::WM_ERROR_NULLPTR;
     }
     if (renderSession == nullptr) {
         TLOGI(WmsLogTag::WMS_LIFE, "create specific failed, renderSession is nullptr, name: %{public}s",
@@ -550,19 +554,6 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         property_->GetPersistentId(), property_->GetParentPersistentId(), GetType(),
         property_->GetTouchable(), property_->GetDisplayId());
     return WMError::WM_OK;
-}
-
-void WindowSceneSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
-{
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
-    auto rsUIContext = rsUIDirector_->GetRSUIContext();
-    surfaceNode_->SetRSUIContext(rsUIContext);
-
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    rsSurfaceNodeConfig.SurfaceNodeName = property_->GetWindowName();
-    RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(property_->GetWindowType());
-    surfaceNode_->SendDataToRender(rsSurfaceNodeConfig, rsSurfaceNodeType, true, property_->IsConstrainedModal());
-    TLOGI(WmsLogTag::WMS_LIFE, "post init surfaceNode success, name: %{public}s", property_->GetWindowName().c_str());
 }
 
 WMError WindowSceneSessionImpl::CreateSystemWindow(WindowType type)

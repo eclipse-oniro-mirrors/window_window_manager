@@ -331,10 +331,8 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     sptr<ISessionStage> sessionStage = iface_cast<ISessionStage>(sessionStageObject);
     sptr<IRemoteObject> eventChannelObject = data.ReadRemoteObject();
     sptr<IWindowEventChannel> eventChannel = iface_cast<IWindowEventChannel>(eventChannelObject);
-    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Unmarshalling(data);
-    TLOGD(WmsLogTag::WMS_SCB, "Unmarshalling RSSurfaceNode: %{public}s",
-          RSAdapterUtil::RSNodeToStr(surfaceNode).c_str());
-    if (sessionStage == nullptr || eventChannel == nullptr || surfaceNode == nullptr) {
+    uint64_t surfaceNodeId = data.ReadUint64();
+    if (sessionStage == nullptr || eventChannel == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
         return ERR_INVALID_DATA;
     }
@@ -355,8 +353,9 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     sptr<ISession> sceneSession;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode,
-        property, persistentId, sceneSession, systemConfig, renderSession, token);
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNodeId,
+        property, persistentId, sceneSession, systemConfig, renderSession, surfaceNode, token);
     if (sceneSession== nullptr) {
         return ERR_INVALID_STATE;
     }
@@ -364,6 +363,10 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     reply.WriteRemoteObject(sceneSession->AsObject());
     reply.WriteParcelable(&systemConfig);
     reply.WriteRemoteObject(renderSession);
+    if (surfaceNode == nullptr || !surfaceNode->Marshalling(reply)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write surfaceNode to reply failed.");
+        return ERR_INVALID_DATA;
+    }
     reply.WriteUint32(property->GetSubWindowLevel());
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
