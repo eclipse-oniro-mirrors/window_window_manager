@@ -194,11 +194,6 @@ ohos_static_library("libwm_static") {
     defines += [ "IMF_ENABLE" ]
   }
 
-  if (device_status_enable == true) {
-    external_deps += [ "device_status:devicestatus_client" ]
-    defines += [ "DEVICE_STATUS_ENABLE" ]
-  }
-
   part_name = "window_manager"
   subsystem_name = "window"
 }
@@ -366,11 +361,6 @@ ohos_shared_library("libwm") {
   if (imf_enable == true) {
     external_deps += [ "imf:inputmethod_client" ]
     defines += [ "IMF_ENABLE" ]
-  }
-
-  if (device_status_enable == true) {
-    external_deps += [ "device_status:devicestatus_client" ]
-    defines += [ "DEVICE_STATUS_ENABLE" ]
   }
 
   if (window_manager_feature_support_api_metrics) {
