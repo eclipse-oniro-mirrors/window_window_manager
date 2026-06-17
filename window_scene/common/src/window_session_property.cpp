@@ -1931,7 +1931,6 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
-    isForceSplitEnabled_ = property->isForceSplitEnabled_.load();
     hookWindowInfo_ = property->hookWindowInfo_;
 }
 
