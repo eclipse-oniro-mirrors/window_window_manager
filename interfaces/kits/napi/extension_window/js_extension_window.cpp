@@ -911,7 +911,7 @@ napi_value JsExtensionWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_c
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setSpecificSystemBarEnabled]msg: Incorrect parameter types");
     }
-    
+
     bool systemBarEnable = false;
     bool systemBarEnableAnimation = false;
     if (!GetSpecificBarStatus(env, info, systemBarEnable, systemBarEnableAnimation)) {
@@ -1765,7 +1765,7 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
     }
     return result;
 }
- 
+
 napi_value JsExtensionWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_callback_info info)
 {
     WmErrorCode errCode = WmErrorCode::WM_OK;
