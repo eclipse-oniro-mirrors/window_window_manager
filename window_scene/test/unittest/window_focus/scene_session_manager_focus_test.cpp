@@ -1067,10 +1067,6 @@ HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SpecialWindow_PC, Test
 
     bool ret = ssm_->CheckBlockingFocus(session, false);
     EXPECT_EQ(ret, false);
-
-    session->property_->SetWindowType(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD);
-    ret = ssm_->CheckBlockingFocus(session, false);
-    EXPECT_EQ(ret, false);
 }
 
 /**

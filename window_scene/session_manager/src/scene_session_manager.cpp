@@ -9517,12 +9517,9 @@ bool SceneSessionManager::CheckBlockingFocus(const sptr<SceneSession>& session, 
     if (session->GetSessionInfo().isSystem_ && session->GetBlockingFocus()) {
         return true;
     }
-
     WindowType windowType = session->GetWindowType();
     bool isPhoneOrPad = systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow();
-    if (isPhoneOrPad &&
-        (windowType == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
-         windowType == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD)) {
+    if (isPhoneOrPad && windowType == WindowType::WINDOW_TYPE_VOICE_INTERACTION) {
         return true;
     }
     bool isPcOrPcMode = systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
