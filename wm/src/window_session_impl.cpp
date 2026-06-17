@@ -7126,9 +7126,9 @@ WSError WindowSessionImpl::NotifyPiPActiveStatusChange(bool status)
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SendFbActionEvent(const std::string& action)
+WSError WindowSessionImpl::SendFbActionEvent(const std::string& action, const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s", action.c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s, reason: %{public}s", action.c_str(), reason.c_str());
     auto task = [action]() {
         FloatingBallManager::DoFbActionEvent(action);
     };

@@ -136,7 +136,7 @@ public:
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
     WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;

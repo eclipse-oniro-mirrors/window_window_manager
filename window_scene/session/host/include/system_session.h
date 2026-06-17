@@ -53,7 +53,7 @@ public:
     WSError StopFloatingBall() override;
     WMError GetFloatingBallWindowId(uint32_t& windowId) override;
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     FloatingBallTemplateInfo GetFbTemplateInfo() const override;
     void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) override;
     uint32_t GetFbWindowId() const override;
@@ -74,6 +74,7 @@ public:
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters) override;
     void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) override;
+    void SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func) override;
     WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     /*
@@ -104,6 +105,7 @@ protected:
      */
     void NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters);
     void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
+    void NotifyClickFloatView() override;
 private:
     WMError IsFloatingBallValid(const FloatingBallTemplateInfo& fbTemplateInfo) const;
     void UpdateCameraWindowStatus(bool isShowing);

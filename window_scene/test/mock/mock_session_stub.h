@@ -86,7 +86,7 @@ public:
     MOCK_METHOD1(GetWaterfallMode, WSError(bool& isWaterfallMode));
     MOCK_METHOD1(IsMainWindowFullScreenAcrossDisplays, WMError(bool& isAcrossDisplays));
     MOCK_METHOD1(GetFloatingBallWindowId, WMError(uint32_t& windowId));
-    MOCK_METHOD1(SendFbActionEvent, WSError(const std::string& action));
+    MOCK_METHOD2(SendFbActionEvent, WSError(const std::string& action, const std::string& reason));
     MOCK_METHOD1(RestoreFbMainWindow, WMError(const std::shared_ptr<AAFwk::Want>& want));
     MOCK_METHOD0(NotifyFloatViewPrepareClose, void(void));
     MOCK_METHOD1(UpdateFloatView, WMError(const FloatViewTemplateInfo& fvTemplateInfo));
