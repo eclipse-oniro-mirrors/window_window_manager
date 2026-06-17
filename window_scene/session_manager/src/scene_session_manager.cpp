@@ -9525,17 +9525,16 @@ bool SceneSessionManager::CheckBlockingFocus(const sptr<SceneSession>& session, 
          windowType == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD)) {
         return true;
     }
-    if (windowType == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW) {
+    bool isPcOrPcMode = systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
+    if (isPcOrPcMode && windowType == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW) {
         auto ancestorSession = session->GetMainOrFloatSession();
-        if (ancestorSession != nullptr) {
-            return CheckBlockingFocus(ancestorSession, includingAppSession);
+        if (ancestorSession != nullptr && ancestorSession->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT) {
+            return false;
         }
-        return false;
     }
     if (!includingAppSession || !session->IsAppSession()) {
         return false;
     }
-    bool isPcOrPcMode = systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
     if (isPcOrPcMode && windowType == WindowType::WINDOW_TYPE_FLOAT) {
         return false;
     }

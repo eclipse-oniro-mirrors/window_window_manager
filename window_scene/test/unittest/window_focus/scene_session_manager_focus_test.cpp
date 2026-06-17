@@ -960,6 +960,31 @@ HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemSubWindow_Main, 
 }
 
 /**
+ * @tc.name: CheckBlockingFocus_SystemSubWindow_Main_PC
+ * @tc.desc: SYSTEM_SUB_WINDOW with MAIN ancestor on PC still blocks
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemSubWindow_Main_PC, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "MainApp";
+    sptr<SceneSession> mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    mainSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "SubApp";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW);
+    subSession->SetParentSession(mainSession);
+
+    bool ret = ssm_->CheckBlockingFocus(subSession, true);
+    EXPECT_EQ(ret, true);
+}
+
+/**
  * @tc.name: CheckBlockingFocus_SystemSubWindow_Float_PC
  * @tc.desc: SYSTEM_SUB_WINDOW inherits FLOAT window strategy on PC (not blocking)
  * @tc.type: FUNC
