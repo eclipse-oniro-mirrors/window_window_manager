@@ -1318,7 +1318,6 @@ private:
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
     struct UserDisplayInfo {
-        float densityInCurResolution;
         bool isPcDevice;
     };
     std::map<int32_t, UserDisplayInfo> userIdDisplayInfoMap_;
