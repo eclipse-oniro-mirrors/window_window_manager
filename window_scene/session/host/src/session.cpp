@@ -45,7 +45,6 @@
 #include "perform_reporter.h"
 #include "session/host/include/scene_persistent_storage.h"
 #include "screen_manager.h"
-#include "scene_board_judgement.h"
 
 #define RETURN_IF_NULL(param, ...)                                       \
     do {                                                                 \
