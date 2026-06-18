@@ -1078,7 +1078,8 @@ HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_Float_PadFreeMultiWind
 {
     ASSERT_NE(ssm_, nullptr);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
-    ssm_->systemConfig_.isFreeMultiWindowMode_ = true;
+    ssm_->systemConfig_.freeMultiWindowEnable_ = true;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
 
     SessionInfo mainInfo;
     mainInfo.bundleName_ = "MainApp";
