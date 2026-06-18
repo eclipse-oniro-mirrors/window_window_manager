@@ -67,21 +67,19 @@ bool WinPrintLimit(const WinPrintLimitConfig& config, WinPrintLimitState& state)
     auto duration = now - state.last;
     if (duration.count() >= config.timeIntervals) {
         state.last = now;
-        uint32_t supressedCnt = state.supressed.load();
-        state.supressed.store(0);
-        state.printCount.store(1);
+        uint32_t supressedCnt = state.supressed;
+        state.supressed = 0;
+        state.printCount = 1;
         if (supressedCnt != 0) {
             HiLogPrint(LOG_CORE, config.logLevel, info.domain, info.content,
                 "%{public}s log suppressed cnt %{public}u", config.functionName, supressedCnt);
         }
         return true;
     } else {
-        int count = state.printCount.load();
-        if (count < config.printFrequency) {
-            state.printCount.store(count + 1);
+        if (state.printCount++ < config.printFrequency) {
             return true;
         } else {
-            state.supressed.fetch_add(1);
+            state.supressed++;
             return false;
         }
     }

@@ -19,7 +19,6 @@
 #include <chrono>
 #include <cstdint>
 #include <unordered_map>
-#include <atomic>
 #include "hilog/log.h"
 
 namespace OHOS {
@@ -92,8 +91,8 @@ TLogInfo GetTLogInfo(WmsLogTag tag);
 
 struct WinPrintLimitState {
     std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> last{};
-    std::atomic<uint32_t> supressed{0};
-    std::atomic<int> printCount{0};
+    uint32_t supressed = 0;
+    int printCount = 0;
 };
 
 struct WinPrintLimitConfig {
