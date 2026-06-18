@@ -48,7 +48,6 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
         name_ = "main_window";
     }
     rsUIDirector_ = RSUIDirector::Create(nullptr);
-    RSUIContextContainer::SetRSUIContext(GetRSUIContext());
     WLOGFI("WindowImpl constructorCnt: %{public}d",
         ++constructorCnt);
 }
