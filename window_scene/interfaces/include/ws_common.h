@@ -1361,7 +1361,7 @@ struct SingleHandCompatibleModeConfig {
 };
 
 struct SingleHandScreenInfo {
-    int32_t scaleRatio = DEFAULT_SCALE_RATIO;
+    float scaleRatio = DEFAULT_SCALE_RATIO;
     int32_t scalePivotX = 0;
     int32_t scalePivotY = 0;
     SingleHandMode mode = SingleHandMode::MIDDLE;

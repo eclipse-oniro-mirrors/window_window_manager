@@ -1067,9 +1067,12 @@ bool ConvertSingleHandScreenInfoFromJs(napi_env env, napi_value jsObject, Single
     napi_value jsSingleHandMode = nullptr;
     napi_get_named_property(env, jsObject, "singleHandMode", &jsSingleHandMode);
 
-    if (!IsJsObjNameUndefind(env, jsScaleRatio, singleHandScreenInfo.scaleRatio)) {
+    double scaleRatio = 1.0;
+    if (jsScaleRatio == nullptr || !ConvertFromJsValue(env, jsScaleRatio, scaleRatio)) {
+        WLOGFE("Failed to convert parameter to scaleRatio");
         return false;
     }
+    singleHandScreenInfo.scaleRatio = static_cast<float>(scaleRatio);
 
     if (!IsJsObjNameUndefind(env, jsPivotX, singleHandScreenInfo.scalePivotX)) {
         return false;
