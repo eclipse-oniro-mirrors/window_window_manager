@@ -2236,7 +2236,7 @@ HWTEST_F(SessionStubTest, HandleConnect003, Function | SmallTest | Level2)
     sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
     data.WriteRemoteObject(sessionStage->AsObject());
     data.WriteRemoteObject(eventChannel->AsObject());
-    data.WriteUint64(RSNode::GenerateId());
+    rsSurfaceNode->Marshalling(data);
     data.WriteBool(true);
     data.WriteParcelable(property.GetRefPtr());
     data.WriteRemoteObject(token);
@@ -2246,13 +2246,13 @@ HWTEST_F(SessionStubTest, HandleConnect003, Function | SmallTest | Level2)
     std::string identityToken = "HandleConnectTest";
     data.WriteRemoteObject(sessionStage->AsObject());
     data.WriteRemoteObject(eventChannel->AsObject());
-    data.WriteUint64(RSNode::GenerateId());
+    rsSurfaceNode->Marshalling(data);
     data.WriteBool(true);
     data.WriteParcelable(property.GetRefPtr());
     data.WriteRemoteObject(token);
     data.WriteString(identityToken);
     result = session_->HandleConnect(data, reply);
-    EXPECT_EQ(result, ERR_INVALID_DATA);
+    EXPECT_EQ(result, ERR_NONE);
 }
 
 /**

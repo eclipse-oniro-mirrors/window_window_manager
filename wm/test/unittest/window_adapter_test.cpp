@@ -1021,15 +1021,13 @@ HWTEST_F(WindowAdapterTest, CreateAndConnectSpecificSession, TestSize.Level1)
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
     std::shared_ptr<RSSurfaceNode> node;
-    uint64_t nodeId = 100;
     sptr<WindowSessionProperty> property;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
-    sptr<IRemoteObject> renderSession;
     sptr<IRemoteObject> token;
-    int32_t id = 101;
+    int32_t id = 101; // 101 is persistentId
     windowAdapter.CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, node, token);
+        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
     ASSERT_EQ(session, nullptr);
 }
 

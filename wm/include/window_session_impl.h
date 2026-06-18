@@ -93,7 +93,7 @@ using IKBWillHideListener = IKeyboardWillHideListener;
 class WindowSessionImpl : public Window, public virtual SessionStageStub {
 public:
     explicit WindowSessionImpl(const sptr<WindowOption>& option,
-        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr, sptr<IRemoteObject> renderSession = nullptr);
     ~WindowSessionImpl();
 
     static sptr<Window> Find(const std::string& name);
@@ -730,7 +730,6 @@ public:
 protected:
     RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
     WMError Connect();
-    void PostInitSurfaceNode(sptr<IRemoteObject> renderSession);
     bool IsWindowSessionInvalid() const;
     void NotifyWindowAfterUnfocused();
     void NotifyWindowAfterFocused();
@@ -950,7 +949,6 @@ protected:
     std::shared_ptr<AbilityRuntime::Context> context_;
     mutable std::shared_mutex contextMutex_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
-    uint64_t nodeId_;
 
     sptr<WindowSessionProperty> property_;
     WindowModeInfo windowModeInfo_;
@@ -1153,6 +1151,12 @@ protected:
      */
     std::shared_ptr<RSUIDirector> rsUIDirector_;
     std::shared_ptr<RSUIContext> rsUIContext_;
+
+    /**
+     * RS Multi Process
+     */
+    sptr<IRemoteObject> renderSession_;
+    bool needCreateCompleteSurfaceNode_ = false;
 
     /**
      * Game Prelaunch flag

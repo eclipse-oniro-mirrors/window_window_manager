@@ -139,28 +139,21 @@ HWTEST_F(WindowSessionLifecycleTest, Connect01, TestSize.Level1)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(nullptr, property);
-    sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
-    uint64_t nodeId = 0;
-    auto result = session_->Connect(nullptr, nullptr, nodeId, systemConfig, renderSession,
-        outputSurfaceNode, property);
+    auto result = session_->Connect(nullptr, nullptr, nullptr, systemConfig, property);
     ASSERT_EQ(result, WSError::WS_OK);
 
     session_->state_ = SessionState::STATE_DISCONNECT;
-    result = session_->Connect(nullptr, nullptr, nodeId, systemConfig, renderSession,
-        outputSurfaceNode, property);
+    result = session_->Connect(nullptr, nullptr, nullptr, systemConfig, property);
     ASSERT_EQ(result, WSError::WS_OK);
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     EXPECT_NE(nullptr, mockSessionStage);
-    result = session_->Connect(mockSessionStage, nullptr, nodeId, systemConfig, renderSession, outputSurfaceNode,
-        property);
+    result = session_->Connect(mockSessionStage, nullptr, surfaceNode, systemConfig, property);
     ASSERT_EQ(result, WSError::WS_OK);
 
     sptr<TestWindowEventChannel> testWindowEventChannel = sptr<TestWindowEventChannel>::MakeSptr();
     EXPECT_NE(nullptr, testWindowEventChannel);
-    result = session_->Connect(mockSessionStage, testWindowEventChannel, nodeId, systemConfig, renderSession,
-        outputSurfaceNode, property);
+    result = session_->Connect(mockSessionStage, testWindowEventChannel, surfaceNode, systemConfig, property);
     ASSERT_EQ(result, WSError::WS_OK);
 }
 
