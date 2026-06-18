@@ -171,7 +171,7 @@ PRINT_TLOG(LOG_ERROR, tag, FMT_PREFIX fmt, WMS_NO_FILE_NAME, C_W_FUNC, ##__VA_AR
 
 #define WIN_PRINT_LIMIT(tag, level, intervals, canPrint, frequency) \
     do { \
-        static thread_local WinPrintLimitState state; \
+        static WinPrintLimitState state; \
         WinPrintLimitConfig config(tag, level, intervals, frequency, __func__); \
         (canPrint) = WinPrintLimit(config, state); \
     } while (0)
