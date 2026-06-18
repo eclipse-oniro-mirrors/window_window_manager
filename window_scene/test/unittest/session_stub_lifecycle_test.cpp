@@ -18,6 +18,7 @@
 #include <pointer_event.h>
 #include "iremote_object_mocker.h"
 #include "mock/mock_session_stub.h"
+#include "mock/mock_message_parcel.h"
 #include "session/host/include/zidl/session_stub.h"
 #include "ability_start_setting.h"
 #include "session/host/include/zidl/session_ipc_interface_code.h"
@@ -29,6 +30,19 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
+
+class SessionStubLifecycleMocker : public SessionStub {
+public:
+    MOCK_METHOD3(Background, WSError(bool, const std::string&, bool));
+    MOCK_METHOD3(Foreground, WSError(sptr<WindowSessionProperty>, bool, const std::string&));
+    MOCK_METHOD3(Disconnect, WSError(bool, const std::string&, bool));
+    MOCK_METHOD1(Show, WSError(sptr<WindowSessionProperty>));
+    MOCK_METHOD0(Hide, WSError());
+    MOCK_METHOD0(DrawingCompleted, WSError());
+    MOCK_METHOD0(RemoveStartingWindow, WSError());
+    MOCK_METHOD4(OnRemoteRequest, int(uint32_t code, MessageParcel& data,
+        MessageParcel& reply, MessageOption& option));
+};
 
 class SessionStubLifecycleTest : public testing::Test {
 public:
@@ -199,8 +213,114 @@ HWTEST_F(SessionStubLifecycleTest, HandlePendingSessionActivation03, TestSize.Le
     EXPECT_EQ(data.WriteInt32(0), true);
     EXPECT_EQ(data.WriteBool(false), true);
     EXPECT_EQ(data.WriteString("hostBundleName"), true);
+    EXPECT_EQ(data.WriteBool(false), true);
+    EXPECT_EQ(data.WriteInt32(3), true);
     auto res = session_->HandlePendingSessionActivation(data, reply);
     EXPECT_EQ(0, res);
+}
+
+/**
+ * @tc.name: HandleBackground01
+ * @tc.desc: sessionStub SessionStubLifecycleTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleBackground01, TestSize.Level1)
+{
+    sptr<SessionStubLifecycleMocker> session = sptr<SessionStubLifecycleMocker>::MakeSptr();
+    EXPECT_CALL(*session, OnRemoteRequest(_, _, _, _))
+        .WillRepeatedly(Invoke([&](uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) {
+            return session->SessionStub::OnRemoteRequest(code, data, reply, option);
+        }));
+    EXPECT_CALL(*session, Background(_, _, _)).WillOnce(Return(WSError::WS_OK));
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    data.WriteInterfaceToken(SessionStub::GetDescriptor());
+    data.WriteBool(false);
+    data.WriteString("test");
+    data.WriteBool(false);
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKGROUND);
+
+    auto res = session->OnRemoteRequest(code, data, reply, option);
+    ASSERT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleBackground02
+ * @tc.desc: sessionStub SessionStubLifecycleTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleBackground02, TestSize.Level1)
+{
+    sptr<SessionStubLifecycleMocker> session = sptr<SessionStubLifecycleMocker>::MakeSptr();
+    EXPECT_CALL(*session, OnRemoteRequest(_, _, _, _))
+        .WillRepeatedly(Invoke([&](uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) {
+            return session->SessionStub::OnRemoteRequest(code, data, reply, option);
+        }));
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    data.WriteInterfaceToken(SessionStub::GetDescriptor());
+    data.WriteBool(false);
+    data.WriteString("test");
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKGROUND);
+
+    auto res = session->OnRemoteRequest(code, data, reply, option);
+    ASSERT_EQ(ERR_INVALID_DATA, res);
+}
+
+/**
+ * @tc.name: HandleDisconnect01
+ * @tc.desc: sessionStub SessionStubLifecycleTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleDisconnect01, TestSize.Level1)
+{
+    sptr<SessionStubLifecycleMocker> session = sptr<SessionStubLifecycleMocker>::MakeSptr();
+    EXPECT_CALL(*session, OnRemoteRequest(_, _, _, _))
+        .WillRepeatedly(Invoke([&](uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) {
+            return session->SessionStub::OnRemoteRequest(code, data, reply, option);
+        }));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    data.WriteInterfaceToken(SessionStub::GetDescriptor());
+    data.WriteBool(false);
+    data.WriteString("test");
+    data.WriteBool(false);
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DISCONNECT);
+
+    auto res = session->OnRemoteRequest(code, data, reply, option);
+    ASSERT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleDisconnect02
+ * @tc.desc: sessionStub SessionStubLifecycleTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleDisconnect02, TestSize.Level1)
+{
+    sptr<SessionStubLifecycleMocker> session = sptr<SessionStubLifecycleMocker>::MakeSptr();
+    EXPECT_CALL(*session, OnRemoteRequest(_, _, _, _))
+        .WillRepeatedly(Invoke([&](uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) {
+            return session->SessionStub::OnRemoteRequest(code, data, reply, option);
+        }));
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    data.WriteInterfaceToken(SessionStub::GetDescriptor());
+    data.WriteBool(false);
+    data.WriteString("test");
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DISCONNECT);
+
+    auto res = session->OnRemoteRequest(code, data, reply, option);
+    ASSERT_EQ(ERR_INVALID_DATA, res);
 }
 } // namespace
 } // namespace Rosen

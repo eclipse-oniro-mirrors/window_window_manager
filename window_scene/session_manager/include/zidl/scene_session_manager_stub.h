@@ -103,6 +103,7 @@ private:
     int HandleUpdateSessionScreenshotListener(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionOcclusionStateListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowStateSnapshot(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifySurfaceNodeAlphaUpdate(MessageParcel& data, MessageParcel& reply);
     int HandleShiftAppWindowFocus(MessageParcel& data, MessageParcel& reply);
     int HandleListWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetAllWindowLayoutInfo(MessageParcel& data, MessageParcel& reply);
@@ -135,6 +136,7 @@ private:
     int HandleSkipSnapshotForAppProcess(MessageParcel& data, MessageParcel& reply);
     int HandleSkipSnapshotByUserIdAndBundleNames(MessageParcel& data, MessageParcel& reply);
     int HandleSetProcessWatermark(MessageParcel& data, MessageParcel& reply);
+    int HandleRecoverProcessWatermark(MessageParcel& data, MessageParcel& reply);
     int HandleGetWindowIdsByCoordinate(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionScreenLock(MessageParcel& data, MessageParcel& reply);
     int HandleAddSkipSelfWhenShowOnVirtualScreenList(MessageParcel& data, MessageParcel& reply);
@@ -175,6 +177,7 @@ private:
     int HandleNotifySupportRotationRegistered(MessageParcel& data, MessageParcel& reply);
     int HandleGetCrossProcessWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetFloatViewLimits(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_STUB_H

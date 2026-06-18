@@ -252,14 +252,14 @@ HWTEST_F(WindowRecoverSessionTest, CheckSessionPropertyOnRecovery, TestSize.Leve
     result = ssm_->CheckSessionPropertyOnRecovery(property, false);
     ASSERT_EQ(result, WSError::WS_OK);
 
-    // 特殊窗，不需要恢复
+    // 特殊窗，parentPersistentId无效，不需要恢复
     property->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    property->SetParentPersistentId(111);
+    property->SetParentPersistentId(INVALID_SESSION_ID);
     result = ssm_->CheckSessionPropertyOnRecovery(property, true);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
 
-    // 特殊窗，需要恢复
-    ssm_->SetAlivePersistentIds({ 111 });
+    // 特殊窗，parentPersistentId有效，需要恢复
+    property->SetParentPersistentId(111);
     result = ssm_->CheckSessionPropertyOnRecovery(property, true);
     ASSERT_EQ(result, WSError::WS_OK);
 }
@@ -410,6 +410,7 @@ HWTEST_F(WindowRecoverSessionTest, GetBatchAbilityInfos02, TestSize.Level1)
     WSError ret = ssm_->GetBatchAbilityInfos(bundleNames, userId, *scbAbilityInfos);
     ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
 }
+
 
 /**
  * @tc.name: GetBatchAbilityInfos03
@@ -567,8 +568,6 @@ HWTEST_F(WindowRecoverSessionTest, CacheSpecificSessionForRecovering, TestSize.L
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 1);
     ssm_->CacheSpecificSessionForRecovering(sceneSession, property);
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 2);
-    ssm_->RecoverCachedSubSession(parentPersistentId);
-    ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 0);
     ssm_->recoverSubSessionCacheMap_.clear();
 }
 
@@ -584,9 +583,24 @@ HWTEST_F(WindowRecoverSessionTest, RecoverCachedSubSession, TestSize.Level1)
     info.bundleName_ = "SubSession";
     info.abilityName_ = "SubSession";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    WindowAnchorInfo anchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
+    property->SetWindowAnchorInfo(anchorInfo);
+    sceneSession->SetSessionProperty(property);
+
+    SessionInfo parentInfo;
+    parentInfo.bundleName_ = "ParentSession";
+    parentInfo.abilityName_ = "ParentSession";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ssm_->sceneSessionMap_[123] = parentSession;
+    NotifyCreateSubSessionFunc func = [](const sptr<SceneSession>& session) {};
+    ssm_->createSubSessionFuncMap_[123] = func;
+
     ssm_->recoverSubSessionCacheMap_[123].emplace_back(sceneSession);
     ssm_->RecoverCachedSubSession(123);
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_.size(), 0);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->createSubSessionFuncMap_.clear();
 }
 
 HWTEST_F(WindowRecoverSessionTest, RecoverCachedDialogSession, TestSize.Level1)

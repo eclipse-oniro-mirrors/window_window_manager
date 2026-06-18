@@ -315,10 +315,12 @@ public:
      * @param errorCode Error code.
      * @param isUseDma Whether to use DMA, not used by default.
      * @param isCaptureFullOfScreen Whether to take screenshots of all displays on this screen.
+     * @param displayIntent Whether to optimize output for HDR screenshot.
      * @return std::vector<std::shared_ptr<Media::PixelMap>> Vector of screenshot pixel maps.
      */
     std::vector<std::shared_ptr<Media::PixelMap>> GetScreenHDRshot(DisplayId displayId,
-        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false);
+        DmErrorCode& errorCode, bool isUseDma = false, bool isCaptureFullOfScreen = false,
+        DisplayIntentType displayIntent = DisplayIntentType::CANONICAL);
 
     /**
      * @brief Get screenshot by user select area.
@@ -428,10 +430,9 @@ public:
     /**
      * @brief Set the brightness level of the target screen.
      *
-     * @param screenId Target screen.
-     * @param level Brightness level.
+     * @param brightnessData Brightness data including screenId, level, and brightnessPosition.
      */
-    bool SetScreenBrightness(uint64_t screenId, uint32_t level);
+    bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
 
     /**
      * @brief Get the brightness level of the target screen.
@@ -738,6 +739,14 @@ public:
     bool IsCaptured();
 
     /**
+     * @brief Check whether the device is captured by apps in bundle name list.
+     *
+     * @param bundleNameList The list of bundle names to check.
+     * @return true means the device is captured by apps in the list.
+     */
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
+
+    /**
      * @brief Get the current fold status of the foldable device.
      *
      * @return locked fold status if set; otherwise, return the current(actual) fold status.
@@ -988,9 +997,11 @@ public:
      * @brief Get CutoutInfo with rotation
      *
      * @param Rotation rotation.
+     * @param Rotation display width.
+     * @param Rotation display height.
      * @return CutoutInfo object of default screen.
      */
-    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation);
+    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation, int32_t width = 0, int32_t height = 0);
 
     /**
      * @brief Get screenInfo of display area

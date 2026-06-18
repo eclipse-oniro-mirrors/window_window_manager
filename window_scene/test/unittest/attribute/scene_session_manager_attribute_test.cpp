@@ -110,6 +110,117 @@ HWTEST_F(SceneSessionManagerAttributeTest, GetTopNavDestinationName, TestSize.Le
 }
 
 /**
+ * @tc.name: NotifySurfaceNodeAlphaUpdate
+ * @tc.desc: test NotifySurfaceNodeAlphaUpdate.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, NotifySurfaceNodeAlphaUpdate, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    ssm_->sceneSessionMap_.clear();
+
+    EXPECT_EQ(ssm_->NotifySurfaceNodeAlphaUpdate(1000, 0.1f), WSError::WS_ERROR_INVALID_WINDOW);
+    ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession));
+    EXPECT_EQ(ssm_->NotifySurfaceNodeAlphaUpdate(2, 0.1f), WSError::WS_OK);
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
+
+/**
+ * @tc.name: GetRealSessionState
+ * @tc.desc: test get the real session state
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, GetRealSessionState, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    ssm_->sceneSessionMap_.clear();
+    EXPECT_EQ(ssm_->GetRealSessionState(nullptr), SessionState::STATE_DISCONNECT);
+
+    SessionInfo parentInfo;
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    parentSession->persistentId_ = 1;
+    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
+    ssm_->sceneSessionMap_.insert(std::make_pair(parentSession->GetPersistentId(), parentSession));
+    EXPECT_EQ(ssm_->GetRealSessionState(parentSession), SessionState::STATE_ACTIVE);
+
+    SessionInfo childInfo;
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(childInfo, nullptr);
+    ASSERT_NE(childSession, nullptr);
+    childSession->persistentId_ = 2;
+    childSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    childSession->SetParentPersistentId(parentSession->GetPersistentId());
+    ssm_->sceneSessionMap_.insert(std::make_pair(childSession->GetPersistentId(), childSession));
+
+    childSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    EXPECT_EQ(ssm_->GetRealSessionState(childSession), SessionState::STATE_BACKGROUND);
+
+    childSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    EXPECT_EQ(ssm_->GetRealSessionState(childSession), SessionState::STATE_ACTIVE);
+
+    parentSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    EXPECT_EQ(ssm_->GetRealSessionState(childSession), SessionState::STATE_BACKGROUND);
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
+
+/**
+ * @tc.name: IsSessionVisibleAndRealForeground
+ * @tc.desc: test session visible and real foreground state.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, IsSessionVisibleAndRealForeground, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    auto isScbCoreEnabled = Session::IsScbCoreEnabled();
+    ssm_->sceneSessionMap_.clear();
+    Session::SetScbCoreEnabled(true);
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(nullptr), false);
+
+    SessionInfo parentInfo;
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    parentSession->persistentId_ = 1;
+    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
+    parentSession->isVisible_ = true;
+    ssm_->sceneSessionMap_.insert(std::make_pair(parentSession->GetPersistentId(), parentSession));
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(parentSession), true);
+
+    SessionInfo childInfo;
+    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(childInfo, nullptr);
+    ASSERT_NE(childSession, nullptr);
+    childSession->persistentId_ = 2;
+    childSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    childSession->SetParentPersistentId(parentSession->GetPersistentId());
+    childSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    childSession->isVisible_ = true;
+    ssm_->sceneSessionMap_.insert(std::make_pair(childSession->GetPersistentId(), childSession));
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(childSession), true);
+
+    parentSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(childSession), false);
+
+    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
+    childSession->isVisible_ = false;
+    EXPECT_EQ(ssm_->IsSessionVisibleAndRealForeground(childSession), false);
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+    Session::SetScbCoreEnabled(isScbCoreEnabled);
+}
+
+/**
  * @tc.name: IsNeedNotifyScreenshotEvent
  * @tc.desc: test IsNeedNotifyScreenshotEvent.
  * @tc.type: FUNC
@@ -436,6 +547,18 @@ HWTEST_F(SceneSessionManagerAttributeTest, RecoverScreenWatermarkImage004, TestS
 }
 
 /**
+ * @tc.name: RecoverProcessWatermark001
+ * @tc.desc: test RecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, RecoverProcessWatermark001, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto ret = ssm_->RecoverProcessWatermark(123, "RecoverProcessWatermarkName");
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
  * @tc.name: FilterForGetAllWindowLayoutInfo001
  * @tc.desc: test FilterForGetAllWindowLayoutInfo with empty sessions
  * @tc.type: FUNC
@@ -522,6 +645,16 @@ HWTEST_F(SceneSessionManagerAttributeTest, FilterForGetAllWindowLayoutInfo004, T
     option.excludeSystemWindows = true;
     ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
     EXPECT_EQ(filteredSessions.size(), 0);
+    sceneSession->GetSessionProperty()->SetDisplayId(DEFAULT_DISPLAY_ID);
+    sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
+    EXPECT_EQ(filteredSessions.size(), 1);
+    filteredSessions.clear();
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FV);
+    ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);
+    EXPECT_EQ(filteredSessions.size(), 1);
+    filteredSessions.clear();
     option.excludeSystemWindows = false;
     option.foregroundAboveWindow = 100;
     ssm_->FilterForGetAllWindowLayoutInfo(DEFAULT_DISPLAY_ID, false, filteredSessions, option);

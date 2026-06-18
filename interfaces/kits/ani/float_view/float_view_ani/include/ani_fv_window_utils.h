@@ -17,31 +17,43 @@
 #define ANI_FV_WINDOW_UTILS_H
 
 #include "ani.h"
+
+#include "float_view_model.h"
+
 #include "window.h"
 #include "js_runtime_utils.h"
 
 namespace OHOS {
 namespace Rosen {
-ani_object AniThrowError(ani_env* env, WMError wmError, const std::string& message = "");
-ani_object AniThrowError(ani_env* env, WmErrorCode wmErrorCode, const std::string& message = "");
-ani_status GetTemplateType(ani_env* env, ani_object floatViewConfigurations, uint32_t& templateType);
-ani_status GetContextPtr(ani_env* env, ani_object floatViewConfigurations, void*& contextPtr);
-ani_ref AniGetUndefined(ani_env* env);
-std::string GetErrorMsg(WMError error);
-std::string GetErrorMsg(WmErrorCode error);
-ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message, ani_object* err);
-ani_status GetStdString(ani_env* env, ani_string ani_str, std::string &result);
-void* GetAbilityContext(ani_env* env, ani_object aniObj);
-ani_status CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...);
-ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
-bool ParseWindowSize(ani_env* env, ani_object windowSize, Rect& rect);
-ani_object CreateAniFloatViewStateChangeInfoObject(ani_env* env, const FloatViewState state, const std::string& reason);
-ani_object CreateAniFloatViewRectChangeInfoObject(ani_env* env,
-    const Rect& rect, double scale, const std::string& reason);
-ani_object CreateAniFvWindowInfoObject(ani_env* env,
-    const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state);
-ani_object CreateAniFloatViewLimitsObject(ani_env* env, const FloatViewLimits& limits);
-ani_object CreateAniRatioObject(ani_env* env, const double& min, const double& max);
+class AniFvUtils {
+public:
+    static ani_object AniThrowError(ani_env* env, WMError wmError, const std::string& message = "");
+    static ani_object AniThrowError(ani_env* env, WmErrorCode wmErrorCode, const std::string& message = "");
+    static ani_status GetTemplateType(ani_env* env, ani_object floatViewConfigurations, uint32_t& templateType);
+    static ani_status GetContextPtr(ani_env* env, ani_object floatViewConfigurations, void*& contextPtr);
+    static ani_ref AniGetUndefined(ani_env* env);
+    static std::string GetErrorMsg(WMError error);
+    static std::string GetErrorMsg(WmErrorCode error);
+    static ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message, ani_object* err);
+    static ani_status GetStdString(ani_env* env, ani_string ani_str, std::string &result);
+    static void* GetAbilityContext(ani_env* env, ani_object aniObj);
+    static bool GetNativeAddress(ani_env* env,
+        ani_object aniObj, const std::string& className, const std::string& field, ani_long& nativeAddress);
+    static ani_status CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...);
+    static ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
+    static bool ParseWindowSize(ani_env* env, ani_object windowSize, std::pair<int32_t, int32_t>& size);
+    static std::shared_ptr<TemplateProperty> ParseTemplateProperty(ani_env* env, ani_object jsObject,
+        std::string& errorMsg, WmErrorCode& errorCode);
+
+    static ani_object CreateAniFloatViewStateChangeInfoObject(ani_env* env,
+        const FloatViewState state, const std::string& reason);
+    static ani_object CreateAniFloatViewRectChangeInfoObject(ani_env* env,
+        const Rect& rect, double scale, const std::string& reason);
+    static ani_object CreateAniFloatViewPropertiesObject(ani_env* env, uint32_t templateType,
+        const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state);
+    static ani_object CreateAniFloatViewLimitsObject(ani_env* env, const FloatViewLimits& limits);
+    static ani_object CreateAniRatioObject(ani_env* env, const double& min, const double& max);
+};
 }
 }
 #endif // ANI_FV_WINDOW_UTILS_H

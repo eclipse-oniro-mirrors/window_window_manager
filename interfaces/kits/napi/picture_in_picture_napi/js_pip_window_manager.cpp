@@ -54,6 +54,10 @@ namespace {
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
     };
+    const char* ARKUI_WINDOW_PIP_CREATE = "ArkUI.window.pip.create";
+
+    const char* ARKUI_WINDOW_PIP_ISPIPENABLED_BOOL = "ArkUI.window.pip.isPipEnabled.bool";
+    const char* ARKUI_WINDOW_PIP_CREATE_BOOL = "ArkUI.window.pip.create.bool";
 }
 
 static int32_t checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups)
@@ -313,6 +317,7 @@ napi_value JsPipWindowManager::OnIsPipEnabled(napi_env env, napi_callback_info i
 {
     TLOGD(WmsLogTag::WMS_PIP, "OnIsPipEnabled called");
     bool isPipEnabled = PictureInPictureManager::GetPipEnabled();
+    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ISPIPENABLED_BOOL, 1);
     return CreateJsValue(env, isPipEnabled);
 }
 
@@ -338,6 +343,7 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
         if (!PictureInPictureManager::IsSupportPiP()) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(
                 WMError::WM_ERROR_DEVICE_NOT_SUPPORT), "device not support pip."));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<PipOption> pipOptionPtr = new PipOption(pipOption);
@@ -345,12 +351,14 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
         if (context == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(
                 WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Invalid context"));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
         if (mainWindow == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(
                 WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Invalid mainWindow"));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<PictureInPictureController> pipController =
@@ -359,6 +367,7 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
         PiPTemplateInfo pipTemplateInfo;
         pipOption.GetPiPTemplateInfo(pipTemplateInfo);
         mainWindow->UpdatePiPTemplateInfo(pipTemplateInfo);
+        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "NapiSendTask") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, CreateJsError(env,
@@ -374,13 +383,14 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: Missing args when creating pipController");
+        return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: Missing args when creating pipController",
+            ARKUI_WINDOW_PIP_CREATE, ARKUI_WINDOW_PIP_CREATE_BOOL);
     }
     napi_value config = argv[0];
     if (config == nullptr || GetType(env, config) == napi_undefined || GetType(env, config) == napi_null) {
         TLOGE(WmsLogTag::WMS_PIP, "config is null");
-        return NapiThrowInvalidParam(env,
-            "[PiPWindow][create]msg: The pipConfiguration is null");
+        return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: The pipConfiguration is null",
+            ARKUI_WINDOW_PIP_CREATE, ARKUI_WINDOW_PIP_CREATE_BOOL);
     }
     PipOption pipOption;
     if (GetPictureInPictureOptionFromJs(env, config, pipOption) == -1) {
@@ -388,7 +398,7 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
             " please check if context/xComponentController is null,"
             " or controlGroup mismatch the corresponding pipTemplateType, or defaultWindowSizeType is invalid";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg);
+        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_CREATE, ARKUI_WINDOW_PIP_CREATE_BOOL);
     }
     if (argc > 1) {
         napi_value typeNode = argv[1];

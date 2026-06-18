@@ -666,7 +666,7 @@ HWTEST_F(ScreenSessionManagerTest, GetAllDisplayPhysicalResolution04, TestSize.L
 {
     ssm_->allDisplayPhysicalResolution_.clear();
     ssm_->allDisplayPhysicalResolution_.emplace_back(DisplayPhysicalResolution());
-    ssm_->allDisplayPhysicalResolution_.back().foldDisplayMode_ = FoldDisplayMode::GLOBAL_FULL;
+    ssm_->allDisplayPhysicalResolution_.back().foldDisplayMode_ = FoldDisplayMode::FULL;
     std::vector<DisplayPhysicalResolution> resolutions = ssm_->GetAllDisplayPhysicalResolution();
     EXPECT_EQ(resolutions.back().foldDisplayMode_, FoldDisplayMode::FULL);
     ssm_->allDisplayPhysicalResolution_.clear();
@@ -1243,6 +1243,36 @@ HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConfigureScreenScene
+ * @tc.desc: ConfigureScreenScene test subDeviceRotationOffset
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ConfigureScreenScene_testSubDeviceRotationOffset, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    auto intBackup = ScreenSceneConfig::intNumbersConfig_;
+    auto enableBackup = ScreenSceneConfig::enableConfig_;
+    auto stringBackup = ScreenSceneConfig::stringConfig_;
+
+    ScreenSceneConfig::intNumbersConfig_.clear();
+    ScreenSceneConfig::enableConfig_.clear();
+    ScreenSceneConfig::stringConfig_.clear();
+
+    ssm_->ConfigureScreenScene();
+    EXPECT_EQ(0, ssm_->subDeviceRotationOffset_);
+
+    uint32_t subDeviceRotationOffset = 2;
+    ScreenSceneConfig::intNumbersConfig_["subDeviceRotationOffset"] = {subDeviceRotationOffset};
+    ssm_->subDeviceRotationOffset_ = 0;
+    ssm_->ConfigureScreenScene();
+    EXPECT_EQ(subDeviceRotationOffset, ssm_->subDeviceRotationOffset_);
+
+    ScreenSceneConfig::intNumbersConfig_ = intBackup;
+    ScreenSceneConfig::enableConfig_ = enableBackup;
+    ScreenSceneConfig::stringConfig_ = stringBackup;
+}
+
+/**
  * @tc.name: RegisterSettingCoordinationReadyObserver
  * @tc.desc: RegisterSettingCoordinationReadyObserver test
  * @tc.type: FUNC
@@ -1372,6 +1402,91 @@ HWTEST_F(ScreenSessionManagerTest, SetLockDisplayModeWhenShutDown, TestSize.Leve
     ssm_->foldScreenController_ = nullptr;
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: ReportMultScreenChange
+ * @tc.desc: ReportMultScreenChange test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ReportMultScreenChange, TestSize.Level1)
+{
+    ScreenId mainScreenId = 0;
+    ScreenId secondaryScreenId = 1;
+    MultiScreenMode screenMode = MultiScreenMode::SCREEN_MIRROR;
+
+    ScreenProperty property;
+    sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(secondaryScreenId, property, 0);
+    if (screenSession != nullptr) {
+        ssm_->screenSessionMap_[secondaryScreenId] = screenSession;
+        ssm_->ReportMultScreenChange(mainScreenId, secondaryScreenId, screenMode);
+        ASSERT_NE(ssm_, nullptr);
+    }
+}
+
+/**
+ * @tc.name: ReportCreateVirtualScreen
+ * @tc.desc: ReportCreateVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ReportCreateVirtualScreen, TestSize.Level1)
+{
+    ScreenId screenId = 1000;
+    ssm_->ReportCreateVirtualScreen(screenId);
+    ASSERT_NE(ssm_, nullptr);
+}
+
+/**
+ * @tc.name: ReportDestoryVirtualScreen
+ * @tc.desc: ReportDestoryVirtualScreen test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ReportDestoryVirtualScreen, TestSize.Level1)
+{
+    ScreenId screenId = 1000;
+    ssm_->ReportDestoryVirtualScreen(screenId);
+    ASSERT_NE(ssm_, nullptr);
+}
+
+/**
+ * @tc.name: ReportDestoryVirtualScreenDeath
+ * @tc.desc: ReportDestoryVirtualScreenDeath test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ReportDestoryVirtualScreenDeath, TestSize.Level1)
+{
+    ScreenId screenId = 1000;
+    ssm_->ReportDestoryVirtualScreenDeath(screenId);
+    ASSERT_NE(ssm_, nullptr);
+}
+
+/**
+ * @tc.name: ReportModeChange
+ * @tc.desc: ReportModeChange test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ReportModeChange, TestSize.Level1)
+{
+    bool isPcDevice = true;
+    ssm_->ReportModeChange(isPcDevice);
+    ASSERT_NE(ssm_, nullptr);
+
+    isPcDevice = false;
+    ssm_->ReportModeChange(isPcDevice);
+    ASSERT_NE(ssm_, nullptr);
+}
+
+/**
+ * @tc.name: ReportUserSwitch
+ * @tc.desc: ReportUserSwitch test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, ReportUserSwitch, TestSize.Level1)
+{
+    int32_t userId = 100;
+    ssm_->ReportUserSwitch(userId);
+    ASSERT_NE(ssm_, nullptr);
+}
+
 }
 } // namespace Rosen
 } // namespace OHOS

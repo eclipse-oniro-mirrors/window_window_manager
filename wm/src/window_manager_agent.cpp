@@ -116,5 +116,11 @@ void WindowManagerAgent::NotifySupportRotationChange(const SupportRotationInfo& 
     TLOGD(WmsLogTag::WMS_ROTATION, "userId_=%{public}d", userId_);
     WindowManager::GetInstance(userId_).NotifySupportRotationChange(supportRotationInfo);
 }
+
+void WindowManagerAgent::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "userId_=%{public}d, persistentId=%{public}d", userId_, persistentId);
+    WindowManager::GetInstance(userId_).NotifySessionSaveSnapShotComplete(persistentId);
+}
 } // namespace Rosen
 } // namespace OHOS

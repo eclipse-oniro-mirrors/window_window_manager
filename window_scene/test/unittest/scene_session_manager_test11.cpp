@@ -688,18 +688,22 @@ HWTEST_F(SceneSessionManagerTest11, DestroyToastSession, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.Level0)
 {
+    ssm_->listenerController_ = std::make_shared<SessionListenerController>(ssm_->taskScheduler_);
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     int32_t persistentId = 1;
     sptr<ISession> session = nullptr;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
 
     property->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
     auto result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(result, WSError::WS_ERROR_NOT_SYSTEM_APP);
 
     property->SetTopmost(false);
@@ -710,23 +714,27 @@ HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.
     ssm_->sceneSessionMap_.insert({ 1, parentSession });
     property->SetParentPersistentId(1);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_WINDOW);
 
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     parentSession->GetSessionProperty()->SetSubWindowLevel(1);
     property->SetWindowType(WindowType::WINDOW_TYPE_FB);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, result);
     MockAccesstokenKit::MockAccessTokenKitRet(0);
     parentSession->SetSessionState(SessionState::STATE_DISCONNECT);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_PARENT, result);
     parentSession->SetSessionState(SessionState::STATE_FOREGROUND);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(WSError::WS_OK, result);
 }
 
@@ -968,30 +976,30 @@ HWTEST_F(SceneSessionManagerTest11, CheckIfReuseSession06, TestSize.Level1)
     ASSERT_NE(ssm_, nullptr);
     ssm_->bundleMgr_ = ssm_->GetBundleManager();
     ssm_->currentUserId_ = 123;
- 
+
     SessionInfo sessionInfo;
     sessionInfo.moduleName_ = "SceneSessionManager";
     sessionInfo.bundleName_ = "SceneSessionManagerTest11";
     sessionInfo.abilityName_ = "CheckIfReuseSession06";
     sessionInfo.want = std::make_shared<AAFwk::Want>();
- 
+
     SceneSessionManager::SessionInfoList list = {
         .uid_ = 123, .bundleName_ = "SceneSessionManagerTest11",
         .abilityName_ = "CheckIfReuseSession06", .moduleName_ = "SceneSessionManager"
     };
- 
+
     std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
     ASSERT_NE(abilityInfo, nullptr);
     abilityInfo->applicationInfo.codePath = std::to_string(CollaboratorType::RESERVE_TYPE);
     ssm_->abilityInfoMap_[list] = abilityInfo;
- 
+
     sptr<AAFwk::IAbilityManagerCollaborator> collaborator =
         iface_cast<AAFwk::IAbilityManagerCollaborator>(nullptr);
     ssm_->collaboratorMap_.insert(std::make_pair(1, collaborator));
     MockCollaboratorDllManager::MockPreHandleStartAbility(1);
     auto ret4 = ssm_->CheckIfReuseSession(sessionInfo);
-    EXPECT_EQ((sessionInfo).callerTypeForAnco, 1);
- 
+    EXPECT_EQ((sessionInfo).callerTypeForAnco, 0);
+
     MockCollaboratorDllManager::MockPreHandleStartAbility(0);
     ssm_->abilityInfoMap_.erase(list);
     ssm_->collaboratorMap_.erase(1);
@@ -1730,6 +1738,7 @@ HWTEST_F(SceneSessionManagerTest11, WindowVisibilityInfoMarshallingDisplayAndGlo
     info.rect_ = { 1, 2, 300, 400 };
     info.globalDisplayRect_ = { 5, 6, 700, 800 };
     info.SetDisplayId(66);
+    info.SetModuleName("entry");
     info.SetGlobalRect({ 10, 20, 100, 200 });
 
     MessageParcel parcel;
@@ -1738,6 +1747,7 @@ HWTEST_F(SceneSessionManagerTest11, WindowVisibilityInfoMarshallingDisplayAndGlo
     WindowVisibilityInfo* unmarshalled = WindowVisibilityInfo::Unmarshalling(parcel);
     ASSERT_NE(unmarshalled, nullptr);
     EXPECT_EQ(unmarshalled->GetDisplayId(), 66);
+    EXPECT_EQ(unmarshalled->GetModuleName(), "entry");
     EXPECT_EQ(unmarshalled->GetGlobalRect().posX_, 10);
     EXPECT_EQ(unmarshalled->GetGlobalRect().posY_, 20);
     EXPECT_EQ(unmarshalled->GetGlobalRect().width_, 100);
@@ -1961,6 +1971,9 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
 
     sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_PIP);
     ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->isTerminating_ = false;
+    EXPECT_EQ(false, sceneSession->IsTerminated());
     ssm_->sceneSessionMap_.insert({1, sceneSession});
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_CALLING);
@@ -1970,10 +1983,18 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
 
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(0, screenSession));
     sceneSession->property_->SetDisplayId(DEFAULT_DISPLAY_ID);
     ret = ssm_->MoveMainWindowToTargetDisplay(999, 1); // 999 不存在
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
 
+    ScreenSessionConfig config1;
+    sptr<ScreenSession> screenSession1 =
+        sptr<ScreenSession>::MakeSptr(config1, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(1, screenSession1));
     ret = ssm_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(ret, WSError::WS_OK);
     ssm_->sceneSessionMap_.clear();
@@ -2061,6 +2082,265 @@ HWTEST_F(SceneSessionManagerTest11, SetBufferAvailable4, Function | SmallTest | 
 
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_FilterByAppInstanceKey, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo matchedInfo;
+    matchedInfo.bundleName_ = "bundle.filter";
+    matchedInfo.appIndex_ = 3;
+    matchedInfo.appInstanceKey_ = "instance_a";
+    matchedInfo.persistentId_ = 201;
+    sptr<SceneSession> matchedSession = sptr<SceneSession>::MakeSptr(matchedInfo, nullptr);
+    ASSERT_NE(matchedSession, nullptr);
+
+    SessionInfo keyMismatchInfo;
+    keyMismatchInfo.bundleName_ = "bundle.filter";
+    keyMismatchInfo.appIndex_ = 3;
+    keyMismatchInfo.appInstanceKey_ = "instance_b";
+    keyMismatchInfo.persistentId_ = 202;
+    sptr<SceneSession> keyMismatchSession = sptr<SceneSession>::MakeSptr(keyMismatchInfo, nullptr);
+    ASSERT_NE(keyMismatchSession, nullptr);
+
+    SessionInfo indexMismatchInfo;
+    indexMismatchInfo.bundleName_ = "bundle.filter";
+    indexMismatchInfo.appIndex_ = 4;
+    indexMismatchInfo.appInstanceKey_ = "instance_a";
+    sptr<SceneSession> indexMismatchSession = sptr<SceneSession>::MakeSptr(indexMismatchInfo, nullptr);
+    ASSERT_NE(indexMismatchSession, nullptr);
+
+    SessionInfo bundleMismatchInfo;
+    bundleMismatchInfo.bundleName_ = "bundle.other";
+    bundleMismatchInfo.appIndex_ = 3;
+    bundleMismatchInfo.appInstanceKey_ = "instance_a";
+    sptr<SceneSession> bundleMismatchSession = sptr<SceneSession>::MakeSptr(bundleMismatchInfo, nullptr);
+    ASSERT_NE(bundleMismatchSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ 201, matchedSession });
+    ssm_->sceneSessionMap_.insert({ 202, keyMismatchSession });
+    ssm_->sceneSessionMap_.insert({ 203, indexMismatchSession });
+    ssm_->sceneSessionMap_.insert({ 204, bundleMismatchSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.filter", 3, "instance_a", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 1);
+    ASSERT_EQ(sceneSessions[0], matchedSession);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_EmptyKeyMatchAll, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info1;
+    info1.bundleName_ = "bundle.filter";
+    info1.appIndex_ = 5;
+    info1.appInstanceKey_ = "instance_1";
+    sptr<SceneSession> session1 = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    ASSERT_NE(session1, nullptr);
+
+    SessionInfo info2;
+    info2.bundleName_ = "bundle.filter";
+    info2.appIndex_ = 5;
+    info2.appInstanceKey_ = "instance_2";
+    sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    ASSERT_NE(session2, nullptr);
+
+    SessionInfo mismatchInfo;
+    mismatchInfo.bundleName_ = "bundle.filter";
+    mismatchInfo.appIndex_ = 6;
+    mismatchInfo.appInstanceKey_ = "instance_3";
+    sptr<SceneSession> mismatchSession = sptr<SceneSession>::MakeSptr(mismatchInfo, nullptr);
+    ASSERT_NE(mismatchSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ 301, session1 });
+    ssm_->sceneSessionMap_.insert({ 302, session2 });
+    ssm_->sceneSessionMap_.insert({ 303, mismatchSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.filter", 5, "", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 2);
+    bool hasSession1 = false;
+    bool hasSession2 = false;
+    for (const auto& session : sceneSessions) {
+        if (session == session1) {
+            hasSession1 = true;
+        }
+        if (session == session2) {
+            hasSession2 = true;
+        }
+    }
+    ASSERT_TRUE(hasSession1);
+    ASSERT_TRUE(hasSession2);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_SkipNullSession, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.bundleName_ = "bundle.filter";
+    info.appIndex_ = 7;
+    info.appInstanceKey_ = "instance_7";
+    sptr<SceneSession> validSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(validSession, nullptr);
+
+    ssm_->sceneSessionMap_.insert({ 401, nullptr });
+    ssm_->sceneSessionMap_.insert({ 402, validSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.filter", 7, "instance_7", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 1);
+    ASSERT_EQ(sceneSessions[0], validSession);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionNull, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.bundleName_ = "bundle.mainnull";
+    info.appIndex_ = 10;
+    info.appInstanceKey_ = "instance_null";
+    info.persistentId_ = 501;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+
+    ssm_->sceneSessionMap_.insert({ 501, session });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.mainnull", 10, "instance_null", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 0);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionKeyMatch, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "bundle.mainmatch";
+    mainInfo.appIndex_ = 11;
+    mainInfo.appInstanceKey_ = "instance_main";
+    mainInfo.persistentId_ = 601;
+    sptr<SceneSession> mainSession = sptr<MainSession>::MakeSptr(mainInfo, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "bundle.mainmatch";
+    subInfo.appIndex_ = 11;
+    subInfo.appInstanceKey_ = "instance_sub";
+    subInfo.persistentId_ = 602;
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    subSession->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    subSession->parentSession_ = mainSession;
+
+    ssm_->sceneSessionMap_.insert({ 601, mainSession });
+    ssm_->sceneSessionMap_.insert({ 602, subSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.mainmatch", 11, "instance_main", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 2);
+    bool hasMain = false;
+    bool hasSub = false;
+    for (const auto& s : sceneSessions) {
+        if (s == mainSession) hasMain = true;
+        if (s == subSession) hasSub = true;
+    }
+    EXPECT_TRUE(hasMain);
+    EXPECT_TRUE(hasSub);
+    ssm_->sceneSessionMap_.clear();
+}
+
+HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionKeyMismatch, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "bundle.mainmismatch";
+    mainInfo.appIndex_ = 12;
+    mainInfo.appInstanceKey_ = "instance_other";
+    mainInfo.persistentId_ = 701;
+    sptr<SceneSession> mainSession = sptr<MainSession>::MakeSptr(mainInfo, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "bundle.mainmismatch";
+    subInfo.appIndex_ = 12;
+    subInfo.appInstanceKey_ = "instance_sub";
+    subInfo.persistentId_ = 702;
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    subSession->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    subSession->parentSession_ = mainSession;
+
+    ssm_->sceneSessionMap_.insert({ 701, mainSession });
+    ssm_->sceneSessionMap_.insert({ 702, subSession });
+
+    std::vector<sptr<SceneSession>> sceneSessions;
+    ssm_->GetSceneSessionsByAppInstance("bundle.mainmismatch", 12, "instance_target", sceneSessions);
+
+    ASSERT_EQ(sceneSessions.size(), 0);
+    ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: NotifyStartWindowsAbility
+ * @tc.desc: NotifyStartWindowsAbility
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.abilityName_ = "NotifyStartWindowsAbility";
+    ASSERT_NE(nullptr, ssm_);
+    auto ret = ssm_->NotifyStartWindowsAbility(sessionInfo);
+    EXPECT_EQ(ret, BrokerStates::BROKER_UNKOWN);
+}
+
+/**
+ * @tc.name: NotifyStartWindowsAbility02
+ * @tc.desc: Test NotifyStartWindowsAbility with abilityInfoMap_ set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = USER_ID;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.moduleName_ = "SceneSessionManager";
+    sessionInfo.abilityName_ = "NotifyStartWindowsAbility02";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    SceneSessionManager::SessionInfoList list = {
+        .uid_ = USER_ID, .bundleName_ = "SceneSessionManagerTest11",
+        .abilityName_ = "NotifyStartWindowsAbility02", .moduleName_ = "SceneSessionManager"
+    };
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(abilityInfo, nullptr);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+    auto ret = ssm_->NotifyStartWindowsAbility(sessionInfo);
+    ASSERT_EQ(ret, BrokerStates::BROKER_UNKOWN);
+    ssm_->abilityInfoMap_.erase(list);
 }
 } // namespace
 } // namespace Rosen

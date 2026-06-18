@@ -139,21 +139,28 @@ HWTEST_F(WindowSessionLifecycleTest, Connect01, TestSize.Level1)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(nullptr, property);
-    auto result = session_->Connect(nullptr, nullptr, nullptr, systemConfig, property);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
+    uint64_t nodeId = 0;
+    auto result = session_->Connect(nullptr, nullptr, nodeId, systemConfig, renderSession,
+        outputSurfaceNode, property);
     ASSERT_EQ(result, WSError::WS_OK);
 
     session_->state_ = SessionState::STATE_DISCONNECT;
-    result = session_->Connect(nullptr, nullptr, nullptr, systemConfig, property);
+    result = session_->Connect(nullptr, nullptr, nodeId, systemConfig, renderSession,
+        outputSurfaceNode, property);
     ASSERT_EQ(result, WSError::WS_OK);
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     EXPECT_NE(nullptr, mockSessionStage);
-    result = session_->Connect(mockSessionStage, nullptr, surfaceNode, systemConfig, property);
+    result = session_->Connect(mockSessionStage, nullptr, nodeId, systemConfig, renderSession, outputSurfaceNode,
+        property);
     ASSERT_EQ(result, WSError::WS_OK);
 
     sptr<TestWindowEventChannel> testWindowEventChannel = sptr<TestWindowEventChannel>::MakeSptr();
     EXPECT_NE(nullptr, testWindowEventChannel);
-    result = session_->Connect(mockSessionStage, testWindowEventChannel, surfaceNode, systemConfig, property);
+    result = session_->Connect(mockSessionStage, testWindowEventChannel, nodeId, systemConfig, renderSession,
+        outputSurfaceNode, property);
     ASSERT_EQ(result, WSError::WS_OK);
 }
 
@@ -405,25 +412,25 @@ HWTEST_F(WindowSessionLifecycleTest, IsActive43, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsSessionForeground01
- * @tc.desc: IsSessionForeground, normal scene
+ * @tc.name: IsLifecycleForeground01
+ * @tc.desc: IsLifecycleForeground, normal scene
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionLifecycleTest, IsSessionForeground, TestSize.Level1)
+HWTEST_F(WindowSessionLifecycleTest, IsLifecycleForeground, TestSize.Level1)
 {
     ASSERT_NE(session_, nullptr);
     session_->state_ = SessionState::STATE_FOREGROUND;
-    ASSERT_EQ(true, session_->IsSessionForeground());
+    ASSERT_EQ(true, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_ACTIVE;
-    ASSERT_EQ(true, session_->IsSessionForeground());
+    ASSERT_EQ(true, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_INACTIVE;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_BACKGROUND;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_DISCONNECT;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
     session_->state_ = SessionState::STATE_CONNECT;
-    ASSERT_EQ(false, session_->IsSessionForeground());
+    ASSERT_EQ(false, session_->IsLifecycleForeground());
 }
 
 /**
@@ -491,6 +498,11 @@ HWTEST_F(WindowSessionLifecycleTest, IsVisibleNotBackground01, TestSize.Level1)
     parentSession->SetSessionState(SessionState::STATE_FOREGROUND);
     EXPECT_EQ(subSession->IsVisibleNotBackground(), false);
     parentSession->isVisible_ = true;
+    EXPECT_EQ(subSession->IsVisibleNotBackground(), true);
+
+    subSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    subSession->property_->SetZLevelAboveParentLoosened(true);
+    subSession->isVisible_ = true;
     EXPECT_EQ(subSession->IsVisibleNotBackground(), true);
 }
 

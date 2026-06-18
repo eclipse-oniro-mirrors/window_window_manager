@@ -100,6 +100,13 @@ ohos_shared_library("windowstageani_kit") {
     "runtime_core:ani_helpers",
   ]
 
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -156,6 +163,12 @@ ohos_shared_library("windowstageani_module") {
     "runtime_core:ani",
     "runtime_core:ani_helpers",
   ]
+
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"

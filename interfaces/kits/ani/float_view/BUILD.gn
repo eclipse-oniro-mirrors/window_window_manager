@@ -30,6 +30,7 @@ config("fvwindow_kit_public_config") {
   include_dirs = [
     "float_view_ani/include",
     "../window_runtime/window_stage_ani/include",
+    "../floating_ball/floating_ball_ani/include",
   ]
 }
  
@@ -66,6 +67,7 @@ ohos_shared_library("fvwindowani_kit") {
     "../../../../interfaces/kits/napi/window_runtime:window_native_kit",
     "../../../../interfaces/kits/napi/window_runtime:windowstage_kit",
     "../window_runtime:windowstageani_kit",
+    "../floating_ball:fbwindowani_kit",
   ]
  
   external_deps = [

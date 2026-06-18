@@ -28,6 +28,7 @@
 #include "pixel_map.h"
 #include "floating_ball_template_info.h"
 #include "float_view_template_info.h"
+#include <shared_mutex>
 
 namespace OHOS {
 namespace Rosen {
@@ -83,10 +84,12 @@ public:
     void SetTokenState(bool hasToken);
     void SetMaximizeMode(MaximizeMode mode);
     void SetWindowMode(WindowMode mode);
+    void SetWindowModeInfo(const WindowModeInfo& windowModeInfo);
     void SetWindowLimits(const WindowLimits& windowLimits);
     void SetWindowLimitsVP(const WindowLimits& windowLimits);
     void SetUserWindowLimits(const WindowLimits& windowLimits);
     void SetConfigWindowLimitsVP(const WindowLimits& windowLimitsVP);
+    void SetLimitsForAttachedWindows(const WindowLimits& windowLimits);
     void SetLastLimitsVpr(float vpr);
     void SetSystemBarProperty(WindowType type, const SystemBarProperty& property);
     void SetKeyboardLayoutParams(const KeyboardLayoutParams& params);
@@ -162,10 +165,22 @@ public:
     bool GetTokenState() const;
     MaximizeMode GetMaximizeMode() const;
     WindowMode GetWindowMode() const;
+    /**
+     * @brief Get window mode compatible with legacy WindowMode enum.
+     *
+     * When windowMode is WINDOW_MODE_SPLIT with two-window split style (horizontal or vertical),
+     * converts to WINDOW_MODE_SPLIT_PRIMARY or WINDOW_MODE_SPLIT_SECONDARY based on splitIndex,
+     * so that callers unaware of the new SPLIT mode can still distinguish primary/secondary.
+     *
+     * @return WindowMode compatible with legacy behavior.
+     */
+    WindowMode GetWindowModeCompat() const;
+    WindowModeInfo GetWindowModeInfo() const;
     WindowLimits GetWindowLimits() const;
     WindowLimits GetWindowLimitsVP() const;
     WindowLimits GetUserWindowLimits() const;
     WindowLimits GetConfigWindowLimitsVP() const;
+    WindowLimits GetLimitsForAttachedWindows() const;
     float GetLastLimitsVpr() const;
     uint32_t GetWindowModeSupportType() const;
     std::unordered_map<WindowType, SystemBarProperty> GetSystemBarProperty() const;
@@ -213,6 +228,8 @@ public:
     static void UnmarshallingShadowsInfo(Parcel& parcel, WindowSessionProperty* property);
     bool MarshallingWindowAnchorInfo(Parcel& parcel) const;
     static void UnmarshallingWindowAnchorInfo(Parcel& parcel, WindowSessionProperty* property);
+    bool MarshallingHookWindowInfo(Parcel& parcel) const;
+    static void UnmarshallingHookWindowInfo(Parcel& parcel, WindowSessionProperty* property);
 
     void SetTextFieldPositionY(double textFieldPositionY);
     void SetTextFieldHeight(double textFieldHeight);
@@ -256,6 +273,22 @@ public:
     bool IsSubWindowZLevelAboveParentLoosened() const;
     void SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
     WindowAnchorInfo GetWindowAnchorInfo() const;
+    // Set attached window limits from a specific source window (by persistentId)
+    void SetAttachedWindowLimits(int32_t sourcePersistentId, const WindowLimits& attachedWindowLimits);
+    // Remove attached window limits from a specific source window
+    void RemoveAttachedWindowLimits(int32_t sourcePersistentId);
+    // Get all attached window limits (preserving insertion order)
+    std::vector<std::pair<int32_t, WindowLimits>> GetAttachedWindowLimitsList() const;
+    void ClearAttachedWindowLimitsList();
+    // Set limit options for a specific attached window
+    void SetAttachedLimitOptions(int32_t sourcePersistentId, const AttachLimitOptions& options);
+    // Get limit options for a specific attached window
+    AttachLimitOptions GetAttachedLimitOptions(int32_t sourcePersistentId) const;
+    // Remove limit options for a specific attached window
+    void RemoveAttachedLimitOptions(int32_t sourcePersistentId);
+    // Get all attached limit options (preserving insertion order)
+    std::vector<std::pair<int32_t, AttachLimitOptions>> GetAttachedLimitOptionsList() const;
+    void ClearAttachedLimitOptionsList();
 
     /*
      * Window Hierarchy
@@ -282,8 +315,17 @@ public:
     bool GetPcAppInpadOrientationLandscape() const;
     void SetMobileAppInPadLayoutFullScreen(bool isMobileAppInPadLayoutFullScreen);
     bool GetMobileAppInPadLayoutFullScreen() const;
+    void SetForceSplitEnable(bool isForceSplitEnabled);
+    bool GetForceSplitEnable() const;
+    void SetHookWindowInfo(const HookWindowInfo& hookWindowInfo);
+    HookWindowInfo GetHookWindowInfo() const;
+    void SetWidthHookRatio(float ratio);
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
+    void SetDragDisabledAreas(const std::vector<Rect>& areas);
+    void GetDragDisabledAreas(std::vector<Rect>& areas);
+    void SetSurfaceNodeAlpha(float alpha) { surfaceNodeAlpha_.store(alpha); }
+    float GetSurfaceNodeAlpha() const { return surfaceNodeAlpha_.load(); }
 
     /*
      * Window Lifecycle
@@ -336,6 +378,8 @@ public:
     WindowSizeLimits GetWindowSizeLimits() const;
     void SetIsFullScreenWaterfallMode(bool isFullScreenWaterfallMode);
     bool GetIsFullScreenWaterfallMode() const;
+    void SetFollowParentLayout(bool isFollowParentLayout);
+    bool IsFollowParentLayout() const;
     void SetIsWindowLimitsForcible(bool isWindowLimitsForcible) { isWindowLimitsForcible_ = isWindowLimitsForcible; }
     bool GetIsWindowLimitsForcible() const { return isWindowLimitsForcible_; }
 
@@ -375,6 +419,8 @@ public:
     bool IsSystemKeyboard() const;
     void SetKeyboardEffectOption(const KeyboardEffectOption& effectOption);
     KeyboardEffectOption GetKeyboardEffectOption() const;
+    void SetKeyboardTargetDisplayId(DisplayId displayId);
+    DisplayId GetKeyboardTargetDisplayId() const;
     mutable std::mutex keyboardMutex_;
 
     /*
@@ -521,11 +567,13 @@ private:
     uint32_t accessTokenId_ = INVALID_SESSION_ID;
     MaximizeMode maximizeMode_ = MaximizeMode::MODE_RECOVER;
     WindowMode windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    WindowModeInfo windowModeInfo_ {};
     WindowState windowState_ = WindowState::STATE_INITIAL;
     WindowLimits limits_;
     WindowLimits limitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
     WindowLimits userLimits_ = WindowLimits::DEFAULT_VP_LIMITS();
     WindowLimits configLimitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
+    WindowLimits limitsForAttachedWindows_ = WindowLimits::DEFAULT_VP_LIMITS();
     float lastVpr_ = 0.0f;
     PiPTemplateInfo pipTemplateInfo_ = {};
     FloatingBallTemplateInfo fbTemplateInfo_ = {};
@@ -573,6 +621,7 @@ private:
     bool isPcAppInPad_ = false;
     sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
     mutable std::mutex compatibleModeMutex_;
+    mutable std::shared_mutex compatibleModePropertyMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
     std::vector<std::string> combinedCompatibleConfig_;
@@ -591,6 +640,14 @@ private:
     bool subWindowOutlineEnabled_ = false;
     bool zLevelAboveParentLoosened_ = false;
     WindowAnchorInfo windowAnchorInfo_;
+    // Store window limits from attached windows (preserving insertion order for priority)
+    // Parent window stores limits from its sub windows, sub window stores limits from its parent
+    // Earlier attached windows have higher priority in intersection calculation
+    std::vector<std::pair<int32_t, WindowLimits>> attachedWindowLimitsList_;
+    // Store limit options for each attached window (preserving insertion order to match limits list)
+    // Parent window stores options from its sub windows (which limits to intersect)
+    // Each pair contains: <sourceWindowId, AttachLimitOptions>
+    std::vector<std::pair<int32_t, AttachLimitOptions>> attachedLimitOptionsList_;
 
     /*
      * Window Hierarchy
@@ -627,6 +684,7 @@ private:
     bool isWindowDelayRaiseEnabled_ = false;
     WindowSizeLimits windowSizeLimits_;
     bool isFullScreenWaterfallMode_ = false;
+    bool isFollowParentLayout_ = false;
 
     /**
      * @brief Whether application-defined window size limits are allowed to exceed system limits.
@@ -638,6 +696,7 @@ private:
      */
     bool isSystemKeyboard_ = false;
     KeyboardEffectOption keyboardEffectOption_;
+    DisplayId keyboardTargetDisplayId_ = 0;
 
     /*
      * Window Immersive
@@ -665,11 +724,18 @@ private:
     mutable std::mutex shadowsInfoMutex_;
     mutable std::mutex globalDisplayRectMutex_;
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
+    mutable std::mutex hookWindowInfoMutex_;
+    HookWindowInfo hookWindowInfo_;
     bool isPcAppInpadCompatibleMode_ = false;
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
     bool isMobileAppInPadLayoutFullScreen_ = false;
+    std::atomic<bool> isForceSplitEnabled_ = false;
     bool isRotationLock_ = false;
+    std::atomic<float> surfaceNodeAlpha_ = 1.0f;
+    
+    mutable std::mutex dragDisabledAreasMutex_;
+    std::vector<Rect> dragDisabledAreas_;
 
     /*
      * Window Focus
@@ -841,39 +907,20 @@ struct FreeMultiWindowConfig : public Parcelable {
 };
 
 struct AppForceLandscapeConfig : public Parcelable {
-    int32_t mode_ = 0;
-    int32_t supportSplit_ = -1;
-    bool ignoreOrientation_ = false;
-    std::string sysConfigJsonStr_ = "";
-    std::string appConfigJsonStr_ = "";
-    std::string sysHomePage_ = "";
-    bool isSysRouter_ = false;
-    bool isAppRouter_ = false;
-    bool containsSysConfig_ = false;
-    bool containsAppConfig_ = false;
+    std::string configJsonStr_ = "";
+    bool isRouter_ = false;
+    bool containsConfig_ = false;
     bool hasChanged_ = true;
     bool configEnable_ = false;
     AppForceLandscapeConfig() {}
-    AppForceLandscapeConfig(int32_t mode, int32_t supportSplit, bool ignoreOrientation,
-        const std::string& sysConfigJsonStr, const std::string& appConfigJsonStr,
-        const std::string& sysHomePage, bool isSysRouter, bool isAppRouter,
-        bool containsSysConfig, bool containsAppConfig) : mode_(mode), supportSplit_(supportSplit),
-        ignoreOrientation_(ignoreOrientation), sysConfigJsonStr_(sysConfigJsonStr),
-        appConfigJsonStr_(appConfigJsonStr), sysHomePage_(sysHomePage), isSysRouter_(isSysRouter),
-        isAppRouter_(isAppRouter), containsSysConfig_(containsSysConfig), containsAppConfig_(containsAppConfig) {}
+    AppForceLandscapeConfig(const std::string& configJsonStr, bool isRouter, bool containsConfig)
+        : configJsonStr_(configJsonStr), isRouter_(isRouter), containsConfig_(containsConfig) {}
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
-        if (!parcel.WriteInt32(mode_) ||
-            !parcel.WriteInt32(supportSplit_) ||
-            !parcel.WriteBool(ignoreOrientation_) ||
-            !parcel.WriteString(sysConfigJsonStr_) ||
-            !parcel.WriteString(appConfigJsonStr_) ||
-            !parcel.WriteString(sysHomePage_) ||
-            !parcel.WriteBool(isSysRouter_) ||
-            !parcel.WriteBool(isAppRouter_) ||
-            !parcel.WriteBool(containsSysConfig_) ||
-            !parcel.WriteBool(containsAppConfig_)) {
+        if (!parcel.WriteString(configJsonStr_) ||
+            !parcel.WriteBool(isRouter_) ||
+            !parcel.WriteBool(containsConfig_)) {
             return false;
         }
         return true;
@@ -885,16 +932,9 @@ struct AppForceLandscapeConfig : public Parcelable {
         if (config == nullptr) {
             return nullptr;
         }
-        if (!parcel.ReadInt32(config->mode_) ||
-            !parcel.ReadInt32(config->supportSplit_) ||
-            !parcel.ReadBool(config->ignoreOrientation_) ||
-            !parcel.ReadString(config->sysConfigJsonStr_) ||
-            !parcel.ReadString(config->appConfigJsonStr_) ||
-            !parcel.ReadString(config->sysHomePage_) ||
-            !parcel.ReadBool(config->isSysRouter_) ||
-            !parcel.ReadBool(config->isAppRouter_) ||
-            !parcel.ReadBool(config->containsSysConfig_) ||
-            !parcel.ReadBool(config->containsAppConfig_)) {
+        if (!parcel.ReadString(config->configJsonStr_) ||
+            !parcel.ReadBool(config->isRouter_) ||
+            !parcel.ReadBool(config->containsConfig_)) {
             return nullptr;
         }
         return config.release();
@@ -902,23 +942,12 @@ struct AppForceLandscapeConfig : public Parcelable {
 
     static bool IsSameForceSplitConfig(const AppForceLandscapeConfig& preconfig, const AppForceLandscapeConfig& config)
     {
-        if (preconfig.mode_ != config.mode_ ||
-            preconfig.supportSplit_ != config.supportSplit_ ||
-            preconfig.ignoreOrientation_ != config.ignoreOrientation_ ||
-            preconfig.containsSysConfig_ != config.containsSysConfig_ ||
-            preconfig.containsAppConfig_ != config.containsAppConfig_) {
+        if (preconfig.containsConfig_ != config.containsConfig_) {
             return false;
         }
-        if (config.containsSysConfig_) {
-            if (preconfig.isSysRouter_ != config.isSysRouter_ ||
-                preconfig.sysHomePage_ != config.sysHomePage_ ||
-                preconfig.sysConfigJsonStr_ != config.sysConfigJsonStr_) {
-                return false;
-            }
-        }
-        if (config.containsAppConfig_) {
-            if (preconfig.isAppRouter_ != config.isAppRouter_ ||
-                preconfig.appConfigJsonStr_ != config.appConfigJsonStr_) {
+        if (config.containsConfig_) {
+            if (preconfig.isRouter_ != config.isRouter_ ||
+                preconfig.configJsonStr_ != config.configJsonStr_) {
                 return false;
             }
         }
@@ -969,9 +998,12 @@ struct SystemSessionConfig : public Parcelable {
     float defaultCornerRadius_ = 0.0f; // default corner radius of window set by system config
     bool supportUIExtensionSubWindow_ = false;
     bool supportCreateFloatView_ = false;
+    bool supportCreateFloatingBall_ = false;
+    bool statusBarHeightMode_ = false;  // true: display height, false: component height
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
+    void ConvertSupportCreateFloatingBall(const std::string& itemValue);
 
     virtual bool Marshalling(Parcel& parcel) const override
     {
@@ -1045,6 +1077,12 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
+        if (!parcel.WriteBool(supportCreateFloatingBall_)) {
+            return false;
+        }
+        if (!parcel.WriteBool(statusBarHeightMode_)) {
+            return false;
+        }
         return true;
     }
 
@@ -1103,6 +1141,8 @@ struct SystemSessionConfig : public Parcelable {
             return nullptr;
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
+        config->supportCreateFloatingBall_ = parcel.ReadBool();
+        config->statusBarHeightMode_ = parcel.ReadBool();
         return config;
     }
         

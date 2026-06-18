@@ -31,6 +31,7 @@
 #undef protected
 #include "session/host/include/sub_session.h"
 #include "session/host/include/system_session.h"
+#include "transaction/rs_transaction.h"
 #include "ui/rs_surface_node.h"
 #include "window_helper.h"
 #include "wm_common.h"
@@ -89,7 +90,7 @@ HWTEST_F(SceneSessionTest3, NotifyClientToUpdateRectTask, TestSize.Level1)
 
     sceneSession->SetSessionProperty(property);
     sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
-    auto result = sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", nullptr);
+    auto result = sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, nullptr);
     ASSERT_EQ(result, WSError::WS_OK);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
@@ -98,24 +99,24 @@ HWTEST_F(SceneSessionTest3, NotifyClientToUpdateRectTask, TestSize.Level1)
     sceneSession->state_ = SessionState::STATE_FOREGROUND;
     sceneSession->isScbCoreEnabled_ = false;
     sceneSession->SetSessionRect({ 0, 0, 800, 800 });
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", nullptr));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, nullptr));
 
     property->SetWindowType(WindowType::WINDOW_TYPE_KEYBOARD_PANEL);
     sceneSession->SetSessionProperty(property);
     sceneSession->isKeyboardPanelEnabled_ = true;
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", nullptr));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, nullptr));
 
-    std::shared_ptr<RSTransaction> rs;
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    std::shared_ptr<RSTransaction> rs = std::make_shared<RSTransaction>();
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 
     sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE);
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 
     sceneSession->UpdateSizeChangeReason(SizeChangeReason::DRAG);
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 
     sceneSession->UpdateSizeChangeReason(SizeChangeReason::ROTATION);
-    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", rs));
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifyClientToUpdateRectTask("SceneSessionTest3", std::nullopt, rs));
 }
 
 /**
@@ -1481,6 +1482,83 @@ HWTEST_F(SceneSessionTest3, SetSkipEventOnCastPlus01, TestSize.Level1)
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     sceneSession->SetSkipEventOnCastPlus(false);
     ASSERT_EQ(false, sceneSession->GetSessionProperty()->GetSkipEventOnCastPlus());
+}
+
+/**
+ * @tc.name: NotifySupportWindowModesChange01
+ * @tc.desc: check func NotifySupportWindowModesChange for SceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifySupportWindowModesChange01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifySupportWindowModesChange01";
+    info.bundleName_ = "NotifySupportWindowModesChange01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes = {
+        AppExecFwk::SupportWindowMode::FULLSCREEN,
+        AppExecFwk::SupportWindowMode::SPLIT,
+        AppExecFwk::SupportWindowMode::FLOATING
+    };
+
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
+
+    sceneSession->onSetSupportedWindowModesFunc_ = nullptr;
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
+
+    sceneSession->onSetSupportedWindowModesFunc_ =
+        [](std::vector<AppExecFwk::SupportWindowMode>&& modes) { return; };
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
+}
+
+/**
+ * @tc.name: NotifySupportWindowModesChange02
+ * @tc.desc: check func NotifySupportWindowModesChange with callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifySupportWindowModesChange02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifySupportWindowModesChange02";
+    info.bundleName_ = "NotifySupportWindowModesChange02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes = {
+        AppExecFwk::SupportWindowMode::FULLSCREEN,
+        AppExecFwk::SupportWindowMode::FLOATING
+    };
+
+    auto callbackFlag = 1;
+    sceneSession->onSetSupportedWindowModesFunc_ =
+        [&callbackFlag](std::vector<AppExecFwk::SupportWindowMode>&& modes) { callbackFlag += 1; };
+    sceneSession->NotifySupportWindowModesChange(supportedWindowModes);
+    EXPECT_EQ(2, callbackFlag);
+}
+
+/**
+ * @tc.name: NotifySupportWindowModesChange03
+ * @tc.desc: check func NotifySupportWindowModesChange with different modes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifySupportWindowModesChange03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifySupportWindowModesChange03";
+    info.bundleName_ = "NotifySupportWindowModesChange03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes = { AppExecFwk::SupportWindowMode::FULLSCREEN };
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
+
+    supportedWindowModes = { AppExecFwk::SupportWindowMode::FLOATING };
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
+
+    supportedWindowModes = { AppExecFwk::SupportWindowMode::FULLSCREEN, AppExecFwk::SupportWindowMode::FLOATING };
+    EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
 }
 } // namespace
 } // namespace Rosen

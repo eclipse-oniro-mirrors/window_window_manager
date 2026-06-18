@@ -46,7 +46,7 @@ struct SystemBarRegionTint {
 using SystemBarRegionTints = std::vector<SystemBarRegionTint>;
 using GetJSWindowObjFunc = std::function<void*(const std::string& windowName)>;
 using WindowChangeInfoType = std::variant<int32_t, uint32_t, int64_t, uint64_t, std::string, float, Rect, WindowMode,
-    WindowVisibilityState, bool>;
+    WindowModeInfo, WindowVisibilityState, bool>;
 using WindowInfoList = std::vector<std::unordered_map<WindowInfoKey, WindowChangeInfoType>>;
 
 struct VisibleWindowNumInfo {
@@ -90,22 +90,44 @@ public:
 class IWMSConnectionChangedListener : virtual public RefBase {
 public:
     /**
-     * @brief Notify caller when WMS connected
+     * @brief Notify caller when WMS connected (2-parameter version for backward compatibility)
      *
-     * @param userId ID of the user who has connected to the WMS.
-     *
-     * @param screenId ID of the screen that is connected to the WMS, screenId is currently always 0.
+     * @param userId ID of the user who has connected to WMS.
+     * @param screenId ID of the screen that is connected to WMS, screenId is currently always 0.
      */
     virtual void OnConnected(int32_t userId, int32_t screenId) = 0;
 
     /**
-     * @brief Notify caller when WMS disconnected
+     * @brief Notify caller when WMS disconnected (2-parameter version for backward compatibility)
      *
-     * @param userId ID of the user who has disconnected to the WMS.
-     *
-     * @param screenId ID of the screen that is disconnected to the WMS, screenId is currently always 0.
+     * @param userId ID of the user who has disconnected to WMS.
+     * @param screenId ID of the screen that is disconnected to WMS, screenId is currently always 0.
      */
     virtual void OnDisconnected(int32_t userId, int32_t screenId) = 0;
+
+    /**
+     * @brief Notify caller when WMS connected (3-parameter version with pid)
+     *
+     * @param userId ID of the user who has connected to WMS.
+     * @param screenId ID of the screen that is connected to WMS, screenId is currently always 0.
+     * @param pid Process ID of the WMS.
+     */
+    virtual void OnConnected(int32_t userId, int32_t screenId, int32_t pid)
+    {
+        OnConnected(userId, screenId);
+    }
+
+    /**
+     * @brief Notify caller when WMS disconnected (3-parameter version with pid)
+     *
+     * @param userId ID of the user who has disconnected to WMS.
+     * @param screenId ID of the screen that is disconnected to WMS, screenId is currently always 0.
+     * @param pid Process ID of the WMS.
+     */
+    virtual void OnDisconnected(int32_t userId, int32_t screenId, int32_t pid)
+    {
+        OnDisconnected(userId, screenId);
+    }
 };
 
 /**
@@ -237,6 +259,21 @@ public:
      * @param styleType
      */
     virtual void OnWindowStyleUpdate(WindowStyleType styleType) = 0;
+};
+
+/**
+ * @class ISessionSaveSnapShotCompleteListener
+ *
+ * @brief Listener to observe session snapshot save completion.
+ */
+class ISessionSaveSnapShotCompleteListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when session save snapshot is complete.
+     *
+     * @param persistentId Persistent id of the session.
+     */
+    virtual void OnSessionSaveSnapShotComplete(int32_t persistentId) = 0;
 };
 
 /**
@@ -436,7 +473,7 @@ struct AbilityInfoBase : public Parcelable {
                parcel.WriteString(abilityName) &&
                parcel.WriteInt32(appIndex);
     }
- 
+
     /**
      * @brief Unmarshalling AbilityInfoBase.
      *
@@ -455,17 +492,17 @@ struct AbilityInfoBase : public Parcelable {
         }
         return info;
     }
- 
+
     bool IsValid() const
     {
         return !bundleName.empty() && !moduleName.empty() && !abilityName.empty() && appIndex >= 0;
     }
- 
+
     std::string ToKeyString() const
     {
         return bundleName + "_" + moduleName + "_" + abilityName + "_" + std::to_string(appIndex);
     }
- 
+
     std::string bundleName;
     std::string moduleName;
     std::string abilityName;
@@ -671,7 +708,6 @@ class WindowManager : public RefBase {
 public:
     static WindowManager& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
-    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register WMS connection status changed listener.
@@ -1026,7 +1062,7 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) const;
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) const;
 
     /**
      * @brief Get global window mode.
@@ -1105,7 +1141,8 @@ public:
      * @param infos Visible window infos
      * @return WM_OK means get success, others means get failed.
      */
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const;
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) const;
 
     /**
      * @brief Set gesture navigation enabled.
@@ -1286,7 +1323,7 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-    
+
     /**
      * @brief Unregister the listener that detects display changes for the keyboard calling window.
      *
@@ -1467,7 +1504,7 @@ public:
      */
     WMError RegisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
-    
+
     /**
      * @brief Unregister window info change callback.
      *
@@ -1477,7 +1514,7 @@ public:
      */
     WMError UnregisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
         const sptr<IWindowInfoChangedListener>& listener);
-    
+
     /**
      * @brief Whether new requested window needs hook.
      *
@@ -1534,6 +1571,29 @@ public:
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
 
     /**
+     * @brief Register session save snapshot complete listener.
+     *
+     * @param listener ISessionSaveSnapShotCompleteListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    WMError RegisterSessionSaveSnapShotCompleteListener(
+        const sptr<ISessionSaveSnapShotCompleteListener>& listener);
+
+    /**
+     * @brief Unregister session save snapshot complete listener.
+     *
+     * @param listener ISessionSaveSnapShotCompleteListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    WMError UnregisterSessionSaveSnapShotCompleteListener(
+        const sptr<ISessionSaveSnapShotCompleteListener>& listener);
+
+    /*
+     * notify session save snapshot complete to listener
+     */
+    void NotifySessionSaveSnapShotComplete(int32_t persistentId);
+
+    /**
      * @brief Register get js window callback.
      * @param getJSWindowFunc get js window obj callback.
      */
@@ -1583,7 +1643,7 @@ public:
      * @param floatViewLimits Float view limits.
      * @return WM_OK means get success, others means get failed.
      */
-    WMError GetFloatViewLimits(FloatViewLimits& floatViewLimits) const;
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& floatViewLimits) const;
 
 private:
     /**
@@ -1613,7 +1673,7 @@ private:
     bool isOutlineRecoverRegistered_ = false;
     WMError CheckOutlineParams(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams);
 
-    void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const;
+    void OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected, int32_t pid) const;
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) const;
     void UpdateWindowModeTypeInfo(WindowModeType type) const;
     void UpdateSystemBarRegionTints(DisplayId displayId, const SystemBarRegionTints& tints) const;
@@ -1643,6 +1703,8 @@ private:
     WMError UnregisterGlobalRectChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterWindowModeChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
+    WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener);
     WMError RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener);

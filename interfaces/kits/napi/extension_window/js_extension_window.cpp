@@ -24,9 +24,11 @@
 #include "permission.h"
 #include "pixel_map.h"
 #include "pixel_map_napi.h"
+#include "session_info.h"
 #include "ui_content.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -46,11 +48,8 @@ const std::unordered_set<std::string> g_emptyListener = {
     "noInteractionDetected",
     "dialogTargetTouch",
     "windowEvent",
-    "windowStatusChange",
     "windowTitleButtonRectChange",
-    "windowRectChange",
     "rotationChange",
-    "touchOutside",
 };
 const std::unordered_set<std::string> g_unsupportListener = {
     "windowWillClose",
@@ -59,6 +58,17 @@ const std::unordered_set<std::string> g_unsupportListener = {
 const std::unordered_set<std::string> g_invalidListener = {
     "subWindowClose",
 };
+const std::unordered_set<std::string> g_emptyProxyListener = {
+    "displayIdChange",
+    "systemDensityChange",
+};
+static thread_local std::map<int32_t, std::shared_ptr<NativeReference>> g_jsExtensionWindowMap;
+static std::mutex g_extensionMutex;
+
+bool IsEmptyProxyListener(const std::string& type)
+{
+    return g_emptyProxyListener.find(type) != g_emptyProxyListener.end();
+}
 
 bool IsEmptyListener(const std::string& type)
 {
@@ -75,6 +85,64 @@ bool IsInvalidListener(const std::string& type)
     return g_invalidListener.find(type) != g_invalidListener.end();
 }
 } // namespace
+
+void addJsExtensionWindow(napi_env env, napi_value objValue, int32_t id)
+{
+    std::shared_ptr<NativeReference> jsExtensionWindowRef;
+    napi_ref result = nullptr;
+    napi_create_reference(env, objValue, 1, &result);
+    jsExtensionWindowRef.reset(reinterpret_cast<NativeReference*>(result));
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    g_jsExtensionWindowMap[id] = jsExtensionWindowRef;
+}
+
+napi_value FindJsExtensionWindow(napi_env env, const sptr<Rosen::Window>& window)
+{
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed."));
+        return NapiGetUndefined(env);
+    }
+    int32_t id = window->GetWindowPersistentId();
+    napi_value extensionWindow = nullptr;
+
+    {
+        std::lock_guard<std::mutex> lock(g_extensionMutex);
+        auto iter = g_jsExtensionWindowMap.find(id);
+        if (iter != g_jsExtensionWindowMap.end()) {
+            if (iter->second == nullptr) {
+                TLOGE(WmsLogTag::WMS_UIEXT, "jsExtensionWindowRef is nullptr, id: %{public}d", id);
+                napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    "The extensionWindow is destroyed."));
+                return NapiGetUndefined(env);
+            }
+            extensionWindow = iter->second->GetNapiValue();
+            if (extensionWindow != nullptr) {
+                return extensionWindow;
+            }
+            TLOGE(WmsLogTag::WMS_UIEXT, "The extensionWindow is destroyed.");
+            napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "The extensionWindow is destroyed."));
+            return NapiGetUndefined(env);
+        }
+    }
+
+    if (window->GetIsAtomicService()) {
+        extensionWindow =
+            JsExtensionWindow::CreateJsExtensionWindowObject(env, window, sptr<AAFwk::SessionInfo>::MakeSptr());
+    } else {
+        extensionWindow = JsExtensionWindow::CreateJsExtensionWindow(env, window, window->GetHostWindowId());
+    }
+
+    if (extensionWindow == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Create extensionWindow failed, id: %{public}d", window->GetHostWindowId());
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Create extensionWindow failed."));
+        return NapiGetUndefined(env);
+    }
+    return extensionWindow;
+}
 
 const std::string& JsExtensionWindow::GetWindowName() const
 {
@@ -134,7 +202,10 @@ napi_value JsExtensionWindow::CreateJsExtensionWindow(napi_env env, sptr<Rosen::
     BindNativeFunction(env, objValue, "hidePrivacyContentForHost", moduleName,
                        JsExtensionWindow::HidePrivacyContentForHost);
     BindNativeFunction(env, objValue, "occupyEvents", moduleName, JsExtensionWindow::OccupyEvents);
+    BindNativeFunction(env, objValue, "getWindowDensityInfo", moduleName, JsExtensionWindow::GetWindowDensityInfo);
+    BindNativeFunction(env, objValue, "getWindowProperties", moduleName, JsExtensionWindow::GetWindowPropertiesSync);
 
+    addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;
 }
 
@@ -191,10 +262,10 @@ napi_value JsExtensionWindow::CreateJsExtensionWindowObject(napi_env env, sptr<R
         JsExtensionWindow::IsWindowSupportWideGamut);
     BindNativeFunction(env, objValue, "getGlobalRect", moduleName, JsExtensionWindow::GetGlobalScaledRect);
     BindNativeFunction(env, objValue, "getStatusBarProperty", moduleName, JsExtensionWindow::GetStatusBarProperty);
+    BindNativeFunction(env, objValue, "getWindowStatus", moduleName, JsExtensionWindow::GetWindowStatus);
 
     //return default value
     BindNativeFunction(env, objValue, "getTitleButtonRect", moduleName, JsExtensionWindow::GetTitleButtonRect);
-    BindNativeFunction(env, objValue, "getWindowStatus", moduleName, JsExtensionWindow::GetWindowStatus);
     BindNativeFunction(env, objValue, "getWindowDensityInfo", moduleName, JsExtensionWindow::GetWindowDensityInfo);
     BindNativeFunction(env, objValue, "getWindowSystemBarProperties", moduleName,
         JsExtensionWindow::GetWindowSystemBarProperties);
@@ -206,6 +277,7 @@ napi_value JsExtensionWindow::CreateJsExtensionWindowObject(napi_env env, sptr<R
 
     RegisterUnsupportFuncs(env, objValue, moduleName);
 
+    addJsExtensionWindow(env, objValue, window->GetWindowPersistentId());
     return objValue;
 }
 
@@ -283,7 +355,23 @@ void JsExtensionWindow::RegisterUnsupportFuncs(napi_env env, napi_value objValue
 void JsExtensionWindow::Finalizer(napi_env env, void* data, void* hint)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "[NAPI]");
-    std::unique_ptr<JsExtensionWindow>(static_cast<JsExtensionWindow*>(data));
+    auto jsExtensionWin = std::unique_ptr<JsExtensionWindow>(static_cast<JsExtensionWindow*>(data));
+    if (jsExtensionWin == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "jsExtensionWin is nullptr");
+        return;
+    }
+    if (jsExtensionWin->extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return;
+    }
+    sptr<Rosen::Window> window = jsExtensionWin->extensionWindow_->GetWindow();
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    g_jsExtensionWindowMap.erase(window->GetWindowPersistentId());
+    TLOGI(WmsLogTag::WMS_UIEXT, "Remove window %{public}d", window->GetWindowPersistentId());
 }
 
 napi_value JsExtensionWindow::GetWindowAvoidArea(napi_env env, napi_callback_info info)
@@ -291,6 +379,20 @@ napi_value JsExtensionWindow::GetWindowAvoidArea(napi_env env, napi_callback_inf
     TLOGI(WmsLogTag::WMS_UIEXT, "[NAPI]");
     JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
     return (me != nullptr) ? me->OnGetWindowAvoidArea(env, info) : nullptr;
+}
+
+napi_value JsExtensionWindow::SetFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
+    JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
+    return (me != nullptr) ? me->OnSetFloatNavigationAvoidAreaEnabled(env, info) : nullptr;
+}
+
+napi_value JsExtensionWindow::IsFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
+    JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
+    return (me != nullptr) ? me->OnIsFloatNavigationAvoidAreaEnabled(env, info) : nullptr;
 }
 
 napi_value JsExtensionWindow::RegisterExtensionWindowCallback(napi_env env, napi_callback_info info)
@@ -522,8 +624,9 @@ napi_value JsExtensionWindow::GetTitleButtonRect(napi_env env, napi_callback_inf
 
 napi_value JsExtensionWindow::GetWindowStatus(napi_env env, napi_callback_info info)
 {
-    WindowStatus windowStatus = WindowStatus::WINDOW_STATUS_UNDEFINED;
-    return CreateJsValue(env, static_cast<uint32_t>(windowStatus));
+    TLOGI(WmsLogTag::WMS_UIEXT, "[NAPI]");
+    JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);
+    return (me != nullptr) ? me->OnGetWindowStatus(env, info) : nullptr;
 }
 
 napi_value JsExtensionWindow::GetWindowStateSnapshot(napi_env env, napi_callback_info info)
@@ -808,7 +911,7 @@ napi_value JsExtensionWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_c
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setSpecificSystemBarEnabled]msg: Incorrect parameter types");
     }
-    
+
     bool systemBarEnable = false;
     bool systemBarEnableAnimation = false;
     if (!GetSpecificBarStatus(env, info, systemBarEnable, systemBarEnableAnimation)) {
@@ -989,12 +1092,16 @@ napi_value JsExtensionWindow::OnGetWindowAvoidArea(napi_env env, napi_callback_i
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) { // 1: params num
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][getWindowAvoidArea]msg: Mandatory parameters are left unspecified");
     }
     AvoidAreaType avoidAreaType = AvoidAreaType::TYPE_SYSTEM;
     napi_value nativeMode = argv[0];
     if (nativeMode == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][getWindowAvoidArea]msg: Incorrect parameter types");
     }
@@ -1004,12 +1111,16 @@ napi_value JsExtensionWindow::OnGetWindowAvoidArea(napi_env env, napi_callback_i
     errCode = avoidAreaType >= AvoidAreaType::TYPE_END ?
         WmErrorCode::WM_ERROR_INVALID_PARAM : WmErrorCode::WM_OK;
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][getWindowAvoidArea]msg: Parameter verification failed");
     }
 
     if (extensionWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "ExtensionWindow_ is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowAvoidArea]msg: The window is not created or destroyed");
     }
@@ -1029,9 +1140,75 @@ napi_value JsExtensionWindow::OnGetWindowAvoidArea(napi_env env, napi_callback_i
         return avoidAreaObj;
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "avoidAreaObj is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.getWindowAvoidArea",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowAvoidArea]msg: Convert avoid area failed");
     }
+}
+
+napi_value JsExtensionWindow::OnSetFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    size_t argc = FOUR_PARAMS_SIZE;
+    napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < INDEX_ONE) {
+        TLOGE(WmsLogTag::WMS_IMMS, "argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setFloatNavigationAvoidAreaEnabled]msg: Mandatory parameters are left unspecified");
+    }
+    bool enabled = false;
+    if (argv[INDEX_ZERO] == nullptr || napi_get_value_bool(env, argv[INDEX_ZERO], &enabled) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_IMMS, "failed to convert parameter to enabled");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setFloatNavigationAvoidanceEnabled]msg: Incorrect parameter types");
+    }
+    napi_value result = nullptr;
+    const char* const where = __func__;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [weakToken = wptr<Window>(windowToken_), env, task = napiAsyncTask, enabled, argc, where] {
+        auto window = weakToken.promote();
+        if (window == nullptr) {
+            TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is nullptr", where);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][setFloatNavigationAvoidAreaEnabled]msg: The window is not created or destroyed"));
+            return;
+        }
+        auto errCode = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFloatNavigationAvoidAreaEnabled(enabled));
+        if (errCode == WmErrorCode::WM_OK) {
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s failed, ret %{public}d", where, errCode);
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
+                "[window][setFloatNavigationAvoidAreaEnabled]"));
+        }
+    };
+    if (napi_send_event(env, asyncTask, napi_eprio_high,
+        "OnSetFloatNavigationAvoidAreaEnabled") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_IMMS, "napi_send_event failed");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setFloatNavigationAvoidAreaEnabled]msg: Internal task error"));
+    }
+    return result;
+}
+    
+napi_value JsExtensionWindow::OnIsFloatNavigationAvoidAreaEnabled(napi_env env, napi_callback_info info)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_IMMS, "windowToken is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isFloatNavigationAvoidAreaEnabled]msg: The window is not created or destroyed");
+    }
+    bool enable = false;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetFloatNavigationAvoidAreaEnabled(enable));
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_IMMS, "get failed, ret %{public}d", ret);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isFloatNavigationAvoidAreaEnabled]");
+    }
+    TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u, %{public}s] enable %{public}u",
+        windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), enable);
+    return CreateJsValue(env, enable);
 }
 
 napi_value JsExtensionWindow::OnRegisterRectChangeCallback(napi_env env, size_t argc, napi_value* argv,
@@ -1114,6 +1291,10 @@ napi_value JsExtensionWindow::OnRegisterExtensionWindowCallback(napi_env env, na
             return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "[window][on]msg: The device not support");
         }
+    } else {
+        if (IsEmptyProxyListener(cbType)) {
+            return NapiGetUndefined(env);
+        }
     }
     napi_value value = argv[INDEX_ONE];
     if (!NapiIsCallable(env, value)) {
@@ -1180,6 +1361,10 @@ napi_value JsExtensionWindow::OnUnRegisterExtensionWindowCallback(napi_env env, 
             return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "[window][off]msg: The device not support");
         }
+    } else {
+        if (IsEmptyProxyListener(cbType)) {
+            return NapiGetUndefined(env);
+        }
     }
 
     napi_value value = nullptr;
@@ -1208,6 +1393,8 @@ napi_value JsExtensionWindow::OnHideNonSecureWindows(napi_env env, napi_callback
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     if (extensionWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hideNonSecureWindows",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][hideNonSecureWindows]msg: extensionWindow_ is nullptr"));
         return result;
@@ -1215,6 +1402,8 @@ napi_value JsExtensionWindow::OnHideNonSecureWindows(napi_env env, napi_callback
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "windowImpl is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hideNonSecureWindows",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][hideNonSecureWindows]msg: windowImpl is nullptr"));
         return result;
@@ -1224,12 +1413,16 @@ napi_value JsExtensionWindow::OnHideNonSecureWindows(napi_env env, napi_callback
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Argc is invalid: %{public}zu", argc);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hideNonSecureWindows",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][hideNonSecureWindows]msg: Argc is invalid");
     }
     bool shouldHide = false;
     if (!ConvertFromJsValue(env, argv[0], shouldHide)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to bool");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hideNonSecureWindows",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][hideNonSecureWindows]msg: Failed to convert parameter to bool");
     }
@@ -1241,11 +1434,14 @@ napi_value JsExtensionWindow::OnHideNonSecureWindows(napi_env env, napi_callback
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s failed, code: %{public}d", where, ret);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hideNonSecureWindows", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                 "[window][hideNonSecureWindows]msg: hideNonSecureWindows failed"));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnHideNonSecureWindows") != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hideNonSecureWindows",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env,
             CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][hideNonSecureWindows]msg: Failed to send event"));
@@ -1261,6 +1457,8 @@ napi_value JsExtensionWindow::OnSetWaterMarkFlag(napi_env env, napi_callback_inf
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     if (extensionWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.setWaterMarkFlag",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][setWaterMarkFlag]msg: extensionWindow_ is nullptr"));
         return result;
@@ -1268,6 +1466,8 @@ napi_value JsExtensionWindow::OnSetWaterMarkFlag(napi_env env, napi_callback_inf
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "windowImpl is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.setWaterMarkFlag",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][setWaterMarkFlag]msg: windowImpl is nullptr"));
         return result;
@@ -1277,12 +1477,16 @@ napi_value JsExtensionWindow::OnSetWaterMarkFlag(napi_env env, napi_callback_inf
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Argc is invalid: %{public}zu", argc);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.setWaterMarkFlag",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setWaterMarkFlag]msg: Argc is invalid");
     }
     bool isEnable = false;
     if (!ConvertFromJsValue(env, argv[0], isEnable)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to bool");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.setWaterMarkFlag",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setWaterMarkFlag]msg: Failed to convert parameter to bool");
     }
@@ -1294,11 +1498,14 @@ napi_value JsExtensionWindow::OnSetWaterMarkFlag(napi_env env, napi_callback_inf
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s failed, code: %{public}d", where, ret);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.setWaterMarkFlag", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                 "[window][setWaterMarkFlag]msg: setWaterMarkFlag failed"));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetWaterMarkFlag") != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.setWaterMarkFlag",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env,
             CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][setWaterMarkFlag]msg: Failed to send event"));
@@ -1314,6 +1521,8 @@ napi_value JsExtensionWindow::OnHidePrivacyContentForHost(napi_env env, napi_cal
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     if (extensionWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hidePrivacyContentForHost",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][hidePrivacyContentForHost]msg: extensionWindow_ is nullptr"));
         return result;
@@ -1321,6 +1530,8 @@ napi_value JsExtensionWindow::OnHidePrivacyContentForHost(napi_env env, napi_cal
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "windowImpl is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hidePrivacyContentForHost",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][hidePrivacyContentForHost]msg: windowImpl is nullptr"));
         return result;
@@ -1330,12 +1541,16 @@ napi_value JsExtensionWindow::OnHidePrivacyContentForHost(napi_env env, napi_cal
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Argc is invalid: %{public}zu", argc);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hidePrivacyContentForHost",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][hidePrivacyContentForHost]msg: Argc is invalid");
     }
     bool needHide = false;
     if (!ConvertFromJsValue(env, argv[0], needHide)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to bool");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hidePrivacyContentForHost",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][hidePrivacyContentForHost]msg: Failed to convert parameter to bool");
     }
@@ -1347,11 +1562,14 @@ napi_value JsExtensionWindow::OnHidePrivacyContentForHost(napi_env env, napi_cal
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s failed, code: %{public}d", where, ret);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hidePrivacyContentForHost", ret);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
                 "[window][hidePrivacyContentForHost]msg: hidePrivacyContentForHost failed"));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnHidePrivacyContentForHost") != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.hidePrivacyContentForHost",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env,
             CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "[window][hidePrivacyContentForHost]msg: Failed to send event"));
@@ -1382,6 +1600,8 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
 {
     if (extensionWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][createSubWindowWithOptions]msg: The window is not created or destroyed"));
         return NapiGetUndefined(env);
@@ -1392,6 +1612,8 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
     std::string windowName;
     if (!ConvertFromJsValue(env, argv[0], windowName)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to windowName");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][createSubWindowWithOptions]msg: Failed to convert parameter to windowName"));
         return NapiGetUndefined(env);
@@ -1399,19 +1621,34 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
     sptr<WindowOption> option = new WindowOption();
     if (!ParseSubWindowOptions(env, argv[1], option)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Get invalid options param");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][createSubWindowWithOptions]msg: Failed to convert parameter to options"));
+        return NapiGetUndefined(env);
+    }
+    if (option->IsSubWindowZLevelAboveParentLoosened()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Get invalid options param zLevelAboveParentLoosened");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW,
+            "[window][createSubWindowWithOptions]msg: ExtensionWindow does not support creating subwindow"
+            " with the parameter zLevelAboveParentLoosened set to true."));
         return NapiGetUndefined(env);
     }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !extensionWindow_->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "device not support");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
             "[window][createSubWindowWithOptions]msg: Device not support"));
         return NapiGetUndefined(env);
     }
     if (option->GetWindowTopmost() && !Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::WMS_SUB, "Modal subwindow has topmost, but no system permission");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
             "[window][createSubWindowWithOptions]msg: Insufficient system permissions"));
         return NapiGetUndefined(env);
@@ -1420,12 +1657,16 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
     if (argc >= ARG_COUNT_THREE && GetType(env, argv[INDEX_TWO]) != napi_undefined &&
         !ConvertFromJsValue(env, argv[INDEX_TWO], followCreatorLifecycle)) {
         TLOGE(WmsLogTag::WMS_SUB, "Failed to convert followCreatorLifecycle parameter to bool");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
     auto extWindow = extensionWindow_->GetWindow();
     if (extWindow != nullptr && extWindow->IsBlockSubwindow()) {
         TLOGE(WmsLogTag::WMS_SUB, "The session is blocking sub window");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW,
             "[window][createSubWindowWithOptions]msg: The session is blocking sub window"));
         return NapiGetUndefined(env);
@@ -1439,6 +1680,8 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
         windowOption = option, env, task = napiAsyncTask]() mutable {
         auto extWindow = extensionWindow->GetWindow();
         if (extWindow == nullptr) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                 "[window][createSubWindowWithOptions]msg: Window is nullptr on asyncTask"));
             return;
@@ -1449,6 +1692,8 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
         windowOption->SetIsUIExtFirstSubWindow(true);
         auto window = Window::Create(windowName, windowOption, extWindow->GetContext());
         if (window == nullptr) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                 "[window][createSubWindowWithOptions]msg: Create sub window failed."));
             return;
@@ -1460,6 +1705,8 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
         TLOGNI(WmsLogTag::WMS_UIEXT, "%{public}s %{public}s end", where, windowName.c_str());
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateSubWindowWithOptions") != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][createSubWindowWithOptions]msg: Internal task error"));
     }
@@ -1473,12 +1720,16 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Argc is invalid: %{public}zu", argc);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.occupyEvents",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][occupyEvents]msg: Mandatory parameters are left unspecified");
     }
     int32_t eventFlags = 0;
     if (!ConvertFromJsValue(env, argv[0], eventFlags)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to int32_t");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.occupyEvents",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][occupyEvents]msg: Incorrect parameters types");
     }
@@ -1490,6 +1741,8 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
         auto weakWindow = weakToken.lock();
         if (weakWindow == nullptr) {
             TLOGNE(WmsLogTag::WMS_UIEXT, "window is nullptr");
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.occupyEvents",
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                 "[window][occupyEvents]msg: The window is not created or destroyed"));
             return;
@@ -1499,17 +1752,20 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_UIEXT, "OnOccupyEvents failed, code: %{public}d", ret);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.occupyEvents", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][occupyEvents]"));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnOccupyEvents") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_UIEXT, "napi_send_event failed");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.occupyEvents",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][occupyEvents]msg: Internal task error"));
     }
     return result;
 }
- 
+
 napi_value JsExtensionWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_callback_info info)
 {
     WmErrorCode errCode = WmErrorCode::WM_OK;
@@ -2101,6 +2357,26 @@ napi_value JsExtensionWindow::OnInvalidAsyncCall(napi_env env, napi_callback_inf
             CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY), "failed to send event"));
     }
     return result;
+}
+
+napi_value JsExtensionWindow::OnGetWindowStatus(napi_env env, napi_callback_info info)
+{
+    sptr<Window> windowImpl = extensionWindow_->GetWindow();
+    if (windowImpl == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getWindowStatus]msg: The window is not created or destroyed");
+    }
+    WindowStatus windowStatus = WindowStatus::WINDOW_STATUS_UNDEFINED;
+    WMError errCode = windowImpl->GetWindowStatus(windowStatus);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "get window status failed, err: %{public}d", errCode);
+        return NapiThrowError(env, WM_JS_TO_ERROR_CODE_MAP.at(errCode),
+            "[window][getWindowStatus]msg: get window status failed");
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "Window [%{public}u, %{public}s] get window status: %{public}u",
+        windowImpl->GetWindowId(), windowImpl->GetWindowName().c_str(), windowStatus);
+    return CreateJsValue(env, static_cast<uint32_t>(windowStatus));
 }
 
 napi_value JsExtensionWindow::OnSnapshot(napi_env env, napi_callback_info info)

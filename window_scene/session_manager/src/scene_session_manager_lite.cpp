@@ -246,9 +246,9 @@ WMError SceneSessionManagerLite::UpdateScreenLockStatusForApp(const std::string&
     return SceneSessionManager::GetInstance().UpdateScreenLockStatusForApp(bundleName, isRelease);
 }
 
-WSError SceneSessionManagerLite::UpdateWindowMode(int32_t persistentId, int32_t windowMode)
+WSError SceneSessionManagerLite::UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo)
 {
-    return SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowMode);
+    return SceneSessionManager::GetInstance().UpdateWindowMode(persistentId, windowModeInfo);
 }
 
 WMError SceneSessionManagerLite::GetWindowModeType(WindowModeType& windowModeType)
@@ -312,6 +312,11 @@ WMError SceneSessionManagerLite::GetWindowStyleType(WindowStyleType& windowStyle
 WMError SceneSessionManagerLite::SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled)
 {
     return SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+}
+
+WMError SceneSessionManagerLite::RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+{
+    return SceneSessionManager::GetInstance().RecoverProcessWatermark(pid, watermarkName);
 }
 
 WMError SceneSessionManagerLite::TerminateSessionByPersistentId(int32_t persistentId)
@@ -547,5 +552,12 @@ WSError SceneSessionManagerLite::NotifyAppUseControlDisplay(DisplayId displayId,
 {
     TLOGI(WmsLogTag::WMS_PATTERN, "in");
     return SceneSessionManager::GetInstance().NotifyAppUseControlDisplay(displayId, useControl);
+}
+
+WMError SceneSessionManagerLite::GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+    std::vector<AppWindowShowingInfo>& windowInfos)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
 }
 } // namespace OHOS::Rosen

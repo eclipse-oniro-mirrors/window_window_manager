@@ -74,6 +74,12 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
         SceneSessionManagerMessage::TRANS_ID_SHIFT_APP_WINDOW_FOCUS), parcel, reply, option);
     parcel.RewindRead(0);
     SceneSessionManager::GetInstance().OnRemoteRequest(static_cast<uint32_t>(ISceneSessionManager::
+        SceneSessionManagerMessage::TRANS_ID_MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY), parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManager::GetInstance().OnRemoteRequest(static_cast<uint32_t>(ISceneSessionManager::
+        SceneSessionManagerMessage::TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO), parcel, reply, option);
+    parcel.RewindRead(0);
+    SceneSessionManager::GetInstance().OnRemoteRequest(static_cast<uint32_t>(ISceneSessionManager::
         SceneSessionManagerMessage::TRANS_ID_NOTIFY_WINDOW_EXTENSION_VISIBILITY_CHANGE), parcel, reply, option);
     return true;
 }

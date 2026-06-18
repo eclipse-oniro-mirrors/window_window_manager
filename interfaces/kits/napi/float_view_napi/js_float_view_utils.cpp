@@ -28,8 +28,11 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg)
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg, const char* enumerationName,
+    const char* boolName)
 {
+    HISTOGRAM_ENUMERATION_ERROR_CODE(enumerationName, errCode);
+    HISTOGRAM_BOOLEAN(boolName, 0);
     napi_throw(env, JsErrUtils::CreateJsError(env, errCode, msg));
     return NapiGetUndefined(env);
 }
@@ -97,6 +100,7 @@ static napi_value ExportFloatViewTemplate(napi_env env, napi_callback_info info)
         return nullptr;
     }
     (void)SetEnumProperty(env, result, "ROUNDED_RECTANGLE", static_cast<int32_t>(FloatViewTemplate::ROUNDED_RECTANGLE));
+    (void)SetEnumProperty(env, result, "HORIZONTAL_BAR", static_cast<int32_t>(FloatViewTemplate::HORIZONTAL_BAR));
     napi_object_freeze(env, result);
     return result;
 }
@@ -127,8 +131,25 @@ napi_value GetRectAndConvertToJsValue(napi_env env, const Rect& rect)
     return objValue;
 }
 
-napi_value CreateJsFvWindowInfoObject(napi_env env, const sptr<Window>& window, const FloatViewWindowInfo &windowInfo,
-    const FvWindowState &state)
+napi_value ConvertAvoidAreaToJsValue(napi_env env, const AvoidArea& avoidArea)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to create object when get avoidArea");
+        return nullptr;
+    }
+
+    napi_set_named_property(env, objValue, "visible", CreateJsValue(env, true));
+    napi_set_named_property(env, objValue, "leftRect", GetRectAndConvertToJsValue(env, avoidArea.leftRect_));
+    napi_set_named_property(env, objValue, "topRect", GetRectAndConvertToJsValue(env, avoidArea.topRect_));
+    napi_set_named_property(env, objValue, "rightRect", GetRectAndConvertToJsValue(env, avoidArea.rightRect_));
+    napi_set_named_property(env, objValue, "bottomRect", GetRectAndConvertToJsValue(env, avoidArea.bottomRect_));
+    return objValue;
+}
+
+napi_value CreateJsFloatViewPropertiesObject(napi_env env, uint32_t templateType,
+    const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state)
 {
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
@@ -136,6 +157,7 @@ napi_value CreateJsFvWindowInfoObject(napi_env env, const sptr<Window>& window, 
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get object");
         return nullptr;
     }
+    napi_set_named_property(env, objValue, "templateType", CreateJsValue(env, templateType));
     auto windowId = window->GetWindowId();
     napi_set_named_property(env, objValue, "windowId", CreateJsValue(env, windowId));
     auto displayId = window->GetDisplayId();
@@ -147,12 +169,12 @@ napi_value CreateJsFvWindowInfoObject(napi_env env, const sptr<Window>& window, 
     }
     napi_set_named_property(env, objValue, "windowRect", windowRectObj);
     napi_set_named_property(env, objValue, "windowScale", CreateJsValue(env, windowInfo.scale_));
-    napi_value titleBarRectObj = GetRectAndConvertToJsValue(env, windowInfo.titleBarRect_);
-    if (titleBarRectObj == nullptr) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "GetTitleBarRect failed!");
+    napi_value avoidAreaObj = ConvertAvoidAreaToJsValue(env, windowInfo.avoidArea_);
+    if (avoidAreaObj == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "GetWindowAvoidArea failed!");
         return nullptr;
     }
-    napi_set_named_property(env, objValue, "titleBarRect", titleBarRectObj);
+    napi_set_named_property(env, objValue, "avoidArea", avoidAreaObj);
     bool isSidebar = state == FvWindowState::FV_STATE_IN_SIDEBAR;
     napi_set_named_property(env, objValue, "inSidebar", CreateJsValue(env, isSidebar));
     return objValue;
@@ -207,6 +229,51 @@ napi_value CreateJsFloatViewLimitsObject(napi_env env, const FloatViewLimits& li
     }
     napi_set_named_property(env, objValue, "ratioLimits", ratioLimit);
     return objValue;
+}
+
+std::shared_ptr<TemplateProperty> ConvertJsValueToTemplateProperty(napi_env env, napi_value jsObject,
+    std::string& errorMsg, WmErrorCode& errorCode)
+{
+    napi_value jsTemplateType = nullptr;
+    bool hasProperty = false;
+    napi_has_named_property(env, jsObject, "templateType", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsObject, "templateType", &jsTemplateType);
+    }
+    napi_value jsSize = nullptr;
+    napi_has_named_property(env, jsObject, "size", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsObject, "size", &jsSize);
+    }
+    if (jsTemplateType == nullptr || jsSize == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "jsTemplateType or jsSize is null");
+        errorMsg = "Failed to get templateType or size, check if input is null or undefined.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+    uint32_t templateType = static_cast<uint32_t>(FloatViewTemplate::END);
+    if (!ConvertFromJsValue(env, jsTemplateType, templateType)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "template type is invalid");
+        errorMsg = "Invalid template type.";
+        errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return nullptr;
+    }
+
+    napi_value jsWidth = nullptr;
+    napi_value jsHeight = nullptr;
+    int32_t width = 0;
+    int32_t height = 0;
+    napi_has_named_property(env, jsSize, "width", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsSize, "width", &jsWidth);
+        ConvertFromJsValue(env, jsWidth, width);
+    }
+    napi_has_named_property(env, jsSize, "height", &hasProperty);
+    if (hasProperty) {
+        napi_get_named_property(env, jsSize, "height", &jsHeight);
+        ConvertFromJsValue(env, jsHeight, height);
+    }
+    return std::make_shared<TemplateProperty>(TemplateProperty{templateType, width, height});
 }
 } // namespace Rosen
 } // namespace OHOS

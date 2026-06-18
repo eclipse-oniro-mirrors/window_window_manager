@@ -604,14 +604,6 @@ HWTEST_F(SceneSessionTest4, ProcessUpdatePropertyByAction3, TestSize.Level1)
     EXPECT_EQ(WMError::WM_OK, sceneSession->ProcessUpdatePropertyByAction(property,
         WSPropertyChangeAction::ACTION_UPDATE_SUB_WINDOW_Z_LEVEL));
 
-    property->SetSystemCalling(false);
-    EXPECT_EQ(WMError::WM_ERROR_NOT_SYSTEM_APP, sceneSession->ProcessUpdatePropertyByAction(property,
-        WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO));
-
-    property->SetSystemCalling(true);
-    EXPECT_EQ(WMError::WM_OK, sceneSession->ProcessUpdatePropertyByAction(property,
-        WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO));
-
     EXPECT_EQ(WMError::WM_DO_NOTHING, sceneSession->ProcessUpdatePropertyByAction(property,
         WSPropertyChangeAction::ACTION_UPDATE_RECT));
 
@@ -2112,6 +2104,130 @@ HWTEST_F(SceneSessionTest4, RegisterGetIsDockAutoHideFunc, Function | SmallTest 
     EXPECT_NE(sceneSession, nullptr);
     sceneSession->RegisterGetIsDockAutoHideFunc([](){ return false; });
     EXPECT_NE(sceneSession->onGetIsDockAutoHideFunc_, nullptr);
+}
+
+/**
+ * @tc.name: AllowsMoveWithoutFocusWhenFocusIsNotRequired
+ * @tc.desc: IsMovable allows movement without focus when the caller disables the focus requirement
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, AllowsMoveWithoutFocusWhenFocusIsNotRequired, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "AllowsMoveWithoutFocusWhenFocusIsNotRequired";
+    info.bundleName_ = "AllowsMoveWithoutFocusWhenFocusIsNotRequired";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->hasPointDown_ = true;
+    sceneSession->moveDragController_->SetMovable(true);
+
+    ASSERT_EQ(WSError::WS_DO_NOTHING, sceneSession->UpdateFocus(false));
+    EXPECT_FALSE(sceneSession->IsMovable());
+    EXPECT_TRUE(sceneSession->IsMovable(false));
+}
+
+/**
+ * @tc.name: InputMethodWindowCanMoveWithoutFocusEvenWhenFocusIsRequested
+ * @tc.desc: IsMovable keeps the compatibility rule that input method windows do not require focus
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, InputMethodWindowCanMoveWithoutFocusEvenWhenFocusIsRequested, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "InputMethodWindowCanMoveWithoutFocusEvenWhenFocusIsRequested";
+    info.bundleName_ = "InputMethodWindowCanMoveWithoutFocusEvenWhenFocusIsRequested";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->hasPointDown_ = true;
+    sceneSession->moveDragController_->SetMovable(true);
+
+    ASSERT_EQ(WSError::WS_DO_NOTHING, sceneSession->UpdateFocus(false));
+    EXPECT_TRUE(sceneSession->IsMovable());
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsReturnsErrorWhenControllerIsMissing
+ * @tc.desc: StartMovingWithOptions fails when move drag controller is absent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, StartMovingWithOptionsReturnsErrorWhenControllerIsMissing, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+
+    EXPECT_EQ(sceneSession->StartMovingWithOptions({}), WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsRejectsRepeatedMove
+ * @tc.desc: StartMovingWithOptions rejects a second request while movement is already active
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, StartMovingWithOptionsRejectsRepeatedMove, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->isStartMove_ = true;
+
+    EXPECT_EQ(sceneSession->StartMovingWithOptions({}), WMError::WM_ERROR_REPEAT_OPERATION);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsPassesFocusAndAvoidRectToStartMoveEvent
+ * @tc.desc: StartMovingWithOptions forwards options through the start move event path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, StartMovingWithOptionsPassesFocusAndAvoidRectToStartMoveEvent, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->hasPointDown_ = true;
+    sceneSession->moveDragController_->SetMovable(true);
+    StartMovingOptions options;
+    options.needFocused = false;
+    options.avoidRect = { 1, 2, 3, 4 };
+
+    EXPECT_EQ(sceneSession->StartMovingWithOptions(options), WMError::WM_OK);
+    const WSRect expectedAvoidRect = { 1, 2, 3, 4 };
+    EXPECT_EQ(sceneSession->moveDragController_->movingAvoidRect_, expectedAvoidRect);
+}
+
+/**
+ * @tc.name: StartMoveEventKeepsAvoidRectUnsetWhenFocusIsRequiredButMissing
+ * @tc.desc: EVENT_START_MOVE returns early before applying avoid rect when focus is required and absent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, StartMoveEventKeepsAvoidRectUnsetWhenFocusIsRequiredButMissing, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->hasPointDown_ = true;
+    sceneSession->moveDragController_->SetMovable(true);
+    SessionEventParam param;
+    param.needFocused = true;
+    param.avoidRect = { 1, 2, 3, 4 };
+
+    EXPECT_EQ(sceneSession->OnSessionEvent(SessionEvent::EVENT_START_MOVE, param), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->moveDragController_->movingAvoidRect_, WSRect::EMPTY_RECT);
 }
 }
 }

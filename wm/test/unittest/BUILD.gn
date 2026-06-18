@@ -77,7 +77,6 @@ group("unittest") {
       ":wm_window_scene_session_impl_test3",
       ":wm_window_scene_session_impl_test4",
       ":wm_window_scene_session_impl_test5",
-      ":wm_window_scene_session_impl_test6",
       "rotation:wm_window_scene_session_impl_rotation_test",
       ":wm_window_scene_test",
       ":wm_window_session_impl_compatible_mode_test",
@@ -98,6 +97,7 @@ group("unittest") {
       "layout:wm_layout_test",
       "pattern:window_scene_session_impl_pattern_test",
       "special_window:window_scene_session_impl_special_window_test",
+      "ui_extension:wm_atomic_touchOutside_rectChange_test",
       "ui_extension:wm_extension_window_impl_test",
       "ui_extension:wm_window_extension_session_impl_test",
       "ui_extension:wm_window_scene_session_impl_uiextension_test",
@@ -529,6 +529,7 @@ ohos_unittest("wm_window_scene_session_impl_test4") {
   deps = [
     ":wm_unittest_common",
     "${window_base_path}/test/common/utils:libtestutil",
+    "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
   ]
 
   external_deps = test_external_deps
@@ -539,21 +540,6 @@ ohos_unittest("wm_window_scene_session_impl_test5") {
   include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
 
   sources = [ "window_scene_session_impl_test5.cpp" ]
-
-  deps = [
-    ":wm_unittest_common",
-    "${window_base_path}/test/common/utils:libtestutil",
-    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-  ]
-
-  external_deps = test_external_deps
-}
-
-ohos_unittest("wm_window_scene_session_impl_test6") {
-  module_out_path = module_out_path
-  include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
-
-  sources = [ "window_scene_session_impl_test6.cpp" ]
 
   deps = [
     ":wm_unittest_common",
@@ -639,11 +625,11 @@ ohos_unittest("wm_picture_in_picture_option_test") {
 
 ohos_unittest("wm_picture_in_picture_option_ani_test") {
   module_out_path = module_out_path
- 
+
   sources = [ "picture_in_picture_option_ani_test.cpp" ]
- 
+
   deps = [ ":wm_unittest_common" ]
- 
+
   external_deps = test_external_deps
 }
 
@@ -974,7 +960,7 @@ ohos_static_library("wm_unittest_common") {
     # need delete it for abilitycontext
     "${window_base_path}/dm:libdm",
     "${window_base_path}/dmserver:libdms",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/wm:libwm_lite",

@@ -26,19 +26,14 @@ export type CallbackState = (state: int) => void;
 export default namespace floatView {
   static { loadLibrary('fvwindowani_kit.z'); }
   
-  export native function isFloatViewEnabled(): boolean;
-  export native function getFloatViewLimits(): FloatViewLimits;
-  export native function bind(fvController: FloatViewController,
-    fbController: floatingBall.FloatingBallController, fbOption: floatingBall.FloatingBallParams): void;
-  export native function unBind(fvController: FloatViewController,
-    fbController: floatingBall.FloatingBallController): void;
-
   export interface FloatViewController {
     start(): Promise<void>;
     stop(): Promise<void>;
     setUIContext(path: string, contentStorage?: LocalStorage): Promise<void>;
+    setUIContextByName(name: string, contentStorage?: LocalStorage): Promise<void>;
     setFloatViewVisibilityInApp(visibleInApp: boolean): Promise<void>;
     setWindowSize(size: window.Size): Promise<void>;
+    switchTemplate(templateProperty: TemplateProperty): Promise<void>;
     getWindowProperties(): FloatViewProperties;
     restoreMainWindow(wantParameters?: Record<string, object>): Promise<void>;
     onStateChange(callback: Callback<FloatViewStateChangeInfo>): void;
@@ -47,6 +42,11 @@ export default namespace floatView {
     offRectChange(callback?: Callback<FloatViewRectChangeInfo>): void;
     onLimitsChange(callback: Callback<FloatViewLimits>): void;
     offLimitsChange(callback?: Callback<FloatViewLimits>): void;
+  }
+
+  export interface TemplateProperty {
+    templateType: FloatViewTemplateType;
+    size: window.Size;
   }
 
   export interface FloatViewConfiguration {
@@ -69,28 +69,31 @@ export default namespace floatView {
   }
 
   export interface FloatViewProperties {
+    templateType: FloatViewTemplateType;
     windowId: int;
     displayId: int;
     windowRect: window.Rect;
     windowScale: double;
-    titleBarRect: window.Rect;
+    avoidArea: window.AvoidArea;
     inSidebar: boolean;
   }
 
   export class FloatViewPropertiesInner implements FloatViewProperties {
+    templateType: FloatViewTemplateType;
     windowId: int;
     displayId: int;
     windowRect: window.Rect;
     windowScale: double;
-    titleBarRect: window.Rect;
+    avoidArea: window.AvoidArea;
     inSidebar: boolean;
-    constructor(windowId: int, displayId: int,
-      windowRect: window.Rect, scale: double, titleBarRect: window.Rect, sidebar: boolean) {
+    constructor(templateType: int, windowId: int, displayId: int,
+      windowRect: window.Rect, scale: double, avoidArea: window.AvoidArea, sidebar: boolean) {
+      this.templateType = FloatViewTemplateType.fromValue(templateType);
       this.windowId = windowId;
       this.displayId = displayId;
       this.windowRect = windowRect;
       this.windowScale = scale;
-      this.titleBarRect = titleBarRect;
+      this.avoidArea = avoidArea;
       this.inSidebar = sidebar;
     }
   }
@@ -154,6 +157,7 @@ export default namespace floatView {
 
   export enum FloatViewTemplateType {
     ROUNDED_RECTANGLE = 0,
+    HORIZONTAL_BAR = 1,
   }
 
   function runOnStateChangeEvent(cb: object, info: FloatViewStateChangeInfo): void {
@@ -191,8 +195,40 @@ export default namespace floatView {
     });
   }
 
+  export native function isFloatViewEnabled(): boolean;
+  export native function getFloatViewLimits(templateType: FloatViewTemplateType): FloatViewLimits;
+
+  export native function bindSync(fvController: FloatViewController,
+    fbController: floatingBall.FloatingBallController, fbOption: floatingBall.FloatingBallParams): void;
+  function bind(fvController: FloatViewController,
+    fbController: floatingBall.FloatingBallController, fbOption: floatingBall.FloatingBallParams): Promise<void> {
+    return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute((): void => {
+          bindSync(fvController, fbController, fbOption);
+      }).then((ret: Any) => {
+          resolve(undefined);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+    });
+  }
+
+  export native function unbindSync(fvController: FloatViewController,
+    fbController: floatingBall.FloatingBallController): void;
+  function unbind(fvController: FloatViewController, fbController: floatingBall.FloatingBallController): Promise<void> {
+    return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute((): void => {
+          unbindSync(fvController, fbController);
+      }).then((ret: Any) => {
+          resolve(undefined);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+    });
+  }
+
   export native function fvControllerFinalizerCallback(nativeObj: long): void;
-  let fvControllerFinalizerRegister = new FinalizationRegistry<long>(fvControllerFinalizerCallback);
+  let fvControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(fvControllerFinalizerCallback);
 
   export class FvControllerInternal implements FloatViewController {
     private nativeObj: long = 0;
@@ -206,70 +242,90 @@ export default namespace floatView {
 
     public native startFloatViewNative(nativeObj: long): void;
     public start(): Promise<void> {
-        return new Promise<void>(
-          (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-            try {
-              this.startFloatViewNative(this.nativeObj);
-              resolve(undefined);
-            } catch (err) {
-              reject(err as BusinessError);
-            }
-        });
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        try {
+          this.startFloatViewNative(this.nativeObj);
+          resolve(undefined);
+        } catch (err) {
+          reject(err as BusinessError);
+        }
+      });
     }
 
     public native stopFloatViewNative(nativeObj: long): void;
     public stop(): Promise<void> {
-        return new Promise<void>(
-          (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-            taskpool.execute((): void => {
-                this.stopFloatViewNative(this.nativeObj);
-            }).then((ret: Any) :void => {
-                resolve(undefined);
-            }).catch((err: Any) :void => {
-                reject(err as BusinessError);
-            });
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.stopFloatViewNative(this.nativeObj);
+        }).then((ret: Any) :void => {
+          resolve(undefined);
+        }).catch((err: Any) :void => {
+          reject(err as BusinessError);
         });
+      });
     }
 
     public native setUIContextNative(nativeObj: long, path: string, contentStorage?: LocalStorage): void;
     public setUIContext(path: string, contentStorage?: LocalStorage): Promise<void> {
-        return new Promise<void>(
-          (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-            try {
-              this.setUIContextNative(this.nativeObj, path, contentStorage);
-              resolve(undefined);
-            } catch (err) {
-              reject(err as BusinessError);
-            }
-        });
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        try {
+          this.setUIContextNative(this.nativeObj, path, contentStorage);
+          resolve(undefined);
+        } catch (err) {
+          reject(err as BusinessError);
+        }
+      });
+    }
+
+    public native setUIContextByNameNative(nativeObj: long, name: string, contentStorage?: LocalStorage): void;
+    public setUIContextByName(name: string, contentStorage?: LocalStorage): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        try {
+          this.setUIContextByNameNative(this.nativeObj, name, contentStorage);
+          resolve(undefined);
+        } catch (err) {
+          reject(err as BusinessError);
+        }
+      });
     }
 
     public native setFloatViewVisibilityInAppNative(nativeObj: long, visibleInApp: boolean): void;
     public setFloatViewVisibilityInApp(visibleInApp: boolean): Promise<void> {
-        return new Promise<void>(
-          (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-            taskpool.execute((): void => {
-                this.setFloatViewVisibilityInAppNative(this.nativeObj, visibleInApp);
-            }).then((ret: Any) :void => {
-                resolve(undefined);
-            }).catch((err: Any) :void => {
-                reject(err as BusinessError);
-            });
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.setFloatViewVisibilityInAppNative(this.nativeObj, visibleInApp);
+        }).then((ret: Any) :void => {
+          resolve(undefined);
+        }).catch((err: Any) :void => {
+          reject(err as BusinessError);
         });
+      });
     }
 
     public native setWindowSizeNative(nativeObj: long, size: window.Size): void;
     public setWindowSize(size: window.Size): Promise<void> {
-        return new Promise<void>(
-          (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-            taskpool.execute((): void => {
-                this.setWindowSizeNative(this.nativeObj, size);
-            }).then((ret: Any) :void => {
-                resolve(undefined);
-            }).catch((err: Any) :void => {
-                reject(err as BusinessError);
-            });
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.setWindowSizeNative(this.nativeObj, size);
+        }).then((ret: Any) :void => {
+          resolve(undefined);
+        }).catch((err: Any) :void => {
+          reject(err as BusinessError);
         });
+      });
+    }
+
+    public native switchTemplateNative(nativeObj: long, templateProperty: TemplateProperty): void;
+    public switchTemplate(templateProperty: TemplateProperty): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.switchTemplateNative(this.nativeObj, templateProperty);
+        }).then((ret: Any) :void => {
+          resolve(undefined);
+        }).catch((err: Any) :void => {
+          reject(err as BusinessError);
+        });
+      });
     }
 
     native getWindowPropertiesNative(nativeObj: long): FloatViewProperties;
@@ -280,16 +336,15 @@ export default namespace floatView {
 
     public native restoreMainWindowNative(nativeObj: long, wantParameters?: Record<string, object>): void;
     public restoreMainWindow(wantParameters?: Record<string, object>): Promise<void> {
-        return new Promise<void>(
-          (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-            taskpool.execute((): void => {
-                this.restoreMainWindowNative(this.nativeObj, wantParameters);
-            }).then((ret: Any) :void => {
-                resolve(undefined);
-            }).catch((err: Any) :void => {
-                reject(err as BusinessError);
-            });
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.restoreMainWindowNative(this.nativeObj, wantParameters);
+        }).then((ret: Any) :void => {
+          resolve(undefined);
+        }).catch((err: Any) :void => {
+          reject(err as BusinessError);
         });
+      });
     }
 
     native onStateChangeNative(nativeObj: long, callback: Object): void;

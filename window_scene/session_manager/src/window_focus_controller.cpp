@@ -271,5 +271,21 @@ void WindowFocusController::LogDisplayIds()
     }
     TLOGI(WmsLogTag::WMS_FOCUS, "%{public}s", oss.str().c_str());
 }
+
+
+bool WindowFocusController::GetShouldCheckBlocking(const sptr<SceneSession>& sceneSession,
+    const sptr<SceneSession>& focusedSession, bool byForeground, FocusChangeReason reason) const
+{
+    bool shouldCheckBlocking = byForeground;
+    if (reason == FocusChangeReason::CLIENT_REQUEST && sceneSession != nullptr && focusedSession != nullptr &&
+        sceneSession->IsAppSession() && sceneSession->GetMissionId() == focusedSession->GetMissionId()) {
+        TLOGD(WmsLogTag::WMS_FOCUS, "client request from the same app, skip blocking check");
+        shouldCheckBlocking = false;
+    }
+    if (reason == FocusChangeReason::FORCE_FOCUSED) {
+        shouldCheckBlocking = false;
+    }
+    return shouldCheckBlocking;
+}
 } // namespace Rosen
 } // namespace OHOS

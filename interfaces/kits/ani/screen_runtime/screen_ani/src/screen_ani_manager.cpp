@@ -319,6 +319,7 @@ void ScreenManagerAni::CreateVirtualScreen(ani_env* env, ani_object options, ani
     }
 
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::ANI_SCREEN_MANAGER;
     auto ret = ScreenAniUtils::GetVirtualScreenOption(env, options, option);
     if (ret != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen options failed");
@@ -748,6 +749,8 @@ ani_status ScreenManagerAni::ClassBindNativeFunctions(ani_env* env, ani_class sc
         ani_native_function{
             "setScreenActiveModeInternal", nullptr, reinterpret_cast<void*>(ScreenAni::SetScreenActiveMode) },
         ani_native_function{ "setOrientationInternal", nullptr, reinterpret_cast<void*>(ScreenAni::SetOrientation) },
+        ani_native_function{ "setOrientationWithOptions", nullptr,
+            reinterpret_cast<void*>(ScreenAni::SetOrientationWithOptions) },
     };
     ani_status ret = env->Class_BindNativeMethods(screenCls, methods.data(), methods.size());
     if (ret != ANI_OK) {

@@ -134,6 +134,7 @@ public:
     static napi_value IsFocused(napi_env env, napi_callback_info info);
     static napi_value RequestFocus(napi_env env, napi_callback_info info);
     static napi_value StartMoving(napi_env env, napi_callback_info info);
+    static napi_value StartMovingWithOptions(napi_env env, napi_callback_info info);
     static napi_value StopMoving(napi_env env, napi_callback_info info);
     static napi_value GetWindowDensityInfo(napi_env env, napi_callback_info info);
     static napi_value SetDefaultDensityEnabled(napi_env env, napi_callback_info info);
@@ -199,6 +200,7 @@ public:
      */
     static napi_value GetWindowStatus(napi_env env, napi_callback_info info);
     static napi_value SetWindowMask(napi_env env, napi_callback_info info);
+    static napi_value SetWindowMaskWithAlpha(napi_env env, napi_callback_info info);
     static napi_value ClearWindowMask(napi_env env, napi_callback_info info);
     static napi_value SetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
     static napi_value IsInFreeWindowMode(napi_env env, napi_callback_info info);
@@ -232,9 +234,11 @@ public:
      */
     static napi_value Recover(napi_env env, napi_callback_info info);
     static napi_value Maximize(napi_env env, napi_callback_info info);
+    static napi_value MaximizeWithOptions(napi_env env, napi_callback_info info);
     static napi_value SetTitleAndDockHoverShown(napi_env env, napi_callback_info info);
     static napi_value Restore(napi_env env, napi_callback_info info);
     static napi_value SetDragKeyFramePolicy(napi_env env, napi_callback_info info);
+    static napi_value SetSupportedWindowModes(napi_env env, napi_callback_info info);
 
     /*
      * Window Immersive
@@ -352,6 +356,8 @@ private:
     napi_value OnSetWindowLimits(napi_env env, napi_callback_info info);
     napi_value OnGetWindowLimits(napi_env env, napi_callback_info info);
     napi_value OnGetWindowLimitsVP(napi_env env, napi_callback_info info);
+    WmErrorCode RegisterParentWindowCallback(napi_env env, napi_ref callbackRef, const char* callbackName);
+    void CleanUpCallbackReferences(napi_env env, napi_ref sizeChangeCallbackRef, napi_ref statusChangeCallbackRef);
     napi_value OnAttachToParentWindow(napi_env env, napi_callback_info info);
     napi_value OnDetachLayoutToParentWindow(napi_env env, napi_callback_info info);
 
@@ -432,6 +438,7 @@ private:
     napi_value OnSetWindowGrayScale(napi_env env, napi_callback_info info);
     napi_value OnEnableDrag(napi_env env, napi_callback_info info);
     napi_value OnStartMoving(napi_env env, napi_callback_info info);
+    napi_value OnStartMovingWithOptions(napi_env env, napi_callback_info info);
     napi_value OnStopMoving(napi_env env, napi_callback_info info);
     napi_value OnSetRotationLocked(napi_env env, napi_callback_info info);
     napi_value OnGetRotationLocked(napi_env env, napi_callback_info info);
@@ -454,6 +461,7 @@ private:
      * PC Window
      */
     napi_value OnSetWindowMask(napi_env env, napi_callback_info info);
+    napi_value OnSetWindowMaskWithAlpha(napi_env env, napi_callback_info info);
     napi_value OnClearWindowMask(napi_env env, napi_callback_info info);
     napi_value OnGetWindowStatus(napi_env env, napi_callback_info info);
     napi_value OnSetFollowParentMultiScreenPolicy(napi_env env, napi_callback_info info);
@@ -488,10 +496,12 @@ private:
      */
     napi_value OnRecover(napi_env env, napi_callback_info info);
     napi_value OnMaximize(napi_env env, napi_callback_info info);
+    napi_value OnMaximizeWithOptions(napi_env env, napi_callback_info info);
     napi_value OnSetTitleAndDockHoverShown(napi_env env, napi_callback_info info);
     napi_value OnRestore(napi_env env, napi_callback_info info);
     napi_value OnStartMoveWindowWithCoordinate(napi_env env, size_t argc, napi_value* argv);
     napi_value OnSetDragKeyFramePolicy(napi_env env, napi_callback_info info);
+    napi_value OnSetSupportedWindowModes(napi_env env, napi_callback_info info);
 
     std::string windowName_;
     sptr<Window> windowToken_ = nullptr;

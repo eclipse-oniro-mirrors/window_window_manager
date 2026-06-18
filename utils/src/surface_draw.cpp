@@ -19,6 +19,7 @@
 #include "surface_draw.h"
 #include <transaction/rs_interfaces.h>
 #include <ui/rs_surface_extractor.h>
+#include <ui/rs_ui_context.h>
 
 #include "image/bitmap.h"
 #include "image_source.h"
@@ -561,7 +562,7 @@ bool SurfaceDraw::GetSurfaceSnapshot(const std::shared_ptr<RSSurfaceNode> surfac
     std::shared_ptr<Media::PixelMap>&pixelMap, int32_t timeoutMs, float scaleW, float scaleH)
 {
     if (surfaceNode == nullptr) {
-        WLOGFE("surfaceNode is null");
+        WLOGFE("surfaceNode or rsUIContext is null");
         return false;
     }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SurfaceDraw:GetSurfaceSnapshot(%llu)", surfaceNode->GetId());
@@ -570,7 +571,12 @@ bool SurfaceDraw::GetSurfaceSnapshot(const std::shared_ptr<RSSurfaceNode> surfac
         .scaleX = scaleW,
         .scaleY = scaleH,
     };
-    if (RSInterfaces::GetInstance().TakeSurfaceCapture(surfaceNode, callback, config)) {
+    auto rsUICtx = surfaceNode->GetRSUIContext();
+    if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsUIContext is null");
+        return false;
+    }
+    if (rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode, callback, config)) {
         pixelMap = callback->GetResult(timeoutMs); // get pixelmap time out ms
     }
     if (pixelMap == nullptr) {

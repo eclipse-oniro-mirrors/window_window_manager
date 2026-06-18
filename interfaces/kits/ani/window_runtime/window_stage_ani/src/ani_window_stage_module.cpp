@@ -33,6 +33,7 @@
 #include "interop_js/hybridgref_napi.h"
 #include "js_window_stage.h"
 #include "ani_extension_window_config.h"
+#include "window_histogram_management.h"
 
 using OHOS::Rosen::WindowScene;
 using namespace OHOS::Rosen;

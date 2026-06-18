@@ -476,7 +476,7 @@ AllowInMultiThreadGuard::~AllowInMultiThreadGuard()
 bool RSAdapterUtil::IsClientMultiInstanceEnabled()
 {
     static bool enabled = [] {
-        bool value = system::GetParameter("persist.rosen.rsclientmultiinstance.enabled", "0") != "0";
+        bool value = system::GetParameter("persist.rosen.rsclientmultiinstance.enabled", "1") != "0";
         TLOGNI(WmsLogTag::WMS_SCB, "RS multi-instance enabled: %{public}d", value);
         return value;
     }();
@@ -484,8 +484,7 @@ bool RSAdapterUtil::IsClientMultiInstanceEnabled()
 }
 
 void RSAdapterUtil::InitRSUIDirector(std::shared_ptr<RSUIDirector>& rsUIDirector,
-                                     bool shouldCreateRenderThread, bool isMultiInstance,
-                                     const std::shared_ptr<RSUIContext>& rsUiContext)
+    sptr<IRemoteObject> connectToRenderToken, const std::shared_ptr<RSUIContext>& rsUiContext)
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED();
     if (rsUIDirector) {
@@ -493,9 +492,8 @@ void RSAdapterUtil::InitRSUIDirector(std::shared_ptr<RSUIDirector>& rsUIDirector
               "RSUIDirector already exists: %{public}s", RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str());
         return;
     }
-    rsUIDirector = RSUIDirector::Create();
+    rsUIDirector = RSUIDirector::Create(connectToRenderToken, rsUiContext);
     if (rsUIDirector) {
-        rsUIDirector->Init(shouldCreateRenderThread, isMultiInstance, rsUiContext);
         TLOGI(WmsLogTag::WMS_SCB, "Create RSUIDirector: %{public}s, rsUIContext: %{public}s",
               RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str(),
               RSAdapterUtil::RSUIContextToStr(rsUiContext).c_str());
@@ -603,6 +601,29 @@ std::string RSAdapterUtil::RSUIDirectorToStr(const std::shared_ptr<RSUIDirector>
     std::ostringstream oss;
     oss << "RSUIDirector's " << RSUIContextToStr(rsUIDirector->GetRSUIContext());
     return oss.str();
+}
+
+sptr<IRemoteObject> RSUIContextContainer::renderSession;
+std::shared_ptr<RSUIContext> RSUIContextContainer::rsUIContext;
+
+sptr<IRemoteObject> RSUIContextContainer::GetRenderSession()
+{
+    return renderSession;
+}
+
+void RSUIContextContainer::SetRenderSession(sptr<IRemoteObject> renderSessionObj)
+{
+    renderSession = renderSessionObj;
+}
+
+std::shared_ptr<RSUIContext> RSUIContextContainer::GetRSUIContext()
+{
+    return rsUIContext;
+}
+
+void RSUIContextContainer::SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj)
+{
+    rsUIContext = rsUIContextObj;
 }
 } // namespace Rosen
 } // namespace OHOS

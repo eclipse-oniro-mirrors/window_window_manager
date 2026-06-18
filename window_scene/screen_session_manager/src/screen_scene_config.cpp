@@ -50,6 +50,7 @@ enum XmlNodeElement {
     IS_CONCURRENT_USER,
     BUILD_IN_DEFAULT_ORIENTATION,
     DEFAULT_DEVICE_ROTATION_OFFSET,
+    SUB_DEVICE_ROTATION_OFFSET,
     DEFAULT_DISPLAY_CUTOUT_PATH,
     SUB_DISPLAY_CUTOUT_PATH,
     HALL_SWITCH_APP,
@@ -116,6 +117,7 @@ std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {IS_CURVED_COMPRESS_ENABLED, "isWaterfallAreaCompressionEnableWhenHorizontal"},
     {BUILD_IN_DEFAULT_ORIENTATION, "buildInDefaultOrientation"},
     {DEFAULT_DEVICE_ROTATION_OFFSET, "defaultDeviceRotationOffset"},
+    {SUB_DEVICE_ROTATION_OFFSET, "subDeviceRotationOffset"},
     {DEFAULT_DISPLAY_CUTOUT_PATH, "defaultDisplayCutoutPath"},
     {SUB_DISPLAY_CUTOUT_PATH, "subDisplayCutoutPath"},
     {HALL_SWITCH_APP, "hallSwitchApp"},
@@ -246,6 +248,7 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         (xmlNodeMap_[CURVED_AREA_IN_LANDSCAPE] == nodeName) ||
         (xmlNodeMap_[BUILD_IN_DEFAULT_ORIENTATION] == nodeName) ||
         (xmlNodeMap_[DEFAULT_DEVICE_ROTATION_OFFSET] == nodeName) ||
+        (xmlNodeMap_[SUB_DEVICE_ROTATION_OFFSET] == nodeName) ||
         (xmlNodeMap_[OFF_SCREEN_PPI_THRESHOLD] == nodeName) ||
         (xmlNodeMap_[PC_MODE_DPI] == nodeName) ||
         (xmlNodeMap_[HALF_FOLDED_MAX_THRESHOLD] == nodeName) ||
@@ -439,6 +442,12 @@ void ScreenSceneConfig::ReadPhysicalDisplayConfigInfo(const xmlNodePtr& currNode
         physicalSize.foldDisplayMode_ = FoldDisplayMode::SUB;
     } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_GLOBAL_FULL"))) {
         physicalSize.foldDisplayMode_ = FoldDisplayMode::GLOBAL_FULL;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_L_FULL"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::L_FULL;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_N_MAIN"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::N_MAIN;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_V_MAIN"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::V_MAIN;
     } else {
         physicalSize.foldDisplayMode_ = FoldDisplayMode::UNKNOWN;
     }

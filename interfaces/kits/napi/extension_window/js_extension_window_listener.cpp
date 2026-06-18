@@ -28,7 +28,7 @@ namespace Rosen {
 using namespace AbilityRuntime;
 namespace {
 const std::string WINDOW_SIZE_CHANGE_CB = "windowSizeChange";
-const std::string WINDOW_RECT_CHANGE_CB = "rectChange";
+const std::string COMPONENT_RECT_CHANGE_CB = "rectChange";
 const std::string SYSTEM_AVOID_AREA_CHANGE_CB = "systemAvoidAreaChange";
 const std::string AVOID_AREA_CHANGE_CB = "avoidAreaChange";
 const std::string LIFECYCLE_EVENT_CB = "lifeCycleEvent";
@@ -39,6 +39,8 @@ const std::string SCREENSHOT_EVENT_CB = "screenshot";
 const std::string EXTENSION_SECURE_LIMIT_CHANGE_CB = "uiExtensionSecureLimitChange";
 const std::string KEYBOARD_DID_SHOW_CB = "keyboardDidShow";
 const std::string KEYBOARD_DID_HIDE_CB = "keyboardDidHide";
+const std::string WINDOW_STATUS_CHANGE_CB = "windowStatusChange";
+const std::string TOUCH_OUTSIDE_CB = "touchOutside";
 }
 
 JsExtensionWindowListener::~JsExtensionWindowListener()
@@ -154,7 +156,7 @@ void JsExtensionWindowListener::OnRectChange(Rect rect, WindowSizeChangeReason r
         napi_set_named_property(env, objValue, "reason", CreateJsValue(env,
             ComponentRectChangeReason::HOST_WINDOW_RECT_CHANGE));
         napi_value argv[] = { objValue };
-        thisListener->CallJsMethod(WINDOW_RECT_CHANGE_CB.c_str(), argv, ArraySize(argv));
+        thisListener->CallJsMethod(COMPONENT_RECT_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
     if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnRectChange") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_UIEXT, "send event failed");
@@ -369,6 +371,22 @@ void JsExtensionWindowListener::OnKeyboardDidHide(const KeyboardPanelInfo& keybo
     }
 }
 
+void JsExtensionWindowListener::OnTouchOutside() const
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "[NAPI]");
+    auto jsCallback = [self = weakRef_] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr) {
+            TLOGNE(WmsLogTag::WMS_UIEXT, "this listener is nullptr");
+            return;
+        }
+        thisListener->CallJsMethod(TOUCH_OUTSIDE_CB.c_str(), nullptr, 0);
+    };
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnTouchOutside") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Failed to send event");
+    }
+}
+
 static void LifeCycleCallBack(LifeCycleEventType eventType, wptr<JsExtensionWindowListener> weakRef,
     napi_env env, std::shared_ptr<AppExecFwk::EventHandler> eventHandler)
 {
@@ -444,6 +462,24 @@ void JsExtensionWindowListener::AfterPaused()
 void JsExtensionWindowListener::AfterDestroyed()
 {
     LifeCycleCallBack(LifeCycleEventType::DESTROYED, weakRef_, env_, eventHandler_);
+}
+
+void JsExtensionWindowListener::OnWindowStatusChange(WindowStatus status)
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "status: %{public}u", status);
+    auto jsCallback = [self = weakRef_, status, env = env_, funcName = __func__] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || env == nullptr) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "%{public}s: this listener or env is nullptr", funcName);
+            return;
+        }
+        HandleScope handleScope(env);
+        napi_value argv[] = { CreateJsValue(env, static_cast<uint32_t>(status)) };
+        thisListener->CallJsMethod(WINDOW_STATUS_CHANGE_CB.c_str(), argv, ArraySize(argv));
+    };
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowStatusChange") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Failed to send event");
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

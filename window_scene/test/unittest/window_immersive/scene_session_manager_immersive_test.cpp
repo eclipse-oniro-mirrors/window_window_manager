@@ -474,6 +474,11 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetScaleInLSState, TestSize.Level0)
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
     sceneSession->specificCallback_->onGetLSState_ = []() { return false; };
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_DO_NOTHING);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToEventMapping(true);
+    sceneSession->property_->SetCompatibleModeProperty(compatibleModeProperty);
+    EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
+    compatibleModeProperty->SetIsAdaptToEventMapping(false);
     sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_ERROR_INVALID_PARAM);
     sceneSession->Session::SetIgnoreRotateScale(1, 0);
@@ -481,6 +486,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, GetScaleInLSState, TestSize.Level0)
     WSRect winRect = { 0, 0, 0, 0 };
     sceneSession->CalculateAvoidAreaByScale(winRect);
     sceneSession->Session::SetIgnoreRotateScale(1, 1);
+    compatibleModeProperty->SetIsAdaptToEventMapping(true);
     EXPECT_EQ(sceneSession->GetScaleInLSState(scaleX, scaleY), WSError::WS_OK);
     AvoidArea area;
     sceneSession->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, winRect, area);
@@ -608,6 +614,62 @@ HWTEST_F(SceneSessionManagerImmersiveTest, PostProcessProperty, TestSize.Level1)
     ssm_->PostProcessProperty(64);
     ssm_->sceneSessionMap_.clear();
     ssm_->PostProcessProperty(64);
+}
+
+/*
+ * @tc.name: CheckAvoidAreaForAINavigationBar
+ * @tc.desc: CheckAvoidAreaForAINavigationBar
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, CheckAvoidAreaForAINavigationBar, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    AvoidArea avoidArea;
+    avoidArea.topRect_ = { 0, 1, 1, 1 };
+    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
+    avoidArea.topRect_ = { 0, 0, 0, 0 };
+    avoidArea.leftRect_ = { 0, 1, 1, 1 };
+    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
+    avoidArea.leftRect_ = { 0, 0, 0, 0 };
+    avoidArea.rightRect_ = { 0, 1, 1, 1 };
+    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
+    avoidArea.rightRect_ = { 0, 0, 0, 0 };
+    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), true);
+    avoidArea.bottomRect_ = { 0, 1, 1, 1 };
+    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
+}
+
+/*
+ * @tc.name: GetWindowStateSnapshot
+ * @tc.desc: GetWindowStateSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerImmersiveTest, GetWindowStateSnapshot, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    int32_t persistentId = 1;
+    std::string winStateSnapshotJsonStr;
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr), WMError::WM_OK);
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = persistentId;
+    sessionInfo.screenId_ = 0;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->sceneSessionMap_.insert(std::make_pair(persistentId, sceneSession));
+    std::string winStateSnapshotJsonStr1;
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr1), WMError::WM_OK);
+    sessionInfo.persistentId_ = 100;
+    sptr<SceneSession> statusBarSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sptr<SceneSession> navigationBarSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    statusBarSession->property_->SetWindowType(WindowType::WINDOW_TYPE_STATUS_BAR);
+    navigationBarSession->property_->SetWindowType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
+    ssm_->sceneSessionMap_.insert(std::make_pair(100, statusBarSession));
+    ssm_->sceneSessionMap_.insert(std::make_pair(101, navigationBarSession));
+    std::string winStateSnapshotJsonStr2;
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr2), WMError::WM_OK);
+    winStateSnapshotJsonStr = "{";
+    EXPECT_EQ(ssm_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+    ssm_->sceneSessionMap_.clear();
 }
 }
 }

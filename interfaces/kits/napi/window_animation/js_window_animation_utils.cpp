@@ -22,12 +22,12 @@
 #include <tokenid_kit.h>
 #include "window_manager_hilog.h"
 
-#define RETURN_IF_NULL(param, ...)                                             \
-    do {                                                                       \
-        if (!param) {                                                          \
-            TLOGE(WmsLogTag::DEFAULT, "[ANI] The %{public}s is null", #param); \
-            return __VA_ARGS__;                                                \
-        }                                                                      \
+#define RETURN_IF_NULL(param, ...)                                       \
+    do {                                                                 \
+        if (!param) {                                                    \
+            TLOGE(WmsLogTag::DEFAULT, "The %{public}s is null", #param); \
+            return __VA_ARGS__;                                          \
+        }                                                                \
     } while (0)
 
 namespace {
@@ -171,18 +171,19 @@ napi_value GetOptionalProp(napi_env env, napi_value napiObject, const char* prop
     napi_value napiVal = nullptr;
     napi_status ret = napi_get_named_property(env, napiObject, propName, &napiVal);
     if (ret != napi_ok) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to get property %{public}s. ret: %{public}d", propName, ret);
+        TLOGE(WmsLogTag::DEFAULT, "Failed to get property %{public}s. ret: %{public}d", propName, ret);
         return nullptr;
     }
     RETURN_IF_NULL(napiVal, nullptr);
 
     napi_valuetype type = napi_undefined;
-    if (napi_typeof(env, napiVal, &type) != napi_ok) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to get type for %{public}s. ret: %{public}d", propName, ret);
+    ret = napi_typeof(env, napiVal, &type);
+    if (ret != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to get type for %{public}s. ret: %{public}d", propName, ret);
         return nullptr;
     }
     if (type == napi_undefined) {
-        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined.", propName);
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is undefined.", propName);
         return nullptr;
     }
     return napiVal;
@@ -204,7 +205,7 @@ std::optional<bool> GetOptionalBoolProp(napi_env env, napi_value napiObject, con
     bool result = false;
     napi_status ret = napi_get_value_bool(env, napiVal, &result);
     if (ret != napi_ok) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to convert %{public}s to boolean. ret: %{public}d", propName, ret);
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert %{public}s to boolean. ret: %{public}d", propName, ret);
         return std::nullopt;
     }
     return result;
@@ -418,6 +419,27 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
     } else {
         windowCreateParams.isWindowLimitsForcible = false;
     }
+    return true;
+}
+
+bool ConvertSplitRatioPreferenceFromJsValue(
+    napi_env env, napi_value jsObject, SplitRatioPreference& splitRatioPreference)
+{
+    int32_t splitRatioPreferenceValue = 0;
+    int32_t defaultSplitRatioPreferenceValue = 0;
+    if (napi_get_value_int32(env, jsObject, &splitRatioPreferenceValue) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to get splitRatioPreference value");
+        splitRatioPreference = static_cast<SplitRatioPreference>(defaultSplitRatioPreferenceValue);
+        return false;
+    }
+    if (splitRatioPreferenceValue < static_cast<int32_t>(SplitRatioPreference::EQUAL) ||
+        splitRatioPreferenceValue > static_cast<int32_t>(SplitRatioPreference::SECONDARY_DOMINANT)) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "splitRatioPreference value is invalid: %{public}d",
+            splitRatioPreferenceValue);
+        splitRatioPreference = static_cast<SplitRatioPreference>(defaultSplitRatioPreferenceValue);
+        return false;
+    }
+    splitRatioPreference = static_cast<SplitRatioPreference>(splitRatioPreferenceValue);
     return true;
 }
 

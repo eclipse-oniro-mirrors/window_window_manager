@@ -1427,7 +1427,7 @@ HWTEST_F(SceneSessionManagerTest3, UpdateWindowMode, TestSize.Level1)
 {
     int32_t persistentId = 10086;
     int32_t windowMode = 3;
-    WSError result = ssm_->UpdateWindowMode(persistentId, windowMode);
+    WSError result = ssm_->UpdateWindowMode(persistentId, WindowModeInfo{ static_cast<WindowMode>(windowMode) });
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_WINDOW);
     WindowChangedFunc func = [](int32_t persistentId, WindowUpdateType type) {
         OHOS::Rosen::WindowChangedFuncTest3(persistentId, type);

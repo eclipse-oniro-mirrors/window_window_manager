@@ -39,7 +39,9 @@ private:
     int HandleOnFoldPropertyChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnPowerStatusChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnSensorRotationChanged(MessageParcel& data, MessageParcel& reply);
+    int HandleOnSmartSensorRotationChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenOrientationChanged(MessageParcel& data, MessageParcel& reply);
+    int HandleOnScreenOrientationChangedWithOptions(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenRotationLockedChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnDisplayStateChanged(MessageParcel& data, MessageParcel& reply);
     int HandleOnScreenshot(MessageParcel& data, MessageParcel& reply);
@@ -73,6 +75,11 @@ private:
     int HandleOnAnimationFinish(MessageParcel& data, MessageParcel& reply);
     int HandleSetInternalClipToBounds(MessageParcel& data, MessageParcel& reply);
     int HandleTentModeChange(MessageParcel& data, MessageParcel& reply);
+    int HandleOnSetDisplayNodeRSScreenId(MessageParcel& data, MessageParcel& reply);
+    int HandleTransRSEvent(MessageParcel& data, MessageParcel& reply);
+    int HandleScreenClosedStateChange(MessageParcel& data, MessageParcel& reply);
+    sptr<RSEventDataBase> ReadRSEventFromParcel(MessageParcel& data);
+    sptr<RSEventDataBase> CreateEventByType(const RSExposedEventType& type);
 
     HandleScreenChangeMap HandleScreenChangeMap_ {};
 };

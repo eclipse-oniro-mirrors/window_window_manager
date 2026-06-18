@@ -28,14 +28,22 @@ using namespace AbilityRuntime;
 
 AniFvWindowListener::~AniFvWindowListener()
 {
-    TLOGI(WmsLogTag::DEFAULT, "[FV]~AniFvWindowListener destroyed");
-    ani_status ret = ANI_OK;
-    if (env_ == nullptr || aniCallback_ == nullptr) {
-        TLOGI(WmsLogTag::DEFAULT, "[FV]env_ or aniCallback_ is nullptr,skip");
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]~AniFvWindowListener destroyed");
+    if (aniCallback_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]env_ or aniCallback_ is nullptr,skip");
+        return;
+    }
+    if (!vm_) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "vm is null");
+        return;
+    }
+    ani_status ret = vm_->GetEnv(ANI_VERSION_1, &env_);
+    if (ret != ANI_OK || env_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "GetEnv failed, ret:%{public}u", ret);
         return;
     }
     if ((ret = env_->GlobalReference_Delete(aniCallback_)) != ANI_OK) {
-        TLOGE(WmsLogTag::DEFAULT, "[FV]GlobalReference_Delete failed");
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]GlobalReference_Delete failed");
         return;
     }
     aniCallback_ = nullptr;
@@ -58,27 +66,31 @@ void AniFvWindowListener::OnStateChange(const FloatViewState& state, const std::
         // check Listener
         auto thisListener = self.promote();
         if (thisListener == nullptr || vm == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[FV]this listener or vm is nullptr");
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]this listener or vm is nullptr");
             return;
         }
         // get env
         ani_env* env = nullptr;
         ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
         if (ret != ANI_OK || env == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[FV]Get env failed, ret:%{public}u", ret);
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Get env failed, ret:%{public}u", ret);
             return;
         }
-        ani_object infoObj = CreateAniFloatViewStateChangeInfoObject(env, state, stopReason);
+        ani_object infoObj = AniFvUtils::CreateAniFloatViewStateChangeInfoObject(env, state, stopReason);
         ani_boolean isUndefined = false;
         env->Reference_IsUndefined(infoObj, &isUndefined);
         if (isUndefined) {
             return;
         }
-        CallAniFunctionVoid(env, "@ohos.window.floatView.floatView", "runOnStateChangeEvent",
+        if (thisListener->aniCallback_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]callback has been destroyed");
+            return;
+        }
+        AniFvUtils::CallAniFunctionVoid(env, "@ohos.window.floatView.floatView", "runOnStateChangeEvent",
             nullptr, thisListener->aniCallback_, infoObj);
     };
     if (!eventHandler_) {
-        TLOGE(WmsLogTag::DEFAULT, "[FV]get main event handler failed!");
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]get main event handler failed!");
         return;
     }
     eventHandler_->PostTask(task,
@@ -93,28 +105,32 @@ void AniFvWindowListener::OnRectangleChange(const Rect& window, double scale, co
         // check Listener
         auto thisListener = self.promote();
         if (thisListener == nullptr || vm == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[FV]this listener or vm is nullptr");
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]this listener or vm is nullptr");
             return;
         }
         // get env
         ani_env* env = nullptr;
         ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
         if (ret != ANI_OK || env == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[FV]Get env failed, ret:%{public}u", ret);
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Get env failed, ret:%{public}u", ret);
             return;
         }
         // working
-        ani_object rectObj = CreateAniFloatViewRectChangeInfoObject(env, window, scale, reason);
+        ani_object rectObj = AniFvUtils::CreateAniFloatViewRectChangeInfoObject(env, window, scale, reason);
         ani_boolean isUndefined = false;
         env->Reference_IsUndefined(rectObj, &isUndefined);
         if (isUndefined) {
             return;
         }
-        CallAniFunctionVoid(env, "@ohos.window.floatView.floatView", "runOnRectChangeEvent",
+        if (thisListener->aniCallback_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]callback has been destroyed");
+            return;
+        }
+        AniFvUtils::CallAniFunctionVoid(env, "@ohos.window.floatView.floatView", "runOnRectChangeEvent",
             nullptr, thisListener->aniCallback_, rectObj);
     };
     if (!eventHandler_) {
-        TLOGE(WmsLogTag::DEFAULT, "[FV]get main event handler failed!");
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]get main event handler failed!");
         return;
     }
     eventHandler_->PostTask(task,
@@ -129,28 +145,32 @@ void AniFvWindowListener::OnLimitsChange(const FloatViewLimits& limits)
         // check Listener
         auto thisListener = self.promote();
         if (thisListener == nullptr || vm == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[FV]this listener or vm is nullptr");
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]this listener or vm is nullptr");
             return;
         }
         // get env
         ani_env* env = nullptr;
         ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
         if (ret != ANI_OK || env == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[FV]Get env failed, ret:%{public}u", ret);
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]Get env failed, ret:%{public}u", ret);
             return;
         }
         // working
-        ani_object limitsObj = CreateAniFloatViewLimitsObject(env, limits);
+        ani_object limitsObj = AniFvUtils::CreateAniFloatViewLimitsObject(env, limits);
         ani_boolean isUndefined = false;
         env->Reference_IsUndefined(limitsObj, &isUndefined);
         if (isUndefined) {
             return;
         }
-        CallAniFunctionVoid(env, "@ohos.window.floatView.floatView", "runOnLimitsChangeEvent",
+        if (thisListener->aniCallback_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]callback has been destroyed");
+            return;
+        }
+        AniFvUtils::CallAniFunctionVoid(env, "@ohos.window.floatView.floatView", "runOnLimitsChangeEvent",
             nullptr, thisListener->aniCallback_, limitsObj);
     };
     if (!eventHandler_) {
-        TLOGE(WmsLogTag::DEFAULT, "[FV]get main event handler failed!");
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]get main event handler failed!");
         return;
     }
     eventHandler_->PostTask(task,

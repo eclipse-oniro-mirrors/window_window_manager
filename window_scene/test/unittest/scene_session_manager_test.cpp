@@ -2240,6 +2240,168 @@ HWTEST_F(SceneSessionManagerTest, SetSelectMode, TestSize.Level1)
     ssm_->SetSelectMode(SelectMode::INVALID_MODE);
     EXPECT_EQ(ssm_->GetSelectMode(), SelectMode::INVALID_MODE);
 }
+
+/**
+ * @tc.name: GetNativeModuleStartMode01
+ * @tc.desc: Test GetNativeModuleStartMode with both conditions met
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode01, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_TRUE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode02
+ * @tc.desc: Test GetNativeModuleStartMode with both conditions met
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode02, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "pre_foreground";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_TRUE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode03
+ * @tc.desc: Test GetNativeModuleStartMode with empty metadata
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode03, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode04
+ * @tc.desc: Test GetNativeModuleStartMode with only withNativeModule=true but no startupPhase
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode04, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode05
+ * @tc.desc: Test GetNativeModuleStartMode with only startupPhase=pre_window but no withNativeModule
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode05, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.startupPhase";
+    metadata1.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata1);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode06
+ * @tc.desc: Test GetNativeModuleStartMode with withNativeModule=false and startupPhase=pre_window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode06, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "false";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode07
+ * @tc.desc: Test GetNativeModuleStartMode with withNativeModule=true and invalid startupPhase value
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode07, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "invalid_phase";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode08
+ * @tc.desc: Test GetNativeModuleStartMode with multiple metadata entries, correct config exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode08, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.otherConfig";
+    metadata1.value = "some_value";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.withNativeModule";
+    metadata2.value = "true";
+    abilityInfo.metadata.push_back(metadata2);
+
+    AppExecFwk::Metadata metadata3;
+    metadata3.name = "ohos.ability.startupPhase";
+    metadata3.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata3);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_TRUE(result);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

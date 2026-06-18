@@ -34,7 +34,8 @@
         "window_manager_feature_screenless",
         "window_manager_feature_asbng_path",
         "window_manager_feature_support_dsoftbus",
-        "window_manager_feature_support_dmsfwk"
+        "window_manager_feature_support_dmsfwk",
+        "window_manager_feature_support_api_metrics"
       ],
       "adapted_system_type": [ "standard" ],
       "rom": "8000KB",
@@ -72,6 +73,7 @@
           "dsoftbus",
           "hicollie",
           "eventhandler",
+          "icu",
           "c_utils",
           "soc_perf",
           "relational_store",
@@ -92,7 +94,9 @@
           "runtime_core",
           "zlib",
           "screenlock_mgr",
-          "os_account"
+          "os_account",
+          "api_metrics",
+          "json"
         ],
         "third_party": [
         ]
@@ -523,6 +527,9 @@
               ],
               "header_base": "//foundation/window/window_manager/interfaces/innerkits/wm"
             }
+          },
+          {
+            "name": "//foundation/window/window_manager/interfaces/kits/ani/environmental:copy_window_env_static_ets"
           }
         ],
         "test": [

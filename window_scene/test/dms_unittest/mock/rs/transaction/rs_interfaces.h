@@ -25,25 +25,42 @@
 #include "pixel_map.h"
 #include "transaction/rs_render_service_client.h"
 #include "screen_manager/rs_screen_mode_info.h"
+#include "common/rs_event_def.h"
+#include "screen_manager/rs_surface_region_config.h"
+
 
 namespace OHOS {
 namespace Rosen {
 constexpr float EPSILON = std::numeric_limits<float>::epsilon();
+
 struct BrightnessInfo {
     float currentHeadroom = 1.0f;
     float maxHeadroom = 1.0f;
     float sdrNits = 500.0f;
+    float brightnessPosition = -1.0f;
 
     bool operator==(const BrightnessInfo& other) const
     {
         return this == &other || (ROSEN_EQ(currentHeadroom, other.currentHeadroom) &&
-                                  ROSEN_EQ(maxHeadroom, other.maxHeadroom) && ROSEN_EQ(sdrNits, other.sdrNits));
+                                  ROSEN_EQ(maxHeadroom, other.maxHeadroom) && ROSEN_EQ(sdrNits, other.sdrNits) &&
+                                  ROSEN_EQ(brightnessPosition, other.brightnessPosition));
     }
 
     bool operator!=(const BrightnessInfo& other) const
     {
         return !(*this == other);
     }
+};
+
+struct RsScreenBrightnessData {
+    ScreenId screenId;
+    uint32_t level;
+    float brightnessPosition;
+ 
+    RsScreenBrightnessData() : screenId(0), level(0), brightnessPosition(-1.0f) {}
+ 
+    RsScreenBrightnessData(ScreenId id, uint32_t lvl, float position)
+        : screenId(id), level(lvl), brightnessPosition(position) {}
 };
 
 struct EventInfo {
@@ -54,7 +71,7 @@ struct EventInfo {
     std::string description;  // the extend description for eventName，e.g."SCENE_APP_START_ANIMATION"
 };
 
-using ScreenChangeCallback = std::function<void(ScreenId, ScreenEvent, ScreenChangeReason)>;
+using ScreenChangeCallback = std::function<void(ScreenId, ScreenEvent, ScreenChangeReason, sptr<IRemoteObject>)>;
 using ScreenSwitchingNotifyCallback = std::function<void(bool)>;
 using BrightnessInfoChangeCallback = std::function<void(ScreenId, BrightnessInfo)>;
 using HgmRefreshRateUpdateCallback = std::function<void(int32_t)>;
@@ -79,6 +96,8 @@ public:
     int32_t SetMirrorScreenVisibleRect(ScreenId id, const Rect& mainScreenRect, bool supportRotation = false);
     int32_t SetCastScreenEnableSkipWindow(ScreenId id, bool enable);
     int32_t SetVirtualScreenSurface(ScreenId id, sptr<Surface> surface);
+    int32_t AddVirtualScreenSurface(ScreenId id, const std::vector<SurfaceRegionConfig> surfaceRegionConfigs);
+    int32_t RemoveVirtualScreenSurface(ScreenId id, const std::vector<sptr<Surface>> surfaces);
     void RemoveVirtualScreen(ScreenId id);
     int32_t SetScreenChangeCallback(const ScreenChangeCallback& callback);
     int32_t SetScreenSwitchingNotifyCallback(const ScreenSwitchingNotifyCallback& callback);
@@ -103,7 +122,7 @@ public:
     ScreenPowerStatus GetScreenPowerStatus(ScreenId id);
     PanelPowerStatus GetPanelPowerStatus(ScreenId id);
     int32_t GetScreenBacklight(ScreenId id);
-    void SetScreenBacklight(ScreenId id, uint32_t level);
+    void SetScreenBacklight(const RsScreenBrightnessData& brightnessData);
     int32_t GetScreenSupportedColorGamuts(ScreenId id, std::vector<ScreenColorGamut>& mode);
     int32_t GetScreenColorGamut(ScreenId id, ScreenColorGamut& mode);
     int32_t SetScreenColorGamut(ScreenId id, int32_t modeIdx);
@@ -145,6 +164,10 @@ public:
     int32_t RemoveVirtualScreenWhiteList(ScreenId id, const std::vector<NodeId>& whiteList);
     int32_t SetLogicalCameraRotationCorrection(ScreenId id, ScreenRotation screenRotation);
     ScreenId GetActiveScreenId();
+    int32_t RegisterExposedEventCallback(const RSExposedEventType type, const RSExposedEventCallback& callback);
+    ScreenId GetMainScreenId();
+    int32_t SetAsMainScreen(ScreenId id, bool isMainScreen);
+    int32_t UnRegisterExposedEventCallback(const RSExposedEventType type);
 };
 }  // namespace Rosen
 }  // namespace OHOS

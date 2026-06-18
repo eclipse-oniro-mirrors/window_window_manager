@@ -29,12 +29,15 @@ public:
 
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") override;
     WSError DrawingCompleted() override;
@@ -139,7 +142,6 @@ public:
     WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
     WMError NotifySnapshotUpdate() override;
     WMError NotifyRemovePrelaunchStartingWindow() override;
@@ -156,7 +158,7 @@ public:
     /*
      * Float Navigation Avoid Area
      */
-    WMError SetFloatNavigationAvoidAreaEnabled(bool isEnabled) override;
+    WMError SetFloatNavigationEnabled(bool isEnabled) override;
 
     WSError NotifySubModalTypeChange(SubWindowModalType subWindowModalType) override;
     WSError NotifyMainModalTypeChange(bool isModal) override;
@@ -188,6 +190,7 @@ public:
     /*
      * PC Window
      */
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) override;
     WSError OnContainerModalEvent(const std::string& eventName, const std::string& eventValue) override;
@@ -204,9 +207,9 @@ public:
     WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) override;
     WSError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
-    WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     void NotifyWindowStatusDidChangeAfterShowWindow() override;
+    WSError NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits) override;
 
     /**
      * Window Transition Animation For PC
@@ -241,8 +244,6 @@ public:
      */
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport,
-        SelectMode selectMode) override;
     WSError NotifyPageEnable(const std::string& action, const std::string& message) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
 

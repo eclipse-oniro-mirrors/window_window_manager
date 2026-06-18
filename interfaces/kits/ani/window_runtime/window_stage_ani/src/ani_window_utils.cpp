@@ -226,46 +226,65 @@ ani_status AniWindowUtils::GetStdStringVector(ani_env* env, ani_object ary, std:
 }
 
 ani_status AniWindowUtils::GetOptionalProperty(
-    ani_env* env, ani_object object, const char* propertyName, ani_ref& outPropRef, bool& outIsUndefined)
+    ani_env* env, ani_object object, const char* propertyName, ani_ref& outPropRef)
 {
     ani_status ret = env->Object_GetPropertyByName_Ref(object, propertyName, &outPropRef);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT,
               "[ANI] Failed to get property %{public}s, ret: %{public}d",
               propertyName, static_cast<int32_t>(ret));
+    }
+    return ret;
+}
+
+ani_status AniWindowUtils::GetOptionalBoolProperty(
+    ani_env* env, ani_object object, const char* propertyName, std::optional<bool>& optBoolProp)
+{
+    optBoolProp.reset();
+
+    ani_ref propRef;
+    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef);
+    if (ret != ANI_OK) {
         return ret;
     }
 
-    ani_boolean isUndefined = ANI_FALSE;
-    ret = env->Reference_IsUndefined(outPropRef, &isUndefined);
+    ani_object boolProp = static_cast<ani_object>(propRef);
+    if (IsUndefined(env, boolProp)) {
+        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined", propertyName);
+        return ANI_OK;
+    }
+
+    ani_boolean boolValue = ANI_FALSE;
+    ret = env->Object_CallMethodByName_Boolean(boolProp, "toBoolean", ":z", &boolValue);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT,
-              "[ANI] Failed to check if property %{public}s is undefined, ret: %{public}d",
+              "[ANI] Failed to convert %{public}s to boolean, ret: %{public}d",
               propertyName, static_cast<int32_t>(ret));
         return ret;
     }
-
-    outIsUndefined = (isUndefined == ANI_TRUE);
-    if (outIsUndefined) {
-        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined", propertyName);
-    }
+    optBoolProp = static_cast<bool>(boolValue);
     return ANI_OK;
 }
 
 ani_status AniWindowUtils::GetOptionalIntProperty(
-    ani_env* env, const char* propertyName, ani_object object, std::optional<ani_int>& optIntProp)
+    ani_env* env, ani_object object, const char* propertyName, std::optional<ani_int>& optIntProp)
 {
     optIntProp.reset();
 
     ani_ref propRef;
-    bool isUndefined;
-    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef, isUndefined);
-    if (ret != ANI_OK || isUndefined) {
+    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef);
+    if (ret != ANI_OK) {
         return ret;
     }
 
+    ani_object intProp = static_cast<ani_object>(propRef);
+    if (IsUndefined(env, intProp)) {
+        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined", propertyName);
+        return ANI_OK;
+    }
+
     ani_int intValue = 0;
-    ret = env->Object_CallMethodByName_Int(static_cast<ani_object>(propRef), "toInt", nullptr, &intValue);
+    ret = env->Object_CallMethodByName_Int(intProp, "toInt", nullptr, &intValue);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT,
               "[ANI] Failed to get intValue for %{public}s, ret: %{public}d",
@@ -273,6 +292,58 @@ ani_status AniWindowUtils::GetOptionalIntProperty(
         return ret;
     }
     optIntProp = intValue;
+    return ANI_OK;
+}
+
+ani_status AniWindowUtils::GetOptionalRectProperty(
+    ani_env* env, ani_object object, const char* propertyName, std::optional<Rect>& optRectProp)
+{
+    optRectProp.reset();
+
+    ani_ref propRef;
+    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Failed to get property %{public}s, ret: %{public}d",
+              propertyName, static_cast<int32_t>(ret));
+        return ret;
+    }
+
+    ani_object avoidRect = static_cast<ani_object>(propRef);
+    if (IsUndefined(env, avoidRect)) {
+        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined", propertyName);
+        return ANI_OK;
+    }
+
+    int32_t posX = 0;
+    if (!AniWindowUtils::GetIntObject(env, "left", avoidRect, posX)) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Invalid rect property %{public}s: missing left", propertyName);
+        return ANI_ERROR;
+    }
+
+    int32_t posY = 0;
+    if (!AniWindowUtils::GetIntObject(env, "top", avoidRect, posY)) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Invalid rect property %{public}s: missing top", propertyName);
+        return ANI_ERROR;
+    }
+
+    int32_t width = 0;
+    if (!AniWindowUtils::GetIntObject(env, "width", avoidRect, width)) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Invalid rect property %{public}s: missing width", propertyName);
+        return ANI_ERROR;
+    }
+
+    int32_t height = 0;
+    if (!AniWindowUtils::GetIntObject(env, "height", avoidRect, height)) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Invalid rect property %{public}s: missing height", propertyName);
+        return ANI_ERROR;
+    }
+
+    optRectProp = Rect{ posX, posY, static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
     return ANI_OK;
 }
 
@@ -561,7 +632,7 @@ ani_status AniWindowUtils::GetIntInObject(ani_env* env, ani_object int_object, i
         return ANI_INVALID_ARGS;
     }
     ani_int int_value;
-    ani_status ret = env->Object_CallMethodByName_Int(int_object, "intValue", nullptr, &int_value);
+    ani_status ret = env->Object_CallMethodByName_Int(int_object, "toInt", ":i", &int_value);
     if (ANI_OK != ret) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Object_CallMethodByName_Int Failed!");
         return ret;
@@ -873,6 +944,12 @@ ani_object AniWindowUtils::CreateAniWindowInfo(ani_env* env, const WindowVisibil
         return AniWindowUtils::CreateAniUndefined(env);
     }
     CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("bundleName").c_str(), nullptr, bundleName);
+    ani_string moduleName;
+    if (GetAniString(env, info.GetModuleName(), &moduleName) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    CallAniMethodVoid(env, windowInfo, cls, Builder::BuildSetterName("moduleName").c_str(), nullptr, moduleName);
     ani_string abilityName;
     if (GetAniString(env, info.GetAbilityName(), &abilityName) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] create string failed");
@@ -1688,23 +1765,32 @@ ani_object AniWindowUtils::CreateWindowsProperties(ani_env* env, const WindowPro
     ani_object aniRect = CreateAniRectObject(env, windowPropertyInfo.windowRect);
     ani_object aniDrawableRect = CreateAniRectObject(env, windowPropertyInfo.drawableRect);
     ani_object aniGlobalDisplayRect = CreateAniRectObject(env, windowPropertyInfo.globalDisplayRect);
-    int windowType;
-    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
-        windowType = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
+    int typeValue;
+    if (windowPropertyInfo.type == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        typeValue = static_cast<int>(ApiWindowType::TYPE_SYSTEM_ALERT);
+    } else if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
+        typeValue = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
     } else {
-        windowType = static_cast<int>(windowPropertyInfo.type);
+        typeValue = static_cast<int>(windowPropertyInfo.type);
+    }
+    int windowTypeValue;
+    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(windowPropertyInfo.type) != 0) {
+        windowTypeValue = static_cast<int>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(windowPropertyInfo.type));
+    } else {
+        windowTypeValue = static_cast<int>(windowPropertyInfo.type);
     }
     ani_string aniWindowName;
     GetAniString(env, windowPropertyInfo.name, &aniWindowName);
     ani_object aniWindowsProperties = InitAniObjectByCreator(env, "@ohos.window.window.WindowPropertiesInternal",
-        "C{@ohos.window.window.Rect}C{@ohos.window.window.Rect}zzzzddzzzziilC{std.core.String}"
+        "C{@ohos.window.window.Rect}C{@ohos.window.window.Rect}zzzzddzzzziiilC{std.core.String}"
         "C{@ohos.window.window.Rect}:",
         aniRect, aniDrawableRect, ani_boolean(windowPropertyInfo.isFullScreen),
         ani_boolean(windowPropertyInfo.isLayoutFullScreen), ani_boolean(windowPropertyInfo.isFocusable),
         ani_boolean(windowPropertyInfo.isTouchable), ani_float(windowPropertyInfo.brightness), ani_float(0),
         ani_boolean(windowPropertyInfo.isKeepScreenOn), ani_boolean(windowPropertyInfo.isPrivacyMode),
-        ani_boolean(false),  ani_boolean(windowPropertyInfo.isTransparent), ani_int(windowType),
-        ani_int(windowPropertyInfo.id), ani_long(windowPropertyInfo.displayId), aniWindowName, aniGlobalDisplayRect);
+        ani_boolean(false),  ani_boolean(windowPropertyInfo.isTransparent), ani_int(typeValue),
+        ani_int(windowTypeValue), ani_int(windowPropertyInfo.id),
+        ani_long(windowPropertyInfo.displayId), aniWindowName, aniGlobalDisplayRect);
     return aniWindowsProperties;
 }
 
@@ -2297,9 +2383,10 @@ void* AniWindowUtils::GetAbilityContext(ani_env *env, ani_object aniObj)
 
 bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits)
 {
-    auto getAndAssign = [&, where = __func__](const char* name, uint32_t& field) -> ani_status {
+    auto getAndAssign = [where = __func__](ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits,
+            const char* name, uint32_t& field) -> ani_status {
         std::optional<ani_int> optValue;
-        ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, name, aniWindowLimits, optValue);
+        ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, aniWindowLimits, name, optValue);
         if (ret != ANI_OK) {
             return ret;
         }
@@ -2312,9 +2399,10 @@ bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits,
         return ANI_OK;
     };
 
-    auto getAndAssignUnit = [&](const char* name, PixelUnit& field) -> ani_status {
+    auto getAndAssignUnit = [](ani_env* env, ani_object aniWindowLimits, const char* name,
+            PixelUnit& field) -> ani_status {
         std::optional<PixelUnit> optValue;
-        ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, name, aniWindowLimits, optValue);
+        ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, aniWindowLimits, name, optValue);
         if (ret != ANI_OK) {
             return ret;
         }
@@ -2325,11 +2413,11 @@ bool AniWindowUtils::ParseWindowLimits(ani_env* env, ani_object aniWindowLimits,
         }
         return ANI_OK;
     };
-    if (getAndAssign("maxWidth", windowLimits.maxWidth_) != ANI_OK ||
-        getAndAssign("maxHeight", windowLimits.maxHeight_) != ANI_OK ||
-        getAndAssign("minWidth", windowLimits.minWidth_) != ANI_OK ||
-        getAndAssign("minHeight", windowLimits.minHeight_) != ANI_OK ||
-        getAndAssignUnit("pixelUnit", windowLimits.pixelUnit_) != ANI_OK) {
+    if (getAndAssign(env, aniWindowLimits, windowLimits, "maxWidth", windowLimits.maxWidth_) != ANI_OK ||
+        getAndAssign(env, aniWindowLimits, windowLimits, "maxHeight", windowLimits.maxHeight_) != ANI_OK ||
+        getAndAssign(env, aniWindowLimits, windowLimits, "minWidth", windowLimits.minWidth_) != ANI_OK ||
+        getAndAssign(env, aniWindowLimits, windowLimits, "minHeight", windowLimits.minHeight_) != ANI_OK ||
+        getAndAssignUnit(env, aniWindowLimits, "pixelUnit", windowLimits.pixelUnit_) != ANI_OK) {
         return false;
     }
     return true;
@@ -2349,9 +2437,10 @@ std::string AniWindowUtils::ANIStringToStdString(ani_env *env, ani_string ani_st
 bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnchorInfo,
     WindowAnchorInfo& windowAnchorInfo)
 {
-    auto getAndAssign = [&, where = __func__](const char* name, int32_t& field) -> ani_status {
+    auto getAndAssign = [where = __func__](ani_env* env, ani_object aniWindowAnchorInfo,
+            const char* name, int32_t& field) -> ani_status {
         std::optional<ani_int> optValue;
-        ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, name, aniWindowAnchorInfo, optValue);
+        ani_status ret = AniWindowUtils::GetOptionalIntProperty(env, aniWindowAnchorInfo, name, optValue);
         if (ret != ANI_OK) {
             return ret;
         }
@@ -2364,9 +2453,10 @@ bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnc
         return ANI_OK;
     };
 
-    auto getAndAssignWindowAnchor = [&](const char* name, WindowAnchor& field) -> ani_status {
+    auto getAndAssignWindowAnchor = [](ani_env* env, ani_object aniWindowAnchorInfo, const char* name,
+            WindowAnchor& field) -> ani_status {
         std::optional<WindowAnchor> optValue;
-        ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, name, aniWindowAnchorInfo, optValue);
+        ani_status ret = AniWindowUtils::GetOptionalEnumProperty(env, aniWindowAnchorInfo, name, optValue);
         if (ret != ANI_OK) {
             return ret;
         }
@@ -2377,24 +2467,12 @@ bool AniWindowUtils::ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnc
         }
         return ANI_OK;
     };
-    if (getAndAssign("offsetX", windowAnchorInfo.offsetX_) != ANI_OK ||
-        getAndAssign("offsetY", windowAnchorInfo.offsetY_) != ANI_OK ||
-        getAndAssignWindowAnchor("anchorType", windowAnchorInfo.windowAnchor_) != ANI_OK) {
+    if (getAndAssign(env, aniWindowAnchorInfo, "offsetX", windowAnchorInfo.offsetX_) != ANI_OK ||
+        getAndAssign(env, aniWindowAnchorInfo, "offsetY", windowAnchorInfo.offsetY_) != ANI_OK ||
+        getAndAssignWindowAnchor(env, aniWindowAnchorInfo, "anchorType", windowAnchorInfo.windowAnchor_) != ANI_OK) {
         return false;
     }
     return true;
-}
-
-bool AniWindowUtils::CheckParaIsUndefined(ani_env* env, ani_object para)
-{
-    ani_boolean isUndefined;
-    ani_status aniRet = env->Reference_IsUndefined(para, &isUndefined);
-    if (aniRet != ANI_OK) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] Reference_IsUndefined failed, ret : %{public}d",
-            static_cast<int32_t>(aniRet));
-        return true;
-    }
-    return static_cast<bool>(isUndefined);
 }
 
 ani_object AniWindowUtils::CreateAniPosition(ani_env* env, const Position& position)
@@ -2510,6 +2588,37 @@ bool AniWindowUtils::ParseWindowMaskInnerValue(ani_env* env, ani_array innerArra
     return true;
 }
 
+bool AniWindowUtils::GetUint8ArrayBufferData(ani_env* env, ani_object uint8Array, void*& data, ani_size& byteLength)
+{
+    ani_class clsUint8Array = nullptr;
+    ani_status aniRet = env->FindClass("std.core.Uint8Array", &clsUint8Array);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Find class std.core.Uint8Array failed: %{public}u", aniRet);
+        return false;
+    }
+
+    ani_field bufferField {};
+    aniRet = env->Class_FindField(clsUint8Array, "buffer", &bufferField);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Find field buffer failed: %{public}u", aniRet);
+        return false;
+    }
+
+    ani_ref result {};
+    aniRet = env->Object_GetField_Ref(uint8Array, bufferField, &result);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Get buffer ref failed: %{public}u", aniRet);
+        return false;
+    }
+
+    aniRet = env->ArrayBuffer_GetInfo(static_cast<ani_arraybuffer>(result), &data, &byteLength);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Get ArrayBuffer info failed: %{public}u", aniRet);
+        return false;
+    }
+    return true;
+}
+
 WmErrorCode AniWindowUtils::ParseTouchableAreas(ani_env* env, ani_array rects, const Rect& windowRect,
     std::vector<Rect>& touchableAreas)
 {
@@ -2583,6 +2692,20 @@ bool AniWindowUtils::ParseAndCheckRect(ani_env* env, ani_object rect, const Rect
         return false;
     }
     return true;
+}
+
+bool AniWindowUtils::IsUndefined(ani_env* env, ani_object obj)
+{
+    ani_boolean isUndefined = ANI_FALSE;
+    const ani_status ret = env->Reference_IsUndefined(obj, &isUndefined);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "[ANI] Failed to check if obj is undefined, ret: %{public}d",
+              static_cast<int32_t>(ret));
+        // Fallback: treat as undefined
+        return true;
+    }
+    return isUndefined == ANI_TRUE;
 }
 
 bool AniWindowUtils::IsInstanceOf(ani_env* env, ani_object obj, const char* className)
@@ -2861,6 +2984,32 @@ bool AniWindowUtils::ParseZLevelParam(ani_env *env, ani_object aniObject, const 
     }
     TLOGI(WmsLogTag::WMS_SUB, "zLevel: %{public}d", zLevel);
     return true;
+}
+
+std::pair<ani_status, std::optional<StartMovingOptions>> AniWindowUtils::ParseStartMovingOptions(ani_env* env,
+                                                                                                 ani_object aniOptions)
+{
+    if (aniOptions == nullptr || AniWindowUtils::IsUndefined(env, aniOptions)) {
+        return { ANI_OK, std::nullopt };
+    }
+
+    std::optional<bool> needFocusedOpt;
+    ani_status ret = AniWindowUtils::GetOptionalBoolProperty(env, aniOptions, "needFocused", needFocusedOpt);
+    if (ret != ANI_OK) {
+        return { ret, std::nullopt };
+    }
+
+    std::optional<Rect> avoidRectOpt;
+    ret = AniWindowUtils::GetOptionalRectProperty(env, aniOptions, "avoidRect", avoidRectOpt);
+    if (ret != ANI_OK) {
+        return { ret, std::nullopt };
+    }
+
+    StartMovingOptions options{
+        .needFocused = needFocusedOpt.value_or(true),
+        .avoidRect = avoidRectOpt.value_or(Rect::EMPTY_RECT),
+    };
+    return { ANI_OK, options };
 }
 } // namespace Rosen
 } // namespace OHOS

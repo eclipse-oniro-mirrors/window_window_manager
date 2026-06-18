@@ -135,7 +135,7 @@ void FloatViewManager::SyncFvWindowInfo(uint32_t windowId, const FloatViewWindow
     }
 }
 
-void FloatViewManager::SyncFvLimits(uint32_t windowId, const FloatViewLimits& limits)
+void FloatViewManager::SyncFvLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& limits)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvLimits in");
     if (auto controller = GetActiveController()) {

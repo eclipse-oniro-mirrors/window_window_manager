@@ -15,7 +15,9 @@
 
 #include "oh_window.h"
 
+#include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <mutex>
 #include <unordered_map>
@@ -34,12 +36,19 @@
 #include "window.h"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
+#include "window_histogram_management.h"
 
 struct OH_WindowManager_FrameMetrics {
     bool firstDrawFrame;
     uint64_t inputHandlingDuration = 0;
     uint64_t layoutMeasureDuration = 0;
     uint64_t vsyncTimestamp = 0;
+};
+
+struct OH_WindowManager_DensityInfo {
+    float defaultDensity = OHOS::Rosen::UNDEFINED_DENSITY;
+    float systemDensity = OHOS::Rosen::UNDEFINED_DENSITY;
+    float customDensity = OHOS::Rosen::UNDEFINED_DENSITY;
 };
 
 using namespace OHOS::Rosen;
@@ -212,6 +221,78 @@ private:
 std::unordered_map<int32_t,
     std::unordered_map<uintptr_t, OHOS::sptr<OHWindowFrameMetricsMeasuredListener>>> g_frameMetricsMeasuredCbMap;
 
+class OHDensityInfoChangeListener : public ISystemDensityChangeListener,
+                                    public IDisplayIdChangeListener,
+                                    public IWindowDensityChangeListener {
+public:
+    OHDensityInfoChangeListener(int32_t windowId, OH_WindowManager_DensityInfoCallback callback)
+        : windowId_(windowId), callback_(callback) {}
+    ~OHDensityInfoChangeListener() override = default;
+
+    void OnSystemDensityChanged(float) override
+    {
+        NotifyDensityInfoChanged();
+    }
+
+    void OnDisplayIdChanged(DisplayId) override
+    {
+        NotifyDensityInfoChanged();
+    }
+
+    void OnWindowDensityChanged(float) override
+    {
+        NotifyDensityInfoChanged();
+    }
+
+private:
+    void NotifyDensityInfoChanged()
+    {
+        if (callback_ == nullptr) {
+            return;
+        }
+        auto window = Window::GetWindowWithId(windowId_);
+        if (window == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "window is null, windowId:%{public}d", windowId_);
+            return;
+        }
+        WindowDensityInfo densityInfo;
+        if (window->GetWindowDensityInfo(densityInfo) != WMError::WM_OK) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "GetWindowDensityInfo failed, windowId:%{public}d", windowId_);
+            return;
+        }
+        bool shouldNotify = false;
+        {
+            std::lock_guard<std::mutex> lock(callbackMutex_);
+            if (!hasCallbackDensity_ ||
+                !MathHelper::NearEqual(lastDensityInfo_.defaultDensity, densityInfo.defaultDensity) ||
+                !MathHelper::NearEqual(lastDensityInfo_.systemDensity, densityInfo.systemDensity) ||
+                !MathHelper::NearEqual(lastDensityInfo_.customDensity, densityInfo.customDensity)) {
+                lastDensityInfo_ = densityInfo;
+                hasCallbackDensity_ = true;
+                shouldNotify = true;
+            }
+        }
+        if (!shouldNotify) {
+            return;
+        }
+        OH_WindowManager_DensityInfo densityInfoInner {
+            densityInfo.defaultDensity, densityInfo.systemDensity, densityInfo.customDensity
+        };
+        callback_(windowId_, &densityInfoInner);
+    }
+
+    int32_t windowId_ = 0;
+    OH_WindowManager_DensityInfoCallback callback_ = nullptr;
+    std::mutex callbackMutex_;
+    bool hasCallbackDensity_ = false;
+    WindowDensityInfo lastDensityInfo_;
+};
+
+std::mutex g_densityInfoChangeCallbackMutex;
+std::unordered_map<int32_t, std::unordered_map<uintptr_t, OHOS::sptr<OHDensityInfoChangeListener>>>
+    g_densityInfoChangeCallbackMap;
+
+
 /*
  * Used to map from WMError to WindowManager_ErrorCode.
  */
@@ -235,6 +316,162 @@ const std::unordered_map<WindowType, WindowManager_WindowType> OH_WINDOW_TO_WIND
     { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW,     WindowManager_WindowType::WINDOW_MANAGER_WINDOW_TYPE_MAIN   },
     { WindowType::WINDOW_TYPE_FLOAT,               WindowManager_WindowType::WINDOW_MANAGER_WINDOW_TYPE_FLOAT  },
 };
+
+WindowManager_ErrorCode ConvertWMErrorToWindowErrorCode(WMError ret)
+{
+    auto iter = OH_WINDOW_TO_ERROR_CODE_MAP.find(ret);
+    if (iter == OH_WINDOW_TO_ERROR_CODE_MAP.end()) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    return iter->second;
+}
+
+void FillDensityInfoInner(const WindowDensityInfo& src, OH_WindowManager_DensityInfo& dst)
+{
+    dst.defaultDensity = src.defaultDensity;
+    dst.systemDensity = src.systemDensity;
+    dst.customDensity = src.customDensity;
+}
+
+WindowManager_ErrorCode GetDensityInfoInner(int32_t windowId, OH_WindowManager_DensityInfo& densityInfo)
+{
+    auto window = Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "window is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
+    }
+    WindowDensityInfo innerDensityInfo;
+    WMError ret = window->GetWindowDensityInfo(innerDensityInfo);
+    if (ret != WMError::WM_OK) {
+        TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "GetWindowDensityInfo failed, windowId:%{public}d ret:%{public}d",
+            windowId, static_cast<int32_t>(ret));
+        return ConvertWMErrorToWindowErrorCode(ret);
+    }
+    FillDensityInfoInner(innerDensityInfo, densityInfo);
+    return WindowManager_ErrorCode::OK;
+}
+
+bool FindDensityInfoChangeListener(int32_t windowId, uintptr_t callbackId,
+    OHOS::sptr<OHDensityInfoChangeListener>& listener)
+{
+    auto windowIter = g_densityInfoChangeCallbackMap.find(windowId);
+    if (windowIter == g_densityInfoChangeCallbackMap.end()) {
+        return false;
+    }
+    auto callbackIter = windowIter->second.find(callbackId);
+    if (callbackIter == windowIter->second.end()) {
+        return false;
+    }
+    listener = callbackIter->second;
+    return true;
+}
+
+void EraseDensityInfoChangeListener(int32_t windowId, uintptr_t callbackId)
+{
+    auto windowIter = g_densityInfoChangeCallbackMap.find(windowId);
+    if (windowIter == g_densityInfoChangeCallbackMap.end()) {
+        return;
+    }
+    windowIter->second.erase(callbackId);
+    if (windowIter->second.empty()) {
+        g_densityInfoChangeCallbackMap.erase(windowIter);
+    }
+}
+
+WindowManager_ErrorCode RegisterDensityInfoChangeListenerToWindow(const OHOS::sptr<Window>& window,
+    const OHOS::sptr<OHDensityInfoChangeListener>& listener)
+{
+    WMError ret = window->RegisterSystemDensityChangeListener(listener);
+    if (ret != WMError::WM_OK) {
+        return ConvertWMErrorToWindowErrorCode(ret);
+    }
+    IDisplayIdChangeListenerSptr displayIdChangeListener = listener;
+    ret = window->RegisterDisplayIdChangeListener(displayIdChangeListener);
+    if (ret != WMError::WM_OK) {
+        window->UnregisterSystemDensityChangeListener(listener);
+        return ConvertWMErrorToWindowErrorCode(ret);
+    }
+    IWindowDensityChangeListenerSptr windowDensityChangeListener = listener;
+    ret = window->RegisterWindowDensityChangeListener(windowDensityChangeListener);
+    if (ret != WMError::WM_OK) {
+        window->UnregisterSystemDensityChangeListener(listener);
+        window->UnregisterDisplayIdChangeListener(displayIdChangeListener);
+        return ConvertWMErrorToWindowErrorCode(ret);
+    }
+    return WindowManager_ErrorCode::OK;
+}
+
+WindowManager_ErrorCode RegisterDensityInfoChangeCallbackInner(
+    int32_t windowId, OH_WindowManager_DensityInfoCallback callback, uintptr_t callbackId)
+{
+    auto window = Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "window is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_densityInfoChangeCallbackMutex);
+        OHOS::sptr<OHDensityInfoChangeListener> listener = nullptr;
+        if (FindDensityInfoChangeListener(windowId, callbackId, listener)) {
+            return WindowManager_ErrorCode::OK;
+        }
+    }
+    auto listener = OHOS::sptr<OHDensityInfoChangeListener>::MakeSptr(windowId, callback);
+    if (listener == nullptr) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    auto ret = RegisterDensityInfoChangeListenerToWindow(window, listener);
+    if (ret != WindowManager_ErrorCode::OK) {
+        return ret;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_densityInfoChangeCallbackMutex);
+        g_densityInfoChangeCallbackMap[windowId][callbackId] = listener;
+    }
+    return WindowManager_ErrorCode::OK;
+}
+
+WindowManager_ErrorCode UnregisterDensityInfoChangeCallbackInner(int32_t windowId, uintptr_t callbackId)
+{
+    OHOS::sptr<OHDensityInfoChangeListener> listener = nullptr;
+    bool hasRegisteredListener = false;
+    {
+        std::lock_guard<std::mutex> lock(g_densityInfoChangeCallbackMutex);
+        hasRegisteredListener = FindDensityInfoChangeListener(windowId, callbackId, listener);
+    }
+    auto window = Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        if (!hasRegisteredListener) {
+            return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
+        }
+        std::lock_guard<std::mutex> lock(g_densityInfoChangeCallbackMutex);
+        EraseDensityInfoChangeListener(windowId, callbackId);
+        return WindowManager_ErrorCode::OK;
+    }
+    if (!hasRegisteredListener) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    WMError retSystem = window->UnregisterSystemDensityChangeListener(listener);
+    if (retSystem != WMError::WM_OK) {
+        return ConvertWMErrorToWindowErrorCode(retSystem);
+    }
+    IDisplayIdChangeListenerSptr displayIdChangeListener = listener;
+    WMError retDisplayId = window->UnregisterDisplayIdChangeListener(displayIdChangeListener);
+    if (retDisplayId != WMError::WM_OK) {
+        return ConvertWMErrorToWindowErrorCode(retDisplayId);
+    }
+    IWindowDensityChangeListenerSptr windowDensityChangeListener = listener;
+    WMError retWindowDensity = window->UnregisterWindowDensityChangeListener(windowDensityChangeListener);
+    if (retWindowDensity != WMError::WM_OK) {
+        return ConvertWMErrorToWindowErrorCode(retWindowDensity);
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_densityInfoChangeCallbackMutex);
+        EraseDensityInfoChangeListener(windowId, callbackId);
+    }
+    return WindowManager_ErrorCode::OK;
+}
+
 
 bool FindFrameMetricsMeasuredListener(int32_t windowId, uintptr_t measuredCallbackId,
     OHOS::sptr<OHWindowFrameMetricsMeasuredListener>& listener)
@@ -301,13 +538,35 @@ void TransformedToWindowManagerRect(const Rect& rect, WindowManager_Rect& wmRect
     wmRect.height = rect.height_;
 }
 
-void TransformedToMainWindowInfo(const OHOS::sptr<MainWindowInfo> mainWindowInfo,
-    WindowManager_MainWindowInfo& wmMainWindowInfo)
+WindowManager_MainWindowInfo* PackMainWindowInfoList(
+    const std::vector<OHOS::sptr<MainWindowInfo>>& infos)
 {
-    wmMainWindowInfo.displayId = mainWindowInfo->displayId_;
-    wmMainWindowInfo.windowId = mainWindowInfo->persistentId_;
-    wmMainWindowInfo.showing = mainWindowInfo->showing_;
-    wmMainWindowInfo.label = mainWindowInfo->label_.c_str();
+    size_t totalLabelLen = 0;
+    for (size_t i = 0; i < infos.size(); i++) {
+        totalLabelLen += infos[i]->label_.size() + 1;
+    }
+    size_t arrayBytes = sizeof(WindowManager_MainWindowInfo) * infos.size();
+    WindowManager_MainWindowInfo* infosInner =
+        static_cast<WindowManager_MainWindowInfo*>(malloc(arrayBytes + totalLabelLen));
+    if (infosInner == nullptr) {
+        return nullptr;
+    }
+    char* labelArea = reinterpret_cast<char*>(infosInner) + arrayBytes;
+    size_t labelOffset = 0;
+    for (size_t i = 0; i < infos.size(); i++) {
+        infosInner[i].displayId = infos[i]->displayId_;
+        infosInner[i].windowId = infos[i]->persistentId_;
+        infosInner[i].showing = infos[i]->showing_;
+        size_t labelLen = infos[i]->label_.size() + 1;
+        errno_t ret = memcpy_s(labelArea + labelOffset, totalLabelLen - labelOffset,
+            infos[i]->label_.c_str(), labelLen);
+        if (ret != EOK) {
+            labelArea[labelOffset] = '\0';
+        }
+        infosInner[i].label = labelArea + labelOffset;
+        labelOffset += labelLen;
+    }
+    return infosInner;
 }
  
 void TransformedToWindowSnapshotConfig(WindowSnapshotConfiguration& windowSnapshotConfiguration,
@@ -366,11 +625,15 @@ int32_t OH_WindowManager_GetWindowAvoidArea(
 {
     if (avoidArea == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "avoidArea is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowAvoidArea",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowAvoidArea",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -378,6 +641,8 @@ int32_t OH_WindowManager_GetWindowAvoidArea(
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowAvoidArea",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
@@ -386,6 +651,10 @@ int32_t OH_WindowManager_GetWindowAvoidArea(
             window->GetAvoidAreaByType(static_cast<AvoidAreaType>(type), allAvoidArea));
         TransformedToWindowManagerAvoidArea(allAvoidArea, avoidArea);
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowAvoidArea",
+            errCode);
+    }
     return errCode;
 }
 
@@ -394,6 +663,8 @@ int32_t OH_WindowManager_SetWindowStatusBarEnabled(int32_t windowId, bool enable
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarEnabled",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -401,6 +672,8 @@ int32_t OH_WindowManager_SetWindowStatusBarEnabled(int32_t windowId, bool enable
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarEnabled",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
@@ -413,6 +686,10 @@ int32_t OH_WindowManager_SetWindowStatusBarEnabled(int32_t windowId, bool enable
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(
             window->UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, property, propertyFlag));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarEnabled",
+            errCode);
+    }
     return errCode;
 }
 
@@ -421,6 +698,8 @@ int32_t OH_WindowManager_SetWindowStatusBarColor(int32_t windowId, int32_t color
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarColor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -428,6 +707,8 @@ int32_t OH_WindowManager_SetWindowStatusBarColor(int32_t windowId, int32_t color
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarColor",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
@@ -439,6 +720,10 @@ int32_t OH_WindowManager_SetWindowStatusBarColor(int32_t windowId, int32_t color
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(
             window->UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_STATUS_BAR, property, propertyFlag));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarColor",
+            errCode);
+    }
     return errCode;
 }
 
@@ -447,6 +732,9 @@ int32_t OH_WindowManager_SetWindowNavigationBarEnabled(int32_t windowId, bool en
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+            "ArkUI.window.OH_WindowManager_SetWindowNavigationBarEnabled",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -454,6 +742,9 @@ int32_t OH_WindowManager_SetWindowNavigationBarEnabled(int32_t windowId, bool en
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+                "ArkUI.window.OH_WindowManager_SetWindowNavigationBarEnabled",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
@@ -466,6 +757,11 @@ int32_t OH_WindowManager_SetWindowNavigationBarEnabled(int32_t windowId, bool en
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(
             window->UpdateSystemBarPropertyForPage(WindowType::WINDOW_TYPE_NAVIGATION_BAR, property, propertyFlag));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+            "ArkUI.window.OH_WindowManager_SetWindowNavigationBarEnabled",
+            errCode);
+    }
     return errCode;
 }
 
@@ -473,11 +769,15 @@ int32_t OH_WindowManager_Snapshot(int32_t windowId, OH_PixelmapNative* pixelMap)
 {
     if (pixelMap == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "pixelMap is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_Snapshot",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_Snapshot",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -485,11 +785,17 @@ int32_t OH_WindowManager_Snapshot(int32_t windowId, OH_PixelmapNative* pixelMap)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_Snapshot",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         *pixelMap = OH_PixelmapNative(window->Snapshot());
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_Snapshot",
+            errCode);
+    }
     return pixelMap != nullptr ? WindowManager_ErrorCode::OK : errCode;
 }
 
@@ -497,11 +803,15 @@ int32_t OH_WindowManager_SetWindowBackgroundColor(int32_t windowId, const char* 
 {
     if (color == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "color is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBackgroundColor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBackgroundColor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -509,11 +819,17 @@ int32_t OH_WindowManager_SetWindowBackgroundColor(int32_t windowId, const char* 
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBackgroundColor",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetBackgroundColor(std::string(color)));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBackgroundColor",
+            errCode);
+    }
     return errCode;
 }
 
@@ -522,6 +838,8 @@ int32_t OH_WindowManager_SetWindowBrightness(int32_t windowId, float brightness)
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBrightness",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -529,11 +847,17 @@ int32_t OH_WindowManager_SetWindowBrightness(int32_t windowId, float brightness)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBrightness",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetBrightness(brightness));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBrightness",
+            errCode);
+    }
     return errCode;
 }
 
@@ -542,6 +866,8 @@ int32_t OH_WindowManager_SetWindowKeepScreenOn(int32_t windowId, bool isKeepScre
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowKeepScreenOn",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -549,11 +875,17 @@ int32_t OH_WindowManager_SetWindowKeepScreenOn(int32_t windowId, bool isKeepScre
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowKeepScreenOn",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetKeepScreenOn(isKeepScreenOn));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowKeepScreenOn",
+            errCode);
+    }
     return errCode;
 }
 
@@ -562,6 +894,8 @@ int32_t OH_WindowManager_SetWindowPrivacyMode(int32_t windowId, bool isPrivacy)
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowPrivacyMode",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -569,11 +903,17 @@ int32_t OH_WindowManager_SetWindowPrivacyMode(int32_t windowId, bool isPrivacy)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowPrivacyMode",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetPrivacyMode(isPrivacy));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowPrivacyMode",
+            errCode);
+    }
     return errCode;
 }
 
@@ -582,11 +922,15 @@ int32_t OH_WindowManager_GetWindowProperties(
 {
     if (windowProperties == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowProperties is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
@@ -594,6 +938,8 @@ int32_t OH_WindowManager_GetWindowProperties(
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
@@ -617,11 +963,141 @@ int32_t OH_WindowManager_GetWindowProperties(
         auto uicontent = window->GetUIContent();
         if (uicontent == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s uicontent is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             return;
         }
         uicontent->GetAppPaintSize(drawableRect);
         TransformedToWindowManagerRect(drawableRect, windowProperties->drawableRect);
+    }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
+            errCode);
+    }
+    return errCode;
+}
+
+int32_t OH_WindowManager_DensityInfo_GetDefaultDensity(
+    const OH_WindowManager_DensityInfo* info, float* density)
+{
+    if (info == nullptr || density == nullptr) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    *density = info->defaultDensity;
+    return WindowManager_ErrorCode::OK;
+}
+
+int32_t OH_WindowManager_DensityInfo_GetSystemDensity(
+    const OH_WindowManager_DensityInfo* info, float* density)
+{
+    if (info == nullptr || density == nullptr) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    *density = info->systemDensity;
+    return WindowManager_ErrorCode::OK;
+}
+
+int32_t OH_WindowManager_DensityInfo_GetCustomDensity(
+    const OH_WindowManager_DensityInfo* info, float* density)
+{
+    if (info == nullptr || density == nullptr) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    *density = info->customDensity;
+    return WindowManager_ErrorCode::OK;
+}
+
+int32_t OH_WindowManager_GetDensityInfoCopy(int32_t windowId, const OH_WindowManager_DensityInfo** info)
+{
+    if (info == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "info is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    if (windowId < 1) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowId is invalid, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    *info = nullptr;
+    auto eventHandler = GetMainEventHandler();
+    if (eventHandler == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
+    eventHandler->PostSyncTask([windowId, info, &errCode, where = __func__] {
+        auto freeDeleter = [](OH_WindowManager_DensityInfo* ptr) {
+            free(ptr);
+        };
+        auto densityInfoRaw = static_cast<OH_WindowManager_DensityInfo*>(malloc(sizeof(OH_WindowManager_DensityInfo)));
+        std::unique_ptr<OH_WindowManager_DensityInfo, decltype(freeDeleter)> densityInfoInner(
+            densityInfoRaw, freeDeleter);
+        if (densityInfoInner == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE,
+                "%{public}s densityInfoInner is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+            return;
+        }
+        errCode = GetDensityInfoInner(windowId, *densityInfoInner);
+        if (errCode != WindowManager_ErrorCode::OK) {
+            *info = nullptr;
+            return;
+        }
+        *info = densityInfoInner.release();
+    }, __func__);
+    return errCode;
+}
+
+
+int32_t OH_WindowManager_DensityInfo_Release(const OH_WindowManager_DensityInfo* info)
+{
+    if (info == nullptr) {
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    WINDOW_MANAGER_FREE_MEMORY(info);
+    return WindowManager_ErrorCode::OK;
+}
+
+int32_t OH_WindowManager_RegisterDensityInfoChangeCallback(
+    int32_t windowId, OH_WindowManager_DensityInfoCallback callback)
+{
+    if (callback == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "callback is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    auto eventHandler = GetMainEventHandler();
+    if (eventHandler == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
+    auto callbackId = reinterpret_cast<uintptr_t>(callback);
+    eventHandler->PostSyncTask([windowId, callback, callbackId, &errCode] {
+        errCode = RegisterDensityInfoChangeCallbackInner(windowId, callback, callbackId);
+    }, __func__);
+    return errCode;
+}
+
+int32_t OH_WindowManager_UnregisterDensityInfoChangeCallback(
+    int32_t windowId, OH_WindowManager_DensityInfoCallback callback)
+{
+    if (callback == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "callback is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    if (windowId < 1) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowId is invalid, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    auto eventHandler = GetMainEventHandler();
+    if (eventHandler == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
+    auto callbackId = reinterpret_cast<uintptr_t>(callback);
+    eventHandler->PostSyncTask([windowId, callbackId, &errCode] {
+        errCode = UnregisterDensityInfoChangeCallbackInner(windowId, callbackId);
     }, __func__);
     return errCode;
 }
@@ -631,6 +1107,8 @@ int32_t OH_WindowManager_SetWindowTouchable(int32_t windowId, bool touchable)
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "eventHandler null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowTouchable",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -643,6 +1121,9 @@ int32_t OH_WindowManager_SetWindowTouchable(int32_t windowId, bool touchable)
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetTouchable(touchable));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowTouchable", errCode);
+    }
     return errCode;
 }
 
@@ -651,16 +1132,25 @@ int32_t OH_WindowManager_GetAllWindowLayoutInfoList(
 {
     if (displayId < 0) {
         TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "displayId is invalid, displayId:%{public}" PRIu64, displayId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+            "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     if (windowLayoutInfoList == nullptr || windowLayoutInfoSize == nullptr) {
         TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "param is nullptr, displayId:%{public}" PRIu64, displayId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+            "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "eventHandler is null, displayId:%{public}" PRIu64, displayId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+            "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     eventHandler->PostSyncTask([displayId, windowLayoutInfoList, windowLayoutInfoSize, &errCode, where = __func__] {
@@ -670,17 +1160,26 @@ int32_t OH_WindowManager_GetAllWindowLayoutInfoList(
         if (OH_WINDOW_TO_ERROR_CODE_MAP.find(ret) == OH_WINDOW_TO_ERROR_CODE_MAP.end()) {
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s get failed, errCode: %{public}d", where, errCode);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+                "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
             return;
         } else if (OH_WINDOW_TO_ERROR_CODE_MAP.at(ret) != WindowManager_ErrorCode::OK) {
             errCode = (ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT) ? OH_WINDOW_TO_ERROR_CODE_MAP.at(ret) :
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s get failed, errCode: %{public}d", where, errCode);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+                "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+                errCode);
             return;
         }
         WindowManager_Rect* infosInner = (WindowManager_Rect*)malloc(sizeof(WindowManager_Rect) * infos.size());
         if (infosInner == nullptr) {
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s infosInner is nullptr", where);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+                "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
             return;
         }
         for (size_t i = 0; i < infos.size(); i++) {
@@ -691,6 +1190,11 @@ int32_t OH_WindowManager_GetAllWindowLayoutInfoList(
         *windowLayoutInfoList = infosInner;
         *windowLayoutInfoSize = infos.size();
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
+            "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
+            errCode);
+    }
     return errCode;
 }
 
@@ -704,6 +1208,8 @@ int32_t OH_WindowManager_SetWindowFocusable(int32_t windowId, bool isFocusable)
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "eventHandler is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowFocusable",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -711,11 +1217,16 @@ int32_t OH_WindowManager_SetWindowFocusable(int32_t windowId, bool isFocusable)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_FOCUS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowFocusable",
+                WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetFocusable(isFocusable));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowFocusable", errCode);
+    }
     return errCode;
 }
 
@@ -724,10 +1235,14 @@ int32_t OH_WindowManager_InjectTouchEvent(
 {
     if (touchEvent == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "touchEvent is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_InjectTouchEvent",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     if (windowId <= 0) {
         TLOGE(WmsLogTag::WMS_EVENT, "windowId is invalid, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_InjectTouchEvent",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     if (OH_Input_GetTouchEventWindowId(touchEvent) == -1) { // -1: invalid window id
@@ -736,11 +1251,15 @@ int32_t OH_WindowManager_InjectTouchEvent(
     }
     if (OH_Input_GetTouchEventWindowId(touchEvent) != windowId) {
         TLOGE(WmsLogTag::WMS_EVENT, "windowIds are not equal, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_InjectTouchEvent",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "eventHandler is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_InjectTouchEvent",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
@@ -761,6 +1280,9 @@ int32_t OH_WindowManager_InjectTouchEvent(
         TLOGND(WmsLogTag::WMS_EVENT, "%{public}s, windowId:%{public}d", where, windowId);
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->InjectTouchEvent(pointerEvent));
     }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_InjectTouchEvent", errCode);
+    }
     return errCode;
 }
 
@@ -789,16 +1311,13 @@ int32_t OH_WindowManager_GetAllMainWindowInfo(
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             return;
         }
-        WindowManager_MainWindowInfo* infosInner = new WindowManager_MainWindowInfo[infos.size()];
+        WindowManager_MainWindowInfo* infosInner = PackMainWindowInfoList(infos);
         if (infosInner == nullptr) {
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s infosInner is nullptr", where);
             return;
         }
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s infos size: %{public}d", where, static_cast<int32_t>(infos.size()));
-        for (size_t i = 0; i < infos.size(); i++) {
-            TransformedToMainWindowInfo(infos[i], infosInner[i]);
-        }
         *infoList = infosInner;
         *mainWindowInfoSize = infos.size();
         }, __func__);
@@ -924,11 +1443,15 @@ int32_t OH_WindowManager_LockCursor(int32_t windowId, bool isCursorFollowMovemen
 {
     if (windowId <= 0) {
         TLOGE(WmsLogTag::WMS_EVENT, "windowId is invalid, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_LockCursor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "eventHandler is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_LockCursor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -948,6 +1471,9 @@ int32_t OH_WindowManager_LockCursor(int32_t windowId, bool isCursorFollowMovemen
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.find(ret) == OH_WINDOW_TO_ERROR_CODE_MAP.end() ?
             WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL : OH_WINDOW_TO_ERROR_CODE_MAP.at(ret);
         }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_LockCursor", errCode);
+    }
     return errCode;
 }
 
@@ -955,11 +1481,15 @@ int32_t OH_WindowManager_UnlockCursor(int32_t windowId)
 {
     if (windowId <= 0) {
         TLOGE(WmsLogTag::WMS_EVENT, "windowId is invalid, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_UnlockCursor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "eventHandler is null, windowId:%{public}d", windowId);
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_UnlockCursor",
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     }
     WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
@@ -979,5 +1509,8 @@ int32_t OH_WindowManager_UnlockCursor(int32_t windowId)
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.find(ret) == OH_WINDOW_TO_ERROR_CODE_MAP.end() ?
             WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL : OH_WINDOW_TO_ERROR_CODE_MAP.at(ret);
         }, __func__);
+    if (errCode != WindowManager_ErrorCode::OK) {
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_UnlockCursor", errCode);
+    }
     return errCode;
 }

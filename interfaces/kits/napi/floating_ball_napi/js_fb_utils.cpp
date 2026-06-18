@@ -30,8 +30,15 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowInvalidParam(napi_env env, const std::string& msg)
+napi_value NapiThrowInvalidParam(napi_env env, const std::string& msg, const char* enumerationName,
+    const char* boolName)
 {
+    if (enumerationName != nullptr &&  *enumerationName != '\0') {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(enumerationName, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
+    }
+    if (boolName != nullptr &&  *boolName != '\0') {
+        HISTOGRAM_BOOLEAN(boolName, 0);
+    }
     napi_throw(env, AbilityRuntime::CreateJsError(env,
         static_cast<int32_t>(WmErrorCode::WM_ERROR_FB_PARAM_INVALID), msg));
     return NapiGetUndefined(env);

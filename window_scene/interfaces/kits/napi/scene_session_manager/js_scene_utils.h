@@ -21,11 +21,13 @@
 #include <native_engine/native_value.h>
 #include <pointer_event.h>
 
-#include "dm_common.h"
-#include "interfaces/include/ws_common.h"
 #include "common/include/window_session_property.h"
-#include "wm_common.h"
+#include "dm_common.h"
 #include "hitrace_meter.h"
+#include "interfaces/include/ws_common.h"
+#include "nlohmann/json.hpp"
+#include "window_manager_hilog.h"
+#include "wm_common.h"
 
 namespace OHOS::Rosen {
 
@@ -110,10 +112,48 @@ extern const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP;
 
 enum class ThrowSlipMode;
 
+enum class JsTouchType : int32_t {
+    // Refer to OHOS::Ace::TouchType
+    DOWN = 0,
+    UP,
+    MOVE,
+    CANCEL,
+    HOVER_ENTER = 9,
+    HOVER_MOVE = 10,
+    HOVER_EXIT = 11,
+    HOVER_CANCEL = 12,
+
+    // Customized hover action type.
+    PROXIMITY_IN = 20,
+    PROXIMITY_OUT,
+    LEVITATE_MOVE
+};
+extern const std::unordered_map<int32_t, int32_t> JS_TO_MMI_ACTION_MAP;
+int32_t ConvertToMMIActionType(int32_t type);
+
+/**
+ * Refer to OHOS::Ace::SourceTool
+ */
+enum class AceSourceTool : int32_t {
+    UNKNOWN = 0,
+    FINGER = 1,
+    PEN = 2,
+    RUBBER = 3,
+    BRUSH = 4,
+    PENCIL = 5,
+    AIRBRUSH = 6,
+    MOUSE = 7,
+    LENS = 8,
+    TOUCHPAD = 9,
+    JOYSTICK = 10,
+};
+const int32_t UNKNOWN_JS_SOURCE_TOOL = -1;
+extern const std::unordered_map<int32_t, int32_t> ACE_SOURCE_TOOL_TO_MMI_TOOL_TYPE_MAP;
+int32_t ConvertToMMIToolType(int32_t type);
+
 JsSessionType GetApiType(WindowType type);
 bool ConvertSessionInfoFromJs(napi_env env, napi_value jsObject, SessionInfo& sessionInfo);
 bool ConvertPointerEventFromJs(napi_env env, napi_value jsObject, MMI::PointerEvent& pointerEvent);
-bool ConvertDeviceIdFromJs(napi_env env, napi_value jsObject, MMI::PointerEvent& pointerEvent);
 bool ConvertInt32ArrayFromJs(napi_env env, napi_value jsObject, std::vector<int32_t>& intList);
 bool ConvertStringMapFromJs(napi_env env, napi_value value, std::unordered_map<std::string, std::string>& stringMap);
 bool ConvertJsonFromJs(napi_env env, napi_value value, nlohmann::json& payload);
@@ -145,6 +185,7 @@ napi_value CreateJsRSUIFirstSwitch(napi_env env);
 napi_value CreateJsSessionPiPControlType(napi_env env);
 napi_value CreateJsSessionPiPControlStatus(napi_env env);
 napi_value CreateJsSessionFbTextUpdateAnimationType(napi_env env);
+napi_value CreateJsSessionFloatViewTemplateType(napi_env env);
 napi_value CreateJsSessionGravity(napi_env env);
 napi_value CreateJsSessionDragResizeType(napi_env env);
 void CreatePiPSizeChangeReason(napi_env env, napi_value objValue);
@@ -202,15 +243,19 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
 bool ConvertHookWindowInfoFromJs(napi_env env, napi_value jsObject, HookWindowInfo& hookWindowInfo);
 bool ConvertRotateAnimationConfigFromJs(napi_env env, napi_value value, RotateAnimationConfig& config);
 bool ConvertDragResizeTypeFromJs(napi_env env, napi_value value, DragResizeType& dragResizeType);
+bool ConvertAvoidAreaFromJsValue(napi_env env, napi_value jsObject, AvoidArea& avoidArea);
 bool ConvertRectFromJsValue(napi_env env, napi_value jsObject, Rect& displayRect);
+bool ConvertDragDisabledAreasFromJsValue(napi_env env, napi_value nativeArray,
+    std::vector<Rect>& dragDisabledAreas);
 bool ConvertInfoFromJsValue(napi_env env, napi_value jsObject, RotationChangeInfo& rotationChangeInfo);
 bool ConvertThrowSlipModeFromJs(napi_env env, napi_value value, ThrowSlipMode& throwSlipMode);
 bool convertAnimConfigFromJs(napi_env env, napi_value value, SceneAnimationConfig& config);
 bool ConvertSupportRotationInfoFromJsValue(napi_env env, napi_value jsObject,
     SupportRotationInfo& suppoortRotationInfo);
 bool ParseBoolArrayValueFromJsValue(napi_env env, napi_value array, std::vector<bool>& vector);
-bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits& limits);
-bool ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits, FloatViewLimits& limits);
+bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo& windowModeInfo);
+bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, std::map<uint32_t, FloatViewLimits>& tmp2Limits);
+std::vector<std::pair<double, double>> ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits);
 template<class T>
 bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T& data)
 {
@@ -223,6 +268,24 @@ bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T&
     }
     return false;
 }
+
+bool ProcessAllTouchPointsFromJs(napi_env env, napi_value jsObject, int32_t toolType, MMI::PointerEvent& pointerEvent);
+template<typename T>
+bool GetPropertyFromJs(napi_env env, napi_value obj, const char* prop, T& value)
+{
+    napi_value jsValue = nullptr;
+    napi_status status = napi_get_named_property(env, obj, prop, &jsValue);
+    if (status != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to get the property: %s", prop);
+        return false;
+    }
+    if (!AbilityRuntime::ConvertFromJsValue(env, jsValue, value)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert parameter to %s", prop);
+        return false;
+    }
+    return true;
+}
+
 bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, CompatibleModeProperty& property);
 WSError GetIntValueFromString(const std::string& str, uint32_t& value);
 constexpr size_t ARGC_ONE = 1;

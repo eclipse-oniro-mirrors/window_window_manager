@@ -253,7 +253,7 @@ ani_enum_item ScreenAniUtils::CreateAniEnum(ani_env* env, const char* enum_descr
 static DmErrorCode GetScreenFocusFromAni(ani_env* env, ani_object virtualScreenObj, VirtualScreenOption& option)
 {
     ani_ref focus = nullptr;
-    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "%%property-supportsFocus", &focus) != ANI_OK) {
+    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "supportsFocus", &focus) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }

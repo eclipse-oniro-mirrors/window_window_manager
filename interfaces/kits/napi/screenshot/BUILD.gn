@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import("//build/ohos.gni")
+import("../../../../windowmanager_aafwk.gni")
 
 ## Build screenshot.so {{{
 ohos_shared_library("screenshot") {
@@ -40,6 +41,11 @@ ohos_shared_library("screenshot") {
     "ipc:ipc_single",
     "napi:ace_napi",
   ]
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines = [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   relative_install_dir = "module"
   part_name = "window_manager"

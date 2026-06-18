@@ -287,6 +287,15 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
             NotifySupportRotationChange(*supportRotationInfo);
             break;
         }
+        case WindowManagerAgentMsg::TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE: {
+            int32_t persistentId = 0;
+            if (!data.ReadInt32(persistentId)) {
+                TLOGE(WmsLogTag::WMS_PATTERN, "read persistentId failed");
+                return ERR_INVALID_DATA;
+            }
+            NotifySessionSaveSnapShotComplete(persistentId);
+            break;
+        }
         default:
             WLOGFW("unknown transaction code %{public}d", code);
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -378,6 +387,15 @@ bool WindowManagerAgentStub::ReadWindowInfo(MessageParcel& data,
                 return false;
             }
             windowInfo[windowInfoKey] = static_cast<WindowMode>(value);
+            break;
+        }
+        case WindowInfoKey::WINDOW_MODE_INFO : {
+            WindowModeInfo value;
+            if (!value.Unmarshalling(data)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read WindowModeInfo failed");
+                return false;
+            }
+            windowInfo[windowInfoKey] = value;
             break;
         }
         case WindowInfoKey::DISPLAY_ID : {

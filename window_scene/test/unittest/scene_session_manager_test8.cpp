@@ -117,104 +117,6 @@ HWTEST_F(SceneSessionManagerTest8, WindowLayerInfoChangeCallback, TestSize.Level
 }
 
 /**
- * @tc.name: PostProcessFocus
- * @tc.desc: test function : PostProcessFocus
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.emplace(0, nullptr);
-    ssm_->PostProcessFocus();
-    ssm_->sceneSessionMap_.clear();
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus";
-    sessionInfo.abilityName_ = "PostProcessFocus";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    PostProcessFocusState state;
-    EXPECT_EQ(false, state.enabled_);
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(0, sceneSession);
-    ssm_->PostProcessFocus();
-
-    state.enabled_ = true;
-    state.isFocused_ = false;
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->PostProcessFocus();
-
-    state.isFocused_ = true;
-    state.reason_ = FocusChangeReason::SCB_START_APP;
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->PostProcessFocus();
-
-    sceneSession->SetPostProcessFocusState(state);
-    state.reason_ = FocusChangeReason::DEFAULT;
-    ssm_->PostProcessFocus();
-}
-
-/**
- * @tc.name: PostProcessFocus01
- * @tc.desc: test function : PostProcessFocus with focusableOnShow
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus01, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.clear();
-    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
-    focusGroup->SetFocusedSessionId(0);
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus01";
-    sessionInfo.abilityName_ = "PostProcessFocus01";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sceneSession->persistentId_ = 1;
-
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    sceneSession->SetFocusableOnShow(false);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(0, focusGroup->GetFocusedSessionId());
-
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->isVisible_ = true;
-    ssm_->PostProcessFocus();
-    EXPECT_NE(1, focusGroup->GetFocusedSessionId());
-}
-
-/**
- * @tc.name: PostProcessFocus03
- * @tc.desc: test function : PostProcessFocus
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus03, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.clear();
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus03";
-    sessionInfo.abilityName_ = "PostProcessFocus03";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sceneSession->persistentId_ = 1;
-
-    sceneSession->SetFocusedOnShow(false);
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(sceneSession->IsFocusedOnShow(), false);
-
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->isVisible_ = true;
-    state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(sceneSession->IsFocusedOnShow(), true);
-}
-
-/**
  * @tc.name: PostProcessProperty
  * @tc.desc: test function : PostProcessProperty
  * @tc.type: FUNC
@@ -1147,12 +1049,16 @@ HWTEST_F(SceneSessionManagerTest8, PackWindowPropertyChangeInfo01, TestSize.Leve
     sceneSession1->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession1->GetSessionProperty()->SetDisplayId(0);
     sceneSession1->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sceneSession1->GetSessionProperty()->SetWindowModeInfo(
+        WindowModeInfo { WindowMode::WINDOW_MODE_FULLSCREEN, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY });
     sceneSession1->SetFloatingScale(1.0f);
     sceneSession1->SetIsMidScene(true);
 
     std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
     ssm_->PackWindowPropertyChangeInfo(sceneSession1, windowPropertyChangeInfo);
-    EXPECT_EQ(windowPropertyChangeInfo.size(), 11);
+    EXPECT_EQ(windowPropertyChangeInfo.size(), 12);
+    EXPECT_EQ(std::get<WindowModeInfo>(windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE_INFO]).windowMode,
+        WindowMode::WINDOW_MODE_FULLSCREEN);
 }
 
 /**

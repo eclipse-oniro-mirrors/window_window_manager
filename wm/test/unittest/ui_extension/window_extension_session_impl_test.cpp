@@ -165,7 +165,7 @@ HWTEST_F(WindowExtensionSessionImplTest, Create04, TestSize.Level1)
     ASSERT_NE(nullptr, session);
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetPersistentId(1);
-    EXPECT_CALL(*session, Connect).WillOnce(Return(WSError::WS_ERROR_NULLPTR));
+    EXPECT_CALL(*session, Connect(_, _, _, _, _, _, _, _, _)).WillOnce(Return(WSError::WS_ERROR_NULLPTR));
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(abilityContext, session));
 }
 
@@ -3857,6 +3857,144 @@ HWTEST_F(WindowExtensionSessionImplTest, IsBlockSubwindow, TestSize.Level1)
     EXPECT_TRUE(window_->IsBlockSubwindow());
     window_->isBlockSubwindow_ = false;
     EXPECT_FALSE(window_->IsBlockSubwindow());
+}
+
+/*
+ * @tc.name: GetAvoidAreaByType
+ * @tc.desc: GetAvoidAreaByType
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetAvoidAreaByType, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_SHOWN;
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    AvoidArea avoidArea;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_FLOAT_NAVIGATION, avoidArea), WMError::WM_DO_NOTHING);
+    window->floatNavigationAvoidAreaEnabled_ = true;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+    window->floatNavigationAvoidAreaEnabled_ = false;
+    EXPECT_EQ(window->GetAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, avoidArea), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: OnHostWindowStatusChange
+ * @tc.desc: OnHostWindowStatusChange Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChange, TestSize.Level1)
+{
+    window_->property_->SetIsAtomicService(true);
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply;
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FULLSCREEN));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want), reply));
+    WindowStatus windowStatus;
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, windowStatus);
+
+    AAFwk::Want want2;
+    want2.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FULLSCREEN));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want2), reply));
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_FULLSCREEN, windowStatus);
+}
+
+/**
+ * @tc.name: GetWindowStatus
+ * @tc.desc: GetWindowStatus Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetWindowStatus, TestSize.Level1)
+{
+    WindowStatus windowStatus;
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_UNDEFINED, windowStatus);
+
+    window_->property_->SetIsAtomicService(true);
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply;
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_MAXIMIZE));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want), reply));
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MAXIMIZE, windowStatus);
+}
+
+/**
+ * @tc.name: OnResyncExtensionConfigWithWindowStatus
+ * @tc.desc: OnResyncExtensionConfig with windowStatus Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnResyncExtensionConfigWithWindowStatus, TestSize.Level3)
+{
+    window_->property_->SetIsAtomicService(true);
+    AAFwk::Want want;
+    AAFwk::WantParams configParam;
+    AAFwk::WantParams wantParam;
+    configParam.SetParam(Extension::CROSS_AXIS_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::WATERFALL_MODE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::HOST_WINDOW_DELAY_RAISE_STATE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        AAFwk::Integer::Box(static_cast<int32_t>(WindowStatus::WINDOW_STATUS_FLOATING)));
+    configParam.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, AAFwk::Integer::Box(0));
+    configParam.SetParam(Extension::COMPAT_SCALE_X_FIELD, AAFwk::Float::Box(1.0f));
+    configParam.SetParam(Extension::COMPAT_SCALE_Y_FIELD, AAFwk::Float::Box(1.0f));
+    wantParam.SetParam(Extension::UIEXTENSION_CONFIG_FIELD, AAFwk::WantParamWrapper::Box(configParam));
+    want.SetParams(wantParam);
+
+    std::optional<AAFwk::Want> reply;
+    EXPECT_EQ(WMError::WM_OK, window_->OnResyncExtensionConfig(std::move(want), reply));
+}
+
+/**
+ * @tc.name: OnHostWindowStatusChangeWithListener
+ * @tc.desc: OnHostWindowStatusChange with listener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChangeWithListener, TestSize.Level1)
+{
+    window_->property_->SetIsAtomicService(true);
+    sptr<IWindowStatusChangeListener> listener = sptr<IWindowStatusChangeListener>::MakeSptr();
+    EXPECT_EQ(WMError::WM_OK, window_->RegisterWindowStatusChangeListener(listener));
+
+    AAFwk::Want want;
+    std::optional<AAFwk::Want> reply;
+    want.SetParam(Extension::HOST_WINDOW_STATUS_FIELD,
+        static_cast<int32_t>(WindowStatus::WINDOW_STATUS_MINIMIZE));
+    EXPECT_EQ(WMError::WM_OK, window_->OnHostWindowStatusChange(std::move(want), reply));
+    WindowStatus windowStatus;
+    EXPECT_EQ(WMError::WM_OK, window_->GetWindowStatus(windowStatus));
+    EXPECT_EQ(WindowStatus::WINDOW_STATUS_MINIMIZE, windowStatus);
+    EXPECT_EQ(WMError::WM_OK, window_->UnregisterWindowStatusChangeListener(listener));
+}
+
+/**
+ * @tc.name: GetWindowPropertyInfo
+ * @tc.desc: GetWindowPropertyInfo test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetWindowPropertyInfo, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowName("GetWindowPropertyInfo");
+    WindowPropertyInfo windowPropertyInfo;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->GetWindowPropertyInfo(windowPropertyInfo, true));
+
+    SessionInfo sessionInfo;
+    window->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window->hostSession_);
+    window->property_->SetPersistentId(1);
+    EXPECT_EQ(WMError::WM_OK, window->GetWindowPropertyInfo(windowPropertyInfo, true));
 }
 }
 } // namespace Rosen

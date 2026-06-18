@@ -56,9 +56,12 @@ public:
 
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
 
     void BindKeyboardPanelSession(sptr<SceneSession> panelSession) override;
     sptr<SceneSession> GetKeyboardPanelSession() const override;
@@ -111,6 +114,8 @@ private:
         sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo, bool needRecalculateAvoidAreas,
         std::shared_ptr<RSTransaction> rsTransaction);
     bool RaiseCallingSession(const sptr<SceneSession>& callingSession, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
+    bool GetCallingSessionGlobalScaledRect(const sptr<SceneSession>& callingSession,
+        WSRect& callingSessionGlobalScaledRect) const;
     bool CalculateOccupiedArea(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect,
         const WSRect& panelRect, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
     void CloseRSTransaction();
@@ -120,9 +125,6 @@ private:
         const KeyboardLayoutParams& lastParams, const KeyboardLayoutParams& params);
     void SetSessionBlackListWhenShow(bool isCallingSessionSkip, const sptr<SceneSession>& panelSession);
     void CalculateOccupiedAreaAfterUIRefresh() override;
-    WSRect CalculateCenterScaledRect(const WSRect& sessionRect, float scaleX, float scaleY);
-    WSRect CalculateLeftTopScaledRect(const WSRect& sessionRect, float scaleX, float scaleY);
-    WSRect CalculateSafeRectForAIWindow(const WSRect& callingSessionRect, const WSRect& keyboardPanelRect);
     WMError HandleActionUpdateKeyboardTouchHotArea(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
 
@@ -133,6 +135,7 @@ private:
     WMError IsLandscape(uint64_t screenId, bool& isLandscape);
     void PrintRectsInfo(const std::vector<Rect>& rects, const std::string& infoTag);
     CallingWindowInfoData callingWindowInfoData_;
+    std::shared_ptr<RSUIContext> syncTransRSUIContext_ = nullptr;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_KEYBOARD_SESSION_H

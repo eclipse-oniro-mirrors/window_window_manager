@@ -76,7 +76,7 @@ public:
     MOCK_METHOD(WMError, RaiseToAppTop, (uint32_t windowId), (override));
     MOCK_METHOD(WMError, MinimizeByWindowId, (const std::vector<int32_t>& windowIds), (override));
     MOCK_METHOD(WSError, ShiftAppWindowFocus, (int32_t sourcePersistentId, int32_t targetPersistentId), (override));
-    MOCK_METHOD(WSError, GetHostWindowRect, (int32_t hostWindowId, Rect& rect), (override));
+    MOCK_METHOD(WSError, GetHostWindowRect, (int32_t hostWindowId, Rect& rect, bool useHookedSize), (override));
     MOCK_METHOD(WMError, GetWindowModeType, (WindowModeType& windowModeType), (override));
     MOCK_METHOD(WMError, GetWindowIdsByCoordinate,
         (DisplayId displayId, int32_t windowNumber, int32_t x, int32_t y, std::vector<int32_t>& windowIds), (override));

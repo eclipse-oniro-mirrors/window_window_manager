@@ -247,6 +247,7 @@ ohos_shared_library("sms") {
     "input:libmmi-napi",
     "samgr:samgr_proxy",
   ]
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   if (window_manager_use_sceneboard) {
     deps += [ "${window_base_path}/window_scene/session_manager_service:session_manager_service" ]
   }
@@ -354,6 +355,7 @@ if (window_manager_use_sceneboard) {
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
       "image_framework:image_native",
+      "icu:shared_icuuc",
       "input:libmmi-client",
       "ipc:ipc_single",
       "libxml2:libxml2",

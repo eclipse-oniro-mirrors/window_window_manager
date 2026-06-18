@@ -17,6 +17,7 @@
 #define OHOS_ROSEN_WM_COMMON_H
 
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -31,6 +32,7 @@
 #include "dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
+#include "wm_layout_common.h"
 #include "wm_math.h"
 #include "wm_type.h"
 
@@ -47,6 +49,7 @@ constexpr int32_t MIN_COLOR_MODE = -1;
 constexpr int32_t MAX_COLOR_MODE = 1;
 constexpr int32_t LIGHT_COLOR_MODE = 0;
 constexpr int32_t DARK_COLOR_MODE = 1;
+constexpr int32_t INVALID_REQUEST_ID = 0;
 constexpr int32_t ANCO_SERVICE_BROKER_UID = 5557;
 constexpr uint32_t MIN_SPACING_BETWEEN_BUTTONS = 8;
 constexpr uint32_t MAX_SPACING_BETWEEN_BUTTONS = 24;
@@ -215,8 +218,61 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_FLOATING,
     WINDOW_MODE_PIP,
     WINDOW_MODE_FB,
+    WINDOW_MODE_SPLIT,
     WINDOW_MODE_FV,
     END = WINDOW_MODE_FV,
+};
+
+/**
+ * @brief Enumerates type of split ratio preference.
+ */
+enum class SplitRatioPreference : uint32_t {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2
+};
+
+/**
+ * @brief Enumerates split style of window.
+ */
+enum class SplitStyle : uint32_t {
+    TWO_WINDOW_HORIZONTAL = 0,
+    TWO_WINDOW_VERTICAL,
+    THREE_WINDOW_HORIZONTAL,
+};
+
+/**
+ * @brief Split index constants for split window mode.
+ */
+static constexpr int32_t SPLIT_INDEX_PRIMARY = 0;
+static constexpr int32_t SPLIT_INDEX_SECONDARY = 1;
+
+/**
+ * @brief Window mode info, including mode, split style and split index.
+ */
+struct WindowModeInfo {
+    WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    int32_t splitIndex = SPLIT_INDEX_PRIMARY;
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        uint32_t windowModeValue = 1;
+        int32_t splitStyleValue = 0;
+        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
+            !parcel.ReadInt32(splitIndex)) {
+            return false;
+        }
+        windowMode = static_cast<WindowMode>(windowModeValue);
+        splitStyle = static_cast<SplitStyle>(splitStyleValue);
+        return true;
+    }
 };
 
 /**
@@ -273,12 +329,14 @@ enum WindowModeSupport : uint32_t {
     WINDOW_MODE_SUPPORT_SPLIT_SECONDARY = 1 << 3,
     WINDOW_MODE_SUPPORT_PIP = 1 << 4,
     WINDOW_MODE_SUPPORT_FB = 1 << 5,
+    WINDOW_MODE_SUPPORT_SPLIT = 1 << 6,
     WINDOW_MODE_SUPPORT_ALL = WINDOW_MODE_SUPPORT_FULLSCREEN |
                               WINDOW_MODE_SUPPORT_SPLIT_PRIMARY |
                               WINDOW_MODE_SUPPORT_SPLIT_SECONDARY |
                               WINDOW_MODE_SUPPORT_FLOATING |
                               WINDOW_MODE_SUPPORT_PIP |
-                              WINDOW_MODE_SUPPORT_FB
+                              WINDOW_MODE_SUPPORT_FB  |
+                              WINDOW_MODE_SUPPORT_SPLIT
 };
 
 /**
@@ -869,6 +927,23 @@ struct PointInfo {
 };
 
 /**
+ * @struct EventPositionInfo.
+ *
+ * @brief Event position information for window coordinate conversion.
+ */
+struct EventPositionInfo {
+    static constexpr int32_t INVALID_INT32 = std::numeric_limits<int32_t>::min();
+    static constexpr double INVALID_DOUBLE = std::numeric_limits<double>::lowest();
+
+    int32_t displayX = INVALID_INT32;
+    int32_t displayY = INVALID_INT32;
+    double displayXPos = INVALID_DOUBLE;
+    double displayYPos = INVALID_DOUBLE;
+    double globalX = INVALID_DOUBLE;
+    double globalY = INVALID_DOUBLE;
+};
+
+/**
  * @struct MainWindowInfo.
  *
  * @brief topN main window info.
@@ -1011,6 +1086,7 @@ constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;
 constexpr int32_t DEFAULT_SCREEN_ID = 0;
+constexpr int32_t INVALID_SCREEN_ID_INT32 = -1;
 constexpr int32_t ZERO_CIRCLE_DEGREE = 0;
 constexpr int32_t FULL_CIRCLE_DEGREE = 360;
 constexpr int32_t ONE_FOURTH_FULL_CIRCLE_DEGREE = 90;
@@ -1273,6 +1349,11 @@ struct Rect {
         return posX_ == x && posY_ == y;
     }
 
+    bool IsRightBottomOverflow() const
+    {
+        return Rect::IsRightBottomOverflow(posX_, posY_, width_, height_);
+    }
+
     inline std::string ToString() const
     {
         std::ostringstream oss;
@@ -1297,19 +1378,19 @@ struct Rect {
     static const Rect EMPTY_RECT;
 
     /**
-     * @brief Checks whether the right-bottom corner of a rectangle stays within the valid range.
+     * @brief Checks whether the right-bottom corner of a rectangle overflows the valid range.
      *
      * @param x The x-coordinate of the left-top corner.
      * @param y The y-coordinate of the left-top corner.
      * @param width The rectangle's width.
      * @param height The rectangle's height.
-     * @return true if right-bottom corner stays within int32_t range; false if overflow happens.
+     * @return true if right-bottom corner overflows int32_t range; false if within range.
      */
-    static bool IsRightBottomValid(int32_t x, int32_t y, uint32_t width, uint32_t height)
+    static bool IsRightBottomOverflow(int32_t x, int32_t y, uint32_t width, uint32_t height)
     {
         int64_t right = static_cast<int64_t>(x) + static_cast<int64_t>(width);
         int64_t bottom = static_cast<int64_t>(y) + static_cast<int64_t>(height);
-        return right <= INT32_MAX && bottom <= INT32_MAX;
+        return right > INT32_MAX || bottom > INT32_MAX;
     }
 };
 
@@ -1523,11 +1604,21 @@ struct WindowAnchorInfo : public Parcelable {
 
     struct AttachOptions : public Parcelable {
         std::string currentLayoutMode = "";
+        bool isIntersectedHeightLimit = false;
+        bool isIntersectedWidthLimit = false;
+
         AttachOptions() = default;
         AttachOptions(std::string currentLayoutMode) : currentLayoutMode(currentLayoutMode) {}
+        AttachOptions(std::string currentLayoutMode, bool isIntersectedHeightLimit,
+            bool isIntersectedWidthLimit) : currentLayoutMode(currentLayoutMode),
+            isIntersectedHeightLimit(isIntersectedHeightLimit),
+            isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
         bool operator==(const AttachOptions& other) const
         {
-            return currentLayoutMode == other.currentLayoutMode;
+            return currentLayoutMode == other.currentLayoutMode &&
+                   isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+                   isIntersectedWidthLimit == other.isIntersectedWidthLimit;
         }
 
         bool operator!=(const AttachOptions& other) const
@@ -1537,7 +1628,12 @@ struct WindowAnchorInfo : public Parcelable {
 
         bool Marshalling(Parcel& parcel) const override
         {
-            return parcel.WriteString(currentLayoutMode);
+            if (!parcel.WriteString(currentLayoutMode) ||
+                !parcel.WriteBool(isIntersectedHeightLimit) ||
+                !parcel.WriteBool(isIntersectedWidthLimit)) {
+                return false;
+            }
+            return true;
         }
 
         static AttachOptions* Unmarshalling(Parcel& parcel)
@@ -1551,6 +1647,11 @@ struct WindowAnchorInfo : public Parcelable {
                 return nullptr;
             }
             attachOptions->currentLayoutMode = layoutMode;
+
+            if (!parcel.ReadBool(attachOptions->isIntersectedHeightLimit) ||
+                !parcel.ReadBool(attachOptions->isIntersectedWidthLimit)) {
+                return nullptr;
+            }
             return attachOptions.release();
         }
     };
@@ -1603,6 +1704,8 @@ struct WindowAnchorInfo : public Parcelable {
         }
         windowAnchorInfo->windowAnchor_ = static_cast<WindowAnchor>(windowAnchorMode);
         windowAnchorInfo->attachOptions.currentLayoutMode = attachOptions->currentLayoutMode;
+        windowAnchorInfo->attachOptions.isIntersectedHeightLimit = attachOptions->isIntersectedHeightLimit;
+        windowAnchorInfo->attachOptions.isIntersectedWidthLimit = attachOptions->isIntersectedWidthLimit;
         return windowAnchorInfo;
     }
 };
@@ -2017,26 +2120,17 @@ struct PiPTemplateInfo : public Parcelable {
 
 struct FloatViewWindowInfo : public Parcelable {
     Rect windowRect_ {};
-    Rect titleBarRect_ {};
+    AvoidArea avoidArea_ {};
     float scale_ {1.0f};
 
     FloatViewWindowInfo() {}
 
-    static inline bool WriteRectParcel(Parcel& parcel, const Rect& rect)
-    {
-        return parcel.WriteInt32(rect.posX_) && parcel.WriteInt32(rect.posY_) &&
-            parcel.WriteUint32(rect.width_) && parcel.WriteUint32(rect.height_);
-    }
-
-    static inline bool ReadRectParcel(Parcel& parcel, Rect& rect)
-    {
-        return parcel.ReadInt32(rect.posX_) && parcel.ReadInt32(rect.posY_) &&
-            parcel.ReadUint32(rect.width_) && parcel.ReadUint32(rect.height_);
-    }
-
     bool Marshalling(Parcel& parcel) const override
     {
-        if (!WriteRectParcel(parcel, windowRect_) || !WriteRectParcel(parcel, titleBarRect_)) {
+        if (!windowRect_.Marshalling(parcel)) {
+            return false;
+        }
+        if (!avoidArea_.Marshalling(parcel)) {
             return false;
         }
         if (!parcel.WriteFloat(scale_)) {
@@ -2048,11 +2142,13 @@ struct FloatViewWindowInfo : public Parcelable {
     static FloatViewWindowInfo* Unmarshalling(Parcel& parcel)
     {
         auto* floatViewWindowInfo = new FloatViewWindowInfo();
-        if (!ReadRectParcel(parcel, floatViewWindowInfo->windowRect_) ||
-            !ReadRectParcel(parcel, floatViewWindowInfo->titleBarRect_)) {
+        floatViewWindowInfo->windowRect_.Unmarshalling(parcel);
+        std::shared_ptr<AvoidArea> avoidArea = std::shared_ptr<AvoidArea>(AvoidArea::Unmarshalling(parcel));
+        if (avoidArea == nullptr) {
             delete floatViewWindowInfo;
             return nullptr;
         }
+        floatViewWindowInfo->avoidArea_ = *avoidArea;
         if (!parcel.ReadFloat(floatViewWindowInfo->scale_)) {
             delete floatViewWindowInfo;
             return nullptr;
@@ -2064,10 +2160,8 @@ struct FloatViewWindowInfo : public Parcelable {
     {
         constexpr int precision = 6; // Print float with precision of 6 decimal places.
         std::ostringstream oss;
-        oss << "window rect [" << windowRect_.posX_ << " " << windowRect_.posY_ << " "
-            << windowRect_.width_ << " " << windowRect_.height_ << "]"
-            << " titleBar rect [" << titleBarRect_.posX_ << " " << titleBarRect_.posY_ << " "
-            << titleBarRect_.width_ << " " << titleBarRect_.height_ << "]"
+        oss << "window rect " << windowRect_.ToString()
+            << " avoidArea " << avoidArea_.ToString()
             << " scale [" << std::fixed << std::setprecision(precision) << scale_ << "]";
         return oss.str();
     }
@@ -2078,7 +2172,7 @@ struct FloatViewLimits : public Parcelable {
     uint32_t maxHeight_ {0};
     uint32_t minWidth_ {0};
     uint32_t minHeight_ {0};
-    std::vector<std::pair<float, float>> ratioLimits_ {};
+    std::vector<std::pair<double, double>> ratioLimits_ {};
     FloatViewLimits() {}
 
     bool Marshalling(Parcel& parcel) const override
@@ -2091,7 +2185,7 @@ struct FloatViewLimits : public Parcelable {
             return false;
         }
         for (const auto& ratioLimit : ratioLimits_) {
-            if (!parcel.WriteFloat(ratioLimit.first) || !parcel.WriteFloat(ratioLimit.second)) {
+            if (!parcel.WriteDouble(ratioLimit.first) || !parcel.WriteDouble(ratioLimit.second)) {
                 return false;
             }
         }
@@ -2119,7 +2213,7 @@ struct FloatViewLimits : public Parcelable {
         }
         floatViewLimits->ratioLimits_.resize(limitsCount);
         for (auto& ratioLimit : floatViewLimits->ratioLimits_) {
-            if (!parcel.ReadFloat(ratioLimit.first) || !parcel.ReadFloat(ratioLimit.second)) {
+            if (!parcel.ReadDouble(ratioLimit.first) || !parcel.ReadDouble(ratioLimit.second)) {
                 delete floatViewLimits;
                 return nullptr;
             }
@@ -2162,6 +2256,14 @@ enum class FloatingBallTextUpdateAnimationType : uint32_t {
     ANIMATION_END = 2,
 };
 
+/**
+ * @brief Enumerates floating ball update mode.
+ */
+enum class FloatingBallUpdateMode : uint32_t {
+    DEFAULT = 1,
+    VISIBLE_IN_APP = 2,
+};
+
 struct PiPWindowSize {
     uint32_t width;
     uint32_t height;
@@ -2190,13 +2292,14 @@ enum class FloatViewState : uint32_t {
     FV_IN_FLOATING_BALL = 5,
     FV_ERROR = 6,
 };
- 
+
 /**
  * @brief Enumerates float view template.
  */
 enum class FloatViewTemplate : uint32_t {
     ROUNDED_RECTANGLE = 0,
-    END = 1,
+    HORIZONTAL_BAR = 1,
+    END,
 };
 
 /**
@@ -2318,7 +2421,87 @@ struct WindowLimits {
             << " " << vpRatio_ << " " << static_cast<uint32_t>(pixelUnit_) << "]";
         return oss.str();
     }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(maxWidth_) && parcel.WriteUint32(maxHeight_) &&
+            parcel.WriteUint32(minWidth_) && parcel.WriteUint32(minHeight_) &&
+            parcel.WriteFloat(maxRatio_) && parcel.WriteFloat(minRatio_) &&
+            parcel.WriteFloat(vpRatio_) && parcel.WriteUint32(static_cast<uint32_t>(pixelUnit_));
+    }
+
+    static WindowLimits* Unmarshalling(Parcel& parcel)
+    {
+        auto windowLimits = std::make_unique<WindowLimits>();
+        if (!windowLimits) {
+            return nullptr;
+        }
+        uint32_t pixelUnit = 0;
+        if (!parcel.ReadUint32(windowLimits->maxWidth_) ||
+            !parcel.ReadUint32(windowLimits->maxHeight_) ||
+            !parcel.ReadUint32(windowLimits->minWidth_) ||
+            !parcel.ReadUint32(windowLimits->minHeight_) ||
+            !parcel.ReadFloat(windowLimits->maxRatio_) ||
+            !parcel.ReadFloat(windowLimits->minRatio_) ||
+            !parcel.ReadFloat(windowLimits->vpRatio_) ||
+            !parcel.ReadUint32(pixelUnit)) {
+            return nullptr;
+        }
+        // Validate pixelUnit: valid values are PX=0 and VP=1
+        if (pixelUnit > static_cast<uint32_t>(PixelUnit::VP)) {
+            return nullptr;
+        }
+        windowLimits->pixelUnit_ = static_cast<PixelUnit>(pixelUnit);
+        return windowLimits.release();
+    }
 };
+
+/**
+ * @struct AttachLimitOptions
+ *
+ * @brief Options for intersecting limits with attached windows.
+ * Used to specify whether to intersect height/width limits.
+ */
+struct AttachLimitOptions {
+    bool isIntersectedHeightLimit = false;
+    bool isIntersectedWidthLimit = false;
+
+    AttachLimitOptions() = default;
+    AttachLimitOptions(bool isIntersectedHeightLimit, bool isIntersectedWidthLimit)
+        : isIntersectedHeightLimit(isIntersectedHeightLimit),
+          isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
+    bool operator==(const AttachLimitOptions& other) const
+    {
+        return isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+               isIntersectedWidthLimit == other.isIntersectedWidthLimit;
+    }
+
+    bool operator!=(const AttachLimitOptions& other) const
+    {
+        return !this->operator==(other);
+    }
+};
+
+/**
+ * @enum DragActivateSource
+ *
+ * @brief Bit flags identifying the caller source for drag activation.
+ * Each source owns one bit. AND semantics: all registered sources must agree for drag to be activated.
+ */
+enum class DragActivateSource : uint32_t {
+    FOLLOW_PARENT_LAYOUT = 1 << 0,
+    FOLLOW_PARENT_POSITION = 1 << 1,
+    APP_LOCK = 1 << 2,
+    MID_SCENE_TO_PC_MODE = 1 << 3,
+    // Extend as needed, use 1 << N
+};
+
+constexpr uint32_t DRAG_ACTIVATE_ALL_MASK =
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT) |
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_POSITION) |
+    static_cast<uint32_t>(DragActivateSource::APP_LOCK) |
+    static_cast<uint32_t>(DragActivateSource::MID_SCENE_TO_PC_MODE);
 
 /**
  * @struct TitleButtonRect
@@ -2529,6 +2712,7 @@ struct WindowMetaInfo : public Parcelable {
     uint64_t leashWinSurfaceNodeId = 0;
     bool isPrivacyMode = false;
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    WindowModeInfo windowModeInfo;
     bool isMidScene = false;
     bool isFocused = false;
     bool isTouchable = true;
@@ -2543,6 +2727,7 @@ struct WindowMetaInfo : public Parcelable {
                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
                parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               windowModeInfo.Marshalling(parcel) &&
                parcel.WriteBool(isTouchable) && parcel.WriteInt32(mainWindowPersistentId) &&
                parcel.WriteUint8(static_cast<uint8_t>(controlAppType));
     }
@@ -2561,6 +2746,7 @@ struct WindowMetaInfo : public Parcelable {
             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
             !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
+            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel) ||
             !parcel.ReadBool(windowMetaInfo->isTouchable) ||
             !parcel.ReadInt32(windowMetaInfo->mainWindowPersistentId) || !parcel.ReadUint8(controlAppTypeValue)) {
             delete windowMetaInfo;
@@ -3284,6 +3470,7 @@ enum class WindowInfoKey : int32_t {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**
@@ -3378,6 +3565,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -3585,6 +3773,66 @@ struct RecentSessionInfo : public Parcelable {
     int32_t appIndex = 0;
     WindowType windowType = WindowType::APP_MAIN_WINDOW_BASE;
     RecentSessionState sessionState = RecentSessionState::DISCONNECT;
+};
+
+struct ApplicationInfo : public Parcelable {
+    ApplicationInfo() = default;
+    ApplicationInfo(const std::string& bundleName, int32_t appIndex = 0, const std::string& appInstanceKey = "")
+        : bundleName(bundleName), appIndex(appIndex), appInstanceKey(appInstanceKey) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteString(bundleName) &&
+               parcel.WriteInt32(appIndex) &&
+               parcel.WriteString(appInstanceKey);
+    }
+
+    static ApplicationInfo* Unmarshalling(Parcel& parcel)
+    {
+        ApplicationInfo* info = new ApplicationInfo();
+        if (!parcel.ReadString(info->bundleName) ||
+            !parcel.ReadInt32(info->appIndex) ||
+            !parcel.ReadString(info->appInstanceKey)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    std::string bundleName;
+    int32_t appIndex = 0;
+    std::string appInstanceKey;
+};
+
+struct AppWindowShowingInfo : public Parcelable {
+    AppWindowShowingInfo() = default;
+    AppWindowShowingInfo(int32_t persistentId) : persistentId(persistentId) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteInt32(persistentId) &&
+               parcel.WriteString(windowName) &&
+               parcel.WriteUint32(sessionState) &&
+               parcel.WriteBool(isShowOnDock);
+    }
+
+    static AppWindowShowingInfo* Unmarshalling(Parcel& parcel)
+    {
+        AppWindowShowingInfo* info = new AppWindowShowingInfo();
+        if (!parcel.ReadInt32(info->persistentId) ||
+            !parcel.ReadString(info->windowName) ||
+            !parcel.ReadUint32(info->sessionState) ||
+            !parcel.ReadBool(info->isShowOnDock)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    int32_t persistentId = -1;
+    std::string windowName;
+    uint32_t sessionState = 0;
+    bool isShowOnDock = false;
 };
 
 /**
@@ -3882,6 +4130,17 @@ enum class WaterfallResidentState : uint32_t {
 };
 
 /**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::UNSPECIFIED;
+    SnapshotAnimationConfig snapshotAnimationConfig;
+};
+
+/**
  * @enum CompatibleMode
  * @brief Controls the compatible aspect ratio modes for window display.
  */
@@ -3897,6 +4156,12 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_2_3 = 4,
     // split aspect ratio
     LANDSCAPE_SPLIT = 5,
+    // 3:2 aspect ratio
+    LANDSCAPE_3_2 = 20,
+    // 4:3 aspect ratio
+    LANDSCAPE_4_3 = 21,
+    // 16:9 aspect ratio
+    LANDSCAPE_16_9 = 22,
 };
 
 enum class WindowManagerAgentType : uint32_t {
@@ -3919,6 +4184,7 @@ enum class WindowManagerAgentType : uint32_t {
     WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
     WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
     WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
+    WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
     WINDOW_MANAGER_AGENT_TYPE_END,
 };
 
@@ -3951,6 +4217,30 @@ enum class TitleButtonEventType : uint32_t {
     EVENT_TYPE_MAXIMIZE = 1,
     EVENT_TYPE_END = 10,
 };
+
+/**
+ * @brief Optional configuration for window movement.
+ */
+struct StartMovingOptions {
+    /**
+     * @brief Indicates whether the window needs to be focused when moving starts.
+     */
+    bool needFocused = true;
+
+    /**
+     * @brief The avoidance rect of window during drag-moving.
+     */
+    Rect avoidRect = Rect::EMPTY_RECT;
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "needFocused: " << needFocused << ", avoidRect: " << avoidRect.ToString();
+        return oss.str();
+    }
+};
+
+bool IsMultiInstanceEnabled();
 }
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

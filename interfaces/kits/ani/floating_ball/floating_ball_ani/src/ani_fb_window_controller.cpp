@@ -176,6 +176,24 @@ void OptionSetBackgroundColor(ani_env* env, ani_object paramsInterface, FbOption
     }
 }
 
+void OptionSetIcon(ani_env* env, ani_object paramsInterface, FbOption& option)
+{
+    ani_ref iconValue;
+    env->Object_GetPropertyByName_Ref(paramsInterface, "icon", &iconValue);
+    ani_boolean isiconValueUndefined = false;
+    env->Reference_IsUndefined(iconValue, &isiconValueUndefined);
+    if (!isiconValueUndefined) {
+        std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
+        ani_object iconValueObject = static_cast<ani_object>(iconValue);
+        pixelMap = Media::PixelMapTaiheAni::GetNativePixelMap(env, iconValueObject);
+        if (pixelMap == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]failed to extract icon: invalid PixelMap");
+            return;
+        }
+        option.SetIcon(pixelMap);
+    }
+}
+
 bool OptionSetTextUpdateAnimationType(ani_env* env, ani_object paramsInterface, FbOption& option)
 {
     ani_ref textUpdateAnimationTypeValue;
@@ -203,25 +221,7 @@ bool OptionSetTextUpdateAnimationType(ani_env* env, ani_object paramsInterface, 
     return true;
 }
 
-void OptionSetIcon(ani_env* env, ani_object paramsInterface, FbOption& option)
-{
-    ani_ref iconValue;
-    env->Object_GetPropertyByName_Ref(paramsInterface, "icon", &iconValue);
-    ani_boolean isiconValueUndefined = false;
-    env->Reference_IsUndefined(iconValue, &isiconValueUndefined);
-    if (!isiconValueUndefined) {
-        std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-        ani_object iconValueObject = static_cast<ani_object>(iconValue);
-        pixelMap = Media::PixelMapTaiheAni::GetNativePixelMap(env, iconValueObject);
-        if (pixelMap == nullptr) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]failed to extract icon: invalid PixelMap");
-            return;
-        }
-        option.SetIcon(pixelMap);
-    }
-}
-
-bool GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option)
+bool AniFbController::GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]start");
     if (!CheckParamsInterface(env, paramsInterface)) {return false;}
@@ -345,6 +345,42 @@ void AniFbController::OnstartFloatingBallAni(ani_env* env, ani_object paramsInte
         return;
     }
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]OnstartFloatingBallAni finish");
+}
+
+void AniFbController::SetInApplicationVisibleAni(ani_env* env,
+                                                 ani_object obj,
+                                                 ani_long nativeObj,
+                                                 ani_boolean isVisible)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]set in application visible");
+    // check nullptr
+    AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
+    if (aniFbController == nullptr) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+            "[FB]AniFbController* aniFbController for nativeObj is nullptr");
+        return;
+    }
+    // working
+    aniFbController->OnSetInApplicationVisibleAni(env, isVisible);
+}
+
+void AniFbController::OnSetInApplicationVisibleAni(ani_env* env, ani_boolean isVisible)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]SetInApplicationVisibleAni start");
+    // check nullptr
+    if (fbController_ == nullptr) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, "[FB]fbController_ is nullptr");
+        return;
+    }
+    // check nullptr
+    WMError errCode = fbController_->SetInApplicationVisible(static_cast<bool>(isVisible));
+    // check result
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->SetInApplicationVisible failed");
+        AniThrowError(env, errCode, "[FB]internal error");
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]OnSetInApplicationVisibleAni finish");
 }
 
 void AniFbController::UpdateFloatingBallAni(ani_env* env,
@@ -839,6 +875,11 @@ WMError AniFbController::UnRegisterListener(FbListenerType fbListenerType, sptr<
             return WMError::WM_ERROR_FB_PARAM_INVALID;
     }
 }
+
+sptr<FloatingBallController> AniFbController::GetController() const
+{
+    return fbController_;
+}
 } // namespace Rosen
 } // namespace OHOS
 
@@ -862,6 +903,8 @@ ani_status OHOS::Rosen::ANI_Controller_Constructor(ani_vm *vm, uint32_t *result)
     std::array methods = {
         ani_native_function {"startFloatingBallNative", nullptr,
             reinterpret_cast<void*>(AniFbController::StartFloatingBallAni)},
+        ani_native_function {"SetInApplicationVisibleNative", nullptr,
+            reinterpret_cast<void*>(AniFbController::SetInApplicationVisibleAni)},
         ani_native_function {"updateFloatingBallNative", nullptr,
             reinterpret_cast<void*>(AniFbController::UpdateFloatingBallAni)},
         ani_native_function {"stopFloatingBallNative", "l:",

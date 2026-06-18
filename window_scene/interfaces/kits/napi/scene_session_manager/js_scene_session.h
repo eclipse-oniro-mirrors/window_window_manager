@@ -125,6 +125,7 @@ enum class ListenerFuncType : uint32_t {
     PRE_CALC_WINDOW_PROPERTY_CB,
     FLOAT_VIEW_STOP_CB,
     FLOAT_VIEW_UPDATE_CB,
+    SPLIT_RATIO_CHANGE_CB,
 };
 
 class SceneSession;
@@ -138,6 +139,7 @@ public:
     sptr<SceneSession> GetNativeSession() const;
 
 private:
+    void RegisterClearCallbackMap(const sptr<SceneSession>& session);
 
     /*
      * Window Lifecycle
@@ -194,6 +196,7 @@ private:
     static napi_value SetPrivacyMode(napi_env env, napi_callback_info info);
     static napi_value SetFloatingScale(napi_env env, napi_callback_info info);
     static napi_value SetIsMidScene(napi_env env, napi_callback_info info);
+    static napi_value SetIsGamePrelaunch(napi_env env, napi_callback_info info);
     static napi_value SetSystemSceneOcclusionAlpha(napi_env env, napi_callback_info info);
     static napi_value ResetOcclusionAlpha(napi_env env, napi_callback_info info);
     static napi_value SetSystemSceneForceUIFirst(napi_env env, napi_callback_info info);
@@ -228,6 +231,7 @@ private:
     static napi_value SyncScenePanelGlobalPosition(napi_env env, napi_callback_info info);
     static napi_value UnSyncScenePanelGlobalPosition(napi_env env, napi_callback_info info);
     static napi_value SetNeedSyncSessionRect(napi_env env, napi_callback_info info);
+    static napi_value GetParentWindowRect(napi_env env, napi_callback_info info);
     static napi_value MaskSupportEnterWaterfallMode(napi_env env, napi_callback_info info);
     static napi_value UpdateFullScreenWaterfallMode(napi_env env, napi_callback_info info);
     static void BindNativeMethod(napi_env env, napi_value objValue, const char* moduleName);
@@ -288,9 +292,13 @@ private:
     static napi_value SetPcAppInpadOrientationLandscape(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
     static napi_value SetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
+    static napi_value SetForceSplitEnable(napi_env env, napi_callback_info info);
+    static napi_value UpdateHookWindowInfo(napi_env env, napi_callback_info info);
     static napi_value NotifyOrientationExecutionResult(napi_env env, napi_callback_info info);
     static napi_value GetSceneNodeCount(napi_env env, napi_callback_info info);
     static napi_value NotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
+    static napi_value SetDragDisabledAreas(napi_env env, napi_callback_info info);
+    static napi_value UpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
@@ -315,6 +323,7 @@ private:
     napi_value OnSetPrivacyMode(napi_env env, napi_callback_info info);
     napi_value OnSetFloatingScale(napi_env env, napi_callback_info info);
     napi_value OnSetIsMidScene(napi_env env, napi_callback_info info);
+    napi_value OnSetIsGamePrelaunch(napi_env env, napi_callback_info info);
     napi_value OnSetSystemSceneOcclusionAlpha(napi_env env, napi_callback_info info);
     napi_value OnResetOcclusionAlpha(napi_env env, napi_callback_info info);
     napi_value OnSetSystemSceneForceUIFirst(napi_env env, napi_callback_info info);
@@ -367,6 +376,7 @@ private:
     napi_value OnSyncScenePanelGlobalPosition(napi_env env, napi_callback_info info);
     napi_value OnUnSyncScenePanelGlobalPosition(napi_env env, napi_callback_info info);
     napi_value OnSetNeedSyncSessionRect(napi_env env, napi_callback_info info);
+    napi_value OnGetParentWindowRect(napi_env env, napi_callback_info info);
     napi_value OnSetWindowEnableDragBySystem(napi_env env, napi_callback_info info);
     napi_value OnSetIsActivatedAfterScreenLocked(napi_env env, napi_callback_info info);
     napi_value OnSetIsPendingToBackgroundState(napi_env env, napi_callback_info info);
@@ -400,9 +410,13 @@ private:
     napi_value OnUpdateSceneAnimationConfig(napi_env env, napi_callback_info info);
     napi_value OnGetUid(napi_env env, napi_callback_info info);
     napi_value OnSetMobileAppInPadLayoutFullScreen(napi_env env, napi_callback_info info);
+    napi_value OnSetForceSplitEnable(napi_env env, napi_callback_info info);
+    napi_value OnUpdateHookWindowInfo(napi_env env, napi_callback_info info);
     napi_value OnNotifyOrientationExecutionResult(napi_env env, napi_callback_info info);
     napi_value OnGetSceneNodeCount(napi_env env, napi_callback_info info);
     napi_value OnNotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
+    napi_value OnSetDragDisabledAreas(napi_env env, napi_callback_info info);
+    napi_value OnUpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
 
     /*
      * PC Window
@@ -621,6 +635,8 @@ private:
      */
     void ProcessCompatibleModeChangeRegister();
     void OnCompatibleModeChange(CompatibleStyleMode mode);
+    void ProcessSplitRatioChangeRegister();
+    void OnSplitRatioChange(float newRatio);
 
     bool HandleCloseKeyboardSyncTransactionKeyboardBaseInfo(napi_env env,
         napi_value argv[], int index, KeyboardBaseInfo& keyboardBaseInfo);

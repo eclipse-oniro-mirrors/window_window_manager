@@ -45,6 +45,8 @@ bool ConvertStartAnimationSystemOptionsFromAniValue(ani_env* env, ani_object ani
 bool ConvertWindowAnimationOptionFromAniValue(ani_env* env, ani_object config,
     WindowAnimationOption& animationConfig, WmErrorCode& result);
 bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject, WindowCreateParams& windowCreateParams);
+bool ConvertSplitRatioPreferenceFromAniValue(
+    ani_env* env, ani_object aniObject, SplitRatioPreference& splitRatioPreference);
 bool CheckWindowAnimationOption(WindowAnimationOption& animationConfig, WmErrorCode& result);
 }
 }

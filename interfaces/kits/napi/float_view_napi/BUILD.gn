@@ -17,12 +17,13 @@ import("../../../../windowmanager_aafwk.gni")
 config("float_view_config") {
     include_dirs = [
       "../../../../wm/include",
+      "../floating_ball_napi",
       "../common",
-      "../floating_ball_napi"
+      "../../../../utils/include",
     ]
 }
 
-ohos_shared_library("floatview_napi") {
+ohos_shared_library("floatview_kit") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
@@ -32,7 +33,6 @@ ohos_shared_library("floatview_napi") {
   }
   sources = [
     "js_float_view_controller.cpp",
-    "js_float_view_module.cpp",
     "js_float_view_manager.cpp",
     "js_float_view_utils.cpp",
     "js_float_view_listener.cpp",
@@ -63,6 +63,58 @@ ohos_shared_library("floatview_napi") {
     "napi:ace_napi",
   ]
 
+  innerapi_tags = [ "platformsdk" ]
+  part_name = "window_manager"
+  subsystem_name = "window"
+
+  defines = []
+  if (build_variant == "user") {
+    defines += [ "IS_RELEASE_VERSION" ]
+  }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+}
+
+ohos_shared_library("floatview_napi") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+  sources = [
+    "js_float_view_module.cpp",
+  ]
+
+  configs = [
+    ":float_view_config",
+  ]
+
+  deps = [
+    ":floatview_kit",
+    "../../../../utils:libwmutil",
+    "../../../../utils:libwmutil_base",
+    "../../../../wm:libwm",
+    "../common:wm_napi_util",
+    "../floating_ball_napi:floatingball_kit",
+  ]
+
+  external_deps = [
+    "ability_runtime:ability_context_native",
+    "ability_runtime:abilitykit_native",
+    "ability_runtime:napi_common",
+    "ability_runtime:runtime",
+    "runtime_core:ani",
+    "c_utils:utils",
+    "hilog:libhilog",
+    "image_framework:image",
+    "ipc:ipc_single",
+    "napi:ace_napi",
+  ]
+
   relative_install_dir = "module/window"
   part_name = "window_manager"
   subsystem_name = "window"
@@ -70,5 +122,9 @@ ohos_shared_library("floatview_napi") {
   defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
+  }
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
 }

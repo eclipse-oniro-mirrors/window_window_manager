@@ -29,6 +29,7 @@
 namespace OHOS {
 namespace Rosen {
 using SMSRecoverListenerMap = std::unordered_map<int32_t, sptr<ISessionManagerServiceRecoverListener>>;
+using RecoverListenerPairs = std::vector<std::pair<int32_t, sptr<ISessionManagerServiceRecoverListener>>>;
 class MockSessionManagerService : public SystemAbility, public MockSessionManagerInterfaceStub {
 DECLARE_SYSTEM_ABILITY(MockSessionManagerService);
 WM_DECLARE_SINGLE_INSTANCE_BASE(MockSessionManagerService);
@@ -55,15 +56,14 @@ public:
     ErrCode GetSceneSessionManagerByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManager) override;
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteBySA(int32_t userId);
     sptr<ISceneSessionManager> GetSceneSessionManagerBySA(int32_t userId);
-
+    ErrCode GetActiveUserIds(std::vector<int32_t>& activeUserIds) override;
     /*
      * Window Recover
      */
     ErrCode NotifySceneBoardAvailable() override;
     ErrCode RegisterSMSRecoverListener(int32_t userId, bool isLite, const sptr<IRemoteObject>& listener) override;
     ErrCode UnregisterSMSRecoverListener(int32_t userId, bool isLite) override;
-    void UnregisterSMSRecoverListenerInner(int32_t clientUserId, DisplayId displayId, int32_t pid, bool isLite);
-    virtual ErrCode InitDisplayIdAndUserIdByClient(int32_t clientUserId, int32_t& userId, DisplayId& displayId);
+    void RemoveSMSRecoverListener(int32_t clientUserId, int32_t pid, int32_t instanceUserId, bool isLite);
 
     /*
      * Window Hierarchy
@@ -104,18 +104,32 @@ private:
     virtual sptr<IRemoteObject> GetSessionManagerServiceInner(int32_t userId);
     void RemoveSessionManagerServiceByUserId(int32_t userId);
     bool RegisterMockSessionManagerService();
-    virtual ErrCode GetForegroundOsAccountDisplayId(int32_t userId, DisplayId& displayId) const;
     ErrCode NotifyWMSConnectionStatus(int32_t userId, const sptr<ISessionManagerServiceRecoverListener>& smsListener);
     virtual int32_t GetUserIdByCallingUid();
-
-    SMSRecoverListenerMap* GetSMSRecoverListenerMap(int32_t userId, bool isLite);
-    SMSRecoverListenerMap* GetSystemAppSMSRecoverListenerMap(DisplayId displayId, bool isLite);
-
     void NotifySceneBoardAvailableToClient(int32_t userId, bool isLite);
     void NotifySceneBoardAvailableToSystemAppClient(int32_t userId, bool isLite);
 
-    void NotifyWMSConnectionChanged(int32_t wmsUserId, DisplayId screenId, bool isConnected);
-    void NotifyWMSConnectionChangedToClient(int32_t wmsUserId, DisplayId screenId, bool isConnected, bool isLite);
+    void NotifyWMSConnectionChanged(int32_t wmsUserId, DisplayId screenId,
+        bool isConnected, int32_t fromUserId, int32_t fromPid = INVALID_PID);
+    void NotifyWMSConnectionChangedToClient(int32_t wmsUserId, DisplayId screenId,
+        bool isConnected, bool isLite, int32_t wmsPid, int32_t fromUserId, int32_t fromPid);
+
+    void AddSMSRecoverListener(int32_t clientUserId, int32_t pid, int32_t instanceUserId, bool isLite,
+        const sptr<ISessionManagerServiceRecoverListener>& smsListener);
+
+    void UpdateUserId2PidMapping(int32_t userId, int32_t pid);
+    int32_t GetWmsPidByUserId(int32_t userId);
+    void RemoveUserId2PidMapping(int32_t userId);
+    int32_t GetUserIdOnScreen(DisplayId screenId, int32_t userId);
+    void UpdateScreenUserInfo(int32_t userId, DisplayId screenId);
+    void RemoveScreenUserMappingIfMatched(DisplayId screenId, int32_t userId);
+
+    RecoverListenerPairs CollectListenersByClientUserId(int32_t clientUserId, bool isLite);
+    RecoverListenerPairs CollectListenersByInstanceUserId(int32_t clientUserId, int32_t instanceUserId, bool isLite);
+
+    bool AddClientDeathRecipient(
+        const sptr<IRemoteObject>& listener, int32_t clientUserId, int32_t instanceUserId,
+        int32_t pid, bool isLite);
 
     int DumpSessionInfo(const std::vector<std::string>& args, std::string& dumpInfo);
     void ShowHelpInfo(std::string& dumpInfo);
@@ -128,6 +142,7 @@ private:
     template <typename T>
     ErrCode GetSceneSessionManagerByUserIdImpl(int32_t userId, bool isLite, bool checkClient, sptr<T>& result);
     void RemoveFromMap(std::map<int32_t, sptr<IRemoteObject>>& map, std::mutex& mutex, int32_t userId);
+    int32_t GetDefaultWMSUserId();
 
     /*
      * Window Snapshot
@@ -152,8 +167,10 @@ private:
     int32_t defaultWMSUserId_;
     std::mutex defaultWMSUserIdMutex_;
     DisplayId defaultScreenId_;
-    std::mutex userId2ScreenIdMapMutex_;
-    std::map<int32_t, DisplayId> userId2ScreenIdMap_;
+    std::mutex userId2ScreenIdMutex_;
+    std::map<int32_t, DisplayId> userId2ScreenId_;
+    std::mutex screenId2UserIdMutex_;
+    std::map<DisplayId, int32_t> screenId2UserId_;
     std::shared_mutex smsDeathRecipientMapLock_;
     std::map<int32_t, sptr<SMSDeathRecipient>> smsDeathRecipientMap_;
     std::mutex sessionManagerServiceMapMutex_;
@@ -168,15 +185,10 @@ private:
     /*
      * Window Recover
      */
-    std::unordered_map<int32_t, SMSRecoverListenerMap> recoverListenerMap_;
+    std::unordered_map<int32_t, std::unordered_map<int32_t, SMSRecoverListenerMap>> recoverListenerMap_;
     std::mutex recoverListenerMutex_;
-    std::unordered_map<int32_t, SMSRecoverListenerMap> liteRecoverListenerMap_;
+    std::unordered_map<int32_t, std::unordered_map<int32_t, SMSRecoverListenerMap>> liteRecoverListenerMap_;
     std::mutex liteRecoverListenerMutex_;
-
-    std::unordered_map<DisplayId, SMSRecoverListenerMap> systemAppRecoverListenerMap_;
-    std::mutex systemAppRecoverListenerMutex_;
-    std::unordered_map<DisplayId, SMSRecoverListenerMap> liteSystemAppRecoverListenerMap_;
-    std::mutex liteSystemAppRecoverListenerMutex_;
 
     /*
      * Window Hierarchy
@@ -189,6 +201,8 @@ private:
      */
     std::mutex userIdBundleNamesMapLock_;
     std::unordered_map<int32_t, std::vector<std::string>> userIdBundleNamesMap_;
+    std::map<int32_t, int32_t> userId2PidMap_;
+    std::mutex userId2PidMapMutex_;
 };
 } // namespace Rosen
 } // namespace OHOS

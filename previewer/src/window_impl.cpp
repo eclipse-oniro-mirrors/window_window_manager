@@ -23,6 +23,7 @@
 #include "window_option.h"
 #include "viewport_config.h"
 #include "singleton_container.h"
+#include <ui/rs_ui_director.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -46,6 +47,7 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
     } else {
         name_ = "main_window";
     }
+    rsUIDirector_ = RSUIDirector::Create(nullptr);
     WLOGFI("WindowImpl constructorCnt: %{public}d",
         ++constructorCnt);
 }
@@ -63,7 +65,7 @@ void WindowImpl::CreateSurfaceNode(const std::string name, const SendRenderDataC
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     rsSurfaceNodeConfig.additionalData = reinterpret_cast<void*>(callback);
-    surfaceNode_ = RSSurfaceNode::Create(rsSurfaceNodeConfig);
+    surfaceNode_ = RSSurfaceNode::Create(rsSurfaceNodeConfig, true, GetRSUIContext());
     if (surfaceNode_ != nullptr) {
         vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
     }
@@ -99,6 +101,13 @@ sptr<Window> WindowImpl::FindWindowById(uint32_t windowId)
     }
     WLOGFE("Cannot find Window!");
     return nullptr;
+}
+
+std::shared_ptr<RSUIContext> WindowImpl::GetRSUIContext() const
+{
+    auto rsUIContext = rsUIDirector_ ? rsUIDirector_->GetRSUIContext() : nullptr;
+    WLOGFE("GetRSUIContext uicontext is %{public}d", rsUIContext != nullptr);
+    return rsUIContext;
 }
 
 sptr<Window> WindowImpl::GetTopWindowWithId(uint32_t mainWinId)
@@ -169,6 +178,11 @@ Rect WindowImpl::GetRect() const
     return Rect{0, 0, 0, 0};
 }
 
+Rect WindowImpl::GetRect(bool useHookedSize) const
+{
+    return Rect{0, 0, 0, 0};
+}
+
 Rect WindowImpl::GetRequestRect() const
 {
     return Rect{0, 0, 0, 0};
@@ -180,6 +194,11 @@ WindowType WindowImpl::GetType() const
 }
 
 WindowMode WindowImpl::GetWindowMode() const
+{
+    return windowMode_;
+}
+
+WindowMode WindowImpl::GetWindowModeCompat() const
 {
     return windowMode_;
 }
@@ -732,6 +751,12 @@ WMError WindowImpl::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& list
 }
 
 WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    return WMError::WM_OK;
+}
+
+WMError WindowImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+    bool useHookedSize)
 {
     return WMError::WM_OK;
 }

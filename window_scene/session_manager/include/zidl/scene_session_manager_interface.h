@@ -101,6 +101,7 @@ public:
         TRANS_ID_UPDATE_SESSION_SCREENSHOT_LISTENER,
         TRANS_ID_UPDATE_SESSION_OCCLUSION_STATE_LISTENER,
         TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
+        TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE,
         TRANS_ID_SHIFT_APP_WINDOW_FOCUS,
         TRANS_ID_LIST_WINDOW_INFO,
         TRANS_ID_GET_WINDOW_LAYOUT_INFO,
@@ -133,6 +134,7 @@ public:
         TRANS_ID_SET_PROCESS_SNAPSHOT_SKIP,
         TRANS_ID_SET_SNAPSHOT_SKIP_BY_USERID_AND_BUNDLENAMES,
         TRANS_ID_SET_PROCESS_WATERMARK,
+        TRANS_ID_RECOVER_PROCESS_WATERMARK,
         TRANS_ID_GET_WINDOW_IDS_BY_COORDINATE,
         TRANS_ID_UPDATE_SESSION_SCREEN_LOCK,
         TRANS_ID_ADD_SKIP_SELF_ON_VIRTUAL_SCREEN,
@@ -182,6 +184,7 @@ public:
         TRANS_ID_SNAPSHOT_BY_WINDOW_ID,
         TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -331,7 +334,10 @@ public:
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
-        const WindowInfoOptions& option = WindowInfoOptions()) override { return WMError::WM_OK; }
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override
+    {
+        return WMError::WM_OK;
+    }
     WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos) override { return WMError::WM_OK; }
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) override { return WMError::WM_OK; }
@@ -346,7 +352,8 @@ public:
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
         std::string& watermarkName) override { return WMError::WM_OK; }
     WMError RecoverWatermarkImageForApp(const std::string& watermarkName) override { return WMError::WM_OK; }
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override { return WMError::WM_OK; }
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) override { return WMError::WM_OK; }
     WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller) override
     {
         return WMError::WM_OK;
@@ -412,11 +419,12 @@ public:
     {
         return WSError::WS_OK;
     }
-    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect) override
+    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override
     {
         return WSError::WS_OK;
     }
-    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect) override
+    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false) override
     {
         return WSError::WS_OK;
     }
@@ -507,7 +515,10 @@ public:
         return WMError::WM_OK;
     }
     WMError NotifySupportRotationRegistered() override { return WMError::WM_OK; }
-    WMError GetFloatViewLimits(FloatViewLimits& limits) override { return WMError::WM_OK; }
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override { return WMError::WM_OK; }
+
+    virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_INTERFACE_H

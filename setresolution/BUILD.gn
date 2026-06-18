@@ -64,6 +64,7 @@ ohos_shared_library("libsetresolution_util") {
     "hitrace:hitrace_meter",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   part_name = "window_manager"
   subsystem_name = "window"
 }

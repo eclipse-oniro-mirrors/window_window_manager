@@ -46,8 +46,9 @@ public:
     const uint32_t mockWindowId_ = 101;
     MockWindow() {};
     ~MockWindow() {};
-    MOCK_METHOD3(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus));
-    MOCK_METHOD1(Destroy, WMError(uint32_t reason));
+    MOCK_METHOD5(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus,
+        int32_t requestId, int32_t scbRequestId));
+    MOCK_METHOD2(Destroy, WMError(uint32_t reason, bool isFromInnerkits));
     uint32_t GetWindowId() const override
     {
         return mockWindowId_;
@@ -341,9 +342,12 @@ HWTEST_F(FloatViewManagerTest, SyncFvLimitsAndWindowInfo, TestSize.Level1)
     FloatViewWindowInfo windowInfo;
     windowInfo.scale_ = 1.1f;
     std::string reason = "ut";
-    FloatViewLimits limits;
+    std::map<uint32_t, FloatViewLimits> limitsInfo;
+    FloatViewLimits limit;
+    limit.maxHeight_ = 1;
+    limitsInfo.emplace(0, limit);
     // branch: no active controller => do nothing
-    FloatViewManager::SyncFvLimits(windowId, limits);
+    FloatViewManager::SyncFvLimits(windowId, limitsInfo);
     FloatViewManager::SyncFvWindowInfo(windowId, windowInfo, reason);
 
     // branch: has active controller => call controller->SyncWindowInfo
@@ -351,7 +355,7 @@ HWTEST_F(FloatViewManagerTest, SyncFvLimitsAndWindowInfo, TestSize.Level1)
     ASSERT_NE(nullptr, mockController);
     mockController->window_ = mw_;
     FloatViewManager::SetActiveController(mockController);
-    FloatViewManager::SyncFvLimits(mw_->GetWindowId(), limits);
+    FloatViewManager::SyncFvLimits(mw_->GetWindowId(), limitsInfo);
     FloatViewManager::SyncFvWindowInfo(mw_->GetWindowId(), windowInfo, reason);
     FloatViewManager::RemoveActiveController(mockController);
     EXPECT_EQ(windowInfo.scale_, mockController->GetWindowInfo().scale_);

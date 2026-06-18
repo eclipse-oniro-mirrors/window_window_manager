@@ -38,7 +38,7 @@ ohos_fuzztest("WindowManagerAgentStubFoucsFuzzTest") {
 
   sources = [ "windowmanageragentstubfoucs_fuzzer.cpp" ]
   deps = [
-    "../../../..//utils:libwmutil",
+    "../../../..//utils:libwmutil_static",
     "../../../..//wm:libwm",
   ]
 

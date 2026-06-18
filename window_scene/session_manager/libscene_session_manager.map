@@ -42,6 +42,7 @@
             OHOS::Rosen::SceneSessionManager::ConfigSupportCacheLockedSessionSnapshot*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportCreateFloatWindow*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportFollowParentWindowLayout*;
+            OHOS::Rosen::SceneSessionManager::ConfigStatusBarHeightMode*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportFollowRelativePositionToParent*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportFunctionType*;
             OHOS::Rosen::SceneSessionManager::ConfigSupportPreloadStartingWindow*;
@@ -149,11 +150,11 @@
             OHOS::Rosen::SceneSessionManager::SchedulePcAppInPadLifecycle*;
             OHOS::Rosen::SceneSessionManager::SendTouchEvent*;
             OHOS::Rosen::SceneSessionManager::SendAxisEvent*;
+            OHOS::Rosen::SceneSessionManager::RedispatchTouchEvent*;
             OHOS::Rosen::SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc*;
             OHOS::Rosen::SceneSessionManager::SetAlivePersistentIds*;
             OHOS::Rosen::SceneSessionManager::SetAppDragResizeTypeInner*;
             OHOS::Rosen::SceneSessionManager::SetAppForceLandscapeConfig*;
-            OHOS::Rosen::SceneSessionManager::SetAppForceLandscapeConfigEnable*;
             OHOS::Rosen::SceneSessionManager::SetSelectMode*;
             OHOS::Rosen::SceneSessionManager::GetSelectMode*;
             OHOS::Rosen::SceneSessionManager::SetBehindWindowFilterEnabled*;
@@ -199,12 +200,12 @@
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;
             OHOS::Rosen::SceneSessionManager::StartUIAbilityBySCB*;
+            OHOS::Rosen::SceneSessionManager::NotifyStartWindowsAbility*;
             OHOS::Rosen::SceneSessionManager::SwitchFreeMultiWindow*;
             OHOS::Rosen::SceneSessionManager::UnregisterSpecificSessionCreateListener*;
             OHOS::Rosen::SceneSessionManager::UpdateAllStartingWindowRdb*;
             OHOS::Rosen::SceneSessionManager::UpdateAppBoundSystemTrayStatus*;
             OHOS::Rosen::SceneSessionManager::UpdateAppHookDisplayInfo*;
-            OHOS::Rosen::SceneSessionManager::UpdateAppHookWindowInfo*;
             OHOS::Rosen::SceneSessionManager::UpdateAvoidAreaForLSStateChange*;
             OHOS::Rosen::SceneSessionManager::UpdateDisplayHookInfo*;
             OHOS::Rosen::SceneSessionManager::UpdateMaximizeMode*;
@@ -221,10 +222,12 @@
             OHOS::Rosen::SceneSessionManager::UpdateWindowMode*;
             OHOS::Rosen::SceneSessionManager::VisitSnapshotFromCache*;
             OHOS::Rosen::SceneSessionManager::RegisterMinimizeAllCallback*;
+            OHOS::Rosen::SceneSessionManager::UpdateShowOnDockByPersistentIds*;
             OHOS::Rosen::SceneSessionManager::NotifyRotationBegin*;
             OHOS::Rosen::SceneSessionManager::RegisterPageEnableFunc*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SceneSessionManager::SyncFloatViewLimits*;
+            OHOS::Rosen::SceneSessionManager::RegisterGetFloatViewLimitCallback*;
             OHOS::Rosen::SessionLifecycleListenerStub::OnRemoteRequest*;
             OHOS::Rosen::SessionRouterStackListenerStub::OnRemoteRequest*;
             OHOS::Rosen::UIEffectManager::GetInstance*;

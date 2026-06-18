@@ -111,13 +111,70 @@ public:
     static ani_status GetPropertyBoolObject(ani_env* env, const char* propertyName, ani_object object, bool& result);
     static bool GetPropertyRectObject(ani_env* env, const char* propertyName,
         ani_object object, Rect& result);
-    static ani_status GetOptionalProperty(ani_env* env, ani_object object, const char* propertyName,
-        ani_ref& outPropRef, bool& outIsUndefined);
-    static ani_status GetOptionalIntProperty(ani_env* env, const char* propertyName,
-        ani_object object, std::optional<ani_int>& optIntProp);
+
+    /**
+     * @brief Get an optional property from an ANI object.
+     *
+     * @param env The ANI environment.
+     * @param object The ANI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param outPropRef Output parameter to hold the property reference.
+     *                   Could be undefined if not present/undefined/error.
+     * @return ANI_OK on success, or appropriate error code on failure.
+     */
+    static ani_status GetOptionalProperty(
+        ani_env* env, ani_object object, const char* propertyName, ani_ref& outPropRef);
+
+    /**
+     * @brief Get an optional boolean property from an ANI object.
+     *
+     * @param env The ANI environment.
+     * @param object The ANI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optBoolProp Output parameter to hold the boolean value or std::nullopt if not present/undefined/error.
+     * @return ANI_OK on success, or appropriate error code on failure.
+     */
+    static ani_status GetOptionalBoolProperty(
+        ani_env* env, ani_object object, const char* propertyName, std::optional<bool>& optBoolProp);
+
+    /**
+     * @brief Get an optional integer property from an ANI object.
+     *
+     * @param env The ANI environment.
+     * @param object The ANI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optIntProp Output parameter to hold the integer value or std::nullopt if not present/undefined/error.
+     * @return ANI_OK on success, or appropriate error code on failure.
+     */
+    static ani_status GetOptionalIntProperty(
+        ani_env* env, ani_object object, const char* propertyName, std::optional<ani_int>& optIntProp);
+
+    /**
+     * @brief Get an optional enum property from an ANI object.
+     *
+     * @tparam EnumType The type of the enum.
+     * @param env The ANI environment.
+     * @param object The ANI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optEnumProp Output parameter to hold the enum value or std::nullopt if not present/undefined/error.
+     * @return ANI_OK on success, or appropriate error code on failure.
+     */
     template <typename EnumType>
     static ani_status GetOptionalEnumProperty(
-        ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp);
+        ani_env* env, ani_object object, const char* propertyName, std::optional<EnumType>& optEnumProp);
+
+    /**
+     * @brief Get an optional Rect property from an ANI object.
+     *
+     * @param env The ANI environment.
+     * @param object The ANI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optRectProp Output parameter to hold the Rect value or std::nullopt if not present/undefined/error.
+     * @return ANI_OK on success, or appropriate error code on failure.
+     */
+    static ani_status GetOptionalRectProperty(
+        ani_env* env, ani_object object, const char* propertyName, std::optional<Rect>& optRectProp);
+
     static bool GetIntObject(ani_env* env, const char* propertyName, ani_object object, int32_t& result);
     static ani_status GetDoubleObject(ani_env* env, ani_object double_object, double& result);
     static ani_status GetIntInObject(ani_env* env, ani_object int_object, int32_t& result);
@@ -209,6 +266,7 @@ public:
     static bool ParseWindowMask(ani_env* env, ani_array windowMaskArray,
         std::vector<std::vector<uint32_t>>& windowMask);
     static bool ParseWindowMaskInnerValue(ani_env* env, ani_array innerArray, std::vector<uint32_t>& elementArray);
+    static bool GetUint8ArrayBufferData(ani_env* env, ani_object uint8Array, void*& data, ani_size& byteLength);
     static WmErrorCode ParseTouchableAreas(ani_env* env, ani_array rects, const Rect& windowRect,
         std::vector<Rect>& touchableAreas);
     static bool ParseAndCheckRect(ani_env* env, ani_object rect, const Rect& windowRect, Rect& touchableRect);
@@ -218,7 +276,6 @@ public:
         WindowSnapshotConfiguration& windowSnapshotConfiguration);
     static bool ParseWindowLimits(ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits);
     static bool ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnchorInfo, WindowAnchorInfo& windowAnchorInfo);
-    static bool CheckParaIsUndefined(ani_env* env, ani_object para);
     static ani_object CreateAniPosition(ani_env* env, const Position& position);
     static std::string GetPixelUnitString(const PixelUnit& pixelUnit);
     static std::string ANIStringToStdString(ani_env* env, ani_string ani_str);
@@ -231,6 +288,15 @@ public:
      * @return Corresponding WmErrorCode or defaultCode if unmapped.
      */
     static WmErrorCode ToErrorCode(WMError error, WmErrorCode defaultCode = WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+
+    /**
+     * @brief Check whether the given ANI object is undefined.
+     *
+     * @param env The ANI environment.
+     * @param obj The ANI object to be checked.
+     * @return true if the object is undefined, or if the check fails.
+     */
+    static bool IsUndefined(ani_env* env, ani_object obj);
 
     /**
      * @brief Checks whether a given ANI object is an instance of the specified class.
@@ -271,6 +337,17 @@ public:
     static bool ParseZLevelParam(ani_env *env, ani_object aniObject, const sptr<WindowOption>& windowOption);
     template<typename T>
     static ani_object CreateBaseTypeObject(ani_env* env, T value);
+
+    /**
+     * @brief Parse StartMovingOptions from ANI object.
+     *
+     * @param env The ANI environment.
+     * @param aniOptions The ANI object containing the options. Can be undefined.
+     * @return Parsing result status and optional StartMovingOptions.
+     *         Returns nullopt if aniOptions is nullptr, undefined, or parsing fails.
+     */
+    static std::pair<ani_status, std::optional<StartMovingOptions>> ParseStartMovingOptions(ani_env* env,
+                                                                                            ani_object aniOptions);
 };
 
 template <typename EnumType>
@@ -304,19 +381,24 @@ std::vector<EnumType> AniWindowUtils::ExtractEnumValues(ani_env* env, ani_object
 
 template <typename EnumType>
 ani_status AniWindowUtils::GetOptionalEnumProperty(
-    ani_env* env, const char* propertyName, ani_object object, std::optional<EnumType>& optEnumProp)
+    ani_env* env, ani_object object, const char* propertyName, std::optional<EnumType>& optEnumProp)
 {
     optEnumProp.reset();
 
     ani_ref propRef;
-    bool isUndefined;
-    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef, isUndefined);
-    if (ret != ANI_OK || isUndefined) {
+    ani_status ret = AniWindowUtils::GetOptionalProperty(env, object, propertyName, propRef);
+    if (ret != ANI_OK) {
         return ret;
     }
 
+    ani_enum_item enumProp = static_cast<ani_enum_item>(propRef);
+    if (IsUndefined(env, enumProp)) {
+        TLOGD(WmsLogTag::DEFAULT, "[ANI] %{public}s is undefined", propertyName);
+        return ANI_OK;
+    }
+
     uint32_t enumValue = 0;
-    ret = AniWindowUtils::GetEnumValue(env, static_cast<ani_enum_item>(propRef), enumValue);
+    ret = AniWindowUtils::GetEnumValue(env, enumProp, enumValue);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT,
               "[ANI] Failed to get enum value for %{public}s, ret: %{public}d",

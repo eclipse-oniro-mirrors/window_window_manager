@@ -29,6 +29,8 @@ namespace Rosen {
 #define WINDOW_EXPORT __attribute__((visibility("default")))
 #endif
 
+ani_ref FindAniExtensionWindow(ani_env* env, const sptr<Rosen::Window>& window);
+
 class AniExtensionWindow {
 public:
     explicit AniExtensionWindow(const std::shared_ptr<Rosen::ExtensionWindow> extensionWindow, int32_t hostWindowId);

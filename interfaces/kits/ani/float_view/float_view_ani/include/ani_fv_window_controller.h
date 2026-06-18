@@ -37,13 +37,17 @@ public:
     static void Finalizer(ani_env *env, ani_long nativeObj);
     ani_ref GetAniRef() {return aniRef_;}
     void SetAniRef(const ani_ref &aniRef) {aniRef_ = aniRef;}
+    sptr<FloatViewController> GetController() const;
     static void StartFloatViewAni(ani_env *env, ani_object obj, ani_long nativeObj);
     static void StopFloatViewAni(ani_env *env, ani_object obj, ani_long nativeObj);
     static void SetUIContextAni(ani_env *env, ani_object obj, ani_long nativeObj,
         ani_string contextUrl, ani_object contentStorage);
+    static void SetUIContextByNameAni(ani_env *env, ani_object obj, ani_long nativeObj,
+        ani_string contextUrl, ani_object contentStorage);
     static void SetFloatViewVisibilityInAppAni(ani_env *env, ani_object obj, ani_long nativeObj,
         ani_boolean visibleInApp);
     static void SetWindowSizeAni(ani_env *env, ani_object obj, ani_long nativeObj, ani_object rectObj);
+    static void SwitchTemplateAni(ani_env* env, ani_object obj, ani_long nativeObj, ani_object object);
     static ani_object GetWindowPropertiesAni(ani_env *env, ani_object obj, ani_long nativeObj);
     static void RestoreMainWindowAni(ani_env *env, ani_object obj, ani_long nativeObj, ani_object wantParameters);
     static void OnStateChangeAni(ani_env *env, ani_object, ani_long nativeObj, ani_ref callback);
@@ -67,9 +71,10 @@ private:
 
     void OnStartFloatViewAni(ani_env *env);
     void OnStopFloatViewAni(ani_env* env);
-    void OnSetUIContextAni(ani_env *env, ani_string contextUrl, ani_object contentStorage);
+    void OnSetUIContextAni(ani_env *env, ani_string contextUrl, ani_object contentStorage, bool isLoadByName);
     void OnSetFloatViewVisibilityInAppAni(ani_env *env, ani_boolean visibleInApp);
     void OnSetWindowSizeAni(ani_env *env, ani_object rectObj);
+    void OnSwitchTemplateAni(ani_env* env, ani_object object);
     ani_object OnGetWindowPropertiesAni(ani_env *env);
     void OnRestoreMainWindowAni(ani_env *env, ani_object wantParameters);
     bool IsCallbackRegistered(ani_env *env, CallbackType callbackType, ani_ref callback);

@@ -175,9 +175,13 @@ HWTEST_F(WindowSessionTest, SetActive01, TestSize.Level1)
     auto surfaceNode = CreateRSSurfaceNode();
     SystemSessionConfig sessionConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint64_t nodeId = 0;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
     ASSERT_NE(nullptr, property);
     ASSERT_EQ(WSError::WS_OK,
-              session_->Connect(mockSessionStage, mockEventChannel, surfaceNode, sessionConfig, property));
+        session_->Connect(mockSessionStage, mockEventChannel, nodeId, sessionConfig, renderSession,
+        outputSurfaceNode, property));
     ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetActive(true));
     ASSERT_EQ(false, session_->isActive_);
 
@@ -319,18 +323,23 @@ HWTEST_F(WindowSessionTest, ConnectInner, TestSize.Level1)
     session_->state_ = SessionState::STATE_CONNECT;
     session_->isTerminating_ = false;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint64_t nodeId = 1000;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     property->SetIsNeedUpdateWindowMode(true);
     session_->SetScreenId(233);
     session_->SetSessionProperty(property);
     auto res = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res, WSError::WS_ERROR_INVALID_SESSION);
 
     session_->isTerminating_ = true;
     auto res2 = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res2, WSError::WS_OK);
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
@@ -338,7 +347,8 @@ HWTEST_F(WindowSessionTest, ConnectInner, TestSize.Level1)
     session_->SetScreenId(SCREEN_ID_INVALID);
     session_->SetSessionProperty(property);
     auto res3 = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res3, WSError::WS_OK);
     ASSERT_EQ(false, session_->GetSessionProperty()->GetIsNeedUpdateWindowMode());
 }
@@ -870,16 +880,17 @@ HWTEST_F(WindowSessionTest, Snapshot, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     session_->surfaceNode_ = RSSurfaceNode::Create(config);
     ASSERT_NE(session_->surfaceNode_, nullptr);
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    Session::SnapshotOptions options;
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->bufferAvailable_ = true;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->surfaceNode_->bufferAvailable_ = true;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 
     session_->surfaceNode_ = nullptr;
-    EXPECT_EQ(nullptr, session_->Snapshot(false, 0.0f));
+    EXPECT_EQ(nullptr, session_->Snapshot(options));
 }
 
 /**
@@ -1704,13 +1715,20 @@ HWTEST_F(WindowSessionTest, SetSessionRect01, TestSize.Level1)
  */
 HWTEST_F(WindowSessionTest, SetLastClientParentSize01, TestSize.Level1)
 {
-    g_errLog.clear();
-    LOG_SetCallback(MyLogCallback);
-    WSRect rect = {1, 2, 3, 4};
-    session_->SetSessionRect(rect);
+    WSRect initLastClientRect = {10, 11, 12, 13};
     session_->SetLastClientParentSize(rect);
-    EXPECT_TRUE(g_errLog.find("skip same rect") != std::string::npos);
-    LOG_SetCallback(nullptr);
+    {
+        // success
+        WSRect rect = {1, 2, 3, 4};
+        session_->SetLastClientParentSize(rect);
+        EXPECT_EQ(session_->GetLastClientParentSize().posX_, rect.posX_);
+    }
+    {
+        // fail
+        WSRect rect = {1, 2, 3, 4};
+        session_->SetLastClientParentSize(rect);
+        EXPECT_EQ(session_->GetLastClientParentSize().posX_, rect.posX_);
+    }
 }
 
 /**
@@ -2007,37 +2025,6 @@ HWTEST_F(WindowSessionTest, IsCompatibilityModeSubWin05, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetRealSessionState
- * @tc.desc: test get the real session state
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, GetRealSessionState, TestSize.Level1)
-{
-    SessionInfo parentInfo;
-    parentInfo.abilityName_ = "ParentSession";
-    parentInfo.bundleName_ = "ParentBundle";
-    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
-    ASSERT_NE(parentSession, nullptr);
-    parentSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
-    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    parentSession->SetSessionState(SessionState::STATE_ACTIVE);
-
-    SessionInfo childInfo;
-    childInfo.abilityName_ = "ChildSession";
-    childInfo.bundleName_ = "ChildBundle";
-    sptr<SceneSession> childSession = sptr<SceneSession>::MakeSptr(childInfo, nullptr);
-    ASSERT_NE(childSession, nullptr);
-    childSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    childSession->SetParentSession(parentSession);
-
-    childSession->SetSessionState(SessionState::STATE_BACKGROUND);
-    EXPECT_EQ(childSession->GetRealSessionState(), SessionState::STATE_BACKGROUND);
-
-    childSession->SetSessionState(SessionState::STATE_FOREGROUND);
-    EXPECT_EQ(childSession->GetRealSessionState(), SessionState::STATE_ACTIVE);
-}
-
-/**
  * @tc.name: TransformGlobalRectToRelativeRect_CompatibilityMode01
  * @tc.desc: TransformGlobalRectToRelativeRect Test - compatibility mode sub window with virtual display parent
  * @tc.type: FUNC
@@ -2197,6 +2184,7 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_EnabledPc, TestSize.Leve
     sptr<Session> session = sptr<Session>::MakeSptr(info);
     ASSERT_NE(session, nullptr);
     session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     session->property_->SetZLevelAboveParentLoosened(true);
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(true, session->IsLoosenedWithFreeMultiMode());
@@ -2215,6 +2203,7 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_EnabledFreeMulti, TestSi
     sptr<Session> session = sptr<Session>::MakeSptr(info);
     ASSERT_NE(session, nullptr);
     session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     session->property_->SetZLevelAboveParentLoosened(true);
     session->systemConfig_.freeMultiWindowEnable_ = true;
     session->systemConfig_.freeMultiWindowSupport_ = true;

@@ -50,13 +50,16 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ISession");
 
     virtual WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") { return WSError::WS_OK; }
     virtual WSError Foreground(
         sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "") = 0;
-    virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "") = 0;
-    virtual WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") = 0;
+    virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) = 0;
+    virtual WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) = 0;
     virtual WSError Show(sptr<WindowSessionProperty> property) = 0;
     virtual WSError Hide() = 0;
     virtual WSError DrawingCompleted() = 0;
@@ -424,8 +427,6 @@ public:
     virtual WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) { return WMError::WM_OK; }
     virtual WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) { return WMError::WM_OK; }
-    virtual WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) { return WMError::WM_OK; }
-    virtual WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) { return WMError::WM_OK; }
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
     virtual WSError AdjustKeyboardLayout(const KeyboardLayoutParams& params) { return WSError::WS_OK; }
     virtual WSError SetDialogSessionBackGestureEnabled(bool isEnabled) { return WSError::WS_OK; }
@@ -533,7 +534,7 @@ public:
     /**
      *  Float Navigation Avoid Area
      */
-    virtual WMError SetFloatNavigationAvoidAreaEnabled(bool isEnabled) { return WMError::WM_OK; }
+    virtual WMError SetFloatNavigationEnabled(bool isEnabled) { return WMError::WM_OK; }
 
     /**
      * @brief Get waterfall mode.
@@ -567,6 +568,14 @@ public:
         const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) { return WSError::WS_OK; }
 
     /**
+     * @brief Start moving window with options.
+     *
+     * @param options Options to control focus request and avoid region during this movement.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError StartMovingWithOptions(const StartMovingOptions& options) { return WMError::WM_OK; }
+
+    /**
      * @brief Start Moving window with coordinate.
      *
      * @param offsetX expected pointer position x-axis offset in window when start moving.
@@ -588,6 +597,18 @@ public:
     virtual WMError OnUpdateColorMode(const std::string& colorMode, bool hasDarkRes) { return WMError::WM_OK; }
     virtual WMError IsMainWindowFullScreenAcrossDisplays(bool& isAcrossDisplays) { return WMError::WM_OK; }
     virtual WSError GetIsHighlighted(bool& isHighlighted) { return WSError::WS_OK; }
+
+    /**
+     * Notify related windows about limits change.
+     * Called when a window's limits change via setWindowLimits.
+     *
+     * @param newLimits The new window limits.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits)
+    {
+        return WSError::WS_OK;
+    }
 
     /**
      * @brief Notify when disableDelegator change to true
@@ -712,11 +733,6 @@ public:
     }
 
     virtual WSError RestartApp(const std::shared_ptr<AAFwk::Want>& want)
-    {
-        return WSError::WS_OK;
-    }
-    
-    virtual WSError NotifyAppForceLandscapeConfigEnableUpdated(bool needUpdateViewport, SelectMode selectMode)
     {
         return WSError::WS_OK;
     }

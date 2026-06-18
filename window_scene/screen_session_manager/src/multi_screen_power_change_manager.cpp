@@ -218,7 +218,7 @@ void MultiScreenPowerChangeManager::NotifyClientCreateSessionOnly(sptr<IScreenSe
 {
     screenSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
     ssmClient->OnCreateScreenSessionOnly(screenSession->GetScreenId(), screenSession->GetRSScreenId(),
-        screenSession->GetName(), true);
+        screenSession->GetName(), screenSession->GetRenderSession(), true);
     TLOGW(WmsLogTag::DMS, "notify client create session end.");
 }
 
@@ -473,7 +473,7 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerMainExternalExtendChan
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "%s", __func__);
     CreateExternalScreenDisplayNodeOnly(innerScreen, externalScreen, ScreenCombination::SCREEN_EXTEND);
     bool changeRet = ssmClient->OnCreateScreenSessionOnly(innerScreen->GetScreenId(), innerScreen->GetRSScreenId(),
-        innerScreen->GetName(), innerScreen->GetIsExtend());
+        innerScreen->GetName(), innerScreen->GetRenderSession(), innerScreen->GetIsExtend());
     if (!changeRet) {
         TLOGE(WmsLogTag::DMS, "create screenSession failed.");
         return DMError::DM_ERROR_REMOTE_CREATE_FAILED;
@@ -582,7 +582,7 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerExtendExternalMainChan
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "%s", __func__);
     CreateExternalScreenDisplayNodeOnly(innerScreen, externalScreen, ScreenCombination::SCREEN_EXTEND);
     bool changeRet = ssmClient->OnCreateScreenSessionOnly(innerScreen->GetScreenId(), innerScreen->GetRSScreenId(),
-        innerScreen->GetName(), innerScreen->GetIsExtend());
+        innerScreen->GetName(), innerScreen->GetRenderSession(), innerScreen->GetIsExtend());
     if (!changeRet) {
         TLOGE(WmsLogTag::DMS, "create screenSession failed.");
         return DMError::DM_ERROR_REMOTE_CREATE_FAILED;

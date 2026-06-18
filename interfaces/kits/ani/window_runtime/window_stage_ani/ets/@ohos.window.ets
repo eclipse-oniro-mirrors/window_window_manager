@@ -203,7 +203,17 @@ namespace window {
      * @atomicservice
      * @since 12
      */
-    TYPE_NAVIGATION_INDICATOR
+    TYPE_NAVIGATION_INDICATOR,
+
+    /**
+     * Area for float navigation
+     *
+     * @syscap SystemCapability.Window.SessionManager
+     * @stagemodelonly
+     * @atomicservice
+     * @since 26.0.0 dynamic&static
+     */
+    TYPE_FLOAT_NAVIGATION
   }
   export interface AvoidArea {
     /**
@@ -566,8 +576,10 @@ namespace window {
 
   export interface SubWindowAttachOptions {
     currentLayoutMode?: string;
-    parentWindowSizeChangeCallBack?:Callback<Size>;
-    parentWindowStatusChangeCallBack?:Callback<WindowStatusType>;
+    parentWindowSizeChangeCallback? :Callback<Size>;
+    parentWindowStatusChangeCallback? :Callback<WindowStatusType>;
+    isIntersectedHeightLimit?: boolean;
+    isIntersectedWidthLimit?: boolean;
   }
 
   export interface Rect {
@@ -743,62 +755,62 @@ namespace window {
   }
 
 //enum WMError {
-    const WMError_WM_OK = 0
-    const WMError_WM_DO_NOTHING = 1
-    const WMError_WM_ERROR_NO_MEM = 2
-    const WMError_WM_ERROR_DESTROYED_OBJECT = 3
-    const WMError_WM_ERROR_INVALID_WINDOW = 4
-    const WMError_WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE = 5
-    const WMError_WM_ERROR_INVALID_OPERATION = 6
-    const WMError_WM_ERROR_INVALID_PERMISSION = 7
-    const WMError_WM_ERROR_NOT_SYSTEM_APP = 8
-    const WMError_WM_ERROR_NO_REMOTE_ANIMATION = 9
-    const WMError_WM_ERROR_INVALID_DISPLAY = 10
-    const WMError_WM_ERROR_INVALID_PARENT = 11
-    const WMError_WM_ERROR_OPER_FULLSCREEN_FAILED = 12
-    const WMError_WM_ERROR_REPEAT_OPERATION = 13
-    const WMError_WM_ERROR_INVALID_SESSION = 14
-    const WMError_WM_ERROR_INVALID_CALLING = 15
-    const WMError_WM_ERROR_SYSTEM_ABNORMALLY = 16
+    const WMError_WM_OK: int = 0
+    const WMError_WM_DO_NOTHING: int = 1
+    const WMError_WM_ERROR_NO_MEM: int = 2
+    const WMError_WM_ERROR_DESTROYED_OBJECT: int = 3
+    const WMError_WM_ERROR_INVALID_WINDOW: int = 4
+    const WMError_WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE: int = 5
+    const WMError_WM_ERROR_INVALID_OPERATION: int = 6
+    const WMError_WM_ERROR_INVALID_PERMISSION: int = 7
+    const WMError_WM_ERROR_NOT_SYSTEM_APP: int = 8
+    const WMError_WM_ERROR_NO_REMOTE_ANIMATION: int = 9
+    const WMError_WM_ERROR_INVALID_DISPLAY: int = 10
+    const WMError_WM_ERROR_INVALID_PARENT: int = 11
+    const WMError_WM_ERROR_OPER_FULLSCREEN_FAILED: int = 12
+    const WMError_WM_ERROR_REPEAT_OPERATION: int = 13
+    const WMError_WM_ERROR_INVALID_SESSION: int = 14
+    const WMError_WM_ERROR_INVALID_CALLING: int = 15
+    const WMError_WM_ERROR_SYSTEM_ABNORMALLY: int = 16
 
-    const WMError_WM_ERROR_DEVICE_NOT_SUPPORT = 801 // the value do not change.It is defined on all system
+    const WMError_WM_ERROR_DEVICE_NOT_SUPPORT: int = 801 // the value do not change.It is defined on all system
 
-    const WMError_WM_ERROR_NEED_REPORT_BASE = 1000 // error code > 1000 means need report
-    const WMError_WM_ERROR_NULLPTR = 1001
-    const WMError_WM_ERROR_INVALID_TYPE = 1002
-    const WMError_WM_ERROR_INVALID_PARAM = 1003
-    const WMError_WM_ERROR_SAMGR = 1004
-    const WMError_WM_ERROR_IPC_FAILED = 1005
-    const WMError_WM_ERROR_NEED_REPORT_END = 1006
-    const WMError_WM_ERROR_START_ABILITY_FAILED = 1007
-    const WMError_WM_ERROR_PIP_DESTROY_FAILED = 1008
-    const WMError_WM_ERROR_PIP_STATE_ABNORMALLY = 1009
-    const WMError_WM_ERROR_PIP_CREATE_FAILED = 1010
-    const WMError_WM_ERROR_PIP_INTERNAL_ERROR = 1011
-    const WMError_WM_ERROR_PIP_REPEAT_OPERATION = 1012
+    const WMError_WM_ERROR_NEED_REPORT_BASE: int = 1000 // error code > 1000 means need report
+    const WMError_WM_ERROR_NULLPTR: int = 1001
+    const WMError_WM_ERROR_INVALID_TYPE: int = 1002
+    const WMError_WM_ERROR_INVALID_PARAM: int = 1003
+    const WMError_WM_ERROR_SAMGR: int = 1004
+    const WMError_WM_ERROR_IPC_FAILED: int = 1005
+    const WMError_WM_ERROR_NEED_REPORT_END: int = 1006
+    const WMError_WM_ERROR_START_ABILITY_FAILED: int = 1007
+    const WMError_WM_ERROR_PIP_DESTROY_FAILED: int = 1008
+    const WMError_WM_ERROR_PIP_STATE_ABNORMALLY: int = 1009
+    const WMError_WM_ERROR_PIP_CREATE_FAILED: int = 1010
+    const WMError_WM_ERROR_PIP_INTERNAL_ERROR: int = 1011
+    const WMError_WM_ERROR_PIP_REPEAT_OPERATION: int = 1012
 //}
 
 //enum WmErrorCode {
-    const WmErrorCode_WM_OK = 0
-    const WmErrorCode_WM_ERROR_NO_PERMISSION = 201
-    const WmErrorCode_WM_ERROR_NOT_SYSTEM_APP = 202
-    const WmErrorCode_WM_ERROR_INVALID_PARAM = 401
-    const WmErrorCode_WM_ERROR_DEVICE_NOT_SUPPORT = 801
-    const WmErrorCode_WM_ERROR_REPEAT_OPERATION = 1300001
-    const WmErrorCode_WM_ERROR_STATE_ABNORMALLY = 1300002
-    const WmErrorCode_WM_ERROR_SYSTEM_ABNORMALLY = 1300003
-    const WmErrorCode_WM_ERROR_INVALID_CALLING = 1300004
-    const WmErrorCode_WM_ERROR_STAGE_ABNORMALLY = 1300005
-    const WmErrorCode_WM_ERROR_CONTEXT_ABNORMALLY = 1300006
-    const WmErrorCode_WM_ERROR_START_ABILITY_FAILED = 1300007
-    const WmErrorCode_WM_ERROR_INVALID_DISPLAY = 1300008
-    const WmErrorCode_WM_ERROR_INVALID_PARENT = 1300009
-    const WmErrorCode_WM_ERROR_OPER_FULLSCREEN_FAILED = 1300010
-    const WmErrorCode_WM_ERROR_PIP_DESTROY_FAILED = 1300011
-    const WmErrorCode_WM_ERROR_PIP_STATE_ABNORMALLY = 1300012
-    const WmErrorCode_WM_ERROR_PIP_CREATE_FAILED = 1300013
-    const WmErrorCode_WM_ERROR_PIP_INTERNAL_ERROR = 1300014
-    const WmErrorCode_WM_ERROR_PIP_REPEAT_OPERATION = 1300015
+    const WmErrorCode_WM_OK: int = 0
+    const WmErrorCode_WM_ERROR_NO_PERMISSION: int = 201
+    const WmErrorCode_WM_ERROR_NOT_SYSTEM_APP: int = 202
+    const WmErrorCode_WM_ERROR_INVALID_PARAM: int = 401
+    const WmErrorCode_WM_ERROR_DEVICE_NOT_SUPPORT: int = 801
+    const WmErrorCode_WM_ERROR_REPEAT_OPERATION: int = 1300001
+    const WmErrorCode_WM_ERROR_STATE_ABNORMALLY: int = 1300002
+    const WmErrorCode_WM_ERROR_SYSTEM_ABNORMALLY: int = 1300003
+    const WmErrorCode_WM_ERROR_INVALID_CALLING: int = 1300004
+    const WmErrorCode_WM_ERROR_STAGE_ABNORMALLY: int = 1300005
+    const WmErrorCode_WM_ERROR_CONTEXT_ABNORMALLY: int = 1300006
+    const WmErrorCode_WM_ERROR_START_ABILITY_FAILED: int = 1300007
+    const WmErrorCode_WM_ERROR_INVALID_DISPLAY: int = 1300008
+    const WmErrorCode_WM_ERROR_INVALID_PARENT: int = 1300009
+    const WmErrorCode_WM_ERROR_OPER_FULLSCREEN_FAILED: int = 1300010
+    const WmErrorCode_WM_ERROR_PIP_DESTROY_FAILED: int = 1300011
+    const WmErrorCode_WM_ERROR_PIP_STATE_ABNORMALLY: int = 1300012
+    const WmErrorCode_WM_ERROR_PIP_CREATE_FAILED: int = 1300013
+    const WmErrorCode_WM_ERROR_PIP_INTERNAL_ERROR: int = 1300014
+    const WmErrorCode_WM_ERROR_PIP_REPEAT_OPERATION: int = 1300015
 //}
 
 export enum ColorSpace {
@@ -813,6 +825,12 @@ export enum MaximizePresentation {
     ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER = 3
 }
 
+export enum AcrossDisplayPresentation {
+    FOLLOW_ACROSS_DISPLAY_SETTING = 0,
+    ENTER_ACROSS_DISPLAY_MODE = 1,
+    EXIT_ACROSS_DISPLAY_MODE = 2
+}
+
 export enum WindowStatusType {
     UNDEFINED = 0,
     FULL_SCREEN = 1,
@@ -820,6 +838,17 @@ export enum WindowStatusType {
     MINIMIZE = 3,
     FLOATING = 4,
     SPLIT_SCREEN = 5
+}
+
+export interface WindowSnapshotAnimationConfig {
+  duration?: long;
+  delay?: long;
+}
+
+export interface MaximizeOptions {
+  maximizePresentation?: MaximizePresentation;
+  acrossDisplayPresentation?: AcrossDisplayPresentation;
+  snapshotAnimationConfig?: WindowSnapshotAnimationConfig;
 }
 
 export enum OcclusionState {
@@ -868,6 +897,7 @@ export enum WindowType {
     TYPE_DYNAMIC = 25,
     TYPE_MUTISCREEN_COLLABORATION = 26,
     TYPE_MAIN = 32,
+    TYPE_UI_EXTENSION = 3000,
 }
 
 export enum Orientation {
@@ -926,6 +956,12 @@ export enum WindowMode {
     FLOATING = 5
 }
 
+export enum SplitRatioPreference {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2,
+}
+
 export enum WindowLayoutMode {
     WINDOW_LAYOUT_MODE_CASCADE = 0,
     WINDOW_LAYOUT_MODE_TILE = 1
@@ -982,6 +1018,7 @@ export interface WindowInfo {
   globalRect?: Rect;
   displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -994,6 +1031,7 @@ export class WindowInfoInternal implements WindowInfo {
   globalRect?: Rect;
   displayId?: long;
   bundleName: string;
+  moduleName: string;
   abilityName: string;
   windowId: int;
   windowStatusType: WindowStatusType;
@@ -1183,6 +1221,7 @@ export interface WindowProperties {
     drawableRect: Rect;
     globalDisplayRect?: Rect;
     type: WindowType;
+    windowType: WindowType;
     isFullScreen: boolean;
     isLayoutFullScreen: boolean;
     focusable: boolean;
@@ -1212,6 +1251,7 @@ export class WindowPropertiesInternal implements WindowProperties {
   isRoundCorner: boolean;
   isTransparent: boolean;
   type: WindowType;
+  windowType: WindowType;
   id: int;
   displayId?: long;
   name?: string;
@@ -1219,8 +1259,8 @@ export class WindowPropertiesInternal implements WindowProperties {
 
   constructor(windowRect: Rect, drawableRect: Rect, isFullScreen: boolean, isLayoutFullScreen: boolean,
     focusable: boolean, touchable: boolean, brightness: double, dimBehindValue: number, isKeepScreenOn: boolean,
-    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, id: int,
-    displayId: long, name: string, globalDisplayRect: Rect)
+    isPrivacyMode: boolean, isRoundCorner: boolean, isTransparent: boolean, typeInternal: int, windowTypeInternal: int,
+    id: int, displayId: long, name: string, globalDisplayRect: Rect)
   {
     this.windowRect = windowRect;
     this.drawableRect = drawableRect;
@@ -1236,6 +1276,7 @@ export class WindowPropertiesInternal implements WindowProperties {
     this.isRoundCorner = isRoundCorner;
     this.isTransparent = isTransparent;
     this.type = WindowType.fromValue(typeInternal);
+    this.windowType = WindowType.fromValue(windowTypeInternal);
     this.id = id;
     this.displayId = displayId;
     this.name = name;
@@ -1558,6 +1599,11 @@ export interface MoveConfiguration {
     displayId?: long;
 }
 
+export interface StartMovingOptions {
+  needFocused?: boolean;
+  avoidRect?: Rect;
+}
+
 export class MoveConfigurationInternal implements MoveConfiguration {
     displayId?: long;
 }
@@ -1609,7 +1655,7 @@ export interface TransitionController {
 }
 
 export native function transContextFinalizerCallback(nativeObj: long): void;
-let transContextFinalizerRegister = new FinalizationRegistry<long>(transContextFinalizerCallback);
+let transContextFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(transContextFinalizerCallback);
 export class TransitionContextInternal implements TransitionContext {
     toWindow: Window;
     private nativeObj: long = 0;
@@ -1630,7 +1676,7 @@ export class TransitionContextInternal implements TransitionContext {
 }
 
 export native function transControllerFinalizerCallback(nativeObj: long): void;
-let transControllerFinalizerRegister = new FinalizationRegistry<long>(transControllerFinalizerCallback);
+let transControllerFinalizerRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(transControllerFinalizerCallback);
 export class TransitionControllerInternal implements TransitionController {
     static { loadLibrary('windowstageani_module.z') }
     private nativeObj: long = 0;
@@ -2382,7 +2428,7 @@ export interface ExtensionWindowConfig {
 }
 
 export native function destroyAniExtConfig(nativeObj: long): void;
-let extConfigRegister = new FinalizationRegistry<long>(destroyAniExtConfig);
+let extConfigRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(destroyAniExtConfig);
 
 export class ExtensionWindowConfigInternal implements ExtensionWindowConfig {
   static { loadLibrary('windowstageani_module.z') }
@@ -2993,7 +3039,7 @@ export interface WindowStage {
 }
 
 export class WindowInternal implements Window {
-    static readonly DEFAULT_RET_VAL = 1;
+    static readonly DEFAULT_RET_VAL: int = 1;
     static { loadLibrary('windowstageani_module.z') }
     private nativeObj: long;
     private static nextPromiseId_: int = 0;
@@ -3067,7 +3113,7 @@ export class WindowInternal implements Window {
     private native getPreferredOrientation(nativeObj: long): int;
     private native convertOrientationAndRotation(nativeObj: long, from: int, to: int, value: int): int;
     private native setWindowPrivacyModeSync(nativeObj: long, isPrivacyMode: boolean): void;
-    private native recoverSync(nativeObj: long): void;
+    private native recoverSync(nativeObj: long, snapshotAnimationConfig?: WindowSnapshotAnimationConfig): void;
     private native setUIContentSync(nativeObj: long, path: string): void;
     private native loadContentSync(nativeObj: long, path: string, storage?: LocalStorage): void;
     private native loadContentByNameSync(nativeObj: long, path: string, storage?: LocalStorage): void;
@@ -3076,6 +3122,7 @@ export class WindowInternal implements Window {
     private native setWindowTouchableSync(nativeObj: long, isTouchable: boolean): void;
     private native setDialogBackGestureEnabledSync(nativeObj: long, enabled: boolean): void;
     private native setWindowMaskSync(nativeObj: long, windowMask: Array<Array<long>>): void;
+    private native setWindowMaskWithAlphaSync(nativeObj: long, windowMask: Uint8Array, maskWidth: int, maskHeight: int): void;
     private native clearWindowMaskSync(nativeObj: long): void;
     private native getUIContextSync(nativeObj: long): UIContext;
     private native getWindowAvoidAreaSync(nativeObj: long, type: int): AvoidArea;
@@ -3146,7 +3193,9 @@ export class WindowInternal implements Window {
     private native getWindowStatus(nativeObj: long): int;
     private native minimize(nativeObj: long): void;
     private native maximize(nativeObj: long, presentation?: MaximizePresentation, acrossDisplay?: boolean): void;
+    private native maximizeWithOptionsSync(nativeObj: long, maximizeOptions?: MaximizeOptions): void;
     private native startMoving(nativeObj: long): void;
+    private native startMovingWithOptions(nativeObj: long, startMovingOptions?: StartMovingOptions): void;
     private native startMoveWindowWithCoordinate(nativeObj: long, offsetX: int, offsetY: int): void;
     private native stopMoving(nativeObj: long): void;
     private native setResizeByDragEnabled(nativeObj: long, enable: boolean): void;
@@ -3157,14 +3206,16 @@ export class WindowInternal implements Window {
     private native setForbidSplitMove(nativeObj: long, isForbidSplitMove: boolean): void;
     private native setFollowParentWindowLayoutEnabled(nativeObj: long, enabled: boolean): void;
     private native setFollowParentMultiScreenPolicy(nativeObj: long, enabled: boolean): void;
+    private native setSupportedWindowModes(nativeObj: long,
+      supportedWindowModes: Array<bundleManager.SupportWindowMode>): void;
     private native moveWindowToGlobalDisplay(nativeObj: long, x: int, y: int): void;
     private native clientToGlobalDisplay(nativeObj: long, winX: int, winY: int): Position;
     private native globalDisplayToClient(nativeObj: long, globalDisplayX: int, globalDisplayY: int): Position;
     private native setRotationLocked(nativeObj: long, locked: boolean): void;
     private native getRotationLocked(nativeObj: long): boolean;
     private native isInFreeWindowMode(nativeObj: long): boolean;
-    private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor?: WindowAnchor,
-      offsetX?: int, offsetY?: int): void;
+    private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor: WindowAnchor,
+      offsetX: int, offsetY: int): void;
     private native setWindowDelayRaiseOnDrag(nativeObj: long, isEnabled: boolean): void;
     private native setDefaultDensityEnabled(nativeObj: long, enabled: boolean): void;
     private native setWindowContainerColor(nativeObj: long, activeColor: string, inactiveColor: string): void;
@@ -3314,7 +3365,7 @@ export class WindowInternal implements Window {
     }
 
     public setWindowTitleButtonVisible(isMaximizeButtonVisible: boolean, isMinimizeButtonVisible: boolean,
-                                   isCloseButtonVisible?: boolean): void {
+      isCloseButtonVisible?: boolean): void {
       let visibleParam: window.WindowTitleButtonVisibleParam = {
         isMaximizeButtonVisible: isMaximizeButtonVisible,
         isMinimizeButtonVisible: isMinimizeButtonVisible,
@@ -3838,6 +3889,18 @@ export class WindowInternal implements Window {
       });
     }
 
+    public recover(snapshotAnimationConfig: WindowSnapshotAnimationConfig): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.recoverSync(this.nativeObj, snapshotAnimationConfig);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public setUIContent(path: string): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         try {
@@ -3943,7 +4006,7 @@ export class WindowInternal implements Window {
       this.offSync(this.nativeObj, 'displayIdChange', callback);
     }
 
-    public onWindowVisibilityChange(callback: Callback<boolean>) {
+    public onWindowVisibilityChange(callback: Callback<boolean>): void {
       this.onSync(this.nativeObj, 'windowVisibilityChange', callback);
     }
 
@@ -4049,6 +4112,18 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         taskpool.execute((): void => {
           this.setWindowMaskSync(this.nativeObj, windowMask);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.setWindowMaskWithAlphaSync(this.nativeObj, windowMask, maskWidth, maskHeight);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -4933,7 +5008,7 @@ export class WindowInternal implements Window {
       return this.getWindowLimitsVP(this.nativeObj);
     }
 
-    public setAspectRatio(ratio: double, callback: AsyncCallback<void>) {
+    public setAspectRatio(ratio: double, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setAspectRatio(this.nativeObj, ratio);
       }).then((ret: Any) => {
@@ -4955,7 +5030,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public resetAspectRatio(callback: AsyncCallback<void>) {
+    public resetAspectRatio(callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.resetAspectRatio(this.nativeObj);
       }).then((ret: Any) => {
@@ -5019,10 +5094,34 @@ export class WindowInternal implements Window {
       });
     }
 
+    public maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+        taskpool.execute((): void => {
+          this.maximizeWithOptionsSync(this.nativeObj, maximizeOptions);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
     public startMoving(): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute((): void => {
           this.startMoving(this.nativeObj);
+        }).then((ret: Any): void => {
+            resolve(undefined);
+        }).catch((err: Any): void => {
+            reject(err as BusinessError);
+        });
+      });
+    }
+
+    public startMovingWithOptions(startMovingOptions?: StartMovingOptions): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
+        taskpool.execute((): void => {
+          this.startMovingWithOptions(this.nativeObj, startMovingOptions);
         }).then((ret: Any): void => {
             resolve(undefined);
         }).catch((err: Any): void => {
@@ -5079,7 +5178,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public setResizeByDragEnabled(enable: boolean, callback: AsyncCallback<void>) {
+    public setResizeByDragEnabled(enable: boolean, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setResizeByDragEnabled(this.nativeObj, enable);
       }).then((ret: Any) => {
@@ -5161,7 +5260,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public setWindowMode(mode: WindowMode, callback: AsyncCallback<void>) {
+    public setWindowMode(mode: WindowMode, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setWindowMode(this.nativeObj, mode);
       }).then((ret: Any) => {
@@ -5183,7 +5282,7 @@ export class WindowInternal implements Window {
       });
     }
 
-    public setForbidSplitMove(isForbidSplitMove: boolean, callback: AsyncCallback<void>) {
+    public setForbidSplitMove(isForbidSplitMove: boolean, callback: AsyncCallback<void>): void {
       taskpool.execute(() => {
         this.setForbidSplitMove(this.nativeObj, isForbidSplitMove);
       }).then((ret: Any) => {
@@ -5221,6 +5320,18 @@ export class WindowInternal implements Window {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
         taskpool.execute(() => {
           this.setFollowParentMultiScreenPolicy(this.nativeObj, enabled);
+        }).then((ret: Any) => {
+          resolve(undefined);
+        }).catch((err: Any) => {
+          reject(err as BusinessError);
+        });
+      });
+    }
+
+    public setSupportedWindowModes(supportedWindowModes: Array<bundleManager.SupportWindowMode>): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+        taskpool.execute(() => {
+          this.setSupportedWindowModes(this.nativeObj, supportedWindowModes);
         }).then((ret: Any) => {
           resolve(undefined);
         }).catch((err: Any) => {
@@ -5284,7 +5395,8 @@ export class WindowInternal implements Window {
       return new Promise<void>(
         (resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
           taskpool.execute((): void => {
-            this.setRelativePositionToParentWindowEnabled(this.nativeObj, enabled, anchor, offsetX, offsetY);
+            this.setRelativePositionToParentWindowEnabled(
+              this.nativeObj, enabled, anchor ?? WindowAnchor.TOP_START, offsetX ?? 0, offsetY ?? 0);
           }).then((ret: Any) => {
             resolve(undefined);
           }).catch((err: Any) => {
@@ -5415,6 +5527,7 @@ export interface Window {
     setWindowPrivacyMode(isPrivacyMode: boolean): Promise<void>;
     setWindowPrivacyMode(isPrivacyMode: boolean, callback: AsyncCallback<void>): void;
     recover(): Promise<void>;
+    recover(snapshotAnimationConfig: WindowSnapshotAnimationConfig): Promise<void>;
     setUIContent(path: string): Promise<void>;
     setUIContent(path: string, callback: AsyncCallback<void>): void;
     loadContent(path: string, storage: LocalStorage): Promise<void>;
@@ -5442,6 +5555,7 @@ export interface Window {
     setWindowTouchable(isTouchable: boolean, callback: AsyncCallback<void>): void;
     setDialogBackGestureEnabled(enabled: boolean): Promise<void>;
     setWindowMask(windowMask: Array<Array<long>>): Promise<void>;
+    setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void>;
     clearWindowMask(): Promise<void>;
     setTouchableAreas(rects: Array<Rect>): void;
     getUIContext(): UIContext;
@@ -5578,7 +5692,9 @@ export interface Window {
     minimize(): Promise<void>;
     maximize(presentation?: MaximizePresentation): Promise<void>;
     maximize(presentation?: MaximizePresentation, acrossDisplay?: boolean): Promise<void>;
+    maximizeWithOptions(maximizeOptions?: MaximizeOptions): Promise<void>;
     startMoving(): Promise<void>;
+    startMovingWithOptions(startMovingOptions?: StartMovingOptions): Promise<void>;
     startMoving(offsetX: int, offsetY: int): Promise<void>;
     stopMoving(): Promise<void>;
     enableLandscapeMultiWindow(): Promise<void>;
@@ -5596,6 +5712,7 @@ export interface Window {
     setForbidSplitMove(isForbidSplitMove: boolean): Promise<void>;
     setFollowParentWindowLayoutEnabled(enabled: boolean): Promise<void>;
     setFollowParentMultiScreenPolicy(enabled: boolean): Promise<void>;
+    setSupportedWindowModes(supportedWindowModes: Array<bundleManager.SupportWindowMode>): Promise<void>;
     moveWindowToGlobalDisplay(x: int, y: int): Promise<void>;
     clientToGlobalDisplay(winX: int, winY: int): Position;
     globalDisplayToClient(globalDisplayX: int, globalDisplayY: int): Position;

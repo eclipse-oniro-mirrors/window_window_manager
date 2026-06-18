@@ -940,10 +940,6 @@ sptr<RSWindowAnimationFinishedCallback> RemoteAnimation::CreateShowAnimationFini
             if (needMinimizeSrcNode) {
                 ProcessNodeStateTask(srcNodeSptr);
             }
-            if (dstNodeSptr->stateMachine_.GetCurrentState() == WindowNodeState::SHOW_ANIMATION_DONE &&
-                dstNodeSptr->leashWinSurfaceNode_) {
-                dstNodeSptr->leashWinSurfaceNode_->SetAnimationFinished();
-            }
             WLOGFI("current window:%{public}u state: %{public}u", dstNodeSptr->GetWindowId(),
                 static_cast<uint32_t>(dstNodeSptr->stateMachine_.GetCurrentState()));
             FinishAsyncTraceArgs(HITRACE_TAG_WINDOW_MANAGER, static_cast<int32_t>(TraceTaskId::REMOTE_ANIMATION),

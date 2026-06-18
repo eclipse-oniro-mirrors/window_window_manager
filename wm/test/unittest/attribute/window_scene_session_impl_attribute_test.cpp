@@ -75,6 +75,23 @@ HWTEST_F(WindowSceneSessionImplAttributeTest, GetWindowStateSnapshot01, TestSize
     auto errCode = windowSceneSession->GetWindowStateSnapshot(winStateSnapshotJsonStr);
     EXPECT_EQ(errCode, WMError::WM_OK);
 }
+
+/**
+ * @tc.name: NotifySurfaceNodeAlphaUpdate01
+ * @tc.desc: test NotifySurfaceNodeAlphaUpdate.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplAttributeTest, NotifySurfaceNodeAlphaUpdate01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySurfaceNodeAlphaUpdate01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->SetSurfaceNodeAlphaChangedCallback(nullptr);
+    window->CreateSurfaceNode("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->NotifySurfaceNodeAlphaUpdate(0.1f);
+    window->NotifySurfaceNodeAlphaUpdate(window->GetProperty()->GetSurfaceNodeAlpha());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

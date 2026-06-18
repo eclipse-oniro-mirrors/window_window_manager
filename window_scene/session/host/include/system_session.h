@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ public:
 
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     int32_t GetMissionId() const override;
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 
@@ -36,7 +37,9 @@ public:
     WSError ProcessBackEvent() override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void RectCheck(float curWidth, float curHeight, const ScreenMetrics& screenMetrics) override;
     WSError SetDialogSessionBackGestureEnabled(bool isEnabled) override;
     int32_t GetSubWindowZLevel() const override;
@@ -50,7 +53,7 @@ public:
     WSError StopFloatingBall() override;
     WMError GetFloatingBallWindowId(uint32_t& windowId) override;
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     FloatingBallTemplateInfo GetFbTemplateInfo() const override;
     void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) override;
     uint32_t GetFbWindowId() const override;
@@ -58,6 +61,7 @@ public:
     void SetFloatingBallStopCallback(NotifyStopFloatingBallFunc&& func) override;
     void SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloatingBallMainWindowFunc&& func) override;
     void RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& func) override;
+    void RegisterReportWindowRssFunc(ReportWindowRssFunc&& func) override;
 
     /**
      * Float view
@@ -70,7 +74,8 @@ public:
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
     WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters) override;
     void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) override;
-    WSError SyncFloatViewLimits(const FloatViewLimits &limits) override;
+    void SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func) override;
+    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     /*
      * Float Window
@@ -100,7 +105,9 @@ protected:
      */
     void NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParameters);
     void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
+    void NotifyClickFloatView() override;
 private:
+    WMError IsFloatingBallValid(const FloatingBallTemplateInfo& fbTemplateInfo) const;
     void UpdateCameraWindowStatus(bool isShowing);
     bool NeedSystemPermission(WindowType type);
     void UpdatePiPWindowStateChanged(bool isForeground);
@@ -121,6 +128,7 @@ private:
     bool needUpdateFv_ = false;
 
     GetFbPanelWindowIdFunc getFbPanelWindowIdFunc_;
+    ReportWindowRssFunc reportWindowRssFunc_;
     GetIsRecentStateFunc getIsRecentStateFunc_;
 };
 } // namespace OHOS::Rosen

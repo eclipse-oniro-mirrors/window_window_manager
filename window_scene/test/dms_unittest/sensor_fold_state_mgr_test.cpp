@@ -21,6 +21,7 @@
 #include "screen_session_manager.h"
 #include "sensor_agent.h"
 #include "sensor_agent_type.h"
+#include "product_config.h"
 
 #define private public
 #define protected public
@@ -91,6 +92,9 @@ HWTEST_F(SensorFoldStateMgrTest, SetTaskScheduler, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest01, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -111,6 +115,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest01, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest02, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -131,6 +138,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest02, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest03, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -152,6 +162,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest03, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest04, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -173,6 +186,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest04, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest05, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -192,6 +208,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest05, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest06, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -211,6 +230,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest06, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest07, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -226,6 +248,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest07, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest08, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -246,6 +271,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest08, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest09, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -267,6 +295,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest09, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest10, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -304,6 +335,9 @@ HWTEST_F(SensorFoldStateMgrTest, FinishTaskSequence, TestSize.Level0)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest01, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -322,6 +356,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest01, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest02, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -342,6 +379,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest02, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest03, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -363,6 +403,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest03, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest04, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -430,6 +473,30 @@ HWTEST_F(SensorFoldStateMgrTest, TentModeHandleSensorChangeTest03, TestSize.Leve
     SensorFoldStateMgr::GetInstance().tentModeType_ = 1;
     SensorFoldStateMgr::GetInstance().TentModeHandleSensorChange(sensorStatus);
     EXPECT_TRUE(g_logMsg.find("Exit tent mode due to angle sensor report angle:180") != std::string::npos);
+}
+
+/**
+ * @tc.name: GetTentModeScreenAxis
+ * @tc.desc: test function : GetTentModeScreenAxis
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, GetTentModeScreenAxis, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance().IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    SensorStatus sensorStatus;
+    auto retAxis = SensorFoldStateMgr::GetInstance().GetTentModeScreenAxis(sensorStatus);
+    EXPECT_EQ(retAxis.hall_, -1);
+    EXPECT_FLOAT_EQ(retAxis.angle_, -1.0F);
+
+    ScreenAxis axis1 = {.angle_ = 60.0f, .hall_ = 1};
+    sensorStatus.axis_.emplace_back(axis1);
+    ScreenAxis axis2 = {.angle_ = 180.0f, .hall_ = 0};
+    sensorStatus.axis_.emplace_back(axis2);
+    retAxis = SensorFoldStateMgr::GetInstance().GetTentModeScreenAxis(sensorStatus);
+    EXPECT_EQ(retAxis.hall_, axis1.hall_);
+    EXPECT_FLOAT_EQ(retAxis.angle_, axis1.angle_);
 }
 }
 }

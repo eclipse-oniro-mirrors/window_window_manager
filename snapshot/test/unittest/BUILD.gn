@@ -87,7 +87,7 @@ ohos_static_library("utils_unittest_common") {
     "../..:libsnapshot_util",
     "../../../dm:libdm",
     "../../../test/common/utils:libtestutil",
-    "../../../utils:libwmutil",
+    "../../../utils:libwmutil_static",
     "../../../utils:libwmutil_base",
   ]
 

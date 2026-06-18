@@ -34,7 +34,7 @@ namespace uiExtension {
   const WINDOW_SIZE_CHANGE_CB: string = "windowSizeChange";
   const AVOID_AREA_CHANGE_CB: string = "avoidAreaChange";
   const WINDOW_RECT_CHANGE_CB: string = "rectChange";
-  const enum WmErrorCode {
+  enum WmErrorCode {
     WM_OK = 0,
     WM_ERROR_INVALID_PARAM = 401
   }
@@ -83,7 +83,7 @@ namespace uiExtension {
   }
 
   export native function destroyWindowProxy(nativeObj: long): void;
-  let windowProxyRegister = new FinalizationRegistry<long>(destroyWindowProxy);
+  let windowProxyRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(destroyWindowProxy);
 
   // API implementation
   export class UIExtensionInternal implements WindowProxy {

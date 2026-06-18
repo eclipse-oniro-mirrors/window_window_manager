@@ -28,6 +28,15 @@
 namespace OHOS::Rosen {
 class ScreenInfo;
 
+enum class VirtualScreenCaller : uint32_t {
+    UNKNOWN = 0,
+    JS_DISPLAY_MANAGER,
+    JS_SCREEN_MANAGER,
+    ANI_DISPLAY_MANAGER,
+    ANI_SCREEN_MANAGER,
+    NATIVE_SCREEN_MANAGER
+};
+
 struct VirtualScreenOption {
     std::string name_;
     uint32_t width_;
@@ -48,6 +57,16 @@ struct VirtualScreenOption {
     uint32_t phyHeight_ { 0 };
     int32_t userId_ {INVALID_USERID};
     int32_t screenId_ {-1};
+    uint32_t renderWidth_ { 0 };
+    uint32_t renderHeight_ { 0 };
+    VirtualScreenCaller caller_ {VirtualScreenCaller::UNKNOWN};
+};
+
+struct ScreenCapability {
+    uint32_t phyWidth_ { 0 };
+    uint32_t phyHeight_ { 0 };
+    ScreenInterfaceType interfaceType_ {ScreenInterfaceType::DISP_INVALID};
+    uint8_t colorBitDepth_ {0};
 };
 
 class Screen : public RefBase {
@@ -176,6 +195,24 @@ public:
      * @return DM_OK means set success, others means set failed.
      */
     DMError SetScreenOrientation(Orientation orientation) const;
+
+    /**
+     * @brief Set orientation for the screen with orientationOptions.
+     *
+     * @param orientation Orientation for the screen.
+     * @param options Orientation options for the screen.
+     * @return DM_OK means set success, others means set failed.
+     */
+    DMError SetOrientation(Orientation orientation, const OrientationOptions& options) const;
+
+    /**
+     * @brief Set orientation for the screen with orientationOptions.
+     *
+     * @param orientation Orientation for the screen.
+     * @param options Orientation options for the screen.
+     * @return DM_OK means set success, others means set failed.
+     */
+    DMError SetScreenOrientation(Orientation orientation, const OrientationOptions& options) const;
 
     /**
      * @brief Set the density dpi of the screen.
@@ -332,6 +369,14 @@ public:
      * @return DM_OK means set success, others means set failed.
      */
     DMError SetScreenColorSpace(GraphicCM_ColorSpaceType colorSpace);
+
+    /**
+     * @brief Get the screen capability of the screen.
+     *
+     * @param capability Screen capability of the screen.
+     * @return DM_OK means get success, others means get failed.
+     */
+    DMError GetScreenCapability(ScreenCapability& capability) const;
 
 protected:
     // No more methods or variables can be defined here.

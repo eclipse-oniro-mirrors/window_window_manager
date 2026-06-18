@@ -23,6 +23,7 @@
 #include "singleton_container.h"
 
 #include "session/host/include/extension_session.h"
+#include "transaction/rs_interfaces.h"
 #include "perform_reporter.h"
 
 namespace OHOS::Rosen {

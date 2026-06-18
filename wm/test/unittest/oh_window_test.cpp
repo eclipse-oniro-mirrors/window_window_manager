@@ -65,7 +65,12 @@ void OHWindowTest::SetUp()
     abilityContext_ = std::make_shared<AbilityRuntime::AbilityContextImpl>();
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
     sptr<WindowOption> option = new WindowOption();
-    EXPECT_CALL(m->Mock(), CreateWindow(_, _, _)).Times(1).WillOnce(Return(new WindowImpl(option)));
+    EXPECT_CALL(m->Mock(), CreateWindow(_, _, _)).Times(1).WillOnce([this, &option](
+        const std::string&, sptr<WindowOption>&, std::shared_ptr<AbilityRuntime::Context>) -> sptr<Window> {
+        sptr<WindowImpl> window = new WindowImpl(option);
+        EXPECT_EQ(WMError::WM_OK, window->Create(INVALID_WINDOW_ID, abilityContext_));
+        return window;
+    });
     DisplayId displayId = 0;
     sptr<IWindowLifeCycle> listener = nullptr;
     scene_ = sptr<WindowScene>::MakeSptr();
@@ -101,6 +106,12 @@ void FrameMetricsMeasuredCallback2(int32_t windowId, const OH_WindowManager_Fram
     FrameMetricsMeasuredCallback(windowId, metrics);
 }
 
+void DensityInfoChangeCallback(int32_t windowId, const OH_WindowManager_DensityInfo* info)
+{
+    (void)windowId;
+    (void)info;
+}
+
 /**
  * @tc.name: ShowWindow01
  * @tc.desc: return OK when show window
@@ -126,6 +137,45 @@ HWTEST_F(OHWindowTest, IsWindowShowing01, TestSize.Level1)
     bool isShow;
     auto ret = OH_WindowManager_IsWindowShown(scene_->GetMainWindow()->GetWindowId(), &isShow);
     EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::OK), ret);
+}
+
+/**
+ * @tc.name: GetDensityInfoCopy_InvalidParam
+ * @tc.desc: get density info copy invalid param
+ * @tc.type: FUNC
+ */
+HWTEST_F(OHWindowTest, GetDensityInfoCopy_InvalidParam, TestSize.Level0)
+{
+    ASSERT_NE(nullptr, scene_);
+    ASSERT_NE(nullptr, scene_->GetMainWindow());
+    auto ret = OH_WindowManager_GetDensityInfoCopy(scene_->GetMainWindow()->GetWindowId(), nullptr);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM), ret);
+}
+
+/**
+ * @tc.name: RegisterDensityInfoChangeCallback_NullCallback
+ * @tc.desc: register density info change callback with null callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(OHWindowTest, RegisterDensityInfoChangeCallback_NullCallback, TestSize.Level0)
+{
+    ASSERT_NE(nullptr, scene_);
+    ASSERT_NE(nullptr, scene_->GetMainWindow());
+    auto ret = OH_WindowManager_RegisterDensityInfoChangeCallback(scene_->GetMainWindow()->GetWindowId(), nullptr);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM), ret);
+}
+
+/**
+ * @tc.name: UnregisterDensityInfoChangeCallback_NullCallback
+ * @tc.desc: unregister density info change callback with null callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(OHWindowTest, UnregisterDensityInfoChangeCallback_NullCallback, TestSize.Level0)
+{
+    ASSERT_NE(nullptr, scene_);
+    ASSERT_NE(nullptr, scene_->GetMainWindow());
+    auto ret = OH_WindowManager_UnregisterDensityInfoChangeCallback(scene_->GetMainWindow()->GetWindowId(), nullptr);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM), ret);
 }
 
 /**

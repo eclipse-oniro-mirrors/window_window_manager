@@ -17,6 +17,7 @@
 
 #include "ipc_skeleton.h"
 
+#include "rs_adapter.h"
 #include "ui_extension/host_data_handler.h"
 #include "window_manager_hilog.h"
 
@@ -215,7 +216,8 @@ void ExtensionSession::SetEventHandler(const std::shared_ptr<AppExecFwk::EventHa
 
 WSError ExtensionSession::ConnectInner(
     const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token, int32_t pid, int32_t uid,
     const std::string& identityToken)
 {
@@ -223,8 +225,8 @@ WSError ExtensionSession::ConnectInner(
         TLOGE(WmsLogTag::WMS_UIEXT, "invalid pid or uid");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-    auto task = [weakThis = wptr(this), sessionStage, eventChannel, surfaceNode,
-        &systemConfig, property, token, pid, uid]() NO_THREAD_SAFETY_ANALYSIS {
+    auto task = [weakThis = wptr(this), sessionStage, eventChannel, nodeId, &surfaceNode,
+        &systemConfig, property, token, &renderSession, pid, uid]() NO_THREAD_SAFETY_ANALYSIS {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_UIEXT, "session is null");
@@ -250,22 +252,28 @@ WSError ExtensionSession::ConnectInner(
         if (session->IsTransparentUIExtension()) {
             sessionStage->SetUIExtensionTransparent();
         }
-        return session->Session::ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid);
+        auto ret = session->Session::ConnectInner(
+            sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode, property, token, pid, uid);
+        renderSession = RSUIContextContainer::GetRenderSession();
+        if (renderSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "renderSession is nullptr");
+        }
+        return ret;
     };
     return PostSyncTask(task, "ConnectInner");
 }
 
 WSError ExtensionSession::Connect(
     const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {
     // Get pid and uid before posting task.
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     int32_t uid = IPCSkeleton::GetCallingUid();
-    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig,
+    return ConnectInner(sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode,
         property, token, pid, uid, identityToken);
 }
 
@@ -507,7 +515,7 @@ AvoidArea ExtensionSession::GetAvoidAreaByType(AvoidAreaType type, const WSRect&
     return avoidArea;
 }
 
-WSError ExtensionSession::Background(bool isFromClient, const std::string& identityToken)
+WSError ExtensionSession::Background(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "Background ExtensionSession, id: %{public}d, state: %{public}" PRIu32"",

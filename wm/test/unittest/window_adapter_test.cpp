@@ -961,6 +961,20 @@ HWTEST_F(WindowAdapterTest, SetProcessWatermark, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RecoverProcessWatermark
+ * @tc.desc: WindowAdapter/RecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, RecoverProcessWatermark, TestSize.Level1)
+{
+    WindowAdapter windowAdapter;
+    windowAdapter.processWatermarkPid_ = 10;
+    windowAdapter.processWatermarkName_ = "test";
+    auto err = windowAdapter.RecoverProcessWatermark();
+    EXPECT_EQ(err, WMError::WM_OK);
+}
+
+/**
  * @tc.name: NotifyScreenshotEvent
  * @tc.desc: NotifyScreenshotEvent
  * @tc.type: FUNC
@@ -1007,13 +1021,15 @@ HWTEST_F(WindowAdapterTest, CreateAndConnectSpecificSession, TestSize.Level1)
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
     std::shared_ptr<RSSurfaceNode> node;
+    uint64_t nodeId = 100;
     sptr<WindowSessionProperty> property;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
     sptr<IRemoteObject> token;
-    int32_t id = 101; // 101 is persistentId
+    int32_t id = 101;
     windowAdapter.CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, node, token);
     ASSERT_EQ(session, nullptr);
 }
 
@@ -1348,6 +1364,20 @@ HWTEST_F(WindowAdapterTest, GetWindowStateSnapshot01, Function | SmallTest | Lev
     std::string winStateSnapshotJsonStr = "{}";
     auto err = instance_->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
     EXPECT_NE(err, WMError::WM_ERROR_INVALID_CALLING);
+}
+
+/**
+ * @tc.name: NotifySurfaceNodeAlphaUpdate01
+ * @tc.desc: WindowAdapter/NotifySurfaceNodeAlphaUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, NotifySurfaceNodeAlphaUpdate01, Function | SmallTest | Level2)
+{
+    ASSERT_NE(instance_, nullptr);
+    int32_t persistentId = 1;
+    float alpha = 0.1f;
+    auto err = instance_->NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
+    EXPECT_NE(err, WSError::WS_ERROR_NO_MEM);
 }
 
 /**

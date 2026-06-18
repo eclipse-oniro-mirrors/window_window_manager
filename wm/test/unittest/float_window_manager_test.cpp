@@ -70,8 +70,9 @@ public:
     const uint32_t mockWindowId_ = 101;
     MockWindow() {};
     ~MockWindow() {};
-    MOCK_METHOD3(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus));
-    MOCK_METHOD1(Destroy, WMError(uint32_t reason));
+    MOCK_METHOD5(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus,
+        int32_t requestId, int32_t scbRequestId));
+    MOCK_METHOD2(Destroy, WMError(uint32_t reason, bool isFromInnerkits));
     MOCK_METHOD1(UpdateFloatView, WMError(const FloatViewTemplateInfo& fvTemplateInfo));
     uint32_t GetWindowId() const override
     {
@@ -350,9 +351,10 @@ HWTEST_F(FloatWindowManagerTest, StopBindFloatView, TestSize.Level1)
     EXPECT_CALL(*mockFvController, IsBind()).WillRepeatedly(Return(false));
     
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
+    mockFvController->curState_ = FvWindowState::FV_STATE_STARTED;
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, FloatWindowManager::StopBindFloatView(mockFvController));
 
-    EXPECT_CALL(*mw_, Destroy(_)).WillRepeatedly(Return(WMError::WM_OK));
+    EXPECT_CALL(*mw_, Destroy(_, _)).WillRepeatedly(Return(WMError::WM_OK));
     mockFvController->window_ = mw_;
 
     EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, FloatWindowManager::StopBindFloatView(mockFvController));
@@ -380,7 +382,7 @@ HWTEST_F(FloatWindowManagerTest, StopBindFloatingBall, TestSize.Level1)
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
     EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, FloatWindowManager::StopBindFloatingBall(fbController_));
 
-    EXPECT_CALL(*mw_, Destroy(_)).WillRepeatedly(Return(WMError::WM_OK));
+    EXPECT_CALL(*mw_, Destroy(_, _)).WillRepeatedly(Return(WMError::WM_OK));
     fbController_->window_ = mw_;
     EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, FloatWindowManager::StopBindFloatingBall(fbController_));
     mockFvController->window_ = mw_;
@@ -491,8 +493,8 @@ HWTEST_F(FloatWindowManagerTest, CreateFbWindow_Test, TestSize.Level1)
 {
     WMError error = WMError::WM_OK;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    FloatingBallTemplateBaseInfo templateInfo(0, "title", "content", "#000000", true, false, INVALID_WINDOW_ID,
-        true, "test");
+    FloatingBallTemplateBaseInfo templateInfo(0, "title", "content", "#000000", "", "", true, false,
+        INVALID_WINDOW_ID, true, "test");
     std::shared_ptr<Media::PixelMap> icon = nullptr;
     std::shared_ptr<OHOS::AbilityRuntime::Context> context = nullptr;
 

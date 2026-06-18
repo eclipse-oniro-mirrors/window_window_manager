@@ -33,8 +33,9 @@ class MockWindow : public Window {
 public:
     MockWindow() {};
     ~MockWindow() {};
-    MOCK_METHOD3(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus));
-    MOCK_METHOD1(Destroy, WMError(uint32_t reason));
+    MOCK_METHOD5(Show, WMError(uint32_t reason, bool withAnimation, bool withFocus,
+        int32_t requestId, int32_t scbRequestId));
+    MOCK_METHOD2(Destroy, WMError(uint32_t reason, bool isFromInnerkits));
     MOCK_METHOD0(Destroy, WMError());
     MOCK_METHOD1(NotifyPrepareClosePiPWindow, WMError(const bool isWeb));
     MOCK_METHOD4(SetAutoStartPiP, void(bool isAutoStart, uint32_t priority, uint32_t width, uint32_t height));
@@ -136,20 +137,9 @@ HWTEST_F(WebPictureInPictureControllerTest, StartPictureInPicture, TestSize.Leve
 
     webPipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
     EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
-}
 
-/**
- * @tc.name: StartPictureInPicture02
- * @tc.desc: StartPictureInPicture with stop state
- * @tc.type: FUNC
- */
-HWTEST_F(WebPictureInPictureControllerTest, StartPictureInPicture02, TestSize.Level1)
-{
-    auto webPipControl = sptr<WebPictureInPictureController>::MakeSptr(config);
-    StartPipType startType = StartPipType::NATIVE_START;
-    
     webPipControl->curState_ = PiPWindowState::STATE_STOPPING;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, webPipControl->StartPictureInPicture(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
 }
 
 /**

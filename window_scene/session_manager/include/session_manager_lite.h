@@ -35,9 +35,9 @@ public:
     int32_t OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     void OnSessionManagerServiceRecover(const sptr<IRemoteObject>& sessionManagerService) override;
     void OnWMSConnectionChanged(int32_t wmsUserId,
-                                int32_t screenId,
-                                bool isConnected,
-                                const sptr<IRemoteObject>& sessionManagerService) override;
+        int32_t screenId, bool isConnected, int32_t pid,
+        int32_t fromUserId, int32_t fromPid,
+        const sptr<IRemoteObject>& sessionManagerService) override;
 
 private:
     const int32_t userId_;
@@ -83,11 +83,13 @@ public:
     /*
      * Multi User
      */
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<ISessionManagerService>& sessionManagerService);
+        int32_t userId, int32_t screenId, bool isConnected,
+        int32_t pid, int32_t fromUserId, int32_t fromPid,
+        const sptr<ISessionManagerService>& sessionManagerService);
 
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
@@ -116,7 +118,7 @@ private:
     static std::unordered_map<int32_t, sptr<SessionManagerLite>> sessionManagerLiteMap_;
     static std::mutex sessionManagerLiteMapMutex_;
     void OnUserSwitch(const sptr<ISessionManagerService>& sessionManagerService);
-    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected);
+    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected, int32_t pid);
 
     /*
      * Window Recover
@@ -152,10 +154,15 @@ private:
     UserSwitchCallbackFunc userSwitchCallbackFunc_ = nullptr;
     std::mutex userSwitchCallbackFuncMutex_;
 
+    struct ScreenUserInfo {
+        int32_t userId;
+        int32_t screenId;
+        int32_t pid;
+    };
+
     std::mutex wmsConnectionMutex_;
-    int32_t currentWMSUserId_ = INVALID_USER_ID;
-    int32_t currentScreenId_ = DEFAULT_SCREEN_ID;
     bool isWMSConnected_ = false;
+    ScreenUserInfo currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
     WMSConnectionChangedCallbackFunc wmsConnectionChangedFunc_ = nullptr;
     // above guarded by wmsConnectionMutex_
 };

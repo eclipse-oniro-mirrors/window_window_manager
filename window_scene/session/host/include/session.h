@@ -18,6 +18,7 @@
 
 #include <list>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <vector>
 
@@ -52,7 +53,6 @@ namespace OHOS::Rosen {
 class RSSurfaceNode;
 class RSUIContext;
 class RSTransaction;
-class RSSyncTransactionController;
 class Session;
 using NotifySessionRectChangeFunc = std::function<void(const WSRect& rect,
     SizeChangeReason reason, DisplayId displayId)>;
@@ -63,6 +63,7 @@ using NotifyStopFloatingBallFunc = std::function<void()>;
 using NotifyRestoreFloatingBallMainWindowFunc = std::function<void(const std::shared_ptr<AAFwk::Want>& want)>;
 using NotifyRestoreFloatMainWindowFunc = std::function<void(const std::shared_ptr<AAFwk::WantParams>& wantParameters)>;
 using NotifyStopFloatViewFunc = std::function<void(const std::string& reason)>;
+using NotifyClickFloatViewFunc = std::function<void()>;
 using NotifyUpdateFloatViewFunc = std::function<void(const FloatViewTemplateInfo& fvTemplateInfo)>;
 using NotifyPendingSessionActivationFunc = std::function<void(SessionInfo& info)>;
 using NotifyBatchPendingSessionsActivationFunc = std::function<void(std::vector<std::shared_ptr<SessionInfo>>& info,
@@ -86,6 +87,7 @@ using NofitySessionIconUpdatedFunc = std::function<void(const std::string& iconP
 using NotifySessionExceptionFunc =
     std::function<void(const SessionInfo& info, const ExceptionInfo& exceptionInfo, bool startFail)>;
 using NotifySessionSnapshotFunc = std::function<void(const int32_t& persistentId)>;
+using NotifySessionSaveSnapshotCompleteFunc = std::function<void(int32_t persistentId)>;
 using NotifyPendingSessionToForegroundFunc = std::function<void(const SessionInfo& info)>;
 using NotifyPendingSessionToBackgroundFunc = std::function<void(const SessionInfo& info,
     const BackgroundParams& params)>;
@@ -127,6 +129,7 @@ using OutlineParamsChangeCallbackFunc = std::function<void(bool enabled, const O
 using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t callingPid)>;
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
+using UpdateAppHookDisplayInfoFunc = std::function<WMError(int32_t uid, const HookInfo& hookInfo, bool enable)>;
 using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
 using SaveStartWindowFunc = std::function<void(std::string, std::string)>;
 
@@ -218,13 +221,16 @@ public:
      * Window LifeCycle
      */
     virtual WSError ConnectInner(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") REQUIRES(SCENE_GUARD);
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override REQUIRES(SCENE_GUARD);
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override REQUIRES(SCENE_GUARD);
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError DrawingCompleted() override;
@@ -247,6 +253,7 @@ public:
     void SetPendingSessionToBackgroundListener(NotifyPendingSessionToBackgroundFunc&& func);
     void SetPendingSessionToBackgroundForDelegatorListener(NotifyPendingSessionToBackgroundForDelegatorFunc&& func);
     void SetSessionSnapshotListener(const NotifySessionSnapshotFunc& func);
+    void SetSessionSaveSnapshotCompleteListener(const NotifySessionSaveSnapshotCompleteFunc& func);
     WSError TerminateSessionNew(const sptr<AAFwk::SessionInfo> info, bool needStartCaller, bool isFromBroker);
     WSError TerminateSessionTotal(const sptr<AAFwk::SessionInfo> info, TerminateType terminateType);
     std::string GetSessionLabel() const;
@@ -306,8 +313,19 @@ public:
         bool needNotifyClient = true, bool isExecuteDelayRaise = false);
     virtual WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent);
 
+    /**
+     * @brief Notify client to update window rectangle.
+     *
+     * @param updateReason Reason for the update.
+     * @param updateRect Optional target rectangle.
+     * @param rsTransaction RS transaction for synchronized rendering.
+     *
+     * @return WSError::WS_OK on success, or an appropriate error code on failure.
+     */
     virtual WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) { return WSError::WS_OK; }
+                                             std::optional<WSRect> updateRect,
+                                             std::shared_ptr<RSTransaction> rsTransaction) { return WSError::WS_OK; }
+
     WSError TransferBackPressedEventForConsumed(bool& isConsumed);
     WSError TransferKeyEventForConsumed(const std::shared_ptr<MMI::KeyEvent>& keyEvent, bool& isConsumed,
         bool isPreImeEvent = false);
@@ -317,6 +335,7 @@ public:
 
     int32_t GetPersistentId() const;
     int32_t GetCurrentRotation() const;
+    std::shared_ptr<RSSurfaceNode> CreateSurfaceNode(uint64_t nodeId, sptr<WindowSessionProperty> property);
     void SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const;
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode(bool isUpdateContextBeforeGet);
@@ -376,15 +395,36 @@ public:
     /*
      * Window Scene Snapshot
      */
+    struct SnapshotOptions {
+        // Run snapshot capture in FFRT task with a longer timeout.
+        bool runInFfrt = false;
+        // Snapshot scale value; non-positive values use the session default scale.
+        float scaleParam = 0.0f;
+        // Capture the current window surface instead of the default surface node content.
+        bool useCurWindow = false;
+        // Capture the snapshot synchronously when supported by the render service.
+        bool windowSync = false;
+        // Skip blur processing for SceneBoard UI animation snapshots.
+        // Only for SceneBoard UI animation, cannot use with privacy window.
+        bool disableBlur = false;
+    };
+
     std::shared_ptr<Media::PixelMap> GetSnapshot() const;
     std::shared_ptr<Media::PixelMap> GetPreloadSnapshot() const;
-    std::shared_ptr<Media::PixelMap> Snapshot(
-        bool runInFfrt = false, float scaleParam = 0.0f, bool useCurWindow = false) const;
+    /**
+     * @brief Get the snapshot pixelMap.
+     *
+     * @param options Snapshot capture options.
+     *
+     * @return PixelMap of this window.
+     */
+    std::shared_ptr<Media::PixelMap> Snapshot() const;
+    std::shared_ptr<Media::PixelMap> Snapshot(const SnapshotOptions& options) const;
     void ResetSnapshot();
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT, bool windowSync = true);
     void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowKey);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;
@@ -467,6 +507,12 @@ public:
     void SetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition, bool value);
     bool GetSessionInfoAdvancedFeatureFlag(uint32_t bitPosition);
     void SetSessionInfoWindowMode(int32_t windowMode);
+    void SetDeviceType(const std::string& deviceType);
+    const std::string& GetDeviceType() const;
+    void SetSessionInfoRequestId(int32_t requestId);
+    int32_t GetSessionInfoRequestId() const;
+    void SetSessionInfoScbRequestId(int32_t scbRequestId);
+    int32_t GetSessionInfoScbRequestId() const;
     const SessionInfo& GetSessionInfo() const;
     SessionInfo& EditSessionInfo();
     DisplayId GetScreenId() const;
@@ -502,6 +548,8 @@ public:
     bool GetRestartInSameProcess() const;
     void SetRestartCallerPersistentId(int32_t restartCallerPersistentId);
     int32_t GetRestartCallerPersistentId() const;
+    void SetNativeHideWindow(bool nativeHideWindow);
+    bool GetNativeHideWindow() const;
 
     virtual WSError SetActive(bool active);
     virtual WSError UpdateSizeChangeReason(SizeChangeReason reason);
@@ -585,7 +633,7 @@ public:
     void NotifyClick(bool requestFocus = true, bool isClick = true);
     bool GetStateFromManager(const ManagerState key);
     virtual void PresentFocusIfNeed(int32_t pointerAcrion, int32_t sourceType = 0);
-    virtual WSError UpdateWindowMode(WindowMode mode);
+    virtual WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo);
     WSError SetIsPcAppInPad(bool enable);
     WSError SetCompatibleModeProperty(const sptr<CompatibleModeProperty> compatibleModeProperty);
     WSError SetAppSupportPhoneInPc(bool isSupportPhone);
@@ -594,6 +642,8 @@ public:
     WSError SetPcAppInpadSpecificSystemBarInvisible(bool isPcAppInpadSpecificSystemBarInvisible);
     WSError SetPcAppInpadOrientationLandscape(bool isPcAppInpadOrientationLandscape);
     WSError SetMobileAppInPadLayoutFullScreen(bool isMobileAppInPadLayoutFullScreen);
+    virtual WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode)
+        { return WSError::WS_OK; }
     bool NeedNotify() const;
     void SetNeedNotify(bool needNotify);
     WSError SetTouchable(bool touchable);
@@ -602,6 +652,7 @@ public:
     virtual void SetSystemTouchable(bool touchable);
     bool GetSystemTouchable() const;
     bool GetWindowTouchableForMMI(DisplayId displayId) const;
+    bool GetSessionTouchable() const;
     virtual WSError SetRSVisible(bool isVisible);
     bool GetRSVisible() const;
     WSError SetVisibilityState(WindowVisibilityState state);
@@ -679,7 +730,7 @@ public:
     bool IsSystemActive() const;
     bool IsSystemSession() const;
     bool IsTerminated() const;
-    bool IsSessionForeground() const;
+    bool IsLifecycleForeground() const;
     bool IsSessionNotBackground() const;
     virtual bool IsAnco() const { return false; }
     virtual void SetBlank(bool isAddBlank) {}
@@ -697,7 +748,11 @@ public:
     void SetAbilityToken(sptr<IRemoteObject> token);
     sptr<IRemoteObject> GetAbilityToken() const;
     WindowMode GetWindowMode() const;
+    WindowModeInfo GetWindowModeInfo() const;
+    WindowMode GetWindowModeCompat() const;
     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
+    void SetSceneLastUsedPosition(const std::string& position);
+    const std::string GetSceneLastUsedPosition() const;
 
     /*
      * Window ZOrder
@@ -832,7 +887,8 @@ public:
     void SetClientRect(const WSRect& rect);
     WSRect GetClientRect() const;
     void ResetDirtyFlags();
-    void SetDragActivated(bool dragActivated);
+    void SetDragActivated(DragActivateSource source, bool activated);
+    uint32_t GetDragActivatedBitmap() const { return dragActivatedBitmap_; }
     void SetClientDragEnable(bool dragEnable);
     std::optional<bool> GetClientDragEnable() const;
     std::shared_ptr<AppExecFwk::EventHandler> GetEventHandler() const;
@@ -847,6 +903,17 @@ public:
     bool SessionIsSingleHandMode();
     void SetClientDisplayId(DisplayId displayId);
     DisplayId GetClientDisplayId() const;
+    virtual WSError RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit = true,
+        bool isIntersectedWidthLimit = true, int32_t excludePersistentId = INVALID_SESSION_ID)
+    {
+        return WSError::WS_OK;
+    }
+    virtual WSError RequestRemoveAttachedWindowLimits(int32_t sourcePersistentId,
+        int32_t excludePersistentId = INVALID_SESSION_ID)
+    {
+        return WSError::WS_OK;
+    }
     virtual void RegisterNotifySurfaceBoundsChangeFunc(int32_t sessionId, NotifySurfaceBoundsChangeFunc&& func) {};
     virtual void UnregisterNotifySurfaceBoundsChangeFunc(int32_t sessionId) {};
     virtual bool IsAnyParentSessionDragMoving() const { return false; }
@@ -858,10 +925,11 @@ public:
     virtual WSError UpdateGlobalDisplayRect(const WSRect& rect, SizeChangeReason reason);
     WSError NotifyClientToUpdateGlobalDisplayRect(const WSRect& rect, SizeChangeReason reason);
     const sptr<LayoutController>& GetLayoutController() const { return layoutController_; }
-    WSError NotifyAppHookWindowInfoUpdated();
     virtual WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
+    virtual WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
     void NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason reason);
     void SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func);
+    void SetUpdateAppHookDisplayInfoFunc(const UpdateAppHookDisplayInfoFunc& func);
     WSError UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
                                  const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
                                  const std::shared_ptr<RSTransaction>& rsTransaction);
@@ -888,6 +956,7 @@ public:
      * PC Window
      */
     sptr<Session> GetMainSession() const;
+    sptr<Session> GetMainSessionOrLoosenedSession() const;
     sptr<Session> GetMainOrFloatSession() const;
     bool IsPcWindow() const;
     bool IsAncestorsSession(int32_t ancestorsId) const;
@@ -905,7 +974,8 @@ public:
     void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
-    SessionState GetRealSessionState();
+    void SetSurfaceNodeAlpha(float alpha) { property_->SetSurfaceNodeAlpha(alpha); }
+    float GetSurfaceNodeAlpha() const { return property_->GetSurfaceNodeAlpha(); }
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
 
@@ -931,6 +1001,7 @@ public:
     bool HasSnapshotFreeMultiWindow();
     bool HasSnapshot(SnapshotStatus key);
     bool HasSnapshot();
+    virtual void NotifyForceHideChange(bool hide) {};
     virtual void RecoverSnapshotPersistence(const SessionInfo& info) {};
     virtual void ClearSnapshotPersistence() {};
     virtual void RegisterGetAppUseControlDisplayMapFunc(GetAppUseControlDisplayMapFunc&& func) {};
@@ -953,6 +1024,7 @@ public:
     void ResetPreloadStartingWindow();
     void InitPersistentScaledSnapshotParam(bool enabled);
     bool IsPersistentScaledSnapshotEnabled() { return enablePersistentScaledSnapshot_; };
+    void LoadSnapshotToMem();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -1030,11 +1102,13 @@ protected:
      */
     std::shared_ptr<RSUIContext> GetRSShadowContext();
     std::shared_ptr<RSUIContext> GetRSLeashWinShadowContext();
+    virtual void OnSurfaceNodeChanged() {}
 
     static std::shared_ptr<AppExecFwk::EventHandler> mainHandler_;
     int32_t persistentId_ = INVALID_SESSION_ID;
     std::atomic<SessionState> state_ = SessionState::STATE_DISCONNECT;
     SessionInfo sessionInfo_;
+    std::string deviceType_ = "unknown";
     std::recursive_mutex sessionInfoMutex_;
 
     mutable std::mutex surfaceNodeMutex_;
@@ -1087,6 +1161,7 @@ protected:
     NofitySessionLabelUpdatedFunc updateSessionLabelFunc_;
     NofitySessionIconUpdatedFunc updateSessionIconFunc_;
     NotifySessionSnapshotFunc notifySessionSnapshotFunc_;
+    NotifySessionSaveSnapshotCompleteFunc notifySessionSaveSnapshotCompleteFunc_;
     NotifyRaiseToTopForPointDownFunc raiseToTopForPointDownFunc_;
     NotifySessionInfoLockedStateChangeFunc sessionInfoLockedStateChangeFunc_;
     NotifySystemSessionPointerEventFunc systemSessionPointerEventFunc_;
@@ -1142,9 +1217,11 @@ protected:
     NotifyStopFloatingBallFunc stopFloatingBallFunc_;
     NotifyRestoreFloatingBallMainWindowFunc restoreFloatingBallMainWindowFunc_;
     GetRsCmdBlockingCountFunc getRsCmdBlockingCountFunc_;
+    UpdateAppHookDisplayInfoFunc updateAppHookDisplayInfoFunc_;
     NotifyRestoreFloatMainWindowFunc restoreFloatMainWindowFunc_;
     NotifyStopFloatViewFunc stopFloatViewFunc_;
     NotifyUpdateFloatViewFunc updateFloatViewFunc_;
+    NotifyClickFloatViewFunc clickFloatViewFunc_;
     sptr<LayoutController> layoutController_ = nullptr;
     void SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY);
     std::atomic<uint32_t> crossPlaneState_ = 0;
@@ -1221,6 +1298,7 @@ protected:
     bool IsSupportAppLockSnapshot() const;
     GetAppUseControlDisplayMapFunc onGetAppUseControlDisplayMapFunc_;
     std::atomic<bool> isAttach_ { false };
+    std::atomic<bool> isClientAttach_ { false };
     std::atomic<bool> needNotifyAttachState_ = { false };
     int32_t lastSnapshotScreen_ = SCREEN_UNKNOWN;
     SnapshotStatus capacity_ = defaultCapacity;
@@ -1235,6 +1313,7 @@ protected:
      * Window Property
      */
     uint32_t propertyDirtyFlags_ = 0;
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
@@ -1254,7 +1333,9 @@ protected:
 private:
     void HandleDialogForeground();
     void HandleDialogBackground();
+    void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     WSError HandleSubWindowClick(int32_t action, int32_t sourceType, bool isExecuteDelayRaise = false);
+    bool IsNeedNotifyAttachState(bool isAttach);
 
     template<typename T>
     bool RegisterListenerLocked(std::vector<std::shared_ptr<T>>& holder, const std::shared_ptr<T>& listener);
@@ -1280,7 +1361,7 @@ private:
     void InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& property);
     void InitSystemSessionDragEnable(const sptr<WindowSessionProperty>& property);
 
-    void UpdateGravityWhenUpdateWindowMode(WindowMode mode);
+    void UpdateGravityWhenUpdateWindowMode(const WindowModeInfo& windowModeInfo);
 
     std::recursive_mutex lifecycleListenersMutex_;
     std::vector<std::shared_ptr<ILifecycleListener>> lifecycleListeners_;
@@ -1318,6 +1399,7 @@ private:
     int32_t callingUid_ = -1;
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };
+    std::string sceneLastUsedPosition_;
     bool isRSVisible_ {false};
     WindowVisibilityState visibilityState_ { WINDOW_LAYER_STATE_MAX};
     bool needNotify_ {true};
@@ -1367,8 +1449,39 @@ private:
     /*
      * Window Layout
      */
+
+    /**
+     * @brief Get prelayout context for window creation.
+     *
+     * Pre-calculates window and display parameters to optimize the initial
+     * layout and rendering. Currently enabled only for game prelaunch scenarios.
+     *
+     * @return PrelayoutContext containing predicted window rect and display info.
+     */
+    PrelayoutContext GetPrelayoutContext();
+
+    /**
+     * @brief Apply initial window rect during session connect.
+     *
+     * For UIExtension windows, directly updates the current rect without prelayout.
+     * Otherwise, uses prelayout rect if enabled, or falls back to current session rect.
+     *
+     * @param ctx Prelayout context containing optional initial rect.
+     */
+    void HandleInitialRect(const PrelayoutContext& ctx);
+
+    /**
+     * @brief Apply prelayout display info to application via hook.
+     *
+     * Updates display parameters (size, density, rotation) when prelayout is enabled
+     * and hook function is available.
+     *
+     * @param ctx Prelayout context containing display info.
+     */
+    void HandleHookDisplay(const PrelayoutContext& ctx);
+
     std::optional<bool> clientDragEnable_;
-    bool dragActivated_ = true;
+    uint32_t dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
     SingleHandTransform singleHandTransform_;
     bool singleHandModeFlag_ = false;
     SingleHandScreenInfo singleHandScreenInfo_;

@@ -1829,6 +1829,162 @@ HWTEST_F(SceneSessionTest2, IsDragResizeScale, Function | SmallTest | Level2)
     session->needNotifyDragEventOnNextVsync_ = true;
     EXPECT_EQ(session->IsDragResizeScale(reason), true);
 }
+
+/**
+ * @tc.name: OnSessionEvent_SplitMovable_PcWindow_EnableDrag
+ * @tc.desc: Test split window in PC mode enables fullscreen to floating conversion on drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, OnSessionEvent_SplitMovable_PcWindow_EnableDrag, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEvent_SplitMovable_PcWindow_EnableDrag";
+    info.bundleName_ = "OnSessionEvent_SplitMovable_PcWindow_EnableDrag";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    // Set split window property
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    session->SetSessionProperty(property);
+
+    // Set PC window mode
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    // Init drag controller
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->isStartDrag_ = true;
+
+    // Trigger start move event
+    SessionEvent event = SessionEvent::EVENT_START_MOVE;
+    WSError result = session->OnSessionEvent(event);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    // Verify IsSplitMovable() returns true
+    EXPECT_EQ(session->IsSplitMovable(), true);
+
+    // Verify IsPcWindow() returns true
+    EXPECT_EQ(session->systemConfig_.IsPcWindow(), true);
+}
+
+/**
+ * @tc.name: OnSessionEvent_SplitMovable_NotPcWindow_NoSpecialDrag
+ * @tc.desc: Test split window in phone mode does not enable fullscreen to floating conversion
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, OnSessionEvent_SplitMovable_NotPcWindow_NoSpecialDrag, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEvent_SplitMovable_NotPcWindow_NoSpecialDrag";
+    info.bundleName_ = "OnSessionEvent_SplitMovable_NotPcWindow_NoSpecialDrag";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    // Set split window property
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    session->SetSessionProperty(property);
+
+    // Set phone window mode (non-PC)
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+
+    // Init drag controller
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->isStartDrag_ = true;
+
+    // Trigger start move event
+    SessionEvent event = SessionEvent::EVENT_START_MOVE;
+    WSError result = session->OnSessionEvent(event);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    // Verify IsSplitMovable() returns true
+    EXPECT_EQ(session->IsSplitMovable(), true);
+
+    // Verify IsPcWindow() returns false
+    EXPECT_EQ(session->systemConfig_.IsPcWindow(), false);
+}
+
+/**
+ * @tc.name: OnSessionEvent_SplitMovable_PadWindow_NoSpecialDrag
+ * @tc.desc: Test split window in pad mode does not enable fullscreen to floating conversion
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, OnSessionEvent_SplitMovable_PadWindow_NoSpecialDrag, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEvent_SplitMovable_PadWindow_NoSpecialDrag";
+    info.bundleName_ = "OnSessionEvent_SplitMovable_PadWindow_NoSpecialDrag";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    // Set split window property
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    session->SetSessionProperty(property);
+
+    // Set pad window mode (non-PC)
+    session->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    session->systemConfig_.freeMultiWindowEnable_ = false;
+
+    // Init drag controller
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->isStartDrag_ = true;
+
+    // Trigger start move event
+    SessionEvent event = SessionEvent::EVENT_START_MOVE;
+    WSError result = session->OnSessionEvent(event);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    // Verify IsSplitMovable() returns true
+    EXPECT_EQ(session->IsSplitMovable(), true);
+
+    // Verify IsPcWindow() returns false
+    EXPECT_EQ(session->systemConfig_.IsPcWindow(), false);
+
+    // Verify IsFreeMultiWindowMode() returns false
+    EXPECT_EQ(session->IsFreeMultiWindowMode(), false);
+}
+
+/**
+ * @tc.name: OnSessionEvent_NotSplitMovable_PcWindow_NoSpecialDrag
+ * @tc.desc: Test non-split window in PC mode does not trigger split-related logic on drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, OnSessionEvent_NotSplitMovable_PcWindow_NoSpecialDrag, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEvent_NotSplitMovable_PcWindow_NoSpecialDrag";
+    info.bundleName_ = "OnSessionEvent_NotSplitMovable_PcWindow_NoSpecialDrag";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    // Set floating window property (non-split)
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    property->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+    session->SetSessionProperty(property);
+
+    // Set PC window mode
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    // Init drag controller
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->isStartDrag_ = true;
+
+    // Trigger start move event
+    SessionEvent event = SessionEvent::EVENT_START_MOVE;
+    WSError result = session->OnSessionEvent(event);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    // Verify IsSplitMovable() returns false
+    EXPECT_EQ(session->IsSplitMovable(), false);
+
+    // Verify IsPcWindow() returns true
+    EXPECT_EQ(session->systemConfig_.IsPcWindow(), true);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

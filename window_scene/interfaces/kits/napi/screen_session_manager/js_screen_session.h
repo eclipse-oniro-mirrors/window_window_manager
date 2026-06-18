@@ -50,6 +50,10 @@ private:
     napi_value OnSetTouchEnabled(napi_env env, napi_callback_info info);
     static napi_value GetScreenUIContext(napi_env env, napi_callback_info info);
     napi_value OnGetScreenUIContext(napi_env env, napi_callback_info info);
+    static napi_value RegisterMotionSensor(napi_env env, napi_callback_info info);
+    napi_value OnRegisterMotionSensor(napi_env env, napi_callback_info info);
+    static napi_value UnregisterMotionSensor(napi_env env, napi_callback_info info);
+    napi_value OnUnregisterMotionSensor(napi_env env, napi_callback_info info);
     void CallJsCallback(const std::string& callbackType);
     std::shared_ptr<NativeReference> GetJSCallback(const std::string& callbackType);
     bool IsCallbackRegistered(const std::string& callbackType);
@@ -63,7 +67,10 @@ private:
     void OnPowerStatusChange(DisplayPowerEvent event, EventStatus eventStatus,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) override;
+    void OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) override;
     void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) override;
+    void OnScreenOrientationChangeWithOptions(float screenOrientation,
+        const OrientationOptions& options, ScreenId screenId) override;
     void OnScreenRotationLockedChange(bool isLocked, ScreenId screenId) override;
     void OnScreenDensityChange();
     void OnScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId) override;

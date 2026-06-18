@@ -44,12 +44,14 @@ ohos_shared_library("cj_screenshot_ffi") {
       "napi:ace_napi",
       "napi:cj_bind_ffi",
       "napi:cj_bind_native",
+      "c_utils:utils",
     ]
   } else {
     defines += [ "PREVIEWER" ]
     sources = [ "display_runtime_mock.cpp" ]
     external_deps = [ "napi:cj_bind_ffi" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

@@ -62,9 +62,11 @@ public:
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
     virtual std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const override;
     virtual Rect GetRect() const override;
+    virtual Rect GetRect(bool useHookedSize) const override;
     virtual Rect GetRequestRect() const override;
     virtual WindowType GetType() const override;
     virtual WindowMode GetWindowMode() const override;
+    virtual WindowMode GetWindowModeCompat() const override;
     virtual float GetAlpha() const override;
     virtual WindowState GetWindowState() const override;
     virtual WMError SetFocusable(bool isFocusable) override;
@@ -154,6 +156,8 @@ public:
 
     virtual WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) override;
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
     virtual WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) override;
@@ -263,6 +267,12 @@ public:
     WMError SetFloatNavigationAvoidAreaEnabled(bool enable) override;
     WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const override;
 
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIContext> GetRSUIContext() const override;
+    std::shared_ptr<RSUIDirector> GetRSUIDirector() const override { return rsUIDirector_; }
+
 private:
     static sptr<Window> FindWindowById(uint32_t windowId);
     template<typename T1, typename T2, typename Ret>
@@ -349,6 +359,11 @@ private:
         { AvoidAreaType::TYPE_NAVIGATION_INDICATOR, new AvoidArea() },
     };
     std::atomic<bool> floatNavigationAvoidAreaEnabled_ = false;
+
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIDirector> rsUIDirector_;
 };
 } // namespace Rosen
 } // namespace OHOS

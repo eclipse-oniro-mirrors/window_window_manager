@@ -50,13 +50,15 @@ static napi_value CreateJsNumber(napi_env env, uint64_t value)
     napi_create_int64(env, static_cast<int64_t>(value), &result);
     return result;
 }
-constexpr std::array<DefaultSpecificZIndex, 2> DefaultSpecificZIndexList = {
+constexpr std::array<DefaultSpecificZIndex, 3> DefaultSpecificZIndexList = {
     DefaultSpecificZIndex::MUTISCREEN_COLLABORATION,
-    DefaultSpecificZIndex::SUPER_PRIVACY_ANIMATION
+    DefaultSpecificZIndex::SUPER_PRIVACY_ANIMATION,
+    DefaultSpecificZIndex::BANNER_LIVE_SHARE
 };
 }
 
 const std::map<WindowType, ApiWindowType> NATIVE_JS_TO_WINDOW_TYPE_MAP {
+    { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW,          ApiWindowType::TYPE_MAIN                     },
     { WindowType::WINDOW_TYPE_APP_SUB_WINDOW,           ApiWindowType::TYPE_APP                      },
     { WindowType::WINDOW_TYPE_DIALOG,                   ApiWindowType::TYPE_DIALOG                   },
     { WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW,      ApiWindowType::TYPE_SYSTEM_ALERT             },
@@ -118,6 +120,7 @@ const std::map<ApiWindowType, WindowType> JS_TO_NATIVE_WINDOW_TYPE_MAP {
     { ApiWindowType::TYPE_MUTISCREEN_COLLABORATION, WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION },
     { ApiWindowType::TYPE_FB,                       WindowType::WINDOW_TYPE_FB                       },
     { ApiWindowType::TYPE_FV,                       WindowType::WINDOW_TYPE_FV                       },
+    { ApiWindowType::TYPE_MAIN,                     WindowType::WINDOW_TYPE_APP_MAIN_WINDOW          },
 };
 
 const std::map<WindowMode, ApiWindowMode> NATIVE_TO_JS_WINDOW_MODE_MAP {
@@ -298,6 +301,8 @@ napi_value AvoidAreaTypeInit(napi_env env)
         CreateJsValue(env, static_cast<int32_t>(AvoidAreaType::TYPE_KEYBOARD)));
     napi_set_named_property(env, objValue, "TYPE_NAVIGATION_INDICATOR",
         CreateJsValue(env, static_cast<int32_t>(AvoidAreaType::TYPE_NAVIGATION_INDICATOR)));
+    napi_set_named_property(env, objValue, "TYPE_FLOAT_NAVIGATION",
+        CreateJsValue(env, static_cast<int32_t>(AvoidAreaType::TYPE_FLOAT_NAVIGATION)));
     return objValue;
 }
 
@@ -320,6 +325,21 @@ napi_value WindowModeInit(napi_env env)
         static_cast<int32_t>(ApiWindowMode::SECONDARY)));
     napi_set_named_property(env, objValue, "FLOATING", CreateJsValue(env,
         static_cast<int32_t>(ApiWindowMode::FLOATING)));
+    return objValue;
+}
+
+napi_value SplitRatioPreferenceInit(napi_env env)
+{
+    WLOGFD("SplitRatioPreferenceInit");
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+    napi_set_named_property(env, objValue, "EQUAL", CreateJsValue(env,
+        static_cast<int32_t>(SplitRatioPreference::EQUAL)));
+    napi_set_named_property(env, objValue, "PRIMARY_DOMINANT", CreateJsValue(env,
+        static_cast<int32_t>(SplitRatioPreference::PRIMARY_DOMINANT)));
+    napi_set_named_property(env, objValue, "SECONDARY_DOMINANT", CreateJsValue(env,
+        static_cast<int32_t>(SplitRatioPreference::SECONDARY_DOMINANT)));
     return objValue;
 }
 
@@ -616,6 +636,23 @@ napi_value MaximizePresentationInit(napi_env env)
     return objValue;
 }
 
+napi_value AcrossDisplayPresentationInit(napi_env env)
+{
+    WLOGD("AcrossDisplayPresentationInit");
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+
+    napi_set_named_property(env, objValue, "FOLLOW_ACROSS_DISPLAY_SETTING", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING)));
+    napi_set_named_property(env, objValue, "ENTER_ACROSS_DISPLAY_MODE", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE)));
+    napi_set_named_property(env, objValue, "EXIT_ACROSS_DISPLAY_MODE", CreateJsValue(env,
+        static_cast<int32_t>(AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE)));
+    return objValue;
+}
+
 napi_value WindowErrorInit(napi_env env)
 {
     WLOGFD("WindowErrorInit");
@@ -821,11 +858,21 @@ napi_value CreateJsWindowPropertiesObject(napi_env env, const WindowPropertyInfo
     napi_set_named_property(env, objValue, "globalDisplayRect", globalDisplayRectObj);
 
     WindowType type = windowPropertyInfo.type;
-    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
-        napi_set_named_property(env, objValue, "type", CreateJsValue(env, NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type)));
-    } else {
-        napi_set_named_property(env, objValue, "type", CreateJsValue(env, type));
+    
+    uint32_t typeValue = static_cast<uint32_t>(type);
+    if (type == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        typeValue = static_cast<uint32_t>(ApiWindowType::TYPE_SYSTEM_ALERT);
+    } else if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
+        typeValue = static_cast<uint32_t>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type));
     }
+    napi_set_named_property(env, objValue, "type", CreateJsValue(env, typeValue));
+    
+    uint32_t windowTypeValue = static_cast<uint32_t>(type);
+    if (NATIVE_JS_TO_WINDOW_TYPE_MAP.count(type) != 0) {
+        windowTypeValue = static_cast<uint32_t>(NATIVE_JS_TO_WINDOW_TYPE_MAP.at(type));
+    }
+    napi_set_named_property(env, objValue, "windowType", CreateJsValue(env, windowTypeValue));
+    
     napi_set_named_property(env, objValue, "isLayoutFullScreen",
                             CreateJsValue(env, windowPropertyInfo.isLayoutFullScreen));
     napi_set_named_property(env, objValue, "isFullScreen", CreateJsValue(env, windowPropertyInfo.isFullScreen));
@@ -1075,6 +1122,7 @@ napi_value CreateJsWindowInfoObject(napi_env env, const sptr<WindowVisibilityInf
     napi_set_named_property(env, objValue, "displayId",
         CreateJsNumber(env, static_cast<uint64_t>(info->GetDisplayId())));
     napi_set_named_property(env, objValue, "bundleName", CreateJsValue(env, info->GetBundleName()));
+    napi_set_named_property(env, objValue, "moduleName", CreateJsValue(env, info->GetModuleName()));
     napi_set_named_property(env, objValue, "abilityName", CreateJsValue(env, info->GetAbilityName()));
     napi_set_named_property(env, objValue, "windowId", CreateJsValue(env, info->GetWindowId()));
     napi_set_named_property(env, objValue, "windowStatusType",
@@ -1278,7 +1326,7 @@ WmErrorCode ParseTouchableAreas(napi_env env, napi_callback_info info,
     napi_get_array_length(env, nativeArray, &size);
     if (size > MAX_TOUCHABLE_AREAS) {
         TLOGE(WmsLogTag::WMS_EVENT, "Exceeded maximum limit");
-        return errCode;
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     errCode = WmErrorCode::WM_OK;
     for (uint32_t i = 0; i < size; i++) {
@@ -1585,6 +1633,67 @@ bool GetWindowMaskFromJsValue(napi_env env, napi_value jsObject, std::vector<std
         windowMask.emplace_back(elementArray);
     }
     return true;
+}
+
+bool GetWindowMaskWithAlphaFromJsValue(napi_env env, napi_value jsObject, uint8_t** data, size_t& byteLength)
+{
+    if (jsObject == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to window mask with alpha, jsObject is nullptr");
+        return false;
+    }
+    bool isTypedArray = false;
+    napi_is_typedarray(env, jsObject, &isTypedArray);
+    if (!isTypedArray) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to window mask with alpha, not typed array");
+        return false;
+    }
+    napi_typedarray_type type;
+    void* arrayData = nullptr;
+    size_t offset = 0;
+    napi_get_typedarray_info(env, jsObject, &type, &byteLength, &arrayData, nullptr, &offset);
+    if (type != napi_uint8_array) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Failed to convert parameter to window mask with alpha, not uint8 array");
+        return false;
+    }
+    *data = static_cast<uint8_t*>(arrayData);
+    return true;
+}
+
+WmErrorCode ParseWindowMaskWithAlphaParams(napi_env env, napi_value* argv, size_t argc,
+    WindowMaskWithAlphaParams& params, const sptr<Window>& windowToken)
+{
+    constexpr size_t minRequiredParams = 3;  // windowMask, maskWidth, maskHeight
+    if (argc < minRequiredParams) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Argc is invalid: %{public}zu, required: %{public}zu", argc, minRequiredParams);
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+    }
+    if (!GetWindowMaskWithAlphaFromJsValue(env, argv[INDEX_ZERO], &params.maskData, params.byteLength)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "GetWindowMaskWithAlphaFromJsValue failed");
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+    }
+    if (!ConvertFromJsValue(env, argv[INDEX_ONE], params.maskWidth)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Get maskWidth failed");
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+    }
+    if (!ConvertFromJsValue(env, argv[INDEX_TWO], params.maskHeight)) {
+        TLOGE(WmsLogTag::WMS_EVENT, "Get maskHeight failed");
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+    }
+    Rect windowRect = windowToken->GetRequestRect();
+    if (params.maskWidth != static_cast<uint32_t>(windowRect.width_) ||
+        params.maskHeight != static_cast<uint32_t>(windowRect.height_)) {
+        TLOGE(WmsLogTag::WMS_EVENT,
+            "maskWidth %{public}u, maskHeight %{public}u not equal to window size %{public}u %{public}u",
+            params.maskWidth, params.maskHeight, windowRect.width_, windowRect.height_);
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+    }
+    size_t expectedSize = static_cast<size_t>(params.maskWidth) * static_cast<size_t>(params.maskHeight);
+    if (expectedSize == 0 || params.byteLength != expectedSize) {
+        TLOGE(WmsLogTag::WMS_EVENT, "windowMask size %{public}zu not equal to %{public}zu",
+            params.byteLength, expectedSize);
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+    }
+    return WmErrorCode::WM_OK;
 }
 
 bool GetWindowIdFromJsValue(napi_env env, napi_value jsObject, std::vector<int32_t>& windowIds)
@@ -2198,6 +2307,83 @@ bool ParseZIndex(napi_env env, napi_value jsObject, WindowOption& option)
     return true;
 }
 
+napi_status GetOptionalProperty(
+    napi_env env, napi_value object, const char* propertyName, napi_value& outPropValue)
+{
+    napi_status ret = napi_get_named_property(env, object, propertyName, &outPropValue);
+    if (ret != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT,
+              "Failed to get property %{public}s, ret: %{public}d",
+              propertyName, static_cast<int32_t>(ret));
+    }
+    return ret;
+}
+
+napi_status GetOptionalBoolProperty(
+    napi_env env, napi_value object, const char* propertyName, std::optional<bool>& optBoolProp)
+{
+    optBoolProp.reset();
+
+    napi_value propValue = nullptr;
+    napi_status ret = GetOptionalProperty(env, object, propertyName, propValue);
+    if (ret != napi_ok) {
+        return ret;
+    }
+
+    if (propValue == nullptr) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is nullptr", propertyName);
+        return napi_ok;
+    }
+
+    if (IsUndefined(env, propValue)) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is undefined", propertyName);
+        return napi_ok;
+    }
+
+    bool boolValue = false;
+    if (!ConvertFromJsValue(env, propValue, boolValue)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert %{public}s to boolean", propertyName);
+        return napi_generic_failure;
+    }
+    optBoolProp = boolValue;
+    return napi_ok;
+}
+
+napi_status GetOptionalRectProperty(
+    napi_env env, napi_value object, const char* propertyName, std::optional<Rect>& optRectProp)
+{
+    optRectProp.reset();
+
+    napi_value propValue = nullptr;
+    napi_status ret = GetOptionalProperty(env, object, propertyName, propValue);
+    if (ret != napi_ok) {
+        return ret;
+    }
+
+    if (propValue == nullptr) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is nullptr", propertyName);
+        return napi_ok;
+    }
+
+    if (IsUndefined(env, propValue)) {
+        TLOGD(WmsLogTag::DEFAULT, "%{public}s is undefined", propertyName);
+        return napi_ok;
+    }
+
+    Rect rect;
+    if (!ConvertRectFromJsValue(env, propValue, rect)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to convert %{public}s to Rect", propertyName);
+        return napi_generic_failure;
+    }
+    optRectProp = rect;
+    return napi_ok;
+}
+
+bool IsUndefined(napi_env env, napi_value value)
+{
+    return CheckTypeForNapiValue(env, value, napi_undefined);
+}
+
 napi_value BuildJsRectChangeOptions(napi_env env, const Rect& rect, RectChangeReason reason)
 {
     CHECK_NAPI_ENV_RETURN_IF_NULL(env);
@@ -2336,6 +2522,31 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env,
             std::unique_ptr<WsNapiAsyncTask::ExecuteCallback>(),
             std::unique_ptr<WsNapiAsyncTask::CompleteCallback>());
     }
+}
+
+std::pair<napi_status, std::optional<StartMovingOptions>> ParseStartMovingOptions(napi_env env, napi_value napiOptions)
+{
+    if (napiOptions == nullptr || IsUndefined(env, napiOptions)) {
+        return { napi_ok, std::nullopt };
+    }
+
+    std::optional<bool> needFocusedOpt;
+    napi_status ret = GetOptionalBoolProperty(env, napiOptions, "needFocused", needFocusedOpt);
+    if (ret != napi_ok) {
+        return { ret, std::nullopt };
+    }
+
+    std::optional<Rect> avoidRectOpt;
+    ret = GetOptionalRectProperty(env, napiOptions, "avoidRect", avoidRectOpt);
+    if (ret != napi_ok) {
+        return { ret, std::nullopt };
+    }
+
+    StartMovingOptions options{
+        .needFocused = needFocusedOpt.value_or(true),
+        .avoidRect = avoidRectOpt.value_or(Rect::EMPTY_RECT),
+    };
+    return { napi_ok, options };
 }
 } // namespace Rosen
 } // namespace OHOS

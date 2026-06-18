@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,6 +124,7 @@ void FloatingBallController::SetShowWhenCreate(bool showWhenCreate)
 
 WMError FloatingBallController::UpdateFloatingBall(sptr<FbOption>& option)
 {
+    std::lock_guard<std::mutex> lock(controllerMutex_);
     TLOGI(WmsLogTag::WMS_SYSTEM, "UpdateFloatingBall");
     if (curState_ != FbWindowState::STATE_STARTED) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "cur state is not started, can not update");
@@ -140,6 +141,7 @@ WMError FloatingBallController::UpdateFloatingBall(sptr<FbOption>& option)
     option_ = option;
     FloatingBallTemplateBaseInfo fbTemplateBaseInfo;
     option->GetFbTemplateBaseInfo(fbTemplateBaseInfo);
+    fbTemplateBaseInfo.isVisibleInApp_ = visibleInApp_;
     fbTemplateBaseInfo.id_ = id_;
     auto errCode = window_->UpdateFloatingBall(fbTemplateBaseInfo, option->GetIcon());
     std::ostringstream ss;
@@ -150,12 +152,33 @@ WMError FloatingBallController::UpdateFloatingBall(sptr<FbOption>& option)
     return errCode;
 }
 
+WMError FloatingBallController::SetInApplicationVisible(bool isVisible)
+{
+    std::lock_guard<std::mutex> lock(controllerMutex_);
+    TLOGI(WmsLogTag::WMS_SYSTEM, "SetInApplicationVisible: %{public}d", isVisible);
+    visibleInApp_ = isVisible;
+    if (curState_ != FbWindowState::STATE_STARTED) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "cur state is not started, can not update visible in app instantly");
+        return WMError::WM_OK;
+    }
+    if (window_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "option or window is nullptr");
+        return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
+    }
+    auto errCode = window_->UpdateFloatingBallForVisible(isVisible);
+
+    std::ostringstream ss;
+    errCode == WMError::WM_OK ? (ss << "") : (ss << "set floating ball window visibility failed, errCode:"
+        << static_cast<uint32_t>(errCode));
+    return errCode;
+}
+
 WMError FloatingBallController::StartFloatingBall(sptr<FbOption>& option)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "StartFloatingBall called, bindState_ %{public}d, id: %{public}s", bindState_,
         id_.c_str());
     if (IsBind()) {
-        return FloatWindowManager::StartBindFloatingBall(weakRef_, option_);
+        return FloatWindowManager::StartBindFloatingBall(weakRef_, option);
     }
     return StartFloatingBallSingle(option);
 }
@@ -264,6 +287,8 @@ WMError FloatingBallController::CreateFloatingBallWindow(const sptr<FbOption>& o
     fbTemplateBaseInfo.isBind_ = bindState_;
     fbTemplateBaseInfo.bindWindowId_ = bindWindowId_;
     fbTemplateBaseInfo.id_ = id_;
+    fbTemplateBaseInfo.textUpdateAnimationType_ = 0; // no need animation when create
+    fbTemplateBaseInfo.isVisibleInApp_ = visibleInApp_;
     WMError errCode = WMError::WM_OK;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr_);
     sptr<Window> window = FloatWindowManager::CreateFbWindow(windowOption, fbTemplateBaseInfo, option->GetIcon(),

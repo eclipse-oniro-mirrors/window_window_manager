@@ -36,9 +36,9 @@ public:
 
     static ani_ref Create(ani_env* env, ani_long nativeObj, ani_object floatViewConfigurations);
     static ani_boolean IsFloatViewEnabledAni(ani_env* env);
-    static ani_object GetFloatViewLimitsAni(ani_env* env);
-    static void BindAni(ani_env* env, ani_object fvController, ani_object fbController, ani_object fbOption);
-    static void UnBindAni(ani_env* env, ani_object fvController, ani_object fbController);
+    static ani_object GetFloatViewLimitsAni(ani_env* env, ani_object templateType);
+    static ani_object BindAni(ani_env* env, ani_object fvController, ani_object fbController, ani_object aniFbOption);
+    static ani_object UnBindAni(ani_env* env, ani_object fvController, ani_object fbController);
 private:
     static inline std::unordered_map<AniFvController*, ani_object> localObjs;
     static inline std::mutex mtxLocalObjs_;

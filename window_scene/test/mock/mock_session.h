@@ -24,19 +24,21 @@ class SessionMocker : public Session {
 public:
     SessionMocker(const SessionInfo& info) : Session(info) {}
     ~SessionMocker() {}
-    MOCK_METHOD7(Connect, WSError(const sptr<ISessionStage>& sessionStage,
-        const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
-        SystemSessionConfig& systemConfig, sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
-        const std::string& identityToken));
-    MOCK_METHOD7(CreateAndConnectSpecificSession, WSError(const sptr<ISessionStage>& sessionStage,
-        const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
+    MOCK_METHOD9(Connect, WSError(const sptr<ISessionStage>& sessionStage,
+        const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<WindowSessionProperty> property,
+        sptr<IRemoteObject> token, const std::string& identityToken));
+    MOCK_METHOD10(CreateAndConnectSpecificSession, WSError(const sptr<ISessionStage>& sessionStage,
+        const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        sptr<IRemoteObject> token));
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token));
 
     MOCK_METHOD3(
         Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));
-    MOCK_METHOD2(Background, WSError(bool isFromClient, const std::string& identityToken));
-    MOCK_METHOD2(Disconnect, WSError(bool isFromClient, const std::string& identityToken));
+    MOCK_METHOD3(Background, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
+    MOCK_METHOD3(Disconnect, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
 
     MOCK_METHOD5(UpdateSessionRect, WSError(const WSRect& rect, SizeChangeReason reason,
         bool isGlobal, bool isFromMoveToGlobal, MoveConfiguration moveConfiguration));
@@ -56,8 +58,8 @@ public:
     MOCK_METHOD1(OnNeedAvoid, WSError(bool status));
     MOCK_METHOD1(SetGlobalMaximizeMode, WSError(MaximizeMode mode));
     MOCK_METHOD1(NotifyExtensionTimeout, void(int32_t errorCode));
+    MOCK_METHOD1(NotifyAttachedWindowsLimitsChanged, WSError(const WindowLimits& limits));
     MOCK_METHOD1(GetAppForceLandscapeConfig, WMError(AppForceLandscapeConfig& config));
-    MOCK_METHOD1(GetAppHookWindowInfoFromServer, WMError(HookWindowInfo& hookWindowInfo));
     MOCK_METHOD1(SetDialogSessionBackGestureEnabled, WSError(bool isEnabled));
     MOCK_METHOD1(SetActive, WSError(bool active));
     MOCK_METHOD1(SyncSessionEvent, WSError(SessionEvent event));
@@ -68,6 +70,7 @@ public:
     MOCK_METHOD1(TransferExtensionData, int32_t(const AAFwk::WantParams& wantParams));
     MOCK_METHOD1(RaiseMainWindowAboveTarget, WSError(int32_t targetId));
     MOCK_METHOD(WSError, ProcessPointDownSession, (int32_t x, int32_t y), (override));
+    MOCK_METHOD1(UpdateFloatingBall, WMError(const FloatingBallTemplateInfo& fbTemplateInfo));
     MOCK_CONST_METHOD2(ConvertGlobalRectToRelative, WSRect(const WSRect& globalRect, DisplayId targetDisplayId));
     MOCK_METHOD1(SetIsShowDecorInFreeMultiWindow, WSError(bool isShow));
     MOCK_METHOD(WSError, SetContentAspectRatio, (float ratio, bool isPersistent, bool needUpdateRect), (override));
@@ -76,6 +79,8 @@ public:
     MOCK_METHOD0(NotifyFloatViewPrepareClose, void(void));
     MOCK_METHOD1(UpdateFloatView, WMError(const FloatViewTemplateInfo& fvTemplateInfo));
     MOCK_METHOD1(RestoreFloatViewMainWindow, WMError(const std::shared_ptr<AAFwk::WantParams>& wantParams));
+    MOCK_METHOD1(GetSelectMode, WMError(SelectMode& selectMode));
+    MOCK_METHOD1(NotifySplitRatioChanged, WMError(float newRatio));
 };
 } // namespace Rosen
 } // namespace OHOS
