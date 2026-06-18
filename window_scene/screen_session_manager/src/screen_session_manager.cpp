@@ -6208,7 +6208,7 @@ bool ScreenSessionManager::SetScreenBrightness(const DmsScreenBrightnessData& br
         return false;
     }
     RsScreenBrightnessData data{brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition};
-    TLOGI(WmsLogTag::DMS, "screenId: %{public}" PRIu64", level: %{public}u, brightnessPosition: %{public}f",
+    TLOGD(WmsLogTag::DMS, "screenId: %{public}" PRIu64", level: %{public}u, brightnessPosition: %{public}f",
         data.screenId, data.level, data.brightnessPosition);
     RSInterfaces::GetInstance().SetScreenBacklight(data);
     return true;
