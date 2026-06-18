@@ -1776,9 +1776,7 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     sessionStage_ = sessionStage;
     sessionStage_->SetCurrentRotation(currentRotation_);
     windowEventChannel_ = eventChannel;
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        surfaceNode = CreateSurfaceNode(nodeId, property);
-    }
+    surfaceNode = CreateSurfaceNode(nodeId, property);
     SetSurfaceNode(surfaceNode);
     abilityToken_ = token;
     systemConfig = systemConfig_;
