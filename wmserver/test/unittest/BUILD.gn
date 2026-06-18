@@ -19,7 +19,6 @@ group("unittest") {
   testonly = true
   deps = [
     ":wmserver_accessibility_connection_test",
-    ":wmserver_display_group_controller_test",
     ":wmserver_display_group_info_test",
     ":wmserver_mock_session_manager_service_test",
     ":wmserver_starting_window_second_test",

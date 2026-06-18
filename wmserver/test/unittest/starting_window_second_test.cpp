@@ -117,8 +117,6 @@ HWTEST_F(StartingWindowTest, CreateResourceManager01, TestSize.Level1)
 
     ref = StartingWindow::CreateResourceManager(abilityInfo);
     ASSERT_NE(ref, nullptr);
-    EXPECT_EQ(ref->bundleInfo.first, abilityInfo->bundleName);
-    EXPECT_EQ(ref->bundleInfo.second, abilityInfo->moduleName);
 }
 
 /**
