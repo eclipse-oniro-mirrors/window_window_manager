@@ -158,6 +158,9 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
         vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
     }
     RSUIContextContainer::SetRSUIContext(GetRSUIContext());
+    if (GetRSUIContext() != nullptr) {
+        RSUIContextContainer::SetRenderSession(GetRSUIContext()->GetConnectToRender());
+    }
     moveDragProperty_ = new (std::nothrow) MoveDragProperty();
     if (moveDragProperty_ == nullptr) {
         WLOGFE("MoveDragProperty is null");
