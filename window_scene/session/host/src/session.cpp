@@ -1649,7 +1649,7 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     if (sessionStage_ != nullptr) {
         UpdateClientRectPosYAndDisplayId(updateRect);
         UpdateClientRectInfo(updateRect, reason, avoidAreas, rsTransaction);
-        SetClientRect(rect);
+        SetClientRect(updateRect);
         NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(reason);
         RectCheckProcess();
     } else {

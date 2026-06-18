@@ -126,6 +126,15 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
             newRequestRect.width_ = rect.width_;
             newRequestRect.height_ = rect.height_;
         }
+
+        // When a subwindow follows its parent window, updates to the subwindow's
+        // rect and displayId bypass the TS/JS layer. As a result, the displayId
+        // stored in SessionProperty is not updated automatically. Update it here
+        // to ensure subsequent logic can retrieve the correct displayId.
+        if (moveConfiguration.displayId != DISPLAY_ID_INVALID) {
+            GetSessionProperty()->SetDisplayId(moveConfiguration.displayId);
+        }
+
         SetSessionRequestRect(newRequestRect);
         SetRequestRectWhenFollowParent(newRequestRect);
         WSRect globaleRect =

@@ -87,17 +87,15 @@ void LayoutController::GetGlobalScaledRect(Rect& globalScaledRect)
 // LCOV_EXCL_START
 WSRect LayoutController::ConvertRelativeRectToGlobal(const WSRect& relativeRect, DisplayId currentDisplayId) const
 {
-    sptr<ScreenSession> screenSession =
-        ScreenSessionManagerClient::GetInstance().GetScreenSessionById(currentDisplayId);
+    if (currentDisplayId == DISPLAY_ID_INVALID) {
+        currentDisplayId = sessionProperty_->GetDisplayId();
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Invalid displayId, use displayId in sessionProperty: %{public}" PRIu64, currentDisplayId);
+    }
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(currentDisplayId);
     if (!screenSession) {
         TLOGW(WmsLogTag::WMS_LAYOUT, "Screen session is null, displayId:%{public}" PRIu64, currentDisplayId);
-        screenSession =
-            ScreenSessionManagerClient::GetInstance().GetScreenSessionById(sessionProperty_->GetDisplayId());
-        if (!screenSession) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "Screen session is null, displayId:%{public}" PRIu64,
-                sessionProperty_->GetDisplayId());
-            return relativeRect;
-        }
+        return relativeRect;
     }
     const ScreenProperty& screenProperty = screenSession->GetScreenProperty();
     int32_t currentDisplayOffsetX = static_cast<int32_t>(screenProperty.GetStartX());
@@ -111,17 +109,15 @@ WSRect LayoutController::ConvertRelativeRectToGlobal(const WSRect& relativeRect,
 
 WSRect LayoutController::ConvertGlobalRectToRelative(const WSRect& globalRect, DisplayId targetDisplayId) const
 {
-    sptr<ScreenSession> screenSession =
-        ScreenSessionManagerClient::GetInstance().GetScreenSessionById(targetDisplayId);
+    if (targetDisplayId == DISPLAY_ID_INVALID) {
+        targetDisplayId = sessionProperty_->GetDisplayId();
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Invalid displayId, use displayId in sessionProperty: %{public}" PRIu64, targetDisplayId);
+    }
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(targetDisplayId);
     if (!screenSession) {
         TLOGW(WmsLogTag::WMS_LAYOUT, "Screen session is null, displayId:%{public}" PRIu64, targetDisplayId);
-        screenSession =
-            ScreenSessionManagerClient::GetInstance().GetScreenSessionById(sessionProperty_->GetDisplayId());
-        if (!screenSession) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "Screen session is null, displayId:%{public}" PRIu64,
-                sessionProperty_->GetDisplayId());
-            return globalRect;
-        }
+        return globalRect;
     }
     const ScreenProperty& screenProperty = screenSession->GetScreenProperty();
     int32_t targetDisplayOffsetX = static_cast<int32_t>(screenProperty.GetStartX());
