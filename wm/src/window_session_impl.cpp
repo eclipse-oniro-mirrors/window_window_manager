@@ -865,7 +865,7 @@ WMError WindowSessionImpl::Connect()
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
-    if (IsSceneBoardEnabled() && renderSession == nullptr) {
+    if (renderSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
