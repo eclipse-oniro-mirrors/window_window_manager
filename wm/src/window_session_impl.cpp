@@ -394,11 +394,17 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
         TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
         vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
     } else {
-        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
-        surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
-        if (surfaceNode_ != nullptr) {
-            vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
-            nodeId_ = surfaceNode_->GetId();
+        if (WindowType::WINDOW_TYPE_UI_EXTENSION == GetType()) {
+            nodeId_ = RSNode::GenerateId();
+            TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
+            vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
+        } else {
+            RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
+            surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+            if (surfaceNode_ != nullptr) {
+                vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
+                nodeId_ = surfaceNode_->GetId();
+            }
         }
     }
     WindowHelper::SplitStringByDelimiter(
@@ -864,9 +870,7 @@ WMError WindowSessionImpl::Connect()
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
-    if (IsSceneBoardEnabled()) {
-        PostInitSurfaceNode(renderSession);
-    }
+    PostInitSurfaceNode(renderSession);
     if (originDisplayId != property_->GetDisplayId() && property_->GetDisplayId() != DISPLAY_ID_C) {
         NotifyDmsDisplayMove(property_->GetDisplayId());
     }
