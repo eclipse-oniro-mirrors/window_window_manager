@@ -12777,13 +12777,13 @@ void ScreenSessionManager::RecoverMultiScreenModeWhenSwitchUser(std::vector<int3
     }
 }
 
-bool ScreenSessionManager::HandleSwitchPcMode()
+bool ScreenSessionManager::HandleSwitchPcMode(bool isTargetPcMode)
 {
     if (!IS_SUPPORT_PC_MODE) {
         return g_isPcDevice;
     }
     std::lock_guard<std::mutex> lock(pcModeSwitchMutex_);
-    if (system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
+    if (isTargetPcMode) {
         if (isPhyScreenConnected_) {
             HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_FULL);
         }
