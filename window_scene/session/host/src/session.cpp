@@ -45,6 +45,7 @@
 #include "perform_reporter.h"
 #include "session/host/include/scene_persistent_storage.h"
 #include "screen_manager.h"
+#include "scene_board_judgement.h"
 
 #define RETURN_IF_NULL(param, ...)                                       \
     do {                                                                 \
@@ -1775,7 +1776,9 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     sessionStage_ = sessionStage;
     sessionStage_->SetCurrentRotation(currentRotation_);
     windowEventChannel_ = eventChannel;
-    surfaceNode = CreateSurfaceNode(nodeId, property);
+    if (IsSceneBoardEnabled()) {
+        surfaceNode = CreateSurfaceNode(nodeId, property);
+    }
     SetSurfaceNode(surfaceNode);
     abilityToken_ = token;
     systemConfig = systemConfig_;
