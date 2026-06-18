@@ -362,16 +362,11 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
     if (config) {
         systemConfig = *config;
     }
-    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        renderSession = reply.ReadRemoteObject();
-        surfaceNode = RSSurfaceNode::Unmarshalling(reply, false);
-        if (!surfaceNode) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Read surfaceNode failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
-    } else {
-        renderSession = reply.ReadRemoteObject();
-        RSSurfaceNode::Unmarshalling(reply, false);
+    renderSession = reply.ReadRemoteObject();
+    surfaceNode = RSSurfaceNode::Unmarshalling(reply, false);
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read surfaceNode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     if (property) {
         property->SetPersistentId(reply.ReadInt32());
