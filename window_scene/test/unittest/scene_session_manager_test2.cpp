@@ -2094,7 +2094,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 12);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 1);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.textAlign, 0);
-    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.marginBottom, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.marginBottom, 10);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
 }
 
