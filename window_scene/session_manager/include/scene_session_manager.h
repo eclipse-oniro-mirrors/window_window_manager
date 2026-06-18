@@ -1789,6 +1789,7 @@ private:
     bool GetDisplaySizeById(DisplayId displayId, int32_t& displayWidth, int32_t& displayHeight);
     void UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus);
     void ConfigSingleHandCompatibleMode(const WindowSceneConfig::ConfigItem& configItem);
+    void ConfigIntValue(const WindowSceneConfig::ConfigItem& configItem, const std::string& key, int& value);
     void ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
         SingleHandBackgroundTextConfig& textConfig);
     void ConfigSingleHandBackgroundLayout(const WindowSceneConfig::ConfigItem& configItem);

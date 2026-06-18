@@ -1624,47 +1624,31 @@ void SceneSessionManager::ConfigSingleHandCompatibleMode(const WindowSceneConfig
         config.widthChangeRatio = (*item.floatsValue_)[0];
     }
 }
-
+void SceneSessionManager::ConfigIntValue(const WindowSceneConfig::ConfigItem& configItem,
+    const std::string& key, int& value) {
+    auto item = configItem[key];
+    if (item.IsInts() && item.intsValue_->size() == 1) {
+        value = (*item.intsValue_)[0];
+    }
+}
 void SceneSessionManager::ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
     SingleHandBackgroundTextConfig& textConfig)
 {
-    if (configItem.IsMap()) {
-        auto item = configItem["posX"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.posX = (*item.intsValue_)[0];
-        }
-        item = configItem["posY"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.posY = (*item.intsValue_)[0];
-        }
-        item = configItem["width"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.width = (*item.intsValue_)[0];
-        }
-        item = configItem["height"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.height = (*item.intsValue_)[0];
-        }
-        item = configItem["fontSize"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.fontSize = (*item.intsValue_)[0];
-        }
-        item = configItem["minFontSize"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.minFontSize = (*item.intsValue_)[0];
-        }
-        item = configItem["maxLines"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.maxLines = (*item.intsValue_)[0];
-        }
-        item = configItem["textAlign"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.textAlign = (*item.intsValue_)[0];
-        }
-        item = configItem["maxFontScale"];
-        if (item.IsString()) {
-            textConfig.maxFontScale = item.stringValue_;
-        }
+    if (!configItem.IsMap()) {
+        return;
+    }
+    ConfigIntValue(configItem, "posX", textConfig.posX);
+    ConfigIntValue(configItem, "posY", textConfig.posY);
+    ConfigIntValue(configItem, "width", textConfig.width);
+    ConfigIntValue(configItem, "height", textConfig.height);
+    ConfigIntValue(configItem, "fontSize", textConfig.fontSize);
+    ConfigIntValue(configItem, "minFontSize", textConfig.minFontSize);
+    ConfigIntValue(configItem, "maxLines", textConfig.maxLines);
+    ConfigIntValue(configItem, "textAlign", textConfig.textAlign);
+    ConfigIntValue(configItem, "marginBottom", textConfig.marginBottom);
+    auto item = configItem["maxFontScale"];
+    if (item.IsString()) {
+        textConfig.maxFontScale = item.stringValue_;
     }
 }
 
@@ -1677,31 +1661,16 @@ void SceneSessionManager::ConfigSingleHandBackgroundLayout(const WindowSceneConf
     }
     item = configItem["singleHandBackgroundSettingButton"];
     if (item.IsMap()) {
-        auto itemPosX = item["posX"];
-        if (itemPosX.IsInts() && itemPosX.intsValue_->size() == 1) {
-            config.settingButtonRect.posX_ = (*itemPosX.intsValue_)[0];
-        }
-        auto itemPosY = item["posY"];
-        if (itemPosY.IsInts() && itemPosY.intsValue_->size() == 1) {
-            config.settingButtonRect.posY_ = (*itemPosY.intsValue_)[0];
-        }
-        auto itemWidth = item["width"];
-        if (itemWidth.IsInts() && itemWidth.intsValue_->size() == 1) {
-            config.settingButtonRect.width_ = (*itemWidth.intsValue_)[0];
-        }
-        auto itemHeight = item["height"];
-        if (itemHeight.IsInts() && itemHeight.intsValue_->size() == 1) {
-            config.settingButtonRect.height_ = (*itemHeight.intsValue_)[0];
-        }
+        ConfigIntValue(item, "posX", config.settingButtonRect.posX_);
+        ConfigIntValue(item, "posY", config.settingButtonRect.posY_);
+        ConfigIntValue(item, "width", config.settingButtonRect.width_);
+        ConfigIntValue(item, "height", config.settingButtonRect.height_);
     }
     item = configItem["isSettingButtonMirror"].GetProp("enable");
     if (item.IsBool()) {
         config.isSettingButtonMirror = item.boolValue_;
     }
-    item = configItem["textContainerWidth"];
-    if (item.IsInts() && item.intsValue_->size() == 1) {
-        config.textContainerWidth = (*item.intsValue_)[0];
-    }
+    ConfigIntValue(configItem, "textContainerWidth", config.textContainerWidth);
     ConfigSingleHandBackgroundText(configItem["singleHandBackgroundTitle"], config.title);
     ConfigSingleHandBackgroundText(configItem["singleHandBackgroundContent"], config.content);
     ConfigSingleHandBackgroundText(configItem["singleHandBackgroundIssueText"], config.issueText);

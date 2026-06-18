@@ -1376,6 +1376,7 @@ struct SingleHandBackgroundTextConfig {
     int32_t minFontSize = 0;
     int32_t maxLines = -1;
     int32_t textAlign = 1;
+    int32_t marginBottom = -1;
     std::string maxFontScale = "";
 };
 
