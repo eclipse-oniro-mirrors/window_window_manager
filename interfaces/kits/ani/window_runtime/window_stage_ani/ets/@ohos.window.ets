@@ -942,10 +942,10 @@ export enum WindowEventType {
 }
 
 export enum WindowStageLifecycleEventType {
-    SHOWN = 1,
-    RESUMED = 2,
-    PAUSED = 3,
-    HIDDEN = 4,
+  SHOWN = 1,
+  RESUMED = 2,
+  PAUSED = 3,
+  HIDDEN = 4,
 }
 
 export enum WindowMode {

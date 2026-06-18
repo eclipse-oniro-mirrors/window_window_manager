@@ -27,8 +27,6 @@
 #include "window_manager_hilog.h"
 #include "wm_common.h"
 #include "floating_ball_template_info.h"
-#include "transaction/rs_interfaces.h"
-#include <ui/rs_ui_context.h>
 
 namespace OHOS {
 namespace Rosen {
