@@ -165,7 +165,7 @@ WindowImpl::WindowImpl(const sptr<WindowOption>& option)
             }
         }
     }
-    
+
     moveDragProperty_ = new (std::nothrow) MoveDragProperty();
     if (moveDragProperty_ == nullptr) {
         WLOGFE("MoveDragProperty is null");
