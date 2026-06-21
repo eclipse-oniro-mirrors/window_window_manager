@@ -36,8 +36,7 @@ public:
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        uint64_t nodeId, SystemSessionConfig& systemConfig,
-        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
+        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") override;
     WSError DrawingCompleted() override;

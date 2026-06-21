@@ -50,8 +50,7 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ISession");
 
     virtual WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        uint64_t nodeId, SystemSessionConfig& systemConfig,
-        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
+        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") { return WSError::WS_OK; }
     virtual WSError Foreground(

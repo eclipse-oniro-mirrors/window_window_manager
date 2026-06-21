@@ -440,8 +440,6 @@ HWTEST_F(WindowSpecialWindowTest, setWindowMask01, TestSize.Level1)
 
     std::vector<std::vector<uint32_t>> windowMask;
     windowMask = { { 1, 1, 1 }, { 1, 0, 1 }, { 1, 1, 1 } };
-    Rosen::RSSurfaceNodeConfig surfaceNodeConfig = { .SurfaceNodeName = "TestSurfaceNode"};
-    window->surfaceNode_ = std::make_shared<Rosen::RSSurfaceNode>(surfaceNodeConfig, true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     ASSERT_EQ(WMError::WM_OK, window->SetWindowMask(windowMask));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
@@ -474,8 +472,6 @@ HWTEST_F(WindowSpecialWindowTest, setWindowMask02, TestSize.Level1)
 
     std::vector<std::vector<uint32_t>> windowMask;
     windowMask = { { 1, 1, 1 }, { 1, 0, 1 }, { 1, 1, 1 } };
-    Rosen::RSSurfaceNodeConfig surfaceNodeConfig = { .SurfaceNodeName = "TestSurfaceNode"};
-    window->surfaceNode_ = std::make_shared<Rosen::RSSurfaceNode>(surfaceNodeConfig, true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     ASSERT_EQ(WMError::WM_OK, window->SetWindowMask(windowMask));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
@@ -508,8 +504,6 @@ HWTEST_F(WindowSpecialWindowTest, setWindowMask03, TestSize.Level1)
 
     std::vector<std::vector<uint32_t>> windowMask;
     windowMask = { { 1, 1, 1 }, { 1, 0, 1 }, { 1, 1, 1 } };
-    Rosen::RSSurfaceNodeConfig surfaceNodeConfig = { .SurfaceNodeName = "TestSurfaceNode"};
-    window->surfaceNode_ = std::make_shared<Rosen::RSSurfaceNode>(surfaceNodeConfig, true);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     ASSERT_EQ(WMError::WM_OK, window->SetWindowMask(windowMask));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;

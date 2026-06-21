@@ -81,18 +81,12 @@ HWTEST_F(ExtensionSessionTest, Connect, TestSize.Level0)
 {
     SystemSessionConfig sessionConfig;
     extensionSession_->state_ = SessionState::STATE_DISCONNECT;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<IRemoteObject> token;
-    uint64_t nodeId = 999;
-    auto res = extensionSession_->Connect(mockSessionStage_, mockEventChannel_, nodeId, sessionConfig,
-        renderSession, surfaceNode, property, token, "");
+    auto res =
+        extensionSession_->Connect(mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, nullptr, nullptr, "");
     ASSERT_EQ(res, WSError::WS_OK);
 
     extensionSession_->state_ = SessionState::STATE_DISCONNECT;
-    res = extensionSession_->Connect(mockSessionStage_, nullptr, nodeId, sessionConfig, renderSession,
-        surfaceNode, property, token, "");
+    res = extensionSession_->Connect(mockSessionStage_, nullptr, nullptr, sessionConfig, nullptr, nullptr, "");
     ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
 }
 
@@ -108,12 +102,8 @@ HWTEST_F(ExtensionSessionTest, Connect_TestTransparentUIExtension, TestSize.Leve
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     extensionSession_->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
     extensionSession_->SetIsTransparentUIExtension(true);
-    uint64_t nodeId = 998;
-    sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<IRemoteObject> token;
-    auto res = extensionSession_->Connect(mockSessionStage_, mockEventChannel_, nodeId, sessionConfig,
-        renderSession, surfaceNode, property, token, "");
+    auto res = extensionSession_->Connect(mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property,
+        nullptr, "");
     ASSERT_EQ(res, WSError::WS_OK);
 }
 

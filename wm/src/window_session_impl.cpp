@@ -369,12 +369,13 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
     } while (false)
 
 WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
-    const std::shared_ptr<RSUIContext>& rsUIContext)
+    const std::shared_ptr<RSUIContext>& rsUIContext, sptr<IRemoteObject> renderSession)
 {
     WLOGFD("[WMSCom] Constructor");
     property_ = sptr<WindowSessionProperty>::MakeSptr();
     windowOption_ = option;
     rsUIContext_ = rsUIContext;
+    renderSession_ = renderSession;
     handler_ = std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::GetMainEventRunner());
 
     WindowType optionWindowType = option->GetWindowType();
@@ -389,13 +390,18 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
     if (WindowHelper::IsSubWindow(GetType())) {
         property_->SetDecorEnable(option->GetSubWindowDecorEnable());
     }
+    TLOGD(WmsLogTag::WMS_LIFE, "renderSession is %{public}p", renderSession.GetRefPtr());
     if (IsSceneBoardEnabled()) {
-        nodeId_ = RSNode::GenerateId();
-        TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
-        vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
-    } else {
-        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
+        if (renderSession) {
+            RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext);
+        }
         surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+    } else {
+        needCreateCompleteSurfaceNode_ = true;
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext);
+        surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+    }
+    if (surfaceNode_ != nullptr) {
         vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
     }
     WindowHelper::SplitStringByDelimiter(
@@ -594,9 +600,12 @@ RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string&
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(type);
-    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig,
-        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext());
-    RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
+    auto surfaceNode = (renderSession_ || needCreateCompleteSurfaceNode_) ? RSSurfaceNode::Create(rsSurfaceNodeConfig,
+        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext())
+        : RSSurfaceNode::CreateSurfaceNode(rsSurfaceNodeConfig, true);
+    if (renderSession_ || needCreateCompleteSurfaceNode_) {
+        RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
+    }
     SetSurfaceNodeAlphaChangedCallback(surfaceNode);
     TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
         RSAdapterUtil::RSNodeToStr(surfaceNode).c_str(), name.c_str());
@@ -821,7 +830,6 @@ WMError WindowSessionImpl::Connect()
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     sptr<ISessionStage> iSessionStage(this);
-    sptr<IRemoteObject> renderSession;
     auto windowEventChannel = sptr<WindowEventChannel>::MakeSptr(iSessionStage);
     windowEventChannel->SetIsUIExtension(property_->GetWindowType() == WindowType::WINDOW_TYPE_UI_EXTENSION);
     windowEventChannel->SetUIExtensionUsage(property_->GetUIExtensionUsage());
@@ -834,8 +842,8 @@ WMError WindowSessionImpl::Connect()
     }
     property_->SetApiVersion(GetTargetAPIVersion());
     auto ret = hostSession->Connect(
-        iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode_,
-        property_, token, identityToken_);
+        iSessionStage, iWindowEventChannel, surfaceNode_, windowSystemConfig_, property_,
+        token, identityToken_);
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -851,17 +859,6 @@ WMError WindowSessionImpl::Connect()
     TLOGI(WmsLogTag::WMS_LIFE, "Window Connect [name:%{public}s, id:%{public}d, type:%{public}u], ret:%{public}u, "
         "oriDisplayId:%{public}" PRIu64 ", curDisplayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
         GetPersistentId(), property_->GetWindowType(), ret, originDisplayId, property_->GetDisplayId());
-    if (surfaceNode_ == nullptr) {
-        TLOGI(WmsLogTag::WMS_LIFE, "connect failed, surfaceNode is nullptr, name: %{public}s",
-            property_->GetWindowName().c_str());
-        return WMError::WM_ERROR_NULLPTR;
-    }
-    if (renderSession == nullptr) {
-        TLOGI(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
-            property_->GetWindowName().c_str());
-        return WMError::WM_ERROR_NULLPTR;
-    }
-    PostInitSurfaceNode(renderSession);
     if (originDisplayId != property_->GetDisplayId() && property_->GetDisplayId() != DISPLAY_ID_C) {
         NotifyDmsDisplayMove(property_->GetDisplayId());
     }
@@ -872,16 +869,6 @@ WMError WindowSessionImpl::Connect()
     FloatingBallManager::isSupportFloatingBall_ = windowSystemConfig_.supportCreateFloatingBall_;
     SetAppHookWindowInfo(property_->GetHookWindowInfo());
     return static_cast<WMError>(ret);
-}
-
-void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
-{
-    RSUIContextContainer::SetRenderSession(renderSession);
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
-    auto rsUIContext = rsUIDirector_->GetRSUIContext();
-    surfaceNode_->SetRSUIContext(rsUIContext);
-    RSUIContextContainer::SetRSUIContext(rsUIContext);
-    TLOGI(WmsLogTag::WMS_LIFE, "post init surfaceNode success, name: %{public}s", property_->GetWindowName().c_str());
 }
 
 sptr<WindowSessionImpl> WindowSessionImpl::GetWindowWithId(uint32_t windowId)
