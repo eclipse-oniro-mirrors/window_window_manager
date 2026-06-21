@@ -394,6 +394,7 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
         TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
         vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
     } else {
+        TLOGI(WmsLogTag::WMS_LIFE, "ywj: uec type: %{public}d.", GetType());
         if (WindowType::WINDOW_TYPE_UI_EXTENSION == GetType()) {
             nodeId_ = RSNode::GenerateId();
             TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
@@ -865,7 +866,7 @@ WMError WindowSessionImpl::Connect()
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
-    if (renderSession == nullptr) {
+    if (IsSceneBoardEnabled() && renderSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
