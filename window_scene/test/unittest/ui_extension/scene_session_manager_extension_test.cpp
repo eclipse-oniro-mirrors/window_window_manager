@@ -175,11 +175,9 @@ HWTEST_F(SceneSessionManagerExtensionTest, CreateAndConnectSpecificSession_TestH
     ASSERT_NE(ssm_, nullptr);
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    uint64_t nodeId = 0;
+    std::shared_ptr<RSSurfaceNode> node = nullptr;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
-    sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -192,13 +190,13 @@ HWTEST_F(SceneSessionManagerExtensionTest, CreateAndConnectSpecificSession_TestH
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetFloatingWindowAppType(true);
     ssm_->shouldHideNonSecureFloatingWindows_ = true;
-    WSError res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
-        systemConfig, renderSession, surfaceNode, token);
+    WSError res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
+        systemConfig, token);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_OPERATION, res);
 
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
-        systemConfig, renderSession, surfaceNode, token);
+    res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
+        systemConfig, token);
     ASSERT_EQ(WSError::WS_OK, res);
     MockUIExtSessionPermission::ClearAllFlag();
 }
@@ -213,11 +211,9 @@ HWTEST_F(SceneSessionManagerExtensionTest, CreateAndConnectSpecificSession_TestH
     ASSERT_NE(ssm_, nullptr);
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    uint64_t nodeId = 0;
+    std::shared_ptr<RSSurfaceNode> node = nullptr;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
-    sptr<IRemoteObject> renderSession;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -234,13 +230,13 @@ HWTEST_F(SceneSessionManagerExtensionTest, CreateAndConnectSpecificSession_TestH
     parentSession->UpdateExtWindowFlags(parentSession->GetPersistentId(), extWindowFlags, extWindowFlags);
     parentSession->SetSessionState(SessionState::STATE_FOREGROUND);
     ssm_->sceneSessionMap_.insert({parentSession->GetPersistentId(), parentSession});
-    WSError res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
-        systemConfig, renderSession, surfaceNode, token);
+    WSError res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
+        systemConfig, token);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_OPERATION, res);
 
     ssm_->sceneSessionMap_.erase(parentSession->GetPersistentId());
-    res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
-        systemConfig, renderSession, surfaceNode, token);
+    res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
+        systemConfig, token);
     ASSERT_EQ(WSError::WS_OK, res);
     MockUIExtSessionPermission::ClearAllFlag();
 }

@@ -54,7 +54,6 @@ constexpr int64_t DISPATCH_KEY_EVENT_TIMEOUT_TIME_MS = 1000;
 #endif // IMF_ENABLE
 constexpr int32_t UIEXTENTION_ROTATION_ANIMATION_TIME = 400;
 constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
-constexpr uint64_t INVALID_NODE_ID = 0;
 }
 
 #define CHECK_HOST_SESSION_RETURN_IF_NULL(hostSession)                         \
@@ -74,7 +73,8 @@ constexpr uint64_t INVALID_NODE_ID = 0;
     } while (false)
 
 WindowExtensionSessionImpl::WindowExtensionSessionImpl(
-    const sptr<WindowOption>& option) : WindowSessionImpl(option, nullptr)
+    const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession)
+    : WindowSessionImpl(option, nullptr, renderSession)
 {
     if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL ||
         SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
@@ -171,13 +171,13 @@ void WindowExtensionSessionImpl::AddExtensionWindowStageToSCB(bool isConstrained
         TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
         return;
     }
-    if (nodeId_ == INVALID_NODE_ID) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "nodeId_ is invalid");
+    if (surfaceNode_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "surfaceNode_ is nullptr");
         return;
     }
 
     SingletonContainer::Get<WindowAdapter>().AddExtensionWindowStageToSCB(sptr<ISessionStage>(this), abilityToken_,
-        nodeId_, startModalExtensionTimeStamp_, isConstrainedModal);
+        surfaceNode_->GetId(), startModalExtensionTimeStamp_, isConstrainedModal);
 }
 
 void WindowExtensionSessionImpl::RemoveExtensionWindowStageFromSCB(bool isConstrainedModal)

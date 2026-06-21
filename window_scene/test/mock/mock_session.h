@@ -24,16 +24,14 @@ class SessionMocker : public Session {
 public:
     SessionMocker(const SessionInfo& info) : Session(info) {}
     ~SessionMocker() {}
-    MOCK_METHOD9(Connect, WSError(const sptr<ISessionStage>& sessionStage,
-        const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
-        std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<WindowSessionProperty> property,
-        sptr<IRemoteObject> token, const std::string& identityToken));
-    MOCK_METHOD10(CreateAndConnectSpecificSession, WSError(const sptr<ISessionStage>& sessionStage,
-        const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
+    MOCK_METHOD7(Connect, WSError(const sptr<ISessionStage>& sessionStage,
+        const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
+        SystemSessionConfig& systemConfig, sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
+        const std::string& identityToken));
+    MOCK_METHOD7(CreateAndConnectSpecificSession, WSError(const sptr<ISessionStage>& sessionStage,
+        const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
-        std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token));
+        sptr<IRemoteObject> token));
 
     MOCK_METHOD3(
         Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));

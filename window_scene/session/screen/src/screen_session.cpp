@@ -76,7 +76,6 @@ ScreenSession::ScreenSession(const ScreenSessionConfig& config, ScreenSessionRea
     sessionId_ = sessionIdGenerator_++;
     RSAdapterUtil::InitRSUIDirector(rsUIDirector_, config.renderSession);
     RSAdapterUtil::SetRSUIContext(displayNode_, GetRSUIContext(), true);
-    RSUIContextContainer::SetRenderSession(config.renderSession);
     Rosen::RSDisplayNodeConfig rsConfig;
     bool isNeedCreateDisplayNode = true;
     property_.SetRsId(rsId_);
