@@ -6913,7 +6913,6 @@ WSError SceneSession::BatchPendingSessionsActivation(const std::vector<sptr<AAFw
             abilitySessionInfos.size(), configs.size());
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-
     bool isFoundationCall = SessionPermission::IsFoundationCall();
     PostTask([weakThis = wptr(this), abilitySessionInfos, configs, isFoundationCall, where = __func__] {
         auto session = weakThis.promote();
