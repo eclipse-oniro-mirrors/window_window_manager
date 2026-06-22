@@ -4626,8 +4626,8 @@ void WindowSceneSessionImpl::MaximizeEvent(const sptr<ISession> &hostSession)
     }
     if (GetGlobalMaximizeMode() != MaximizeMode::MODE_AVOID_SYSTEM_BAR) {
         const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-        if (IsFreeMultiWindowMode() && !isPcMode && !property_->GetIsPcAppInPad() &&
-            WindowHelper::IsMainWindow(GetType())) {
+        if (IsFreeMultiWindowMode() && !isPcMode && !windowSystemConfig_.IsPcWindow() &&
+            !property_->GetIsPcAppInPad() && WindowHelper::IsMainWindow(GetType())) {
             UpdateIsShowDecorInFreeMultiWindow(false);
             hostSession->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE_FULLSCREEN);
         } else {
@@ -4817,6 +4817,7 @@ WMError WindowSceneSessionImpl::Recover(uint32_t reason, const SnapshotAnimation
 
 WMError WindowSceneSessionImpl::SetWindowRectAutoSave(bool enabled, bool isSaveBySpecifiedFlag)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSceneSessionImpl::SetWindowRectAutoSave");
     TLOGI(WmsLogTag::WMS_MAIN, "id: %{public}d", GetPersistentId());
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_MAIN, "session is invalid");
@@ -4892,8 +4893,9 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModes(
     }
     bool isMainWindow = WindowHelper::IsMainWindow(GetType());
     bool isSubWindow = WindowHelper::IsSubWindow(GetType());
-    if (!isMainWindow && !isSubWindow) {
-        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "This is not main window or sub window, not supported");
+    if ((!isMainWindow && !isSubWindow) ||
+        (isSubWindow && (property_->GetWindowAnchorInfo().isAnchorEnabled_ || property_->IsFollowParentLayout()))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Only support main window and sub window not following parent");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (isSubWindow && std::find(supportedWindowModes.begin(), supportedWindowModes.end(),

@@ -1200,7 +1200,7 @@ private:
     void RegisterSettingWiredScreenGamutObserver();
     void SetWiredScreenGamut();
     void SetBorderingAreaPercent();
-    bool HandleSwitchPcMode();
+    bool HandleSwitchPcMode(bool isTargetPcMode);
     void ChangeWatchDogTimeInterval(const std::string& name, uint64_t interval);
     void SwitchModeHandleExternalScreen(bool isSwitchToPcMode);
     void SetScreenNameWhenSwitchMode(const sptr<ScreenSession>& screenSession, bool isSwitchToPcMode);
@@ -1317,6 +1317,11 @@ private:
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
+    struct UserDisplayInfo {
+        bool isPcDevice;
+    };
+    std::map<int32_t, UserDisplayInfo> userIdDisplayInfoMap_;
+    std::mutex userIdDisplayInfoMapMutex_;
     std::atomic<FoldDisplayMode> foldDisplayModeAfterRotation_ = FoldDisplayMode::UNKNOWN;
     std::atomic<bool> onBootAnimation_ = false;
     bool isBoot_ = false;

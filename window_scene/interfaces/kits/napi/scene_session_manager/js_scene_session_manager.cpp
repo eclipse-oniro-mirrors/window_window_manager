@@ -38,6 +38,9 @@
 #ifdef SOC_PERF_ENABLE
 #include "socperf_client.h"
 #endif
+#ifdef COMPATIBILITY_CONFIG_CENTER_ENABLE
+#include "comp_config_read_util.h"
+#endif
 #ifdef RESOURCE_SCHEDULE_SERVICE_ENABLE
 #include "res_sched_client.h"
 #endif
@@ -205,6 +208,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::StartAbilityBySpecified);
     BindNativeFunction(env, exportObj, "startUIAbilityBySCB", moduleName,
         JsSceneSessionManager::StartUIAbilityBySCB);
+    BindNativeFunction(env, exportObj, "notifyStartWindowsAbility", moduleName,
+        JsSceneSessionManager::NotifyStartWindowsAbility);
     BindNativeFunction(env, exportObj, "changeUIAbilityVisibilityBySCB", moduleName,
         JsSceneSessionManager::ChangeUIAbilityVisibilityBySCB);
     BindNativeFunction(env, exportObj, "setVmaCacheStatus", moduleName,
@@ -390,6 +395,10 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "redispatchCustomizedTouchEvent", moduleName,
         JsSceneSessionManager::RedispatchCustomizedTouchEvent);
     BindNativeFunction(env, exportObj, "syncFloatViewLimits", moduleName, JsSceneSessionManager::SyncFloatViewLimits);
+    BindNativeFunction(env, exportObj, "getConfigByApp", moduleName,
+        JsSceneSessionManager::GetConfigByApp);
+    BindNativeFunction(env, exportObj, "getConfigByKeys", moduleName,
+        JsSceneSessionManager::GetConfigByKeys);
     return NapiGetUndefined(env);
 }
 
@@ -1077,6 +1086,13 @@ napi_value JsSceneSessionManager::StartUIAbilityBySCB(napi_env env, napi_callbac
     TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnStartUIAbilityBySCB(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::NotifyStartWindowsAbility(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnNotifyStartWindowsAbility(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::ChangeUIAbilityVisibilityBySCB(napi_env env, napi_callback_info info)
@@ -2840,6 +2856,33 @@ napi_value JsSceneSessionManager::OnStartUIAbilityBySCB(napi_env env, napi_callb
     return NapiGetUndefined(env);
 }
 
+napi_value JsSceneSessionManager::OnNotifyStartWindowsAbility(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    size_t argc = DEFAULT_ARG_COUNT;
+    napi_value argv[DEFAULT_ARG_COUNT] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE || argv[ARG_INDEX_ZERO] == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu or nativeObj is nullptr", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    SessionInfo sessionInfo;
+    if (!ConvertSessionInfoFromJs(env, argv[ARG_INDEX_ZERO], sessionInfo)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to get session info from js object");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    TLOGI(WmsLogTag::WMS_LIFE, "Start ability, bundleName:%{public}s, moduleName:%{public}s, abilityName:%{public}s",
+        sessionInfo.bundleName_.c_str(), sessionInfo.moduleName_.c_str(), sessionInfo.abilityName_.c_str());
+    SceneSessionManager::GetInstance().NotifyStartWindowsAbility(sessionInfo);
+    return NapiGetUndefined(env);
+}
+
 napi_value JsSceneSessionManager::OnChangeUIAbilityVisibilityBySCB(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "in");
@@ -3534,10 +3577,10 @@ napi_value JsSceneSessionManager::OnRedispatchCustomizedTouchEvent(napi_env env,
 
 napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callback_info info)
 {
-    size_t argc = 1;
-    napi_value argv[1] = {nullptr};
+    size_t argc = 2;
+    napi_value argv[2] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARGC_ONE) {
+    if (argc != ARGC_TWO) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
@@ -3557,8 +3600,15 @@ napi_value JsSceneSessionManager::OnSyncFloatViewLimits(napi_env env, napi_callb
             "Failed to convert parameter to FloatViewLimits"));
         return NapiGetUndefined(env);
     }
-
-    SceneSessionManager::GetInstance().SyncFloatViewLimits(limits);
+    napi_value jsIsChanged = argv[1];
+    bool isChanged = false;
+    if (!ConvertFromJsValue(env, jsIsChanged, isChanged)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to isChanged");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Failed to convert parameter to isChanged"));
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().SyncFloatViewLimits(limits, isChanged);
     return NapiGetUndefined(env);
 }
 
@@ -4648,7 +4698,20 @@ napi_value JsSceneSessionManager::OnSwitchFreeMultiWindow(napi_env env, napi_cal
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    SceneSessionManager::GetInstance().SwitchFreeMultiWindow(enable);
+    int32_t windowId = 0;
+    if (argc > ARGC_ONE) {
+        napi_valuetype valueType;
+        napi_typeof(env, argv[1], &valueType);
+        if (valueType != napi_undefined) {
+            if (!ConvertFromJsValue(env, argv[1], windowId)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Failed to convert parameter to windowId");
+                napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                    "Input parameter is missing or invalid"));
+                return NapiGetUndefined(env);
+            }
+        }
+    }
+    SceneSessionManager::GetInstance().SwitchFreeMultiWindow(enable, windowId);
     return NapiGetUndefined(env);
 }
 
@@ -6048,7 +6111,7 @@ napi_value JsSceneSessionManager::OnSetStatusBarHeightMode(napi_env env, napi_ca
     if (argc != ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-        "Input parameter is missing or invalid"));
+            "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     bool enable = false;
@@ -6566,26 +6629,166 @@ void JsSceneSessionManager::RegisterGetFloatViewLimitCallback()
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "RegisterGetFloatViewLimitCallback called");
     SceneSessionManager::GetInstance().RegisterGetFloatViewLimitCallback(
-        [this](std::map<uint32_t, FloatViewLimits>& limit) -> bool {
-            return this->OnRegisterGetFloatViewLimitCallback(limit);
-    });
+        [this]() -> void { this->OnGetFloatViewLimitCallback(); });
 }
 
-bool JsSceneSessionManager::OnRegisterGetFloatViewLimitCallback(std::map<uint32_t, FloatViewLimits>& fvlimit)
+void JsSceneSessionManager::OnGetFloatViewLimitCallback()
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "OnRegisterGetFloatViewLimitCallback called");
-    auto jsCallBack = GetJSCallback(GET_FLOAT_VIEW_LIMIT_CB);
-    if (jsCallBack == nullptr) {
-        TLOGNE(WmsLogTag::WMS_SYSTEM, "jsCallBack is nullptr");
-        return false;
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnGetFloatViewLimitCallback called");
+    taskScheduler_->PostMainThreadTask(
+        [this, jsCallBack = GetJSCallback(GET_FLOAT_VIEW_LIMIT_CB), env = env_] {
+            if (jsCallBack == nullptr) {
+                TLOGE(WmsLogTag::WMS_SYSTEM, "jsCallBack is nullptr");
+                return;
+            }
+            napi_call_function(env_, NapiGetUndefined(env), jsCallBack->GetNapiValue(), 0, {}, nullptr);
+        }, __func__);
+}
+
+#ifdef COMPATIBILITY_CONFIG_CENTER_ENBALE
+napi_value CreateCompConfigPropertyValueMap(napi_env env,
+    const std::pair<int, CompConfigClient::PropertyValueMap>& propertyValuePair)
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "CreatePropertyValueMap");
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Object is null!");
+        return NapiGetUndefined(env);
     }
-    napi_value result = nullptr;
-    napi_value argv[] = {};
-    napi_call_function(env_, NapiGetUndefined(env_), jsCallBack->GetNapiValue(), 0, argv, &result);
-    if (!ConvertFloatViewLimitsFromJs(env_, result, fvlimit)) {
-        return false;
+    napi_value num = nullptr;
+    napi_create_int32(env, propertyValuePair.first, &num);
+    napi_set_element(env, objValue, 0, num);
+
+    napi_value propertyValue = nullptr;
+    napi_create_object(env, &propertyValue);
+    if (propertyValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "propertyValue is null!");
+        return NapiGetUndefined(env);
     }
-    return true;
+
+    for (const auto& [key, value] : propertyValuePair.second) {
+        napi_value jsVal = nullptr;
+        napi_create_string_utf8(env, value.c_str(), NAPI_AUTO_LENGTH, &jsVal);
+        napi_set_named_property(env, propertyValue, key.c_str(), jsVal);
+    }
+    napi_set_element(env, objValue, 1, propertyValue);
+    return objValue;
+}
+
+napi_value CreateCompConfigAppPropertyValueMap(napi_env env,
+    const std::pair<int, CompConfigClient::AppPropertyValueMap>& appPropertyValuePair)
+{
+    TLOGI(WmsLogTag::WMS_COMPAT, "CreateCompConfigAppPropertyValueMap");
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "object is null!");
+        return NapiGetUndefined(env);
+    }
+    napi_value num = nullptr;
+    napi_create_int32(env, appPropertyValuePair.first, &num);
+    napi_set_element(env, objValue, 0, num);
+
+    napi_value appPropertyValue = nullptr;
+    napi_create_object(env, &appPropertyValue);
+    if (appPropertyValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "appPropertyValue is null!");
+        return NapiGetUndefined(env);
+    }
+
+    for (const auto& [appKey, appValue] : appPropertyValuePair.second) {
+        napi_value propertyValue = nullptr;
+        napi_create_object(env, &propertyValue);
+        if (propertyValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "propertyValue is null!");
+        return NapiGetUndefined(env);
+        }
+        for (const auto& [subKey, subValue] : appValue) {
+            napi_value jsVal = nullptr;
+            napi_create_string_utf8(env, value.c_str(), NAPI_AUTO_LENGTH, &jsVal);
+            napi_set_named_property(env, propertyValue, subKey.c_str(), jsVal);
+        }
+            napi_set_named_property(env, appPropertyValue, appKey.c_str(), propertyValue);
+    }
+    napi_set_element(env, objValue, 1, appPropertyValue);
+    return objValue;
+}
+#endif
+
+napi_value JsSceneSessionManager::GetConfigByApp(napi_env env, napi_callback_info info)
+{
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnGetConfigByApp(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::OnGetConfigByApp(napi_env env, napi_callback_info info)
+{
+#ifdef COMPATIBILITY_CONFIG_CENTER_ENABLE
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Argc is invalid:%{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    std::string bundleName;
+    if (!ConvertFromJsValue(env, argv[0], bundleName)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to bundleName");
+        napi_throw(env, CreateJSError(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));))
+        return NapiGetUndefined(env);
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "Get config by app: %{public}s", bundleName.c_str());
+
+    const auto& compConfig = CompConfigClient::CompConfigReadUtil::GetConfigByApp(bundleName);
+    napi_value jsCompConfig = CraeteCompConfigPropertyValueMap(env, comConfig);
+
+    return jsComConfig;
+#else
+    TLOGE(WmsLogTag::WMS_COMPAT, "OngetConfigByApp not supported");
+    return NapiGetUndefined(env);
+#endif
+}
+
+napi_value JsSceneSessionManager::GetConfigByKeys(napi_env env, napi_callback_info info)
+{
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnGetConfigByKeys(env, info) : nullptr;
+}
+
+napi_value JsSceneSessionManager::OnGetConfigByKeys(napi_env env, napi_callback_info info)
+{
+#ifdef COMPATIBILITY_CONFIG_CENTER_ENABLE
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Argc is invalid:%{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    std::vector<std::string> keys;
+    if (!ParseArrayStringValue(env, argv[0], keys)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to keys");
+        napi_throw(env, CreateJSError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    const auto& compConfig = CompConfigClient::CompConfigReadUtil::GetConfigByKeys(keys);
+    napi_value jsCompConfig = CraeteCompConfigPropertyValueMap(env, comConfig);
+
+    return jsComConfig;
+#else
+    TLOGE(WmsLogTag::WMS_COMPAT, "OnGetConfigByKeys not supported");
+    return NapiGetUndefined(env);
+#endif
 }
 
 } // namespace OHOS::Rosen

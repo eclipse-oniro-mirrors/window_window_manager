@@ -67,12 +67,7 @@ HWTEST_F(SessionManagerLiteUTTest, GetSceneSessionManagerLiteProxy, TestSize.Lev
     sml_->RemoveSSMDeathRecipient();
     sml_->ClearSessionManagerProxy();
     auto sceneSessionManagerLiteProxy = sml_->GetSceneSessionManagerLiteProxy();
-    ASSERT_EQ(nullptr, sceneSessionManagerLiteProxy);
-
-    sml_->ClearSessionManagerProxy();
-    sml_->GetSessionManagerServiceProxy();
-    sceneSessionManagerLiteProxy = sml_->GetSceneSessionManagerLiteProxy();
-    ASSERT_EQ(nullptr, sceneSessionManagerLiteProxy);
+    ASSERT_NE(nullptr, sceneSessionManagerLiteProxy);
 }
 
 /**
@@ -97,7 +92,7 @@ HWTEST_F(SessionManagerLiteUTTest, InitSceneSessionManagerLiteProxy02, TestSize.
     ASSERT_NE(nullptr, sml_);
     sml_->GetSceneSessionManagerLiteProxy();
     sml_->InitSceneSessionManagerLiteProxy();
-    ASSERT_EQ(nullptr, sml_->sceneSessionManagerLiteProxy_);
+    ASSERT_NE(nullptr, sml_->sceneSessionManagerLiteProxy_);
 }
 
 /**
@@ -175,13 +170,15 @@ HWTEST_F(SessionManagerLiteUTTest, OnWMSConnectionChanged1, TestSize.Level1)
     ASSERT_NE(nullptr, sml_);
     sptr<ISessionManagerService> sessionManagerService;
     sml_->isWMSConnected_ = true;
-    sml_->currentWMSUserId_ = 100;
-    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService, INVALID_PID);
+    sml_->currentServer_.userId = 100;
+    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, false);
 
-    sml_->currentWMSUserId_ = 101;
+    sml_->currentServer_.userId = 101;
     sml_->isWMSConnected_ = true;
-    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService, INVALID_PID);
+    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, true);
 }
 
@@ -195,14 +192,15 @@ HWTEST_F(SessionManagerLiteUTTest, OnWMSConnectionChanged2, TestSize.Level1)
     ASSERT_NE(nullptr, sml_);
     sptr<ISessionManagerService> sessionManagerService;
     sml_->isWMSConnected_ = false;
-    sml_->currentWMSUserId_ = INVALID_USER_ID;
-    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true, sessionManagerService, INVALID_PID);
+    sml_->currentServer_.userId = INVALID_USER_ID;
+    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, true);
 
     // user switch
-    sml_->currentWMSUserId_ = 100;
+    sml_->currentServer_.userId = 100;
     sml_->isWMSConnected_ = true;
-    sml_->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, sessionManagerService, INVALID_PID);
+    sml_->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, INVALID_PID, 100, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, true);
 }
 
@@ -293,8 +291,8 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterWMSConnectionChangedListener1, TestSi
 {
     ASSERT_NE(nullptr, sml_);
     sml_->isRecoverListenerRegistered_ = true;
-    sml_->currentWMSUserId_ = 100;
-    sml_->currentScreenId_ = 0;
+    sml_->currentServer_.userId = 100;
+    sml_->currentServer_.screenId = 0;
     sml_->isWMSConnected_ = true;
     auto callbackFunc = [](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {};
     auto ret = sml_->RegisterWMSConnectionChangedListener(callbackFunc);

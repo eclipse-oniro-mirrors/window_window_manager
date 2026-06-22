@@ -866,7 +866,7 @@ WSError SceneSession::DisconnectTask(bool isFromClient, bool isSaveSnapshot, boo
         auto state = session->GetSessionState();
         if ((session->needSnapshot_ || (state == SessionState::STATE_ACTIVE && isMainWindow)) &&
             isSaveSnapshot && needSaveSnapshot) {
-            session->SaveSnapshot(false);
+            session->SaveSnapshot(false, true, nullptr, false, LifeCycleChangeReason::DEFAULT, false);
         }
         session->Session::Disconnect(isFromClient);
         session->isTerminating_ = false;
@@ -2142,6 +2142,14 @@ void SceneSession::SetSessionRectChangeCallback(const NotifySessionRectChangeFun
         }
         session->sessionRectChangeFunc_ = func;
         if (session->sessionRectChangeFunc_ && session->GetWindowType() != WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+            auto property = session->GetSessionProperty();
+            auto windowModeSupportType = property->GetWindowModeSupportType();
+            bool onlySupportFullScreen =
+                WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FULLSCREEN) &&
+                !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING);
+            if (onlySupportFullScreen) {
+                return WSError::WS_OK;
+            }
             auto reason = SizeChangeReason::UNDEFINED;
             auto sessionRect = session->GetSessionRect();
             auto sessionRequestRect = session->GetSessionRequestRect();
@@ -4211,6 +4219,9 @@ WSError SceneSession::TransferPointerEventInner(const std::shared_ptr<MMI::Point
                 ReportDragEndDirection(GetSessionInfo().bundleName_, moveDragController_->GetAreaType());
             }
             PresentFocusIfNeed(pointerEvent->GetPointerAction());
+            if (isSubWindow) {
+                RaiseToAppTopForPointDown();
+            }
             pointerEvent->MarkProcessed();
             return WSError::WS_OK;
         }
@@ -6999,10 +7010,6 @@ WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
     }
 
     bool isSystemCalling = SessionPermission::IsSystemCalling() || SessionPermission::IsStartByHdcd();
-    if (!isSystemCalling && IsNeedSystemPermissionByAction(action, property, sessionProperty)) {
-        TLOGE(WmsLogTag::DEFAULT, "permission denied! action: %{public}" PRIu64, action);
-        return WMError::WM_ERROR_NOT_SYSTEM_APP;
-    }
     property->SetSystemCalling(isSystemCalling);
     auto task = [weak = wptr(this), property, action, where = __func__]() -> WMError {
         auto sceneSession = weak.promote();
@@ -8699,7 +8706,7 @@ void SceneSession::SetTemporarilyShowWhenLocked(bool isTemporarilyShowWhenLocked
     isTemporarilyShowWhenLocked_.store(isTemporarilyShowWhenLocked);
     TLOGI(WmsLogTag::WMS_SCB, "SetTemporarilyShowWhenLocked successfully, target:%{public}u",
         isTemporarilyShowWhenLocked);
-    if (systemConfig_.freeMultiWindowSupport_) {
+    if (systemConfig_.freeMultiWindowSupport_ && !IsPcWindow()) {
         const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
         const bool isShow = !(isTemporarilyShowWhenLocked && !isPcMode);
         GetSessionProperty()->SetIsShowDecorInFreeMultiWindow(isShow);
@@ -8739,6 +8746,7 @@ void SceneSession::SetSkipSelfWhenShowOnVirtualScreen(bool isSkip)
             return;
         }
         session->GetSessionProperty()->SetSkipSelfWhenShowOnVirtualScreen(isSkip);
+        session->isSkipSelfWhenShowOnVirtualScreen_ = isSkip;
         std::shared_ptr<RSSurfaceNode> surfaceNode = session->GetSurfaceNode();
         if (!surfaceNode) {
             TLOGNE(WmsLogTag::WMS_SCB, "%{public}s surfaceNode_ is null", where);
@@ -8752,7 +8760,6 @@ void SceneSession::SetSkipSelfWhenShowOnVirtualScreen(bool isSkip)
             } else {
                 session->specificCallback_->onSetSkipSelfWhenShowOnVirtualScreen_(session->GetMissionId(), isSkip);
             }
-            session->isSkipSelfWhenShowOnVirtualScreen_ = isSkip;
         }
         return;
     }, __func__);
@@ -8906,11 +8913,6 @@ WMError SceneSession::ActivateDragBySystem(DragActivateSource source, bool activ
 WMError SceneSession::HandleActionUpdateWindowModeSupportType(const sptr<WindowSessionProperty>& property,
     WSPropertyChangeAction action)
 {
-    if (!property->GetSystemCalling()) {
-        TLOGE(WmsLogTag::DEFAULT, "permission denied!");
-        return WMError::WM_ERROR_NOT_SYSTEM_APP;
-    }
-
     auto sessionProperty = GetSessionProperty();
     if (sessionProperty != nullptr) {
         sessionProperty->SetWindowModeSupportType(property->GetWindowModeSupportType());

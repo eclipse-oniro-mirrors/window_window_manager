@@ -2293,6 +2293,48 @@ HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionKey
     ASSERT_EQ(sceneSessions.size(), 0);
     ssm_->sceneSessionMap_.clear();
 }
+
+/**
+ * @tc.name: NotifyStartWindowsAbility
+ * @tc.desc: NotifyStartWindowsAbility
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.abilityName_ = "NotifyStartWindowsAbility";
+    ASSERT_NE(nullptr, ssm_);
+    auto ret = ssm_->NotifyStartWindowsAbility(sessionInfo);
+    EXPECT_EQ(ret, BrokerStates::BROKER_UNKOWN);
+}
+
+/**
+ * @tc.name: NotifyStartWindowsAbility02
+ * @tc.desc: Test NotifyStartWindowsAbility with abilityInfoMap_ set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = USER_ID;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.moduleName_ = "SceneSessionManager";
+    sessionInfo.abilityName_ = "NotifyStartWindowsAbility02";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    SceneSessionManager::SessionInfoList list = {
+        .uid_ = USER_ID, .bundleName_ = "SceneSessionManagerTest11",
+        .abilityName_ = "NotifyStartWindowsAbility02", .moduleName_ = "SceneSessionManager"
+    };
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(abilityInfo, nullptr);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+    auto ret = ssm_->NotifyStartWindowsAbility(sessionInfo);
+    ASSERT_EQ(ret, BrokerStates::BROKER_UNKOWN);
+    ssm_->abilityInfoMap_.erase(list);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -292,6 +292,7 @@
             OHOS::Rosen::WindowManager::NotifyApplicationFocusChangedResult*;
             OHOS::Rosen::WindowManager::NotifyDisplayInfoChange*;
             OHOS::Rosen::WindowManager::NotifyScreenshotEvent*;
+            OHOS::Rosen::WindowManager::NotifySessionSaveSnapShotComplete*;
             OHOS::Rosen::WindowManager::NotifySupportRotationChange*;
             OHOS::Rosen::WindowManager::NotifyWindowExtensionVisibilityChange*;
             OHOS::Rosen::WindowManager::NotifyWindowPropertyChange*;
@@ -305,6 +306,7 @@
             OHOS::Rosen::WindowManager::RegisterFocusChangedListener*;
             OHOS::Rosen::WindowManager::RegisterGestureNavigationEnabledChangedListener*;
             OHOS::Rosen::WindowManager::RegisterGetJSWindowCallback*;
+            OHOS::Rosen::WindowManager::RegisterSessionSaveSnapShotCompleteListener*;
             OHOS::Rosen::WindowManager::RegisterSystemBarChangedListener*;
             OHOS::Rosen::WindowManager::RegisterVisibilityChangedListener*;
             OHOS::Rosen::WindowManager::RegisterVisibleWindowNumChangedListener*;
@@ -346,6 +348,7 @@
             OHOS::Rosen::WindowManager::UnregisterDrawingContentChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterFocusChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterGestureNavigationEnabledChangedListener*;
+            OHOS::Rosen::WindowManager::UnregisterSessionSaveSnapShotCompleteListener*;
             OHOS::Rosen::WindowManager::UnregisterSystemBarChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterVisibilityChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterVisibleWindowNumChangedListener*;

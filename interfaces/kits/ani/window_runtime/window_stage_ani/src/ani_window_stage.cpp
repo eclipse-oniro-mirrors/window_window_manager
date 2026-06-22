@@ -267,8 +267,8 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "WindowScene is null");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     std::string windowName;
@@ -286,6 +286,13 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    if (windowScene->GetMainWindow() == nullptr) {
+        TLOGE(WmsLogTag::WMS_SUB, "mainWindow is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     if ((windowOption->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&

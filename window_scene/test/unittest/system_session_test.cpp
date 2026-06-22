@@ -1153,15 +1153,15 @@ HWTEST_F(SystemSessionTest, SendFbActionEvent, Function | SmallTest | Level2)
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
 
     systemSession_->sessionStage_ = nullptr;
-    EXPECT_EQ(systemSession->SendFbActionEvent(""), WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(systemSession->SendFbActionEvent("", ""), WSError::WS_ERROR_NULLPTR);
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     systemSession_->sessionStage_ = mockSessionStage;
-    auto ret = systemSession_->SendFbActionEvent("click");
+    auto ret = systemSession_->SendFbActionEvent("click", "");
     ASSERT_EQ(WSError::WS_OK, ret);
 
-    ret = systemSession_->SendFbActionEvent("on");
+    ret = systemSession_->SendFbActionEvent("on", "");
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 

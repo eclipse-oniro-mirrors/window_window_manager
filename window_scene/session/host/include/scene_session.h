@@ -432,7 +432,7 @@ public:
     WSError StopFloatingBall() override { return WSError::WS_OK; };
     WMError GetFloatingBallWindowId(uint32_t& windowId) override { return WMError::WM_OK; };
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override { return WMError::WM_OK; };
-    virtual WSError SendFbActionEvent(const std::string& action) { return WSError::WS_OK; };
+    virtual WSError SendFbActionEvent(const std::string& action, const std::string& reason) { return WSError::WS_OK; };
     virtual FloatingBallTemplateInfo GetFbTemplateInfo() const { return fbTemplateInfo_; };
     virtual void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) {};
     virtual uint32_t GetFbWindowId() const { return 0; };
@@ -453,6 +453,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
+    virtual void SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func) {};
     virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
@@ -1305,6 +1306,7 @@ protected:
      */
     virtual void NotifyStopFloatView() {};
     virtual void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) {};
+    virtual void NotifyClickFloatView() {};
     FloatViewTemplateInfo fvTemplateInfo_ = {};
     mutable std::mutex fvTemplateMutex_;
 

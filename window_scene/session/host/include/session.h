@@ -63,6 +63,7 @@ using NotifyStopFloatingBallFunc = std::function<void()>;
 using NotifyRestoreFloatingBallMainWindowFunc = std::function<void(const std::shared_ptr<AAFwk::Want>& want)>;
 using NotifyRestoreFloatMainWindowFunc = std::function<void(const std::shared_ptr<AAFwk::WantParams>& wantParameters)>;
 using NotifyStopFloatViewFunc = std::function<void(const std::string& reason)>;
+using NotifyClickFloatViewFunc = std::function<void()>;
 using NotifyUpdateFloatViewFunc = std::function<void(const FloatViewTemplateInfo& fvTemplateInfo)>;
 using NotifyPendingSessionActivationFunc = std::function<void(SessionInfo& info)>;
 using NotifyBatchPendingSessionsActivationFunc = std::function<void(std::vector<std::shared_ptr<SessionInfo>>& info,
@@ -86,6 +87,7 @@ using NofitySessionIconUpdatedFunc = std::function<void(const std::string& iconP
 using NotifySessionExceptionFunc =
     std::function<void(const SessionInfo& info, const ExceptionInfo& exceptionInfo, bool startFail)>;
 using NotifySessionSnapshotFunc = std::function<void(const int32_t& persistentId)>;
+using NotifySessionSaveSnapshotCompleteFunc = std::function<void(int32_t persistentId)>;
 using NotifyPendingSessionToForegroundFunc = std::function<void(const SessionInfo& info)>;
 using NotifyPendingSessionToBackgroundFunc = std::function<void(const SessionInfo& info,
     const BackgroundParams& params)>;
@@ -250,6 +252,7 @@ public:
     void SetPendingSessionToBackgroundListener(NotifyPendingSessionToBackgroundFunc&& func);
     void SetPendingSessionToBackgroundForDelegatorListener(NotifyPendingSessionToBackgroundForDelegatorFunc&& func);
     void SetSessionSnapshotListener(const NotifySessionSnapshotFunc& func);
+    void SetSessionSaveSnapshotCompleteListener(const NotifySessionSaveSnapshotCompleteFunc& func);
     WSError TerminateSessionNew(const sptr<AAFwk::SessionInfo> info, bool needStartCaller, bool isFromBroker);
     WSError TerminateSessionTotal(const sptr<AAFwk::SessionInfo> info, TerminateType terminateType);
     std::string GetSessionLabel() const;
@@ -419,7 +422,7 @@ public:
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT, bool windowSync = true);
     void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowKey);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;
@@ -1019,6 +1022,7 @@ public:
     void ResetPreloadStartingWindow();
     void InitPersistentScaledSnapshotParam(bool enabled);
     bool IsPersistentScaledSnapshotEnabled() { return enablePersistentScaledSnapshot_; };
+    void LoadSnapshotToMem();
     std::atomic<bool> freeMultiWindow_ { false };
     std::atomic<bool> isPersistentImageFit_ { false };
     std::atomic<int32_t> persistentImageFit_ = 0;
@@ -1155,6 +1159,7 @@ protected:
     NofitySessionLabelUpdatedFunc updateSessionLabelFunc_;
     NofitySessionIconUpdatedFunc updateSessionIconFunc_;
     NotifySessionSnapshotFunc notifySessionSnapshotFunc_;
+    NotifySessionSaveSnapshotCompleteFunc notifySessionSaveSnapshotCompleteFunc_;
     NotifyRaiseToTopForPointDownFunc raiseToTopForPointDownFunc_;
     NotifySessionInfoLockedStateChangeFunc sessionInfoLockedStateChangeFunc_;
     NotifySystemSessionPointerEventFunc systemSessionPointerEventFunc_;
@@ -1214,6 +1219,7 @@ protected:
     NotifyRestoreFloatMainWindowFunc restoreFloatMainWindowFunc_;
     NotifyStopFloatViewFunc stopFloatViewFunc_;
     NotifyUpdateFloatViewFunc updateFloatViewFunc_;
+    NotifyClickFloatViewFunc clickFloatViewFunc_;
     sptr<LayoutController> layoutController_ = nullptr;
     void SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY);
     std::atomic<uint32_t> crossPlaneState_ = 0;

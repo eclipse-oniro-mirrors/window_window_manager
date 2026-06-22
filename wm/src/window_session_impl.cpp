@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1355,8 +1355,12 @@ void WindowSessionImpl::UpdateVirtualPixelRatio(const sptr<Display>& display)
         TLOGE(WmsLogTag::WMS_LAYOUT, "displayInfo is null when rotation!");
         return;
     }
-    virtualPixelRatio_ = GetVirtualPixelRatio(displayInfo);
-    TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", virtualPixelRatio_);
+    float tempVirtualPixelRatio = GetVirtualPixelRatio(displayInfo);
+    {
+        std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
+        virtualPixelRatio_ = tempVirtualPixelRatio;
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", tempVirtualPixelRatio);
 }
 
 void WindowSessionImpl::UpdateRectForResizeAnimation(const Rect& wmRect, const Rect& preRect,
@@ -2091,6 +2095,7 @@ WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo
 /** @note @window.layout */
 float WindowSessionImpl::GetVirtualPixelRatio()
 {
+    std::lock_guard<std::mutex> lock(virtualPixelRatioMutex_);
     TLOGD(WmsLogTag::WMS_LAYOUT, "virtualPixelRatio: %{public}f", virtualPixelRatio_);
     return virtualPixelRatio_;
 }
@@ -2298,15 +2303,15 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
         return;
     }
     WindowType windowType = GetType();
+    auto windowModeSupportType = property_->GetWindowModeSupportType();
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
+    bool onlySupportFullScreen = WindowHelper::IsOnlySupportFullScreen(windowModeSupportType);
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
-        uiContent->HideWindowTitleButton(true, !IsSubWindowMaximizeSupported(), true, false);
+        uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
         return;
     }
-    auto windowModeSupportType = property_->GetWindowModeSupportType();
     bool hideSplitButton = !(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY);
-    // not support fullscreen in split and floating mode, or not support float in fullscreen mode
     bool hideMaximizeButton = (!(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) &&
         (GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING || WindowHelper::IsSplitWindowMode(GetWindowMode()))) ||
         (!(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING) &&
@@ -2315,6 +2320,10 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool hideCloseButton = false;
     GetTitleButtonVisible(hideMaximizeButton, hideMinimizeButton, hideSplitButton, hideCloseButton);
     hideMaximizeButton = hideMaximizeButton && !grayOutMaximizeButton_;
+    if (IsZLevelAboveParentLoosened()) {
+        hideMaximizeButton = hideMaximizeButton || !IsSubWindowMaximizeSupported();
+        hideSplitButton = true;
+    }
     TLOGI(WmsLogTag::WMS_DECOR, "id:%{public}d, [hideSplit, hideMaximize, hideMinimizeButton, hideCloseButton]:"
         "[%{public}d, %{public}d, %{public}d, %{public}d]",
         GetPersistentId(), hideSplitButton, hideMaximizeButton, hideMinimizeButton, hideCloseButton);
@@ -4403,12 +4412,9 @@ WMError WindowSessionImpl::SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap
 
 WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetDecorVisible");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
-        TLOGE(WmsLogTag::WMS_DECOR, "device not support");
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     if (uiContent == nullptr) {
@@ -4434,9 +4440,14 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
 
 WMError WindowSessionImpl::GetDecorVisible(bool& isVisible)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetDecorVisible");
     TLOGD(WmsLogTag::WMS_DECOR, "%{public}u in", GetWindowId());
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+        TLOGE(WmsLogTag::WMS_DECOR, "device not support");
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     if (uiContent == nullptr) {
@@ -4449,6 +4460,7 @@ WMError WindowSessionImpl::GetDecorVisible(bool& isVisible)
 
 WMError WindowSessionImpl::SetWindowTitleMoveEnabled(bool enable)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetWindowTitleMoveEnabled");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4548,6 +4560,7 @@ WMError WindowSessionImpl::SetWindowModal(bool isModal)
 
 WMError WindowSessionImpl::SetDecorHeight(int32_t decorHeight)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetDecorHeight");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4574,6 +4587,7 @@ WMError WindowSessionImpl::SetDecorHeight(int32_t decorHeight)
 
 WMError WindowSessionImpl::GetDecorHeight(int32_t& height)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetDecorHeight");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4600,6 +4614,7 @@ WMError WindowSessionImpl::GetDecorHeight(int32_t& height)
 
 WMError WindowSessionImpl::SetDecorButtonStyle(const DecorButtonStyle& decorButtonStyle)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetDecorButtonStyle");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4629,6 +4644,7 @@ WMError WindowSessionImpl::SetDecorButtonStyle(const DecorButtonStyle& decorButt
 
 WMError WindowSessionImpl::GetDecorButtonStyle(DecorButtonStyle& decorButtonStyle)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetDecorButtonStyle");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -4643,6 +4659,7 @@ WMError WindowSessionImpl::GetDecorButtonStyle(DecorButtonStyle& decorButtonStyl
 
 WMError WindowSessionImpl::GetTitleButtonArea(TitleButtonRect& titleButtonRect)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::GetTitleButtonArea");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -5781,6 +5798,7 @@ void WindowSessionImpl::SetInputEventConsumer(const std::shared_ptr<IInputEventC
 WMError WindowSessionImpl::SetTitleButtonVisible(bool isMaximizeVisible, bool isMinimizeVisible, bool isSplitVisible,
     bool isCloseVisible)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSessionImpl::SetTitleButtonVisible");
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
@@ -7104,9 +7122,9 @@ WSError WindowSessionImpl::NotifyPiPActiveStatusChange(bool status)
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SendFbActionEvent(const std::string& action)
+WSError WindowSessionImpl::SendFbActionEvent(const std::string& action, const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s", action.c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s, reason: %{public}s", action.c_str(), reason.c_str());
     auto task = [action]() {
         FloatingBallManager::DoFbActionEvent(action);
     };

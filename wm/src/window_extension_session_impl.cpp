@@ -2244,47 +2244,36 @@ WMError WindowExtensionSessionImpl::OnExtensionMessage(uint32_t code, int32_t pe
     switch (code) {
         case static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE): {
             return HandleHostWindowRaise(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleRegisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleUnregisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtRegisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtRegisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleRegisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtRegisterTouchOutsideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
-            break;
         }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
