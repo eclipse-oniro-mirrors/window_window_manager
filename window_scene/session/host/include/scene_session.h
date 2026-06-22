@@ -1415,8 +1415,11 @@ private:
     bool IsCompatibilityModeScale(float scaleX, float scaleY);
     void CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isScale);
     void ThrowSlipToFullScreen(WSRect& endRect, WSRect& rect, int32_t statusBarHeight, int32_t dockHeight);
+    void HandleFullScreenWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
+    void HandleFloatingWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
     bool MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeReason reason);
     void NotifyFullScreenAfterThrowSlip(const WSRect& rect);
+    void NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect);
     void SetDragResizeTypeDuringDrag(DragResizeType dragResizeType) { dragResizeTypeDuringDrag_ = dragResizeType; }
     DragResizeType GetDragResizeTypeDuringDrag() const { return dragResizeTypeDuringDrag_; }
     void HandleSessionDragEvent(SessionEvent event);

@@ -4832,6 +4832,44 @@ void SceneSession::CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isSca
 }
 
 /**
+ * handle slip-and-fall incident of the full-screen window
+ * @return
+ */
+void SceneSession::HandleFullScreenWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect)
+{
+    finishCallback = [weakThis = wptr(this), rect, where = func] {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is nullptr", where);
+            return;
+        }
+        session->OnThrowSlipAnimationStateChange(false, true);
+        session->NotifyFullScreenAfterThrowSlip(rect);
+    };
+}
+
+/**
+ * handle slip-and-fall incident of the floating window
+ * @return
+ */
+void SceneSession::HandleFloatingWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect)
+{
+    finishCallback = [weakThis = wptr(this), rect, where = func] {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is nullptr", where);
+            return;
+        }
+        session->OnThrowSlipAnimationStateChange(false, false);
+        auto property = session->GetSessionProperty();
+        if (property && property->IsAdaptToDragScale() &&
+            session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING) {
+            session->NotifyCompatibleFloatAfterThrowSlip(rect);
+        }
+    };
+}
+
+/**
  * move with init velocity
  * @return true: successfully throw slip
  */
@@ -4857,24 +4895,9 @@ bool SceneSession::MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeR
     bool needSetFullScreen = pcFoldScreenController_->IsStartFullScreen();
     if (needSetFullScreen) {
         ThrowSlipToFullScreen(endRect, rect, statusBarHeight, dockHeight);
-        finishCallback = [weakThis = wptr(this), rect, where = __func__] {
-            auto session = weakThis.promote();
-            if (session == nullptr) {
-                TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is nullptr", where);
-                return;
-            }
-            session->OnThrowSlipAnimationStateChange(false, true);
-            session->NotifyFullScreenAfterThrowSlip(rect);
-        };
+        HandleFullScreenWindowInThrowSlip(finishCallback, rect);
     } else {
-        finishCallback = [weakThis = wptr(this), rect, where = __func__] {
-            auto session = weakThis.promote();
-            if (session == nullptr) {
-                TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is nullptr", where);
-                return;
-            }
-            session->OnThrowSlipAnimationStateChange(false, false);
-        };
+        HandleFloatingWindowInThrowSlip(finishCallback, rect);
     }
     auto throwSlipPair = std::make_pair(pcFoldScreenController_->GetThrowSlipTimingProtocol(),
         pcFoldScreenController_->GetThrowSlipTimingCurve());
@@ -4933,6 +4956,28 @@ void SceneSession::NotifyFullScreenAfterThrowSlip(const WSRect& rect)
             static_cast<uint32_t>(SessionEvent::EVENT_MAXIMIZE_WITHOUT_ANIMATION),
             SessionEventParam {rect.posX_, rect.posY_, rect.width_, rect.height_});
     }, __func__);
+}
+
+void SceneSession::NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect)
+{
+    PostTask([weakThis = wptr(this), rect, where = func] {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s session is nullptr", where);
+            return;
+        }
+        if (!session->IsVisibleForeground()) {
+            TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s session go background when throw", where);
+            return;
+        }
+        if (!session->onSessionEvent_) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s invalid callback", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s rect: %{public}s", where, rect.ToString().c_str());
+        session->onSessionEvent_(static_cast<uint32_t>(SessionEvent::EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP),
+            SessionEventParam {rect.posX_, rect.posY_, rect.width_, rect.height_});
+    }, func);
 }
 
 void SceneSession::ThrowSlipDirectly(ThrowSlipMode throwSlipMode, const WSRectF& velocity)
