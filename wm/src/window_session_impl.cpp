@@ -833,8 +833,8 @@ WMError WindowSessionImpl::Connect()
         property_->SetTokenState(true);
     }
     property_->SetApiVersion(GetTargetAPIVersion());
-    auto ret = hostSession->Connect(	 
-        iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode_,	 
+    auto ret = hostSession->Connect(
+        iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode_,
         property_, token, identityToken_);
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
