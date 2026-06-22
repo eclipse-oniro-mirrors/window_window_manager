@@ -58,14 +58,18 @@ class AniWindowListener : public IWindowChangeListener,
                         public IWindowHighlightChangeListener,
                         public ISystemDensityChangeListener,
                         public IDisplayIdChangeListener,
-                        public IWindowStageLifeCycle,
                         public IRectChangeInGlobalDisplayListener,
                         public IExtensionSecureLimitChangeListener,
                         public IWindowStatusDidChangeListener,
+                        public IParentWindowSizeChangeListener,
+                        public IParentWindowStatusChangeListener,
                         public IWindowRotationChangeListener,
+                        public IFreeWindowModeChangeListener,
+                        public IParentLifecycleEventListener,
                         public IAcrossDisplaysChangeListener,
                         public IScreenshotAppEventListener,
-                        public IFreeWindowModeChangeListener {
+                        public IApplicationFocusChangedListener,
+                        public IWindowStageLifeCycle {
 public:
     AniWindowListener(ani_env* env, ani_vm* vm, ani_ref callback, CaseType caseType)
         : env_(env), vm_(vm), aniCallback_(callback), caseType_(caseType),
@@ -101,6 +105,7 @@ public:
     void OnDialogDeathRecipient() const override;
     void OnGestureNavigationEnabledUpdate(bool enable) override;
     void OnWaterMarkFlagUpdate(bool showWaterMark) override;
+    void OnApplicationFocusUpdate(bool isFocused) override;
     void SetMainEventHandler();
     void SetTimeout(int64_t timeout) override;
     int64_t GetTimeout() const override;
@@ -116,20 +121,28 @@ public:
     void OnSubWindowClose(bool& terminateCloseProcess) override;
     void OnWindowHighlightChange(bool isHighlight) override;
     void OnMainWindowClose(bool& terminateCloseProcess) override;
+    void OnWindowWillClose(sptr<Window> window) override;
     void OnRotationChange(const RotationChangeInfo& rotationChangeInfo,
         RotationChangeResult& rotationChangeResult) override;
     void OnRectChangeInGlobalDisplay(const Rect& rect, WindowSizeChangeReason reason) override;
     void OnSecureLimitChange(bool isLimit) override;
     void OnWindowStatusDidChange(WindowStatus status) override;
+    void OnParentWindowSizeChange(Rect rect) override;
+    void OnParentWindowStatusChange(WindowStatus status) override;
+    void OnFreeWindowModeChange(bool IsInFreeWindowMode) override;
     void OnAcrossDisplaysChanged(bool isAcrossDisplays) override;
     void OnScreenshotAppEvent(ScreenshotEventType type) override;
-    void OnFreeWindowModeChange(bool IsInFreeWindowMode) override;
 
     void AfterLifecycleForeground() override;
     void AfterLifecycleBackground() override;
     void AfterLifecycleResumed() override;
     void AfterLifecyclePaused() override;
 
+    void OnParentForeground(int32_t windowId) override;
+    void OnParentActive(int32_t windowId) override;
+    void OnParentInactive(int32_t windowId) override;
+    void OnParentBackground(int32_t windowId) override;
+    void OnParentDestroyed(int32_t windowId) override;
 private:
     void OnLastStrongRef(const void *) override;
 
@@ -140,7 +153,7 @@ private:
     WindowState state_ {WindowState::STATE_INITIAL};
     int64_t noInteractionTimeout_ = 0;
     void LifeCycleCallback(LifeCycleEventType eventType);
-    void WindowStageLifecycleCallback(WindowStageLifeCycleEventType eventType);
+    void WindowStageLifecycleCallback(WindowStageLifecycleEventType eventType);
     ani_env* env_ = nullptr;
     ani_vm* vm_ = nullptr;
     ani_ref aniCallback_;

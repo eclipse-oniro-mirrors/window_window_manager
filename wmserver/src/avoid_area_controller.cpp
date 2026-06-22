@@ -127,8 +127,8 @@ void AvoidAreaController::AddOrRemoveKeyboard(const sptr<WindowNode>& keyboardNo
     }
     if (lastKeyboardAreaUpdatedWindow != nullptr && lastKeyboardAreaUpdatedWindow != callingWindow) {
         const WindowMode windowMode = lastKeyboardAreaUpdatedWindow->GetWindowMode();
-        if (windowMode == WindowMode::WINDOW_MODE_FULLSCREEN || windowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-            windowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        if (windowMode == WindowMode::WINDOW_MODE_FULLSCREEN ||
+            WindowHelper::IsSplitWindowMode(windowMode)) {
             auto avoidArea = GetAvoidAreaByType(lastKeyboardAreaUpdatedWindow, AvoidAreaType::TYPE_KEYBOARD);
             UpdateAvoidAreaIfNeed(avoidArea, lastKeyboardAreaUpdatedWindow, AvoidAreaType::TYPE_KEYBOARD);
         }
@@ -140,8 +140,7 @@ void AvoidAreaController::AddOrRemoveKeyboard(const sptr<WindowNode>& keyboardNo
     }
     const WindowMode callingWindowMode = callingWindow->GetWindowMode();
     if (callingWindowMode == WindowMode::WINDOW_MODE_FULLSCREEN ||
-        callingWindowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        callingWindowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        WindowHelper::IsSplitWindowMode(callingWindowMode)) {
         auto avoidArea = GetAvoidAreaByType(callingWindow, AvoidAreaType::TYPE_KEYBOARD);
         bool res = UpdateAvoidAreaIfNeed(avoidArea, callingWindow, AvoidAreaType::TYPE_KEYBOARD);
         if (res) {

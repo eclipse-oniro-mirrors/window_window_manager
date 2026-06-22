@@ -73,6 +73,7 @@ ohos_unittest("ws_scene_input_manager_test") {
     "input:libmmi-client",
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
+    "libxml2:libxml2",
   ]
 }
 
@@ -102,6 +103,7 @@ ohos_unittest("ws_scene_session_dirty_manager_test") {
     "input:libmmi-client",
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
+    "libxml2:libxml2",
   ]
 }
 
@@ -132,6 +134,7 @@ ohos_unittest("ws_scene_session_dirty_manager_test2") {
     "input:libmmi-client",
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
+    "libxml2:libxml2",
   ]
 }
 
@@ -304,6 +307,19 @@ ohos_unittest("ws_window_session_property_event_test") {
   module_out_path = module_out_path
 
   sources = [ "window_session_property_event_test.cpp" ]
+
+  deps = [
+    "${window_base_path}/window_scene/intention_event:libintention_event",
+    ws_unittest_common,
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_scene_session_manager_event_test") {
+  module_out_path = module_out_path
+
+  sources = [ "scene_session_manager_event_test.cpp" ]
 
   deps = [
     "${window_base_path}/window_scene/intention_event:libintention_event",

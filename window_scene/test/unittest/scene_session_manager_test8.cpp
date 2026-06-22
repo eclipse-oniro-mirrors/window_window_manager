@@ -117,104 +117,6 @@ HWTEST_F(SceneSessionManagerTest8, WindowLayerInfoChangeCallback, TestSize.Level
 }
 
 /**
- * @tc.name: PostProcessFocus
- * @tc.desc: test function : PostProcessFocus
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.emplace(0, nullptr);
-    ssm_->PostProcessFocus();
-    ssm_->sceneSessionMap_.clear();
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus";
-    sessionInfo.abilityName_ = "PostProcessFocus";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    PostProcessFocusState state;
-    EXPECT_EQ(false, state.enabled_);
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(0, sceneSession);
-    ssm_->PostProcessFocus();
-
-    state.enabled_ = true;
-    state.isFocused_ = false;
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->PostProcessFocus();
-
-    state.isFocused_ = true;
-    state.reason_ = FocusChangeReason::SCB_START_APP;
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->PostProcessFocus();
-
-    sceneSession->SetPostProcessFocusState(state);
-    state.reason_ = FocusChangeReason::DEFAULT;
-    ssm_->PostProcessFocus();
-}
-
-/**
- * @tc.name: PostProcessFocus01
- * @tc.desc: test function : PostProcessFocus with focusableOnShow
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus01, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.clear();
-    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
-    focusGroup->SetFocusedSessionId(0);
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus01";
-    sessionInfo.abilityName_ = "PostProcessFocus01";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sceneSession->persistentId_ = 1;
-
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    sceneSession->SetFocusableOnShow(false);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(0, focusGroup->GetFocusedSessionId());
-
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->isVisible_ = true;
-    ssm_->PostProcessFocus();
-    EXPECT_NE(1, focusGroup->GetFocusedSessionId());
-}
-
-/**
- * @tc.name: PostProcessFocus03
- * @tc.desc: test function : PostProcessFocus
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest8, PostProcessFocus03, TestSize.Level1)
-{
-    ssm_->sceneSessionMap_.clear();
-
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "PostProcessFocus03";
-    sessionInfo.abilityName_ = "PostProcessFocus03";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    sceneSession->persistentId_ = 1;
-
-    sceneSession->SetFocusedOnShow(false);
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(sceneSession->IsFocusedOnShow(), false);
-
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->isVisible_ = true;
-    state = { true, true, true, FocusChangeReason::FOREGROUND };
-    sceneSession->SetPostProcessFocusState(state);
-    ssm_->sceneSessionMap_.emplace(1, sceneSession);
-    ssm_->PostProcessFocus();
-    EXPECT_EQ(sceneSession->IsFocusedOnShow(), true);
-}
-
-/**
  * @tc.name: PostProcessProperty
  * @tc.desc: test function : PostProcessProperty
  * @tc.type: FUNC
@@ -697,11 +599,11 @@ HWTEST_F(SceneSessionManagerTest8, GetWindowModeType, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetHostWindowRect
- * @tc.desc: test function : GetHostWindowRect
+ * @tc.name: GetHostWindowRect01
+ * @tc.desc: test function : GetHostWindowRect01
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect01, TestSize.Level1)
 {
     sptr<IDisplayChangeListener> listener = sptr<DisplayChangeListener>::MakeSptr();
     ASSERT_NE(nullptr, listener);
@@ -725,12 +627,15 @@ HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect, TestSize.Level1)
     auto ret = ssm_->GetHostWindowRect(hostWindowId, rect);
     EXPECT_EQ(WSError::WS_OK, ret);
     EXPECT_EQ(rect.posY_, 0);
+    usleep(NOT_WAIT_SYNC_IN_NS);
+
     PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
         0, SuperFoldStatus::KEYBOARD, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1624, 2472, 1648 });
     sceneSession->GetLayoutController()->SetSessionRect({ 0, 100, 0, 0 });
     ret = ssm_->GetHostWindowRect(hostWindowId, rect);
     EXPECT_EQ(WSError::WS_OK, ret);
     EXPECT_EQ(rect.posY_, 100);
+    usleep(NOT_WAIT_SYNC_IN_NS);
 
     PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
         0, SuperFoldStatus::HALF_FOLDED, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1649, 2472, 40 });
@@ -744,7 +649,39 @@ HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect, TestSize.Level1)
     sceneSession->TransformGlobalRectToRelativeRect(hostRect);
     EXPECT_EQ(WSError::WS_OK, ret);
     EXPECT_EQ(rect.posY_, hostRect.posY_);
+}
 
+/**
+ * @tc.name: GetHostWindowRect02
+ * @tc.desc: test function : GetHostWindowRect02
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect02, TestSize.Level1)
+{
+    sptr<IDisplayChangeListener> listener = sptr<DisplayChangeListener>::MakeSptr();
+    ASSERT_NE(nullptr, listener);
+    DisplayId displayId = 1;
+    listener->OnScreenshot(displayId);
+    constexpr uint32_t NOT_WAIT_SYNC_IN_NS = 500000;
+    usleep(NOT_WAIT_SYNC_IN_NS);
+
+    int32_t hostWindowId = 0;
+    Rect rect = { 0, 0, 0, 0 };
+    SessionInfo info;
+    info.bundleName_ = "GetHostWindowRect";
+    info.abilityName_ = "GetHostWindowRect";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->sessionInfo_.screenId_ = 0;
+    EXPECT_EQ(sceneSession->GetScreenId(), 0);
+    ssm_->sceneSessionMap_.insert(std::make_pair(hostWindowId, sceneSession));
+    PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
+        0, SuperFoldStatus::EXPANDED, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1624, 2472, 1648 });
+    auto ret = ssm_->GetHostWindowRect(hostWindowId, rect);
+    EXPECT_EQ(WSError::WS_OK, ret);
+    EXPECT_EQ(rect.posY_, 0);
+    usleep(NOT_WAIT_SYNC_IN_NS);
+    
     sceneSession->GetSessionProperty()->SetIsSystemKeyboard(false);
     PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
         0, SuperFoldStatus::UNKNOWN, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1624, 2472, 1648 });
@@ -752,12 +689,15 @@ HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect, TestSize.Level1)
     ret = ssm_->GetHostWindowRect(hostWindowId, rect);
     EXPECT_EQ(WSError::WS_OK, ret);
     EXPECT_EQ(rect.posY_, 0);
+    usleep(NOT_WAIT_SYNC_IN_NS);
+
     PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
         0, SuperFoldStatus::FOLDED, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1624, 2472, 1648 });
     sceneSession->GetLayoutController()->SetSessionRect({ 0, 100, 0, 0 });
     ret = ssm_->GetHostWindowRect(hostWindowId, rect);
     EXPECT_EQ(WSError::WS_OK, ret);
     EXPECT_EQ(rect.posY_, 100);
+    usleep(NOT_WAIT_SYNC_IN_NS);
 
     sceneSession->GetSessionProperty()->SetIsSystemKeyboard(true);
     PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
@@ -766,6 +706,7 @@ HWTEST_F(SceneSessionManagerTest8, GetHostWindowRect, TestSize.Level1)
     ret = ssm_->GetHostWindowRect(hostWindowId, rect);
     EXPECT_EQ(WSError::WS_OK, ret);
     EXPECT_EQ(rect.posY_, 1000);
+    usleep(NOT_WAIT_SYNC_IN_NS);
 }
 
 /**
@@ -793,6 +734,13 @@ HWTEST_F(SceneSessionManagerTest8, GetHostGlobalScaledRect, TestSize.Level1)
     EXPECT_EQ(sceneSession->GetScreenId(), 0);
     ssm_->sceneSessionMap_.insert(std::make_pair(hostWindowId, sceneSession));
     auto ret = ssm_->GetHostGlobalScaledRect(hostWindowId, rect);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, ret);
+
+    auto callingTokenId = IPCSkeleton::GetCallingTokenID();
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.callingTokenId = callingTokenId;
+    sceneSession->AddExtensionTokenInfo(tokenInfo);
+    ret = ssm_->GetHostGlobalScaledRect(hostWindowId, rect);
     EXPECT_EQ(WSError::WS_OK, ret);
 }
 
@@ -1101,12 +1049,16 @@ HWTEST_F(SceneSessionManagerTest8, PackWindowPropertyChangeInfo01, TestSize.Leve
     sceneSession1->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession1->GetSessionProperty()->SetDisplayId(0);
     sceneSession1->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sceneSession1->GetSessionProperty()->SetWindowModeInfo(
+        WindowModeInfo { WindowMode::WINDOW_MODE_FULLSCREEN, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY });
     sceneSession1->SetFloatingScale(1.0f);
     sceneSession1->SetIsMidScene(true);
 
     std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
     ssm_->PackWindowPropertyChangeInfo(sceneSession1, windowPropertyChangeInfo);
-    EXPECT_EQ(windowPropertyChangeInfo.size(), 11);
+    EXPECT_EQ(windowPropertyChangeInfo.size(), 12);
+    EXPECT_EQ(std::get<WindowModeInfo>(windowPropertyChangeInfo[WindowInfoKey::WINDOW_MODE_INFO]).windowMode,
+        WindowMode::WINDOW_MODE_FULLSCREEN);
 }
 
 /**
@@ -1416,6 +1368,106 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackList04, TestSize.Level1)
     EXPECT_EQ(WMError::WM_OK, ret);
 
     ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: AddSessionBlackListForSession01
+ * @tc.desc: test function : AddSessionBlackListForSession(session not found)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, AddSessionBlackListForSession01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    auto ret = ssm_->AddSessionBlackListForSession(1, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, ret);
+
+    ssm_->sessionRSBlackListConfigSet_.clear();
+}
+
+/**
+ * @tc.name: AddSessionBlackListForSession02
+ * @tc.desc: test function : AddSessionBlackListForSession(success)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, AddSessionBlackListForSession02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "test";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    const auto persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+
+    auto ret = ssm_->AddSessionBlackListForSession(persistentId, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_TRUE(ssm_->sessionRSBlackListConfigSet_.find(
+        { .windowId = persistentId, .privacyWindowTag = "WMS_DEFAULT" }) != ssm_->sessionRSBlackListConfigSet_.end());
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+}
+
+/**
+ * @tc.name: RemoveSessionBlackListForSession01
+ * @tc.desc: test function : RemoveSessionBlackListForSession(session not found)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackListForSession01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+    auto ret = ssm_->RemoveSessionBlackListForSession(1, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, ret);
+
+    ssm_->sessionRSBlackListConfigSet_.clear();
+}
+
+/**
+ * @tc.name: RemoveSessionBlackListForSession02
+ * @tc.desc: test function : RemoveSessionBlackListForSession(success)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, RemoveSessionBlackListForSession02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "test";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    const auto persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    std::unordered_set<std::string> privacyWindowTags = { "WMS_DEFAULT" };
+
+    auto ret = ssm_->AddSessionBlackListForSession(persistentId, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    ret = ssm_->RemoveSessionBlackListForSession(persistentId, privacyWindowTags);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_TRUE(ssm_->sessionRSBlackListConfigSet_.find(
+        { .windowId = persistentId, .privacyWindowTag = "WMS_DEFAULT" }) == ssm_->sessionRSBlackListConfigSet_.end());
+
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sessionRSBlackListConfigSet_.clear();
+    ssm_->screenRSBlackListConfigMap_.clear();
+    ssm_->sessionBlackListInfoMap_.clear();
 }
 
 /**

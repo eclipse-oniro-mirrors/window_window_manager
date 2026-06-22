@@ -24,27 +24,27 @@
         "name":"OH_NativeWindowManager_UnregisterTouchEventFilter"
     },
     {
-        "first_instroduced":"16",
+        "first_instroduced":"15",
         "name":"OH_WindowManager_ShowWindow"
     },
     {
-        "first_instroduced":"16",
+        "first_instroduced":"15",
         "name":"OH_WindowManager_IsWindowShown"
     },
     {
-        "first_instroduced":"16",
+        "first_instroduced":"15",
         "name":"OH_WindowManager_SetWindowStatusBarEnabled"
     },
     {
-        "first_instroduced":"16",
+        "first_instroduced":"15",
         "name":"OH_WindowManager_SetWindowStatusBarColor"
     },
     {
-        "first_instroduced":"16",
+        "first_instroduced":"15",
         "name":"OH_WindowManager_SetWindowNavigationBarEnabled"
     },
     {
-        "first_instroduced":"16",
+        "first_instroduced":"15",
         "name":"OH_WindowManager_GetWindowAvoidArea"
     },
     {
@@ -206,5 +206,57 @@
     {
         "first_instroduced":"22",
         "name":"OH_PictureInPicture_SetParentWindowId"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_WindowManager_FrameMetrics_IsFirstDrawFrame"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_WindowManager_FrameMetrics_GetInputHandlingDuration"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_WindowManager_FrameMetrics_GetLayoutMeasureDuration"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_WindowManager_FrameMetrics_GetVsyncTimestamp"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_WindowManager_RegisterFrameMetricsMeasuredCallback"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_WindowManager_UnregisterFrameMetricsMeasuredCallback"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_DensityInfo_GetDefaultDensity"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_DensityInfo_GetSystemDensity"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_DensityInfo_GetCustomDensity"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_GetDensityInfoCopy"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_RegisterDensityInfoChangeCallback"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_UnregisterDensityInfoChangeCallback"
+    },
+    {
+        "first_instroduced":"24",
+        "name":"OH_WindowManager_DensityInfo_Release"
     }
 ]

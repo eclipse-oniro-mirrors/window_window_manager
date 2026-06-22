@@ -107,10 +107,6 @@ int32_t OH_PictureInPicture_DestroyPipConfig(PictureInPicture_PipConfig* pipConf
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
     }
     auto config = reinterpret_cast<PiPConfig*>(*pipConfig);
-    if (config == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "config is nullptr");
-        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
-    }
     delete config;
     *pipConfig = nullptr;
     TLOGI(WmsLogTag::WMS_PIP, "pipConfig destroyed");

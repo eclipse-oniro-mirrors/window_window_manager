@@ -133,6 +133,15 @@ public:
         std::vector<ScreenId>& mirrorScreenIds, ScreenId& screenGroupId);
 
     /**
+     * @brief Query screens can be jointly recorded
+     *
+     * @param ScreenIdList Capturing display ids.
+     * @param rect Rect which can be recorded.
+     * @return DM_OK means query success, others means query failed.
+     */
+    DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect);
+
+    /**
      * @brief Make screen as mirror-screen for region of main screen.
      *
      * @param mainScreenId Main screen id.
@@ -291,6 +300,25 @@ public:
     DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
 
     /**
+     * @brief Add virtual screen surface for multi-screen display
+     *
+     * @param screenId Screen id.
+     * @param surface Surface object.
+     * @param surfaceRegion Surface display region (optional).
+     * @return DM_OK means add success, others means add failed.
+     */
+    DMError AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion);
+
+    /**
+     * @brief Remove virtual screen surface for multi-screen display
+     *
+     * @param screenId Screen id.
+     * @param surface Surface object.
+     * @return DM_OK means remove success, others means remove failed.
+     */
+    DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
+
+    /**
      * @brief Add black window list in virtual screen
      *
      * @param persistentIds Black list window ids.
@@ -326,13 +354,18 @@ public:
 
     /**
      * @brief Resize virtual screen
+     * If either the value of renderWidth or renderHeight is 0,
+     * then use the width and height respectively as the values of renderWidth and renderHeight
      *
      * @param screenId the id of virtual screen to be resized.
      * @param width the new width.
      * @param height the new height.
+     * @param renderWidth the render width.
+     * @param renderHeight the render height.
      * @return DM_OK means set success, others means set failed.
      */
-    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height);
+    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth = 0, uint32_t renderHeight = 0);
 
     /**
      * @brief Set virtual screen scale mode

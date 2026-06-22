@@ -60,6 +60,18 @@ class ExtensionWindow {
   occupyEvents(eventFlags, callback) {
     return this.__extension_window__.occupyEvents(eventFlags, callback);
   }
+
+  snapshot(callback) {
+    return this.__extension_window__.snapshot(callback);
+  }
+
+  snapshotSync() {
+    return this.__extension_window__.snapshotSync();
+  }
+
+  snapshotIgnorePrivacy(callback) {
+    return this.__extension_window__.snapshotIgnorePrivacy(callback);
+  }
 }
 
 export default ExtensionWindow;

@@ -538,7 +538,7 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnScreenConnectionChanged, Te
     data.WriteInt32(2);
     data.WriteInt32(3);
     data.WriteInt32(3);
-
+    data.WriteBool(false);
     int ret = screenSessionManagerClientStub_->HandleOnScreenConnectionChanged(data, reply);
     EXPECT_EQ(ret, 0);
 }
@@ -694,6 +694,28 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSensorRotationChanged, Test
     data.WriteFloat(sensorRotation);
 
     int ret = screenSessionManagerClientStub_->HandleOnSensorRotationChanged(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: HandleOnSmartSensorRotationChanged
+ * @tc.desc: HandleOnSmartSensorRotationChanged test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleOnSmartSensorRotationChanged, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+    ScreenId screenId = 0;
+    data.WriteUint64(screenId);
+    float sensorRotation = 90.0f;
+    data.WriteFloat(sensorRotation);
+    bool isSwitchUser = false;
+    data.WriteBool(isSwitchUser);
+
+    int ret = screenSessionManagerClientStub_->HandleOnSmartSensorRotationChanged(data, reply);
     EXPECT_EQ(ret, 0);
 }
 
@@ -1133,6 +1155,147 @@ HWTEST_F(ScreenSessionManagerClientStubTest, HandleSetInternalClipToBounds, Test
     data.WriteBool(true);
     int ret = screenSessionManagerClientStub_->HandleSetInternalClipToBounds(data, reply);
     EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: HandleTransRSEvent
+ * @tc.desc: HandleTransRSEvent test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleTransRSEvent, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+
+    // Write event type - EXT_SCREEN_UNSUPPORT
+    uint32_t eventType = static_cast<uint32_t>(RSExposedEventType::EXT_SCREEN_UNSUPPORT);
+    data.WriteUint32(eventType);
+
+    int ret = screenSessionManagerClientStub_->HandleTransRSEvent(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: HandleTransRSEvent02
+ * @tc.desc: HandleTransRSEvent test with unknown event type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleTransRSEvent02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+
+    uint32_t eventType = 999;
+    data.WriteUint32(eventType);
+
+    int ret = screenSessionManagerClientStub_->HandleTransRSEvent(data, reply);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name: CreateEventByType
+ * @tc.desc: CreateEventByType test with EXT_SCREEN_UNSUPPORT
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, CreateEventByType, TestSize.Level1)
+{
+    RSExposedEventType type = RSExposedEventType::EXT_SCREEN_UNSUPPORT;
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->CreateEventByType(type);
+    ASSERT_NE(event, nullptr);
+}
+
+/**
+ * @tc.name: CreateEventByType02
+ * @tc.desc: CreateEventByType test with unknown type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, CreateEventByType02, TestSize.Level1)
+{
+    RSExposedEventType type = static_cast<RSExposedEventType>(999);
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->CreateEventByType(type);
+    EXPECT_EQ(event, nullptr);
+}
+
+/**
+ * @tc.name: ReadRSEventFromParcel
+ * @tc.desc: ReadRSEventFromParcel test with valid event
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, ReadRSEventFromParcel, TestSize.Level1)
+{
+    MessageParcel data;
+
+    // Write event type - EXT_SCREEN_UNSUPPORT
+    uint32_t eventType = static_cast<uint32_t>(RSExposedEventType::EXT_SCREEN_UNSUPPORT);
+    data.WriteUint32(eventType);
+
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->ReadRSEventFromParcel(data);
+    ASSERT_NE(event, nullptr);
+}
+
+/**
+ * @tc.name: ReadRSEventFromParcel02
+ * @tc.desc: ReadRSEventFromParcel test with unknown event type
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, ReadRSEventFromParcel02, TestSize.Level1)
+{
+    MessageParcel data;
+
+    uint32_t eventType = 999;
+    data.WriteUint32(eventType);
+
+    sptr<RSEventDataBase> event = screenSessionManagerClientStub_->ReadRSEventFromParcel(data);
+    EXPECT_EQ(event, nullptr);
+}
+
+/**
+ * @tc.name: OnRemoteRequestOnScreenOrientationChangedWithOptions
+ * @tc.desc: TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, OnRemoteRequestOnScreenOrientationChangedWithOptions, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerClientStub::GetDescriptor());
+
+    ScreenId screenId = 0;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    float screenOrientation = 90.0f;
+    data.WriteFloat(screenOrientation);
+    bool needAnimation = true;
+    data.WriteBool(needAnimation);
+    bool ignoreRotationLock = false;
+    data.WriteBool(ignoreRotationLock);
+
+    uint32_t code = static_cast<uint32_t>(IScreenSessionManagerClient::ScreenSessionManagerClientMessage::
+        TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS);
+    int res = screenSessionManagerClientStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
+ * @tc.name: HandleScreenClosedStateChange
+ * @tc.desc: HandleScreenClosedStateChange test with CLOSE state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientStubTest, HandleScreenClosedStateChange, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    ScreenClosedState screenClosedState = ScreenClosedState::CLOSE;
+    data.WriteUint32(static_cast<uint32_t>(screenClosedState));
+
+    int res = screenSessionManagerClientStub_->HandleScreenClosedStateChange(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
 }
 } // namespace Rosen
 } // namespace OHOS

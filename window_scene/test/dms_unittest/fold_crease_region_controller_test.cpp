@@ -61,30 +61,6 @@ void FoldCreaseRegionControllerTest::TearDown()
 }
 
 namespace {
-
-/**
- * @tc.name: GetCurrentFoldCreaseRegion
- * @tc.desc: test function : GetCurrentFoldCreaseRegion
- * @tc.type: FUNC
- */
-HWTEST_F(FoldCreaseRegionControllerTest, GetCurrentFoldCreaseRegion, TestSize.Level1)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-    auto controller = FoldCreaseRegionController();
-    controller.isInitModeCreaseRegion_ = false;
-    controller.currentFoldCreaseRegion_ = nullptr;
-    controller.GetCurrentFoldCreaseRegion();
-    EXPECT_TRUE(g_logMsg.find("InitModeCreaseRegion") != std::string::npos);
-    g_logMsg.clear();
-
-    controller.isInitModeCreaseRegion_ = true;
-    controller.currentFoldCreaseRegion_ = new FoldCreaseRegion(0, {});
-    controller.GetCurrentFoldCreaseRegion();
-    EXPECT_FALSE(g_logMsg.find("InitModeCreaseRegion") != std::string::npos);
-    LOG_SetCallback(nullptr);
-}
- 
 /**
  * @tc.name: GetCreaseRegionRects
  * @tc.desc: test function : GetCreaseRegionRects

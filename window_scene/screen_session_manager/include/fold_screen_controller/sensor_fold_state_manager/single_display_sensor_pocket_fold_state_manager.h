@@ -19,10 +19,7 @@
 #include "dm_common.h"
 #include "fold_screen_controller/fold_screen_policy.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
-#include "app_state_data.h"
 #include "iapplication_state_observer.h"
-#include "ability_state_data.h"
-#include "process_data.h"
 
 namespace OHOS {
 namespace Rosen {

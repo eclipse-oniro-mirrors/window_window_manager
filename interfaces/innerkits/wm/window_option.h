@@ -311,8 +311,22 @@ public:
     /**
      * @brief Get sub window outline enabled
      *
+     * @return Is sub window outline enabled
      */
     bool IsSubWindowOutlineEnabled() const;
+    /**
+     * @brief Set sub window zLevelAboveParentLoosened
+     *
+     * @param zLevelAboveParentLoosened whether loose the restriction of sub window z-level above parent
+     */
+    void SetZLevelAboveParentLoosened(bool zLevelAboveParentLoosened);
+ 
+    /**
+     * @brief Get sub window zLevelAboveParentLoosened
+     *
+     * @return whether loose the restriction of sub window z-level above parent
+     */
+    bool IsSubWindowZLevelAboveParentLoosened() const;
 
     /**
      * @brief Set real parent id of UIExtension
@@ -661,6 +675,34 @@ public:
      */
     bool IsFollowCreatorLifecycle() const;
 
+    /**
+    * @brief Set whether this window is a cross-process window.
+    *
+    * @param isCrossProcessWindow true means the window is a cross-process window.
+    */
+    void SetIsCrossProcessWindow(bool isCrossProcessWindow);
+ 	 
+    /**
+    * @brief Check whether this window is a cross-process window.
+    *
+    * @return true - this window is a cross-process window, false - this window is not a cross-process window.
+    */
+    bool IsCrossProcessWindow() const;
+
+    /**
+     * @brief Set whether this window is a block subwindow.
+     *
+     * @param isBlockSubwindow true - is a block subwindow, false - is not a block subwindow.
+     */
+    void SetIsBlockSubwindow(bool isBlockSubwindow);
+
+    /**
+     * @brief Get whether this window is a block subwindow.
+     *
+     * @return true - is a block subwindow, false - is not a block subwindow.
+     */
+    bool IsBlockSubwindow() const;
+
 private:
     Rect windowRect_ { 0, 0, 0, 0 };
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW };
@@ -690,6 +732,7 @@ private:
     bool subWindowDecorEnable_ = false;
     bool subWindowMaximizeSupported_ = false;
     bool subWindowOutlineEnabled_ = false;
+    bool zLevelAboveParentLoosened_ = false;
     bool onlySupportSceneBoard_ = false;
     bool dialogDecorEnable_ = false;
     std::string dialogTitle_ = { "" };
@@ -698,6 +741,7 @@ private:
     int32_t zIndex_ = SPECIFIC_ZINDEX_INVALID;
     bool isSystemKeyboard_ = false;
     bool defaultDensityEnabled_ = false;
+    bool isCrossProcessWindow_ = false;
 
     /*
      * UIExtension
@@ -712,6 +756,7 @@ private:
     bool isConstrainedModal_ = false;
     int64_t startModalExtensionTimeStamp_ = -1;
     bool followCreatorLifecycle_ = false;
+    bool isBlockSubwindow_ = false;
 };
 } // namespace Rosen
 } // namespace OHOS

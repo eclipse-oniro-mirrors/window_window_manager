@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/scene_session_manager_lite.h"
 #include "session_manager/include/zidl/pip_change_listener_stub.h"
@@ -127,6 +128,21 @@ HWTEST_F(SceneSessionManagerLiteTest, RecoverWindowPropertyChangeFlag, TestSize.
 }
 
 /**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: test function : SetProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, SetProcessWatermark, TestSize.Level1)
+{
+    int32_t pid = 100;
+    const std::string watermarkName = "test";
+    bool isEnabled = true;
+    auto expectRet = SceneSessionManager::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    auto ret = SceneSessionManagerLite::GetInstance().SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
  * @tc.name: IsFocusWindowParent
  * @tc.desc: test function : IsFocusWindowParent
  * @tc.type: FUNC
@@ -137,45 +153,6 @@ HWTEST_F(SceneSessionManagerLiteTest, IsFocusWindowParent, TestSize.Level1)
     bool isParent = false;
     EXPECT_EQ(SceneSessionManagerLite::GetInstance().IsFocusWindowParent(token, isParent),
         WSError::WS_ERROR_INVALID_PERMISSION);
-}
-
-class MockPipChgListener : public PipChangeListenerStub {
-public:
-    void OnPipStart(int32_t windowId) override {};
-};
-
-HWTEST_F(SceneSessionManagerLiteTest, UnregPipChgListenerByScreenId_ShouldStillRetOK_WhenNotReg, TestSize.Level1)
-{
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnregisterPipChgListenerByScreenId(1), WMError::WM_OK);
-}
-
-HWTEST_F(SceneSessionManagerLiteTest, UnregPipChgListenerByScreenId_ShouldRetOK_WhenRegOk, TestSize.Level1)
-{
-    sptr<IPipChangeListener> listener = sptr<MockPipChgListener>::MakeSptr();
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().RegisterPipChgListenerByScreenId(1, listener), WMError::WM_OK);
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnregisterPipChgListenerByScreenId(1), WMError::WM_OK);
-}
-
-HWTEST_F(SceneSessionManagerLiteTest, RegisterPipChgListenerByScreenId, TestSize.Level1)
-{
-    auto result = SceneSessionManagerLite::GetInstance().RegisterPipChgListenerByScreenId(1, nullptr);
-    EXPECT_EQ(result, WMError::WM_ERROR_INVALID_PARAM);
-}
-
-HWTEST_F(SceneSessionManagerLiteTest, SetPipEnableByScreenId, TestSize.Level1)
-{
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().SetPipEnableByScreenId(1, true), WMError::WM_OK);
-}
-
-HWTEST_F(SceneSessionManagerLiteTest, UnsetPipEnableByScreenId_ShouldRetOk_WhenNotSet, TestSize.Level1)
-{
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnsetPipEnableByScreenId(1), WMError::WM_OK);
-}
-
-HWTEST_F(SceneSessionManagerLiteTest, UnsetPipEnableByScreenId_ShouldRetOk_WhenSetOk, TestSize.Level1)
-{
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().SetPipEnableByScreenId(1, true), WMError::WM_OK);
-    EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnsetPipEnableByScreenId(1), WMError::WM_OK);
 }
 
 /**
@@ -189,6 +166,50 @@ HWTEST_F(SceneSessionManagerLiteTest, GetDisplayIdByWindowId01, TestSize.Level1)
     std::unordered_map<uint64_t, DisplayId> windowDisplayIdMap;
     EXPECT_EQ(SceneSessionManagerLite::GetInstance().GetDisplayIdByWindowId(windowIds, windowDisplayIdMap),
         WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UnregisterPipChgListenerByScreenId
+ * @tc.desc: test function : UnregisterPipChgListenerByScreenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UnregisterPipChgListenerByScreenId, TestSize.Level1)
+{
+    EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnregisterPipChgListenerByScreenId(1),
+        WMError::WM_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: RegisterPipChgListenerByScreenId
+ * @tc.desc: test function : RegisterPipChgListenerByScreenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, RegisterPipChgListenerByScreenId, TestSize.Level1)
+{
+    auto result = SceneSessionManagerLite::GetInstance().RegisterPipChgListenerByScreenId(1, nullptr);
+    EXPECT_EQ(result, WMError::WM_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: SetPipEnableByScreenId
+ * @tc.desc: test function : SetPipEnableByScreenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, SetPipEnableByScreenId, TestSize.Level1)
+{
+    EXPECT_EQ(SceneSessionManagerLite::GetInstance().SetPipEnableByScreenId(1, true),
+        WMError::WM_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: UnsetPipEnableByScreenId
+ * @tc.desc: test function : UnsetPipEnableByScreenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UnsetPipEnableByScreenId, TestSize.Level1)
+{
+    EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnsetPipEnableByScreenId(1),
+        WMError::WM_ERROR_INVALID_PERMISSION);
 }
 } // namespace
 } // namespace Rosen

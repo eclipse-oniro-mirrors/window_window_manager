@@ -18,6 +18,7 @@
 #include <iservice_registry.h>
 #include <system_ability_definition.h>
 #include "iremote_object_mocker.h"
+#include "parameters.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
 #include "session_manager_lite.h"
@@ -40,6 +41,7 @@ public:
 private:
     sptr<SessionManager> sm_ = nullptr;
     int32_t userId_ = 100;
+    std::string isConcurrentuser_;
 };
 
 void SessionManagerTest::SetUpTestCase() {}
@@ -48,11 +50,15 @@ void SessionManagerTest::TearDownTestCase() {}
 
 void SessionManagerTest::SetUp()
 {
+    isConcurrentuser_ = OHOS::system::GetParameter("persist.dms.concurrentuser", "");
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "true");
     sm_ = &SessionManager::GetInstance(userId_);
 }
 
 void SessionManagerTest::TearDown()
 {
+    SessionManager::sessionManagerMap_.clear();
+    OHOS::system::SetParameter("persist.dms.concurrentuser", isConcurrentuser_);
     sm_ = nullptr;
 }
 
@@ -67,12 +73,12 @@ HWTEST_F(SessionManagerTest, GetSceneSessionManagerProxy, TestSize.Level1)
     sm_->RemoveSSMDeathRecipient();
     sm_->ClearSessionManagerProxy();
     auto sceneSessionManagerProxy = sm_->GetSceneSessionManagerProxy();
-    ASSERT_NE(nullptr, sceneSessionManagerProxy);
+    EXPECT_EQ(nullptr, sceneSessionManagerProxy);
 
     sm_->ClearSessionManagerProxy();
     sm_->sessionManagerServiceProxy_ = SessionManagerLite::GetInstance().GetSessionManagerServiceProxy();
     sceneSessionManagerProxy = sm_->GetSceneSessionManagerProxy();
-    ASSERT_NE(nullptr, sceneSessionManagerProxy);
+    EXPECT_EQ(nullptr, sceneSessionManagerProxy);
 }
 
 /**
@@ -105,7 +111,6 @@ HWTEST_F(SessionManagerTest, OnRemoteDied1, TestSize.Level1)
     auto deathRecipient = sptr<FoundationDeathRecipient>::MakeSptr(userId_);
     deathRecipient->OnRemoteDied(wptrDeath);
     ASSERT_EQ(false, sm_->isWMSConnected_);
-    ASSERT_EQ(false, sm_->isFoundationListenerRegistered_);
     ASSERT_EQ(false, sm_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sm_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sm_->sessionManagerServiceProxy_);
@@ -136,7 +141,6 @@ HWTEST_F(SessionManagerTest, OnFoundationDied, TestSize.Level1)
 {
     sm_->OnFoundationDied();
     ASSERT_EQ(false, sm_->isWMSConnected_);
-    ASSERT_EQ(false, sm_->isFoundationListenerRegistered_);
     ASSERT_EQ(false, sm_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sm_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sm_->sessionManagerServiceProxy_);
@@ -190,7 +194,7 @@ HWTEST_F(SessionManagerTest, RemoveSSMDeathRecipient, TestSize.Level1)
 
     // branch 2
     auto sceneProxy = sm_->GetSceneSessionManagerProxy();
-    ASSERT_NE(nullptr, sceneProxy);
+    EXPECT_EQ(nullptr, sceneProxy);
     sm_->RemoveSSMDeathRecipient();
 }
 
@@ -249,7 +253,7 @@ HWTEST_F(SessionManagerTest, InitSceneSessionManagerProxy, TestSize.Level1)
     sm_->InitSessionManagerServiceProxy();
     ASSERT_NE(nullptr, sm_->sessionManagerServiceProxy_);
     sm_->InitSceneSessionManagerProxy();
-    ASSERT_NE(nullptr, sm_->sceneSessionManagerProxy_);
+    EXPECT_EQ(nullptr, sm_->sceneSessionManagerProxy_);
 }
 
 /**
@@ -349,6 +353,9 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     int32_t wmsUserId = INVALID_USER_ID;
     int32_t screenId = DEFAULT_SCREEN_ID;
     bool isConnected = false;
+    int32_t pid = -1;
+    int32_t fromUserId = INVALID_USER_ID;
+    int32_t fromPid = INVALID_PID;
     auto listener = sptr<SessionManagerServiceRecoverListener>::MakeSptr(userId_);
 
     // branch 4: TRANS_ID_ON_WMS_CONNECTION_CHANGED
@@ -358,6 +365,9 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(wmsUserId);
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
+    data.WriteInt32(pid);
+    data.WriteInt32(fromUserId);
+    data.WriteInt32(fromPid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 
@@ -367,6 +377,9 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInt32(wmsUserId);
     data.WriteInt32(screenId);
     data.WriteBool(isConnected);
+    data.WriteInt32(pid);
+    data.WriteInt32(fromUserId);
+    data.WriteInt32(fromPid);
     ret = listener->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ret, ERR_NONE);
 
@@ -375,6 +388,23 @@ HWTEST_F(SessionManagerTest, SMSRecoverListener3, TestSize.Level1)
     data.WriteInterfaceToken(SessionManagerServiceRecoverListener::GetDescriptor());
     listener->OnRemoteRequest(code, data, reply, option);
     ASSERT_NE(nullptr, listener);
+}
+
+/**
+ * @tc.name: GetMockSessionManagerServiceProxy
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerTest, GetMockSessionManagerServiceProxy, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, sm_);
+    auto proxy = sm_->GetMockSessionManagerServiceProxy();
+    EXPECT_EQ(nullptr, proxy);
+
+    auto ret = sm_->InitMockSMSProxy();
+    EXPECT_EQ(WMError::WM_OK, ret);
+    proxy = sm_->GetMockSessionManagerServiceProxy();
+    ASSERT_NE(nullptr, proxy);
 }
 } // namespace
 } // namespace Rosen

@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class MainSession : public SceneSession {
 public:
-    MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    MainSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~MainSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -32,9 +32,7 @@ public:
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
     void NotifyForegroundInteractiveStatus(bool interactive) override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
-    void RectCheck(uint32_t curWidth, uint32_t curHeight) override;
-    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
+    void RectCheck(float curWidth, float curHeight, const ScreenMetrics& screenMetrics) override;
 
     /*
      * Window Hierarchy
@@ -62,19 +60,19 @@ public:
     bool IsModal() const override;
     bool IsApplicationModal() const override;
     WSError NotifyMainModalTypeChange(bool isModal) override;
-    WSError NotifySupportWindowModesChange(
-        const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
     WSError UpdateFlag(const std::string& flag) override;
 
     /*
      * Window LifeCycle
      */
+    WSError SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon) override;
+    void SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func) override;
     void RegisterSessionLockStateChangeCallback(NotifySessionLockStateChangeCallback&& callback) override;
     void NotifySessionLockStateChange(bool isLockedState) override;
     void SetSessionLockState(bool isLockedState);
     bool GetSessionLockState() const;
-    WSError SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon) override;
-    void SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func) override;
+    void SetSceneSessionDestructNotificationFunc(NotifySceneSessionDestructFunc&& func) override;
+    void SetIsUserRequestedExit(bool isUserRequestedExit) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) const override;
     void SetRecentSessionState(RecentSessionInfo& info, const SessionState& state) override;
 
@@ -86,7 +84,14 @@ public:
     bool IsFullScreenInForceSplit() override;
     void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
-    void RegisterForceSplitEnableListener(NotifyForceSplitEnableFunc&& func) override;
+    void RegisterPageEnableCallback(PageEnableCallback&& callback) override;
+    void RegisterSetSelectModeCallback(SetSelectModeCallback&& callback) override;
+    WSError NotifyPageEnable(const std::string& action, const std::string& message) override;
+    WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
+    WMError NotifySplitRatioChanged(float newRatio) override;
+    void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) override;
 
     /*
      * Window Pattern
@@ -101,6 +106,39 @@ public:
     void SetPrelaunch() override;
     bool IsPrelaunch() const override;
 
+    /*
+     * Window Layout
+     */
+    /**
+     * @brief Main window implementation: update own limits and propagate to all children
+     *
+     * Main window updates its own attached window limits and then requests all attached
+     * child windows to update their limits as well. This ensures limits are propagated
+     * throughout the window hierarchy.
+     *
+     * @param sourcePersistentId the persistentId of the window providing the limits
+     * @param attachedWindowLimits the other window's limits
+     * @param isIntersectedHeightLimit whether to limit height with attached window's limits
+     * @param isIntersectedWidthLimit whether to limit width with attached window's limits
+     * @return Returns WSError::WS_OK if success, otherwise failed.
+     */
+    WSError RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit = true,
+        bool isIntersectedWidthLimit = true, int32_t excludePersistentId = INVALID_SESSION_ID) override;
+
+    /**
+     * @brief Main window implementation: remove own limits and propagate to all children
+     *
+     * Main window removes its own attached window limits and then requests all attached
+     * child windows to remove their limits as well.
+     *
+     * @param sourcePersistentId the persistentId of the source window whose limits should be removed
+     * @param excludePersistentId the persistentId of child window to exclude from notification
+     * @return Returns WSError::WS_OK if success, otherwise failed.
+     */
+    WSError RequestRemoveAttachedWindowLimits(int32_t sourcePersistentId,
+        int32_t excludePersistentId = INVALID_SESSION_ID) override;
+
 protected:
     void UpdatePointerArea(const WSRect& rect) override;
     bool CheckPointerEventDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const override;
@@ -112,9 +150,12 @@ private:
      * Window LifeCycle
      */
     WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon);
-
     NotifySessionLockStateChangeCallback onSessionLockStateChangeCallback_;
     bool isLockedState_ = false;
+    NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;
+    bool isUserRequestedExit_ = false;
+    bool GetSessionBoundedSystemTray(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const;
+
     /*
      * Window Layout
      */
@@ -131,7 +172,9 @@ private:
     ForceSplitFullScreenChangeCallback forceSplitFullScreenChangeCallback_;
     std::atomic_bool isFullScreenInForceSplit_ { false };
     CompatibleModeChangeCallback compatibleModeChangeCallback_;
-    NotifyForceSplitEnableFunc forceSplitEnableFunc_;
+    PageEnableCallback pageEnableCallback_;
+    SetSelectModeCallback setSelectModeCallback_;
+    SplitRatioChangeCallback splitRatioChangeCallback_;
 
     /*
      * Prelaunch check

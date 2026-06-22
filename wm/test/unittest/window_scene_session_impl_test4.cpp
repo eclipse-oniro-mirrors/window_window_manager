@@ -17,7 +17,9 @@
 #include <parameters.h>
 #include "ability_context_impl.h"
 #include "display_info.h"
+#include "fold_screen_state_internel.h"
 #include "mock_ability_context_impl.h"
+#include "mock_display_manager_adapter.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
 #include "mock_window_adapter.h"
@@ -296,12 +298,13 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediately, TestSize.Leve
     sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSessionImpl->state_ = WindowState::STATE_CREATED;
-    auto ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_FLOATING);
+    WindowModeInfo floatingModeInfo = { WindowMode::WINDOW_MODE_FLOATING };
+    auto ret = windowSceneSessionImpl->UpdateWindowModeImmediately(floatingModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_FLOATING, windowSceneSessionImpl->property_->GetWindowMode());
 
     windowSceneSessionImpl->state_ = WindowState::STATE_HIDDEN;
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_FLOATING);
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(floatingModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_FLOATING, windowSceneSessionImpl->property_->GetWindowMode());
 
@@ -310,18 +313,68 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediately, TestSize.Leve
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    WindowModeInfo splitPrimaryModeInfo = { WindowMode::WINDOW_MODE_SPLIT_PRIMARY };
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(splitPrimaryModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_SPLIT_PRIMARY, windowSceneSessionImpl->property_->GetWindowMode());
 
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    WindowModeInfo splitSecondaryModeInfo = { WindowMode::WINDOW_MODE_SPLIT_SECONDARY };
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(splitSecondaryModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_SPLIT_SECONDARY, windowSceneSessionImpl->property_->GetWindowMode());
 
     windowSceneSessionImpl->state_ = WindowState::STATE_UNFROZEN;
-    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    ret = windowSceneSessionImpl->UpdateWindowModeImmediately(splitSecondaryModeInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
     ASSERT_EQ(WindowMode::WINDOW_MODE_SPLIT_SECONDARY, windowSceneSessionImpl->property_->GetWindowMode());
+}
+
+/**
+ * @tc.name: UpdateWindowModeImmediatelySplitMaximizeMode
+ * @tc.desc: Verify UpdateWindowModeImmediately restores MaximizeMode to MODE_RECOVER in SPLIT mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediatelySplitMaximizeMode, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateWindowModeImmediatelySplitMaximizeMode");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "SplitMaxModeTestBundle", "SplitMaxModeTestModule", "SplitMaxModeTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->property_->SetPersistentId(1);
+    window->hostSession_ = session;
+
+    // Set window to SHOWN state with a non-RECOVER maximize mode
+    window->state_ = WindowState::STATE_SHOWN;
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    ASSERT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+
+    // SPLIT_PRIMARY should restore maximize mode to MODE_RECOVER
+    WindowModeInfo splitPrimaryInfo = { WindowMode::WINDOW_MODE_SPLIT_PRIMARY };
+    auto ret = window->UpdateWindowModeImmediately(splitPrimaryInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
+
+    // Set to non-split mode — maximize mode should NOT be changed
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    WindowModeInfo floatingInfo = { WindowMode::WINDOW_MODE_FLOATING };
+    ret = window->UpdateWindowModeImmediately(floatingInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+
+    // SPLIT_SECONDARY should also restore maximize mode
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_FULL_FILL);
+    WindowModeInfo splitSecondaryInfo = { WindowMode::WINDOW_MODE_SPLIT_SECONDARY };
+    ret = window->UpdateWindowModeImmediately(splitSecondaryInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
+
+    // WINDOW_MODE_SPLIT (generic) should also restore maximize mode
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_FULL_FILL);
+    WindowModeInfo splitGenericInfo = { WindowMode::WINDOW_MODE_SPLIT };
+    ret = window->UpdateWindowModeImmediately(splitGenericInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
 }
 
 /**
@@ -663,20 +716,15 @@ HWTEST_F(WindowSceneSessionImplTest4, IsInMappingRegionForCompatibleMode, TestSi
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     windowSceneSessionImpl->property_->SetPersistentId(1);
     windowSceneSessionImpl->hostSession_ = session;
-    windowSceneSessionImpl->property_->SetWindowRect({ 880, 0, 800, 1600 });
+    windowSceneSessionImpl->globalScaledRect_ = { 880, 0, 800, 1600 };
     int32_t displayX = 400;
     int32_t displayY = 400;
-    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     bool ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(true, ret);
     displayX = 1000;
     displayY = 1000;
-    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_ERROR_IPC_FAILED));
     ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
     EXPECT_EQ(false, ret);
-    EXPECT_CALL(*session, GetGlobalScaledRect(_)).Times(1).WillOnce(Return(WMError::WM_OK));
-    ret = windowSceneSessionImpl->IsInMappingRegionForCompatibleMode(displayX, displayY);
-    EXPECT_EQ(true, ret);
 }
 
 /**
@@ -1083,16 +1131,17 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
     window->property_->SetPersistentId(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->windowSystemConfig_.freeMultiWindowSupport_ = false;
     window->windowSystemConfig_.isSystemDecorEnable_ = false;
+    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
     window->windowSystemConfig_.isSystemDecorEnable_ = true;
     window->property_->SetDecorEnable(true);
-    EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
-    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
@@ -1100,15 +1149,15 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
     EXPECT_EQ(window->Create(abilityContext_, session), WMError::WM_OK);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
-
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
     window->windowSystemConfig_.isSystemDecorEnable_ = true;
     window->property_->SetDecorEnable(true);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
- 
+
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->property_->SetPcAppInpadCompatibleMode(true);
+    EXPECT_EQ(WMError::WM_OK, window->SetWindowTitle(title));
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
     window->windowSystemConfig_.isSystemDecorEnable_ = false;
     EXPECT_EQ(WMError::WM_OK, window->SetWindowTitle(title));
@@ -1349,6 +1398,100 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode03, TestSize.Level1)
     subWindow->property_->SetWindowModeSupportType(1);
     auto ret = subWindow->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode04
+ * @tc.desc: SetWindowMode with WINDOW_MODE_SPLIT_PRIMARY triggers EVENT_SPLIT_PRIMARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1008);
+    SessionInfo sessionInfo = { "SetWindowMode04Bundle", "SetWindowMode04Module", "SetWindowMode04Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SPLIT_PRIMARY, _))
+        .Times(1)
+        .WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode05
+ * @tc.desc: SetWindowMode with WINDOW_MODE_SPLIT_SECONDARY triggers EVENT_SPLIT_SECONDARY
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode05");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1009);
+    SessionInfo sessionInfo = { "SetWindowMode05Bundle", "SetWindowMode05Module", "SetWindowMode05Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_SECONDARY | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SPLIT_SECONDARY, _))
+        .Times(1)
+        .WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode06
+ * @tc.desc: SetWindowMode with WINDOW_MODE_SPLIT triggers EVENT_SPLIT_PRIMARY (PC scenario)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode06");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1010);
+    SessionInfo sessionInfo = { "SetWindowMode06Bundle", "SetWindowMode06Module", "SetWindowMode06Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT | WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SPLIT_PRIMARY, _))
+        .Times(1)
+        .WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowMode07
+ * @tc.desc: SetWindowMode with FULLSCREEN does not trigger split events
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, SetWindowMode07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowMode07");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1011);
+    SessionInfo sessionInfo = { "SetWindowMode07Bundle", "SetWindowMode07Module", "SetWindowMode07Ability" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    // OnSessionEvent should NOT be called for FULLSCREEN mode
+    EXPECT_CALL(*session, OnSessionEvent(_, _)).Times(0);
+    auto ret = window->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    EXPECT_EQ(WMError::WM_OK, ret);
 }
 
 /**
@@ -1917,13 +2060,15 @@ HWTEST_F(WindowSceneSessionImplTest4, OnContainerModalEvent02, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     EXPECT_NE(nullptr, session);
     window->hostSession_ = session;
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_hover_event", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_minimize_event", ""));
+    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_close_event", ""));
     ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_2_3_landscape", ""));
     ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_1_1_landscape", ""));
     ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_18_9_landscape", ""));
     ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_default_landscape", ""));
     ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_change_to_split_landscape", ""));
     ASSERT_EQ(WMError::WM_DO_NOTHING, window->OnContainerModalEvent("win_change_to_split_landscape_error", ""));
-    ASSERT_EQ(WMError::WM_OK, window->OnContainerModalEvent("win_hover_event", ""));
 }
 
 /**
@@ -2444,6 +2589,110 @@ HWTEST_F(WindowSceneSessionImplTest4, GetRotationLocked, TestSize.Level0)
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     ret = window->GetRotationLocked(locked);
     EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: GetEventOriginalPosition
+ * @tc.desc: Test GetEventOriginalPosition with various conditions
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetEventOriginalPosition");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    EventPositionInfo eventPositionInfo;
+    EventPositionInfo originalEventPositionInfo;
+
+    windowSceneSessionImpl->hostSession_ = nullptr;
+    auto ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+    windowSceneSessionImpl->property_->SetDisplayId(0);
+
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
+
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        return;
+    }
+
+    windowSceneSessionImpl->property_->SetDisplayId(999);
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetFoldStatus()).WillRepeatedly(Return(FoldStatus::HALF_FOLD));
+
+    windowSceneSessionImpl->superFoldOffsetY_ = -1;
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
+}
+
+/**
+ * @tc.name: GetEventOriginalPosition01
+ * @tc.desc: Test GetEventOriginalPosition with valid superFoldOffsetY_
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition01, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        return;
+    }
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetEventOriginalPosition01");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+    windowSceneSessionImpl->property_->SetDisplayId(999);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetFoldStatus()).WillRepeatedly(Return(FoldStatus::HALF_FOLD));
+
+    windowSceneSessionImpl->superFoldOffsetY_ = 100;
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    eventPositionInfo.displayXPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.displayYPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalX = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalY = 400.0;
+
+    EventPositionInfo originalEventPositionInfo;
+    auto ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200 + 100);
+    EXPECT_EQ(originalEventPositionInfo.displayXPos, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_EQ(originalEventPositionInfo.displayYPos, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_EQ(originalEventPositionInfo.globalX, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
+
+    eventPositionInfo.displayXPos = 100.5;
+    eventPositionInfo.displayYPos = 200.5;
+    eventPositionInfo.globalX = 300.0;
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200 + 100);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.5);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.5 + 100);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, 300.0);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
 }
 } // namespace
 } // namespace Rosen

@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 
-#include "window_property.h"
+#include "pointer_event.h"
 #include "window_helper.h"
+#include "window_property.h"
 #include "wm_common.h"
 
 namespace OHOS {

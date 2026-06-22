@@ -24,6 +24,7 @@
 #include "fold_screen_controller/fold_screen_state_machine.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
 #include "fold_screen_info.h"
+#include "nlohmann/json.hpp"
 
 namespace OHOS::Rosen {
 enum class DisplayDeviceType :uint32_t {
@@ -38,13 +39,15 @@ enum class DisplayDeviceType :uint32_t {
 class FoldScreenController : public DMS::FoldScreenBaseController {
 public:
     FoldScreenController(std::recursive_mutex& displayInfoMutex,
-        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler);
+        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler,
+        std::shared_ptr<TaskScheduler> taskScheduler);
     virtual ~FoldScreenController();
 
     void BootAnimationFinishPowerInit() override;
     void SetDisplayMode(const FoldDisplayMode displayMode) override;
     void RecoverDisplayMode() override;
     FoldDisplayMode GetDisplayMode() override;
+    FoldDisplayMode GetCurrentDisplayMode() const override;
     bool IsFoldable() override;
     FoldStatus GetFoldStatus() override;
     bool GetTentMode() override;
@@ -78,12 +81,14 @@ public:
     void SetIsClearingBootAnimation(bool isClearingBootAnimation) override;
     nlohmann::ordered_json GetFoldCreaseRegionJson() override;
     void NotifyRunSensorFoldStateManager() override;
+    float GetSpecialVirtualPixelRatio() override;
 private:
     sptr<FoldScreenPolicy> GetFoldScreenPolicy(DisplayDeviceType productType);
     sptr<FoldScreenPolicy> foldScreenPolicy_;
     sptr<SensorFoldStateManager> sensorFoldStateManager_;
     std::recursive_mutex& displayInfoMutex_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
+    std::shared_ptr<TaskScheduler> taskScheduler_;
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };
 } // namespace OHOS::Rosen

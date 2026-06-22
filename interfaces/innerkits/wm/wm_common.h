@@ -17,6 +17,7 @@
 #define OHOS_ROSEN_WM_COMMON_H
 
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -31,6 +32,7 @@
 #include "dm_common.h"
 #include "securec.h"
 #include "wm_animation_common.h"
+#include "wm_layout_common.h"
 #include "wm_math.h"
 #include "wm_type.h"
 
@@ -47,6 +49,7 @@ constexpr int32_t MIN_COLOR_MODE = -1;
 constexpr int32_t MAX_COLOR_MODE = 1;
 constexpr int32_t LIGHT_COLOR_MODE = 0;
 constexpr int32_t DARK_COLOR_MODE = 1;
+constexpr int32_t INVALID_REQUEST_ID = 0;
 constexpr int32_t ANCO_SERVICE_BROKER_UID = 5557;
 constexpr uint32_t MIN_SPACING_BETWEEN_BUTTONS = 8;
 constexpr uint32_t MAX_SPACING_BETWEEN_BUTTONS = 24;
@@ -94,6 +97,11 @@ constexpr float COMPACT_SIMULATION_SCALE_DPI = 3.25f;
 constexpr float COMPACT_NORMAL_SCALE = 1.0f;
 
 /*
+ * Sub Window
+ */
+constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
+
+/*
  * Window outline
  */
 constexpr uint32_t OUTLINE_COLOR_DEFAULT = 0xff64bb5c; // Default color, ARGB format.
@@ -104,37 +112,8 @@ constexpr uint32_t OUTLINE_FOR_WINDOW_MAX_NUM = 256; // Up to 256 windows can sh
 constexpr uint32_t OUTLINE_COLOR_OPAQUE_OFFSET = 24; // Shift right 24 bits.
 constexpr uint32_t OUTLINE_COLOR_OPAQUE = 0xff; // Color opaque byte.
 
-/*
- * Sub Window
- */
-constexpr uint32_t MAX_SUB_WINDOW_LEVEL = 10;
+constexpr uint32_t MAX_RATIO_LIMITS_COUNT = 10; // Max ratio limits count.
 }
-
-/**
- * @brief Enumerates type of window manager agent.
- */
-enum class WindowManagerAgentType : uint32_t {
-    WINDOW_MANAGER_AGENT_TYPE_FOCUS,
-    WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
-    WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
-    WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
-    WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM = 7,
-    WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
-    WINDOW_MANAGER_AGENT_TYPE_CAMERA_WINDOW,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE,
-    WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
-    WINDOW_MANAGER_AGENT_TYPE_PIP,
-    WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY,
-    WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
-    WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
-    WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
-    WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
-    WINDOW_MANAGER_AGENT_TYPE_END,
-};
 
 /**
  * @brief Enumerates type of window.
@@ -205,6 +184,7 @@ enum class WindowType : uint32_t {
     WINDOW_TYPE_MAGNIFICATION_MENU,
     WINDOW_TYPE_SELECTION,
     WINDOW_TYPE_FB,
+    WINDOW_TYPE_FV,
     ABOVE_APP_SYSTEM_WINDOW_END,
 
     SYSTEM_SUB_WINDOW_BASE = 2500,
@@ -228,32 +208,6 @@ struct RealTimeSwitchInfo {
 };
 
 /**
- * @struct HookInfo.
- *
- * @brief hook diaplayinfo deepending on the window size.
- */
-struct HookInfo {
-    uint32_t width_;
-    uint32_t height_;
-    float_t density_;
-    uint32_t rotation_;
-    bool enableHookRotation_;
-    uint32_t displayOrientation_;
-    bool enableHookDisplayOrientation_;
-
-    std::string ToString() const
-    {
-        std::ostringstream oss;
-        oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
-            << ", rotation: " << rotation_
-            << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
-            << ", orientation: " << displayOrientation_
-            << ", enableHookOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false");
-        return oss.str();
-    }
-};
-
-/**
  * @brief Enumerates mode of window.
  */
 enum class WindowMode : uint32_t {
@@ -264,7 +218,61 @@ enum class WindowMode : uint32_t {
     WINDOW_MODE_FLOATING,
     WINDOW_MODE_PIP,
     WINDOW_MODE_FB,
-    END = WINDOW_MODE_FB,
+    WINDOW_MODE_SPLIT,
+    WINDOW_MODE_FV,
+    END = WINDOW_MODE_FV,
+};
+
+/**
+ * @brief Enumerates type of split ratio preference.
+ */
+enum class SplitRatioPreference : uint32_t {
+    EQUAL = 0,
+    PRIMARY_DOMINANT = 1,
+    SECONDARY_DOMINANT = 2
+};
+
+/**
+ * @brief Enumerates split style of window.
+ */
+enum class SplitStyle : uint32_t {
+    TWO_WINDOW_HORIZONTAL = 0,
+    TWO_WINDOW_VERTICAL,
+    THREE_WINDOW_HORIZONTAL,
+};
+
+/**
+ * @brief Split index constants for split window mode.
+ */
+static constexpr int32_t SPLIT_INDEX_PRIMARY = 0;
+static constexpr int32_t SPLIT_INDEX_SECONDARY = 1;
+
+/**
+ * @brief Window mode info, including mode, split style and split index.
+ */
+struct WindowModeInfo {
+    WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    SplitStyle splitStyle = SplitStyle::TWO_WINDOW_HORIZONTAL;
+    int32_t splitIndex = SPLIT_INDEX_PRIMARY;
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
+               parcel.WriteInt32(static_cast<int32_t>(splitStyle)) && parcel.WriteInt32(splitIndex);
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        uint32_t windowModeValue = 1;
+        int32_t splitStyleValue = 0;
+        if (!parcel.ReadUint32(windowModeValue) || !parcel.ReadInt32(splitStyleValue) ||
+            !parcel.ReadInt32(splitIndex)) {
+            return false;
+        }
+        windowMode = static_cast<WindowMode>(windowModeValue);
+        splitStyle = static_cast<SplitStyle>(splitStyleValue);
+        return true;
+    }
 };
 
 /**
@@ -321,12 +329,14 @@ enum WindowModeSupport : uint32_t {
     WINDOW_MODE_SUPPORT_SPLIT_SECONDARY = 1 << 3,
     WINDOW_MODE_SUPPORT_PIP = 1 << 4,
     WINDOW_MODE_SUPPORT_FB = 1 << 5,
+    WINDOW_MODE_SUPPORT_SPLIT = 1 << 6,
     WINDOW_MODE_SUPPORT_ALL = WINDOW_MODE_SUPPORT_FULLSCREEN |
                               WINDOW_MODE_SUPPORT_SPLIT_PRIMARY |
                               WINDOW_MODE_SUPPORT_SPLIT_SECONDARY |
                               WINDOW_MODE_SUPPORT_FLOATING |
                               WINDOW_MODE_SUPPORT_PIP |
-                              WINDOW_MODE_SUPPORT_FB
+                              WINDOW_MODE_SUPPORT_FB  |
+                              WINDOW_MODE_SUPPORT_SPLIT
 };
 
 /**
@@ -414,7 +424,32 @@ enum class WMError : int32_t {
     WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED,
     WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED,
     WM_ERROR_INVALID_WINDOW_TYPE,
+    WM_ERROR_FV_REPEAT_OPERATION,
+    WM_ERROR_FV_INVALID_STATE,
+    WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED,
+    WM_ERROR_FV_START_FAILED,
+    WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,
+    WM_ERROR_FORBID_SUBWINDOW,
 };
+
+/**
+ * @brief Enumerates error code of window only used for dfx.
+ */
+enum class WMErrorReason : int32_t {
+    WM_REASON = 0,
+    WM_REASON_WINDOW_CREATE_ERR,
+    WM_REASON_WINDOW_SHOW_ERR,
+    WM_REASON_WINDOW_HIDE_ERR,
+    WM_REASON_WINDOW_DESTROY_ERR,
+
+    WM_REASON_SUB_WINDOW = 100,
+    WM_REASON_SUB_WINDOW_IPC_ERR,
+    WM_REASON_SUB_WINDOW_IPC_CREATE_ERR,
+    WM_REASON_SUB_WINDOW_IPC_RECOVER_ERR,
+    WM_REASON_SUB_WINDOW_IPC_DESTROY_ERR,
+    WM_REASON_SUB_WINDOW_IPC_BIND_DIALOG_TARGET_ERR,
+};
+
 
 /**
  * @brief Enumerates error code of window only used for js api.
@@ -454,6 +489,12 @@ enum class WmErrorCode : int32_t {
     WM_ERROR_FB_UPDATE_TEMPLATE_TYPE_DENIED = 1300027,
     WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED = 1300028,
     WM_ERROR_INVALID_WINDOW_TYPE = 1300029,
+    WM_ERROR_FV_REPEAT_OPERATION = 1300030,
+    WM_ERROR_FV_INVALID_STATE = 1300031,
+    WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED = 1300032,
+    WM_ERROR_FV_START_FAILED = 1300033,
+    WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS = 1300034,
+    WM_ERROR_FORBID_SUBWINDOW = 1300035,
 };
 
 /**
@@ -499,6 +540,9 @@ enum class ControlAppType : uint8_t {
     PRIVACY_WINDOW,
     CONTROL_APP_TYPE_END,
 };
+
+const ControlAppType CONTROL_APP_TYPE_ENUM_LIST[] = { ControlAppType::APP_LOCK, ControlAppType::PARENT_CONTROL,
+    ControlAppType::DLP, ControlAppType::PRIVACY_WINDOW };
 
 /**
  * @brief Enumerates flag of multiWindowUIType.
@@ -583,9 +627,7 @@ enum class WindowSizeChangeReason : uint32_t {
     DRAG_START,
     DRAG_END,
     RESIZE,
-    RESIZE_WITH_ANIMATION,
     MOVE,
-    MOVE_WITH_ANIMATION,
     HIDE,
     TRANSFORM,
     CUSTOM_ANIMATION_SHOW,
@@ -617,6 +659,8 @@ enum class WindowSizeChangeReason : uint32_t {
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
+    HOOK_INFO_CHANGE,
+    SWITCH_WINDOW_DISPLAY,
     END,
 };
 
@@ -658,6 +702,15 @@ enum class DragResizeType : uint32_t {
 };
 
 /**
+ * @brief Enumerates select mode.
+ */
+enum class SelectMode : uint32_t {
+    WIDE_MODE = 0,
+    SQUARE_MODE = 1,
+    INVALID_MODE = 2,
+};
+
+/**
  * @struct KeyFramePolicy
  *
  * @brief info for drag key frame policy.
@@ -694,6 +747,9 @@ struct KeyFramePolicy : public Parcelable {
 
     bool Marshalling(Parcel& parcel) const override
     {
+        if (interval_ == 0) {
+            return false;
+        }
         return parcel.WriteUint32(static_cast<uint32_t>(dragResizeType_)) &&
             parcel.WriteUint32(interval_) && parcel.WriteUint32(distance_) &&
             parcel.WriteUint32(animationDuration_) && parcel.WriteUint32(animationDelay_) &&
@@ -711,7 +767,8 @@ struct KeyFramePolicy : public Parcelable {
             delete keyFramePolicy;
             return nullptr;
         }
-        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE)) {
+        if (dragResizeType >= static_cast<uint32_t>(DragResizeType::RESIZE_MAX_VALUE) ||
+            keyFramePolicy->interval_ == 0) {
             delete keyFramePolicy;
             return nullptr;
         }
@@ -723,7 +780,8 @@ struct KeyFramePolicy : public Parcelable {
     {
         std::ostringstream oss;
         oss << "[" << static_cast<uint32_t>(dragResizeType_) << " " << interval_ << " " << distance_;
-        oss << " " << animationDuration_ << " " << animationDelay_ << "]";
+        oss << " " << animationDuration_ << " " << animationDelay_;
+        oss << " " << running_ << " " << stopping_ << "]";
         return oss.str();
     }
 };
@@ -736,6 +794,8 @@ struct KeyFramePolicy : public Parcelable {
 struct HookWindowInfo : public Parcelable {
     bool enableHookWindow{ false };
     float widthHookRatio{ 1.0f };
+    bool notifyWindowChange{ false };
+    bool drawableRectHook{ false };
 
     static constexpr float DEFAULT_WINDOW_SIZE_HOOK_RATIO = 1.0f;
 
@@ -759,7 +819,9 @@ struct HookWindowInfo : public Parcelable {
         std::ostringstream oss;
         oss << std::boolalpha  // For true/false instead of 1/0
             << "enableHookWindow: " << enableHookWindow
-            << ", widthHookRatio: " << std::fixed << std::setprecision(precision) << widthHookRatio;
+            << ", widthHookRatio: " << std::fixed << std::setprecision(precision) << widthHookRatio
+            << ", notifyWindowChange: " << notifyWindowChange
+            << ", drawableRectHook: " << drawableRectHook;
         return oss.str();
     }
 
@@ -767,13 +829,17 @@ private:
     bool WriteAllFields(Parcel& parcel) const
     {
         return parcel.WriteBool(enableHookWindow) &&
-               parcel.WriteFloat(widthHookRatio);
+               parcel.WriteFloat(widthHookRatio) &&
+               parcel.WriteBool(notifyWindowChange) &&
+               parcel.WriteBool(drawableRectHook);
     }
 
     static bool ReadAllFields(Parcel& parcel, HookWindowInfo& info)
     {
         return parcel.ReadBool(info.enableHookWindow) &&
-               parcel.ReadFloat(info.widthHookRatio);
+               parcel.ReadFloat(info.widthHookRatio) &&
+               parcel.ReadBool(info.notifyWindowChange) &&
+               parcel.ReadBool(info.drawableRectHook);
     }
 };
 
@@ -861,6 +927,23 @@ struct PointInfo {
 };
 
 /**
+ * @struct EventPositionInfo.
+ *
+ * @brief Event position information for window coordinate conversion.
+ */
+struct EventPositionInfo {
+    static constexpr int32_t INVALID_INT32 = std::numeric_limits<int32_t>::min();
+    static constexpr double INVALID_DOUBLE = std::numeric_limits<double>::lowest();
+
+    int32_t displayX = INVALID_INT32;
+    int32_t displayY = INVALID_INT32;
+    double displayXPos = INVALID_DOUBLE;
+    double displayYPos = INVALID_DOUBLE;
+    double globalX = INVALID_DOUBLE;
+    double globalY = INVALID_DOUBLE;
+};
+
+/**
  * @struct MainWindowInfo.
  *
  * @brief topN main window info.
@@ -919,9 +1002,36 @@ struct WindowSnapshotConfiguration : public Parcelable {
 };
 
 /**
+ * @struct SnapshotConfig
+ *
+ * @brief Snapshot configuration for sa inner interface.
+ */
+struct SnapshotConfig : public Parcelable {
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    bool useCurWindow = false;
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteFloat(scaleX) && parcel.WriteFloat(scaleY) && parcel.WriteBool(useCurWindow);
+    }
+
+    static SnapshotConfig* Unmarshalling(Parcel& parcel)
+    {
+        auto snapshotConfig = std::make_unique<SnapshotConfig>();
+        if (!parcel.ReadFloat(snapshotConfig->scaleX) ||
+            !parcel.ReadFloat(snapshotConfig->scaleY) ||
+            !parcel.ReadBool(snapshotConfig->useCurWindow)) {
+            return nullptr;
+        }
+        return snapshotConfig.release();
+    }
+};
+
+/**
  * @struct MainWindowState.
  *
- * @brief main window state info.
+ * @brief Main window state info.
  */
 struct MainWindowState : public Parcelable {
     bool Marshalling(Parcel& parcel) const override
@@ -972,11 +1082,11 @@ constexpr float MINIMUM_BRIGHTNESS = 0.0f;
 constexpr float MAXIMUM_BRIGHTNESS = 1.0f;
 constexpr float INVALID_BRIGHTNESS = 999.0f;
 constexpr int32_t INVALID_PID = -1;
-constexpr int32_t INVALID_UID = -1;
 constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;
 constexpr int32_t DEFAULT_SCREEN_ID = 0;
+constexpr int32_t INVALID_SCREEN_ID_INT32 = -1;
 constexpr int32_t ZERO_CIRCLE_DEGREE = 0;
 constexpr int32_t FULL_CIRCLE_DEGREE = 360;
 constexpr int32_t ONE_FOURTH_FULL_CIRCLE_DEGREE = 90;
@@ -1157,6 +1267,44 @@ struct SystemBarPropertyFlag {
     bool backgroundColorFlag = false;
     bool contentColorFlag = false;
     bool enableAnimationFlag = false;
+
+    bool operator==(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag == other.enableFlag && backgroundColorFlag == other.backgroundColorFlag &&
+            contentColorFlag == other.contentColorFlag && enableAnimationFlag == other.enableAnimationFlag);
+    }
+
+    bool Contains(const SystemBarPropertyFlag& other) const
+    {
+        return (enableFlag || !other.enableFlag) && (backgroundColorFlag || !other.backgroundColorFlag) &&
+            (contentColorFlag || !other.contentColorFlag) && (enableAnimationFlag || !other.enableAnimationFlag);
+    }
+};
+
+/**
+ * @struct PartialSystemBarProperty
+ *
+ * @brief Partial system bar property
+ */
+struct PartialSystemBarProperty {
+    bool enable_ = false;
+    uint32_t backgroundColor_ = 0;
+    uint32_t contentColor_ = 0;
+    bool enableAnimation_ = false;
+    SystemBarPropertyFlag flag_;
+    bool isolate_ = false;
+};
+
+/*
+ * @enum SystemBarPropertyOwner
+ *
+ * @brief System bar property owner
+ */
+enum class SystemBarPropertyOwner {
+    APPLICATION,
+    ARKUI_NAVIGATION,
+    ATOMIC_SERVICE,
+    ABILITY_RUNTIME,
 };
 
 /**
@@ -1165,10 +1313,10 @@ struct SystemBarPropertyFlag {
  * @brief Window Rect
  */
 struct Rect {
-    int32_t posX_;
-    int32_t posY_;
-    uint32_t width_;
-    uint32_t height_;
+    int32_t posX_ = 0;
+    int32_t posY_ = 0;
+    uint32_t width_ = 0;
+    uint32_t height_ = 0;
 
     bool operator==(const Rect& a) const
     {
@@ -1201,6 +1349,11 @@ struct Rect {
         return posX_ == x && posY_ == y;
     }
 
+    bool IsRightBottomOverflow() const
+    {
+        return Rect::IsRightBottomOverflow(posX_, posY_, width_, height_);
+    }
+
     inline std::string ToString() const
     {
         std::ostringstream oss;
@@ -1225,35 +1378,51 @@ struct Rect {
     static const Rect EMPTY_RECT;
 
     /**
-     * @brief Checks whether the right-bottom corner of a rectangle stays within the valid range.
+     * @brief Checks whether the right-bottom corner of a rectangle overflows the valid range.
      *
      * @param x The x-coordinate of the left-top corner.
      * @param y The y-coordinate of the left-top corner.
      * @param width The rectangle's width.
      * @param height The rectangle's height.
-     * @return true if right-bottom corner stays within int32_t range; false if overflow happens.
+     * @return true if right-bottom corner overflows int32_t range; false if within range.
      */
-    static bool IsRightBottomValid(int32_t x, int32_t y, uint32_t width, uint32_t height)
+    static bool IsRightBottomOverflow(int32_t x, int32_t y, uint32_t width, uint32_t height)
     {
         int64_t right = static_cast<int64_t>(x) + static_cast<int64_t>(width);
         int64_t bottom = static_cast<int64_t>(y) + static_cast<int64_t>(height);
-        return right <= INT32_MAX && bottom <= INT32_MAX;
+        return right > INT32_MAX || bottom > INT32_MAX;
     }
 };
 
 inline constexpr Rect Rect::EMPTY_RECT { 0, 0, 0, 0 };
 
 /**
- * @struct RectAnimationConfig
+ * @struct HookInfo.
  *
- * @brief Window RectAnimationConfig
+ * @brief hook diaplayinfo deepending on the window size.
  */
-struct RectAnimationConfig {
-    uint32_t duration = 0; // Duartion of the animation, in milliseconds.
-    float x1 = 0.0f;       // X coordinate of the first point on the Bezier curve.
-    float y1 = 0.0f;       // Y coordinate of the first point on the Bezier curve.
-    float x2 = 0.0f;       // X coordinate of the second point on the Bezier curve.
-    float y2 = 0.0f;       // Y coordinate of the second point on the Bezier curve.
+struct HookInfo {
+    uint32_t width_;
+    uint32_t height_;
+    float_t density_;
+    uint32_t rotation_;
+    bool enableHookRotation_;
+    uint32_t displayOrientation_;
+    bool enableHookDisplayOrientation_;
+    Rect actualRect_ = { 0, 0, 0, 0};
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
+            << ", rotation: " << rotation_
+            << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
+            << ", displayOrientation: " << displayOrientation_
+            << ", enableHookDisplayOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false")
+            << ", actualPosX: " << actualRect_.posX_ << ", actualPosY: " << actualRect_.posY_
+            << ", actualWidth: " << actualRect_.width_ << ", actualHeight :" << actualRect_.height_;
+        return oss.str();
+    }
 };
 
 /**
@@ -1376,6 +1545,7 @@ enum class AvoidAreaType : uint32_t {
     TYPE_SYSTEM_GESTURE,                // area for system gesture
     TYPE_KEYBOARD,                      // area for soft input keyboard
     TYPE_NAVIGATION_INDICATOR,          // area for navigation indicator
+    TYPE_FLOAT_NAVIGATION,              // area for float navigation
     TYPE_END,
 };
 
@@ -1426,19 +1596,80 @@ enum class WindowAnchor : uint32_t {
  */
 struct WindowAnchorInfo : public Parcelable {
     bool isAnchorEnabled_ = false;
+    bool isAnchoredByAttach_ = false; // Distinguish between binding and unbinding
+    bool isFromAttachOrDetach_ = false; // Distinguish addatchAndDetach or setRelative interfaces
     WindowAnchor windowAnchor_ = WindowAnchor::TOP_START;
     int32_t offsetX_ = 0;
     int32_t offsetY_ = 0;
+
+    struct AttachOptions : public Parcelable {
+        std::string currentLayoutMode = "";
+        bool isIntersectedHeightLimit = false;
+        bool isIntersectedWidthLimit = false;
+
+        AttachOptions() = default;
+        AttachOptions(std::string currentLayoutMode) : currentLayoutMode(currentLayoutMode) {}
+        AttachOptions(std::string currentLayoutMode, bool isIntersectedHeightLimit,
+            bool isIntersectedWidthLimit) : currentLayoutMode(currentLayoutMode),
+            isIntersectedHeightLimit(isIntersectedHeightLimit),
+            isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
+        bool operator==(const AttachOptions& other) const
+        {
+            return currentLayoutMode == other.currentLayoutMode &&
+                   isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+                   isIntersectedWidthLimit == other.isIntersectedWidthLimit;
+        }
+
+        bool operator!=(const AttachOptions& other) const
+        {
+            return !(*this == other);
+        }
+
+        bool Marshalling(Parcel& parcel) const override
+        {
+            if (!parcel.WriteString(currentLayoutMode) ||
+                !parcel.WriteBool(isIntersectedHeightLimit) ||
+                !parcel.WriteBool(isIntersectedWidthLimit)) {
+                return false;
+            }
+            return true;
+        }
+
+        static AttachOptions* Unmarshalling(Parcel& parcel)
+        {
+            std::string layoutMode = "";
+            auto attachOptions = std::make_unique<AttachOptions>();
+            if (!attachOptions) {
+                return nullptr;
+            }
+            if (!parcel.ReadString(layoutMode)) {
+                return nullptr;
+            }
+            attachOptions->currentLayoutMode = layoutMode;
+
+            if (!parcel.ReadBool(attachOptions->isIntersectedHeightLimit) ||
+                !parcel.ReadBool(attachOptions->isIntersectedWidthLimit)) {
+                return nullptr;
+            }
+            return attachOptions.release();
+        }
+    };
+    AttachOptions attachOptions;
 
     WindowAnchorInfo() {}
     WindowAnchorInfo(bool isAnchorEnabled) : isAnchorEnabled_(isAnchorEnabled) {}
     WindowAnchorInfo(bool isAnchorEnabled, WindowAnchor windowAnchor, int32_t offsetX,
         int32_t offsetY) : isAnchorEnabled_(isAnchorEnabled),  windowAnchor_(windowAnchor),
         offsetX_(offsetX), offsetY_(offsetY) {}
+    WindowAnchorInfo(bool isAnchorEnabled, bool isAnchoredByAttach,  WindowAnchor windowAnchor, int32_t offsetX,
+        int32_t offsetY) : isAnchorEnabled_(isAnchorEnabled), isAnchoredByAttach_(isAnchoredByAttach),
+        windowAnchor_(windowAnchor), offsetX_(offsetX), offsetY_(offsetY) {}
 
     bool operator==(const WindowAnchorInfo& other) const
     {
-        return isAnchorEnabled_ == other.isAnchorEnabled_ && windowAnchor_ == other.windowAnchor_ &&
+        return isAnchorEnabled_ == other.isAnchorEnabled_ && isAnchoredByAttach_ == other.isAnchoredByAttach_ &&
+            isFromAttachOrDetach_ == other.isFromAttachOrDetach_ && windowAnchor_ == other.windowAnchor_ &&
             offsetX_ == other.offsetX_ && offsetY_ == other.offsetY_;
     }
 
@@ -1449,8 +1680,10 @@ struct WindowAnchorInfo : public Parcelable {
 
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteBool(isAnchorEnabled_) && parcel.WriteUint32(static_cast<uint32_t>(windowAnchor_)) &&
-            parcel.WriteInt32(offsetX_) && parcel.WriteInt32(offsetY_);
+        return parcel.WriteBool(isAnchorEnabled_) && parcel.WriteBool(isAnchoredByAttach_) &&
+            parcel.WriteBool(isFromAttachOrDetach_) &&
+            parcel.WriteUint32(static_cast<uint32_t>(windowAnchor_)) && parcel.WriteInt32(offsetX_) &&
+            parcel.WriteInt32(offsetY_) && parcel.WriteParcelable(&attachOptions);
     }
 
     static WindowAnchorInfo* Unmarshalling(Parcel& parcel)
@@ -1460,12 +1693,19 @@ struct WindowAnchorInfo : public Parcelable {
         if (windowAnchorInfo == nullptr) {
             return nullptr;
         }
-        if (!parcel.ReadBool(windowAnchorInfo->isAnchorEnabled_) || !parcel.ReadUint32(windowAnchorMode) ||
-            !parcel.ReadInt32(windowAnchorInfo->offsetX_) || !parcel.ReadInt32(windowAnchorInfo->offsetY_)) {
+        sptr<AttachOptions> attachOptions;
+        if (!parcel.ReadBool(windowAnchorInfo->isAnchorEnabled_)||
+            !parcel.ReadBool(windowAnchorInfo->isAnchoredByAttach_) ||
+            !parcel.ReadBool(windowAnchorInfo->isFromAttachOrDetach_) || !parcel.ReadUint32(windowAnchorMode) ||
+            !parcel.ReadInt32(windowAnchorInfo->offsetX_) || !parcel.ReadInt32(windowAnchorInfo->offsetY_) ||
+            !(attachOptions = parcel.ReadParcelable<AttachOptions>())) {
             delete windowAnchorInfo;
             return nullptr;
         }
         windowAnchorInfo->windowAnchor_ = static_cast<WindowAnchor>(windowAnchorMode);
+        windowAnchorInfo->attachOptions.currentLayoutMode = attachOptions->currentLayoutMode;
+        windowAnchorInfo->attachOptions.isIntersectedHeightLimit = attachOptions->isIntersectedHeightLimit;
+        windowAnchorInfo->attachOptions.isIntersectedWidthLimit = attachOptions->isIntersectedWidthLimit;
         return windowAnchorInfo;
     }
 };
@@ -1784,6 +2024,7 @@ struct PiPTemplateInfo : public Parcelable {
     std::vector<PiPControlEnableInfo> pipControlEnableInfoList;
     uint32_t defaultWindowSizeType{0};
     bool cornerAdsorptionEnabled{true};
+    bool isWeb{false};
 
     PiPTemplateInfo() {}
 
@@ -1818,7 +2059,7 @@ struct PiPTemplateInfo : public Parcelable {
         if (!parcel.WriteUint32(defaultWindowSizeType)) {
             return false;
         }
-        if (!parcel.WriteBool(cornerAdsorptionEnabled)) {
+        if (!parcel.WriteBool(cornerAdsorptionEnabled) || !parcel.WriteBool(isWeb)) {
             return false;
         }
         return true;
@@ -1869,7 +2110,7 @@ struct PiPTemplateInfo : public Parcelable {
             delete pipTemplateInfo;
             return nullptr;
         }
-        if (!parcel.ReadBool(pipTemplateInfo->cornerAdsorptionEnabled)) {
+        if (!parcel.ReadBool(pipTemplateInfo->cornerAdsorptionEnabled) || !parcel.ReadBool(pipTemplateInfo->isWeb)) {
             delete pipTemplateInfo;
             return nullptr;
         }
@@ -1877,6 +2118,117 @@ struct PiPTemplateInfo : public Parcelable {
     }
 };
 
+struct FloatViewWindowInfo : public Parcelable {
+    Rect windowRect_ {};
+    AvoidArea avoidArea_ {};
+    float scale_ {1.0f};
+
+    FloatViewWindowInfo() {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        if (!windowRect_.Marshalling(parcel)) {
+            return false;
+        }
+        if (!avoidArea_.Marshalling(parcel)) {
+            return false;
+        }
+        if (!parcel.WriteFloat(scale_)) {
+            return false;
+        }
+        return true;
+    }
+
+    static FloatViewWindowInfo* Unmarshalling(Parcel& parcel)
+    {
+        auto* floatViewWindowInfo = new FloatViewWindowInfo();
+        floatViewWindowInfo->windowRect_.Unmarshalling(parcel);
+        std::shared_ptr<AvoidArea> avoidArea = std::shared_ptr<AvoidArea>(AvoidArea::Unmarshalling(parcel));
+        if (avoidArea == nullptr) {
+            delete floatViewWindowInfo;
+            return nullptr;
+        }
+        floatViewWindowInfo->avoidArea_ = *avoidArea;
+        if (!parcel.ReadFloat(floatViewWindowInfo->scale_)) {
+            delete floatViewWindowInfo;
+            return nullptr;
+        }
+        return floatViewWindowInfo;
+    }
+
+    std::string ToString() const
+    {
+        constexpr int precision = 6; // Print float with precision of 6 decimal places.
+        std::ostringstream oss;
+        oss << "window rect " << windowRect_.ToString()
+            << " avoidArea " << avoidArea_.ToString()
+            << " scale [" << std::fixed << std::setprecision(precision) << scale_ << "]";
+        return oss.str();
+    }
+};
+
+struct FloatViewLimits : public Parcelable {
+    uint32_t maxWidth_ {0};
+    uint32_t maxHeight_ {0};
+    uint32_t minWidth_ {0};
+    uint32_t minHeight_ {0};
+    std::vector<std::pair<double, double>> ratioLimits_ {};
+    FloatViewLimits() {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        if (!parcel.WriteUint32(maxWidth_) || !parcel.WriteUint32(maxHeight_) ||
+            !parcel.WriteUint32(minWidth_) || !parcel.WriteUint32(minHeight_)) {
+            return false;
+        }
+        if (!parcel.WriteUint32(ratioLimits_.size())) {
+            return false;
+        }
+        for (const auto& ratioLimit : ratioLimits_) {
+            if (!parcel.WriteDouble(ratioLimit.first) || !parcel.WriteDouble(ratioLimit.second)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static FloatViewLimits* Unmarshalling(Parcel& parcel)
+    {
+        auto* floatViewLimits = new FloatViewLimits();
+        if (!parcel.ReadUint32(floatViewLimits->maxWidth_) ||
+            !parcel.ReadUint32(floatViewLimits->maxHeight_) ||
+            !parcel.ReadUint32(floatViewLimits->minWidth_) ||
+            !parcel.ReadUint32(floatViewLimits->minHeight_)) {
+            delete floatViewLimits;
+            return nullptr;
+        }
+        uint32_t limitsCount = 0;
+        if (!parcel.ReadUint32(limitsCount)) {
+            delete floatViewLimits;
+            return nullptr;
+        }
+        if (limitsCount > MAX_RATIO_LIMITS_COUNT) {
+            delete floatViewLimits;
+            return nullptr;
+        }
+        floatViewLimits->ratioLimits_.resize(limitsCount);
+        for (auto& ratioLimit : floatViewLimits->ratioLimits_) {
+            if (!parcel.ReadDouble(ratioLimit.first) || !parcel.ReadDouble(ratioLimit.second)) {
+                delete floatViewLimits;
+                return nullptr;
+            }
+        }
+        return floatViewLimits;
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "width limit [" << minWidth_ << " " << maxWidth_ << "]"
+            << " height limit [" << minHeight_ << " " << maxHeight_ << "]";
+        return oss.str();
+    }
+};
 
 /**
  * @brief Enumerates floating ball state.
@@ -1898,6 +2250,20 @@ enum class FloatingBallTemplate : uint32_t {
     END = 5,
 };
 
+enum class FloatingBallTextUpdateAnimationType : uint32_t {
+    ANIMATION_NONE = 0,
+    ANIMATION_OPACITY = 1,
+    ANIMATION_END = 2,
+};
+
+/**
+ * @brief Enumerates floating ball update mode.
+ */
+enum class FloatingBallUpdateMode : uint32_t {
+    DEFAULT = 1,
+    VISIBLE_IN_APP = 2,
+};
+
 struct PiPWindowSize {
     uint32_t width;
     uint32_t height;
@@ -1913,6 +2279,42 @@ enum class FbWindowState : uint32_t {
     STATE_STARTED = 2,
     STATE_STOPPING = 3,
     STATE_STOPPED = 4,
+};
+
+/**
+ * @brief Enumerates float view state.
+ */
+enum class FloatViewState : uint32_t {
+    FV_STARTED = 1,
+    FV_HIDDEN = 2,
+    FV_STOPPED = 3,
+    FV_IN_SIDEBAR = 4,
+    FV_IN_FLOATING_BALL = 5,
+    FV_ERROR = 6,
+};
+
+/**
+ * @brief Enumerates float view template.
+ */
+enum class FloatViewTemplate : uint32_t {
+    ROUNDED_RECTANGLE = 0,
+    HORIZONTAL_BAR = 1,
+    END,
+};
+
+/**
+ * @brief Enumerates float view window state.
+ */
+enum class FvWindowState : uint32_t {
+    FV_STATE_UNDEFINED = 0,
+    FV_STATE_STARTING = 1,
+    FV_STATE_STARTED = 2,
+    FV_STATE_HIDDEN = 3,
+    FV_STATE_STOPPING = 4,
+    FV_STATE_STOPPED = 5,
+    FV_STATE_IN_SIDEBAR = 6,
+    FV_STATE_IN_FLOATING_BALL = 7,
+    FV_STATE_ERROR = 8,
 };
 
 /**
@@ -2002,7 +2404,7 @@ struct WindowLimits {
         };
     }
 
-    bool IsUninitialized() const
+    bool IsDefault() const
     {
         return (maxWidth_ == static_cast<uint32_t>(INT32_MAX) &&
                 maxHeight_ == static_cast<uint32_t>(INT32_MAX) &&
@@ -2019,7 +2421,87 @@ struct WindowLimits {
             << " " << vpRatio_ << " " << static_cast<uint32_t>(pixelUnit_) << "]";
         return oss.str();
     }
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteUint32(maxWidth_) && parcel.WriteUint32(maxHeight_) &&
+            parcel.WriteUint32(minWidth_) && parcel.WriteUint32(minHeight_) &&
+            parcel.WriteFloat(maxRatio_) && parcel.WriteFloat(minRatio_) &&
+            parcel.WriteFloat(vpRatio_) && parcel.WriteUint32(static_cast<uint32_t>(pixelUnit_));
+    }
+
+    static WindowLimits* Unmarshalling(Parcel& parcel)
+    {
+        auto windowLimits = std::make_unique<WindowLimits>();
+        if (!windowLimits) {
+            return nullptr;
+        }
+        uint32_t pixelUnit = 0;
+        if (!parcel.ReadUint32(windowLimits->maxWidth_) ||
+            !parcel.ReadUint32(windowLimits->maxHeight_) ||
+            !parcel.ReadUint32(windowLimits->minWidth_) ||
+            !parcel.ReadUint32(windowLimits->minHeight_) ||
+            !parcel.ReadFloat(windowLimits->maxRatio_) ||
+            !parcel.ReadFloat(windowLimits->minRatio_) ||
+            !parcel.ReadFloat(windowLimits->vpRatio_) ||
+            !parcel.ReadUint32(pixelUnit)) {
+            return nullptr;
+        }
+        // Validate pixelUnit: valid values are PX=0 and VP=1
+        if (pixelUnit > static_cast<uint32_t>(PixelUnit::VP)) {
+            return nullptr;
+        }
+        windowLimits->pixelUnit_ = static_cast<PixelUnit>(pixelUnit);
+        return windowLimits.release();
+    }
 };
+
+/**
+ * @struct AttachLimitOptions
+ *
+ * @brief Options for intersecting limits with attached windows.
+ * Used to specify whether to intersect height/width limits.
+ */
+struct AttachLimitOptions {
+    bool isIntersectedHeightLimit = false;
+    bool isIntersectedWidthLimit = false;
+
+    AttachLimitOptions() = default;
+    AttachLimitOptions(bool isIntersectedHeightLimit, bool isIntersectedWidthLimit)
+        : isIntersectedHeightLimit(isIntersectedHeightLimit),
+          isIntersectedWidthLimit(isIntersectedWidthLimit) {}
+
+    bool operator==(const AttachLimitOptions& other) const
+    {
+        return isIntersectedHeightLimit == other.isIntersectedHeightLimit &&
+               isIntersectedWidthLimit == other.isIntersectedWidthLimit;
+    }
+
+    bool operator!=(const AttachLimitOptions& other) const
+    {
+        return !this->operator==(other);
+    }
+};
+
+/**
+ * @enum DragActivateSource
+ *
+ * @brief Bit flags identifying the caller source for drag activation.
+ * Each source owns one bit. AND semantics: all registered sources must agree for drag to be activated.
+ */
+enum class DragActivateSource : uint32_t {
+    FOLLOW_PARENT_LAYOUT = 1 << 0,
+    FOLLOW_PARENT_POSITION = 1 << 1,
+    APP_LOCK = 1 << 2,
+    MID_SCENE_TO_PC_MODE = 1 << 3,
+    // Extend as needed, use 1 << N
+};
+
+constexpr uint32_t DRAG_ACTIVATE_ALL_MASK =
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT) |
+    static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_POSITION) |
+    static_cast<uint32_t>(DragActivateSource::APP_LOCK) |
+    static_cast<uint32_t>(DragActivateSource::MID_SCENE_TO_PC_MODE);
 
 /**
  * @struct TitleButtonRect
@@ -2154,20 +2636,33 @@ struct WindowUIInfo : public Parcelable {
  */
 struct WindowDisplayInfo : public Parcelable {
     DisplayId displayId = DISPLAY_ID_INVALID;
+    std::string displayName;
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteUint64(displayId);
+        return parcel.WriteUint64(displayId) && parcel.WriteString(displayName);
     }
 
     static WindowDisplayInfo* Unmarshalling(Parcel& parcel)
     {
         WindowDisplayInfo* windowDisplayInfo = new WindowDisplayInfo();
-        if (!parcel.ReadUint64(windowDisplayInfo->displayId)) {
+        if (!parcel.ReadUint64(windowDisplayInfo->displayId) ||
+            !parcel.ReadString(windowDisplayInfo->displayName)) {
             delete windowDisplayInfo;
             return nullptr;
         }
         return windowDisplayInfo;
     }
+};
+
+/**
+ * @struct WindowInfoOptions
+ *
+ * @brief Options for getting window info.
+ */
+struct WindowInfoOptions {
+    bool excludeSystemWindows = false;
+    int32_t foregroundAboveWindow = 0;
+    int32_t foregroundBelowWindow = 0;
 };
 
 /**
@@ -2178,11 +2673,12 @@ struct WindowDisplayInfo : public Parcelable {
 struct WindowLayoutInfo : public Parcelable {
     Rect rect = Rect::EMPTY_RECT;
     uint32_t zOrder = 0;
+    float windowAlpha = -1.0f;
 
     bool Marshalling(Parcel& parcel) const override
     {
         return parcel.WriteInt32(rect.posX_) && parcel.WriteInt32(rect.posY_) && parcel.WriteUint32(rect.width_) &&
-               parcel.WriteUint32(rect.height_) && parcel.WriteUint32(zOrder);
+               parcel.WriteUint32(rect.height_) && parcel.WriteUint32(zOrder) && parcel.WriteFloat(windowAlpha);
     }
 
     static WindowLayoutInfo* Unmarshalling(Parcel& parcel)
@@ -2190,7 +2686,7 @@ struct WindowLayoutInfo : public Parcelable {
         WindowLayoutInfo* windowLayoutInfo = new WindowLayoutInfo();
         if (!parcel.ReadInt32(windowLayoutInfo->rect.posX_) || !parcel.ReadInt32(windowLayoutInfo->rect.posY_) ||
             !parcel.ReadUint32(windowLayoutInfo->rect.width_) || !parcel.ReadUint32(windowLayoutInfo->rect.height_) ||
-            !parcel.ReadUint32(windowLayoutInfo->zOrder)) {
+            !parcel.ReadUint32(windowLayoutInfo->zOrder) || !parcel.ReadFloat(windowLayoutInfo->windowAlpha)) {
             delete windowLayoutInfo;
             return nullptr;
         }
@@ -2216,9 +2712,12 @@ struct WindowMetaInfo : public Parcelable {
     uint64_t leashWinSurfaceNodeId = 0;
     bool isPrivacyMode = false;
     WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    WindowModeInfo windowModeInfo;
     bool isMidScene = false;
     bool isFocused = false;
     bool isTouchable = true;
+    int32_t mainWindowPersistentId = INVALID_WINDOW_ID;
+    ControlAppType controlAppType = ControlAppType::CONTROL_APP_TYPE_BEGIN;
 
     bool Marshalling(Parcel& parcel) const override
     {
@@ -2228,13 +2727,16 @@ struct WindowMetaInfo : public Parcelable {
                parcel.WriteUint64(surfaceNodeId) && parcel.WriteUint64(leashWinSurfaceNodeId) &&
                parcel.WriteBool(isPrivacyMode) && parcel.WriteBool(isMidScene) &&
                parcel.WriteBool(isFocused) && parcel.WriteUint32(static_cast<uint32_t>(windowMode)) &&
-               parcel.WriteBool(isTouchable);
+               windowModeInfo.Marshalling(parcel) &&
+               parcel.WriteBool(isTouchable) && parcel.WriteInt32(mainWindowPersistentId) &&
+               parcel.WriteUint8(static_cast<uint8_t>(controlAppType));
     }
 
     static WindowMetaInfo* Unmarshalling(Parcel& parcel)
     {
         uint32_t windowTypeValue = 1;
         uint32_t windowModeValue = 1;
+        uint8_t controlAppTypeValue = 0;
         WindowMetaInfo* windowMetaInfo = new WindowMetaInfo();
         if (!parcel.ReadInt32(windowMetaInfo->windowId) || !parcel.ReadString(windowMetaInfo->windowName) ||
             !parcel.ReadString(windowMetaInfo->bundleName) || !parcel.ReadString(windowMetaInfo->abilityName) ||
@@ -2244,12 +2746,15 @@ struct WindowMetaInfo : public Parcelable {
             !parcel.ReadUint64(windowMetaInfo->leashWinSurfaceNodeId) ||
             !parcel.ReadBool(windowMetaInfo->isPrivacyMode) || !parcel.ReadBool(windowMetaInfo->isMidScene) ||
             !parcel.ReadBool(windowMetaInfo->isFocused) || !parcel.ReadUint32(windowModeValue) ||
-            !parcel.ReadBool(windowMetaInfo->isTouchable)) {
+            !windowMetaInfo->windowModeInfo.Unmarshalling(parcel) ||
+            !parcel.ReadBool(windowMetaInfo->isTouchable) ||
+            !parcel.ReadInt32(windowMetaInfo->mainWindowPersistentId) || !parcel.ReadUint8(controlAppTypeValue)) {
             delete windowMetaInfo;
             return nullptr;
         }
         windowMetaInfo->windowType = static_cast<WindowType>(windowTypeValue);
         windowMetaInfo->windowMode = static_cast<WindowMode>(windowModeValue);
+        windowMetaInfo->controlAppType = static_cast<ControlAppType>(controlAppTypeValue);
         return windowMetaInfo;
     }
 };
@@ -2323,6 +2828,51 @@ struct WindowInfoOption : public Parcelable {
         windowInfoOption->windowInfoTypeOption = static_cast<WindowInfoTypeOption>(windowInfoTypeOption);
         return windowInfoOption;
     }
+};
+
+struct CrossProcessWindowInfo : public Parcelable {
+    int32_t persistentId = 0;
+    uint64_t displayId = 0;
+    bool isPcAppInPad = false;
+    bool isPcAppInpadCompatibleMode = false;
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        if (!parcel.WriteInt32(persistentId)) {
+            return false;
+        }
+        if (!parcel.WriteUint64(displayId)) {
+            return false;
+        }
+        if (!parcel.WriteBool(isPcAppInPad)) {
+            return false;
+        }
+        if (!parcel.WriteBool(isPcAppInpadCompatibleMode)) {
+            return false;
+        }
+        return true;
+    }
+
+    static CrossProcessWindowInfo* Unmarshalling(Parcel& parcel)
+    {
+        auto info = new CrossProcessWindowInfo();
+        if (!parcel.ReadInt32(info->persistentId) || !parcel.ReadUint64(info->displayId) ||
+            !parcel.ReadBool(info->isPcAppInPad) || !parcel.ReadBool(info->isPcAppInpadCompatibleMode)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+};
+
+enum class ParentLifeCycleEventType : uint32_t {
+    FOREGROUND = 1,
+    ACTIVE,
+    INACTIVE,
+    BACKGROUND,
+    RESUMED,
+    PAUSED,
+    DESTROYED,
 };
 
 /**
@@ -2449,15 +2999,12 @@ struct KeyboardAnimationConfig {
 
 struct MoveConfiguration {
     DisplayId displayId = DISPLAY_ID_INVALID;
-    RectAnimationConfig rectAnimationConfig = { 0, 0.0f, 0.0f, 0.0f, 0.0f };
     std::string ToString() const
     {
         std::string str;
-        constexpr int BUFFER_SIZE = 1024;
+        constexpr int BUFFER_SIZE = 11;
         char buffer[BUFFER_SIZE] = { 0 };
-        if (snprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1,
-            "[displayId: %llu, rectAnimationConfig: [%u, %f, %f, %f, %f]]", displayId, rectAnimationConfig.duration,
-            rectAnimationConfig.x1, rectAnimationConfig.y1, rectAnimationConfig.x2, rectAnimationConfig.y2) > 0) {
+        if (snprintf_s(buffer, sizeof(buffer), sizeof(buffer) - 1, "[%llu]", displayId) > 0) {
             str.append(buffer);
         }
         return str;
@@ -2923,6 +3470,7 @@ enum class WindowInfoKey : int32_t {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**
@@ -2934,6 +3482,33 @@ struct OrientationInfo {
     uint32_t rotation = 0;
     Rect rect = {0, 0, 0, 0};
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
+};
+
+struct OrientationParams {
+    WmErrorCode errCode;
+    Orientation requestedOrientation;
+    std::string errMsg;
+};
+
+enum class OrientationExecutionResult : uint32_t {
+    START = 0,
+
+    /**
+     * Orientation policy is applied.
+     */
+    ORIENTATION_APPLIED = START,
+
+    /**
+     * Orientation policy is ignored.
+     */
+    ORIENTATION_IGNORED,
+
+    /**
+     * Orientation policy is pending and will be applied soon.
+     */
+    ORIENTATION_PENDING,
+
+    END,
 };
 
 /*
@@ -2990,21 +3565,7 @@ struct RotationChangeResult {
 enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
-};
-
-/**
- * @brief Enumerates support function type
- */
-enum SupportFunctionType : uint32_t {
-    /**
-     * Supports callbacks triggered before the keyboard show/hide animations begin.
-     */
-    ALLOW_KEYBOARD_WILL_ANIMATION_NOTIFICATION = 1 << 0,
-
-    /**
-     * Supports callbacks triggered after the keyboard show/hide animations complete.
-     */
-    ALLOW_KEYBOARD_DID_ANIMATION_NOTIFICATION = 1 << 1,
+    BANNER_LIVE_SHARE = 2210,
 };
 
 /**
@@ -3214,12 +3775,64 @@ struct RecentSessionInfo : public Parcelable {
     RecentSessionState sessionState = RecentSessionState::DISCONNECT;
 };
 
-/**
- * @brief Enumerates source of sub session.
- */
-enum class SubWindowSource : uint32_t {
-    SUB_WINDOW_SOURCE_UNKNOWN = 0,
-    SUB_WINDOW_SOURCE_ARKUI = 1,
+struct ApplicationInfo : public Parcelable {
+    ApplicationInfo() = default;
+    ApplicationInfo(const std::string& bundleName, int32_t appIndex = 0, const std::string& appInstanceKey = "")
+        : bundleName(bundleName), appIndex(appIndex), appInstanceKey(appInstanceKey) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteString(bundleName) &&
+               parcel.WriteInt32(appIndex) &&
+               parcel.WriteString(appInstanceKey);
+    }
+
+    static ApplicationInfo* Unmarshalling(Parcel& parcel)
+    {
+        ApplicationInfo* info = new ApplicationInfo();
+        if (!parcel.ReadString(info->bundleName) ||
+            !parcel.ReadInt32(info->appIndex) ||
+            !parcel.ReadString(info->appInstanceKey)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    std::string bundleName;
+    int32_t appIndex = 0;
+    std::string appInstanceKey;
+};
+
+struct AppWindowShowingInfo : public Parcelable {
+    AppWindowShowingInfo() = default;
+    AppWindowShowingInfo(int32_t persistentId) : persistentId(persistentId) {}
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteInt32(persistentId) &&
+               parcel.WriteString(windowName) &&
+               parcel.WriteUint32(sessionState) &&
+               parcel.WriteBool(isShowOnDock);
+    }
+
+    static AppWindowShowingInfo* Unmarshalling(Parcel& parcel)
+    {
+        AppWindowShowingInfo* info = new AppWindowShowingInfo();
+        if (!parcel.ReadInt32(info->persistentId) ||
+            !parcel.ReadString(info->windowName) ||
+            !parcel.ReadUint32(info->sessionState) ||
+            !parcel.ReadBool(info->isShowOnDock)) {
+            delete info;
+            return nullptr;
+        }
+        return info;
+    }
+
+    int32_t persistentId = -1;
+    std::string windowName;
+    uint32_t sessionState = 0;
+    bool isShowOnDock = false;
 };
 
 /**
@@ -3254,6 +3867,29 @@ enum class ScreenshotEventType : int32_t {
     SCROLL_SHOT_ABORT = 4,
 
     END,
+};
+
+/**
+ * @brief Enumerates support function type
+ */
+enum SupportFunctionType : uint32_t {
+    /**
+     * Supports callbacks triggered before the keyboard show/hide animations begin.
+     */
+    ALLOW_KEYBOARD_WILL_ANIMATION_NOTIFICATION = 1 << 0,
+
+    /**
+     * Supports callbacks triggered after the keyboard show/hide animations complete.
+     */
+    ALLOW_KEYBOARD_DID_ANIMATION_NOTIFICATION = 1 << 1,
+};
+
+/**
+ * @brief Enumerates source of sub session.
+ */
+enum class SubWindowSource : uint32_t {
+    SUB_WINDOW_SOURCE_UNKNOWN = 0,
+    SUB_WINDOW_SOURCE_ARKUI = 1,
 };
 
 enum class RequestResultCode: uint32_t {
@@ -3494,6 +4130,17 @@ enum class WaterfallResidentState : uint32_t {
 };
 
 /**
+ * @struct MaximizeOptions
+ * @brief Options for maximize operation with animation configuration.
+ */
+struct MaximizeOptions {
+    MaximizePresentation maximizePresentation = MaximizePresentation::ENTER_IMMERSIVE;
+    AcrossDisplayPresentation acrossDisplayPresentation =
+        AcrossDisplayPresentation::UNSPECIFIED;
+    SnapshotAnimationConfig snapshotAnimationConfig;
+};
+
+/**
  * @enum CompatibleMode
  * @brief Controls the compatible aspect ratio modes for window display.
  */
@@ -3509,6 +4156,36 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_2_3 = 4,
     // split aspect ratio
     LANDSCAPE_SPLIT = 5,
+    // 3:2 aspect ratio
+    LANDSCAPE_3_2 = 20,
+    // 4:3 aspect ratio
+    LANDSCAPE_4_3 = 21,
+    // 16:9 aspect ratio
+    LANDSCAPE_16_9 = 22,
+};
+
+enum class WindowManagerAgentType : uint32_t {
+    WINDOW_MANAGER_AGENT_TYPE_FOCUS,
+    WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
+    WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
+    WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
+    WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM = 7,
+    WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
+    WINDOW_MANAGER_AGENT_TYPE_CAMERA_WINDOW,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE,
+    WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
+    WINDOW_MANAGER_AGENT_TYPE_PIP,
+    WINDOW_MANAGER_AGENT_TYPE_CALLING_DISPLAY,
+    WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
+    WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
+    WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
+    WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
+    WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+    WINDOW_MANAGER_AGENT_TYPE_END,
 };
 
 struct StateChangeOption {
@@ -3530,6 +4207,40 @@ struct StateChangeOption {
           withAnimation_(withAnimation), withFocus_(withFocus), waitAttach_(waitAttach),
           isFromInnerkits_(isFromInnerkits), waitDetach_(waitDetach) {}
 };
+
+/**
+ * @enum TitleButtonEventType
+ * @brief Represent type of title button event.
+ */
+enum class TitleButtonEventType : uint32_t {
+    EVENT_TYPE_UNDEFINED = 0,
+    EVENT_TYPE_MAXIMIZE = 1,
+    EVENT_TYPE_END = 10,
+};
+
+/**
+ * @brief Optional configuration for window movement.
+ */
+struct StartMovingOptions {
+    /**
+     * @brief Indicates whether the window needs to be focused when moving starts.
+     */
+    bool needFocused = true;
+
+    /**
+     * @brief The avoidance rect of window during drag-moving.
+     */
+    Rect avoidRect = Rect::EMPTY_RECT;
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "needFocused: " << needFocused << ", avoidRect: " << avoidRect.ToString();
+        return oss.str();
+    }
+};
+
+bool IsMultiInstanceEnabled();
 }
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

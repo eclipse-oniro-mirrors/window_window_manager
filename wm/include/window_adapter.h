@@ -30,11 +30,11 @@ namespace OHOS {
 namespace Rosen {
 class WMSDeathRecipient : public IRemoteObject::DeathRecipient {
 public:
-    WMSDeathRecipient(const int32_t userId = INVALID_USER_ID);
+    explicit WMSDeathRecipient(const int32_t userId = INVALID_USER_ID);
     virtual void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class WindowAdapter : public RefBase {
@@ -44,7 +44,7 @@ public:
 
     using SessionRecoverCallbackFunc = std::function<WMError()>;
     using UIEffectRecoverCallbackFunc = std::function<WMError()>;
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     using OutlineRecoverCallbackFunc = std::function<WMError()>;
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& windowProperty,
         std::shared_ptr<RSSurfaceNode> surfaceNode, uint32_t& windowId, const sptr<IRemoteObject>& token);
@@ -84,19 +84,22 @@ public:
     virtual WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller);
     virtual WMError NotifyWindowTransition(sptr<WindowTransitionInfo> from, sptr<WindowTransitionInfo> to);
     virtual WMError UpdateAvoidAreaListener(uint32_t windowId, bool haveListener);
-    virtual void ClearWindowAdapter();
+    virtual void ClearWMSProxy();
 
     virtual WMError GetAccessibilityWindowInfo(std::vector<sptr<AccessibilityWindowInfo>>& infos);
     virtual WMError ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId);
     virtual WMError GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<UnreliableWindowInfo>>& infos);
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos);
-    virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos);
+    virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true);
     virtual WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos);
     virtual WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds,
         const WindowSnapshotConfiguration& config, const sptr<IRemoteObject>& callback);
+    virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip);
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode);
     virtual WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName);
-    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos);
+    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true);
     virtual void MinimizeWindowsByLauncher(std::vector<uint32_t> windowIds, bool isAnimated,
         sptr<RSIWindowAnimationFinishedCallback>& finishCallback);
     virtual void SetAnchorAndScale(int32_t x, int32_t y, float scale);
@@ -121,18 +124,25 @@ public:
     virtual WMError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener);
     virtual WMError NotifyWindowExtensionVisibilityChange(int32_t pid, int32_t uid, bool visible);
     virtual WMError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener);
+    virtual WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener);
+    virtual WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr);
+    virtual WSError NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha);
     virtual WMError RaiseWindowToTop(int32_t persistentId);
     virtual WMError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId);
     virtual WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, bool updateMap = true);
+    virtual WMError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId);
     virtual void CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject> token = nullptr);
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, sptr<IRemoteObject> token = nullptr);
     virtual WMError DestroyAndDisconnectSpecificSession(const int32_t persistentId);
     virtual WMError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
         const sptr<IRemoteObject>& callback);
-    WMError GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<Media::PixelMap>& pixelMap);
+    virtual WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo);
+    virtual WMError Snapshot(
+        std::shared_ptr<Media::PixelMap>& pixelMap, int32_t windowId, const SnapshotConfig& config);
+    virtual WMError GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<Media::PixelMap>& pixelMap);
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     virtual WMError SetSessionGravity(int32_t persistentId, SessionGravity gravity, uint32_t percent);
@@ -150,8 +160,9 @@ public:
     virtual WMError AddOrRemoveSecureSession(int32_t persistentId, bool shouldHide);
     virtual WMError UpdateExtWindowFlags(const sptr<IRemoteObject>& token, uint32_t extWindowFlags,
         uint32_t extWindowActions);
-    virtual WMError GetHostWindowRect(int32_t hostWindowId, Rect& rect);
-    virtual WMError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect);
+    virtual WMError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false);
+    virtual WMError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false);
     virtual WMError GetFreeMultiWindowEnableState(bool& enable);
     virtual WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus);
     virtual WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect);
@@ -159,6 +170,7 @@ public:
     virtual WMError GetWindowStyleType(WindowStyleType& windowStyleType);
     virtual WMError SkipSnapshotForAppProcess(int32_t pid, bool skip);
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled);
+    virtual WMError RecoverProcessWatermark();
     virtual WMError GetWindowIdsByCoordinate(DisplayId displayId, int32_t windowNumber,
         int32_t x, int32_t y, std::vector<int32_t>& windowIds);
     virtual WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
@@ -172,6 +184,8 @@ public:
     /*
      * Window Recover
      */
+    bool IsWindowManagerServiceProxyValid();
+    bool IsMockSMSProxyAlive();
     void RegisterSessionRecoverCallbackFunc(int32_t persistentId, const SessionRecoverCallbackFunc& callbackFunc);
     void UnregisterSessionRecoverCallbackFunc(int32_t persistentId);
     virtual WMError RecoverAndReconnectSceneSession(const sptr<ISessionStage>& sessionStage,
@@ -220,12 +234,15 @@ public:
     virtual WMError AnimateTo(int32_t windowId, const WindowAnimationProperty& animationProperty,
         const WindowAnimationOption& animationOption);
     WMError NotifySupportRotationRegistered();
-    
+
     /*
      * Window Property
      */
     virtual WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap);
     virtual WMError RecoverWatermarkImageForApp();
+    virtual WMError SetScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap, uint32_t priority);
+    virtual WMError CleanScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap);
+    virtual WMError RecoverScreenWatermarkImage();
     virtual WMError NotifyScreenshotEvent(ScreenshotEventType type);
     virtual WMError CreateUIEffectController(const sptr<IUIEffectControllerClient>& controllerClient,
         sptr<IUIEffectController>& controller, int32_t& controllerId);
@@ -247,7 +264,10 @@ public:
     void UnregisterOutlineRecoverCallbackFunc();
     virtual WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams);
 
-    sptr<IWindowManager> GetWindowManagerServiceProxy() const;
+    /**
+     * Float View
+     */
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits);
 
 private:
     friend class sptr<WindowAdapter>;
@@ -262,7 +282,7 @@ private:
      * Multi user and multi screen
      */
     void OnUserSwitch();
-    int32_t userId_;
+    const int32_t userId_;
     static std::unordered_map<int32_t, sptr<WindowAdapter>> windowAdapterMap_;
     static std::mutex windowAdapterMapMutex_;
 
@@ -274,28 +294,38 @@ private:
     void WindowManagerAndSessionRecover();
     void RecoverSpecificZIndexSetByApp();
     WMError RecoverWindowPropertyChangeFlag();
-    uint32_t observedFlags_ = 0;
-    uint32_t interestedFlags_ = 0;
+    void RegisterRecoverCallback();
+    mutable std::mutex processWatermarkMutex_;
+    int32_t processWatermarkPid_ = 0;
+    std::string processWatermarkName_;
     std::string appWatermarkName_;
+    std::string screenWatermarkBundleName_;
+    uint32_t screenWatermarkPriority_ = 0;
     std::unordered_map<WindowType, int32_t> specificZIndexMap_;
 
-    mutable std::mutex mutex_;
+    uint32_t observedFlags_ = 0;
+    uint32_t interestedFlags_ = 0;
+
+    sptr<IWindowManager> GetWindowManagerServiceProxy() const;
+
+    mutable std::mutex wmsProxyMutex_;
     sptr<IWindowManager> windowManagerServiceProxy_ = nullptr;
     sptr<WMSDeathRecipient> wmsDeath_ = nullptr;
     bool isProxyValid_ = false;
-    bool isRegisteredUserSwitchListener_ = false;
     bool recoverInitialized_ = false;
-    std::map<int32_t, SessionRecoverCallbackFunc> sessionRecoverCallbackFuncMap_;
-    // above guarded by mutex_
+    // above guarded by wmsProxyMutex_
 
-    std::mutex effectMutex_;
-    std::map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;
+    std::unordered_map<int32_t, SessionRecoverCallbackFunc> sessionRecoverCallbackFuncMap_;
+    std::mutex sessionRecoverCallbackMapMutex_;
 
     // Note: Currently, sptr does not support unordered_map<T, unordered_set<sptr<T>>>.
-    std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentMap_;
-    std::map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentFaultMap_;
+    std::unordered_map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentMap_;
     std::mutex wmAgentMapMutex_;
-    // Agent map both locked by wmAgentMapMutex_
+    std::unordered_map<WindowManagerAgentType, std::set<sptr<IWindowManagerAgent>>> windowManagerAgentFaultMap_;
+    std::mutex wmFaultAgentMapMutex_;
+
+    std::mutex effectMutex_;
+    std::unordered_map<int32_t, UIEffectRecoverCallbackFunc> uiEffectRecoverCallbackFuncMap_;
 
     std::mutex outlineMutex_;
     OutlineRecoverCallbackFunc outlineRecoverCallbackFunc_;

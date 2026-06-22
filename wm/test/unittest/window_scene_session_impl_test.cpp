@@ -1065,14 +1065,14 @@ HWTEST_F(WindowSceneSessionImplTest, StartMove01, TestSize.Level1)
 }
 
 /**
- * @tc.name: StartMoveWindow_IsDeviceSupportOrNot
- * @tc.desc: StartMoveWindow Test, is device support or not
+ * @tc.name: StartMoveWindow_PhoneSystemWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Phone device with system window should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_IsDeviceSupportOrNot, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PhoneSystemWindowSuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("StartMoveWindow_IsDeviceSupportOrNot");
+    option->SetWindowName("StartMoveWindow_PhoneSystemWindowSuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
@@ -1081,14 +1081,86 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_IsDeviceSupportOrNot, TestS
     window->hostSession_ = session;
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    window->property_->type_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PhoneMainWindowFailed
+ * @tc.desc: StartMoveWindow Test - Phone device with main window should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PhoneMainWindowFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PhoneMainWindowFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PcWindowSuccess
+ * @tc.desc: StartMoveWindow Test - PC device should support all window types
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcWindowSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    window->hostSession_ = sceneSession;
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    ASSERT_NE(window->StartMoveWindow(), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_InvalidDeviceFailed
+ * @tc.desc: StartMoveWindow Test - Invalid window device should fail with INVALID_CALLING
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_InvalidDeviceFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_InvalidDeviceFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
+    // INVALID_WINDOW is not PC or free multi window, and MAIN_WINDOW is not system/sub window
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PadWithoutFreeMultiWindowMainWindowFailed
+ * @tc.desc: StartMoveWindow Test - Pad without free multi window with main window should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadWithoutFreeMultiWindowMainWindowFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PadWithoutFreeMultiWindowMainWindowFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
@@ -1098,71 +1170,312 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_IsDeviceSupportOrNot, TestS
 }
 
 /**
- * @tc.name: StartMoveWindow_02
- * @tc.desc: StartMoveWindow Test
+ * @tc.name: StartMoveWindow_PadWithFreeMultiWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Pad with free multi window should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_02, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadWithFreeMultiWindowSuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("StartMoveWindow_02");
+    option->SetWindowName("StartMoveWindow_PadWithFreeMultiWindowSuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
-    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PhoneMainWindowBaseFailed
+ * @tc.desc: StartMoveWindow Test - Phone device with main window base should fail with invalid calling
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PhoneMainWindowBaseFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PhoneMainWindowBaseFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    // Phone device passes device check, but main window base is not supported on Phone without free multi window
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+}
 
+/**
+ * @tc.name: StartMoveWindow_PcWindowWithoutSessionFailed
+ * @tc.desc: StartMoveWindow Test - PC window without session should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowWithoutSessionFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcWindowWithoutSessionFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
+}
 
+/**
+ * @tc.name: StartMoveWindow_PcWindowWithoutMoveDragControllerFailed
+ * @tc.desc: StartMoveWindow Test - PC window without move drag controller should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowWithoutMoveDragControllerFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcWindowWithoutMoveDragControllerFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     SessionInfo info = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     window->hostSession_ = sceneSession;
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+}
 
+/**
+ * @tc.name: StartMoveWindow_PcWindowSuccess
+ * @tc.desc: StartMoveWindow Test - PC window with valid session and controller should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowWithValidSessionSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcWindowWithValidSessionSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo info = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    window->hostSession_ = sceneSession;
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_RepeatOperationFailed
+ * @tc.desc: StartMoveWindow Test - Repeat start move window should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_RepeatOperationFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_RepeatOperationFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo info = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    window->hostSession_ = sceneSession;
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->moveDragController_->hasPointDown_ = true;
     sceneSession->moveDragController_->SetStartMoveFlag(true);
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_REPEAT_OPERATION);
 }
 
 /**
- * @tc.name: StartMoveWindowWithCoordinate_03
- * @tc.desc: StartMoveWindowWithCoordinate Test
+ * @tc.name: StartMoveWindow_PcAppInPadFullscreenSuccess
+ * @tc.desc: StartMoveWindow Test - PC app in Pad fullscreen mode should succeed
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest, StartMoveWindowWithCoordinate_03, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadFullscreenSuccess, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcAppInPadFullscreenSuccess");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
-    Rect windowRect = { 200, 200, 1000, 1000};
-    window->property_->SetWindowRect(windowRect);
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
-    ASSERT_EQ(window->StartMoveWindowWithCoordinate(-1, 50), WmErrorCode::WM_ERROR_INVALID_CALLING);
-
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(window->StartMoveWindowWithCoordinate(-1, 50), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
-
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    ASSERT_EQ(window->StartMoveWindowWithCoordinate(-1, 50), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-
-    SessionInfo info = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    window->hostSession_ = sceneSession;
-    ASSERT_EQ(window->StartMoveWindowWithCoordinate(-1, 50), WmErrorCode::WM_ERROR_INVALID_PARAM);
-
-    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
-    ASSERT_EQ(window->StartMoveWindowWithCoordinate(500, 500), WmErrorCode::WM_OK);
-    sceneSession->moveDragController_->hasPointDown_ = true;
-    sceneSession->moveDragController_->SetStartMoveFlag(true);
-    ASSERT_EQ(window->StartMoveWindowWithCoordinate(500, 500), WmErrorCode::WM_ERROR_REPEAT_OPERATION);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    window->property_->SetIsPcAppInPad(true);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
+
+/**
+ * @tc.name: StartMoveWindow_PcAppInPadSplitPrimarySuccess
+ * @tc.desc: StartMoveWindow Test - PC app in Pad split primary mode should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitPrimarySuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcAppInPadSplitPrimarySuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    window->property_->SetIsPcAppInPad(true);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PcAppInPadSplitSecondarySuccess
+ * @tc.desc: StartMoveWindow Test - PC app in Pad split secondary mode should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcAppInPadSplitSecondarySuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PcAppInPadSplitSecondarySuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    window->property_->SetIsPcAppInPad(true);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_SECONDARY);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PhoneMainWindowFloatingFailed
+ * @tc.desc: StartMoveWindow Test - Phone main window with floating mode should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PhoneMainWindowFloatingFailed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PhoneMainWindowFloatingFailed");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_INVALID_CALLING);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PhoneSubWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Phone sub window should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PhoneSubWindowSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PhoneSubWindowSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PadFloatingWindowWithFreeMultiWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Pad floating window with free multi window mode should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadFloatingWindowWithFreeMultiWindowSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PadFloatingWindowWithFreeMultiWindowSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PadSystemWindowWithoutFreeMultiWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Pad system window without free multi window mode should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadSystemWindowWithoutFreeMultiWindowSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PadSystemWindowWithoutFreeMultiWindowSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_PadSubWindowWithoutFreeMultiWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Pad sub window without free multi window mode should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadSubWindowWithoutFreeMultiWindowSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_PadSubWindowWithoutFreeMultiWindowSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
+/**
+ * @tc.name: StartMoveWindow_WallpaperWindowSuccess
+ * @tc.desc: StartMoveWindow Test - Wallpaper window type should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_WallpaperWindowSuccess, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("StartMoveWindow_WallpaperWindowSuccess");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_WALLPAPER);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
+}
+
 
 /**
  * @tc.name: StopMoveWindow
@@ -3163,6 +3476,1171 @@ HWTEST_F(WindowSceneSessionImplTest, VerifySubWindowLevel, TestSize.Level1)
     windowSceneSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ret = WindowSceneSessionImpl::VerifySubWindowLevel(false, windowSceneSession);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: Destroy01
+ * @tc.desc: Destroy window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, Destroy01, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("Destroy01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    window->property_->SetPersistentId(9527);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_ERROR_IPC_FAILED));
+    EXPECT_EQ(WMError::WM_OK, window->Destroy(false));
+}
+
+/**
+ * @tc.name: Destroy02
+ * @tc.desc: Destroy window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, Destroy02, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("Destroy02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    window->property_->SetPersistentId(9528);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, Disconnect(_, _, _)).Times(AtLeast(1)).WillOnce(Return(WSError::WS_ERROR_INVALID_SESSION));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_SESSION, window->Destroy(false));
+}
+// ==================== MaximizeWithOptions Tests ====================
+
+/**
+ * @tc.name: MaximizeWithOptions01
+ * @tc.desc: MaximizeWithOptions with default config (-1, -1) should use system defaults
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions02
+ * @tc.desc: MaximizeWithOptions with invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    // No persistent id, session invalid
+
+    SnapshotAnimationConfig config = { 200, 30 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions03
+ * @tc.desc: MaximizeWithOptions with duration out of range (>400)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 401, 30 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions04
+ * @tc.desc: MaximizeWithOptions with delay out of range (>350)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions04");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 351 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions05
+ * @tc.desc: MaximizeWithOptions with negative duration (not -1)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions05");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { -2, 30 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions06
+ * @tc.desc: MaximizeWithOptions with negative delay (not -1)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions06");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, -2 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions07
+ * @tc.desc: MaximizeWithOptions with duration=0 delay=0 (cancel animation)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions07");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 0, 0 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions08
+ * @tc.desc: MaximizeWithOptions with boundary values (duration=400, delay=350)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions08");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 400, 350 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions09
+ * @tc.desc: MaximizeWithOptions with duration only, delay=-1 uses system default
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions09, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions09");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions10
+ * @tc.desc: MaximizeWithOptions with different presentation mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions10, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions10");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 100, 20 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE_DISABLE_TITLE_AND_DOCK_HOVER,
+        AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeOptionsParamPriority01
+ * @tc.desc: Param validation should return before session validation (MaximizeWithOptions)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeOptionsParamPriority01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeOptionsParamPriority01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    // No persistent id -> session invalid, but param error should come first
+
+    SnapshotAnimationConfig config = { 500, 30 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+// ==================== Recover With Config Tests ====================
+
+/**
+ * @tc.name: RecoverWithConfig01
+ * @tc.desc: Recover with valid snapshotAnimationConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWithConfig02
+ * @tc.desc: Recover with config on invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    // No persistent id, session invalid
+
+    SnapshotAnimationConfig config = { 200, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig03
+ * @tc.desc: Recover with duration out of range (>400)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 500, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig04
+ * @tc.desc: Recover with delay out of range (>350)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig04");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 400 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig05
+ * @tc.desc: Recover with negative duration (not -1)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig05");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { -2, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig06
+ * @tc.desc: Recover with negative delay (not -1)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig06");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, -2 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig07
+ * @tc.desc: Recover with duration=0 delay=0 (cancel animation)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig07");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 0, 0 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWithConfig08
+ * @tc.desc: Recover with boundary values (duration=400, delay=350)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig08");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 400, 350 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWithConfig09
+ * @tc.desc: Recover idempotent - already floating + MODE_RECOVER
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig09, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig09");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_REPEAT_OPERATION, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig10
+ * @tc.desc: Recover with -1 defaults should use system defaults
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig10, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverWithConfig10");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverParamPriority01
+ * @tc.desc: Param validation should return before session validation (Recover)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverParamPriority01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverParamPriority01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    // No persistent id -> session invalid, but param error should come first
+
+    SnapshotAnimationConfig config = { 500, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_ILLEGAL_PARAM, ret);
+}
+
+/**
+ * @tc.name: RecoverDelegatedPath01
+ * @tc.desc: Recover(reason) delegates to Recover(reason, {-1,-1}) and hits idempotent check
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverDelegatedPath01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverDelegatedPath01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_RECOVER);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    // Recover(reason) -> Recover(reason, {-1,-1}) -> hasCustomConfig=false -> idempotent check
+    WMError ret = window->Recover(1);
+    ASSERT_EQ(WMError::WM_ERROR_REPEAT_OPERATION, ret);
+}
+
+/**
+ * @tc.name: MaximizeDelegatedPath01
+ * @tc.desc: Maximize(pres, state) delegates to MaximizeWithOptions with default config
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeDelegatedPath01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeDelegatedPath01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    // Maximize(pres, state) -> MaximizeWithOptions(pres, UNSPECIFIED, {-1,-1})
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED,
+        { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_AnchorMode01
+ * @tc.desc: MaximizeWithOptions blocked by anchor mode, returns WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_AnchorMode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWithOptions_AnchorMode01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    // Set anchor mode to block maximize
+    WindowAnchorInfo anchorInfo;
+    anchorInfo.isFromAttachOrDetach_ = true;
+    anchorInfo.isAnchoredByAttach_ = true;
+    window->property_->SetWindowAnchorInfo(anchorInfo);
+
+    SnapshotAnimationConfig config = { 100, 20 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowInvalidWaterfall01
+ * @tc.desc: Sub window with non-UNCHANGED waterfall returns INVALID_CALLING
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowInvalidWaterfall01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWOSubWinInvalidWF01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    // Sub window with OPEN waterfall (not UNCHANGED) should fail
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_NotMainWindow01
+ * @tc.desc: Non-main, non-sub-maximize-supported window returns INVALID_CALLING
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_NotMainWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeOptionsNotMain01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    // Don't set IsSubWindowMaximizeSupported (defaults to false)
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_WindowModeNotSupported01
+ * @tc.desc: Window mode FULLSCREEN not supported returns INVALID_WINDOW
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_WindowModeNotSupported01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("MaximizeWOModeNotSup01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // Only support floating, not fullscreen
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 100, 20 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_AcrossDisplay_EnterMode01
+ * @tc.desc: Main window with ENTER_ACROSS_DISPLAY_MODE should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_AcrossDisplay_EnterMode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("AcrossDisplayEnterMode01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 100, 20 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::ENTER_ACROSS_DISPLAY_MODE, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_AcrossDisplay_ExitMode01
+ * @tc.desc: Main window with EXIT_ACROSS_DISPLAY_MODE should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_AcrossDisplay_ExitMode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("AcrossDisplayExitMode01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 100, 20 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowExitMode01
+ * @tc.desc: Sub window with EXIT_ACROSS_DISPLAY_MODE should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowExitMode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWindowExitMode01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::EXIT_ACROSS_DISPLAY_MODE, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowFollowMode01
+ * @tc.desc: Sub window with FOLLOW_ACROSS_DISPLAY_SETTING should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowFollowMode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWindowFollowMode01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowUnspecified01
+ * @tc.desc: Sub window with UNSPECIFIED acrossDisplayPresentation should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowUnspecified01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWindowUnspecified01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWithConfig_NotMainWindow01
+ * @tc.desc: Recover on non-main, non-sub-maximize-supported window returns INVALID_OPERATION
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_NotMainWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverConfigNotMain01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    // Don't set IsSubWindowMaximizeSupported (defaults to false)
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_OPERATION, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig_WindowModeNotSupported01
+ * @tc.desc: Recover when FLOATING mode not supported returns INVALID_OPERATION
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_WindowModeNotSupported01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverConfigModeNotSup01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // Only support fullscreen, not floating
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_OPERATION, ret);
+}
+
+/**
+ * @tc.name: RecoverWithConfig_DeviceNotSupport01
+ * @tc.desc: Recover on non-PC, non-Pad free multi window mode returns DEVICE_NOT_SUPPORT
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_DeviceNotSupport01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverConfigDevNotSup01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    // Set to PHONE_WINDOW (not PC), so IsPcOrPadFreeMultiWindowMode returns false
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 30 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowCustomDuration01
+ * @tc.desc: Sub window with custom duration should be rejected by animation config validation
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowCustomDuration01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinCustomDuration01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowCustomDelay01
+ * @tc.desc: Sub window with custom delay should be rejected by animation config validation
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowCustomDelay01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinCustomDelay01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, 200 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowCustomBoth01
+ * @tc.desc: Sub window with both custom duration and delay should be rejected
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowCustomBoth01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinCustomBoth01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 100 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowZeroConfig01
+ * @tc.desc: Sub window with zero animation config should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowZeroConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinZeroConfig01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 0, 0 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowMixedConfig01
+ * @tc.desc: Sub window with UNSET duration and zero delay should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowMixedConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinMixedConfig01");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, 0 };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_SubWindowMixedConfig02
+ * @tc.desc: Sub window with zero duration and UNSET delay should succeed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowMixedConfig02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubWinMixedConfig02");
+    option->SetSubWindowMaximizeSupported(true);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 0, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RecoverWithConfig_SubWindowCustomConfig01
+ * @tc.desc: Sub window Recover with custom animation config should be rejected
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, RecoverWithConfig_SubWindowCustomConfig01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverSubWinCustom01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { 200, 100 };
+    WMError ret = window->Recover(1, config);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_CALLING, ret);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsValidatesWindowAndSessionState
+ * @tc.desc: StartMovingWithOptions rejects invalid window types, invalid rects, and missing sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsValidatesWindowAndSessionState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    StartMovingOptions options;
+
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(window->StartMovingWithOptions(options), WMError::WM_ERROR_INVALID_CALLING);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
+    options.avoidRect = { INT32_MAX, INT32_MAX, 1, 1 };
+    EXPECT_EQ(window->StartMovingWithOptions(options), WMError::WM_ERROR_ILLEGAL_PARAM);
+
+    options.avoidRect = Rect::EMPTY_RECT;
+    EXPECT_EQ(window->StartMovingWithOptions(options), WMError::WM_ERROR_SYSTEM_ABNORMALLY);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsReturnsSuccessForPcAppInPadFullscreen
+ * @tc.desc: StartMovingWithOptions keeps the existing no-op success path for pc apps in pad fullscreen mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsReturnsSuccessForPcAppInPadFullscreen, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetIsPcAppInPad(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+
+    EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsForwardsRequestToHostSession
+ * @tc.desc: StartMovingWithOptions forwards valid options to the host session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsForwardsRequestToHostSession, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    window->hostSession_ = sceneSession;
+
+    EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: StartMovingWithOptionsReturnsHostSessionError
+ * @tc.desc: StartMovingWithOptions propagates a non-success result returned by the host session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsReturnsHostSessionError, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    sceneSession->moveDragController_->isStartMove_ = true;
+    window->hostSession_ = sceneSession;
+
+    EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_ERROR_REPEAT_OPERATION);
 }
 } // namespace
 } // namespace Rosen

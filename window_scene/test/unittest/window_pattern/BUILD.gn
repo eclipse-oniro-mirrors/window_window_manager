@@ -19,7 +19,10 @@ ws_unittest_common = "../:ws_unittest_common"
 
 ohos_unittest("window_pattern_snapshot_test") {
   module_out_path = module_out_path
-  sources = [ "window_pattern_snapshot_test.cpp" ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "window_pattern_snapshot_test.cpp",
+  ]
   include_dirs = [ "${window_base_path}/window_scene/session/host/include" ]
   deps = [ ws_unittest_common ]
   external_deps = [
@@ -28,6 +31,7 @@ ohos_unittest("window_pattern_snapshot_test") {
     "ability_runtime:ability_context_native",
     "ability_runtime:mission_info",
     "ability_runtime:session_handler",
+    "access_token:libaccesstoken_sdk",
     "accessibility:accessibility_common",
     "accessibility:accessibility_interface",
     "bundle_framework:appexecfwk_base",
@@ -69,6 +73,7 @@ ohos_unittest("window_pattern_starting_window_test") {
     "graphic_2d:window_animation",
     "hilog:libhilog",
     "input:libmmi-napi",
+    "preferences:native_preferences",
     "relational_store:native_rdb",
   ]
 }

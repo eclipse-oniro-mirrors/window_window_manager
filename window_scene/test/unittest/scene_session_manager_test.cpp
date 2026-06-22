@@ -25,6 +25,7 @@
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
+#include "session/screen/include/screen_session.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "session_manager.h"
@@ -96,7 +97,7 @@ void SceneSessionManagerTest::TearDown()
     MockAccesstokenKit::ChangeMockStateToInit();
     usleep(WAIT_SYNC_IN_NS);
     ssm_->sceneSessionMap_.clear();
-    ssm_->screenPipEnabledMap_.clear();
+    ssm_->pipController_->ClearPipEnabledMap();
 }
 
 void SceneSessionManagerTest::SetVisibleForAccessibility(sptr<SceneSession>& sceneSession)
@@ -139,6 +140,70 @@ HWTEST_F(SceneSessionManagerTest, SetBrightness, TestSize.Level1)
     WSError result = ssm_->SetBrightness(sceneSession, brightness);
     EXPECT_EQ(result, WSError::WS_OK);
     EXPECT_NE(brightness, ssm_->GetDisplayBrightness());
+}
+
+/**
+ * @tc.name: NotifyRotationProperty
+ * @tc.desc: SceneSessionManager NotifyRotationProperty
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, NotifyRotationProperty, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyRotationProperty";
+    info.bundleName_ = "NotifyRotationProperty";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(nullptr, sceneSession->sessionStage_);
+    sceneSession->GetSessionProperty()->SetDisplayId(1001);
+
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(config,
+        ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.emplace(1001, screenSession);
+
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.emplace(persistentId, sceneSession);
+
+    WMError ret = ssm_->NotifyRotationProperty(persistentId, 0, 1, 1);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    WMError ret2 = ssm_->NotifyRotationProperty(persistentId + 1, 0, 1, 1);
+    EXPECT_EQ(ret2, WMError::WM_ERROR_NULLPTR);
+
+    // Test width = 0
+    WMError ret3 = ssm_->NotifyRotationProperty(persistentId, 0, 0, 1);
+    EXPECT_EQ(ret3, WMError::WM_OK);
+
+    // Test height = 0
+    WMError ret4 = ssm_->NotifyRotationProperty(persistentId, 0, 1, 0);
+    EXPECT_EQ(ret4, WMError::WM_OK);
+
+    // Test sessionStage_ = nullptr
+    sceneSession->sessionStage_ = nullptr;
+    WMError ret5 = ssm_->NotifyRotationProperty(persistentId, 0, 1, 1);
+    EXPECT_EQ(ret5, WMError::WM_OK);
+
+    sceneSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->GetSessionProperty()->SetDisplayId(9999);
+    WMError ret6 = ssm_->NotifyRotationProperty(persistentId, 0, 1, 1);
+    EXPECT_EQ(ret6, WMError::WM_OK);
+
+    SessionInfo info2;
+    info2.abilityName_ = "NotifyRotationProperty2";
+    info2.bundleName_ = "NotifyRotationProperty2";
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    ASSERT_NE(nullptr, sceneSession2);
+    int32_t persistentId2 = sceneSession2->GetPersistentId();
+    ssm_->sceneSessionMap_.emplace(persistentId2, sceneSession2);
+    WMError ret7 = ssm_->NotifyRotationProperty(persistentId2, 0, 1, 1);
+    EXPECT_EQ(ret7, WMError::WM_OK);
+    ssm_->sceneSessionMap_.erase(persistentId2);
+    sceneSession2 = nullptr;
+
+    // Cleanup
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.erase(1001);
+    usleep(WAIT_SYNC_IN_NS);
 }
 
 /**
@@ -424,54 +489,6 @@ HWTEST_F(SceneSessionManagerTest, RegisterSessionListener01, TestSize.Level1)
     sptr<ISessionListener> listener = iface_cast<ISessionListener>(data.ReadRemoteObject());
     WSError result = ssm_->RegisterSessionListener(listener);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
-}
-
-/**
- * @tc.name: ClearDisplayStatusBarTemporarilyFlags01
- * @tc.desc: check ClearDisplayStatusBarTemporarilyFlags
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, ClearDisplayStatusBarTemporarilyFlags01, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "ClearDisplayStatusBarTemporarilyFlags";
-    sessionInfo.abilityName_ = "ClearDisplayStatusBarTemporarilyFlags";
-    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
-    sptr<SceneSession> sceneSession = ssm_->RequestSceneSession(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-}
-
-/**
- * @tc.name: ClearDisplayStatusBarTemporarilyFlags02
- * @tc.desc: check ClearDisplayStatusBarTemporarilyFlags
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, ClearDisplayStatusBarTemporarilyFlags02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "ClearDisplayStatusBarTemporarilyFlags";
-    sessionInfo.abilityName_ = "ClearDisplayStatusBarTemporarilyFlags";
-    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
-    sptr<SceneSession> sceneSession = ssm_->RequestSceneSession(sessionInfo, nullptr);
-    sceneSession->SetIsDisplayStatusBarTemporarily(true);
-    ASSERT_EQ(true, sceneSession->GetIsDisplayStatusBarTemporarily());
-}
-
-/**
- * @tc.name: ClearDisplayStatusBarTemporarilyFlags03
- * @tc.desc: check ClearDisplayStatusBarTemporarilyFlags
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, ClearDisplayStatusBarTemporarilyFlags03, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "ClearDisplayStatusBarTemporarilyFlags";
-    sessionInfo.abilityName_ = "ClearDisplayStatusBarTemporarilyFlags";
-    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
-    sptr<SceneSession> sceneSession = ssm_->RequestSceneSession(sessionInfo, nullptr);
-    sceneSession->SetIsDisplayStatusBarTemporarily(true);
-    ssm_->ClearDisplayStatusBarTemporarilyFlags();
-    ASSERT_EQ(true, sceneSession->GetIsDisplayStatusBarTemporarily());
 }
 
 /**
@@ -2205,6 +2222,185 @@ HWTEST_F(SceneSessionManagerTest, NotifySupportRotationRegistered, TestSize.Leve
     WMError ret = WMError::WM_OK;
     ret = ssm_->NotifySupportRotationRegistered();
     EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: SetSelectMode
+ * @tc.desc: SetSelectMode test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, SetSelectMode, TestSize.Level1)
+{
+    ssm_->SetSelectMode(SelectMode::WIDE_MODE);
+    EXPECT_EQ(ssm_->GetSelectMode(), SelectMode::WIDE_MODE);
+
+    ssm_->SetSelectMode(SelectMode::SQUARE_MODE);
+    EXPECT_EQ(ssm_->GetSelectMode(), SelectMode::SQUARE_MODE);
+
+    ssm_->SetSelectMode(SelectMode::INVALID_MODE);
+    EXPECT_EQ(ssm_->GetSelectMode(), SelectMode::INVALID_MODE);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode01
+ * @tc.desc: Test GetNativeModuleStartMode with both conditions met
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode01, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_TRUE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode02
+ * @tc.desc: Test GetNativeModuleStartMode with both conditions met
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode02, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "pre_foreground";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_TRUE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode03
+ * @tc.desc: Test GetNativeModuleStartMode with empty metadata
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode03, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode04
+ * @tc.desc: Test GetNativeModuleStartMode with only withNativeModule=true but no startupPhase
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode04, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode05
+ * @tc.desc: Test GetNativeModuleStartMode with only startupPhase=pre_window but no withNativeModule
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode05, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.startupPhase";
+    metadata1.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata1);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode06
+ * @tc.desc: Test GetNativeModuleStartMode with withNativeModule=false and startupPhase=pre_window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode06, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "false";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode07
+ * @tc.desc: Test GetNativeModuleStartMode with withNativeModule=true and invalid startupPhase value
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode07, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.withNativeModule";
+    metadata1.value = "true";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.startupPhase";
+    metadata2.value = "invalid_phase";
+    abilityInfo.metadata.push_back(metadata2);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: GetNativeModuleStartMode08
+ * @tc.desc: Test GetNativeModuleStartMode with multiple metadata entries, correct config exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode08, TestSize.Level1)
+{
+    AppExecFwk::AbilityInfo abilityInfo;
+
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "ohos.ability.otherConfig";
+    metadata1.value = "some_value";
+    abilityInfo.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "ohos.ability.withNativeModule";
+    metadata2.value = "true";
+    abilityInfo.metadata.push_back(metadata2);
+
+    AppExecFwk::Metadata metadata3;
+    metadata3.name = "ohos.ability.startupPhase";
+    metadata3.value = "pre_window";
+    abilityInfo.metadata.push_back(metadata3);
+
+    bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
+    EXPECT_TRUE(result);
 }
 } // namespace
 } // namespace Rosen

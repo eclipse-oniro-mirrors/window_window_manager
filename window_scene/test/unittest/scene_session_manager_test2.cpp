@@ -17,6 +17,7 @@
 #include <regex>
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
+#include "pointer_event.h"
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "libxml/parser.h"
@@ -293,7 +294,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleWithInvalidConfig, TestSize
 
 /**
  * @tc.name: ConfigMoveResampleFpsRangeFallback
- * @tc.desc: Verify invalid fpsRange falls back to default
+ * @tc.desc: Verify invalid fpsRange leaves fps range unlimited
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.Level1)
@@ -301,7 +302,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.
     ConfigItem enableProp;
     enableProp.SetValue(true);
 
-    // Case 1: resampleFpsRange INVALID TYPE → fallback to default (nullopt/nullopt), return true
+    // Case 1: resampleFpsRange INVALID TYPE → leave fps range unlimited, return true
     {
         ConfigItem fpsRange;
         fpsRange.SetValue(std::string("not an int array"));
@@ -312,13 +313,13 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.
 
         EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
 
-        auto [enable, minFps, maxFps] = MoveDragController::GetMoveResampleSystemConfig();
-        EXPECT_TRUE(enable);
-        EXPECT_FALSE(minFps.has_value());
-        EXPECT_FALSE(maxFps.has_value());
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.enable);
+        EXPECT_FALSE(config.minFps.has_value());
+        EXPECT_FALSE(config.maxFps.has_value());
     }
 
-    // Case 2: resampleFpsRange SIZE != 2 → fallback to default (nullopt/nullopt), return true
+    // Case 2: resampleFpsRange SIZE != 2 → leave fps range unlimited, return true
     {
         ConfigItem fpsRange;
         fpsRange.SetValue(std::vector<int>{60, 120, 144});
@@ -329,10 +330,10 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.
 
         EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
 
-        auto [enable, minFps, maxFps] = MoveDragController::GetMoveResampleSystemConfig();
-        EXPECT_TRUE(enable);
-        EXPECT_FALSE(minFps.has_value());
-        EXPECT_FALSE(maxFps.has_value());
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.enable);
+        EXPECT_FALSE(config.minFps.has_value());
+        EXPECT_FALSE(config.maxFps.has_value());
     }
 }
 
@@ -356,12 +357,223 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeValid, TestSize.Lev
 
     EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
 
-    auto [enable, minFps, maxFps] = MoveDragController::GetMoveResampleSystemConfig();
-    EXPECT_TRUE(enable);
-    ASSERT_TRUE(minFps.has_value());
-    ASSERT_TRUE(maxFps.has_value());
-    EXPECT_EQ(*minFps, 60);
-    EXPECT_EQ(*maxFps, 120);
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_TRUE(config.enable);
+    ASSERT_TRUE(config.minFps.has_value());
+    ASSERT_TRUE(config.maxFps.has_value());
+    EXPECT_EQ(*config.minFps, 60);
+    EXPECT_EQ(*config.maxFps, 120);
+}
+
+/**
+ * @tc.name: ConfigMoveResamplePointerTypesValid
+ * @tc.desc: Verify valid pointerTypes is applied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResamplePointerTypesValid, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    ConfigItem fpsRange;
+    fpsRange.SetValue(std::vector<int>{60, 120});
+    ConfigItem pointerTypes;
+    pointerTypes.SetValue(std::vector<int>{
+        MMI::PointerEvent::SOURCE_TYPE_MOUSE,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN,
+        MMI::PointerEvent::SOURCE_TYPE_MOUSE,
+    });
+
+    ConfigItem moveResample;
+    moveResample.SetProperty({ { "enable", enableProp } });
+    moveResample.SetValue({ { "resampleFpsRange", fpsRange }, { "resamplePointerTypes", pointerTypes } });
+
+    EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_EQ(config.pointerTypes.size(), 2);
+    EXPECT_TRUE(config.pointerTypes.find(MMI::PointerEvent::SOURCE_TYPE_MOUSE) != config.pointerTypes.end());
+    EXPECT_TRUE(config.pointerTypes.find(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) != config.pointerTypes.end());
+}
+
+/**
+ * @tc.name: ConfigMoveResampleSecondaryPhaseValid
+ * @tc.desc: Verify secondary phase enable and lead time are applied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleSecondaryPhaseValid, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+    ConfigItem secondaryEnableProp;
+    secondaryEnableProp.SetValue(true);
+    ConfigItem leadTime;
+    leadTime.SetValue(std::vector<int>{2});
+
+    ConfigItem secondaryPhase;
+    secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+    secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+
+    ConfigItem moveResample;
+    moveResample.SetProperty({ { "enable", enableProp } });
+    moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+    EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_TRUE(config.secondaryPhaseEnable);
+    EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 2);
+}
+
+/**
+ * @tc.name: ConfigMoveResampleSecondaryPhaseFallback
+ * @tc.desc: Verify invalid secondary phase fields keep default values
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleSecondaryPhaseFallback, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::string("invalid"));
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_FALSE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+
+    ConfigItem secondaryEnableProp;
+    secondaryEnableProp.SetValue(true);
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::vector<int>{ -1 });
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::vector<int>{ 1, 2 });
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+}
+
+/**
+ * @tc.name: ConfigMovingEventInvalidType
+ * @tc.desc: Verify ConfigMovingEvent returns false when config is not a map
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMovingEventInvalidType, TestSize.Level1)
+{
+    ConfigItem movingEvent;
+    movingEvent.SetValue(123); // not a map
+
+    EXPECT_FALSE(ssm_->ConfigMovingEvent(movingEvent));
+}
+
+/**
+ * @tc.name: ConfigMovingEventInvalidThrottleIntervalType
+ * @tc.desc: Verify ConfigMovingEvent returns false when throttleInterval is invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMovingEventInvalidThrottleIntervalType, TestSize.Level1)
+{
+    // Case 1: throttleInterval missing
+    {
+        ConfigItem movingEvent;
+        movingEvent.SetValue(std::map<std::string, ConfigItem>{});
+
+        EXPECT_FALSE(ssm_->ConfigMovingEvent(movingEvent));
+    }
+
+    // Case 2: throttleInterval not int array
+    {
+        ConfigItem throttle;
+        throttle.SetValue(std::string("not int"));
+
+        ConfigItem movingEvent;
+        movingEvent.SetValue({ { "throttleInterval", throttle } });
+
+        EXPECT_FALSE(ssm_->ConfigMovingEvent(movingEvent));
+    }
+}
+
+/**
+ * @tc.name: ConfigMovingEventInvalidThrottleIntervalSize
+ * @tc.desc: Verify ConfigMovingEvent returns false when throttleInterval size is not 1
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMovingEventInvalidThrottleIntervalSize, TestSize.Level1)
+{
+    ConfigItem throttle;
+    throttle.SetValue(std::vector<int>{10, 20}); // size != 1
+
+    ConfigItem movingEvent;
+    movingEvent.SetValue({ { "throttleInterval", throttle } });
+
+    EXPECT_FALSE(ssm_->ConfigMovingEvent(movingEvent));
+}
+
+/**
+ * @tc.name: ConfigMovingEventNegativeThrottleInterval
+ * @tc.desc: Verify ConfigMovingEvent returns false when throttleInterval < 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMovingEventNegativeThrottleInterval, TestSize.Level1)
+{
+    ConfigItem throttle;
+    throttle.SetValue(std::vector<int>{-1});
+
+    ConfigItem movingEvent;
+    movingEvent.SetValue({ { "throttleInterval", throttle } });
+
+    EXPECT_FALSE(ssm_->ConfigMovingEvent(movingEvent));
+}
+
+/**
+ * @tc.name: ConfigMovingEventValid
+ * @tc.desc: Verify valid throttleInterval is applied correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMovingEventValid, TestSize.Level1)
+{
+    ConfigItem throttle;
+    throttle.SetValue(std::vector<int>{16});
+
+    ConfigItem movingEvent;
+    movingEvent.SetValue({ { "throttleInterval", throttle } });
+
+    EXPECT_TRUE(ssm_->ConfigMovingEvent(movingEvent));
+
+    uint32_t interval = MoveDragController::LoadMovingEventThrottleSystemConfig();
+    EXPECT_EQ(interval, 16u);
 }
 
 /**
@@ -1790,6 +2002,214 @@ HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest, TestSize.Level
 }
 
 /**
+ * @tc.name: ConfigSingleHandBackgroundLayout01
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>"
+                    "<posX>423</posX>"
+                    "<posY>35</posY>"
+                    "<width>20</width>"
+                    "<height>20</height>"
+                "</singleHandBackgroundSettingButton>"
+                "<isSettingButtonMirror enable=\"true\"/>"
+                "<textContainerWidth>90</textContainerWidth>"
+                "<singleHandBackgroundTitle>"
+                    "<posX>0</posX>"
+                    "<posY>29</posY>"
+                    "<width>200</width>"
+                    "<height>30</height>"
+                    "<fontSize>16</fontSize>"
+                    "<minFontSize>12</minFontSize>"
+                    "<maxLines>1</maxLines>"
+                    "<textAlign>0</textAlign>"
+                    "<maxFontScale>default:1.15,fr:1.0</maxFontScale>"
+                "</singleHandBackgroundTitle>"
+                "<singleHandBackgroundContent>"
+                    "<posX>0</posX>"
+                    "<posY>39</posY>"
+                    "<width>300</width>"
+                    "<height>30</height>"
+                    "<fontSize>16</fontSize>"
+                    "<minFontSize>12</minFontSize>"
+                    "<maxLines>2</maxLines>"
+                    "<textAlign>0</textAlign>"
+                    "<maxFontScale>default:1.15,es:1.0</maxFontScale>"
+                "</singleHandBackgroundContent>"
+                "<singleHandBackgroundIssueText>"
+                    "<posX>0</posX>"
+                    "<posY>31</posY>"
+                    "<width>335</width>"
+                    "<height>30</height>"
+                    "<fontSize>16</fontSize>"
+                    "<minFontSize>12</minFontSize>"
+                    "<maxLines>1</maxLines>"
+                    "<textAlign>0</textAlign>"
+                    "<maxFontScale>default:1.0,zh-Hans:1.45</maxFontScale>"
+                "</singleHandBackgroundIssueText>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posX_, 423);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posY_, 35);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.width_, 20);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.height_, 20);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isSettingButtonMirror, true);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.textContainerWidth, 90);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.posX, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.posY, 29);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.width, 200);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.height, 30);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.fontSize, 16);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.minFontSize, 12);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.maxLines, 1);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.textAlign, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.maxFontScale, "default:1.15,fr:1.0");
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.posX, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.posY, 39);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.width, 300);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.height, 30);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.fontSize, 16);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.minFontSize, 12);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.maxLines, 2);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.textAlign, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.maxFontScale, "default:1.15,es:1.0");
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.posX, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.posY, 31);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.width, 335);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.height, 30);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.fontSize, 16);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 12);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 1);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.textAlign, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
+}
+
+/**
+ * @tc.name: ConfigSingleHandBackgroundLayout02
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout02, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>"
+                    "<posX>423.1</posX>"
+                    "<posY>35.1</posY>"
+                    "<width>20.1</width>"
+                    "<height>20.1</height>"
+                "</singleHandBackgroundSettingButton>"
+                "<isSettingButtonMirror enable=\"false\"/>"
+                "<textContainerWidth>90.1</textContainerWidth>"
+                "<singleHandBackgroundTitle>20</singleHandBackgroundTitle>"
+                "<singleHandBackgroundContent>"
+                    "<posX>1.2</posX>"
+                    "<posY>39.9</posY>"
+                    "<width>300.2</width>"
+                    "<height>30.5</height>"
+                    "<fontSize>16.5</fontSize>"
+                    "<minFontSize>12.3</minFontSize>"
+                    "<maxLines>2.6</maxLines>"
+                    "<textAlign>2.5</textAlign>"
+                "</singleHandBackgroundContent>"
+                "<singleHandBackgroundIssueText>"
+                    "<posX>5 5</posX>"
+                    "<posY>35 35</posY>"
+                    "<width>340 340</width>"
+                    "<height>35 35</height>"
+                    "<fontSize>20 20</fontSize>"
+                    "<minFontSize>15 15</minFontSize>"
+                    "<maxLines>3 3</maxLines>"
+                    "<textAlign>2 2</textAlign>"
+                    "<maxFontScale>default:1.0,zh-Hans:1.45</maxFontScale>"
+                "</singleHandBackgroundIssueText>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posX_, 423.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posY_, 35.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.width_, 20.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.height_, 20.1);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isSettingButtonMirror, false);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.textContainerWidth, 90.1);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.posX, 1.2);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.posY, 39.9);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.width, 300.2);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.height, 30.5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.fontSize, 16.5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.minFontSize, 12.3);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.maxLines, 2.6);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.textAlign, 2.5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.maxFontScale, "1");
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.posX, 5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.posY, 35);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.width, 340);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.height, 35);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.fontSize, 20);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 15);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 3);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.textAlign, 2);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
+}
+
+/**
+ * @tc.name: ConfigSingleHandBackgroundLayout03
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout03, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>"
+                    "<posX>450 450</posX>"
+                    "<posY>60 60</posY>"
+                    "<width>22 22</width>"
+                    "<height>23 23</height>"
+                "</singleHandBackgroundSettingButton>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posX_, 450);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.posY_, 60);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.width_, 22);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.settingButtonRect.height_, 23);
+}
+
+/**
+ * @tc.name: ConfigSingleHandBackgroundLayout04
+ * @tc.desc: call ConfigSingleHandBackgroundLayout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout04, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<singleHandBackgroundLayout enable=\"true\">"
+                "<singleHandBackgroundSettingButton>20</singleHandBackgroundSettingButton>"
+            "</singleHandBackgroundLayout>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigWindowSceneXml();
+    ssm_->GetSingleHandBackgroundLayoutConfig();
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.isCustomLayout, true);
+}
+
+/**
  * @tc.name: Init
  * @tc.desc: SceneSessionManager init
  * @tc.type: FUNC
@@ -2692,26 +3112,6 @@ HWTEST_F(SceneSessionManagerTest2, ClosePipWindowIfExist, TestSize.Level1)
 }
 
 /**
- * @tc.name: RecoverAndConnectSpecificSession
- * @tc.desc: RecoverAndConnectSpecificSession
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, RecoverAndConnectSpecificSession, TestSize.Level1)
-{
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetParentId(1);
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    auto result =
-        ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
-}
-
-/**
  * @tc.name: UpdateGestureBackEnabled
  * @tc.desc: UpdateGestureBackEnabled
  * @tc.type: FUNC
@@ -2787,33 +3187,6 @@ HWTEST_F(SceneSessionManagerTest2, UpdateGestureBackEnabled, TestSize.Level1)
 
     ssm_->sceneSessionMap_.erase(1);
     ssm_->sceneSessionMap_.erase(2);
-}
-
-/**
- * @tc.name: RecoverAndConnectSpecificSession02
- * @tc.desc: RecoverAndConnectSpecificSession02
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, RecoverAndConnectSpecificSession02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.abilityName_ = "RecoverAndConnectSpecificSession02";
-    sessionInfo.bundleName_ = "SceneSessionManagerTest2";
-    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_END);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetSessionInfo(sessionInfo);
-    property->SetPersistentId(1);
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    ASSERT_NE(ssm_, nullptr);
-    auto result =
-        ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 }
 
 /**

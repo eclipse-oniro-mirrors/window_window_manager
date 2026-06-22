@@ -78,7 +78,24 @@ struct PiPContent {
   }
 
   private registerUpdateNodeListener() {
-    pip.on('nodeUpdate', this.nodeUpdateListener);
+    pip.on('nodeUpdate', (newNode: typeNode.XComponent) => {
+      console.info(TAG, `nodeUpdate`);
+      if (!this.validateNode(newNode)) {
+        return;
+      }
+      if (this.useNode) {
+        pip.setPipNodeType(this.xComponent, false);
+        this.updatePipNodeType(newNode);
+        this.mXCNodeController?.replaceNode(newNode);
+        this.nodeChange = true;
+      } else {
+        this.updatePipNodeType(newNode);
+        this.mXCNodeController = new XCNodeController(newNode);
+        console.info(TAG, 'update to Node Controller');
+        this.registerStateChangeListener();
+        this.useNode = true;
+      }
+    });
   }
 
   private updatePipNodeType(newNode: typeNode.XComponent) {
@@ -92,34 +109,13 @@ struct PiPContent {
   }
 
   private registerStateChangeListener() {
-    pip.on('stateChange', this.stateChangeListener)
+    pip.on('stateChange', (state: number) => {
+      console.info(TAG, `stateChange state:${state}`);
+      if (state === ABOUT_TO_STOP) {
+        this.mXCNodeController?.removeNode();
+      }
+    })
   }
-
-  private nodeUpdateListener = (newNode: typeNode.XComponent) => {
-    console.info(TAG, `nodeUpdate`);
-    if (!this.validateNode(newNode)) {
-      return;
-    }
-    if (this.useNode) {
-      pip.setPipNodeType(this.xComponent, false);
-      this.updatePipNodeType(newNode);
-      this.mXCNodeController?.replaceNode(newNode);
-      this.nodeChange = true;
-    } else {
-      this.updatePipNodeType(newNode);
-      this.mXCNodeController = new XCNodeController(newNode);
-      console.info(TAG, 'update to Node Controller');
-      this.registerStateChangeListener();
-      this.useNode = true;
-    }
-  };
-
-  private stateChangeListener = (state: number) => {
-    console.info(TAG, `stateChange state:${state}`);
-    if (state === ABOUT_TO_STOP) {
-      this.mXCNodeController?.removeNode();
-    }
-  };
 
   aboutToAppear(): void {
     try {
@@ -146,8 +142,8 @@ struct PiPContent {
 
   aboutToDisappear(): void {
     try {
-      pip.off('stateChange', this.stateChangeListener);
-      pip.off('nodeUpdate', this.nodeUpdateListener);
+      pip.off('stateChange');
+      pip.off('nodeUpdate');
     } catch (err) {
       console.log(`aboutToDisappear failed`);
     }

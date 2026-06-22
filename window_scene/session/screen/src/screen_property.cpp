@@ -280,6 +280,16 @@ ScreenId ScreenProperty::GetRsId() const
     return rsId_;
 }
 
+void ScreenProperty::SetInternalStatus(bool isInternal)
+{
+    isInternal_ = isInternal;
+}
+
+bool ScreenProperty::GetInternalStatus() const
+{
+    return isInternal_;
+}
+
 void ScreenProperty::SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason)
 {
     propertyChangeReason_ = propertyChangeReason;
@@ -421,10 +431,19 @@ DisplayOrientation ScreenProperty::GetDeviceOrientation() const
     return deviceOrientation_;
 }
 
+void ScreenProperty::SetRogScreenResolution(uint32_t width, uint32_t height)
+{
+    rogWidth_ = width;
+    rogHeight_ = height;
+}
+
 void ScreenProperty::UpdateXDpi()
 {
     if (dpiPhyWidth_ != UINT32_MAX) {
         int32_t width = phyBounds_.rect_.width_;
+        if (rogWidth_ != 0) {
+            width = static_cast<int32_t>(rogWidth_);
+        }
         xDpi_ = width * INCH_2_MM / dpiPhyWidth_;
         xDpi_ = std::floor(xDpi_ * TRUNCATE_THREE_DECIMALS) / TRUNCATE_THREE_DECIMALS;
     }
@@ -434,6 +453,9 @@ void ScreenProperty::UpdateYDpi()
 {
     if (dpiPhyHeight_ != UINT32_MAX) {
         int32_t height_ = phyBounds_.rect_.height_;
+        if (rogHeight_ != 0) {
+            height_ = static_cast<int32_t>(rogHeight_);
+        }
         yDpi_ = height_ * INCH_2_MM / dpiPhyHeight_;
         yDpi_ = std::floor(yDpi_ * TRUNCATE_THREE_DECIMALS) / TRUNCATE_THREE_DECIMALS;
     }
@@ -724,6 +746,36 @@ FoldDisplayMode ScreenProperty::GetDisplayMode() const
 void ScreenProperty::SetDisplayMode(FoldDisplayMode mode)
 {
     displayMode_ = mode;
+}
+
+void ScreenProperty::SetNeedCastScale(bool needCastScale)
+{
+    needCastScale_ = needCastScale;
+}
+
+bool ScreenProperty::GetNeedCastScale() const
+{
+    return needCastScale_;
+}
+
+void ScreenProperty::SetCastScaleX(float scaleX)
+{
+    castScaleX_ = scaleX;
+}
+
+float ScreenProperty::GetCastScaleX() const
+{
+    return castScaleX_;
+}
+
+void ScreenProperty::SetCastScaleY(float scaleY)
+{
+    castScaleY_ = scaleY;
+}
+
+float ScreenProperty::GetCastScaleY() const
+{
+    return castScaleY_;
 }
 
 } // namespace OHOS::Rosen

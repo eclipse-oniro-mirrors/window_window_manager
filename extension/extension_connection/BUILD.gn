@@ -35,6 +35,7 @@ ohos_shared_library("libwindow_extension_client") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   install_enable = true
   sources = [
@@ -70,6 +71,7 @@ ohos_shared_library("libwindow_extension_client") {
     "ipc:ipc_single",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"
   subsystem_name = "window"

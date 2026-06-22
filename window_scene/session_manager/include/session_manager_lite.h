@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,12 +35,12 @@ public:
     int32_t OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     void OnSessionManagerServiceRecover(const sptr<IRemoteObject>& sessionManagerService) override;
     void OnWMSConnectionChanged(int32_t wmsUserId,
-                                int32_t screenId,
-                                bool isConnected,
-                                const sptr<IRemoteObject>& sessionManagerService) override;
+        int32_t screenId, bool isConnected, int32_t pid,
+        int32_t fromUserId, int32_t fromPid,
+        const sptr<IRemoteObject>& sessionManagerService) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class SSMDeathRecipientLite : public IRemoteObject::DeathRecipient {
@@ -49,7 +49,7 @@ public:
     void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class FoundationDeathRecipientLite : public IRemoteObject::DeathRecipient {
@@ -58,7 +58,7 @@ public:
     void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class SessionManagerLite : public RefBase {
@@ -67,8 +67,9 @@ public:
     static SessionManagerLite& GetInstance(const int32_t userId);
 
     void ClearSessionManagerProxy();
-    void Clear();
+    void RemoveSSMDeathRecipient();
 
+    virtual sptr<IMockSessionManagerInterface> GetMockSessionManagerServiceProxy();
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteProxy();
     sptr<IScreenSessionManagerLite> GetScreenSessionManagerLiteProxy();
 
@@ -82,11 +83,13 @@ public:
     /*
      * Multi User
      */
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<ISessionManagerService>& sessionManagerService);
+        int32_t userId, int32_t screenId, bool isConnected,
+        int32_t pid, int32_t fromUserId, int32_t fromPid,
+        const sptr<ISessionManagerService>& sessionManagerService);
 
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
@@ -101,41 +104,45 @@ private:
     SessionManagerLite(const int32_t userId = INVALID_USER_ID);
     ~SessionManagerLite() override;
 
-    void InitSessionManagerServiceProxy();
-    void InitSceneSessionManagerLiteProxy();
-    void InitScreenSessionManagerLiteProxy();
+    virtual WMError InitSessionManagerServiceProxy();
+    virtual WMError InitSceneSessionManagerLiteProxy();
+    virtual WMError InitScreenSessionManagerLiteProxy();
 
     void DeleteAllSessionListeners();
     void ReregisterSessionListener();
 
-    WMError InitMockSMSProxy();
-
     /*
      * Multi User and multi screen
      */
-    int32_t userId_;
+    const int32_t userId_;
     static std::unordered_map<int32_t, sptr<SessionManagerLite>> sessionManagerLiteMap_;
     static std::mutex sessionManagerLiteMapMutex_;
     void OnUserSwitch(const sptr<ISessionManagerService>& sessionManagerService);
-    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected);
+    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected, int32_t pid);
 
     /*
      * Window Recover
      */
-    void RegisterSMSRecoverListener();
+    virtual WMError RegisterSMSRecoverListener();
     void UnregisterSMSRecoverListener();
 
-    std::recursive_mutex mutex_;
+    sptr<FoundationDeathRecipientLite> mockFoundationDeathRecipient_ = nullptr;
     sptr<IMockSessionManagerInterface> mockSessionManagerServiceProxy_ = nullptr;
-    sptr<ISessionManagerService> sessionManagerServiceProxy_ = nullptr;
-    sptr<ISceneSessionManagerLite> sceneSessionManagerLiteProxy_ = nullptr;
-    sptr<IScreenSessionManagerLite> screenSessionManagerLiteProxy_ = nullptr;
-    sptr<SSMDeathRecipientLite> ssmDeath_ = nullptr;
+    std::mutex mockSMSProxyMutex_;
+
     sptr<IRemoteObject> smsRecoverListener_ = nullptr;
-    sptr<FoundationDeathRecipientLite> foundationDeath_ = nullptr;
-    bool recoverListenerRegistered_ = false;
-    bool isFoundationListenerRegistered_ = false;
-    // above guarded by mutex_
+    bool isRecoverListenerRegistered_ = false;
+    std::mutex smsRecoverListenerMutex_;
+
+    sptr<ISessionManagerService> sessionManagerServiceProxy_ = nullptr;
+    std::mutex smsProxyMutex_;
+
+    sptr<SSMDeathRecipientLite> ssmLiteDeathRecipient_ = nullptr;
+    sptr<ISceneSessionManagerLite> sceneSessionManagerLiteProxy_ = nullptr;
+    std::mutex ssmLiteProxyMutex_;
+
+    sptr<IScreenSessionManagerLite> screenSessionManagerLiteProxy_ = nullptr;
+    std::mutex screenSMLiteProxyMutex_;
 
     std::recursive_mutex listenerLock_;
     std::vector<sptr<ISessionListener>> sessionListeners_;
@@ -147,10 +154,15 @@ private:
     UserSwitchCallbackFunc userSwitchCallbackFunc_ = nullptr;
     std::mutex userSwitchCallbackFuncMutex_;
 
+    struct ScreenUserInfo {
+        int32_t userId;
+        int32_t screenId;
+        int32_t pid;
+    };
+
     std::mutex wmsConnectionMutex_;
-    int32_t currentWMSUserId_ = INVALID_USER_ID;
-    int32_t currentScreenId_ = DEFAULT_SCREEN_ID;
     bool isWMSConnected_ = false;
+    ScreenUserInfo currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
     WMSConnectionChangedCallbackFunc wmsConnectionChangedFunc_ = nullptr;
     // above guarded by wmsConnectionMutex_
 };

@@ -23,19 +23,13 @@
 #include "display_manager_interface_code.h"
 #include "idisplay_manager.h"
 #include "window_manager_hilog.h"
+#include <fuzzer/FuzzedDataProvider.h>
 
 namespace OHOS ::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_DISPLAY, "DisplayManagerIPC_Fuzzer"};
-}
-template<class T>
-size_t GetObject(T &object, const uint8_t *data, size_t size)
-{
-    size_t objectSize = sizeof(object);
-    if (objectSize > size) {
-        return 0;
-    }
-    return memcpy_s(&object, objectSize, data, objectSize) == EOK ? objectSize : 0;
+constexpr size_t DATA_MIN_SIZE = 12;
+const size_t MAX_MESSAGE_SIZE = 1024 * 1024;
 }
 
 std::pair<sptr<IDisplayManager>, sptr<IRemoteObject>> GetProxy()
@@ -61,24 +55,26 @@ std::pair<sptr<IDisplayManager>, sptr<IRemoteObject>> GetProxy()
 
 bool IPCFuzzTest(const uint8_t* data, size_t size)
 {
-    uint32_t code;
-    int flags, waitTime;
-    if (data == nullptr || size < sizeof(code) + sizeof(flags) + sizeof(waitTime)) {
+    if (data == nullptr || size < DATA_MIN_SIZE) {
         return false;
     }
+    FuzzedDataProvider provider(data, size);
     auto proxy = GetProxy();
     if (proxy.first == nullptr || proxy.second == nullptr) {
         return false;
     }
-    size_t startPos = 0;
-    startPos += GetObject<uint32_t>(code, data + startPos, size - startPos);
-    startPos += GetObject<int>(flags, data + startPos, size - startPos);
-    startPos += GetObject<int>(waitTime, data + startPos, size - startPos);
+    uint32_t code = provider.ConsumeIntegral<uint32_t>();
+    int flags = provider.ConsumeIntegral<int32_t>();
+    int waitTime = provider.ConsumeIntegral<int32_t>();
+    std::vector<uint8_t> messageData = provider.ConsumeRemainingBytes<uint8_t>();
     MessageParcel sendData;
     MessageParcel reply;
     MessageOption option(flags, waitTime);
-    uint32_t dataSize = (size - startPos) > 1024 * 1024 ? 1024 * 1024 : (size - startPos);
-    sendData.WriteBuffer(data + startPos, dataSize);
+    if (messageData.size() > MAX_MESSAGE_SIZE) {
+        messageData.resize(MAX_MESSAGE_SIZE);
+    }
+
+    sendData.WriteBuffer(messageData.data(), messageData.size());
     proxy.second->SendRequest(code, sendData, reply, option);
     return true;
 }
@@ -144,23 +140,26 @@ void IPCSpecificInterfaceFuzzTest2(const sptr<IRemoteObject>& proxy, MessageParc
 
 bool IPCInterfaceFuzzTest(const uint8_t* data, size_t size)
 {
-    int flags, waitTime;
-    if (data == nullptr || size < sizeof(flags) + sizeof(waitTime)) {
+    if (data == nullptr || size < DATA_MIN_SIZE) {
         return false;
     }
+    FuzzedDataProvider provider(data, size);
     auto proxy = GetProxy();
     if (proxy.first == nullptr || proxy.second == nullptr) {
         return false;
     }
-    size_t startPos = 0;
-    startPos += GetObject<int>(flags, data + startPos, size - startPos);
-    startPos += GetObject<int>(waitTime, data + startPos, size - startPos);
+
+    int flags = provider.ConsumeIntegral<int32_t>();
+    int waitTime = provider.ConsumeIntegral<int32_t>();
     MessageParcel sendData;
     MessageParcel reply;
     MessageOption option(flags, waitTime);
     sendData.WriteInterfaceToken(IDisplayManager::GetDescriptor());
-    uint32_t dataSize = (size - startPos) > 1024 * 1024 ? 1024 * 1024 : (size - startPos);
-    sendData.WriteBuffer(data + startPos, dataSize);
+    std::vector<uint8_t> messageData = provider.ConsumeRemainingBytes<uint8_t>();
+    if (messageData.size() > MAX_MESSAGE_SIZE) {
+        messageData.resize(MAX_MESSAGE_SIZE);
+    }
+    sendData.WriteBuffer(messageData.data(), messageData.size());
     IPCSpecificInterfaceFuzzTest1(proxy.second, sendData, reply, option);
     IPCSpecificInterfaceFuzzTest2(proxy.second, sendData, reply, option, proxy.first);
     return true;

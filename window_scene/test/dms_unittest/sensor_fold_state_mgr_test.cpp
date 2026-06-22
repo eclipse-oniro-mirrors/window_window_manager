@@ -21,6 +21,7 @@
 #include "screen_session_manager.h"
 #include "sensor_agent.h"
 #include "sensor_agent_type.h"
+#include "product_config.h"
 
 #define private public
 #define protected public
@@ -67,12 +68,33 @@ void SensorFoldStateMgrTest::TearDown()
 }
 
 /**
+ * @tc.name: SetTaskScheduler
+ * @tc.number: SetTaskScheduler
+ * @tc.desc: taskScheduler_ could be properly set when the input is valid.
+ */
+HWTEST_F(SensorFoldStateMgrTest, SetTaskScheduler, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    auto scheduler = std::make_shared<TaskScheduler>("task_test");
+    ASSERT_NE(scheduler, nullptr);
+    SensorFoldStateMgr::GetInstance()..SetTaskScheduler(scheduler);
+    scheduler = nullptr;
+    SensorFoldStateMgr::GetInstance()..SetTaskScheduler(scheduler);
+    EXPECT_TRUE(g_errLog.find("scheduler is nullptr") != std::string::npos);
+}
+
+/**
  * @tc.name: HandleSensorEventTest01
  * @tc.desc: test function : handle tent sensor event, repeat report tent mode
  * @tc.type: FUNC
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest01, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -93,6 +115,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest01, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest02, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -113,6 +138,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest02, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest03, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -134,6 +162,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest03, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest04, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -155,6 +186,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest04, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest05, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -174,6 +208,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest05, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest06, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -193,6 +230,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest06, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest07, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -208,6 +248,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest07, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest08, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -228,6 +271,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest08, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest09, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -249,6 +295,9 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest09, TestSize.Level1)
  */
 HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest10, TestSize.Level1)
 {
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
@@ -277,6 +326,177 @@ HWTEST_F(SensorFoldStateMgrTest, FinishTaskSequence, TestSize.Level0)
     EXPECT_TRUE(g_logMsg.find("TaskSequenceProcess") != std::string::npos);
     LOG_SetCallback(nullptr);
     g_logMsg.clear();
+}
+
+/**
+ * @tc.name: HandleTentChangeTest01
+ * @tc.desc: test function : HandleTentChange with empty axis
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest01, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_TENT;
+    sensorStatus.tentSensorInfo_.tentType_ = 1;
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 0;
+    SensorFoldStateMgr::GetInstance().HandleTentChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("axis is empty") != std::string::npos);
+}
+
+/**
+ * @tc.name: HandleTentChangeTest02
+ * @tc.desc: test function : HandleTentChange tent mode from off to on
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest02, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_TENT;
+    sensorStatus.tentSensorInfo_.tentType_ = 1;
+    ScreenAxis axis;
+    sensorStatus.axis_.emplace_back(axis);
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 0;
+    SensorFoldStateMgr::GetInstance().HandleTentChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("tent mode:1") != std::string::npos);
+}
+
+/**
+ * *tc.name: HandleTentChangeTest03
+ * @tc.desc: test function : HandleTentChange tent mode from on to off with hall 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest03, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_TENT;
+    sensorStatus.tentSensorInfo_.tentType_ = 0;
+    sensorStatus.tentSensorInfo_.hall_ = 0;
+    ScreenAxis axis;
+    sensorStatus.axis_.emplace_back(axis);
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 1;
+    SensorFoldStateMgr::GetInstance().HandleTentChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("tent mode:0") != std::string::npos);
+}
+
+/**
+ * @tc.name: HandleTentChangeTest04
+ * @tc.desc: test function : HandleTentChange tent mode from on to off with hall -1
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, HandleTentChangeTest04, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance.IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_TENT;
+    sensorStatus.tentSensorInfo_.tentType_ = 0;
+    sensorStatus.tentSensorInfo_.hall_ = -1;
+    ScreenAxis axis;
+    sensorStatus.axis_.emplace_back(axis);
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 1;
+    SensorFoldStateMgr::GetInstance().HandleTentChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("tent mode:0") != std::string::npos);
+}
+
+/**
+ * @tc.name: TentModeHandleSensorChangeTest01
+ * @tc.desc: test function : TentModeHandleSensorChange with empty axis
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, TentModeHandleSensorChangeTest01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_POSTURE;
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 1;
+    SensorFoldStateMgr::GetInstance().TentModeHandleSensorChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("axis is empty") != std::string::npos);
+}
+
+/**
+ * @tc.name: TentModeHandleSensorChangeTest02
+ * @tc.desc: test function : TentModeHandleSensorChange exit due to hall
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, TentModeHandleSensorChangeTest02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_POSTURE;
+    ScreenAxis axis = { 90.0, 0 };
+    sensorStatus.axis_.emplace_back(axis);
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 1;
+    SensorFoldStateMgr::GetInstance().TentModeHandleSensorChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("Exit tent mode due to hall sensor report folded") != std::string::npos);
+}
+
+/**
+ * @tc.name: TentModeHandleSensorChangeTest03
+ * @tc.desc: test function : TentModeHandleSensorChange exit due to angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, TentModeHandleSensorChangeTest03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SensorStatus sensorStatus;
+    sensorStatus.updateSensorType_ = DmsSensorType::SENSOR_TYPE_POSTURE;
+    ScreenAxis axis = { 180.0, 1 };
+    sensorStatus.axis_.emplace_back(axis);
+    SensorFoldStateMgr::GetInstance().tentModeType_ = 1;
+    SensorFoldStateMgr::GetInstance().TentModeHandleSensorChange(sensorStatus);
+    EXPECT_TRUE(g_logMsg.find("Exit tent mode due to angle sensor report angle:180") != std::string::npos);
+}
+
+/**
+ * @tc.name: GetTentModeScreenAxis
+ * @tc.desc: test function : GetTentModeScreenAxis
+ * @tc.type: FUNC
+ */
+HWTEST_F(SensorFoldStateMgrTest, GetTentModeScreenAxis, TestSize.Level1)
+{
+    if (ProductConfig::GetInstance().IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    SensorStatus sensorStatus;
+    auto retAxis = SensorFoldStateMgr::GetInstance().GetTentModeScreenAxis(sensorStatus);
+    EXPECT_EQ(retAxis.hall_, -1);
+    EXPECT_FLOAT_EQ(retAxis.angle_, -1.0F);
+
+    ScreenAxis axis1 = {.angle_ = 60.0f, .hall_ = 1};
+    sensorStatus.axis_.emplace_back(axis1);
+    ScreenAxis axis2 = {.angle_ = 180.0f, .hall_ = 0};
+    sensorStatus.axis_.emplace_back(axis2);
+    retAxis = SensorFoldStateMgr::GetInstance().GetTentModeScreenAxis(sensorStatus);
+    EXPECT_EQ(retAxis.hall_, axis1.hall_);
+    EXPECT_FLOAT_EQ(retAxis.angle_, axis1.angle_);
 }
 }
 }

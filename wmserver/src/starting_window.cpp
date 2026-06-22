@@ -497,7 +497,6 @@ void StartingWindow::AddNodeOnRSTree(sptr<WindowNode>& node, bool isMultiDisplay
             winRect.posX_, winRect.posY_, winRect.width_, winRect.height_);
         if (weak->leashWinSurfaceNode_) {
             weak->leashWinSurfaceNode_->SetBounds(winRect.posX_, winRect.posY_, winRect.width_, winRect.height_);
-            weak->leashWinSurfaceNode_->SetAnimationFinished();
         }
         RSTransactionAdapter::FlushImplicitTransaction(weak->leashWinSurfaceNode_);
     };
@@ -604,8 +603,7 @@ std::shared_ptr<Global::Resource::ResourceManager> StartingWindow::CreateResourc
         TLOGE(WmsLogTag::WMS_PATTERN, "resConfig is nullptr.");
         return nullptr;
     }
-    std::shared_ptr<Global::Resource::ResourceManager> resourceMgr(Global::Resource::CreateResourceManager(
-        abilityInfo->bundleName, abilityInfo->moduleName, "", {}, *resConfig));
+    std::shared_ptr<Global::Resource::ResourceManager> resourceMgr(Global::Resource::CreateResourceManager(false));
     if (resourceMgr == nullptr) {
         TLOGE(WmsLogTag::WMS_PATTERN, "resourceMgr is nullptr.");
         return nullptr;

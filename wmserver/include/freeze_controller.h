@@ -35,6 +35,7 @@ public:
 private:
     sptr<Window> CreateCoverWindow(DisplayId displayId);
     std::map<DisplayId, sptr<Window>> coverWindowMap_;
+    std::mutex coverWindowMapMutex_;
 };
 }
 }

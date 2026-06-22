@@ -52,7 +52,45 @@ config("windowstage_kit_public_config") {
   include_dirs = [ "window_stage_napi" ]
 }
 
-ohos_shared_library("window_native_kit") {
+window_native_kit_sources = [
+  "window_napi/js_extension_window_config.cpp",
+  "window_napi/js_transition_controller.cpp",
+  "window_napi/js_window.cpp",
+  "window_napi/js_window_listener.cpp",
+  "window_napi/js_window_register_manager.cpp",
+  "window_napi/js_window_utils.cpp",
+]
+
+window_native_kit_deps = [
+  "${window_base_path}/interfaces/kits/napi/window_animation:window_animation_utils",
+  "../../../../utils:libwmutil",
+  "../../../../utils:libwmutil_base",
+  "../../../../wm:libwm",
+  "../common:wm_napi_util",
+]
+
+window_native_kit_external_deps = [
+  "ability_runtime:ability_manager",
+  "ability_runtime:dialog_request_info",
+  "ability_runtime:extensionkit_native",
+  "ability_runtime:napi_common",
+  "ability_runtime:runtime",
+  "access_token:libaccesstoken_sdk",
+  "ace_engine:ace_uicontent",
+  "bundle_framework:appexecfwk_base",
+  "c_utils:utils",
+  "eventhandler:libeventhandler",
+  "hilog:libhilog",
+  "hitrace:hitrace_meter",
+  "image_framework:image",
+  "image_framework:image_native",
+  "ipc:ipc_napi",
+  "ipc:ipc_single",
+  "napi:ace_napi",
+]
+
+## Build libwindow_native_kit_static.a
+ohos_static_library("window_native_kit_static") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
@@ -60,48 +98,50 @@ ohos_shared_library("window_native_kit") {
     cfi_vcall_icall_only = true
     debug = false
   }
-  sources = [
-    "window_napi/js_extension_window_config.cpp",
-    "window_napi/js_transition_controller.cpp",
-    "window_napi/js_window.cpp",
-    "window_napi/js_window_listener.cpp",
-    "window_napi/js_window_register_manager.cpp",
-    "window_napi/js_window_utils.cpp",
-  ]
 
   public_configs = [ ":window_native_kit_public_config" ]
+  sources = window_native_kit_sources
+  deps = window_native_kit_deps
+  external_deps = window_native_kit_external_deps
 
   configs = [
     ":window_native_kit_config",
     "../../../../resources/config/build:coverage_flags",
   ]
 
-  deps = [
-    "../../../../utils:libwmutil",
-    "../../../../utils:libwmutil_base",
-    "../../../../wm:libwm",
-    "../common:wm_napi_util",
-    "${window_base_path}/interfaces/kits/napi/window_animation:window_animation_utils",
-  ]
+  part_name = "window_manager"
+  subsystem_name = "window"
 
-  external_deps = [
-    "ability_runtime:ability_manager",
-    "ability_runtime:dialog_request_info",
-    "ability_runtime:extensionkit_native",
-    "ability_runtime:runtime",
-    "ability_runtime:napi_common",
-    "access_token:libaccesstoken_sdk",
-    "ace_engine:ace_uicontent",
-    "bundle_framework:appexecfwk_base",
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "hilog:libhilog",
-    "hitrace:hitrace_meter",
-    "image_framework:image",
-    "image_framework:image_native",
-    "ipc:ipc_napi",
-    "ipc:ipc_single",
-    "napi:ace_napi",
+  defines = []
+  if (build_variant == "user") {
+    defines += [ "IS_RELEASE_VERSION" ]
+  }
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+}
+
+## Build libwindow_native_kit.z.so
+ohos_shared_library("window_native_kit") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
+
+  public_configs = [ ":window_native_kit_public_config" ]
+  sources = window_native_kit_sources
+  deps = window_native_kit_deps
+  external_deps = window_native_kit_external_deps
+
+  configs = [
+    ":window_native_kit_config",
+    "../../../../resources/config/build:coverage_flags",
   ]
 
   innerapi_tags = [ "platformsdk" ]
@@ -112,17 +152,27 @@ ohos_shared_library("window_native_kit") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
+  version_script = "libwindow_native_kit.map"
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 ohos_shared_library("window_napi") {
   branch_protector_ret = "pac_ret"
+  defines = []
   sanitize = {
     cfi = true
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
-  defines = [ "SUPPORT_SCREEN" ]
+  defines += [ "SUPPORT_SCREEN" ]
   sources = [
     "window_manager_napi/js_window_manager.cpp",
     "window_manager_napi/window_manager_module.cpp",
@@ -149,8 +199,10 @@ ohos_shared_library("window_napi") {
   external_deps = [
     "ability_runtime:ability_context_native",
     "ability_runtime:abilitykit_native",
+    "ability_runtime:app_context",
     "ability_runtime:runtime",
     "ability_runtime:wantagent_innerkits",
+    "ability_runtime:napi_common",
     "c_utils:utils",
     "common_event_service:cesfwk_innerkits",
     "graphic_2d:librender_service_base",
@@ -162,12 +214,16 @@ ohos_shared_library("window_napi") {
     "napi:ace_napi",
   ]
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   relative_install_dir = "module"
 
   part_name = "window_manager"
   subsystem_name = "window"
 
-  defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
@@ -175,11 +231,13 @@ ohos_shared_library("window_napi") {
 
 ohos_shared_library("windowstage_kit") {
   branch_protector_ret = "pac_ret"
+  defines = []
   sanitize = {
     cfi = true
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "window_stage_napi/js_window_stage.cpp" ]
 
@@ -208,12 +266,17 @@ ohos_shared_library("windowstage_kit") {
     "napi:ace_napi",
   ]
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
 
-  defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

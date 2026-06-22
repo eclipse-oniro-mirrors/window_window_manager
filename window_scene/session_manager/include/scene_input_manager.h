@@ -28,6 +28,12 @@
 
 namespace OHOS {
 namespace Rosen {
+enum class RootSessionState {
+    NOT_CREATED,
+    CREATED_FIRST_TIME,
+    CREATED_SUBSEQUENT
+};
+
 class SceneSessionDirtyManager;
 struct SecSurfaceInfo;
 class SceneInputManager : public std::enable_shared_from_this<SceneInputManager> {
@@ -35,6 +41,7 @@ WM_DECLARE_SINGLE_INSTANCE_BASE(SceneInputManager)
 public:
     void Init();
     void FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& windowInfoList,
+        std::vector<MMI::UIExtensionInfo>&& uiExtensionInfoList,
         std::vector<std::shared_ptr<Media::PixelMap>>&& pixelMapList, const bool forceFlush = false);
     void NotifyWindowInfoChange(const sptr<SceneSession>& scenenSession, const WindowUpdateType& type);
     void NotifyWindowInfoChangeFromSession(const sptr<SceneSession>& sceneSession);
@@ -46,10 +53,10 @@ public:
     using FlushWindowInfoCallback = std::function<void()>;
     void RegisterFlushWindowInfoCallback(FlushWindowInfoCallback&& callback);
     void ResetSessionDirty();
-    std::pair<std::vector<MMI::WindowInfo>, std::vector<std::shared_ptr<Media::PixelMap>>>
-        GetFullWindowInfoList();
+    FullInfoForMMI GetFullWindowInfoList();
     void UpdateHotAreas(const sptr<SceneSession>& sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
+    void SetRootSceneSessionCreated(bool created);
 
     /*
      * Multi User
@@ -57,6 +64,8 @@ public:
     void FlushEmptyInfoToMMI();
     void SetUserBackground(bool userBackground);
     void SetCurrentUserId(int32_t userId);
+
+    void SetIsRotationBegin(bool isRotationBegin);
 
 protected:
     SceneInputManager() = default;
@@ -66,7 +75,8 @@ private:
     void UpdateFocusedSessionId(int32_t focusedSessionId);
     void FlushFullInfoToMMI(const std::vector<MMI::ScreenInfo>& screenInfos,
         std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap,
-        const std::vector<MMI::WindowInfo>& windowInfoList, bool isOverBatchSize = false);
+        const std::vector<MMI::WindowInfo>& windowInfoList,
+        const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList, bool isOverBatchSize = false);
     void FlushChangeInfoToMMI(const std::map<uint64_t, std::vector<MMI::WindowInfo>>& screenId2Windows);
     std::vector<MMI::ScreenInfo> ConstructScreenInfos(std::map<ScreenId, ScreenProperty>& screensProperties);
     void ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProperty>& screensProperties,
@@ -78,11 +88,13 @@ private:
     void PrintWindowInfo(const std::vector<MMI::WindowInfo>& windowInfoList);
     void UpdateDisplayAndWindowInfo(const std::vector<MMI::ScreenInfo>& screenInfos,
         std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap,
-        std::vector<MMI::WindowInfo> windowInfoList);
+        std::vector<MMI::WindowInfo> windowInfoList,
+        const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList);
     void ConstructDumpDisplayInfo(const MMI::DisplayInfo& displayInfo,
         std::ostringstream& dumpDisplayListStream);
     void ConstructDumpWindowInfo(const MMI::WindowInfo& windowInfo,
         std::ostringstream& dumpWindowListStream);
+    void HandleEmptyDisplayGroup();
     std::unordered_map<DisplayId, int32_t> GetFocusedSessionMap() const;
     std::shared_ptr<SceneSessionDirtyManager> sceneSessionDirty_;
     std::shared_ptr<AppExecFwk::EventRunner> eventLoop_;
@@ -92,12 +104,15 @@ private:
     std::vector<MMI::WindowInfo> lastWindowInfoList_;
     int32_t lastFocusId_ { -1 };
     int32_t focusedSessionId_ { -1 };
+    std::atomic<RootSessionState> rootSessionState_ { RootSessionState::NOT_CREATED };
+    std::atomic<bool> hasDelayedTaskScheduled_ { false };
 
     /*
      * Multi User
      */
     int32_t currentUserId_ = INVALID_USER_ID;
     std::atomic<bool> isUserBackground_ { false };
+    std::atomic<bool> isRotationBegin_ { false };
 };
 }//Rosen
 }//OHOS

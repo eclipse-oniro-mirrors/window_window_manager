@@ -23,6 +23,7 @@
 
 #include "dm_common.h"
 #include "focus_change_info.h"
+#include "session/host/include/scene_session.h"
 #include "wm_common.h"
 #include "ws_common.h"
 #include "window_manager_hilog.h"
@@ -79,6 +80,8 @@ public:
     void LogDisplayIds();
     std::unordered_map<DisplayId, DisplayGroupId> GetDisplayId2GroupIdMap();
     void GetAllFocusGroup(std::unordered_map<DisplayGroupId, sptr<FocusGroup>>& focusGroupMap);
+    bool GetShouldCheckBlocking(const sptr<SceneSession>& sceneSession, const sptr<SceneSession>& focusedSession,
+        bool byForeground, FocusChangeReason reason) const;
 
 private:
     sptr<FocusGroup> GetFocusGroupInner(DisplayId displayId);
@@ -88,6 +91,7 @@ private:
     std::unordered_map<DisplayId, DisplayGroupId> deletedDisplayId2GroupIdMap_;
     mutable std::mutex focusGroupMapMutex_;
     mutable std::mutex displayId2GroupIdMapMutex_;
+    std::mutex deletedDisplayId2GroupIdMapMutex_;
 };
 }
 }

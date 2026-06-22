@@ -22,6 +22,11 @@ constexpr uint32_t CHECK_INDEX_BEGIN = 0x8;
 constexpr uint32_t CHECK_INDEX_END = 0x11;
 constexpr int32_t CHECK_CODE_INVALID = -1;
 constexpr uint32_t SLEEP_TIME_US = 10000;
+#if (defined(__aarch64__) || defined(__x86_64__))
+const std::string EDID_PARSE_SO_PATH = "/system/lib64/libedid_parse.z.so";
+#else
+const std::string EDID_PARSE_SO_PATH = "/system/lib/libedid_parse.z.so";
+#endif
 }
 
 static void *g_libHandle = nullptr;

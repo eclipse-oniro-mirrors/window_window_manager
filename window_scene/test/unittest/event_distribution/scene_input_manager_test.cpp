@@ -64,56 +64,53 @@ void SceneInputManagerTest::SetUp()
 
 void SceneInputManagerTest::TearDown()
 {
+    LOG_SetCallback(nullptr);
     usleep(WAIT_SYNC_IN_NS);
 }
 
 namespace {
 void CheckNeedUpdateTest()
 {
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
     SceneInputManager::GetInstance().SetUserBackground(true);
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     SceneInputManager::GetInstance().lastFocusId_ = -1;
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
 
     SceneInputManager::GetInstance().lastWindowInfoList_.clear();
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     SceneInputManager::GetInstance().lastDisplayInfos_.clear();
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     SceneInputManager::GetInstance().lastWindowInfoList_.clear();
     SceneInputManager::GetInstance().lastDisplayInfos_.clear();
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
 
     if (SceneInputManager::GetInstance().lastDisplayInfos_.size() != 0) {
         MMI::DisplayInfo displayInfo;
         SceneInputManager::GetInstance().lastDisplayInfos_[0] = displayInfo;
-        SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+        SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     }
 
     if (SceneInputManager::GetInstance().lastWindowInfoList_.size() != 0) {
         MMI::WindowInfo windowInfo;
         SceneInputManager::GetInstance().lastWindowInfoList_[0] = windowInfo;
-        SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+        SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     }
 }
 
 void WindowInfoListZeroTest(sptr<SceneSessionManager> ssm_)
 {
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
     const auto sceneSessionMap = ssm_->GetSceneSessionMap();
     for (auto sceneSession : sceneSessionMap) {
         ssm_->DestroyDialogWithMainWindow(sceneSession.second);
     }
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
 
     for (auto sceneSession : sceneSessionMap) {
         sptr<WindowSessionProperty> windowSessionProperty = sptr<WindowSessionProperty>::MakeSptr();
         windowSessionProperty->SetWindowType(sceneSession.second->GetWindowType());
         ssm_->RequestSceneSession(sceneSession.second->GetSessionInfo(), windowSessionProperty);
     }
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
 }
 
 void MaxWindowInfoTest(sptr<SceneSessionManager> ssm_)
@@ -134,14 +131,12 @@ void MaxWindowInfoTest(sptr<SceneSessionManager> ssm_)
             sessionList.push_back(sceneSession);
         }
     }
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
 
     for (auto session : sessionList) {
         ssm_->DestroyDialogWithMainWindow(session);
     }
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
 }
 
 /**
@@ -297,24 +292,30 @@ HWTEST_F(SceneInputManagerTest, UpdateDisplayAndWindowInfo, TestSize.Level1)
     std::map<DisplayGroupId, MMI::DisplayGroupInfo> displayGroupMap;
     std::vector<MMI::DisplayInfo> displayInfos;
     std::vector<MMI::WindowInfo> windowInfoList;
+    std::vector<MMI::UIExtensionInfo> uiExtensionInfoList;
     MMI::DisplayInfo displayinfo;
     displayInfos.emplace_back(displayinfo);
-    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_EQ(windowInfoList.size(), 0);
     MMI::WindowInfo windowinfo;
     windowInfoList.emplace_back(windowinfo);
     windowinfo.defaultHotAreas = std::vector<MMI::Rect>(MMI::WindowInfo::DEFAULT_HOTAREA_COUNT + 1);
-    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_NE(windowInfoList[0].defaultHotAreas.size(), MMI::WindowInfo::DEFAULT_HOTAREA_COUNT);
     windowinfo.defaultHotAreas = std::vector<MMI::Rect>();
     windowInfoList = std::vector<MMI::WindowInfo>(MAX_WINDOWINFO_NUM - 1);
-    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_NE(windowInfoList.size(), MAX_WINDOWINFO_NUM);
     windowInfoList = std::vector<MMI::WindowInfo>(MAX_WINDOWINFO_NUM + 1);
-    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_NE(windowInfoList.size(), MAX_WINDOWINFO_NUM);
     windowInfoList[0].defaultHotAreas.resize(MMI::WindowInfo::DEFAULT_HOTAREA_COUNT + 1);
-    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().UpdateDisplayAndWindowInfo(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_NE(windowInfoList[0].defaultHotAreas.size(), MMI::WindowInfo::DEFAULT_HOTAREA_COUNT);
 }
 
@@ -381,20 +382,18 @@ HWTEST_F(SceneInputManagerTest, FlushDisplayInfoToMMI, TestSize.Level0)
     logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     // sceneSessionDirty_ = nullptr
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
     SceneInputManager::GetInstance().isUserBackground_ = false;
     auto oldDirty = SceneInputManager::GetInstance().sceneSessionDirty_;
     SceneInputManager::GetInstance().sceneSessionDirty_ = nullptr;
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_TRUE(logMsg.find("sceneSessionDirty_ is nullptr") != std::string::npos);
     logMsg.clear();
     SceneInputManager::GetInstance().sceneSessionDirty_ = oldDirty;
 
     // NotNeedUpdate
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList), true);
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {}, true);
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_FALSE(logMsg.find("sceneSessionDirty_ is nullptr") != std::string::npos);
     logMsg.clear();
@@ -485,10 +484,8 @@ HWTEST_F(SceneInputManagerTest, NotifyWindowInfoChange, TestSize.Level0)
     SceneInputManager::GetInstance().NotifyWindowInfoChange(sceneSession, WindowUpdateType::WINDOW_UPDATE_ADDED);
     SceneInputManager::GetInstance().sceneSessionDirty_ = oldDirty;
 
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
     SceneInputManager::GetInstance().NotifyWindowInfoChange(sceneSession, WindowUpdateType::WINDOW_UPDATE_ADDED);
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     GTEST_LOG_(INFO) << "SceneInputManagerTest: NotifyWindowInfoChange end";
 }
 
@@ -515,10 +512,8 @@ HWTEST_F(SceneInputManagerTest, NotifyWindowInfoChangeFromSession, TestSize.Leve
     SceneInputManager::GetInstance().NotifyWindowInfoChangeFromSession(sceneSession);
     SceneInputManager::GetInstance().sceneSessionDirty_ = oldDirty;
 
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
     SceneInputManager::GetInstance().NotifyWindowInfoChangeFromSession(sceneSession);
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     GTEST_LOG_(INFO) << "SceneInputManagerTest: NotifyWindowInfoChangeFromSession end";
 }
 
@@ -551,9 +546,7 @@ HWTEST_F(SceneInputManagerTest, NotifyMMIWindowPidChange, TestSize.Level1)
     EXPECT_FALSE(sceneSession->IsStartMoving());
     SceneInputManager::GetInstance().NotifyMMIWindowPidChange(nullptr, false);
     EXPECT_FALSE(sceneSession->IsStartMoving());
-    std::vector<MMI::WindowInfo> windowInfoList;
-    std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
-    SceneInputManager::GetInstance().FlushDisplayInfoToMMI(std::move(windowInfoList), std::move(pixelMapList));
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
     GTEST_LOG_(INFO) << "SceneInputManagerTest: NotifyMMIWindowPidChange end";
 }
 
@@ -568,15 +561,19 @@ HWTEST_F(SceneInputManagerTest, FlushFullInfoToMMI, TestSize.Level1)
     std::map<DisplayGroupId, MMI::DisplayGroupInfo> displayGroupMap;
     std::vector<MMI::DisplayInfo> displayInfos;
     std::vector<MMI::WindowInfo> windowInfoList;
-    SceneInputManager::GetInstance().FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList);
+    std::vector<MMI::UIExtensionInfo> uiExtensionInfoList;
+    SceneInputManager::GetInstance().FlushFullInfoToMMI(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_EQ(displayInfos.size(), 0);
     MMI::DisplayInfo displayInfo;
     displayInfos.emplace_back(displayInfo);
-    SceneInputManager::GetInstance().FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().FlushFullInfoToMMI(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_EQ(displayInfos.size(), 1);
     auto oldDirty = SceneInputManager::GetInstance().sceneSessionDirty_;
     SceneInputManager::GetInstance().sceneSessionDirty_ = nullptr;
-    SceneInputManager::GetInstance().FlushFullInfoToMMI(screenInfos, displayGroupMap, windowInfoList);
+    SceneInputManager::GetInstance().FlushFullInfoToMMI(
+        screenInfos, displayGroupMap, windowInfoList, uiExtensionInfoList);
     ASSERT_EQ(windowInfoList.size(), 0);
     SceneInputManager::GetInstance().sceneSessionDirty_ = oldDirty;
 }
@@ -997,6 +994,180 @@ HWTEST_F(SceneInputManagerTest, UpdateHotAreas, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetDisplayId(-100);
     SceneInputManager::GetInstance().UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
     ASSERT_EQ(touchHotAreas.size(), 1);
+}
+
+/**
+ * @tc.name: SetIsRotationBegin
+ * @tc.desc: SetIsRotationBegin
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetIsRotationBegin, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().SetUserBackground(false);
+    SceneInputManager::GetInstance().SetIsRotationBegin(true);
+    SceneInputManager::GetInstance().FlushDisplayInfoToMMI({}, {}, {});
+    ASSERT_TRUE(SceneInputManager::GetInstance().isRotationBegin_.load());
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated001
+ * @tc.desc: Test SetRootSceneSessionCreated with created=true when state is NOT_CREATED
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated001, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated002
+ * @tc.desc: Test SetRootSceneSessionCreated with created=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated002, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(false);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::NOT_CREATED);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated003
+ * @tc.desc: Test SetRootSceneSessionCreated with created=true when state is already CREATED_FIRST_TIME
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated003, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated004
+ * @tc.desc: Test SetRootSceneSessionCreated with created=true when state is CREATED_SUBSEQUENT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated004, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_SUBSEQUENT);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_SUBSEQUENT);
+}
+
+/**
+ * @tc.name: SetRootSceneSessionCreated005
+ * @tc.desc: Test SetRootSceneSessionCreated CAS operation ensures atomicity
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, SetRootSceneSessionCreated005, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+
+    SceneInputManager::GetInstance().SetRootSceneSessionCreated(true);
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_FIRST_TIME);
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup001
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is CREATED_SUBSEQUENT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup001, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_SUBSEQUENT);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::CREATED_SUBSEQUENT);
+    EXPECT_FALSE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup002
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is NOT_CREATED
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup002, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::NOT_CREATED);
+    EXPECT_FALSE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup003
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is CREATED_FIRST_TIME and task not scheduled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup003, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup004
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is CREATED_FIRST_TIME and task already scheduled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup004, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(true);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup005
+ * @tc.desc: Test HandleEmptyDisplayGroup CAS operation ensures only one thread schedules task
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup005, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::CREATED_FIRST_TIME);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup006
+ * @tc.desc: Test HandleEmptyDisplayGroup double-check mechanism rolls back flag when state changes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup006, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(false);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_FALSE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
+}
+
+/**
+ * @tc.name: HandleEmptyDisplayGroup007
+ * @tc.desc: Test HandleEmptyDisplayGroup when state is NOT_CREATED and task already scheduled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneInputManagerTest, HandleEmptyDisplayGroup007, TestSize.Level1)
+{
+    SceneInputManager::GetInstance().rootSessionState_.store(RootSessionState::NOT_CREATED);
+    SceneInputManager::GetInstance().hasDelayedTaskScheduled_.store(true);
+    SceneInputManager::GetInstance().HandleEmptyDisplayGroup();
+    EXPECT_EQ(SceneInputManager::GetInstance().rootSessionState_.load(), RootSessionState::NOT_CREATED);
+    EXPECT_TRUE(SceneInputManager::GetInstance().hasDelayedTaskScheduled_.load());
 }
 } // namespace
 } // namespace Rosen

@@ -126,6 +126,7 @@ HWTEST_F(FoldScreenBaseControllerTest, RecoverDisplayModeTest, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MockProductConfig mockObj;
+    FoldScreenBasePolicy::GetInstance().physicalFoldLockFlag_ = true;
     EXPECT_CALL(mockObj, IsSecondaryDisplayFoldDevice()).WillRepeatedly(Return(true));
     ProductConfig::singleton_ = &mockObj;
     FoldScreenBasePolicy::GetInstance().currentFoldStatus_ = FoldStatus::EXPAND;
@@ -140,6 +141,7 @@ HWTEST_F(FoldScreenBaseControllerTest, RecoverDisplayModeTest, TestSize.Level1)
     controller.RecoverDisplayMode();
     EXPECT_TRUE(g_logMsg.find("2 -> 1") != std::string::npos);
     ProductConfig::singleton_ = nullptr;
+    FoldScreenBasePolicy::GetInstance().physicalFoldLockFlag_ = false;
 }
 
 /**
@@ -375,6 +377,54 @@ HWTEST_F(FoldScreenBaseControllerTest, NotifyRunSensorFoldStateManagerTest, Test
     EXPECT_TRUE(g_logMsg.find("TaskSequenceProcess") != std::string::npos);
     LOG_SetCallback(nullptr);
     g_logMsg.clear();
+}
+
+/**
+ * @tc.name: GetCurrentDisplayMode
+ * @tc.desc: test function : GetCurrentDisplayMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBaseControllerTest, GetCurrentDisplayMode, TestSize.Level1)
+{
+    auto controller = FoldScreenBaseController();
+    FoldScreenBasePolicy::GetInstance().currentDisplayMode_ = FoldDisplayMode::MAIN;
+    EXPECT_EQ(controller.GetCurrentDisplayMode(), FoldDisplayMode::MAIN);
+}
+
+/**
+ * @tc.name: GetScreenActiveModeRectMap
+ * @tc.desc: test function : GetScreenActiveModeRectMap
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBaseControllerTest, GetScreenActiveModeRectMap, TestSize.Level1)
+{
+    auto controller = FoldScreenBaseController();
+    auto screenActiveModeRectMapTemp = FoldScreenBasePolicy::GetInstance().GetScreenActiveModeRectMap();
+    auto screenActiveModeRectMap = controller.GetScreenActiveModeRectMap();
+    EXPECT_EQ(screenActiveModeRectMapTemp.size(), screenActiveModeRectMap.size());
+}
+
+/**
+ * @tc.name: SortCreaseRegionRects
+ * @tc.desc: test function : SortCreaseRegionRects
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldCreaseRegionControllerTest, SortCreaseRegionRects, TestSize.Level1)
+{
+    auto controller = FoldCreaseRegionController();
+    std::vector<DMRect> testRects = {
+        {10, 20, 100, 50},
+        {5, 30, 100, 50},
+        {10, 15, 100, 50}
+    };
+    controller.SortCreaseRegionRects(testRects);
+    ASSERT_EQ(testRects.size(), 3);
+    EXPECT_EQ(testRects[0].posX_, 5);
+    EXPECT_EQ(testRects[0].posY_, 30);
+    EXPECT_EQ(testRects[1].posX_, 10);
+    EXPECT_EQ(testRects[1].posY_, 15);
+    EXPECT_EQ(testRects[2].posX_, 10);
+    EXPECT_EQ(testRects[2].posY_, 20);
 }
 } // namespace
 } // namespace DMS

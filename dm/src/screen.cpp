@@ -123,10 +123,24 @@ DMError Screen::SetOrientation(Orientation orientation) const
     return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, false);
 }
 
+DMError Screen::SetOrientation(Orientation orientation, const OrientationOptions& options) const
+{
+    TLOGI(WmsLogTag::DMS, "Orientation %{public}u, needAnimation %{public}d, ignoreRotationLock %{public}d",
+        orientation, options.needAnimation, options.ignoreRotationLock);
+    return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, options, false);
+}
+
 DMError Screen::SetScreenOrientation(Orientation orientation) const
 {
     TLOGD(WmsLogTag::DMS, "Orientation %{public}u", orientation);
     return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, true);
+}
+
+DMError Screen::SetScreenOrientation(Orientation orientation, const OrientationOptions& options) const
+{
+    TLOGI(WmsLogTag::DMS, "Orientation %{public}u, needAnimation %{public}d, ignoreRotationLock %{public}d",
+        orientation, options.needAnimation, options.ignoreRotationLock);
+    return SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(GetId(), orientation, options, true);
 }
 
 DMError Screen::GetScreenSupportedColorGamuts(std::vector<ScreenColorGamut>& colorGamuts) const
@@ -300,5 +314,10 @@ sptr<ScreenInfo> Screen::GetScreenInfo() const
 {
     UpdateScreenInfo();
     return pImpl_->GetScreenInfo();
+}
+
+DMError Screen::GetScreenCapability(ScreenCapability& capability) const
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().GetScreenCapability(GetId(), capability);
 }
 } // namespace OHOS::Rosen

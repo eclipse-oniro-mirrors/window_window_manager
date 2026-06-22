@@ -25,6 +25,7 @@
 #include "mock_session_stub.h"
 #include "mock_uicontent.h"
 #include "mock_window.h"
+#include "mock_window_session_impl.h"
 #include "parameters.h"
 #include "scene_board_judgement.h"
 #include "window_helper.h"
@@ -129,18 +130,15 @@ HWTEST_F(WindowSessionImplTest5, NotifyBeforeDestroy, TestSize.Level1)
 {
     auto window = GetTestWindowImpl("NotifyBeforeDestroy");
     ASSERT_NE(window, nullptr);
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     window->NotifyBeforeDestroy(window->GetWindowName());
     EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
 
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetIsUIExtFirstSubWindow(false);
     window->NotifyBeforeDestroy(window->GetWindowName());
     EXPECT_EQ(window->GetUIContentSharedPtr(), nullptr);
 
-    window->isAttachedOnFrameNode_ = false;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetIsUIExtFirstSubWindow(true);
     window->NotifyBeforeDestroy(window->GetWindowName());
@@ -438,86 +436,6 @@ HWTEST_F(WindowSessionImplTest5, SetUniqueVirtualPixelRatioForSub, TestSize.Leve
     EXPECT_NEAR(subWindow02->virtualPixelRatio_, virtualPixelRatio, 0.00001f);
 }
 
-/**
- * @tc.name: RegisterWindowRotationChangeListener
- * @tc.desc: RegisterWindowRotationChangeListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, RegisterWindowRotationChangeListener, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("RegisterWindowRotationChangeListener");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    sptr<IWindowRotationChangeListener> listener = nullptr;
-    WMError ret = window->RegisterWindowRotationChangeListener(listener);
-    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
-
-    listener = sptr<IWindowRotationChangeListener>::MakeSptr();
-    std::vector<sptr<IWindowRotationChangeListener>> holder;
-    window->windowRotationChangeListeners_[window->property_->GetPersistentId()] = holder;
-    ret = window->RegisterWindowRotationChangeListener(listener);
-    EXPECT_EQ(ret, WMError::WM_OK);
-    holder = window->windowRotationChangeListeners_[window->property_->GetPersistentId()];
-    auto existsListener = std::find(holder.begin(), holder.end(), listener);
-    ASSERT_NE(existsListener, holder.end());
-
-    ret = window->RegisterWindowRotationChangeListener(listener);
-    EXPECT_EQ(ret, WMError::WM_OK);
-}
-
-/**
- * @tc.name: UnregisterWindowRotationChangeListener
- * @tc.desc: UnregisterWindowRotationChangeListener
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, UnregisterWindowRotationChangeListener, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UnregisterWindowRotationChangeListener");
-
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    sptr<IWindowRotationChangeListener> listener = nullptr;
-    WMError ret = window->UnregisterWindowRotationChangeListener(listener);
-    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
-
-    listener = sptr<IWindowRotationChangeListener>::MakeSptr();
-    std::vector<sptr<IWindowRotationChangeListener>> holder;
-    window->windowRotationChangeListeners_[window->property_->GetPersistentId()] = holder;
-    window->RegisterWindowRotationChangeListener(listener);
-    ret = window->UnregisterWindowRotationChangeListener(listener);
-    EXPECT_EQ(ret, WMError::WM_OK);
-
-    holder = window->windowRotationChangeListeners_[window->property_->GetPersistentId()];
-    auto existsListener = std::find(holder.begin(), holder.end(), listener);
-    EXPECT_EQ(existsListener, holder.end());
-}
-
-/**
- * @tc.name: CheckMultiWindowRect
- * @tc.desc: CheckMultiWindowRect
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, CheckMultiWindowRect, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("CheckMultiWindowRect");
-    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    sptr<WindowSessionImpl> windowSessionImpl = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    uint32_t width = 100;
-    uint32_t height = 100;
-    windowSessionImpl->property_->SetPersistentId(1);
-    windowSessionImpl->hostSession_ = session;
-    windowSessionImpl->state_ = WindowState::STATE_SHOWN;
-    auto ret = windowSessionImpl->CheckMultiWindowRect(width, height);
-    EXPECT_EQ(WMError::WM_OK, ret);
-
-    windowSessionImpl->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    windowSessionImpl->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT_PRIMARY);
-    ret = windowSessionImpl->CheckMultiWindowRect(width, height);
-    EXPECT_EQ(WMError::WM_OK, ret);
-}
 
 /**
  * @tc.name: IsDeviceFeatureCapableFor
@@ -564,38 +482,6 @@ HWTEST_F(WindowSessionImplTest5, IsDeviceFeatureCapableForFreeMultiWindow, Funct
         system::GetParameter("const.window.device_feature_support_type", "0") == "1");
 }
 
-/**
- * @tc.name: NotifyRotationChange
- * @tc.desc: NotifyRotationChange
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, NotifyRotationChange, Function | SmallTest | Level2)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("NotifyRotationChange");
-    option->SetWindowType(WindowType::APP_WINDOW_BASE);
-    sptr<WindowSessionImpl> windowSessionImpl = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    windowSessionImpl->property_->SetPersistentId(1);
-    windowSessionImpl->hostSession_ = session;
-    windowSessionImpl->state_ = WindowState::STATE_SHOWN;
-    RotationChangeInfo info = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 1, { 0, 0, 2720, 1270 } };
-    RotationChangeResult res = windowSessionImpl->NotifyRotationChange(info);
-    EXPECT_EQ(RectType::RELATIVE_TO_SCREEN, res.rectType_);
-
-    sptr<IWindowRotationChangeListener> listener = sptr<IWindowRotationChangeListener>::MakeSptr();
-    std::vector<sptr<IWindowRotationChangeListener>> holder;
-    windowSessionImpl->windowRotationChangeListeners_[windowSessionImpl->property_->GetPersistentId()] = holder;
-    WMError ret = windowSessionImpl->RegisterWindowRotationChangeListener(listener);
-    EXPECT_EQ(WMError::WM_OK, ret);
-    res = windowSessionImpl->NotifyRotationChange(info);
-    EXPECT_EQ(RectType::RELATIVE_TO_SCREEN, res.rectType_);
-
-    info.type_ = RotationChangeType::WINDOW_DID_ROTATE;
-    res = windowSessionImpl->NotifyRotationChange(info);
-    EXPECT_EQ(RectType::RELATIVE_TO_SCREEN, res.rectType_);
-}
 
 /**
  * @tc.name: UpdateRectForPageRotation
@@ -1088,8 +974,6 @@ HWTEST_F(WindowSessionImplTest5, ConvertOrientationAndRotation, Function | Small
         window->ConvertOrientationAndRotation(from, to, value, convertedValue));
     window->property_->SetPersistentId(1);
     window->state_ = WindowState::STATE_CREATED;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
-        window->ConvertOrientationAndRotation(from, to, value, convertedValue));
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     value = -1;
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM,
@@ -1133,6 +1017,32 @@ HWTEST_F(WindowSessionImplTest5, BeginRSTransaction, Function | SmallTest | Leve
     window->BeginRSTransaction(rsTransaction1);
     EXPECT_TRUE(g_errLog.find("rsTransaction begin") != std::string::npos);
     GTEST_LOG_(INFO) << "WindowSessionImplTest5: BeginRSTransaction end";
+}
+
+/**
+ * @tc.name: GetDeviceType()
+ * @tc.desc: GetDeviceType()
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetDeviceType, Function | SmallTest | Level2)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest5: GetDeviceType start";
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("GetDeviceType");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    window->state_ = WindowState::STATE_CREATED;
+
+    window->GetDeviceType();
+    EXPECT_TRUE(g_errLog.find("The device type is") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest5: GetDeviceType end";
 }
 
 /**
@@ -1706,6 +1616,78 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInner, Function | SmallTest | Level
     window->SetUIContentInner("info", nullptr, nullptr,
         WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
     EXPECT_TRUE(g_errLog.find("Use iconCache to set WindowIcon") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetUIContentInnerGetSelectModeFail
+ * @tc.desc: Test SetUIContentInner when GetSelectMode fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeFail, Function | SmallTest | Level2)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetUIContentInnerGetSelectModeFail");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = {"SetUIContentInnerGetSelectModeFail", "SetUIContentInnerGetSelectModeFail",
+        "SetUIContentInnerGetSelectModeFail"};
+    auto hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPersistentId(3);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_ = property;
+    window->hostSession_ = hostSession;
+    window->state_ = WindowState::STATE_SHOWN;
+
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    EXPECT_CALL(*window, GetAppForceLandscapeConfig(::testing::_))
+        .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(config), ::testing::Return(WMError::WM_OK)));
+    EXPECT_CALL(*window, GetSelectMode(::testing::_))
+        .WillOnce(::testing::Return(WMError::WM_ERROR_NULLPTR));
+
+    window->SetUIContentInner("info", nullptr, nullptr,
+        WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
+    EXPECT_TRUE(g_errLog.find("get selectMode fail") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetUIContentInnerGetSelectModeSuccess
+ * @tc.desc: Test SetUIContentInner when GetSelectMode succeeds
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeSuccess, Function | SmallTest | Level2)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetUIContentInnerGetSelectModeSuccess");
+    sptr<MockWindowSessionImpl> window = sptr<MockWindowSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = {"SetUIContentInnerGetSelectModeSuccess", "SetUIContentInnerGetSelectModeSuccess",
+        "SetUIContentInnerGetSelectModeSuccess"};
+    auto hostSession = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPersistentId(4);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_ = property;
+    window->hostSession_ = hostSession;
+    window->state_ = WindowState::STATE_SHOWN;
+
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    EXPECT_CALL(*window, GetAppForceLandscapeConfig(::testing::_))
+        .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(config), ::testing::Return(WMError::WM_OK)));
+    EXPECT_CALL(*window, GetSelectMode(::testing::_)).WillOnce(
+        ::testing::DoAll(::testing::SetArgReferee<0>(SelectMode::WIDE_MODE), ::testing::Return(WMError::WM_OK)));
+
+    window->SetUIContentInner("info", nullptr, nullptr,
+        WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
+    EXPECT_TRUE(g_errLog.find("get selectMode success") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 
@@ -2301,7 +2283,7 @@ HWTEST_F(WindowSessionImplTest5, TestNotifyGlobalDisplayRectChange, TestSize.Lev
     {
         std::lock_guard<std::mutex> lock(window->rectChangeInGlobalDisplayListenerMutex_);
         window->rectChangeInGlobalDisplayListeners_[window->GetPersistentId()] = {
-            listener1, nullListener, listener2
+            {listener1, false}, {nullListener, false}, {listener2, false}
         };
     }
 
@@ -2398,7 +2380,7 @@ HWTEST_F(WindowSessionImplTest5, SwitchSubWindow, Function | SmallTest | Level1)
     subWindow->SwitchSubWindow(true, PERSISTENT_ID_ONE);
     WindowMode mode = subWindow->property_->GetWindowMode();
     bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
-        mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY ||
+        WindowHelper::IsSplitWindowMode(mode) ||
         (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !subWindow->property_->IsLayoutFullScreen());
     if (subWindow->windowSystemConfig_.freeMultiWindowSupport_) {
         auto isSubWindow = WindowHelper::IsSubWindow(subWindow->GetType());
@@ -2714,6 +2696,391 @@ HWTEST_F(WindowSessionImplTest5, IsHitHotAreas02, TestSize.Level1)
     pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
     isHitHotAreas = window->IsHitHotAreas(pointerEvent);
     EXPECT_EQ(isHitHotAreas, false);
+}
+
+/**
+ * @tc.name: ReleaseUIContent
+ * @tc.desc: ReleaseUIContent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseUIContentTest, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ReleaseUIContent");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->ReleaseUIContent();
+    EXPECT_TRUE(window->isNeedReleaseUIContent_);
+
+    window->attachState_ = AttachState::DETACH;
+    window->ReleaseUIContent();
+    EXPECT_FALSE(window->isNeedReleaseUIContent_);
+}
+
+/**
+ * @tc.name: UpdateWindowUIType
+ * @tc.desc: UpdateWindowUIType
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, UpdateWindowUIType, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateWindowUIType");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+
+    WSError ret = window->UpdateWindowUIType(WindowUIType::PC_WINDOW);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->windowSystemConfig_.windowUIType_, WindowUIType::PC_WINDOW);
+    ret = window->UpdateWindowUIType(WindowUIType::PAD_WINDOW);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(window->windowSystemConfig_.windowUIType_, WindowUIType::PAD_WINDOW);
+}
+
+/**
+ * @tc.name: RecordWindowLifecycleChange
+ * @tc.desc: Test RecordWindowLifecycleChange function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, RecordWindowLifecycleChange, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecordWindowLifecycleChange");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(6001);
+    window->property_->SetDisplayId(0);
+    window->property_->SetWindowName("PageSwitchTestWindow");
+
+    // Test should not crash
+    window->RecordWindowLifecycleChange("create");
+    window->RecordWindowLifecycleChange("destroy");
+    window->RecordWindowLifecycleChange("status: FULLSCREEN");
+
+    EXPECT_TRUE(g_errLog.find("failed, ret") == std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WindowStatusToString
+ * @tc.desc: Test WindowStatusToString function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, WindowStatusToString, TestSize.Level1)
+{
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_UNDEFINED), "UNDEFINED");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_FULLSCREEN), "FULLSCREEN");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_MAXIMIZE), "MAXIMIZE");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_MINIMIZE), "MINIMIZE");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_FLOATING), "FLOATING");
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(WindowStatus::WINDOW_STATUS_SPLITSCREEN), "SPLITSCREEN");
+
+    WindowStatus invalidStatus = static_cast<WindowStatus>(999);
+    EXPECT_EQ(WindowSessionImpl::WindowStatusToString(invalidStatus), "UNKNOWN");
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType01
+ * @tc.desc: Test GetRSSurfaceNodeType with BOOT_ANIMATION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_BOOT_ANIMATION);
+    EXPECT_EQ(result, RSSurfaceNodeType::SELF_DRAWING_WINDOW_NODE);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType02
+ * @tc.desc: Test GetRSSurfaceNodeType with POINTER type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_POINTER);
+    EXPECT_EQ(result, RSSurfaceNodeType::SELF_DRAWING_WINDOW_NODE);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType03
+ * @tc.desc: Test GetRSSurfaceNodeType with APP_MAIN_WINDOW type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType03");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    EXPECT_EQ(result, RSSurfaceNodeType::APP_WINDOW_NODE);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType04
+ * @tc.desc: Test GetRSSurfaceNodeType with PIP type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType04");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_PIP);
+    EXPECT_EQ(result, RSSurfaceNodeType::APP_WINDOW_NODE);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType05
+ * @tc.desc: Test GetRSSurfaceNodeType with MAGNIFICATION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType05");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_MAGNIFICATION);
+    EXPECT_EQ(result, RSSurfaceNodeType::ABILITY_MAGNIFICATION_NODE);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType06
+ * @tc.desc: Test GetRSSurfaceNodeType with default type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType06");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    EXPECT_EQ(result, RSSurfaceNodeType::DEFAULT);
+
+    result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_DIALOG);
+    EXPECT_EQ(result, RSSurfaceNodeType::DEFAULT);
+
+    result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_FLOAT);
+    EXPECT_EQ(result, RSSurfaceNodeType::DEFAULT);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType07
+ * @tc.desc: Test GetRSSurfaceNodeType with UI_EXTENSION common type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType07");
+    option->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::MODAL);
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    EXPECT_EQ(result, RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::EMBEDDED);
+    result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    EXPECT_EQ(result, RSSurfaceNodeType::UI_EXTENSION_COMMON_NODE);
+}
+
+/**
+ * @tc.name: GetRSSurfaceNodeType08
+ * @tc.desc: Test GetRSSurfaceNodeType with UI_EXTENSION secure type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetRSSurfaceNodeType08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetRSSurfaceNodeType08");
+    option->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::CONSTRAINED_EMBEDDED);
+    RSSurfaceNodeType result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    EXPECT_EQ(result, RSSurfaceNodeType::UI_EXTENSION_SECURE_NODE);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::PREVIEW_EMBEDDED);
+    result = window->GetRSSurfaceNodeType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    EXPECT_EQ(result, RSSurfaceNodeType::UI_EXTENSION_SECURE_NODE);
+}
+
+/**
+ * @tc.name: CreateSurfaceNode01
+ * @tc.desc: Test CreateSurfaceNode without renderSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CreateSurfaceNode01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->renderSession_ = nullptr;
+    auto surfaceNode = window->CreateSurfaceNode("TestNode", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(surfaceNode, nullptr);
+}
+
+/**
+ * @tc.name: CreateSurfaceNode02
+ * @tc.desc: Test CreateSurfaceNode with BOOT_ANIMATION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CreateSurfaceNode02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->renderSession_ = nullptr;
+    auto surfaceNode = window->CreateSurfaceNode("TestBootNode", WindowType::WINDOW_TYPE_BOOT_ANIMATION);
+    ASSERT_NE(surfaceNode, nullptr);
+}
+
+/**
+ * @tc.name: CreateSurfaceNode03
+ * @tc.desc: Test CreateSurfaceNode with PIP type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CreateSurfaceNode03");
+    option->SetWindowType(WindowType::WINDOW_TYPE_PIP);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->renderSession_ = nullptr;
+    auto surfaceNode = window->CreateSurfaceNode("TestPipNode", WindowType::WINDOW_TYPE_PIP);
+    ASSERT_NE(surfaceNode, nullptr);
+}
+
+/**
+ * @tc.name: CreateSurfaceNode04
+ * @tc.desc: Test CreateSurfaceNode with UI_EXTENSION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CreateSurfaceNode04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::MODAL);
+    window->renderSession_ = nullptr;
+    auto surfaceNode = window->CreateSurfaceNode("TestUIExtNode", WindowType::WINDOW_TYPE_UI_EXTENSION);
+    ASSERT_NE(surfaceNode, nullptr);
+
+    window->property_->SetUIExtensionUsage(UIExtensionUsage::CONSTRAINED_EMBEDDED);
+    surfaceNode = window->CreateSurfaceNode("TestUIExtSecureNode", WindowType::WINDOW_TYPE_UI_EXTENSION);
+    ASSERT_NE(surfaceNode, nullptr);
+}
+
+/**
+ * @tc.name: CreateSurfaceNode05
+ * @tc.desc: Test CreateSurfaceNode with MAGNIFICATION type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CreateSurfaceNode05");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->renderSession_ = nullptr;
+    auto surfaceNode = window->CreateSurfaceNode("TestMagnificationNode", WindowType::WINDOW_TYPE_MAGNIFICATION);
+    ASSERT_NE(surfaceNode, nullptr);
+}
+
+/**
+ * @tc.name: CreateSurfaceNode06
+ * @tc.desc: Test CreateSurfaceNode with default types
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, CreateSurfaceNode06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CreateSurfaceNode06");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->renderSession_ = nullptr;
+    auto surfaceNode = window->CreateSurfaceNode("TestDialogNode", WindowType::WINDOW_TYPE_DIALOG);
+    ASSERT_NE(surfaceNode, nullptr);
+
+    surfaceNode = window->CreateSurfaceNode("TestFloatNode", WindowType::WINDOW_TYPE_FLOAT);
+    ASSERT_NE(surfaceNode, nullptr);
+
+    surfaceNode = window->CreateSurfaceNode("TestToastNode", WindowType::WINDOW_TYPE_TOAST);
+    ASSERT_NE(surfaceNode, nullptr);
+}
+
+/**
+ * @tc.name: RecordLifeCycleExceptionEvent
+ * @tc.desc: Test RecordLifeCycleExceptionEvent function
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, RecordLifeCycleExceptionEvent, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("RecordLifeCycleExceptionEvent");
+    ASSERT_NE(window, nullptr);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->RecordLifeCycleExceptionEvent(WMError::WM_ERROR_INVALID_WINDOW,
+        WMErrorReason::WM_REASON_WINDOW_CREATE_ERR, "test reason");
+    window->Destroy();
+}
+
+/**
+ * @tc.name: SetIsStartMoving
+ * @tc.desc: Verify SetIsStartMoving updates state correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, SetIsStartMoving, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("SetIsStartMoving");
+    ASSERT_NE(window, nullptr);
+
+    // Case 1: set true
+    EXPECT_EQ(WSError::WS_OK, window->SetIsStartMoving(true));
+    EXPECT_TRUE(window->IsStartMoving());
+
+    // Case 2: set false
+    EXPECT_EQ(WSError::WS_OK, window->SetIsStartMoving(false));
+    EXPECT_FALSE(window->IsStartMoving());
 }
 } // namespace
 } // namespace Rosen

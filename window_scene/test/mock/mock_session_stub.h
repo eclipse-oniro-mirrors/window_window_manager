@@ -36,8 +36,8 @@ public:
 
     MOCK_METHOD3(
         Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));
-    MOCK_METHOD2(Background, WSError(bool isFromClient, const std::string& identityToken));
-    MOCK_METHOD2(Disconnect, WSError(bool isFromClient, const std::string& identityToken));
+    MOCK_METHOD3(Background, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
+    MOCK_METHOD3(Disconnect, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
     MOCK_METHOD1(Show, WSError(sptr<WindowSessionProperty> property));
     MOCK_METHOD0(Hide, WSError(void));
     MOCK_METHOD0(DrawingCompleted, WSError(void));
@@ -75,7 +75,6 @@ public:
     MOCK_METHOD2(HandleNotifyExtensionTimeout, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleGetStatusBarHeight, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleGetAppForceLandscapeConfig, int(MessageParcel& data, MessageParcel& reply));
-    MOCK_METHOD2(HandleGetAppHookWindowInfoFromServer, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleNotifySecureLimitChange, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD2(HandleGetAllAvoidAreas, int(MessageParcel& data, MessageParcel& reply));
     MOCK_METHOD3(GetAvoidAreaByType, AvoidArea(AvoidAreaType type, const WSRect& rect, int32_t apiVersion));
@@ -86,11 +85,16 @@ public:
     MOCK_METHOD1(GetWaterfallMode, WSError(bool& isWaterfallMode));
     MOCK_METHOD1(IsMainWindowFullScreenAcrossDisplays, WMError(bool& isAcrossDisplays));
     MOCK_METHOD1(GetFloatingBallWindowId, WMError(uint32_t& windowId));
-    MOCK_METHOD1(SendFbActionEvent, WSError(const std::string& action));
+    MOCK_METHOD2(SendFbActionEvent, WSError(const std::string& action, const std::string& reason));
     MOCK_METHOD1(RestoreFbMainWindow, WMError(const std::shared_ptr<AAFwk::Want>& want));
+    MOCK_METHOD0(NotifyFloatViewPrepareClose, void(void));
+    MOCK_METHOD1(UpdateFloatView, WMError(const FloatViewTemplateInfo& fvTemplateInfo));
+    MOCK_METHOD1(RestoreFloatViewMainWindow, WMError(const std::shared_ptr<AAFwk::WantParams>& wantParams));
     MOCK_METHOD1(UpdateIsShowDecorInFreeMultiWindow, WSError(bool& isShow));
     MOCK_METHOD(WSError, SetContentAspectRatio, (float ratio, bool isPersistent, bool needUpdateRect), (override));
     MOCK_METHOD(WSError, SetDecorVisible, (bool isVisible), (override));
+    MOCK_METHOD(WMError, SetFloatNavigationEnabled, (bool enable), (override));
+    MOCK_METHOD(WMError, StartMovingWithOptions, (const StartMovingOptions& options), (override));
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -26,9 +26,48 @@ namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_DISPLAY, "PerformReporter"};
 
+const char* WINDOW_RECT_CHECK_NAME = "Window rect check";
+const char* WINDOW_ZORDER_CHECK_NAME = "Window z-order check";
+const char* WINDOW_FOCUS_CHECK_NAME = "Window focus check";
+const char* WINDOW_TRANSPARENT_CHECK_NAME = "Window transparent check";
+const char* WINDOW_MODAL_UIEXTENSION_UICONTENT_CHECK_NAME = "Window modal uiextension uicontent check";
+const char* WINDOW_MODAL_UIEXTENSION_SUBWINDOW_CHECK_NAME = "Window modal uiextension subwindow check";
+const char* WINDOW_UIEXTENSION_TRANSFER_DATA_FAIL_NAME = "Window uiextension transfer data fail";
+const char* WINDOW_UIEXTENSION_START_ABILITY_FAIL_NAME = "Window uiextension start ability fail";
+const char* WINDOW_FLUSH_EMPTY_DISPLAY_INFO_TO_MMI_EXCEPTION_NAME = "Window flush empty display info to mmi exception";
+const char* WINDOW_CREATE_SUB_WINDOW_FAILED_NAME = "Window create sub window failed";
+const char* WINDOW_UNEXPECTED_EVENT_CHECK_NAME = "Window unexpected event check";
+const char* WINDOW_UICONTENT_TIMEOUT_CHECK_NAME = "Window UIContent timeout check";
+const char* WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK_NAME = "Window UIExt destroy timeout check";
+const char* WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK_NAME = "Window keyboard anim timeout check";
+const char* WINDOW_WALLPAPER_ZORDER_CHECK_NAME = "Window wallpaper z-order check";
+
+const std::map<WindowDFXHelperType, const char*> WM_CHECK_TYPE_TO_CHECK_NAME_MAP {
+    {WindowDFXHelperType::WINDOW_RECT_CHECK,                         WINDOW_RECT_CHECK_NAME             },
+    {WindowDFXHelperType::WINDOW_ZORDER_CHECK,                       WINDOW_ZORDER_CHECK_NAME           },
+    {WindowDFXHelperType::WINDOW_FOCUS_CHECK,                        WINDOW_FOCUS_CHECK_NAME            },
+    {WindowDFXHelperType::WINDOW_TRANSPARENT_CHECK,                  WINDOW_TRANSPARENT_CHECK_NAME      },
+    {WindowDFXHelperType::WINDOW_MODAL_UIEXTENSION_UICONTENT_CHECK,  WINDOW_MODAL_UIEXTENSION_UICONTENT_CHECK_NAME  },
+    {WindowDFXHelperType::WINDOW_MODAL_UIEXTENSION_SUBWINDOW_CHECK,  WINDOW_MODAL_UIEXTENSION_SUBWINDOW_CHECK_NAME  },
+    {WindowDFXHelperType::WINDOW_UIEXTENSION_TRANSFER_DATA_FAIL,     WINDOW_UIEXTENSION_TRANSFER_DATA_FAIL_NAME     },
+    {WindowDFXHelperType::WINDOW_UIEXTENSION_START_ABILITY_FAIL,     WINDOW_UIEXTENSION_START_ABILITY_FAIL_NAME     },
+    {WindowDFXHelperType::WINDOW_FLUSH_EMPTY_DISPLAY_INFO_TO_MMI_EXCEPTION,
+        WINDOW_FLUSH_EMPTY_DISPLAY_INFO_TO_MMI_EXCEPTION_NAME },
+    {WindowDFXHelperType::WINDOW_CREATE_SUB_WINDOW_FAILED,           WINDOW_CREATE_SUB_WINDOW_FAILED_NAME          },
+    {WindowDFXHelperType::WINDOW_UNEXPECTED_EVENT_CHECK,             WINDOW_UNEXPECTED_EVENT_CHECK_NAME            },
+    {WindowDFXHelperType::WINDOW_UICONTENT_TIMEOUT_CHECK,            WINDOW_UICONTENT_TIMEOUT_CHECK_NAME           },
+    {WindowDFXHelperType::WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK,        WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK_NAME       },
+    {WindowDFXHelperType::WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK,        WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK_NAME       },
+    {WindowDFXHelperType::WINDOW_WALLPAPER_ZORDER_CHECK,             WINDOW_WALLPAPER_ZORDER_CHECK_NAME            },
+};
+
 const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {
     {KeyboardLifeCycleException::ANIM_SYNC_EXCEPTION, "ANIM_SYNC_EXCEPTION"},
-    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"}
+    {KeyboardLifeCycleException::CREATE_EXCEPTION, "CREATE_EXCEPTION"},
+    {KeyboardLifeCycleException::SHOW_EXCEPTION, "SHOW_EXCEPTION"},
+    {KeyboardLifeCycleException::HOT_AREA_EXCEPTION, "HOT_AREA_EXCEPTION"},
+    {KeyboardLifeCycleException::PANEL_AVOID_HEIGHT_EXCEPTION, "PANEL_AVOID_HEIGHT_EXCEPTION"},
+    {KeyboardLifeCycleException::MOVE_DRAG_EXCEPTION, "MOVE_DRAG_EXCEPTION"}
 };
 }
 WM_IMPLEMENT_SINGLE_INSTANCE(WindowInfoReporter)
@@ -378,7 +417,8 @@ int32_t WindowInfoReporter::ReportKeyboardLifeCycleException(int32_t windowId, K
         HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, eventName,
         HiviewDFX::HiSysEvent::EventType::FAULT,
         "WINDOW_ID", windowId,
-        "SUB_TYPE", KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.at(subType),
+        "SUB_TYPE", KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.find(subType) != KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.end() ?
+            KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP.at(subType) : "",
         "MSG", msg);
     if (ret != 0) {
         TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
@@ -404,31 +444,30 @@ int32_t WindowInfoReporter::ReportSpecWindowLifeCycleChange(WindowLifeCycleRepor
     return ret;
 }
 
-void WindowInfoReporter::ReportWindowIO(const std::string& scenes, const std::string& subScene, double sizeKB)
+void WindowInfoReporter::ReportWindowIO(const std::string& subScene, double sizeKB)
 {
-    int32_t intervalMinutes;
+    bool sameDay = true;
     {
         std::lock_guard<std::mutex> lock(reportWindowIOMutex_);
         if (!firstIOTimeInitialized_) {
-            firstIOTime_ = std::chrono::steady_clock::now();
+            firstIODayTime_ = std::chrono::floor<days>(std::chrono::system_clock::now());
+            firstIOSecondTime_ = std::chrono::system_clock::now();
             firstIOTimeInitialized_ = true;
         }
         // record event
-        const auto currentTime = std::chrono::steady_clock::now();
-        intervalMinutes = std::chrono::duration_cast<std::chrono::minutes>(currentTime - firstIOTime_).count();
-        ioRecordMap_[scenes]["TOTAL_WRITE_DATA"] += sizeKB;
-        ioRecordMap_[scenes][subScene] += sizeKB;
+        ioRecordMap_["TOTAL_WRITE_DATA"] += sizeKB;
+        ioRecordMap_[subScene] += sizeKB;
+        const auto currentDayTime = std::chrono::floor<days>(std::chrono::system_clock::now());
+        sameDay = (firstIODayTime_ == currentDayTime);
     }
-    TLOGD(WmsLogTag::DEFAULT, "scenes: %{public}s, subScene: %{public}s, sizeKB: %{public}f, "
-        "intervalMinutes: %{public}d, REAL_TIME_ENABLED: %{public}s",
-        scenes.c_str(), subScene.c_str(), sizeKB, intervalMinutes, REAL_TIME_ENABLED.c_str());
-    // 1 day = 1440 minutes
-    int32_t perDay = 1440;
-    // real time output per minute
+    TLOGD(WmsLogTag::DEFAULT, "subScene: %{public}s, sizeKB: %{public}f, "
+        "sameDay: %{public}d, REAL_TIME_ENABLED: %{public}s",
+        subScene.c_str(), sizeKB, sameDay, REAL_TIME_ENABLED.c_str());
+    // real time output for verification
     if (REAL_TIME_ENABLED == "1") {
-        perDay = 1;
+        sameDay = false;
     }
-    if (intervalMinutes < perDay) {
+    if (sameDay) {
         return;
     }
     ReportWindowIOPerDay();
@@ -437,45 +476,74 @@ void WindowInfoReporter::ReportWindowIO(const std::string& scenes, const std::st
 void WindowInfoReporter::ReportWindowIOPerDay()
 {
     // write event
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> ioRecordMapCopy;
+    std::unordered_map<std::string, double> ioRecordMapCopy;
+    int64_t writeDate;
     {
         std::lock_guard<std::mutex> lock(reportWindowIOMutex_);
         ioRecordMapCopy = ioRecordMap_;
+        writeDate = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+            firstIOSecondTime_.time_since_epoch()).count());
         firstIOTimeInitialized_ = false;
         ioRecordMap_.clear();
     }
 
-    std::string eventName = "SCENEBOARD_IO_DFX";
+    std::ostringstream oss;
     for (const auto& elem : ioRecordMapCopy) {
-        std::string scene = elem.first;
-        std::ostringstream oss;
-        for (const auto& subSceneElem : elem.second) {
-            if (subSceneElem.first == "TOTAL_WRITE_DATA") {
-                continue;
-            }
-            // Set 2 precision, and output in kilobyte.
-            oss << subSceneElem.first << ": " << std::fixed << std::setprecision(2) << subSceneElem.second << "KB, ";
+        if (elem.first == "TOTAL_WRITE_DATA") {
+            continue;
         }
-        std::string msg = oss.str();
-        // Remove 2 redundant characters
-        size_t redundantSize = 2;
-        if (msg.length() > redundantSize) {
-            msg.erase(msg.length() - redundantSize);
-        }
-        const double KILOBYTE = 1024.0;
-        double totalWriteData = ioRecordMapCopy[scene]["TOTAL_WRITE_DATA"] / KILOBYTE;
-        TLOGI(WmsLogTag::DEFAULT, "total: %{public}f, msg: %{public}s", totalWriteData, msg.c_str());
-        static constexpr char WINDOW_IO_UE[] = "WINDOW_IO_UE";
-        int32_t ret = HiSysEventWrite(
-            WINDOW_IO_UE, eventName,
-            OHOS::HiviewDFX::HiSysEvent::EventType::STATISTIC,
-            "SCENES", scene,
-            "TOTAL_WRITE_DATA", std::to_string(totalWriteData), // size MB
-            "MSG", msg);
-        if (ret != 0) {
-            TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
-        }
+        // Set 2 precision, and output in kilobyte.
+        oss << elem.first << ": " << std::fixed << std::setprecision(2) << elem.second << "KB, ";
     }
+    std::string msg = oss.str();
+    // Remove 2 redundant characters
+    size_t redundantSize = 2;
+    if (msg.length() > redundantSize) {
+        msg.erase(msg.length() - redundantSize);
+    }
+
+    const double KILOBYTE = 1024.0;
+    double totalWriteData = ioRecordMapCopy["TOTAL_WRITE_DATA"] / KILOBYTE;
+    TLOGI(WmsLogTag::DEFAULT, "total: %{public}f, msg: %{public}s", totalWriteData, msg.c_str());
+    std::string eventName = "SCENEBOARD_IO_DFX";
+    static constexpr char WINDOW_IO_DOMAIN[] = "SCENE_BOARD_APP";
+    int32_t ret = HiSysEventWrite(
+        WINDOW_IO_DOMAIN, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::STATISTIC,
+        "PART_NAME", "Window",
+        "WRITE_DATE", writeDate,
+        "TOTAL_WRITE_DATA", totalWriteData, // size MB
+        "MSG", msg);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::DEFAULT, "write HiSysEvent error, ret: %{public}d", ret);
+    }
+}
+
+void WindowInfoReporter::ReportWindowFrozen(WindowDFXHelperType detectionType, const std::string& windowInfo)
+{
+    std::string eventName = "WINDOW_FROZEN_DETECTION";
+    std::string detectionName = WM_CHECK_TYPE_TO_CHECK_NAME_MAP.find(detectionType) !=
+        WM_CHECK_TYPE_TO_CHECK_NAME_MAP.end() ? WM_CHECK_TYPE_TO_CHECK_NAME_MAP.at(detectionType) : "";
+    int32_t ret = HiSysEventWrite(
+        OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+        "DETECTION_TYPE", static_cast<int32_t>(detectionType),
+        "DETECTION_NAME", detectionName,
+        "MSG", windowInfo);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::DEFAULT, "Write HiSysEvent error, ret:%{public}d", ret);
+    }
+}
+
+bool WindowInfoReporter::IsKeyboardFrozenEnabled()
+{
+    static bool enabled = [] {
+        bool isFrozen = OHOS::system::GetBoolParameter("persist.window.keyboard.frozen", false);
+        TLOGNI(WmsLogTag::WMS_KEYBOARD, "IsKeyboardFrozenEnabled: %{public}d", isFrozen);
+        return isFrozen;
+    }();
+    TLOGD(WmsLogTag::WMS_KEYBOARD, "enabled: %{public}d", enabled);
+    return enabled;
 }
 } // namespace Rosen
 }

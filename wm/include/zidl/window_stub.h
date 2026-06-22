@@ -30,6 +30,7 @@ public:
         MessageOption& option) override;
 
 private:
+    int ParseAvoidAreas(MessageParcel& data, std::map<AvoidAreaType, AvoidArea>& avoidAreas);
     static inline const class StaticDestroyMonitor {
     public:
         StaticDestroyMonitor() : destroyed_(false) {}

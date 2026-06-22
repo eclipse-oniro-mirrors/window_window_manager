@@ -42,6 +42,7 @@ ohos_shared_library("displayani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "display_ani/src/ani_err_utils.cpp",
@@ -82,6 +83,7 @@ ohos_shared_library("displayani_kit") {
     "runtime_core:ani_helpers",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

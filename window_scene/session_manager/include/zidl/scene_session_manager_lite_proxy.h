@@ -36,7 +36,7 @@ public:
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
     WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params) override;
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller = true) override;
+        bool shouldBackToCaller = true, int32_t reason = 0) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
     WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent) override;
@@ -54,6 +54,8 @@ public:
      */
     WSError GetMainWindowStatesByPid(int32_t pid, std::vector<MainWindowState>& windowStates) override;
     WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId, SessionInfoBean& sessionInfo) override;
+    WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId, SessionInfoBean& sessionInfo,
+        AAFwk::DisplayInfo& displayInfo) override;
     WSError GetSessionInfoByContinueSessionId(const std::string& continueSessionId,
         SessionInfoBean& sessionInfo) override;
     WSError SetSessionContinueState(const sptr<IRemoteObject>& token, const ContinueState& continueState) override;
@@ -93,17 +95,19 @@ public:
     WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
     WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease) override;
     WMError GetWindowModeType(WindowModeType& windowModeType) override;
-    WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo) override;
     WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed) override;
-    WMError GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo) override;
-    WMError GetAllMainWindowInfos(std::vector<MainWindowInfo>& infos) override;
     WMError GetMainWindowInfoByToken(const sptr<IRemoteObject>& abilityToken, MainWindowInfo& windowInfo) override;
-    WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds) override;
     WSError RaiseWindowToTop(int32_t persistentId) override;
+    WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo) override;
     WSError RegisterIAbilityManagerCollaborator(int32_t type,
         const sptr<AAFwk::IAbilityManagerCollaborator>& impl) override;
     WSError UnregisterIAbilityManagerCollaborator(int32_t type) override;
+    WMError GetCallingWindowInfo(CallingWindowInfo& callingWindowInfo) override;
+    WMError GetAllMainWindowInfos(std::vector<MainWindowInfo>& infos) override;
+    WMError ClearMainSessions(const std::vector<int32_t>& persistentIds, std::vector<int32_t>& clearFailedIds) override;
     WMError GetWindowStyleType(WindowStyleType& windowModeType) override;
+    WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled) override;
+    WMError RecoverProcessWatermark(int32_t pid, const std::string& watermarkName) override;
     WMError TerminateSessionByPersistentId(int32_t persistentId) override;
     WMError CloseTargetFloatWindow(const std::string& bundleName) override;
     WMError CloseTargetPiPWindow(const std::string& bundleName) override;
@@ -120,6 +124,8 @@ public:
         const std::vector<int32_t>& persistentIdList) override;
     WMError RegisterSessionLifecycleListenerByBundles(const sptr<ISessionLifecycleListener>& listener,
         const std::vector<std::string>& bundleNameList) override;
+    WMError RegisterSessionLifecycleListenerByAppInstance(const sptr<ISessionLifecycleListener>& listener,
+        const std::string& bundleName, int32_t appIndex, const std::string& appInstanceKey = "") override;
     WMError UnregisterSessionLifecycleListener(const sptr<ISessionLifecycleListener>& listener) override;
     WSError GetRecentMainSessionInfoList(std::vector<RecentSessionInfo>& recentSessionInfoList) override;
     WMError GetRouterStackInfo(int32_t persistentId, const sptr<ISessionRouterStackListener>& listener) override;
@@ -138,9 +144,13 @@ public:
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override;
+    WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) override;
+    WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);
+    bool CheckCollaborator(int32_t type);
 };
 } // namespace OHOS::Rosen
 

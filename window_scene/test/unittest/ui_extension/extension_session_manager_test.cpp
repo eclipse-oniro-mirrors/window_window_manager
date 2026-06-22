@@ -60,6 +60,8 @@ HWTEST_F(ExtensionSessionManagerTest, RequestExtensionSession, TestSize.Level1)
     ASSERT_NE(nullptr, ExtensionSessionManager::GetInstance().RequestExtensionSession(sessionInfo));
     sessionInfo.want->SetParam(AAFwk::SCREEN_MODE_KEY, 1);
     ASSERT_NE(nullptr, ExtensionSessionManager::GetInstance().RequestExtensionSession(sessionInfo));
+    sessionInfo.want->SetParam("ohos.extra.param.key.setUIExtensionTransparent", true);
+    ASSERT_NE(nullptr, ExtensionSessionManager::GetInstance().RequestExtensionSession(sessionInfo));
 }
 
 /**

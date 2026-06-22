@@ -91,6 +91,25 @@ void SessionStageChangeTest(sptr<WindowSessionImpl> stageStub, MessageParcel& pa
         parcel, reply, option);
 }
 
+void SessionStageChangeTest01(sptr<WindowSessionImpl> stageStub, MessageParcel& parcel)
+{
+    MessageParcel reply;
+    MessageOption option;
+
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_PARENT_LIFECYCLE_EVENT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_HIDE_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    stageStub->OnRemoteRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SHOW_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED),
+        parcel, reply, option);
+}
+
 bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
 {
     if (data == nullptr || size < DATA_MIN_SIZE) {
@@ -112,6 +131,7 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     }
 
     SessionStageChangeTest(stageStub, parcel);
+    SessionStageChangeTest01(stageStub, parcel);
     return true;
 }
 } // namespace OHOS

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,7 +14,6 @@
  */
 
 #include <gtest/gtest.h>
-
 #include "user_switch_reporter.h"
 
 using namespace testing;
@@ -35,7 +34,7 @@ protected:
  */
 HWTEST_F(UserSwitchReporterTest, ConstructorInitializesStartTime, Function | SmallTest | Level1)
 {
-    UserSwitchReporter reporter(true);
+    UserSwitchReporter reporter(UserSwitchEventType::SWITCHING, true);
     EXPECT_GT(reporter.startTime_, 0);
 }
 
@@ -46,7 +45,7 @@ HWTEST_F(UserSwitchReporterTest, ConstructorInitializesStartTime, Function | Sma
  */
 HWTEST_F(UserSwitchReporterTest, ReportSwitchDurationCorrectly, Function | SmallTest | Level1)
 {
-    UserSwitchReporter reporter(true);
+    UserSwitchReporter reporter(UserSwitchEventType::SWITCHING, true);
     EXPECT_TRUE(reporter.ReportSwitchDuration());
 }
 } // namespace Rosen

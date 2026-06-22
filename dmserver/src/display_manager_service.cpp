@@ -338,6 +338,10 @@ DMError DisplayManagerService::GetScreenColorGamut(ScreenId screenId, ScreenColo
 
 DMError DisplayManagerService::SetScreenColorGamut(ScreenId screenId, int32_t colorGamutIdx)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::DMS, "permission denied!");
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
     TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64 ", colorGamutIdx %{public}d", screenId,
         colorGamutIdx);
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
@@ -361,6 +365,10 @@ DMError DisplayManagerService::SetScreenGamutMap(ScreenId screenId, ScreenGamutM
 
 DMError DisplayManagerService::SetScreenColorTransform(ScreenId screenId)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::DMS, "permission denied!");
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
     TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64, screenId);
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
     return abstractScreenController_->SetScreenColorTransform(screenId);
@@ -500,13 +508,14 @@ bool DisplayManagerService::TryToCancelScreenOff()
     return false;
 }
 
-bool DisplayManagerService::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManagerService::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
     if (!Permission::IsSystemServiceCalling()) {
         TLOGE(WmsLogTag::DMS, "set screen brightness permission denied!");
         return false;
     }
-    RSInterfaces::GetInstance().SetScreenBacklight(screenId, level);
+    RsScreenBrightnessData data{brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition};
+    RSInterfaces::GetInstance().SetScreenBacklight(data);
     return true;
 }
 

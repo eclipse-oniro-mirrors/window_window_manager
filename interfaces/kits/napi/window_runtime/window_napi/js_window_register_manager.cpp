@@ -15,21 +15,27 @@
 
 #include "js_window_register_manager.h"
 #include "singleton_container.h"
+#include "sys_cap_util.h"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
+#include "window_histogram_management.h"
 #include "js_runtime_utils.h"
+#include <cstdint>
 
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "JsRegisterManager"};
+constexpr uint32_t API_VERSION_23 = 23;
+constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 
 const std::map<std::string, RegisterListenerType> WINDOW_MANAGER_LISTENER_MAP {
     // white register list for window manager
     {SYSTEM_BAR_TINT_CHANGE_CB, RegisterListenerType::SYSTEM_BAR_TINT_CHANGE_CB},
     {GESTURE_NAVIGATION_ENABLED_CHANGE_CB, RegisterListenerType::GESTURE_NAVIGATION_ENABLED_CHANGE_CB},
     {WATER_MARK_FLAG_CHANGE_CB, RegisterListenerType::WATER_MARK_FLAG_CHANGE_CB},
+    {APPLICATION_FOCUS_STATE_CHANGE_CB, RegisterListenerType::APPLICATION_FOCUS_STATE_CHANGE_CB},
 };
 const std::map<std::string, RegisterListenerType> WINDOW_LISTENER_MAP {
     // white register list for window
@@ -50,6 +56,8 @@ const std::map<std::string, RegisterListenerType> WINDOW_LISTENER_MAP {
     {DIALOG_DEATH_RECIPIENT_CB, RegisterListenerType::DIALOG_DEATH_RECIPIENT_CB},
     {WINDOW_STATUS_CHANGE_CB, RegisterListenerType::WINDOW_STATUS_CHANGE_CB},
     {WINDOW_STATUS_DID_CHANGE_CB, RegisterListenerType::WINDOW_STATUS_DID_CHANGE_CB},
+    {PARENT_WINDOW_SIZE_CHANGE_CB, RegisterListenerType::PARENT_WINDOW_SIZE_CHANGE_CB},
+    {PARENT_WINDOW_STATUS_CHANGE_CB, RegisterListenerType::PARENT_WINDOW_STATUS_CHANGE_CB},
     {WINDOW_TITLE_BUTTON_RECT_CHANGE_CB, RegisterListenerType::WINDOW_TITLE_BUTTON_RECT_CHANGE_CB},
     {WINDOW_VISIBILITY_CHANGE_CB, RegisterListenerType::WINDOW_VISIBILITY_CHANGE_CB},
     {OCCLUSION_STATE_CHANGE_CB, RegisterListenerType::OCCLUSION_STATE_CHANGE_CB},
@@ -62,10 +70,11 @@ const std::map<std::string, RegisterListenerType> WINDOW_LISTENER_MAP {
     {RECT_CHANGE_IN_GLOBAL_DISPLAY_CB, RegisterListenerType::RECT_CHANGE_IN_GLOBAL_DISPLAY_CB},
     {EXTENSION_SECURE_LIMIT_CHANGE_CB, RegisterListenerType::EXTENSION_SECURE_LIMIT_CHANGE_CB},
     {SUB_WINDOW_CLOSE_CB, RegisterListenerType::SUB_WINDOW_CLOSE_CB},
-    {WINDOW_HIGHLIGHT_CHANGE_CB, RegisterListenerType::WINDOW_HIGHLIGHT_CHANGE_CB},
     {WINDOW_WILL_CLOSE_CB, RegisterListenerType::WINDOW_WILL_CLOSE_CB},
+    {WINDOW_HIGHLIGHT_CHANGE_CB, RegisterListenerType::WINDOW_HIGHLIGHT_CHANGE_CB},
     {WINDOW_ROTATION_CHANGE_CB, RegisterListenerType::WINDOW_ROTATION_CHANGE_CB},
     {FREE_WINDOW_MODE_CHANGE_CB, RegisterListenerType::FREE_WINDOW_MODE_CHANGE_CB},
+    {PARENT_LIFECYCLE_EVENT_CB, RegisterListenerType::PARENT_LIFECYCLE_EVENT_CB},
 };
 const std::map<std::string, RegisterListenerType> WINDOW_STAGE_LISTENER_MAP {
     // white register list for window stage
@@ -94,6 +103,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowChangeRegister(sptr<JsWindowLi
 {
     if (window == nullptr) {
         WLOGFE("Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowSizeChange" : "ArkUI.window.offWindowSizeChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowChangeListener> thisListener(listener);
@@ -103,6 +115,8 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowChangeRegister(sptr<JsWindowLi
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterWindowChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowSizeChange" : "ArkUI.window.offWindowSizeChange", ret);
     return ret;
 }
 
@@ -111,10 +125,16 @@ WmErrorCode JsWindowRegisterManager::ProcessSystemAvoidAreaChangeRegister(sptr<J
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onSystemAvoidAreaChange" : "ArkUI.window.offSystemAvoidAreaChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "listener is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onSystemAvoidAreaChange" : "ArkUI.window.offSystemAvoidAreaChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     listener->SetIsDeprecatedInterface(true);
@@ -125,6 +145,9 @@ WmErrorCode JsWindowRegisterManager::ProcessSystemAvoidAreaChangeRegister(sptr<J
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onSystemAvoidAreaChange" : "ArkUI.window.offSystemAvoidAreaChange",
+        ret);
     return ret;
 }
 
@@ -133,6 +156,9 @@ WmErrorCode JsWindowRegisterManager::ProcessAvoidAreaChangeRegister(sptr<JsWindo
 {
     if (window == nullptr) {
         WLOGFE("Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onAvoidAreaChange" : "ArkUI.window.offAvoidAreaChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IAvoidAreaChangedListener> thisListener(listener);
@@ -142,6 +168,9 @@ WmErrorCode JsWindowRegisterManager::ProcessAvoidAreaChangeRegister(sptr<JsWindo
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onAvoidAreaChange" : "ArkUI.window.offAvoidAreaChange",
+        ret);
     return ret;
 }
 
@@ -150,6 +179,7 @@ WmErrorCode JsWindowRegisterManager::ProcessLifeCycleEventRegister(sptr<JsWindow
 {
     if (window == nullptr) {
         WLOGFE("Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowLifeCycle> thisListener(listener);
@@ -159,6 +189,7 @@ WmErrorCode JsWindowRegisterManager::ProcessLifeCycleEventRegister(sptr<JsWindow
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterLifeCycleListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
     return ret;
 }
 
@@ -188,6 +219,9 @@ WmErrorCode JsWindowRegisterManager::ProcessOccupiedAreaChangeRegister(sptr<JsWi
 {
     if (window == nullptr) {
         WLOGFE("Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onKeyboardHeightChange" : "ArkUI.window.offKeyboardHeightChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IOccupiedAreaChangeListener> thisListener(listener);
@@ -197,6 +231,8 @@ WmErrorCode JsWindowRegisterManager::ProcessOccupiedAreaChangeRegister(sptr<JsWi
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterOccupiedAreaChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onKeyboardHeightChange" : "ArkUI.window.offKeyboardHeightChange", ret);
     return ret;
 }
 
@@ -205,14 +241,21 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardWillShowRegister(sptr<JsWind
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onKeyboardWillShow" : "ArkUI.window.offKeyboardWillShow",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IKeyboardWillShowListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        return MappingWmErrorCodeSafely(window->RegisterKeyboardWillShowListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->RegisterKeyboardWillShowListener(thisListener));
     } else {
-        return MappingWmErrorCodeSafely(window->UnregisterKeyboardWillShowListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardWillShowListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onKeyboardWillShow" : "ArkUI.window.offKeyboardWillShow", ret);
+    return ret;
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessKeyboardWillHideRegister(sptr<JsWindowListener> listener,
@@ -220,6 +263,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardWillHideRegister(sptr<JsWind
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onKeyboardWillHide" : "ArkUI.window.offKeyboardWillHide",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IKeyboardWillHideListener> thisListener(listener);
@@ -229,6 +275,8 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardWillHideRegister(sptr<JsWind
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardWillHideListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onKeyboardWillHide" : "ArkUI.window.offKeyboardWillHide", ret);
     return ret;
 }
 
@@ -237,6 +285,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardDidShowRegister(sptr<JsWindo
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onKeyboardDidShow" : "ArkUI.window.offKeyboardDidShow",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IKeyboardDidShowListener> thisListener(listener);
@@ -246,6 +297,8 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardDidShowRegister(sptr<JsWindo
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardDidShowListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onKeyboardDidShow" : "ArkUI.window.offKeyboardDidShow", ret);
     return ret;
 }
 
@@ -254,6 +307,9 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardDidHideRegister(sptr<JsWindo
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onKeyboardDidHide" : "ArkUI.window.offKeyboardDidHide",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IKeyboardDidHideListener> thisListener(listener);
@@ -263,6 +319,8 @@ WmErrorCode JsWindowRegisterManager::ProcessKeyboardDidHideRegister(sptr<JsWindo
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterKeyboardDidHideListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onKeyboardDidHide" : "ArkUI.window.offKeyboardDidHide", ret);
     return ret;
 }
 
@@ -278,6 +336,9 @@ WmErrorCode JsWindowRegisterManager::ProcessSystemBarChangeRegister(sptr<JsWindo
         ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().UnregisterSystemBarChangedListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onSystemBarTintChange" : "ArkUI.window.offSystemBarTintChange",
+        ret);
     return ret;
 }
 
@@ -293,6 +354,9 @@ WmErrorCode JsWindowRegisterManager::ProcessGestureNavigationEnabledChangeRegist
         ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().UnregisterGestureNavigationEnabledChangedListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onGestureNavigationEnabledChange" : "ArkUI.window.offGestureNavigationEnabledChange",
+        ret);
     return ret;
 }
 
@@ -308,13 +372,36 @@ WmErrorCode JsWindowRegisterManager::ProcessWaterMarkFlagChangeRegister(sptr<JsW
         ret = MappingWmErrorCodeSafely(
             SingletonContainer::Get<WindowManager>().UnregisterWaterMarkFlagChangedListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWaterMarkFlagChange" : "ArkUI.window.offWaterMarkFlagChange",
+        ret);
     return ret;
 }
+
+WmErrorCode JsWindowRegisterManager::ProcessApplicationFocusChangeRegister(sptr<JsWindowListener> listener,
+    sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "called");
+    sptr<IApplicationFocusChangedListener> thisListener(listener);
+    WmErrorCode ret;
+    if (isRegister) {
+        ret = MappingWmErrorCodeSafely(
+            WindowManager::GetInstance().RegisterApplicationFocusChangedListener(thisListener));
+    } else {
+        ret = MappingWmErrorCodeSafely(
+            WindowManager::GetInstance().UnregisterApplicationFocusChangedListener(thisListener));
+    }
+    return ret;
+}
+
 WmErrorCode JsWindowRegisterManager::ProcessTouchOutsideRegister(sptr<JsWindowListener> listener,
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     WLOGI("called");
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onTouchOutside" : "ArkUI.window.offTouchOutside",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<ITouchOutsideListener> thisListener(listener);
@@ -324,6 +411,8 @@ WmErrorCode JsWindowRegisterManager::ProcessTouchOutsideRegister(sptr<JsWindowLi
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterTouchOutsideListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onTouchOutside" : "ArkUI.window.offTouchOutside", ret);
     return ret;
 }
 
@@ -430,24 +519,31 @@ WmErrorCode JsWindowRegisterManager::ProcessAcrossDisplaysChangeRegister(const s
     }
     return isRegister ?
         MappingWmErrorCodeSafely(window->RegisterAcrossDisplaysChangeListener(listener)) :
-        MappingWmErrorCodeSafely(window->UnRegisterAcrossDisplaysChangeListener(listener));
+        MappingWmErrorCodeSafely(window->UnregisterAcrossDisplaysChangeListener(listener));
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessWindowNoInteractionRegister(sptr<JsWindowListener> listener,
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onNoInteractionDetected" : "ArkUI.window.offNoInteractionDetected",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowNoInteractionListener> thisListener(listener);
 
     if (!isRegister) {
-        return MappingWmErrorCodeSafely(window->UnregisterWindowNoInteractionListener(thisListener));
+        WmErrorCode ret = MappingWmErrorCodeSafely(window->UnregisterWindowNoInteractionListener(thisListener));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.offNoInteractionDetected", ret);
+        return ret;
     }
 
     int64_t timeout = 0;
     if (parameter == nullptr || !ConvertFromJsNumber(env, parameter, timeout)) {
         WLOGFE("Failed to convert parameter to timeout");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.onNoInteractionDetected",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
 
@@ -456,12 +552,16 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowNoInteractionRegister(sptr<JsW
     if (timeout <= 0 || (timeout > noInteractionMax)) {
         WLOGFE("invalid parameter: no-interaction-timeout %{public}" PRId64 " is not in(0s~%{public}" PRId64,
             timeout, noInteractionMax);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.onNoInteractionDetected",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         return WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
 
     thisListener->SetTimeout(timeout * secToMicrosecRatio);
 
-    return MappingWmErrorCodeSafely(window->RegisterWindowNoInteractionListener(thisListener));
+    WmErrorCode ret = MappingWmErrorCodeSafely(window->RegisterWindowNoInteractionListener(thisListener));
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.onNoInteractionDetected", ret);
+    return ret;
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessScreenshotRegister(sptr<JsWindowListener> listener,
@@ -503,6 +603,9 @@ WmErrorCode JsWindowRegisterManager::ProcessDialogTargetTouchRegister(sptr<JsWin
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onDialogTargetTouch" : "ArkUI.window.offDialogTargetTouch",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IDialogTargetTouchListener> thisListener(listener);
@@ -512,6 +615,8 @@ WmErrorCode JsWindowRegisterManager::ProcessDialogTargetTouchRegister(sptr<JsWin
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterDialogTargetTouchListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onDialogTargetTouch" : "ArkUI.window.offDialogTargetTouch", ret);
     return ret;
 }
 
@@ -534,8 +639,15 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowTitleButtonRectChangeRegister(
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     WLOGD("called");
+    HISTOGRAM_BOOLEAN(
+        isRegister ? "ArkUI.window.onWindowTitleButtonRectChange" : "ArkUI.window.offWindowTitleButtonRectChange",
+        HISTOGRAM_BOOLEAN_COUNTS);
     if (window == nullptr) {
         WLOGFE("Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowTitleButtonRectChange.error" :
+            "ArkUI.window.offWindowTitleButtonRectChange.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowTitleButtonRectChangedListener> thisListener(listener);
@@ -545,6 +657,10 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowTitleButtonRectChangeRegister(
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterWindowTitleButtonRectChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowTitleButtonRectChange.error" :
+        "ArkUI.window.offWindowTitleButtonRectChange.error",
+        ret);
     return ret;
 }
 
@@ -617,6 +733,8 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
                     env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WATER_MARK_FLAG_CHANGE_CB):
                 return ProcessWaterMarkFlagChangeRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::APPLICATION_FOCUS_STATE_CHANGE_CB):
+                return ProcessApplicationFocusChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             default:
                 WLOGFE("RegisterListenerType %{public}u is not supported",
                     static_cast<uint32_t>(registerListenerType));
@@ -658,6 +776,11 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
                 return ProcessWindowStatusChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_STATUS_DID_CHANGE_CB):
                 return ProcessWindowStatusDidChangeRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::PARENT_WINDOW_SIZE_CHANGE_CB):
+                return ProcessParentWindowSizeChangeRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::PARENT_WINDOW_STATUS_CHANGE_CB):
+                return ProcessParentWindowStatusChangeRegister(windowManagerListener, window, isRegister, env,
+                    parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_TITLE_BUTTON_RECT_CHANGE_CB):
                 return ProcessWindowTitleButtonRectChangeRegister(windowManagerListener, window, isRegister, env,
                     parameter);
@@ -686,14 +809,16 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
                     windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::SUB_WINDOW_CLOSE_CB):
                 return ProcessSubWindowCloseRegister(windowManagerListener, window, isRegister, env, parameter);
-            case static_cast<uint32_t>(RegisterListenerType::WINDOW_HIGHLIGHT_CHANGE_CB):
-                return ProcessWindowHighlightChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_WILL_CLOSE_CB):
                 return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::WINDOW_HIGHLIGHT_CHANGE_CB):
+                return ProcessWindowHighlightChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_ROTATION_CHANGE_CB):
                 return ProcessWindowRotationChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::FREE_WINDOW_MODE_CHANGE_CB):
                 return ProcessFreeWindowModeChangeRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::PARENT_LIFECYCLE_EVENT_CB):
+                return ProcessParentLifecycleEventRegister(windowManagerListener, window, isRegister, env, parameter);
             default:
                 WLOGFE("RegisterListenerType %{public}u is not supported",
                     static_cast<uint32_t>(registerListenerType));
@@ -789,6 +914,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStatusChangeRegister(sptr<JsWi
 {
     if (window == nullptr) {
         WLOGFE("Window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowStatusChange" : "ArkUI.window.offWindowStatusChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowStatusChangeListener> thisListener(listener);
@@ -798,6 +926,8 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStatusChangeRegister(sptr<JsWi
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterWindowStatusChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowStatusChange" : "ArkUI.window.offWindowStatusChange", ret);
     return ret;
 }
 
@@ -806,6 +936,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStatusDidChangeRegister(sptr<J
 {
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Window is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowStatusDidChange" : "ArkUI.window.offWindowStatusDidChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowStatusDidChangeListener> thisListener(listener);
@@ -815,6 +948,46 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowStatusDidChangeRegister(sptr<J
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterWindowStatusDidChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowStatusDidChange" : "ArkUI.window.offWindowStatusDidChange", ret);
+    return ret;
+}
+
+WmErrorCode JsWindowRegisterManager::ProcessParentWindowSizeChangeRegister(sptr<JsWindowListener> listener,
+    sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
+{
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Window is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<IParentWindowSizeChangeListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    if (isRegister) {
+        ret = MappingWmErrorCodeSafely(window->RegisterParentWindowSizeChangeListener(thisListener));
+    } else {
+        ret = MappingWmErrorCodeSafely(window->UnregisterParentWindowSizeChangeListener(thisListener));
+    }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
+    return ret;
+}
+
+WmErrorCode JsWindowRegisterManager::ProcessParentWindowStatusChangeRegister(sptr<JsWindowListener> listener,
+    sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
+{
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Window is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<IParentWindowStatusChangeListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    if (isRegister) {
+        ret = MappingWmErrorCodeSafely(window->RegisterParentWindowStatusChangeListener(thisListener));
+    } else {
+        ret = MappingWmErrorCodeSafely(window->UnregisterParentWindowStatusChangeListener(thisListener));
+    }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
     return ret;
 }
 
@@ -822,6 +995,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowRectChangeRegister(sptr<JsWind
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowRectChange" : "ArkUI.window.offWindowRectChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowRectChangeListener> thisListener(listener);
@@ -831,6 +1007,8 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowRectChangeRegister(sptr<JsWind
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterWindowRectChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowRectChange" : "ArkUI.window.offWindowRectChange", ret);
     return ret;
 }
 
@@ -840,6 +1018,9 @@ WmErrorCode JsWindowRegisterManager::ProcessRectChangeInGlobalDisplayRegister(
 {
     if (!window) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "window is nullptr");
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onRectChangeInGlobalDisplay" : "ArkUI.window.offRectChangeInGlobalDisplay",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     WMError ret = WMError::WM_OK;
@@ -849,13 +1030,20 @@ WmErrorCode JsWindowRegisterManager::ProcessRectChangeInGlobalDisplayRegister(
         ret = window->UnregisterRectChangeInGlobalDisplayListener(listener);
     }
     auto it = WM_JS_TO_ERROR_CODE_MAP.find(ret);
-    return it != WM_JS_TO_ERROR_CODE_MAP.end() ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    WmErrorCode wmRet = it != WM_JS_TO_ERROR_CODE_MAP.end() ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onRectChangeInGlobalDisplay" : "ArkUI.window.offRectChangeInGlobalDisplay",
+        wmRet);
+    return wmRet;
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessExtensionSecureLimitChangeRegister(sptr<JsWindowListener> listener,
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onUiExtensionSecureLimitChange" : "ArkUI.window.offUiExtensionSecureLimitChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IExtensionSecureLimitChangeListener> thisListener(listener);
@@ -865,13 +1053,23 @@ WmErrorCode JsWindowRegisterManager::ProcessExtensionSecureLimitChangeRegister(s
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterExtensionSecureLimitChangeListener(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onUiExtensionSecureLimitChange" : "ArkUI.window.offUiExtensionSecureLimitChange",
+        ret);
     return ret;
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessSubWindowCloseRegister(sptr<JsWindowListener> listener,
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
+    HISTOGRAM_BOOLEAN(
+        isRegister ? "ArkUI.window.onSubWindowClose" : "ArkUI.window.offSubWindowClose",
+        HISTOGRAM_BOOLEAN_COUNTS);
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onSubWindowClose.error" : "ArkUI.window.offSubWindowClose.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<ISubWindowCloseListener> thisListener(listener);
@@ -881,30 +1079,53 @@ WmErrorCode JsWindowRegisterManager::ProcessSubWindowCloseRegister(sptr<JsWindow
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterSubWindowCloseListeners(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onSubWindowClose.error" : "ArkUI.window.offSubWindowClose.error", ret);
     return ret;
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessMainWindowCloseRegister(const sptr<JsWindowListener>& listener,
     const sptr<Window>& window, bool isRegister, napi_env env, napi_value parameter)
 {
+    HISTOGRAM_BOOLEAN(
+        isRegister ? "ArkUI.window.onWindowStageClose" : "ArkUI.window.offWindowStageClose",
+        HISTOGRAM_BOOLEAN_COUNTS);
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowStageClose.error" : "ArkUI.window.offWindowStageClose.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     WmErrorCode ret = isRegister ?
         MappingWmErrorCodeSafely(window->RegisterMainWindowCloseListeners(listener)) :
         MappingWmErrorCodeSafely(window->UnregisterMainWindowCloseListeners(listener));
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowStageClose.error" : "ArkUI.window.offWindowStageClose.error", ret);
     return ret;
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessWindowWillCloseRegister(const sptr<JsWindowListener>& listener,
     const sptr<Window>& window, bool isRegister, napi_env env, napi_value parameter)
 {
+    HISTOGRAM_BOOLEAN(
+        isRegister ? "ArkUI.window.onWindowWillClose" : "ArkUI.window.offWindowWillClose",
+        HISTOGRAM_BOOLEAN_COUNTS);
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowWillClose.error" : "ArkUI.window.offWindowWillClose.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     WmErrorCode ret = isRegister ?
         MappingWmErrorCodeSafely(window->RegisterWindowWillCloseListeners(listener)) :
         MappingWmErrorCodeSafely(window->UnRegisterWindowWillCloseListeners(listener));
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowWillClose.error" : "ArkUI.window.offWindowWillClose.error", ret);
     return ret;
 }
 
@@ -912,6 +1133,9 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowHighlightChangeRegister(const 
     const sptr<Window>& window, bool isRegister, napi_env env, napi_value parameter)
 {
     if (window == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onWindowHighlightChange" : "ArkUI.window.offWindowHighlightChange",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IWindowHighlightChangeListener> thisListener(listener);
@@ -921,6 +1145,8 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowHighlightChangeRegister(const 
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterWindowHighlightChangeListeners(thisListener));
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onWindowHighlightChange" : "ArkUI.window.offWindowHighlightChange", ret);
     return ret;
 }
 
@@ -933,7 +1159,11 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowRotationChangeRegister(const s
     sptr<IWindowRotationChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (window->IsPcWindow()) {
-        return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
+        uint32_t apiVersion = SysCapUtil::GetApiCompatibleVersion();
+        if (apiVersion < API_VERSION_23) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "rotationChange not support on pc, api%{public}u", apiVersion);
+            return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
+        }
     }
     if (isRegister) {
         ret = MappingWmErrorCodeSafely(window->RegisterWindowRotationChangeListener(thisListener));
@@ -946,7 +1176,13 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowRotationChangeRegister(const s
 WmErrorCode JsWindowRegisterManager::ProcessFreeWindowModeChangeRegister(const sptr<JsWindowListener>& listener,
     const sptr<Window>& window, bool isRegister, napi_env env, napi_value parameter)
 {
+    HISTOGRAM_BOOLEAN(
+        isRegister ? "ArkUI.window.onFreeWindowModeChange" : "ArkUI.window.offFreeWindowModeChange",
+        HISTOGRAM_BOOLEAN_COUNTS);
     if (window == nullptr || listener == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(
+            isRegister ? "ArkUI.window.onFreeWindowModeChange.error" : "ArkUI.window.offFreeWindowModeChange.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     sptr<IFreeWindowModeChangeListener> thisListener(listener);
@@ -955,6 +1191,25 @@ WmErrorCode JsWindowRegisterManager::ProcessFreeWindowModeChangeRegister(const s
         ret = MappingWmErrorCodeSafely(window->RegisterFreeWindowModeChangeListener(thisListener));
     } else {
         ret = MappingWmErrorCodeSafely(window->UnregisterFreeWindowModeChangeListener(thisListener));
+    }
+    HISTOGRAM_ENUMERATION_ERROR_CODE(
+        isRegister ? "ArkUI.window.onFreeWindowModeChange.error" : "ArkUI.window.offFreeWindowModeChange.error",
+        ret);
+    return ret;
+}
+
+WmErrorCode JsWindowRegisterManager::ProcessParentLifecycleEventRegister(const sptr<JsWindowListener>& listener,
+    const sptr<Window>& window, bool isRegister, napi_env env, napi_value parameter)
+{
+    if (window == nullptr || listener == nullptr) {
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<IParentLifecycleEventListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    if (isRegister) {
+        ret = MappingWmErrorCodeSafely(window->RegisterParentLifecycleEventListener(thisListener));
+    } else {
+        ret = MappingWmErrorCodeSafely(window->UnregisterParentLifecycleEventListener(thisListener));
     }
     return ret;
 }

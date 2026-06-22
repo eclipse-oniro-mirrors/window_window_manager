@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import("//build/test.gni")
+import("../../../windowmanager_aafwk.gni")
 
 module_out_path = "window_manager/window_manager/extension"
 
@@ -52,10 +53,10 @@ ohos_systemtest("modal_system_ui_extension_test") {
     "../../../resources/config/build:testcase_flags",
   ]
 
-  public_deps = [
-    "../../../dm:libdm",
-    "../../../extension/modal_system_ui_extension:libmodal_system_ui_extension_client",
-    "../../../window_scene/interfaces/innerkits:libwsutils",
+  deps = [
+    "${window_base_path}/dm:libdm",
+    "${window_base_path}/extension/modal_system_ui_extension:libmodal_system_ui_extension_client",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
   external_deps = [
@@ -84,9 +85,9 @@ ohos_systemtest("window_extension_connection_test") {
     "../../../resources/config/build:testcase_flags",
   ]
 
-  public_deps = [
-    "../../../extension/extension_connection:libwindow_extension_client",
-    "../../../window_scene/session:scene_session",
+  deps = [
+    "${window_base_path}/extension/extension_connection:libwindow_extension_client",
+    "${window_base_path}/window_scene/session:scene_session",
   ]
 
   external_deps = [

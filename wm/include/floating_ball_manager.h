@@ -27,22 +27,21 @@ class FloatingBallManager {
 public:
     FloatingBallManager() = default;
     virtual ~FloatingBallManager() = default;
+    static bool isSupportFloatingBall_;
     static bool HasActiveController();
     static bool IsActiveController(const wptr<FloatingBallController>& fbController);
     static void SetActiveController(const sptr<FloatingBallController>& fbController);
     static void RemoveActiveController(const wptr<FloatingBallController>& fbController);
- 
+
+    static sptr<FloatingBallController> GetActiveController() { return activeController_; }
+
     static void DoActionClick();
     static void DoActionClose();
     static void DoDestroy();
- 
+
     static void DoFbActionEvent(const std::string& actionName);
- 
-    static bool IsSupportFloatingBall();
- 
+
 private:
-    static sptr<FloatingBallController> GetActiveController() { return activeController_; }
-    
     // controller in use
     static sptr<FloatingBallController> activeController_;
 };

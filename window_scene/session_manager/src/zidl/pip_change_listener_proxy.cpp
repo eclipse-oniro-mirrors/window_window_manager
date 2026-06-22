@@ -22,7 +22,7 @@ void PipChangeListenerProxy::OnPipStart(int32_t windowId)
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option(MessageOption::TF_ASYNC);
 
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_PIP, "Write interfaceToken failed");

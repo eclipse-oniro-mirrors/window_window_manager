@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,38 +32,19 @@ public:
     void TearDown() override;
 };
 
-void PictureInPictureOptionTest::SetUpTestCase() {}
+void PictureInPictureOptionTest::SetUpTestCase() {
+}
 
-void PictureInPictureOptionTest::TearDownTestCase() {}
+void PictureInPictureOptionTest::TearDownTestCase() {
+}
 
-void PictureInPictureOptionTest::SetUp() {}
+void PictureInPictureOptionTest::SetUp() {
+}
 
-void PictureInPictureOptionTest::TearDown() {}
+void PictureInPictureOptionTest::TearDown() {
+}
 
 namespace {
-
-/**
- * @tc.name: ClearNapiRefs
- * @tc.desc: ClearNapiRefs
- * @tc.type: FUNC
- */
-HWTEST_F(PictureInPictureOptionTest, ClearNapiRefs, Function | SmallTest | Level2)
-{
-    int num = 0;
-    napi_ref ref = reinterpret_cast<napi_ref>(&num);
-    ASSERT_NE(nullptr, ref);
-    sptr<PipOption> option = new PipOption();
-    option->SetNodeControllerRef(ref);
-    ASSERT_NE(nullptr, option->GetNodeControllerRef());
-    option->SetTypeNodeRef(ref);
-    ASSERT_NE(nullptr, option->GetTypeNodeRef());
-    option->SetStorageRef(ref);
-    ASSERT_NE(nullptr, option->GetStorageRef());
-    option->ClearNapiRefs(nullptr);
-    ASSERT_EQ(nullptr, option->GetNodeControllerRef());
-    ASSERT_EQ(nullptr, option->GetTypeNodeRef());
-    ASSERT_EQ(nullptr, option->GetStorageRef());
-}
 
 /**
  * @tc.name: Context
@@ -214,12 +195,22 @@ HWTEST_F(PictureInPictureOptionTest, TypeNodeRef, TestSize.Level1)
  */
 HWTEST_F(PictureInPictureOptionTest, StorageRef, Function | SmallTest | Level2)
 {
-    int num = 0;
-    napi_ref ref = reinterpret_cast<napi_ref>(&num);
-    ASSERT_NE(nullptr, ref);
+    std::shared_ptr<NativeReference> ref = nullptr;
     sptr<PipOption> option = sptr<PipOption>::MakeSptr();
     option->SetStorageRef(ref);
     ASSERT_EQ(option->GetStorageRef(), ref);
+}
+
+/**
+ * @tc.name: GetPipContentCallbackRef
+ * @tc.desc: RegisterPipContentListenerWithType/GetPipContentCallbackRef
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureOptionTest, GetPipContentCallbackRef, TestSize.Level1)
+{
+    sptr<PipOption> option = sptr<PipOption>::MakeSptr();
+    option->RegisterPipContentListenerWithType("nodeUpdate", nullptr);
+    ASSERT_EQ(option->GetPipContentCallbackRef("nodeUpdate"), nullptr);
 }
 
 /**

@@ -64,15 +64,10 @@ namespace {
 HWTEST_F(SessionManagerLiteUTTest, GetSceneSessionManagerLiteProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->Clear();
+    sml_->RemoveSSMDeathRecipient();
     sml_->ClearSessionManagerProxy();
     auto sceneSessionManagerLiteProxy = sml_->GetSceneSessionManagerLiteProxy();
-    ASSERT_EQ(nullptr, sceneSessionManagerLiteProxy);
-
-    sml_->ClearSessionManagerProxy();
-    sml_->GetSessionManagerServiceProxy();
-    sceneSessionManagerLiteProxy = sml_->GetSceneSessionManagerLiteProxy();
-    ASSERT_EQ(nullptr, sceneSessionManagerLiteProxy);
+    ASSERT_NE(nullptr, sceneSessionManagerLiteProxy);
 }
 
 /**
@@ -97,7 +92,7 @@ HWTEST_F(SessionManagerLiteUTTest, InitSceneSessionManagerLiteProxy02, TestSize.
     ASSERT_NE(nullptr, sml_);
     sml_->GetSceneSessionManagerLiteProxy();
     sml_->InitSceneSessionManagerLiteProxy();
-    ASSERT_EQ(nullptr, sml_->sceneSessionManagerLiteProxy_);
+    ASSERT_NE(nullptr, sml_->sceneSessionManagerLiteProxy_);
 }
 
 /**
@@ -111,7 +106,7 @@ HWTEST_F(SessionManagerLiteUTTest, ClearSessionManagerProxy, TestSize.Level1)
     sml_->ClearSessionManagerProxy();
     ASSERT_EQ(sml_->sessionManagerServiceProxy_, nullptr);
 
-    sml_->recoverListenerRegistered_ = true;
+    sml_->isRecoverListenerRegistered_ = true;
     sml_->GetSessionManagerServiceProxy();
     sml_->ClearSessionManagerProxy();
     ASSERT_EQ(sml_->sessionManagerServiceProxy_, nullptr);
@@ -155,11 +150,13 @@ HWTEST_F(SessionManagerLiteUTTest, OnWMSConnectionChangedCallback, TestSize.Leve
     ASSERT_NE(nullptr, sml_);
     bool funcInvoked = false;
     sml_->wmsConnectionChangedFunc_ = nullptr;
-    sml_->OnWMSConnectionChangedCallback(101, DEFAULT_SCREEN_ID, true);
+    sml_->OnWMSConnectionChangedCallback(101, DEFAULT_SCREEN_ID, true, INVALID_PID);
     ASSERT_EQ(funcInvoked, false);
 
-    sml_->wmsConnectionChangedFunc_ = [&](int32_t userId, int32_t screenId, bool isConnected) { funcInvoked = true; };
-    sml_->OnWMSConnectionChangedCallback(101, DEFAULT_SCREEN_ID, true);
+    sml_->wmsConnectionChangedFunc_ = [&](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
+        funcInvoked = true;
+    };
+    sml_->OnWMSConnectionChangedCallback(101, DEFAULT_SCREEN_ID, true, INVALID_PID);
     ASSERT_EQ(funcInvoked, true);
 }
 
@@ -173,13 +170,15 @@ HWTEST_F(SessionManagerLiteUTTest, OnWMSConnectionChanged1, TestSize.Level1)
     ASSERT_NE(nullptr, sml_);
     sptr<ISessionManagerService> sessionManagerService;
     sml_->isWMSConnected_ = true;
-    sml_->currentWMSUserId_ = 100;
-    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService);
+    sml_->currentServer_.userId = 100;
+    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, false);
 
-    sml_->currentWMSUserId_ = 101;
+    sml_->currentServer_.userId = 101;
     sml_->isWMSConnected_ = true;
-    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false, sessionManagerService);
+    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, true);
 }
 
@@ -193,14 +192,15 @@ HWTEST_F(SessionManagerLiteUTTest, OnWMSConnectionChanged2, TestSize.Level1)
     ASSERT_NE(nullptr, sml_);
     sptr<ISessionManagerService> sessionManagerService;
     sml_->isWMSConnected_ = false;
-    sml_->currentWMSUserId_ = INVALID_USER_ID;
-    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true, sessionManagerService);
+    sml_->currentServer_.userId = INVALID_USER_ID;
+    sml_->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, true,
+        INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, true);
 
     // user switch
-    sml_->currentWMSUserId_ = 100;
+    sml_->currentServer_.userId = 100;
     sml_->isWMSConnected_ = true;
-    sml_->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, sessionManagerService);
+    sml_->OnWMSConnectionChanged(101, DEFAULT_SCREEN_ID, true, INVALID_PID, 100, INVALID_PID, sessionManagerService);
     ASSERT_EQ(sml_->isWMSConnected_, true);
 }
 
@@ -215,7 +215,7 @@ HWTEST_F(SessionManagerLiteUTTest, OnUserSwitch, TestSize.Level1)
     sml_->OnUserSwitch(nullptr);
     ASSERT_EQ(nullptr, sml_->sessionManagerServiceProxy_);
 
-    sml_->recoverListenerRegistered_ = true;
+    sml_->isRecoverListenerRegistered_ = true;
     bool funInvoked = false;
     sml_->userSwitchCallbackFunc_ = [&]() { funInvoked = true; };
     auto sessionManagerService = sml_->GetSessionManagerServiceProxy();
@@ -234,8 +234,7 @@ HWTEST_F(SessionManagerLiteUTTest, OnRemoteDied1, TestSize.Level1)
     wptr<IRemoteObject> wptrDeath;
     foundationDeathRecipient.OnRemoteDied(wptrDeath);
     ASSERT_EQ(false, sml_->isWMSConnected_);
-    ASSERT_EQ(false, sml_->isFoundationListenerRegistered_);
-    ASSERT_EQ(false, sml_->recoverListenerRegistered_);
+    ASSERT_EQ(false, sml_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sml_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sceneSessionManagerLiteProxy_);
@@ -265,8 +264,7 @@ HWTEST_F(SessionManagerLiteUTTest, OnFoundationDied, TestSize.Level1)
     ASSERT_NE(nullptr, sml_);
     sml_->OnFoundationDied();
     ASSERT_EQ(false, sml_->isWMSConnected_);
-    ASSERT_EQ(false, sml_->isFoundationListenerRegistered_);
-    ASSERT_EQ(false, sml_->recoverListenerRegistered_);
+    ASSERT_EQ(false, sml_->isRecoverListenerRegistered_);
     ASSERT_EQ(nullptr, sml_->mockSessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sessionManagerServiceProxy_);
     ASSERT_EQ(nullptr, sml_->sceneSessionManagerLiteProxy_);
@@ -292,27 +290,13 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterWMSConnectionChangedListener, TestSiz
 HWTEST_F(SessionManagerLiteUTTest, RegisterWMSConnectionChangedListener1, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->recoverListenerRegistered_ = true;
-    sml_->currentWMSUserId_ = 100;
-    sml_->currentScreenId_ = 0;
+    sml_->isRecoverListenerRegistered_ = true;
+    sml_->currentServer_.userId = 100;
+    sml_->currentServer_.screenId = 0;
     sml_->isWMSConnected_ = true;
-    auto callbackFunc = [](int32_t userId, int32_t screenId, bool isConnected) {};
+    auto callbackFunc = [](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {};
     auto ret = sml_->RegisterWMSConnectionChangedListener(callbackFunc);
     ASSERT_EQ(WMError::WM_OK, ret);
-}
-
-/**
- * @tc.name: RegisterSMSRecoverListener1
- * @tc.desc: mockSessionManagerServiceProxy_ is null
- * @tc.type: FUNC
- */
-HWTEST_F(SessionManagerLiteUTTest, RegisterSMSRecoverListener1, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, sml_);
-    sml_->recoverListenerRegistered_ = false;
-    sml_->mockSessionManagerServiceProxy_ = nullptr;
-    sml_->RegisterSMSRecoverListener();
-    ASSERT_EQ(sml_->recoverListenerRegistered_, false);
 }
 
 /**
@@ -323,10 +307,10 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterSMSRecoverListener1, TestSize.Level1)
 HWTEST_F(SessionManagerLiteUTTest, RegisterSMSRecoverListener2, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->recoverListenerRegistered_ = false;
-    sml_->InitMockSMSProxy();
+    sml_->isRecoverListenerRegistered_ = false;
+    sml_->GetMockSessionManagerServiceProxy();
     sml_->RegisterSMSRecoverListener();
-    ASSERT_EQ(sml_->recoverListenerRegistered_, true);
+    ASSERT_EQ(sml_->isRecoverListenerRegistered_, true);
 }
 
 /**
@@ -345,16 +329,16 @@ HWTEST_F(SessionManagerLiteUTTest, RegisterUserSwitchListener, TestSize.Level1)
 }
 
 /**
- * @tc.name: InitMockSMSProxy
+ * @tc.name: GetMockSessionManagerServiceProxy
  * @tc.desc: normal function
  * @tc.type: FUNC
  */
-HWTEST_F(SessionManagerLiteUTTest, InitMockSMSProxy, TestSize.Level1)
+HWTEST_F(SessionManagerLiteUTTest, GetMockSessionManagerServiceProxy, TestSize.Level1)
 {
     ASSERT_NE(nullptr, sml_);
-    sml_->InitMockSMSProxy();
-    sml_->InitMockSMSProxy();
-    ASSERT_NE(sml_->foundationDeath_, nullptr);
+    sml_->GetMockSessionManagerServiceProxy();
+    sml_->GetMockSessionManagerServiceProxy();
+    ASSERT_NE(sml_->mockFoundationDeathRecipient_, nullptr);
 }
 } // namespace
 } // namespace Rosen

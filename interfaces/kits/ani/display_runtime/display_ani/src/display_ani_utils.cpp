@@ -141,7 +141,7 @@ void DisplayAniUtils::ConvertRoundedCorner(const std::vector<RoundedCorner>& rou
     env->Object_GetPropertyByName_Int(arrayObj, "length", &arrayObjLen);
     for (uint32_t i = 0; i < roundedCornerArray.size() && i < static_cast<uint32_t>(arrayObjLen); i++) {
         ani_ref obj;
-        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "I:Lstd/core/Object;", &obj, (ani_int)i);
+        env->Object_CallMethodByName_Ref(arrayObj, "$_get", "i:Y", &obj, (ani_int)i);
         env->Object_SetFieldByName_Ref(static_cast<ani_object>(obj), Builder::BuildPropertyName("type").c_str(),
             DisplayAniUtils::CreateAniEnum(env, "@ohos.display.display.CornerType",
             static_cast<ani_size>(roundedCornerArray[i].type)));
@@ -238,8 +238,10 @@ void DisplayAniUtils::CvtDisplayHelper(sptr<Display> display, ani_env* env, ani_
         env, "@ohos.display.display.ScreenShape", static_cast<ani_size>(info->GetScreenShape())));
     if (info->GetDisplaySourceMode() == DisplaySourceMode::MAIN ||
         info->GetDisplaySourceMode() == DisplaySourceMode::EXTEND) {
-        env->Object_SetFieldByName_Long(obj, propName("x").c_str(), info->GetX());
-        env->Object_SetFieldByName_Long(obj, propName("y").c_str(), info->GetY());
+        env->Object_SetFieldByName_Ref(
+            obj, propName("x").c_str(), DisplayAniUtils::CreateOptionalInt(env, static_cast<ani_int>(info->GetX())));
+        env->Object_SetFieldByName_Ref(
+            obj, propName("y").c_str(), DisplayAniUtils::CreateOptionalInt(env, static_cast<ani_int>(info->GetY())));
     } else {
         env->Object_SetFieldByName_Ref(obj, propName("x").c_str(), DisplayAniUtils::CreateAniUndefined(env));
         env->Object_SetFieldByName_Ref(obj, propName("y").c_str(), DisplayAniUtils::CreateAniUndefined(env));
@@ -261,7 +263,7 @@ void DisplayAniUtils::CvtDisplayHelper(sptr<Display> display, ani_env* env, ani_
     }
     if (supportedRefreshRates.size() != 0) {
         ani_array supportedRefreshRatesAni;
-        CreateAniArrayInt(env, hdrFormats.size(), &supportedRefreshRatesAni, supportedRefreshRates);
+        CreateAniArrayInt(env, supportedRefreshRates.size(), &supportedRefreshRatesAni, supportedRefreshRates);
         env->Object_SetFieldByName_Ref(obj, propName("supportedRefreshRates").c_str(),
             static_cast<ani_ref>(supportedRefreshRatesAni));
     }
@@ -449,7 +451,7 @@ ani_object DisplayAniUtils::CreateAniUndefined(ani_env* env)
 static DmErrorCode GetFocusFromAni(ani_env* env, ani_object virtualScreenObj, VirtualScreenOption& option)
 {
     ani_ref supportsFocus = nullptr;
-    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "%%property-supportsFocus", &supportsFocus) != ANI_OK) {
+    if (env->Object_GetPropertyByName_Ref(virtualScreenObj, "supportsFocus", &supportsFocus) != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "Failed to get supportsFocus.");
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
@@ -603,7 +605,7 @@ ani_object DisplayAniUtils::CreateRectObject(ani_env *env)
 ani_object DisplayAniUtils::CreatePositionObject(ani_env* env)
 {
     ani_class aniClass{};
-    ani_status status = env->FindClass("@ohos.display.display.PostionImpl", &aniClass);
+    ani_status status = env->FindClass("@ohos.display.display.PositionImpl", &aniClass);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] class not found, status:%{public}d", static_cast<int32_t>(status));
         return nullptr;
@@ -812,6 +814,12 @@ ani_status DisplayAniUtils::CvtBrightnessInfo(ani_env* env, ani_object obj, Scre
         TLOGE(WmsLogTag::DMS, "[ANI]Set maxHeadroom failed, ret: %{public}u", ret);
         return ret;
     }
+    ret = env->Object_SetFieldByName_Float(
+        obj, Builder::BuildPropertyName("brightnessPosition").c_str(), brightnessInfo.brightnessPosition);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI]Set brightnessPosition failed, ret: %{public}u", ret);
+        return ret;
+    }
     return ret;
 }
 
@@ -848,7 +856,7 @@ ani_status DisplayAniUtils::GetStdStringVector(ani_env* env, ani_object arryObj,
     }
     for (int32_t i = 0; i< static_cast<int32_t>(length); i++) {
         ani_ref stringRef;
-        ret = env->Object_CallMethodByName_Ref(arryObj, "$_get", "I:Lstd/core/Object;", &stringRef, (ani_int)i);
+        ret = env->Object_CallMethodByName_Ref(arryObj, "$_get", "i:Y", &stringRef, (ani_int)i);
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] Get index: %{public}d element failed, status: %{public}d", (ani_int)i, ret);
             return ret;

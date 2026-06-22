@@ -22,7 +22,6 @@
 #include "ws_common.h"
 
 namespace OHOS::Rosen {
-enum class SessionInterfaceCode;
 class SessionProxy : public IRemoteProxy<ISession> {
 public:
     explicit SessionProxy(const sptr<IRemoteObject>& impl) : IRemoteProxy<ISession>(impl) {}
@@ -30,8 +29,10 @@ public:
 
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
         const std::string& identityToken = "") override;
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
-    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
+    WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
@@ -59,8 +60,7 @@ public:
     WSError OnSetWindowRectAutoSave(bool enabled, bool isSaveBySpecifiedFlag) override;
     WSError RaiseToAppTop() override;
     WSError UpdateSessionRect(const WSRect& rect, SizeChangeReason reason, bool isGlobal = false,
-        bool isFromMoveToGlobal = false, const MoveConfiguration& moveConfiguration = {},
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+        bool isFromMoveToGlobal = false, MoveConfiguration moveConfiguration = {}) override;
     WSError UpdateGlobalDisplayRectFromClient(const WSRect& rect, SizeChangeReason reason) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect) override;
     WSError UpdateClientRect(const WSRect& rect) override;
@@ -75,6 +75,8 @@ public:
         const std::map<Rosen::WindowType, Rosen::SystemBarProperty>& currentProperties) override;
     WSError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
         const int32_t value, int32_t& convertedValue) override;
+    WMError SetPreferredOrientationWithResult(
+        Orientation orientation, uint32_t promiseId, bool needAnimation = true) override;
     WSError RequestSessionBack(bool needMoveToBackground) override;
     WSError MarkProcessed(int32_t eventId) override;
     WSError SetGlobalMaximizeMode(MaximizeMode mode) override;
@@ -139,7 +141,6 @@ public:
     WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-    WMError GetAppForceLandscapeConfigEnable(bool& enableForceSplit) override;
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
     WMError NotifySnapshotUpdate() override;
     WMError NotifyRemovePrelaunchStartingWindow() override;
@@ -152,6 +153,11 @@ public:
      * Gesture Back
      */
     WMError SetGestureBackEnabled(bool isEnabled) override;
+
+    /*
+     * Float Navigation Avoid Area
+     */
+    WMError SetFloatNavigationEnabled(bool isEnabled) override;
 
     WSError NotifySubModalTypeChange(SubWindowModalType subWindowModalType) override;
     WSError NotifyMainModalTypeChange(bool isModal) override;
@@ -166,6 +172,7 @@ public:
      */
     WSError SetWindowCornerRadius(float cornerRadius) override;
     WSError SetWindowShadows(const ShadowsInfo& shadowsInfo) override;
+    WSError RecoverWindowEffect(bool recoverCorner, bool recoverShadow) override;
 
     WSError NotifySupportWindowModesChange(
         const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes) override;
@@ -182,17 +189,13 @@ public:
     /*
      * PC Window
      */
+    WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) override;
     WSError OnContainerModalEvent(const std::string& eventName, const std::string& eventValue) override;
     WSError NotifyFollowParentMultiScreenPolicy(bool enabled) override;
     WSError UpdateFlag(const std::string& flag) override;
     WSError UseImplicitAnimation(bool useImplicit) override;
-
-    /*
-     * Window Pattern
-     */
-    void NotifyWindowAttachStateListenerRegistered(bool registered) override;
 
     /**
      * Window layout
@@ -203,8 +206,9 @@ public:
     WSError UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNode>& rsKeyFrameNode,
         std::shared_ptr<RSTransaction>& rsTransaction) override;
     WSError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
-    WMError GetAppHookWindowInfoFromServer(HookWindowInfo& hookWindowInfo) override;
+    WMError GetSelectMode(SelectMode& selectMode) override;
     void NotifyWindowStatusDidChangeAfterShowWindow() override;
+    WSError NotifyAttachedWindowsLimitsChanged(const WindowLimits& newLimits) override;
 
     /**
      * Window Transition Animation For PC
@@ -223,6 +227,11 @@ public:
     WSError RequestFocus(bool isFocused) override;
     WSError GetIsHighlighted(bool& isHighlighted) override;
     WMError NotifyDisableDelegatorChange() override;
+    
+    /*
+     * Window Pattern
+     */
+    void NotifyWindowAttachStateListenerRegistered(bool registered) override;
 
     /**
      * window animation
@@ -234,13 +243,22 @@ public:
      */
     WSError NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
+    WSError NotifyPageEnable(const std::string& action, const std::string& message) override;
+    WMError NotifySplitRatioChanged(float newRatio) override;
+
     /**
      * Restart app
      */
     WSError RestartApp(const std::shared_ptr<AAFwk::Want>& want) override;
     
     WMError SendCommonEvent(int32_t command, const std::vector<int32_t>& parameters) override;
+
+    /**
+     * Float View
+     */
+    void NotifyFloatViewPrepareClose() override;
+    WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override;
+    WMError RestoreFloatViewMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams) override;
 private:
     static inline BrokerDelegator<SessionProxy> delegator_;
 };

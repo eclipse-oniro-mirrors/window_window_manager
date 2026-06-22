@@ -20,6 +20,7 @@
 #include <message_option.h>
 #include <message_parcel.h>
 
+#include "iremote_object_mocker.h"
 #include "mock/mock_session_stage.h"
 #include "session_manager/include/zidl/scene_session_manager_interface.h"
 #include "session/container/include/zidl/session_stage_stub.h"
@@ -72,6 +73,150 @@ HWTEST_F(SessionStageStubRotationTest, HandleSetCurrentRotation, TestSize.Level1
 
     data.WriteInt32(ONE_FOURTH_FULL_CIRCLE_DEGREE);
     EXPECT_EQ(ERR_NONE, sessionStageStub_->HandleSetCurrentRotation(data, reply));
+}
+
+/**
+ * @tc.name: HandleGetSceneNodeCount
+ * @tc.desc: test function : HandleGetSceneNodeCount
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubRotationTest, HandleGetSceneNodeCount, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleGetSceneNodeCount start";
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_GET_SCREEN_NODE_COUNT);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+
+    // Case 1: Failed to read interface token
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->HandleGetSceneNodeCount(data, reply));
+
+    // Case 2: Success case with valid interface token
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+
+    // Case 3: Direct call to HandleGetSceneNodeCount with valid data
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    EXPECT_EQ(ERR_NONE, sessionStageStub_->HandleGetSceneNodeCount(data2, reply2));
+
+    // Case 4: Verify reply contains valid nodeCount
+    uint32_t nodeCount = 0;
+    if (reply2.ReadUint32(nodeCount)) {
+        EXPECT_GE(nodeCount, 0);
+    }
+
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleGetSceneNodeCount end";
+}
+
+/**
+ * @tc.name: HandleGetSceneNodeCountWithCallback
+ * @tc.desc: test function : HandleGetSceneNodeCountWithCallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubRotationTest, HandleGetSceneNodeCountWithCallback, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleGetSceneNodeCountWithCallback start";
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_GET_SCENE_NODE_COUNT_WITH_CALLBACK);
+    ASSERT_TRUE(sessionStageStub_ != nullptr);
+
+    // Case 1: Failed to read callback object (no valid interface token)
+    EXPECT_EQ(ERR_INVALID_VALUE, sessionStageStub_->HandleGetSceneNodeCountWithCallback(data, reply));
+
+    // Case 2: Write valid interface token but no callback
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    auto result = sessionStageStub_->HandleGetSceneNodeCountWithCallback(data, reply);
+    EXPECT_EQ(ERR_INVALID_VALUE, result);
+
+    // Case 3: Write valid callback object
+    MessageParcel data2;
+    MessageParcel reply2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    sptr<MockIRemoteObject> callbackMocker = sptr<MockIRemoteObject>::MakeSptr();
+    data2.WriteRemoteObject(callbackMocker);
+    result = sessionStageStub_->HandleGetSceneNodeCountWithCallback(data2, reply2);
+    EXPECT_EQ(ERR_INVALID_VALUE, result);
+    EXPECT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
+
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleGetSceneNodeCountWithCallback end";
+}
+
+/**
+ * @tc.name: HandleNotifyRotationChange
+ * @tc.desc: test function : HandleNotifyRotationChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubRotationTest, HandleNotifyRotationChange, Function | SmallTest | Level1)
+{
+    sptr<SessionStageMocker> sessionStageStub = sptr<SessionStageMocker>::MakeSptr();
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    RotationChangeInfo info = { RotationChangeType::WINDOW_WILL_ROTATE, 0, 0, { 0, 0, 2720, 1270 } };
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ROTATION_CHANGE);
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteUint32(static_cast<uint32_t>(info.type_));
+    data.WriteUint32(info.orientation_);
+    data.WriteUint64(info.displayId_);
+    data.WriteInt32(info.displayRect_.posX_);
+    data.WriteInt32(info.displayRect_.posY_);
+    data.WriteUint32(info.displayRect_.width_);
+    data.WriteUint32(info.displayRect_.height_);
+    sessionStageStub->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(sessionStageStub_->HandleNotifyRotationChange(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyOrientationExecutionResult
+ * @tc.desc: 测试正常流程
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubRotationTest, HandleNotifyOrientationExecutionResult, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleNotifyOrientationExecutionResult start";
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteUint32(123);
+    data.WriteUint32(static_cast<uint32_t>(OrientationExecutionResult::ORIENTATION_APPLIED));
+    auto result = sessionStageStub_->HandleNotifyOrientationExecutionResult(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleNotifyOrientationExecutionResult end";
+}
+
+/**
+ * @tc.name: HandleNotifyOrientationExecutionResult02
+ * @tc.desc: 测试 ReadUint32(promiseId) 失败
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubRotationTest, HandleNotifyOrientationExecutionResult02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleNotifyOrientationExecutionResult02 start";
+    MessageParcel data;
+    MessageParcel reply;
+    auto result = sessionStageStub_->HandleNotifyOrientationExecutionResult(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_VALUE);
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleNotifyOrientationExecutionResult02 end";
+}
+
+/**
+ * @tc.name: HandleNotifyOrientationExecutionResult03
+ * @tc.desc: 测试 ReadUint32(result) 失败
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubRotationTest, HandleNotifyOrientationExecutionResult03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleNotifyOrientationExecutionResult03 start";
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteUint32(123);
+    auto result = sessionStageStub_->HandleNotifyOrientationExecutionResult(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_VALUE);
+    GTEST_LOG_(INFO) << "SessionStageStubRotationTest: HandleNotifyOrientationExecutionResult03 end";
 }
 } // namespace
 } // namespace Rosen

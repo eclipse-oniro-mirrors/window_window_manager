@@ -80,7 +80,10 @@ public:
 
     explicit ExtensionSession(const SessionInfo& info);
     virtual ~ExtensionSession();
-
+    SessionType GetSessionType() const override
+    {
+        return SessionType::ExtensionSession;
+    }
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const;
     void SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler) override;
@@ -120,10 +123,16 @@ public:
         bool& isTimeOut, bool isPreImeEvent = false);
     WSError TransferKeyEventAsync(const std::shared_ptr<MMI::KeyEvent>& keyEvent, bool isPreImeEvent = false);
     sptr<ExtensionSessionEventCallback> GetExtensionSessionEventCallback();
-    WSError Background(bool isFromClient = false, const std::string& identityToken = "") override;
+    WSError Background(bool isFromClient = false, const std::string& identityToken = "",
+        bool isFromInnerkits = false) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info);
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
+    void SetIsTransparentUIExtension(bool isTransparentUIExtension)
+    {
+        isTransparentUIExtension_ = isTransparentUIExtension;
+    }
+    bool IsTransparentUIExtension() const { return isTransparentUIExtension_; }
 
 private:
     sptr<ExtensionSessionEventCallback> extSessionEventCallback_ = nullptr;
@@ -131,6 +140,7 @@ private:
     sptr<ChannelDeathRecipient> channelDeath_ = nullptr;
     sptr<WindowEventChannelListener> channelListener_ = nullptr;
     std::shared_ptr<Extension::DataHandler> dataHandler_;
+    bool isTransparentUIExtension_ = false;
 };
 } // namespace OHOS::Rosen
 

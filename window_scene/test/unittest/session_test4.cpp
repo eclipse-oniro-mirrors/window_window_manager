@@ -587,7 +587,8 @@ HWTEST_F(WindowSessionTest4, SetRaiseToAppTopForPointDownFunc, TestSize.Level1)
     session_->SetNotifyUILostFocusFunc(nullptr);
     session_->UnregisterSessionChangeListeners();
 
-    NotifyPendingSessionToBackgroundForDelegatorFunc func2 = [](const SessionInfo& info, bool shouldBackToCaller) {};
+    NotifyPendingSessionToBackgroundForDelegatorFunc func2 = [](const SessionInfo& info,
+        bool shouldBackToCaller, LifeCycleChangeReason reason) {};
     session_->pendingSessionToBackgroundForDelegatorFunc_ = func2;
     ASSERT_EQ(WSError::WS_OK, session_->PendingSessionToBackgroundForDelegator(true));
 }
@@ -1105,7 +1106,7 @@ HWTEST_F(WindowSessionTest4, GetWindowMetaInfoForWindowInfo01, TestSize.Level1)
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
     sceneSession->GetSessionProperty()->SetDisplayId(0);
     sceneSession->callingPid_ = 123;
-    sceneSession->UpdateWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sceneSession->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_FULLSCREEN });
     sceneSession->isMidScene_ = true;
     sceneSession->isFocused_ = true;
     SessionInfo sessionInfo1;
@@ -1131,6 +1132,9 @@ HWTEST_F(WindowSessionTest4, GetWindowMetaInfoForWindowInfo01, TestSize.Level1)
     ASSERT_EQ(windowMetaInfo.pid, sceneSession->GetCallingPid());
     ASSERT_EQ(windowMetaInfo.windowType, WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     ASSERT_EQ(windowMetaInfo.windowMode, WindowMode::WINDOW_MODE_FULLSCREEN);
+    ASSERT_EQ(windowMetaInfo.windowModeInfo.windowMode, WindowMode::WINDOW_MODE_FULLSCREEN);
+    ASSERT_EQ(windowMetaInfo.windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_HORIZONTAL);
+    ASSERT_EQ(windowMetaInfo.windowModeInfo.splitIndex, SPLIT_INDEX_PRIMARY);
     ASSERT_EQ(windowMetaInfo.isMidScene, true);
     ASSERT_EQ(windowMetaInfo.isFocused, true);
     WindowMetaInfo windowMetaInfo1 = sceneSession1->GetWindowMetaInfoForWindowInfo();
@@ -1426,6 +1430,24 @@ HWTEST_F(WindowSessionTest4, SetLifeCycleTaskRunning, TestSize.Level1)
     sptr<Session::SessionLifeCycleTask> lifeCycleNullTask = nullptr;
     ret = session_->SetLifeCycleTaskRunning(lifeCycleNullTask);
     EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: GetLastLifeCycleTask
+ * @tc.desc: check func GetLastLifeCycleTask
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, GetLastLifeCycleTask, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->ClearLifeCycleTask();
+    auto ret = session_->GetLastLifeCycleTask();
+    EXPECT_EQ(ret, nullptr);
+
+    auto task1 = [](){};
+    session_->PostLifeCycleTask(task1, "task1", LifeCycleTaskType::START);
+    ret = session_->GetLastLifeCycleTask();
+    EXPECT_NE(ret, nullptr);
 }
 
 /**
@@ -1798,6 +1820,137 @@ HWTEST_F(WindowSessionTest4, GetIsMidScene_SubSession, TestSize.Level1)
     result = subSession->GetIsMidScene(isMidScene);
     EXPECT_EQ(result, WSError::WS_OK);
     EXPECT_EQ(isMidScene, true);
+}
+
+/**
+ * @tc.name: SetLayerPartRender001
+ * @tc.desc: Set and get layer part render flag when surface node exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, SetLayerPartRender001, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    EXPECT_FALSE(session_->GetLayerPartRender());
+
+    session_->SetLayerPartRender(true);
+    EXPECT_TRUE(session_->GetLayerPartRender());
+
+    session_->SetLayerPartRender(false);
+    EXPECT_FALSE(session_->GetLayerPartRender());
+}
+
+/**
+ * @tc.name: SetLayerPartRender002
+ * @tc.desc: Set and get layer part render flag when surface node is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, SetLayerPartRender002, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->surfaceNode_ = nullptr;
+
+    session_->SetLayerPartRender(true);
+    EXPECT_TRUE(session_->GetLayerPartRender());
+
+    session_->SetLayerPartRender(false);
+    EXPECT_FALSE(session_->GetLayerPartRender());
+}
+
+/**
+ * @tc.name: TestGetPrelayoutContext
+ * @tc.desc: Verify that context is disabled and returns early when prelayout is not enabled.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestGetPrelayoutContext, TestSize.Level1)
+{
+    session_->sessionInfo_.isGamePrelaunch_ = false;
+    auto ctx = session_->GetPrelayoutContext();
+    EXPECT_FALSE(ctx.enable);
+
+    session_->sessionInfo_.isGamePrelaunch_ = true;
+    ctx = session_->GetPrelayoutContext();
+    EXPECT_TRUE(ctx.enable);
+}
+
+/**
+ * @tc.name: TestHandleHookDisplayDisabled
+ * @tc.desc: Verify that callback is not invoked when prelayout is disabled.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleHookDisplayDisabled, TestSize.Level1)
+{
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    bool called = false;
+    session_->SetUpdateAppHookDisplayInfoFunc([&](int32_t, const HookInfo&, bool) {
+        called = true;
+        return WMError::WM_OK;
+    });
+
+    session_->HandleHookDisplay(ctx);
+
+    EXPECT_FALSE(called);
+}
+
+/**
+ * @tc.name: TestHandleHookDisplayFailed
+ * @tc.desc: Verify HandleHookDisplay when callback returns error
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleHookDisplayFailed, TestSize.Level1)
+{
+    PrelayoutContext ctx;
+    ctx.enable = true;
+    bool called = false;
+    session_->SetUpdateAppHookDisplayInfoFunc([&](int32_t uid, const HookInfo& hookInfo, bool enable) {
+        called = true;
+        return WMError::WM_ERROR_INVALID_PARAM;
+    });
+
+    session_->HandleHookDisplay(ctx);
+
+    EXPECT_TRUE(called);
+}
+
+/**
+ * @tc.name: TestHandleHookDisplayNormal
+ * @tc.desc: Verify that callback is invoked with correct HookInfo when prelayout is enabled.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleHookDisplayNormal, TestSize.Level1)
+{
+    PrelayoutContext ctx {
+        .enable = true,
+        .display = {
+            .width = 100,
+            .height = 200,
+            .density = 2.0f,
+            .rotation = 0
+        }
+    };
+    int32_t capturedUid = 0;
+    HookInfo capturedInfo;
+    bool capturedEnable = false;
+    bool called = false;
+    session_->callingUid_ = 100;
+    session_->SetUpdateAppHookDisplayInfoFunc([&](int32_t uid, const HookInfo& info, bool enable) {
+        called = true;
+        capturedUid = uid;
+        capturedInfo = info;
+        capturedEnable = enable;
+        return WMError::WM_OK;
+    });
+
+    session_->HandleHookDisplay(ctx);
+
+    EXPECT_TRUE(called);
+    EXPECT_EQ(capturedUid, session_->callingUid_);
+    EXPECT_EQ(capturedInfo.width_, ctx.display.width);
+    EXPECT_EQ(capturedInfo.height_, ctx.display.height);
+    EXPECT_FLOAT_EQ(capturedInfo.density_, ctx.display.density);
+    EXPECT_EQ(capturedInfo.rotation_, ctx.display.rotation);
+    EXPECT_TRUE(capturedInfo.enableHookRotation_);
+    EXPECT_TRUE(capturedEnable);
 }
 } // namespace
 } // namespace Rosen

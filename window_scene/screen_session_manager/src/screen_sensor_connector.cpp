@@ -17,6 +17,8 @@
 #include "screen_session_manager.h"
 #include <chrono>
 #include <securec.h>
+#include <parameters.h>
+#include "motion_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -27,7 +29,16 @@ namespace {
     constexpr int32_t MOTION_ACTION_PORTRAIT_INVERTED = 2;
     constexpr int32_t MOTION_ACTION_RIGHT_LANDSCAPE = 3;
     const int32_t MOTION_TYPE_ROTATION = 700;
+    const int32_t SMART_MOTION_TYPE_ROTATION = 701;
+    const int32_t DISABLE_SMART_ROTATION = 0;
+    const int32_t ENABLE_SMART_ROTATION = 1;
     const int32_t MOTION_TYPE_TENT = 2800;
+    const int32_t TENT_MODE_UNKNOWN = 0;
+    const int32_t TENT_MODE_TENT = 1;
+    const int32_t TENT_MODE_HOVER = 2;
+    const int32_t TENT_MODE_SUPER_DEVICE_HOVER = 3;
+    const int32_t TENT_MODE_SUPER_DEVICE_TENT_ONE = 4;
+    const int32_t TENT_MODE_SUPER_DEVICE_TENT_TWO = 5;
 #endif
 }
 
@@ -36,20 +47,24 @@ bool MotionSubscriber::isMotionSensorSubscribed_ = false;
 bool MotionTentSubscriber::isMotionSensorSubscribed_ = false;
 static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
 static void TentMotionEventCallback(const MotionSensorEvent& motionData);
+static bool GetMatchTentMode(int32_t motionStatus, TentMode& tentMode);
 #endif
 
 void ScreenSensorConnector::SubscribeRotationSensor()
 {
     TLOGD(WmsLogTag::DMS, "subscribe rotation-related sensor");
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    MotionSubscriber::SubscribeMotionSensor();
+    // MotionSubscriber::SubscribeMotionSensor();
+    MotionManager::GetInstance().Init();
+    MotionManager::GetInstance().OnScreenOn();
 #endif
 }
 
 void ScreenSensorConnector::UnsubscribeRotationSensor()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    MotionSubscriber::UnsubscribeMotionSensor();
+    // MotionSubscriber::UnsubscribeMotionSensor();
+    MotionManager::GetInstance().OnScreenOff();
 #endif
 }
 
@@ -78,7 +93,14 @@ void MotionSubscriber::SubscribeMotionSensor()
         return;
     }
 
-    if (!SubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
+    int32_t sensorType = MOTION_TYPE_ROTATION;
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
+        DISABLE_SMART_ROTATION);
+    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
+        TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation");
+        sensorType = SMART_MOTION_TYPE_ROTATION;
+    }
+    if (!SubscribeCallback(sensorType, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor subscribe failed");
         return;
     }
@@ -91,8 +113,15 @@ void MotionSubscriber::UnsubscribeMotionSensor()
         TLOGI(WmsLogTag::DMS, "start");
         return;
     }
-    
-    if (!UnsubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
+
+    int32_t sensorType = MOTION_TYPE_ROTATION;
+    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
+        DISABLE_SMART_ROTATION);
+    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
+        TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation");
+        sensorType = SMART_MOTION_TYPE_ROTATION;
+    }
+    if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed");
         return;
     }
@@ -169,15 +198,36 @@ void TentMotionEventCallback(const MotionSensorEvent& motionData)
         realHall = -1;
     }
 
-    TentMode motionStatus = static_cast<TentMode>(motionData.status);
-    if (motionStatus == TentMode::UNKNOWN ||
-        motionStatus == TentMode::TENT_MODE ||
-        motionStatus == TentMode::HOVER) {
-        ScreenTentProperty::HandleSensorEventInput(motionData.status, realHall);
+    TentMode motionStatus = TentMode::TENT_MODE_MAX;
+    if (GetMatchTentMode(motionData.status, motionStatus)) {
+        TLOGI(WmsLogTag::DMS, "tent motion:%{public}d", motionStatus);
+        ScreenTentProperty::HandleSensorEventInput(static_cast<int>(motionStatus), realHall);
         ScreenSessionManager::GetInstance().NotifyTentModeChange(motionStatus);
     } else {
         TLOGE(WmsLogTag::DMS, "tent motion:%{public}d invalid", motionData.status);
     }
+}
+
+bool GetMatchTentMode(int32_t motionStatus, TentMode& tentMode)
+{
+    switch (motionStatus) {
+        case TENT_MODE_UNKNOWN :
+            tentMode = TentMode::UNKNOWN;
+            break;
+        case TENT_MODE_TENT :
+        case TENT_MODE_SUPER_DEVICE_TENT_ONE :
+        case TENT_MODE_SUPER_DEVICE_TENT_TWO :
+            tentMode = TentMode::TENT_MODE;
+            break;
+        case TENT_MODE_HOVER :
+        case TENT_MODE_SUPER_DEVICE_HOVER :
+            tentMode = TentMode::HOVER;
+            break;
+        default:
+            tentMode = TentMode::TENT_MODE_MAX;
+            return false;
+    }
+    return true;
 }
 #endif
 } // Rosen

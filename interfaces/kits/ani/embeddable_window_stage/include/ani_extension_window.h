@@ -19,7 +19,6 @@
 #include "ani.h"
 #include "ani_extension_window_register_manager.h"
 #include "extension_window.h"
-#include "extension_window.h"
 #include "session_info.h"
 
 namespace OHOS {
@@ -29,6 +28,8 @@ namespace Rosen {
 #else
 #define WINDOW_EXPORT __attribute__((visibility("default")))
 #endif
+
+ani_ref FindAniExtensionWindow(ani_env* env, const sptr<Rosen::Window>& window);
 
 class AniExtensionWindow {
 public:
@@ -48,6 +49,9 @@ public:
     WmErrorCode RegisterListener(ani_env* env, ani_string type,  ani_object fn);
     WmErrorCode UnregisterListener(ani_env* env, ani_string type, ani_object fn);
     WmErrorCode OnHideNonSecureWindows(ani_env* env, ani_boolean shouldHide);
+    ani_object Snapshot(ani_env* env);
+    ani_object SnapshotSync(ani_env* env);
+    ani_object SnapshotIgnorePrivacy(ani_env* env);
     void OnOccupyEvents(ani_env* env, ani_int eventFlags);
     ani_object OnCreateSubWindowWithOptions(ani_env* env, ani_string name, ani_object subWindowOptions,
         ani_boolean followCreatorLifecycle);

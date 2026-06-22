@@ -37,6 +37,7 @@ ohos_shared_library("libwindow_extension") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../extension_connection/src/zidl/window_extension_client_proxy.cpp",
@@ -93,6 +94,7 @@ ohos_shared_library("libwindow_extension") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 config("window_extension_module_private_config") {
@@ -109,6 +111,7 @@ ohos_shared_library("window_extension_module") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "src/window_extension_module_loader.cpp" ]
 
@@ -127,6 +130,7 @@ ohos_shared_library("window_extension_module") {
     "ipc:ipc_napi",
     "napi:ace_napi",
   ]
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   relative_install_dir = "extensionability/"
   subsystem_name = "window"
   part_name = "window_manager"

@@ -46,6 +46,12 @@ namespace {
     {
         g_errLog = msg;
     }
+
+class MockWindowDensityChangeListener : public IWindowDensityChangeListener {
+public:
+    MOCK_METHOD1(OnWindowDensityChanged, void(float));
+};
+
 class WindowSessionImplTest4 : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -179,6 +185,9 @@ HWTEST_F(WindowSessionImplTest4, GetDecorVisible, TestSize.Level1)
     bool isVisible = true;
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->GetDecorVisible(isVisible));
     window->property_->SetPersistentId(1);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->GetDecorVisible(isVisible));
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->GetDecorVisible(isVisible));
     auto uiContent = std::make_unique<Ace::UIContentMocker>();
     EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(false));
@@ -205,6 +214,10 @@ HWTEST_F(WindowSessionImplTest4, SetWindowTitleMoveEnabled, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    res = window->SetWindowTitleMoveEnabled(true);
+    EXPECT_EQ(res, WMError::WM_ERROR_DEVICE_NOT_SUPPORT);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
     res = window->SetWindowTitleMoveEnabled(true);
     EXPECT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
@@ -215,6 +228,11 @@ HWTEST_F(WindowSessionImplTest4, SetWindowTitleMoveEnabled, TestSize.Level1)
     res = window->SetWindowTitleMoveEnabled(true);
     EXPECT_EQ(res, WMError::WM_OK);
     res = window->SetWindowTitleMoveEnabled(false);
+    EXPECT_EQ(res, WMError::WM_OK);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetPcAppInpadCompatibleMode(true);
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    res = window->SetWindowTitleMoveEnabled(true);
     EXPECT_EQ(res, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetWindowTitleMoveEnabledtest01 end";
 }
@@ -275,9 +293,13 @@ HWTEST_F(WindowSessionImplTest4, SetSubWindowModal02, TestSize.Level1)
     window->hostSession_ = session;
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     WMError res = window->SetSubWindowModal(true, ModalityType::WINDOW_MODALITY);
-    ASSERT_EQ(res, WMError::WM_OK);
+    EXPECT_EQ(res, WMError::WM_OK);
     res = window->SetSubWindowModal(true, ModalityType::APPLICATION_MODALITY);
-    ASSERT_EQ(res, WMError::WM_OK);
+    EXPECT_EQ(res, WMError::WM_OK);
+
+    window->property_->SetZLevelAboveParentLoosened(true);
+    res = window->SetSubWindowModal(true, ModalityType::APPLICATION_MODALITY);
+    EXPECT_EQ(res, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetSubWindowModaltest02 end";
 }
 
@@ -1168,6 +1190,13 @@ HWTEST_F(WindowSessionImplTest4, SetTitleButtonVisible01, TestSize.Level1)
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     WMError res = window->SetTitleButtonVisible(false, false, false, true);
     ASSERT_EQ(res, WMError::WM_ERROR_INVALID_CALLING);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->property_->SetPcAppInpadCompatibleMode(true);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    res = window->SetTitleButtonVisible(false, false, false, true);
+    EXPECT_EQ(res, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetTitleButtonVisible01 end";
 }
 
@@ -2154,6 +2183,31 @@ HWTEST_F(WindowSessionImplTest4, ClearListenersById_windowRectChangeListeners, T
 }
 
 /**
+ * @tc.name: ClearListenersById_windowDensityChangeListeners
+ * @tc.desc: ClearListenersById_windowDensityChangeListeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, ClearListenersById_windowDensityChangeListeners, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: ClearListenersById_windowDensityChangeListeners start";
+    sptr<WindowOption> option_ = sptr<WindowOption>::MakeSptr();
+    option_->SetWindowName("ClearListenersById_windowDensityChangeListeners");
+    sptr<WindowSessionImpl> window_ = sptr<WindowSessionImpl>::MakeSptr(option_);
+
+    int persistentId = window_->GetPersistentId();
+    window_->ClearListenersById(persistentId);
+
+    sptr<IWindowDensityChangeListener> listener_ = sptr<IWindowDensityChangeListener>::MakeSptr();
+    ASSERT_EQ(WMError::WM_OK, window_->RegisterWindowDensityChangeListener(listener_));
+    ASSERT_NE(window_->windowDensityChangeListeners_.find(persistentId), window_->windowDensityChangeListeners_.end());
+
+    window_->ClearListenersById(persistentId);
+    ASSERT_EQ(window_->windowDensityChangeListeners_.find(persistentId), window_->windowDensityChangeListeners_.end());
+
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: ClearListenersById_windowDensityChangeListeners end";
+}
+
+/**
  * @tc.name: ClearListenersById_subWindowCloseListeners
  * @tc.desc: ClearListenersById_subWindowCloseListeners
  * @tc.type: FUNC
@@ -2600,6 +2654,86 @@ HWTEST_F(WindowSessionImplTest4, NotifySystemDensityChange01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RegisterWindowDensityChangeListener01
+ * @tc.desc: RegisterWindowDensityChangeListener01
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, RegisterWindowDensityChangeListener01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RegisterWindowDensityChangeListener01");
+
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    sptr<IWindowDensityChangeListener> listener = nullptr;
+    WMError ret = window->RegisterWindowDensityChangeListener(listener);
+    ASSERT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+
+    listener = sptr<IWindowDensityChangeListener>::MakeSptr();
+    std::vector<sptr<IWindowDensityChangeListener>> holder;
+    window->windowDensityChangeListeners_[window->property_->GetPersistentId()] = holder;
+    ret = window->RegisterWindowDensityChangeListener(listener);
+    ASSERT_EQ(ret, WMError::WM_OK);
+    holder = window->windowDensityChangeListeners_[window->property_->GetPersistentId()];
+    auto existsListener = std::find(holder.begin(), holder.end(), listener);
+    ASSERT_NE(existsListener, holder.end());
+
+    ret = window->RegisterWindowDensityChangeListener(listener);
+    ASSERT_EQ(ret, WMError::WM_OK);
+    holder = window->windowDensityChangeListeners_[window->property_->GetPersistentId()];
+    ASSERT_EQ(holder.size(), 1);
+}
+
+/**
+ * @tc.name: UnregisterWindowDensityChangeListener01
+ * @tc.desc: UnregisterWindowDensityChangeListener01
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, UnregisterWindowDensityChangeListener01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UnregisterWindowDensityChangeListener01");
+
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    sptr<IWindowDensityChangeListener> listener = nullptr;
+    WMError ret = window->UnregisterWindowDensityChangeListener(listener);
+    ASSERT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+
+    listener = sptr<IWindowDensityChangeListener>::MakeSptr();
+    std::vector<sptr<IWindowDensityChangeListener>> holder;
+    window->windowDensityChangeListeners_[window->property_->GetPersistentId()] = holder;
+    ret = window->UnregisterWindowDensityChangeListener(listener);
+    ASSERT_EQ(ret, WMError::WM_OK);
+
+    holder = window->windowDensityChangeListeners_[window->property_->GetPersistentId()];
+    auto existsListener = std::find(holder.begin(), holder.end(), listener);
+    ASSERT_EQ(existsListener, holder.end());
+}
+
+/**
+ * @tc.name: NotifyWindowDensityChange01
+ * @tc.desc: NotifyWindowDensityChange01
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyWindowDensityChange01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyWindowDensityChange01");
+
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessioninfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessioninfo);
+    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
+    auto listener = sptr<MockWindowDensityChangeListener>::MakeSptr();
+    ASSERT_NE(listener, nullptr);
+    ASSERT_EQ(WMError::WM_OK, window->RegisterWindowDensityChangeListener(listener));
+
+    EXPECT_CALL(*listener, OnWindowDensityChanged(1.5f)).Times(1);
+    auto ret = window->NotifyWindowDensityChange(1.5f);
+    ASSERT_EQ(WSError::WS_OK, ret);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy());
+}
+
+/**
  * @tc.name: GetIsMidScene
  * @tc.desc: GetIsMidScene
  * @tc.type: FUNC
@@ -2724,16 +2858,18 @@ HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange01, TestSize.Level1)
     option->SetWindowName("NotifyHighlightChange01");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
-    window->updateHighlightTimeStamp_.store(2);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp);
     bool highlight = false;
     auto info = sptr<HighlightNotifyInfo>::MakeSptr();
     info->isSyncNotify_ = true;
-    info->timeStamp_ = 1;
+    info->timeStamp_ = currentTimeStamp - 1000;
     WSError res = window->NotifyHighlightChange(info, highlight);
-    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), 2);
-    info->timeStamp_ = 3;
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp);
+    info->timeStamp_ = currentTimeStamp + 1000;
     res = window->NotifyHighlightChange(info, highlight);
-    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), 3);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
     EXPECT_EQ(res, WSError::WS_OK);
 }
 
@@ -2750,15 +2886,86 @@ HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange02, TestSize.Level1)
     sptr<WindowSessionImpl> window1 = sptr<WindowSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(1);
     window1->property_->SetPersistentId(2);
-    window->updateHighlightTimeStamp_.store(2);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp);
     bool highlight = false;
-    auto info = sptr<HighlightNotifyInfo>::MakeSptr(3, std::vector<int32_t>(1, 2), 2, true);
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr(currentTimeStamp + 1000, std::vector<int32_t>(1, 2), 2, true);
     WSError res = window->NotifyHighlightChange(info, highlight);
-    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), 3);
-    info->timeStamp_ = 4;
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
+    info->timeStamp_ = currentTimeStamp + 2000;
     res = window->NotifyHighlightChange(info, highlight);
-    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), 4);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 2000);
     EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange03
+ * @tc.desc: NotifyHighlightChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange03");
+    sptr<WindowSessionImpl> mainWindow = sptr<WindowSessionImpl>::MakeSptr(option);
+    auto mainWindowId = mainWindow->GetWindowId();
+    sptr<WindowOption> subOption = sptr<WindowOption>::MakeSptr();
+    subOption->SetWindowName("NotifyHighlightChangeSubWindow");
+    subOption->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSceneSessionImpl> subWindow = sptr<WindowSceneSessionImpl>::MakeSptr(subOption);
+    subWindow->property_->SetPersistentId(mainWindowId);
+    auto subWindowId = subWindow->GetWindowId();
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    mainWindow->updateHighlightTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr(currentTimeStamp + 1000,
+        std::vector<int32_t>(mainWindowId, subWindowId), subWindowId, true);
+    WSError res = mainWindow->NotifyHighlightChange(info, false);
+    EXPECT_EQ(mainWindow->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
+    info->timeStamp_ = currentTimeStamp + 2000;
+    res = mainWindow->NotifyHighlightChange(info, true);
+    EXPECT_EQ(mainWindow->updateHighlightTimeStamp_.load(), currentTimeStamp + 2000);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange04
+ * @tc.desc: NotifyHighlightChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange04");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->isHighlighted_ = true;
+    window->NotifyHighlightChange(true);
+    EXPECT_EQ(window->isHighlighted_, true);
+    window->NotifyHighlightChange(false);
+    EXPECT_EQ(window->isHighlighted_, false);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange05
+ * @tc.desc: NotifyHighlightChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange05");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp + 2000);
+    bool highlight = false;
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr();
+    info->isSyncNotify_ = true;
+    info->timeStamp_ = currentTimeStamp;
+    WSError res = window->NotifyHighlightChange(info, highlight);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp);
 }
 
 /**

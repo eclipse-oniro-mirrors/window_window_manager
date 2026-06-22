@@ -29,6 +29,7 @@
 #include "surface_utils.h"
 #include "window_manager_hilog.h"
 #include "pixel_map_napi.h"
+#include "display_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -41,6 +42,11 @@ constexpr int32_t INDEX_ZERO = 0;
 constexpr int32_t INDEX_ONE = 1;
 constexpr int32_t INDEX_TWO = 2;
 constexpr uint32_t MAX_SCREENS_NUM = 1000;
+constexpr uint32_t MIN_VIRTUAL_SIZE = 1;
+constexpr uint32_t MAX_VIRTUAL_SIZE = 0x10000;
+constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
+constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
+constexpr uint32_t MAX_VIRTUAL_SCREEN_ID = 0x7FFFFFFF;
 
 class JsScreenManager {
 public:
@@ -155,6 +161,12 @@ static napi_value MakeUnique(napi_env env, napi_callback_info info)
 {
     JsScreenManager* me = CheckParamsAndGetThis<JsScreenManager>(env, info);
     return (me != nullptr) ? me->OnMakeUnique(env, info) : nullptr;
+}
+
+static napi_value ResizeVirtualScreen(napi_env env, napi_callback_info info)
+{
+    JsScreenManager* me = CheckParamsAndGetThis<JsScreenManager>(env, info);
+    return (me != nullptr) ? me->OnResizeVirtualScreen(env, info) : nullptr;
 }
 
 private:
@@ -351,6 +363,7 @@ napi_value NapiThrowError(napi_env env, DmErrorCode errCode, std::string msg = "
 napi_value OnRegisterScreenManagerCallback(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.on.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -363,6 +376,14 @@ napi_value OnRegisterScreenManagerCallback(napi_env env, napi_callback_info info
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to eventType");
         std::string errMsg = "Failed to convert parameter to eventType";
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg);
+    }
+    // Named event variant histogram
+    if (cbType == "connect") {
+        HISTOGRAM_BOOLEAN("ArkUI.screen.onConnect.Count", HISTOGRAM_BOOLEAN_COUNTS);
+    } else if (cbType == "disconnect") {
+        HISTOGRAM_BOOLEAN("ArkUI.screen.onDisconnect.Count", HISTOGRAM_BOOLEAN_COUNTS);
+    } else if (cbType == "change") {
+        HISTOGRAM_BOOLEAN("ArkUI.screen.onChange.Count", HISTOGRAM_BOOLEAN_COUNTS);
     }
     napi_value value = argv[INDEX_ONE];
     if (value == nullptr) {
@@ -387,6 +408,7 @@ napi_value OnRegisterScreenManagerCallback(napi_env env, napi_callback_info info
 napi_value OnUnregisterScreenManagerCallback(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.off.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -399,6 +421,14 @@ napi_value OnUnregisterScreenManagerCallback(napi_env env, napi_callback_info in
         TLOGE(WmsLogTag::DMS, "Failed to convert parameter to eventType");
         std::string errMsg = "Failed to convert parameter to eventType";
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg);
+    }
+    // Named event variant histogram
+    if (cbType == "connect") {
+        HISTOGRAM_BOOLEAN("ArkUI.screen.offConnect.Count", HISTOGRAM_BOOLEAN_COUNTS);
+    } else if (cbType == "disconnect") {
+        HISTOGRAM_BOOLEAN("ArkUI.screen.offDisconnect.Count", HISTOGRAM_BOOLEAN_COUNTS);
+    } else if (cbType == "change") {
+        HISTOGRAM_BOOLEAN("ArkUI.screen.offChange.Count", HISTOGRAM_BOOLEAN_COUNTS);
     }
     std::lock_guard<std::mutex> lock(mtx_);
     if (argc == ARGC_ONE) {
@@ -482,6 +512,7 @@ napi_value OnMakeMirror(napi_env env, napi_callback_info info)
 napi_value OnMakeMirrorWithRegion(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.makeMirrorWithRegion.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -532,25 +563,31 @@ napi_value OnMakeMirrorWithRegion(napi_env env, napi_callback_info info)
 
 napi_value OnSetMultiScreenMode(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.screen.setMultiScreenMode.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = ARGC_FOUR;
     napi_value argv[ARGC_FOUR] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_THREE) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Invalid args count, need three args");
     }
     int64_t mainScreenId;
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], mainScreenId)) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to int");
     }
     int64_t secondaryScreenId;
     if (!ConvertFromJsValue(env, argv[INDEX_ONE], secondaryScreenId)) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to int");
     }
     if (mainScreenId < 0 || secondaryScreenId < 0) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "ScreenId cannot be a negative number");
     }
     MultiScreenMode screenMode;
     if (!ConvertFromJsValue(env, argv[INDEX_TWO], screenMode)) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenMode", DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter");
     }
     napi_value lastParam = nullptr;
@@ -564,6 +601,7 @@ napi_value OnSetMultiScreenMode(napi_env env, napi_callback_info info)
         if (ret == DmErrorCode::DM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenMode", ret);
             task->Reject(env,
                 CreateJsError(env, static_cast<int32_t>(ret), "JsScreenManager::OnSetMultiScreenMode failed."));
         }
@@ -575,18 +613,25 @@ napi_value OnSetMultiScreenMode(napi_env env, napi_callback_info info)
 
 napi_value OnSetMultiScreenRelativePosition(napi_env env, napi_callback_info info)
 {
+    HISTOGRAM_BOOLEAN("ArkUI.screen.setMultiScreenRelativePosition.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = ARGC_FOUR;
     napi_value argv[ARGC_FOUR] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_TWO) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenRelativePosition",
+            DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Invalid args count, need two args");
     }
     MultiScreenPositionOptions mainScreenOptions;
     if (GetMultiScreenPositionOptionsFromJs(env, argv[INDEX_ZERO], mainScreenOptions) == -1) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenRelativePosition",
+            DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to int");
     }
     MultiScreenPositionOptions secondScreenOption;
     if (GetMultiScreenPositionOptionsFromJs(env, argv[INDEX_ONE], secondScreenOption) == -1) {
+        HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenRelativePosition",
+            DmErrorCode::DM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter to int");
     }
     napi_value lastParam = nullptr;
@@ -600,6 +645,7 @@ napi_value OnSetMultiScreenRelativePosition(napi_env env, napi_callback_info inf
         if (ret == DmErrorCode::DM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.setMultiScreenRelativePosition", ret);
             task->Reject(env,
                 CreateJsError(env, static_cast<int32_t>(ret), "OnSetMultiScreenRelativePosition failed."));
         }
@@ -612,6 +658,7 @@ napi_value OnSetMultiScreenRelativePosition(napi_env env, napi_callback_info inf
 napi_value OnMakeExpand(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.makeExpand.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -772,6 +819,7 @@ napi_value OnStopExpand(napi_env env, napi_callback_info info)
 napi_value OnMakeUnique(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "OnMakeUnique is called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.makeUnique.Count", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -817,6 +865,57 @@ napi_value OnMakeUnique(napi_env env, napi_callback_info info)
         delete task;
     };
     NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnMakeUnique");
+    return result;
+}
+
+napi_value OnResizeVirtualScreen(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::DMS, "[NAPI] OnResizeVirtualScreen is called");
+    size_t argc = ARGC_FOUR;
+    napi_value argv[ARGC_FOUR] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_THREE) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] Invalid args count, need arg at least!");
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Invalid args count, need three arg at least!");
+    }
+    uint32_t screenId;
+    uint32_t width;
+    uint32_t height;
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], screenId) || !ConvertFromJsValue(env, argv[INDEX_ONE], width) ||
+        !ConvertFromJsValue(env, argv[INDEX_TWO], height)) {
+        TLOGE(WmsLogTag::DMS, "[NAPI] Failed to convert parameter");
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert parameter");
+    }
+    auto checkRange = [](const std::string& paramName, uint32_t value, const uint32_t& minValue,
+        const uint32_t& maxValue) -> bool {
+        if (value < minValue || value > maxValue) {
+            TLOGE(WmsLogTag::DMS, "[NAPI] %{public}s is out of range", paramName.c_str());
+            return false;
+        }
+        return true;
+    };
+    ScreenId actualScreenId = static_cast<ScreenId>(screenId);
+    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VIRTUAL_SCREEN_ID) ||
+        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VIRTUAL_SIZE) ||
+        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VIRTUAL_SIZE)) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Parameter out of range");
+    }
+    napi_value lastParam = nullptr;
+    napi_value result = nullptr;
+    std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
+    auto asyncTask = [actualScreenId, width, height, env, task = napiAsyncTask.get()]() {
+        DmErrorCode ret = DM_JS_TO_ERROR_CODE_MAP.at(
+            SingletonContainer::Get<ScreenManager>().ResizeVirtualScreen(actualScreenId, width, height));
+        if (ret == DmErrorCode::DM_OK) {
+            TLOGNI(WmsLogTag::DMS, "[NAPI] JsScreenManager::OnResizeVirtualScreen success");
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
+                "JsScreenManager::OnResizeVirtualScreen failed"));
+        }
+        delete task;
+    };
+    NapiSendDmsEvent(env, asyncTask, napiAsyncTask, "OnResizeVirtualScreen");
     return result;
 }
 
@@ -918,6 +1017,7 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
     TLOGI(WmsLogTag::DMS, "called");
     DmErrorCode errCode = DmErrorCode::DM_OK;
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::JS_SCREEN_MANAGER;
     size_t argc = 4;
     std::string errMsg = "";
     napi_value argv[4] = {nullptr};
@@ -955,6 +1055,8 @@ napi_value OnCreateVirtualScreen(napi_env env, napi_callback_info info)
                 ret = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
             } else if (screenId == ERROR_ID_NO_PERMISSION) {
                 ret = DmErrorCode::DM_ERROR_NO_PERMISSION;
+            } else if (screenId == ERROR_INVALID_PARAM) {
+                ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
             }
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret), "CreateVirtualScreen failed."));
             TLOGNE(WmsLogTag::DMS, "ScreenManager::CreateVirtualScreen failed.");
@@ -996,13 +1098,11 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
     option.density_ = static_cast<float>(densityValue);
-
     napi_value surfaceIdNapiValue = nullptr;
     napi_get_named_property(env, optionObject, "surfaceId", &surfaceIdNapiValue);
     if (!GetSurfaceFromJs(env, surfaceIdNapiValue, option.surface_)) {
         return DmErrorCode::DM_ERROR_INVALID_PARAM;
     }
-
     napi_value supportsFocus = nullptr;
     napi_status status = napi_get_named_property(env, optionObject, "supportsFocus", &supportsFocus);
     if (status != napi_ok) {
@@ -1011,6 +1111,13 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
     }
     if (!ConvertFromJsValue(env, supportsFocus, option.supportsFocus_)) {
         TLOGE(WmsLogTag::DMS, "No supportsFocus parameter to convert");
+    }
+    napi_value userIdNapiValue = nullptr;
+    if (napi_get_named_property(env, optionObject, "userId", &userIdNapiValue) == napi_ok) {
+        if (!ConvertFromJsValue(env, userIdNapiValue, option.userId_)) {
+            TLOGE(WmsLogTag::DMS, "No userId parameter to convert");
+            return DmErrorCode::DM_ERROR_INVALID_PARAM;
+        }
     }
     return DmErrorCode::DM_OK;
 }
@@ -1041,6 +1148,7 @@ bool GetSurfaceFromJs(napi_env env, napi_value surfaceIdNapiValue, sptr<Surface>
 napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::DMS, "called");
+    HISTOGRAM_BOOLEAN("ArkUI.screen.destroyVirtualScreen.Count", HISTOGRAM_BOOLEAN_COUNTS);
     DmErrorCode errCode = DmErrorCode::DM_OK;
     int64_t screenId = -1LL;
     std::string errMsg = "";
@@ -1074,6 +1182,7 @@ napi_value OnDestroyVirtualScreen(napi_env env, napi_callback_info info)
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
             SingletonContainer::Get<ScreenManager>().DestroyVirtualScreen(screenId));
         if (res != DmErrorCode::DM_OK) {
+            HISTOGRAM_ENUMERATION_DM_ERROR_CODE("ArkUI.screen.destroyVirtualScreen", res);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(res),
                 "ScreenManager::DestroyVirtualScreen failed."));
             TLOGNE(WmsLogTag::DMS, "ScreenManager::DestroyVirtualScreen failed.");
@@ -1507,6 +1616,7 @@ napi_value JsScreenManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "isScreenRotationLocked", moduleName,
         JsScreenManager::IsScreenRotationLocked);
     BindNativeFunction(env, exportObj, "makeUnique", moduleName, JsScreenManager::MakeUnique);
+    BindNativeFunction(env, exportObj, "resizeVirtualScreen", moduleName, JsScreenManager::ResizeVirtualScreen);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

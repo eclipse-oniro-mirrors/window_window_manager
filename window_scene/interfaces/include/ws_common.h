@@ -28,6 +28,8 @@
 #include <want.h>
 #include "pixel_map.h"
 #include "wm_animation_common.h"
+#include "wm_layout_common.h"
+
 
 namespace OHOS::AAFwk {
 class AbilityStartSetting;
@@ -48,14 +50,19 @@ using ScreenId = uint64_t;
 constexpr int32_t ROTATE_ANIMATION_DURATION = 400;
 constexpr int32_t INVALID_SESSION_ID = 0;
 constexpr int64_t INVALID_TIME_STAMP = 0;
+constexpr float INVALID_SCALE = 0;
 constexpr int32_t MIN_REQUEST_ID_FROM_ABILITY = 1;
 constexpr int32_t DEFAULT_REQUEST_FROM_SCB_ID = -1;
+constexpr int32_t SCB_REQUEST_ID_START = 1;
+constexpr int32_t DEFAULT_REQUEST_ID = 0;
 constexpr int32_t WINDOW_SUPPORT_MODE_MAX_SIZE = 4;
+constexpr uint32_t COMBINED_COMPATIBLE_CONFIG_MAX_SIZE = 5;
 constexpr int32_t DEFAULT_SCALE_RATIO = 100;
 constexpr uint32_t COLOR_WHITE = 0xffffffff;
 constexpr uint32_t COLOR_BLACK = 0xff000000;
-const std::string WINDOW_SCREEN_LOCK_PREFIX = "windowLock_";
-const std::string VIEW_SCREEN_LOCK_PREFIX = "viewLock_";
+extern const std::string WINDOW_SCREEN_LOCK_PREFIX;
+extern const std::string VIEW_SCREEN_LOCK_PREFIX;
+constexpr const char* BOUNDS_CHANGED = "OnBoundsChanged";
 constexpr int32_t DEFAULT_INVALID_WINDOW_MODE = 0;
 constexpr uint32_t ICON_MAX_SIZE = 128 * 1024 * 1024;
 
@@ -116,7 +123,6 @@ enum class WSErrorCode : int32_t {
     WS_ERROR_NO_PERMISSION = 201,
     WS_ERROR_INVALID_PARAM = 401,
     WS_ERROR_DEVICE_NOT_SUPPORT = 801,
-    WS_ERROR_TIMEOUT = 901,
     WS_ERROR_NOT_REGISTER_SYNC_CALLBACK = 100011,
     WS_ERROR_TRANSFER_DATA_FAILED       = 100012,
     WS_ERROR_REPEAT_OPERATION = 1300001,
@@ -129,7 +135,27 @@ enum class WSErrorCode : int32_t {
     WS_ERROR_EDM_CONTROLLED = 16000013, // enterprise limit
 };
 
+enum class WSErrorReason : int32_t {
+    WS_REASON_WINDOW_ERR = 1000,
+    WS_REASON_WINDOW_MINIMIZE_ERR,
+    WS_REASON_WINDOW_START_ERR,
+    WS_REASON_WINDOW_PRE_TERMINATE_ERR,
+    WS_REASON_WINDOW_STARTUP_EXC_ERR,
+    WS_REASON_WINDOW_CALL_ERR,
+    WS_REASON_WINDOW_CLEAN_ERR,
+    WS_REASON_WINDOW_CLOSE_ERR,
+    WS_REASON_WINDOW_SPECIFIED_ERR,
+
+    WS_REASON_WINDOW_ANCO_ERR = 1200,
+    WS_REASON_WINDOW_ANCO_START_ERR,
+    WS_REASON_WINDOW_ANCO_SESSION_CREATE_ERR,
+    WS_REASON_WINDOW_ANCO_MOVE_SESSION_FOREGROUND_ERR,
+    WS_REASON_WINDOW_ANCO_CLEAR_SESSION_ERR,
+};
+
 extern const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP;
+
+bool CheckCollaboratorType(int32_t type);
 
 enum class SessionState : uint32_t {
     STATE_DISCONNECT = 0,
@@ -271,7 +297,7 @@ enum class FocusChangeReason {
     SCB_SESSION_REQUEST_UNFOCUS,
 
     /**
-     * focus change for client requerst.10
+     * focus change for client request.10
      */
     CLIENT_REQUEST,
 
@@ -301,7 +327,7 @@ enum class FocusChangeReason {
     SCB_START_APP,
 
     /**
-     * focus for setting focuable.
+     * focus for setting focusable.
      */
     FOCUSABLE,
 
@@ -329,6 +355,26 @@ enum class FocusChangeReason {
      * focus change when pressing alt+tab or dock click
      */
     REQUEST_WITH_CHECK_SUB_WINDOW,
+
+    /**
+     * focus change for force
+     */
+    FORCE_FOCUSED,
+
+    /**
+     * focus change for midScene
+     */
+    MID_SCENE,
+
+    /**
+     * focus change for opening action menu
+     */
+    CLICK_MENU,
+
+    /**
+     * focus change when back gesture from big luoShu
+     */
+    BACK_FROM_LUOSHU,
 
     /**
      * focus change max.
@@ -374,8 +420,8 @@ enum class StartWindowType : uint32_t {
 
 enum class SpecifiedReason : int32_t {
     DEFAULT = 0,
-    BY_SCB,
-    FROM_RENCENT,
+    FROM_ICON,
+    FROM_RECENT,
 };
 
 struct AtomicServiceInfo {
@@ -388,7 +434,9 @@ struct AtomicServiceInfo {
 };
 
 struct PendingSessionActivationConfig {
-    bool forceStart = false; // is compulsion open
+    // is compulsion open
+    bool forceStart = false;
+    // is execute new want callback
     bool forceNewWant = true;
 };
 
@@ -402,7 +450,8 @@ struct SessionInfo {
     uint32_t windowType_ = 1; // WINDOW_TYPE_APP_MAIN_WINDOW
     sptr<IRemoteObject> callerToken_ = nullptr;
     sptr<IRemoteObject> rootToken_ = nullptr;
-    uint64_t screenId_ = -1;
+    sptr<IRemoteObject> connectToRenderToken_ = nullptr;
+    uint64_t screenId_ = -1ULL; // -1ULL：SCREEN_ID_INVALID
     bool isPersistentRecover_ = false;
     AtomicServiceInfo atomicServiceInfo_;
 
@@ -417,12 +466,14 @@ struct SessionInfo {
     int32_t requestCode = -1;
     int32_t errorCode = -1;
     std::string errorReason = "";
+    bool shouldSkipKillInStartup = false;
     int32_t persistentId_ = INVALID_SESSION_ID;
     int32_t callerPersistentId_ = INVALID_SESSION_ID;
     std::string callerBundleName_ = "";
     std::string callerAbilityName_ = "";
     uint32_t callState_ = 0;
     uint32_t callingTokenId_ = 0;
+    int32_t callerTypeForAnco = 0;
     bool reuse = false;
     int32_t windowMode = 0;
     StartMethod startMethod = StartMethod::START_NORMAL;
@@ -456,11 +507,13 @@ struct SessionInfo {
     bool isPcOrPadEnableActivation_ = false;
     bool canStartAbilityFromBackground_ = false;
     bool isFoundationCall_ = false;
-    int32_t requestId = 0;
+    int32_t requestId = DEFAULT_REQUEST_ID;
+    int32_t scbRequestId = DEFAULT_REQUEST_ID;         // SCB generated global tracking ID
     std::string specifiedFlag_ = "";
     bool disableDelegator = false;
     bool reuseDelegatorWindow = false;
     bool isAbilityHook_ = false;
+    int32_t scenarios = 0;
     bool isRestartApp_ = false;
     bool isRestartInSameProcess_ = true;
     int32_t restartCallerPersistentId_ = INVALID_SESSION_ID;
@@ -470,9 +523,16 @@ struct SessionInfo {
     SpecifiedReason specifiedReason_ = SpecifiedReason::DEFAULT;
     // only init when requestSceneSession from SCB
     bool isAncoApplication_ = false;
-    int32_t scenarios = 0;
+    bool isSkipAncoNotifyPreStart = false;
     bool isPrelaunch_ = false;
     int32_t frameNum_ = 0;
+    bool isTargetPlugin = false;
+    std::string hostBundleName = "";
+    int32_t hostAppIndex = 0;
+    std::string hostAppInstanceKey = "";
+    std::string hostAbilityName = "";
+    // Indicates whether the window should be hidden when the native process launches
+    bool nativeHideWindow_ = false;
 
     /*
      * Keyboard
@@ -487,6 +547,8 @@ struct SessionInfo {
      */
     bool isUseControlSession = false; // Indicates whether the session is used for controlling a main session.
     bool hasPrivacyModeControl = false;
+    // The Field has a value in useControlsession
+    int32_t mainWindowPersistentId_ = INVALID_SESSION_ID;
 
     /*
      * UIExtension
@@ -509,16 +571,28 @@ struct SessionInfo {
     std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
     WindowSizeLimits windowSizeLimits;
     bool isFollowParentMultiScreenPolicy = false;
+    bool isStartInFMWindowModeDisabled = false;
 
     /*
      * Window Rotation
      */
     int32_t currentRotation_ = 0;
+    
+    /*
+     * Split Ratio PreferenceValue
+     */
+    int32_t splitRatioPreference = 0;
 
     /*
      * Compatible Mode
      */
-    std::string pageConfig = "";
+    std::vector<std::string> combinedCompatibleConfig;
+
+    /**
+     * Game PreLaunch
+     */
+    bool isGamePrelaunch_ = false;
+    bool reuseSessionInGamePreLaunch_ = false;
 
     AAFwk::Want GetWantSafely() const
     {
@@ -539,8 +613,13 @@ struct SessionInfo {
         *want = newWant;
     }
 
-    std::shared_ptr<StartAnimationOptions> startAnimationOptions = nullptr;
-    std::shared_ptr<StartAnimationSystemOptions> startAnimationSystemOptions = nullptr;
+    void SetWantSafely(const std::shared_ptr<AAFwk::Want>& newWant) const
+    {
+        std::lock_guard<std::mutex> lock(*wantMutex_);
+        want = newWant;
+    }
+
+    std::shared_ptr<WindowCreateParams> windowCreateParams = nullptr;
 };
 
 struct RequestTaskInfo {
@@ -565,9 +644,7 @@ enum class SizeChangeReason : uint32_t {
     DRAG_START,
     DRAG_END,
     RESIZE,
-    RESIZE_WITH_ANIMATION,
     MOVE,
-    MOVE_WITH_ANIMATION,
     HIDE,
     TRANSFORM,
     CUSTOM_ANIMATION_SHOW,
@@ -597,13 +674,13 @@ enum class SizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SWITCH_WINDOW_DISPLAY,
     END,
 };
 
 inline bool IsMoveToOrDragMove(SizeChangeReason reason)
 {
-    return reason == SizeChangeReason::MOVE || reason == SizeChangeReason::DRAG_MOVE ||
-           reason == SizeChangeReason::MOVE_WITH_ANIMATION;
+    return reason == SizeChangeReason::MOVE || reason == SizeChangeReason::DRAG_MOVE;
 }
 
 enum class SessionEvent : uint32_t {
@@ -628,6 +705,8 @@ enum class SessionEvent : uint32_t {
     EVENT_MAXIMIZE_FULLSCREEN,
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
+    EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
+    EVENT_CREATE_WINDOW_WHEN_DRAGGING = 300,
     EVENT_END
 };
 
@@ -637,44 +716,141 @@ enum class BrokerStates: uint32_t {
     BROKER_NOT_START = -1,
 };
 
-inline bool GreatOrEqual(double left, double right)
+/**
+ * @brief Check whether left is greater than right.
+ */
+inline bool GreaterThan(double left, double right)
 {
-    constexpr double epsilon = -0.00001f;
+    constexpr double epsilon = 0.00001;
     return (left - right) > epsilon;
 }
 
+inline bool GreaterThan(float left, float right)
+{
+    constexpr float epsilon = 0.001f;
+    return (left - right) > epsilon;
+}
+
+inline bool GreaterThan(int32_t left, int32_t right)
+{
+    return left > right;
+}
+
+/**
+ * @brief Check whether left is less than right.
+ */
+inline bool LessThan(double left, double right)
+{
+    constexpr double epsilon = 0.00001;
+    return (right - left) > epsilon;
+}
+
+inline bool LessThan(float left, float right)
+{
+    constexpr float epsilon = 0.001f;
+    return (right - left) > epsilon;
+}
+
+inline bool LessThan(int32_t left, int32_t right)
+{
+    return left < right;
+}
+
+/**
+ * @brief Check whether left is greater than or approximately equal to right.
+ */
+inline bool GreatOrEqual(double left, double right)
+{
+    constexpr double epsilon = -0.00001;
+    return (left - right) > epsilon;
+}
+
+inline bool GreaterOrEqual(float left, float right)
+{
+    constexpr float epsilon = 0.001f;
+    return (left - right) > -epsilon;
+}
+
+inline bool GreaterOrEqual(int32_t left, int32_t right)
+{
+    return left >= right;
+}
+
+/**
+ * @brief Check whether left is less than or approximately equal to right.
+ */
 inline bool LessOrEqual(double left, double right)
 {
-    constexpr double epsilon = 0.00001f;
+    constexpr double epsilon = 0.00001;
     return (left - right) < epsilon;
 }
 
-inline bool NearEqual(const double left, const double right, const double epsilon)
+inline bool LessOrEqual(float left, float right)
 {
-    return (std::fabs(left - right) <= epsilon);
+    constexpr float epsilon = 0.001f;
+    return (left - right) < epsilon;
 }
 
-inline bool NearEqual(const float& left, const float& right)
+inline bool LessOrEqual(int32_t left, int32_t right)
 {
-    constexpr double epsilon = 0.001f;
-    return NearEqual(left, right, epsilon);
+    return left <= right;
 }
 
-inline bool NearEqual(const int32_t& left, const int32_t& right)
+/**
+ * @brief Check whether two values are approximately equal.
+ */
+inline bool NearEqual(double left, double right, double epsilon = 0.00001)
+{
+    return std::fabs(left - right) <= epsilon;
+}
+
+inline bool NearEqual(float left, float right, float epsilon = 0.001f)
+{
+    return std::fabs(left - right) <= epsilon;
+}
+
+inline bool NearEqual(int32_t left, int32_t right)
 {
     return left == right;
 }
 
-inline bool NearEqual(const int32_t& left, const int32_t& right, const int32_t threshold)
+inline bool NearEqual(int32_t left, int32_t right, int32_t threshold)
 {
     return std::abs(left - right) <= threshold;
 }
 
-inline bool NearZero(const double left)
+/**
+ * @brief Check whether value is approximately zero.
+ */
+inline bool NearZero(double value)
 {
-    constexpr double epsilon = 0.001f;
-    return NearEqual(left, 0.0, epsilon);
+    return NearEqual(value, 0.0);
 }
+
+inline bool NearZero(float value)
+{
+    return NearEqual(value, 0.0f);
+}
+
+inline bool NearZero(int32_t value)
+{
+    return value == 0;
+}
+
+/**
+ * @brief Relative position of one rect to another.
+ */
+enum class RectRelativePosition {
+    OVERLAP,
+    LEFT,
+    RIGHT,
+    TOP,
+    BOTTOM,
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+};
 
 template<typename T>
 struct WSRectT {
@@ -682,6 +858,47 @@ struct WSRectT {
     T posY_ = 0;
     T width_ = 0;
     T height_ = 0;
+
+    /**
+     * @brief Get the right edge coordinate of the rectangle.
+     *
+     * @return T The x-coordinate of the right edge.
+     */
+    T Right() const { return posX_ + width_; }
+
+    /**
+     * @brief Get the bottom edge coordinate of the rectangle.
+     *
+     * @return T The y-coordinate of the bottom edge.
+     */
+    T Bottom() const { return posY_ + height_; }
+
+    /**
+     * @brief Check if the rectangle has valid width and height.
+     *
+     * @return true if both width and height are greater than 0, false otherwise.
+     */
+    bool HasValidSize() const
+    {
+        return GreaterThan(width_, 0) && GreaterThan(height_, 0);
+    }
+
+    /**
+     * @brief Calculate the area of the rectangle.
+     *
+     * Returns 0 if the rectangle does not have a valid positive size.
+     *
+     * @tparam F The result type for area calculation.
+     *           Allows using higher precision or larger integer types to avoid overflow.
+     *           Defaults to T.
+     *
+     * @return The rectangle area as type F.
+     */
+    template<typename F = T>
+    F Area() const
+    {
+        return HasValidSize() ? static_cast<F>(width_) * static_cast<F>(height_) : static_cast<F>(0);
+    }
 
     bool operator==(const WSRectT<T>& a) const
     {
@@ -702,27 +919,13 @@ struct WSRectT {
 
     bool IsEmpty() const
     {
-        if (NearZero(posX_) && NearZero(posY_) && NearZero(width_) && NearZero(height_)) {
-            return true;
-        }
-        return false;
+        return NearZero(posX_) && NearZero(posY_) && NearZero(width_) && NearZero(height_);
     }
 
-    inline bool IsInRegion(int32_t pointX, int32_t pointY) const
+    inline bool IsInRegion(T pointX, T pointY) const
     {
-        return GreatOrEqual(pointX, posX_) && LessOrEqual(pointX, posX_ + width_) &&
-               GreatOrEqual(pointY, posY_) && LessOrEqual(pointY, posY_ + height_);
-    }
-
-    inline bool IsOverlap(const WSRectT<T>& rect) const
-    {
-        int32_t xStart = std::max(posX_, rect.posX_);
-        int32_t xEnd = std::min(posX_ + static_cast<int32_t>(width_),
-            rect.posX_ + static_cast<int32_t>(rect.width_));
-        int32_t yStart = std::max(posY_, rect.posY_);
-        int32_t yEnd = std::min(posY_ + static_cast<int32_t>(height_),
-            rect.posY_ + static_cast<int32_t>(rect.height_));
-        return (yStart < yEnd) && (xStart < xEnd);
+        return GreatOrEqual(pointX, posX_) && LessOrEqual(pointX, Right()) &&
+               GreatOrEqual(pointY, posY_) && LessOrEqual(pointY, Bottom());
     }
 
     inline bool IsInvalid() const
@@ -743,6 +946,50 @@ struct WSRectT {
     }
 
     /**
+     * @brief Get the smallest rectangle that contains both this rectangle and another rectangle.
+     *
+     * @param other The other rectangle to union with.
+     * @return The union rectangle.
+     */
+    WSRectT<T> Union(const WSRectT<T>& other) const
+    {
+        const T left = std::min(posX_, other.posX_);
+        const T top = std::min(posY_, other.posY_);
+        const T right = std::max(Right(), other.Right());
+        const T bottom = std::max(Bottom(), other.Bottom());
+        return { left, top, right - left, bottom - top };
+    }
+
+    /**
+     * @brief Get the intersection rectangle between this rectangle and another rectangle.
+     *
+     * @param other The other rectangle to intersect with.
+     * @return The intersection rectangle. Returns EMPTY_RECT if the two rectangles do not overlap.
+     */
+    WSRectT<T> Intersect(const WSRectT<T>& other) const
+    {
+        const T left = std::max(posX_, other.posX_);
+        const T top = std::max(posY_, other.posY_);
+        const T right = std::min(Right(), other.Right());
+        const T bottom = std::min(Bottom(), other.Bottom());
+        if (LessOrEqual(right, left) || LessOrEqual(bottom, top)) {
+            return EMPTY_RECT;
+        }
+        return { left, top, right - left, bottom - top };
+    }
+
+    /**
+     * @brief Check whether this rectangle overlaps with another rectangle.
+     *
+     * @param other The rectangle to test against.
+     * @return true if the two rectangles overlap, false otherwise.
+     */
+    bool IsOverlap(const WSRectT<T>& other) const
+    {
+        return Intersect(other).HasValidSize();
+    }
+
+    /**
      * @brief Compute the intersection area with another rectangle.
      *
      * @tparam F The result type for intersection area calculation.
@@ -755,13 +1002,88 @@ struct WSRectT {
     template<typename F = T>
     F IntersectionArea(const WSRectT<T>& other) const
     {
-        const T left = std::max(posX_, other.posX_);
-        const T top = std::max(posY_, other.posY_);
-        const T right = std::min(posX_ + width_, other.posX_ + other.width_);
-        const T bottom = std::min(posY_ + height_, other.posY_ + other.height_);
-        const T interWidth = std::max(static_cast<T>(0), right - left);
-        const T interHeight = std::max(static_cast<T>(0), bottom - top);
-        return static_cast<F>(interWidth) * static_cast<F>(interHeight);
+        return Intersect(other).template Area<F>();
+    }
+
+    /**
+     * @brief Compare if size is equal, check only width and height
+     *
+     * @param other The other rectangle to intersect with.
+     * @return bool Whether the size is equal
+     */
+    bool IsSizeEqual(const WSRectT<T>& other) const
+    {
+        return width_ == other.width_ && height_ == other.height_;
+    }
+
+    /**
+     * @brief Check whether the size of this rectangle exceeds the size of another rectangle.
+     *
+     * @param bounds The rectangle to compare against.
+     * @return true if this rectangle's width or height exceeds the corresponding
+     *         dimension of bounds, false otherwise.
+     */
+    bool ExceedsSizeOf(const WSRectT<T>& bounds) const
+    {
+        return GreaterThan(width_, bounds.width_) || GreaterThan(height_, bounds.height_);
+    }
+
+    /**
+     * @brief Check whether the rectangle is fully inside another rectangle.
+     *
+     * @param outer The rectangle to check against.
+     * @return true if this rectangle is fully inside the outer rectangle, false otherwise.
+     */
+    bool IsInside(const WSRectT<T>& outer) const
+    {
+        return GreatOrEqual(posX_, outer.posX_) &&
+               GreatOrEqual(posY_, outer.posY_) &&
+               LessOrEqual(Right(), outer.Right()) &&
+               LessOrEqual(Bottom(), outer.Bottom());
+    }
+
+    /**
+     * @brief Get the relative position of this rect to another rect.
+     *
+     * The result is determined by comparing the outer boundaries of the two rects:
+     * - If this rect overlaps other, returns OVERLAP.
+     * - If this rect is entirely on one side of other, returns the corresponding direction.
+     * - If this rect is positioned diagonally relative to other, returns a corner direction.
+     *
+     * @param other The target rect used for comparison.
+     * @return The relative position of this rect to other.
+     */
+    RectRelativePosition RelativeTo(const WSRectT<T>& other) const
+    {
+        const bool isLeft = LessOrEqual(Right(), other.posX_);
+        const bool isRight = GreaterOrEqual(posX_, other.Right());
+        const bool isTop = LessOrEqual(Bottom(), other.posY_);
+        const bool isBottom = GreaterOrEqual(posY_, other.Bottom());
+        if (!isLeft && !isRight && !isTop && !isBottom) {
+            return RectRelativePosition::OVERLAP;
+        }
+        if (isLeft && isTop) {
+            return RectRelativePosition::TOP_LEFT;
+        }
+        if (isRight && isTop) {
+            return RectRelativePosition::TOP_RIGHT;
+        }
+        if (isLeft && isBottom) {
+            return RectRelativePosition::BOTTOM_LEFT;
+        }
+        if (isRight && isBottom) {
+            return RectRelativePosition::BOTTOM_RIGHT;
+        }
+        if (isLeft) {
+            return RectRelativePosition::LEFT;
+        }
+        if (isRight) {
+            return RectRelativePosition::RIGHT;
+        }
+        if (isTop) {
+            return RectRelativePosition::TOP;
+        }
+        return RectRelativePosition::BOTTOM;
     }
 
     /**
@@ -889,6 +1211,33 @@ struct WindowAnimationInfo {
     bool isGravityChanged { false };
 };
 
+/**
+ * @brief Calling Window State
+ */
+enum class CallingWindowState : int32_t {
+    WINDOW_IN_NORMAL = 0,
+    WINDOW_IN_AI = 1
+};
+
+struct KeyboardBaseInfo {
+    uint32_t callingId { 0 };
+    bool isGravityChanged { false };
+    bool isKeyboardShow { false };
+    WSRect keyboardPanelRect { 0, 0, 0, 0 };
+};
+
+struct KeyboardAnimationRectConfig {
+    WSRect beginRect { 0, 0, 0, 0 };
+    WSRect endRect { 0, 0, 0, 0 };
+    bool animated { false };
+};
+
+struct CallingWindowInfoData {
+    CallingWindowState callingWindowState = CallingWindowState::WINDOW_IN_NORMAL;
+    double scaleX = 1;
+    double scaleY = 1;
+};
+
 struct WindowShadowConfig {
     float offsetX_ = 0.0f;
     float offsetY_ = 0.0f;
@@ -987,6 +1336,7 @@ struct WindowImmersive {
 
 struct AppWindowSceneConfig {
     float floatCornerRadius_ = 0.0f;
+    std::string uiType_ = "phone";
     std::string multiWindowUIType_ = "HandsetSmartWindow";
     bool backgroundScreenLock_ = false;
     std::string rotationMode_ = "windowRotation";
@@ -1000,6 +1350,7 @@ struct AppWindowSceneConfig {
     StartingWindowAnimationConfig startingWindowAnimationConfig_;
     SystemUIStatusBarConfig systemUIStatusBarConfig_;
     WindowImmersive windowImmersive_;
+    std::string deviceType_ = "unknown";
 };
 
 struct SingleHandCompatibleModeConfig {
@@ -1010,10 +1361,32 @@ struct SingleHandCompatibleModeConfig {
 };
 
 struct SingleHandScreenInfo {
-    int32_t scaleRatio = DEFAULT_SCALE_RATIO;
+    float scaleRatio = DEFAULT_SCALE_RATIO;
     int32_t scalePivotX = 0;
     int32_t scalePivotY = 0;
     SingleHandMode mode = SingleHandMode::MIDDLE;
+};
+
+struct SingleHandBackgroundTextConfig {
+    int32_t posX = 0;
+    int32_t posY = 0;
+    int32_t width = -1;
+    int32_t height = -1;
+    int32_t fontSize = 0;
+    int32_t minFontSize = 0;
+    int32_t maxLines = -1;
+    int32_t textAlign = 1;
+    std::string maxFontScale = "";
+};
+
+struct SingleHandBackgroundLayoutConfig {
+    bool isCustomLayout = false;
+    WSRect settingButtonRect = {0, 0, 0, 0};
+    bool isSettingButtonMirror = false;
+    int32_t textContainerWidth = 0;
+    SingleHandBackgroundTextConfig title;
+    SingleHandBackgroundTextConfig content;
+    SingleHandBackgroundTextConfig issueText;
 };
 
 struct DeviceScreenConfig {
@@ -1106,10 +1479,18 @@ struct SessionEventParam {
     int32_t sessionHeight_ = 0;
     uint32_t dragResizeType = 0;
     uint32_t gravity = 0;
+    uint32_t dragGravity = 0;
     uint32_t waterfallResidentState = 0;
     uint32_t compatibleStyleMode = 0;
     int32_t windowGlobalPosX_ = 0;
     int32_t windowGlobalPosY_ = 0;
+    uint32_t titleButtonEventType_ = 0;
+    SnapshotAnimationConfig snapshotAnimationConfig_;
+
+    // --- Start moving options ---
+    bool needFocused = true;
+    WSRect avoidRect = WSRect::EMPTY_RECT;
+    // ----------------------------
 };
 
 struct BackgroundParams {
@@ -1141,14 +1522,6 @@ enum class TerminateType : uint32_t {
     CLOSE_AND_CLEAR_MULTITASK,
     CLOSE_AND_START_CALLER,
     CLOSE_BY_EXCEPTION,
-};
-
-/**
- * @brief window expand flag.
- */
-enum class ExpandInputFlag : uint32_t {
-    EXPAND_INPUT_FLAG_DEFAULT = 0,
-    WINDOW_DISABLE_USER_ACTION = 1 << 2,
 };
 
 /**
@@ -1188,6 +1561,8 @@ struct SessionUIParam {
     WSRect rect_;
     float scaleX_ { 1.0f };
     float scaleY_ { 1.0f };
+    float rsScaleX_ { 1.0f };
+    float rsScaleY_ { 1.0f };
     float pivotX_ { 1.0f };
     float pivotY_ { 1.0f };
     float transX_ { 0.0f }; // global translateX
@@ -1223,6 +1598,7 @@ enum class SessionPropertyFlag {
     FLOATING_SCALE = 1 << 8,
     MID_SCENE = 1 << 9,
     WINDOW_GLOBAL_RECT = 1 << 10,
+    WINDOW_MODE_INFO = 1 << 11,
 };
 
 /**
@@ -1254,12 +1630,9 @@ enum class SnapshotNodeType : uint32_t {
 
 enum class SnapShotRecoverType : uint32_t {
     ROTATE = 0,
-    EXIT_SPLIT_ON_BACKGROUND,
+    EXIT_SPLIT_ON_BACKGROUND = 1,
 };
 
-/**
- * Adding or modifying enumeration values requires corresponding changes on the sceneboard side.
- */
 enum class LifeCycleChangeReason {
     DEFAULT = 0,
 
@@ -1279,9 +1652,19 @@ enum class LifeCycleChangeReason {
      */
     QUICK_BATCH_BACKGROUND,
 
-    SCREEN_ROTATION,
+    GAME_PRELAUNCH_BACKGROUND,
 
     REASON_END,
+};
+
+enum class ParentLifeCycleEvent : uint32_t {
+    FOREGROUND = 1,
+    ACTIVE,
+    INACTIVE,
+    BACKGROUND,
+    RESUMED,
+    PAUSED,
+    DESTROYED,
 };
 
 enum class AsyncTraceTaskId: int32_t {
@@ -1337,11 +1720,6 @@ enum class CrossPlaneState : uint32_t {
     CROSS_ALL_PLANE,
 };
 
-enum class SendTouchAction : uint32_t {
-    ACTION_NORMAL = 0,
-    ACTION_NOT_RECEIVE_PULL_CANCEL = 1,
-};
-
 /**
  * @brief Sidebar blur type
  */
@@ -1351,6 +1729,78 @@ enum class SidebarBlurType : uint32_t {
     DEFAULT_FLOAT,
     DEFAULT_MAXIMIZE,
     END,
+};
+
+struct PreWindowProperty {
+    uint32_t rotation = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+
+    PreWindowProperty() {}
+
+    PreWindowProperty(uint32_t rotation, uint32_t width, uint32_t height)
+    {
+        this->rotation = rotation;
+        this->width = width;
+        this->height = height;
+    }
+};
+
+/**
+ * @brief Context for prelayout during window creation.
+ *
+ * Provides expected window and display parameters to improve the
+ * initial layout and rendering effect.
+ */
+struct PrelayoutContext {
+    /**
+     * @brief Whether prelayout is enabled.
+     */
+    bool enable = false;
+
+    /**
+     * @brief Target window rectangle used in prelayout.
+     */
+    WSRect winRect = WSRect::EMPTY_RECT;
+
+    /**
+     * @brief Target display parameters used in prelayout.
+     */
+    struct DisplayInfo {
+        /**
+         * @brief Display width in pixels.
+         */
+        uint32_t width = 0;
+
+        /**
+         * @brief Display height in pixels.
+         */
+        uint32_t height = 0;
+
+        /**
+         * @brief Display density (pixel ratio).
+         *
+         * Default is 1.0 to avoid invalid scaling or division-by-zero issues.
+         */
+        float density = 1.0f;
+
+        /**
+         * @brief Display rotation in degrees.
+         *
+         * Expected values: 0, 90, 180, 270 (360 is equivalent to 0).
+         */
+        uint32_t rotation = 0;
+    } display;
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "enable: " << enable
+            << ", winRect: " << winRect.ToString()
+            << ", display: " << display.width << ", " << display.height
+            << ", " << display.density << ", " << display.rotation;
+        return oss.str();
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_WS_COMMON_H

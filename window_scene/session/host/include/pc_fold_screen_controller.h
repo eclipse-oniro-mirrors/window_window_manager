@@ -59,6 +59,7 @@ public:
     void UnregisterFullScreenWaterfallModeChangeCallback();
     void UpdateSupportEnterWaterfallMode();
     void MaskSupportEnterWaterfallMode();
+    void UpdateSupportEnterWaterfallMode(bool isSupportEnterWaterfallMode);
 
 private:
     int32_t GetPersistentId() const;

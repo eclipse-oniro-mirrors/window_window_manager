@@ -90,6 +90,8 @@ public:
 
     void AddMirrorVirtualScreenIds(const std::vector<ScreenId>& screenIds, const DMRect& rect);
     void ClearMirrorVirtualScreenIds(const std::vector<ScreenId>& screenIds);
+    void HandleSuperFoldDisplayInServer(sptr<ScreenSession>& screenSession,
+        SuperFoldStatusChangeEvents changeEvent);
 
 private:
     std::atomic<SuperFoldStatus> curState_ = SuperFoldStatus::UNKNOWN;
@@ -143,8 +145,6 @@ private:
     void HandleKeyboardOffDisplayNotifyInServer(sptr<ScreenSession>& screenSession);
     void HandleSystemKeyboardStatusDisplayNotifyInServer(sptr<ScreenSession>& screenSession,
         bool isTpKeyboardOn = false);
-    void HandleSuperFoldDisplayInServer(sptr<ScreenSession>& screenSession,
-        SuperFoldStatusChangeEvents changeEvent);
 
     static bool ChangeScreenState(bool toHalf);
     int32_t GetCurrentValidHeight(sptr<ScreenSession> screenSession);

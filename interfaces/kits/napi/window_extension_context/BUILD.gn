@@ -41,6 +41,7 @@ ohos_shared_library("windowextensioncontext_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "window_extension_context_module.cpp" ]
 

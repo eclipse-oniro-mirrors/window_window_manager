@@ -62,9 +62,11 @@ public:
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
     virtual std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const override;
     virtual Rect GetRect() const override;
+    virtual Rect GetRect(bool useHookedSize) const override;
     virtual Rect GetRequestRect() const override;
     virtual WindowType GetType() const override;
     virtual WindowMode GetWindowMode() const override;
+    virtual WindowMode GetWindowModeCompat() const override;
     virtual float GetAlpha() const override;
     virtual WindowState GetWindowState() const override;
     virtual WMError SetFocusable(bool isFocusable) override;
@@ -89,8 +91,7 @@ public:
     virtual WMError SetWindowFlags(uint32_t flags) override;
     virtual WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property) override;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) override;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) override;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) override;
     WMError UpdateSystemBarPropertyForPage(WindowType type,
         const SystemBarProperty& systemBarProperty, const SystemBarPropertyFlag& systemBarPropertyFlag) override;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) override;
@@ -113,8 +114,7 @@ public:
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
-    virtual WMError Resize(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+    virtual WMError Resize(uint32_t width, uint32_t height) override;
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) override;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) override;
     virtual bool IsKeepScreenOn() const override;
@@ -156,6 +156,8 @@ public:
 
     virtual WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) override;
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
     virtual WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) override;
@@ -188,7 +190,6 @@ public:
     virtual void UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
     void UpdateConfigurationForSpecified(const std::shared_ptr<AppExecFwk::Configuration>& configuration,
         const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager) override;
-    void UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;
     void NotifyTouchDialogTarget(int32_t posX = 0, int32_t posY = 0) override;
     WMError SetUIContentByName(const std::string& contentInfo, napi_env env, napi_value storage,
         AppExecFwk::Ability* ability) override;
@@ -248,9 +249,6 @@ public:
     virtual WMError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
     virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
     virtual void SetTouchEvent(int32_t touchType) override;
-    virtual WMError UpdateSystemBarProperty(bool status);
-    virtual WMError SetImmersiveModeEnabledState(bool enable) override;
-    virtual bool GetImmersiveModeEnabledState() const override;
 
     /*
      * Window Property
@@ -258,6 +256,22 @@ public:
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
     void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
     uint32_t GetApiTargetVersion() const;
+
+    /*
+     * Window Immersive
+     */
+    void UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;
+    virtual WMError UpdateSystemBarProperty(bool status);
+    WMError SetImmersiveModeEnabledState(bool enable) override;
+    bool GetImmersiveModeEnabledState() const override;
+    WMError SetFloatNavigationAvoidAreaEnabled(bool enable) override;
+    WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const override;
+
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIContext> GetRSUIContext() const override;
+    std::shared_ptr<RSUIDirector> GetRSUIDirector() const override { return rsUIDirector_; }
 
 private:
     static sptr<Window> FindWindowById(uint32_t windowId);
@@ -344,6 +358,12 @@ private:
         { AvoidAreaType::TYPE_KEYBOARD,             new AvoidArea() },
         { AvoidAreaType::TYPE_NAVIGATION_INDICATOR, new AvoidArea() },
     };
+    std::atomic<bool> floatNavigationAvoidAreaEnabled_ = false;
+
+    /*
+     * RS Client Multi Instance
+     */
+    std::shared_ptr<RSUIDirector> rsUIDirector_;
 };
 } // namespace Rosen
 } // namespace OHOS

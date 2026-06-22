@@ -19,12 +19,15 @@ ws_unittest_common = "../:ws_unittest_common"
 
 group("unittest") {
   testonly = true
-  deps = [ ":window_immersive_avoid_area_test" ]
+  deps = [ ":window_scene_immersive_test" ]
 }
 
-ohos_unittest("window_immersive_avoid_area_test") {
+ohos_unittest("window_scene_immersive_test") {
   module_out_path = module_out_path
-  sources = [ "window_immersive_avoid_area_test.cpp" ]
+  sources = [
+    "scene_session_immersive_test.cpp",
+    "scene_session_manager_immersive_test.cpp"
+  ]
   cflags_cc = [ "-Wno-thread-safety" ]
   deps = [ ws_unittest_common ]
   external_deps = [

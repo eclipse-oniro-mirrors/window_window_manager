@@ -23,11 +23,12 @@
 #include <map>
 #include <mutex>
 #include <sstream>
+
+#include "wm_common.h"
 #include "wm_single_instance.h"
 
 namespace OHOS {
 namespace Rosen {
-
 enum class WindowDFXHelperType : uint32_t {
     WINDOW_RECT_CHECK = 1,
     WINDOW_ZORDER_CHECK,
@@ -39,6 +40,11 @@ enum class WindowDFXHelperType : uint32_t {
     WINDOW_UIEXTENSION_START_ABILITY_FAIL,
     WINDOW_FLUSH_EMPTY_DISPLAY_INFO_TO_MMI_EXCEPTION,
     WINDOW_CREATE_SUB_WINDOW_FAILED,
+    WINDOW_UNEXPECTED_EVENT_CHECK,
+    WINDOW_UICONTENT_TIMEOUT_CHECK,
+    WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK,
+    WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK,
+    WINDOW_WALLPAPER_ZORDER_CHECK,
 };
 
 struct WindowProfileInfo {
@@ -53,6 +59,10 @@ struct WindowProfileInfo {
 enum class KeyboardLifeCycleException {
     ANIM_SYNC_EXCEPTION,
     CREATE_EXCEPTION,
+    SHOW_EXCEPTION,
+    HOT_AREA_EXCEPTION,
+    PANEL_AVOID_HEIGHT_EXCEPTION,
+    MOVE_DRAG_EXCEPTION,
 };
 
 static constexpr size_t WINDOW_PROFILE_STATISTIC_SIZE = 50;
@@ -81,6 +91,17 @@ struct WindowLifeCycleReportInfo {
     }
 };
 
+struct PrivacyWindowSnapshotInfo {
+    std::string bundleName = "";
+    std::string abilityName = "";
+    int32_t windowId = INVALID_WINDOW_ID;
+    WindowType windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    WindowMode windowMode = WindowMode::WINDOW_MODE_UNDEFINED;
+    Rect rect;
+    int32_t errorCode = 0;
+    std::string errorMsg = "";
+};
+
 class PerformReporter {
 public:
     PerformReporter(const std::string& tag, const std::vector<int64_t>& timeSpiltsMs, uint32_t reportInterval = 50);
@@ -105,6 +126,8 @@ private:
 using FullInfoMap = std::map<std::string, std::map<std::string, uint32_t>>;
 // the map form : <bundleName, count>
 using BundleNameMap = std::map<std::string, uint32_t>;
+// This defines a duration whose period is one day, using long long as the underlying representation.
+using days = std::chrono::duration<long long, std::ratio<86400>>; // 86400 represents the number of seconds in a day
 class WindowInfoReporter {
 WM_DECLARE_SINGLE_INSTANCE(WindowInfoReporter);
 
@@ -133,7 +156,11 @@ public:
     int32_t ReportSpecWindowLifeCycleChange(WindowLifeCycleReportInfo reportInfo);
 
     // IO record
-    void ReportWindowIO(const std::string& scenes, const std::string& subScene, double sizeKB);
+    void ReportWindowIO(const std::string& subScene, double sizeKB);
+
+    // Window frozen check
+    void ReportWindowFrozen(WindowDFXHelperType detectionType, const std::string& windowInfo);
+    static bool IsKeyboardFrozenEnabled();
 
 private:
     void UpdateReportInfo(FullInfoMap& infoMap, const std::string& bundleName,
@@ -159,9 +186,10 @@ private:
 
     // IO record
     std::mutex reportWindowIOMutex_;
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> ioRecordMap_;
+    std::unordered_map<std::string, double> ioRecordMap_;
     bool firstIOTimeInitialized_ = false;
-    std::chrono::steady_clock::time_point firstIOTime_;
+    std::chrono::time_point<std::chrono::system_clock, days> firstIODayTime_;
+    std::chrono::time_point<std::chrono::system_clock> firstIOSecondTime_;
 };
 }
 }

@@ -28,7 +28,6 @@ ohos_unittest("window_scene_user_switch_test") {
   sources = [
     "scene_session_manager_test.cpp",
     "scene_session_test.cpp",
-    "session_manager_lite_test.cpp",
     "session_manager_test.cpp",
     "user_switch_reporter_test.cpp",
   ]

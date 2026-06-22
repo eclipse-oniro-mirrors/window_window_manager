@@ -27,12 +27,6 @@
 
 namespace OHOS {
 namespace Rosen {
-#if (defined(__aarch64__) || defined(__x86_64__))
-const std::string PLUGIN_SO_PATH = "/system/lib64/platformsdk/libmotion_agent.z.so";
-#else
-const std::string PLUGIN_SO_PATH = "/system/lib/platformsdk/libmotion_agent.z.so";
-#endif
-
 typedef struct MotionSensorEvent {
     int32_t type = -1;
     int32_t status = -1;

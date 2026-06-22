@@ -26,11 +26,12 @@ ohos_shared_library("libwsutils") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "src/scene_board_judgement.cpp" ]
 
   public_configs = [ ":libwsutils_public_config" ]
-
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

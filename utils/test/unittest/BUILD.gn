@@ -49,21 +49,27 @@ group("unittest") {
       ":utils_surface_draw_test",
     ]
   }
+  if (window_manager_use_sceneboard) {
+    deps += [
+      ":utils_load_mmi_client_adapter_test",
+    ]
+  }
 }
 
 test_external_deps = [
   "ability_base:configuration",
+  "ability_runtime:wantagent_innerkits",
   "c_utils:utils",
+  "ffrt:libffrt",
   "googletest:gmock",
   "googletest:gtest",
   "googletest:gtest_main",
   "graphic_2d:librender_service_base",
   "graphic_2d:librender_service_client",
   "hilog:libhilog",
-  "preferences:native_preferences",
   "init:libbegetutil",
-  "time_service:time_client",
-  "ability_runtime:wantagent_innerkits",
+  "input:libmmi-client",
+  "preferences:native_preferences",
 ]
 
 ohos_unittest("utils_task_sequence_process_test") {
@@ -359,6 +365,16 @@ ohos_unittest("utils_dms_global_mutex_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("utils_load_mmi_client_adapter_test") {
+  module_out_path = module_out_path
+
+  sources = [ "load_mmi_client_adapter_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
 ## Build dm_unittest_common.a {{{
 config("utils_unittest_common_public_config") {
   include_dirs = [
@@ -370,6 +386,7 @@ config("utils_unittest_common_public_config") {
     "../../../wm/include",
     "../../../dm/include",
     "${dmserver_gen_path}",
+    "${window_base_path}/window_scene/common/include",
   ]
 }
 
@@ -383,9 +400,9 @@ ohos_static_library("utils_unittest_common") {
     "../../../resources/config/build:testcase_flags",
   ]
 
-  public_deps = [
+  deps = [
     "${window_base_path}/dm:libdm",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/wm:libwm",
   ]

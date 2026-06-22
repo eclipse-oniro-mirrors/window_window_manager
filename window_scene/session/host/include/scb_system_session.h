@@ -21,17 +21,18 @@
 namespace OHOS::Rosen {
 class SCBSystemSession : public SceneSession {
 public:
-    SCBSystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
-        int32_t userId = 0);
+    SCBSystemSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~SCBSystemSession();
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
 
     WSError NotifyClientToUpdateRect(const std::string& updateReason,
-        std::shared_ptr<RSTransaction> rsTransaction) override;
+                                     std::optional<WSRect> updateRect,
+                                     std::shared_ptr<RSTransaction> rsTransaction) override;
+
     void PresentFocusIfPointDown() override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
     WSError UpdateFocus(bool isFocused) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError SetSystemSceneBlockingFocus(bool blocking) override;
     void BindKeyboardSession(sptr<SceneSession> session) override;
     sptr<SceneSession> GetKeyboardSession() const override;
@@ -47,18 +48,21 @@ public:
      */
     bool GetIsUseControlSession() const override;
     void SetIsUseControlSession(bool isUseControlSession) override;
+    int32_t GetMainWindowPersistentId() const override;
+    void SetMainWindowPersistentId(int32_t mainWindowPersistentId) override;
 
 protected:
     void UpdatePointerArea(const WSRect& rect) override;
     void NotifyClientToUpdateAvoidArea() override;
 
 private:
-    bool isNeedSyncGlobalPos_ = true; // can only accessed in main thread
+    bool isNeedSyncGlobalPos_ = true; // only accessed in main thread
 
     /*
      * App Use Control
      */
     bool isUseControlSession_ = false; // Indicates whether the session is used for controlling a main session.
+    int32_t mainWindowPersistentId_ = INVALID_SESSION_ID;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SCB_SYSTEM_SESSION_H

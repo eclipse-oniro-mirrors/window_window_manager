@@ -33,6 +33,7 @@
 #include "interop_js/hybridgref_napi.h"
 #include "js_window_stage.h"
 #include "ani_extension_window_config.h"
+#include "window_histogram_management.h"
 
 using OHOS::Rosen::WindowScene;
 using namespace OHOS::Rosen;
@@ -44,10 +45,11 @@ static ani_object WindowStageCreate(ani_env* env, ani_long scene)
 
 static ani_ref WindowGetMainWindow(ani_env* env, ani_object obj, ani_long nativeObj)
 {
-    TLOGD(WmsLogTag::DEFAULT, "[ANI]");
+    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindowStage* windowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
-    if (windowStage == nullptr || windowStage->GetWindowScene().lock() == nullptr) {
-        TLOGD(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+    if (windowStage == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     return windowStage->GetMainWindow(env);
@@ -57,8 +59,9 @@ static ani_ref CreateSubWindow(ani_env* env, ani_object obj, ani_long nativeObj,
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindowStage* windowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
-    if (windowStage == nullptr || windowStage->GetWindowScene().lock() == nullptr) {
-        TLOGD(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+    if (windowStage == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowStage is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     return windowStage->OnCreateSubWindow(env, name);
@@ -73,6 +76,13 @@ std::array g_methods = {
     ani_native_function {"loadContentByNameSync",
         "lC{std.core.String}C{arkui.stateManagement.storage.localStorage.LocalStorage}:",
         reinterpret_cast<void *>(AniWindowStage::LoadContentByName)},
+    ani_native_function {"getSubWindowSync", "l:C{std.core.Array}",
+        reinterpret_cast<void *>(AniWindowStage::GetSubWindow)},
+    ani_native_function {"createSubWindowWithOptionsSync",
+        "lC{std.core.String}C{@ohos.window.window.SubWindowOptions}:C{@ohos.window.window.Window}",
+        reinterpret_cast<void *>(AniWindowStage::CreateSubWindowWithOptions)},
+    ani_native_function {"releaseUIContentSync", nullptr,
+        reinterpret_cast<void *>(AniWindowStage::ReleaseUIContent)},
     ani_native_function {"disableWindowDecorSync", nullptr,
         reinterpret_cast<void *>(AniWindowStage::DisableWindowDecor)},
     ani_native_function {"setWindowRectAutoSave", "lzz:",
@@ -87,11 +97,6 @@ std::array g_methods = {
         reinterpret_cast<void *>(WindowGetMainWindow)},
     ani_native_function {"createSubWindowSync", "lC{std.core.String}:C{@ohos.window.window.Window}",
         reinterpret_cast<void *>(CreateSubWindow)},
-    ani_native_function {"getSubWindowSync", "l:C{std.core.Array}",
-        reinterpret_cast<void *>(AniWindowStage::GetSubWindow)},
-    ani_native_function {"createSubWindowWithOptionsSync",
-        "lC{std.core.String}C{@ohos.window.window.SubWindowOptions}:C{@ohos.window.window.Window}",
-        reinterpret_cast<void *>(AniWindowStage::CreateSubWindowWithOptions)},
     ani_native_function {"onSync", nullptr,
         reinterpret_cast<void *>(AniWindowStage::RegisterWindowCallback)},
     ani_native_function {"offSync", nullptr,
@@ -143,6 +148,7 @@ std::array g_functions = {
 
 ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
 {
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] ANI_Constructor start!");
     ani_status ret;
     ani_env* env;
     if ((ret = vm->GetEnv(ANI_VERSION_1, &env)) != ANI_OK) {
@@ -188,6 +194,7 @@ ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
     OHOS::Rosen::ANI_Transition_Controller_Constructor(vm, result);
     OHOS::Rosen::ANI_Window_Constructor(vm, result);
     ExtensionWindowConfig_ANI_Constructor(vm, result);
+    TLOGI(WmsLogTag::DEFAULT, "[ANI] ANI_Constructor end!");
     return ANI_OK;
 }
 }

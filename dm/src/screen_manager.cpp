@@ -22,7 +22,9 @@
 
 #include "display_manager_adapter.h"
 #include "display_manager_agent_default.h"
+#include "ipc_skeleton.h"
 #include "string_util.h"
+#include "sys_cap_util.h"
 #include "permission.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
@@ -31,6 +33,8 @@ namespace OHOS::Rosen {
 namespace {
 const static uint32_t MAX_SCREEN_SIZE = 32;
 const static uint32_t DLCLOSE_TIMEOUT = 300000;
+constexpr int32_t MIN_VIRTUAL_SCREEN_ID = 500;
+constexpr int32_t MAX_VIRTUAL_SCREEN_ID = 900;
 }
 class ScreenManager::Impl : public RefBase {
 public:
@@ -54,6 +58,8 @@ public:
     DMError UnregisterDisplayManagerAgent();
     void OnRemoteDied();
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
+    DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+        uint32_t renderWidth = 0, uint32_t renderHeight = 0);
 
 private:
     void NotifyScreenConnect(sptr<ScreenInfo> info);
@@ -76,7 +82,7 @@ private:
     std::set<sptr<IVirtualScreenGroupListener>> virtualScreenGroupListeners_;
     std::set<sptr<IRecordDisplayListener>> recordDisplayListeners_;
     sptr<IDisplayManagerAgent> virtualScreenAgent_ = nullptr;
-    std::mutex virtualScreenAgentMutex_;
+    std::recursive_mutex virtualScreenAgentMutex_;
 };
 
 class ScreenManager::Impl::ScreenManagerListener : public DisplayManagerAgentDefault {
@@ -587,6 +593,18 @@ DMError ScreenManager::MakeMirrorForRecord(const std::vector<ScreenId>& mainScre
     return ret;
 }
 
+DMError ScreenManager::QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect)
+{
+    if (displayIdList.empty()) {
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    std::string displayIdListStr = "";
+    if (StringUtil::VectorToString(displayIdList, displayIdListStr)) {
+        TLOGI(WmsLogTag::DMS, "display id list: %{public}s", displayIdListStr.c_str());
+    }
+    return SingletonContainer::Get<ScreenManagerAdapter>().QueryMultiScreenCapture(displayIdList, rect);
+}
+
 DMError ScreenManager::MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, DMRect mainScreenRegion,
     ScreenId& screenGroupId)
 {
@@ -700,10 +718,22 @@ ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option)
 
 ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
 {
-    //  After the process creating the virtual screen is killed, DMS needs to delete the virtual screen
-    std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
-    if (virtualScreenAgent_ == nullptr) {
-        virtualScreenAgent_ = new DisplayManagerAgentDefault();
+    if (option.screenId_ != -1) {
+        if (option.screenId_ < MIN_VIRTUAL_SCREEN_ID || option.screenId_ > MAX_VIRTUAL_SCREEN_ID) {
+            TLOGE(WmsLogTag::DMS, "screenId_ %{public}d is out of range [%{public}d, %{public}d]",
+                option.screenId_, MIN_VIRTUAL_SCREEN_ID, MAX_VIRTUAL_SCREEN_ID);
+            return SCREEN_ID_INVALID;
+        }
+    }
+    {
+        //  After the process creating the virtual screen is killed, DMS needs to delete the virtual screen
+        std::lock_guard<std::recursive_mutex> agentLock(virtualScreenAgentMutex_);
+        if (virtualScreenAgent_ == nullptr) {
+            virtualScreenAgent_ = new DisplayManagerAgentDefault();
+        }
+    }
+    if (option.caller_ == VirtualScreenCaller::UNKNOWN) {
+        option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
     }
     return SingletonContainer::Get<ScreenManagerAdapter>().CreateVirtualScreen(option, virtualScreenAgent_);
 }
@@ -716,6 +746,16 @@ DMError ScreenManager::DestroyVirtualScreen(ScreenId screenId, bool isCallingByT
 DMError ScreenManager::SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)
 {
     return SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualScreenSurface(screenId, surface);
+}
+
+DMError ScreenManager::AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion)
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+}
+
+DMError ScreenManager::RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenSurface(screenId, surface);
 }
 
 DMError ScreenManager::AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds)
@@ -739,9 +779,19 @@ DMError ScreenManager::SetVirtualMirrorScreenCanvasRotation(ScreenId screenId, b
     return SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualMirrorScreenCanvasRotation(screenId, rotation);
 }
 
-DMError ScreenManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height)
+DMError ScreenManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
 {
-    return SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(screenId, width, height);
+    TLOGI(WmsLogTag::DMS, "BoundName: %{public}s, pid: %{public}d", SysCapUtil::GetBundleName().c_str(),
+        IPCSkeleton::GetCallingPid());
+    return pImpl_->ResizeVirtualScreen(screenId, width, height, renderWidth, renderHeight);
+}
+
+DMError ScreenManager::Impl::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
+    uint32_t renderWidth, uint32_t renderHeight)
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(screenId, width, height,
+        renderWidth, renderHeight);
 }
 
 DMError ScreenManager::SetVirtualMirrorScreenScaleMode(ScreenId screenId, ScreenScaleMode scaleMode)
@@ -877,7 +927,7 @@ void ScreenManager::Impl::OnRemoteDied()
 {
     TLOGD(WmsLogTag::DMS, "dms is died");
     {
-        std::lock_guard<std::mutex> agentLock(virtualScreenAgentMutex_);
+        std::lock_guard<std::recursive_mutex> agentLock(virtualScreenAgentMutex_);
         virtualScreenAgent_ = nullptr;
     }
 

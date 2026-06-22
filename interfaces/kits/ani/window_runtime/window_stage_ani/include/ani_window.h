@@ -31,10 +31,18 @@ namespace Rosen {
 #define WINDOW_EXPORT __attribute__((visibility("default")))
 #endif
 
+struct WindowMaskWithAlphaParseParams {
+    ani_int rawMaskWidth = 0;
+    ani_int rawMaskHeight = 0;
+    void* maskData = nullptr;
+    ani_size byteLength = 0;
+    uint32_t maskWidth = 0;
+    uint32_t maskHeight = 0;
+};
 
 class AniWindow {
 public:
-    explicit AniWindow(const sptr<Window>& window);
+    explicit AniWindow(const sptr<Window>& window, ani_vm* vm);
     explicit AniWindow(const std::shared_ptr<OHOS::Rosen::Window>& window);
     ~AniWindow();
     sptr<Window> GetWindow() { return windowToken_; }
@@ -47,15 +55,17 @@ public:
 
     /* window obj stored in ANI */
     static AniWindow* GetWindowObjectFromEnv(ani_env* env, ani_object obj);
-    static void ThrowIfWindowInvalid(ani_env* env, ani_object obj, ani_long nativeObj);
 
     static void SetWindowColorSpace(ani_env* env, ani_object obj, ani_long nativeObj, ani_int colorSpace);
     static void SetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj, ani_int orientation);
+    static void SetPreferredOrientationWithResult(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_int orientation, ani_int promiseId);
     static ani_int GetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_int ConvertOrientationAndRotation(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_int from, ani_int to, ani_int value);
     static void SetWindowPrivacyMode(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isPrivacyMode);
-    static void Recover(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void Recover(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object snapshotAnimationConfig);
     static void SetUIContent(ani_env* env, ani_object obj, ani_long nativeObj, ani_string path);
     static void SetWindowKeepScreenOn(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isKeepScreenOn);
     static void SetWaterMarkFlag(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enable);
@@ -84,6 +94,9 @@ public:
     static void SetWindowTouchable(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isTouchable);
     static void SetDialogBackGestureEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
     static void SetWindowMask(ani_env* env, ani_object obj, ani_long nativeObj, ani_array windowMask);
+    static void SetWindowMaskWithAlpha(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object windowMask, ani_int maskWidth, ani_int maskHeight);
+    static void ClearWindowMask(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetTouchableAreas(ani_env* env, ani_object obj, ani_long nativeObj, ani_array rects);
     static ani_object GetUIContext(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_object GetWindowAvoidArea(ani_env* env, ani_object obj, ani_long nativeObj, ani_int type);
@@ -111,6 +124,7 @@ public:
     static void BindDialogTarget(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_object argv, ani_ref deathCallback);
     static void DestroyWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void CloseDirectly(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_boolean IsWindowShowing(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_boolean IsWindowHighlighted(ani_env* env, ani_object obj, ani_long nativeObj);
     static void HideWithAnimation(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -134,9 +148,23 @@ public:
     static ani_object CreateAniWindow(ani_env* env, OHOS::sptr<OHOS::Rosen::Window>& window);
     static ani_int GetWindowStatus(ani_env* env, ani_object obj, ani_long nativeObj);
     static void Minimize(ani_env* env, ani_object obj, ani_long nativeObj);
+    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
     static void Maximize(ani_env* env, ani_object obj, ani_long nativeObj,
                          ani_object aniPresentation, ani_object aniAcrossDisplay);
+    static void MaximizeWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
+                         ani_object maximizeOptions);
     static void StartMoving(ani_env* env, ani_object obj, ani_long nativeObj);
+
+    /**
+     * @brief Start moving window with options. The static method used for ANI binding.
+     *
+     * @param env The ANI environment.
+     * @param obj The ANI-ETS window object.
+     * @param nativeObj The ANI-native window object pointer.
+     * @param aniOptions Options to control focus request and avoid region during this movement.
+     */
+    static void StartMovingWithOptions(ani_env* env, ani_object obj, ani_long nativeObj, ani_object aniOptions);
+
     static void StartMoveWindowWithCoordinate(ani_env* env, ani_object obj, ani_long nativeObj,
                                               ani_int offsetX, ani_int offsetY);
     static void StopMoving(ani_env* env, ani_object obj, ani_long nativeObj);
@@ -145,7 +173,10 @@ public:
     static ani_boolean IsInFreeWindowMode(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_string GetWindowStateSnapshot(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetRelativePositionToParentWindowEnabled(ani_env* env, ani_object obj, ani_long nativeObj,
-        ani_boolean enabled, ani_int anchor, ani_int offsetX, ani_int offsetY);
+        ani_boolean enabled, ani_object anchor, ani_int offsetX, ani_int offsetY);
+    static void AttachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object anchorInfo, ani_object attachOptions);
+    static void DetachLayoutToParentWindow(ani_env* env, ani_object obj, ani_long nativeObj);
     static void SetWindowDelayRaiseOnDrag(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean isEnabled);
     static void SetDefaultDensityEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean enabled);
     static void SetWindowContainerColor(ani_env* env, ani_object obj, ani_long nativeObj,
@@ -157,19 +188,24 @@ public:
     static bool IsImmersiveLayout(ani_env* env, ani_object obj, ani_long nativeObj);
     static ani_object GetTransitionController(ani_env* env, ani_object obj, ani_long nativeObj);
     static void KeepKeyboardOnFocus(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean keepKeyboardFlag);
-
     static ani_object CreateSubWindowWithOptions(ani_env* env, ani_object obj, ani_long nativeObj,
         ani_string name, ani_object options);
     static void Hide(ani_env* env, ani_object obj, ani_long nativeObj);
     static void RestoreMainWindow(ani_env* env, ani_object obj, ani_long nativeObj, ani_object wantParameters);
 
+    void SetDecorButtonStyle(ani_env* env, ani_object decorStyle);
+    void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     ani_ref GetParentWindow(ani_env* env);
     void SetParentWindow(ani_env* env, ani_int windowId);
     void SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost);
-    void SetDecorButtonStyle(ani_env* env, ani_object decorStyle);
-    void SetWindowTitleButtonVisible(ani_env* env, ani_object visibleParam);
     void Restore(ani_env* env);
-    void HideWindowFunction(ani_env* env, WmErrorCode errCode);
+
+    /*
+     * Multi Window
+     */
+    static void EnableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+    static void DisableLandscapeMultiWindow(ani_env* env, ani_object obj, ani_long nativeObj);
+
     /*
      * Window Layout
      */
@@ -191,6 +227,8 @@ public:
     ani_object SetSpecificSystemBarEnabled(ani_env* env, ani_string name, ani_boolean enable,
         ani_object enableAnimation);
     ani_object SetDragKeyFramePolicy(ani_env* env, ani_object aniKeyFramePolicy);
+    static void SetSupportedWindowModes(ani_env* env, ani_object obj, ani_long nativeObj,
+        ani_object aniSupportedWindowModes);
     ani_object Snapshot(ani_env* env);
     ani_object SnapshotSync(ani_env* env);
     void HideNonSystemFloatingWindows(ani_env* env, ani_boolean shouldHide);
@@ -209,6 +247,8 @@ public:
     ani_object GetWindowSystemBarProperties(ani_env* env);
     ani_boolean IsGestureBackEnabled(ani_env* env);
     void SetGestureBackEnabled(ani_env* env, ani_boolean enabled);
+    ani_boolean IsFloatNavigationAvoidAreaEnabled(ani_env* env);
+    void SetFloatNavigationAvoidAreaEnabled(ani_env* env, ani_boolean enabled);
     void SetSingleFrameComposerEnabled(ani_env* env, ani_boolean enabled);
     void ResizeAsync(ani_env* env, ani_int width, ani_int height);
     ani_object SetWindowLimits(ani_env* env, ani_object inWindowLimits, ani_object forcible);
@@ -240,10 +280,12 @@ private:
     void OnHide(ani_env* env);
     void OnSetWindowColorSpace(ani_env* env, ani_int colorSpace);
     void OnSetPreferredOrientation(ani_env* env, ani_int orientation);
+    void NotifyOrientationExecutionResultResult(uint32_t promiseId, uint32_t result);
+    void OnSetPreferredOrientationWithResult(ani_env* env, ani_int orientation, ani_int promiseId);
     ani_int OnGetPreferredOrientation(ani_env* env);
     ani_int OnConvertOrientationAndRotation(ani_env* env, ani_int from, ani_int to, ani_int value);
     void OnSetWindowPrivacyMode(ani_env* env, ani_boolean isPrivacyMode);
-    void OnRecover(ani_env* env);
+    void OnRecover(ani_env* env, ani_object snapshotAnimationConfig);
     void OnSetUIContent(ani_env* env, ani_string path);
     void OnSetWindowKeepScreenOn(ani_env* env, ani_boolean isKeepScreenOn);
     void OnSetWaterMarkFlag(ani_env* env, ani_boolean enable);
@@ -268,14 +310,10 @@ private:
     void OnSetWindowTouchable(ani_env* env, ani_boolean isTouchable);
     void OnSetDialogBackGestureEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWindowMask(ani_env* env, ani_array windowMaskArray);
+    void OnSetWindowMaskWithAlpha(ani_env* env, ani_object windowMaskArray, ani_int maskWidth,
+        ani_int maskHeight);
+    void OnClearWindowMask(ani_env* env);
     void OnSetTouchableAreas(ani_env* env, ani_array rects);
-    ani_object OnGetUIContext(ani_env* env);
-    ani_object OnGetWindowAvoidArea(ani_env* env, ani_int type);
-    ani_object OnGetWindowAvoidAreaIgnoringVisibility(ani_env* env, ani_int type);
-    void OnRegisterWindowCallback(ani_env* env, ani_string type, ani_ref callback, ani_long timeout);
-    void OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
-    void OnShowWindow(ani_env* env);
-    void OnShowWindowWithOptions(ani_env* env, ani_object aniShowWindowOptions);
     void OnSetWindowTitle(ani_env* env, ani_string titleName);
     void OnSetTitleButtonVisible(ani_env* env, ani_boolean isMaximizeVisible,
         ani_boolean isMinimizeVisible, ani_boolean isSplitVisible, ani_boolean isCloseVisible);
@@ -285,8 +323,16 @@ private:
     void OnSetTitleAndDockHoverShown(ani_env* env, ani_object isTitleHoverShown, ani_object isDockHoverShown);
     void OnSetHandwritingFlag(ani_env* env, ani_boolean enable);
     ani_boolean OnGetWindowDecorVisible(ani_env* env);
+    ani_object OnGetUIContext(ani_env* env);
+    ani_object OnGetWindowAvoidArea(ani_env* env, ani_int type);
+    ani_object OnGetWindowAvoidAreaIgnoringVisibility(ani_env* env, ani_int type);
+    void OnRegisterWindowCallback(ani_env* env, ani_string type, ani_ref callback, ani_long timeout);
+    void OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_ref callback);
+    void OnShowWindow(ani_env* env);
+    void OnShowWindowWithOptions(ani_env* env, ani_object aniShowWindowOptions);
     void OnBindDialogTarget(ani_env* env, ani_object argv, ani_ref deathCallback);
     void OnDestroyWindow(ani_env* env);
+    void OnCloseDirectly(ani_env* env);
     ani_boolean OnIsWindowShowing(ani_env* env);
     ani_boolean OnIsWindowHighlighted(ani_env* env);
     void OnHideWithAnimation(ani_env* env);
@@ -300,6 +346,8 @@ private:
     static bool ParseScaleOption(ani_env* env, ani_object scaleOptions, Transform& trans);
     static bool ParseTranslateOption(ani_env* env, ani_object translateOptions, Transform& trans);
     static bool ParseRotateOption(ani_env* env, ani_object rotateOptions, Transform& trans);
+    bool ParseWindowMaskWithAlphaParams(ani_env* env, ani_object windowMaskArray,
+        sptr<Window>& window, WindowMaskWithAlphaParseParams& params);
     bool CheckWindowMaskParams(ani_env* env, ani_array windowMask);
     void OnSetBlur(ani_env* env, ani_double radius);
     void OnSetBackdropBlurStyle(ani_env* env, ani_int blurStyle);
@@ -320,7 +368,9 @@ private:
     ani_string OnGetWindowStateSnapshot(ani_env* env);
     void OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled);
     void OnSetRelativePositionToParentWindowEnabled(ani_env* env, ani_boolean enabled,
-        ani_int anchor, ani_int offsetX, ani_int offsetY);
+        ani_object anchor, ani_int offsetX, ani_int offsetY);
+    void OnAttachToParentWindow(ani_env* env, ani_object anchorInfo, ani_object attachOptions);
+    void OnDetachLayoutToParentWindow(ani_env* env);
     void OnSetDefaultDensityEnabled(ani_env* env, ani_boolean enabled);
     void OnSetWindowContainerColor(ani_env* env, ani_string activeColor, ani_string inactiveColor);
     void OnSetWindowContainerModalColor(ani_env* env, ani_string activeColor, ani_string inactiveColor);
@@ -331,6 +381,12 @@ private:
     void OnRestoreMainWindow(ani_env* env, ani_object wantParameters);
 
     /*
+     * Multi Window
+     */
+    void OnEnableLandscapeMultiWindow(ani_env* env);
+    void OnDisableLandscapeMultiWindow(ani_env* env);
+
+    /*
      * Window Layout
      */
     void OnSetContentAspectRatio(
@@ -338,9 +394,20 @@ private:
     ani_int OnGetWindowStatus(ani_env* env);
     void OnMinimize(ani_env* env);
     void OnMaximize(ani_env* env, ani_object aniPresentation, ani_object aniAcrossDisplay);
+    void OnMaximizeWithOptions(ani_env* env, ani_object maximizeOptions);
     void OnStartMoving(ani_env* env);
+
+    /**
+     * @brief Start moving window with options.
+     *
+     * @param env The ANI environment.
+     * @param aniOptions Options to control focus request and avoid region during this movement.
+     */
+    void OnStartMovingWithOptions(ani_env* env, ani_object aniOptions);
+
     void OnStartMoveWindowWithCoordinate(ani_env* env, ani_int offsetX, ani_int offsetY);
     void OnStopMoving(ani_env* env);
+    void OnSetSupportedWindowModes(ani_env* env, ani_object aniSupportedWindowModes);
 
     /*
      * Window animation
@@ -352,6 +419,7 @@ private:
 
     sptr<Window> windowToken_ = nullptr;
     std::unique_ptr<AniWindowRegisterManager> registerManager_ = nullptr;
+    ani_vm* vm_ = nullptr;
     ani_ref aniRef_ = nullptr;
     ani_object aniTransControllerObj_ = nullptr;
 };

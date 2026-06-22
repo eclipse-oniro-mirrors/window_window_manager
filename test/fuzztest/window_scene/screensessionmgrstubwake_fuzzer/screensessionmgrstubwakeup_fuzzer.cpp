@@ -660,14 +660,43 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     /* Run your code on data */
     OHOS::DoSomethingInterestingWithMyAPI(data, size);
     OHOS::DoSomethingInterestingWithMyAPI1(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestTwoInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::DoSomethingInterestingWithMyAPI2(data, size);
     OHOS::DoSomethingInterestingWithMyAPI3(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestThreeInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::DoSomethingInterestingWithMyAPI4(data, size);
     OHOS::DoSomethingInterestingWithMyAPI5(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestFourInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::DoSomethingInterestingWithMyAPI6(data, size);
     OHOS::DoSomethingInterestingWithMyAPI7(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestFiveInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::DoSomethingInterestingWithMyAPI8(data, size);
     OHOS::DoSomethingInterestingWithMyAPI9(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestSixInput(const uint8_t* data, size_t size)
+{
     OHOS::DoSomethingInterestingWithMyAPI10(data, size);
     OHOS::DoSomethingInterestingWithMyAPI11(data, size);
     return 0;

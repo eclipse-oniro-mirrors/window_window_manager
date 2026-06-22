@@ -33,11 +33,13 @@ public:
     /**
      * @brief Constructor of FocusNotifyInfo
      */
-    FocusNotifyInfo(int64_t timeStamp, int32_t unfocusWindowId, int32_t focusWindowId, bool isSyncNotify)
+    FocusNotifyInfo(int64_t timeStamp, int32_t unfocusWindowId, int32_t focusWindowId,
+        bool isSyncNotify, bool isSameCallingPid = true)
         : timeStamp_(timeStamp),
           unfocusWindowId_(unfocusWindowId),
           focusWindowId_(focusWindowId),
-          isSyncNotify_(isSyncNotify) {};
+          isSyncNotify_(isSyncNotify),
+          isSameCallingPid_(isSameCallingPid) {};
 
     /**
      * @brief Destructor of FocusNotifyInfo
@@ -53,7 +55,7 @@ public:
     virtual bool Marshalling(Parcel& parcel) const
     {
         return parcel.WriteInt64(timeStamp_) && parcel.WriteInt32(unfocusWindowId_) &&
-            parcel.WriteInt32(focusWindowId_) && parcel.WriteBool(isSyncNotify_);
+            parcel.WriteInt32(focusWindowId_) && parcel.WriteBool(isSyncNotify_) && parcel.WriteBool(isSameCallingPid_);
     }
 
     static FocusNotifyInfo* Unmarshalling(Parcel& parcel)
@@ -61,7 +63,7 @@ public:
         std::unique_ptr<FocusNotifyInfo> focusNotifyInfo = std::make_unique<FocusNotifyInfo>();
         bool res = parcel.ReadInt64(focusNotifyInfo->timeStamp_) &&
             parcel.ReadInt32(focusNotifyInfo->unfocusWindowId_) && parcel.ReadInt32(focusNotifyInfo->focusWindowId_) &&
-            parcel.ReadBool(focusNotifyInfo->isSyncNotify_);
+            parcel.ReadBool(focusNotifyInfo->isSyncNotify_) && parcel.ReadBool(focusNotifyInfo->isSameCallingPid_);
         if (!res) {
             return nullptr;
         }
@@ -72,6 +74,7 @@ public:
     int32_t unfocusWindowId_ = INVALID_WINDOW_ID;
     int32_t focusWindowId_ = INVALID_WINDOW_ID;
     bool isSyncNotify_ = false;
+    bool isSameCallingPid_ = true;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_FOCUS_NOTIFY_INFO_H

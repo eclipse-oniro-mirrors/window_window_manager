@@ -299,7 +299,6 @@ WMError WindowNodeContainer::AddWindowNode(sptr<WindowNode>& node, sptr<WindowNo
         DisplayManagerServiceInner::GetInstance().SetGravitySensorSubscriptionEnabled();
     }
     WLOGI("AddWindowNode Id: %{public}u end", node->GetWindowId());
-    RSInterfaces::GetInstance().SetAppWindowNum(GetAppWindowNum());
     // update private window count and notify dms private status changed
     if (node->GetWindowProperty()->GetPrivacyMode()) {
         UpdatePrivateStateAndNotify();
@@ -444,7 +443,6 @@ WMError WindowNodeContainer::RemoveWindowNode(sptr<WindowNode>& node, bool fromA
         SetBelowScreenlockVisible(node, true);
     }
     WLOGI("Remove Id: %{public}u end", node->GetWindowId());
-    RSInterfaces::GetInstance().SetAppWindowNum(GetAppWindowNum());
 
     // update private window count and notify dms private status changed
     if (node->GetWindowProperty()->GetPrivacyMode()) {
@@ -525,17 +523,6 @@ void WindowNodeContainer::UpdatePrivateWindowCount()
     }
     privateWindowCount_ = count;
     WLOGFD("after update : privateWindow count: %{public}u", privateWindowCount_);
-}
-
-uint32_t WindowNodeContainer::GetAppWindowNum()
-{
-    uint32_t num = 0;
-    for (auto& child : appWindowNode_->children_) {
-        if (WindowHelper::IsAppWindow(child->GetWindowType())) {
-            num++;
-        }
-    }
-    return num;
 }
 
 void WindowNodeContainer::SetConfigMainFloatingWindowAbove(bool isAbove)
@@ -994,9 +981,13 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused)
         } else {
             focusNodeId = node->surfaceNode_->GetId();
         }
-        FocusAppInfo appInfo =
-            { node->GetCallingPid(), node->GetCallingUid(), info.bundleName_, info.abilityName_, focusNodeId };
-        RSInterfaces::GetInstance().SetFocusAppInfo(appInfo);
+        auto rsUICtx = node->GetRSUIContext();
+        if (rsUICtx != nullptr && rsUICtx->GetRSRenderInterface() != nullptr) {
+            FocusAppInfo appInfo = { node->GetCallingPid(), node->GetCallingUid(),
+                info.bundleName_, info.abilityName_, focusNodeId };
+            TLOGD(WmsLogTag::WMS_FOCUS, "bundleName=%{public}s", appInfo.bundleName.c_str());
+            rsUICtx->GetRSRenderInterface()->SetFocusAppInfo(appInfo);
+        }
     }
     if (node->GetWindowToken()) {
         node->GetWindowToken()->UpdateFocusStatus(focused);
@@ -1411,8 +1402,7 @@ void WindowNodeContainer::NotifyIfKeyboardRegionChanged(const sptr<WindowNode>& 
     }
     const WindowMode callingWindowMode = callingWindow->GetWindowMode();
     if (callingWindowMode == WindowMode::WINDOW_MODE_FULLSCREEN ||
-        callingWindowMode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-        callingWindowMode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        WindowHelper::IsSplitWindowMode(callingWindowMode)) {
         const Rect keyRect = node->GetWindowRect();
         const Rect callingRect = callingWindow->GetWindowRect();
         if (WindowHelper::IsEmptyRect(WindowHelper::GetOverlap(callingRect, keyRect, 0, 0))) {
@@ -1451,7 +1441,7 @@ void WindowNodeContainer::NotifyIfKeyboardRegionChanged(const sptr<WindowNode>& 
             callingWindow->GetWindowToken()->UpdateOccupiedAreaChangeInfo(info, avoidAreas);
         }
 
-        WLOGI("keyboard size change callingWindow: [%{public}s, %{public}u], "
+        WLOGD("keyboard size change callingWindow: [%{public}s, %{public}u], "
             "overlap rect: [%{public}d, %{public}d, %{public}u, %{public}u]",
             callingWindow->GetWindowName().c_str(), callingWindow->GetWindowId(),
             overlapRect.posX_, overlapRect.posY_, overlapRect.width_, overlapRect.height_);
@@ -2314,7 +2304,8 @@ void WindowNodeContainer::ReZOrderShowWhenLockedWindows(bool up)
             // when change mode, need to reset shadow and radius
             WindowSystemEffect::SetWindowEffect(needReZOrderNode);
             if (needReZOrderNode->GetWindowToken() != nullptr) {
-                needReZOrderNode->GetWindowToken()->UpdateWindowMode(needReZOrderNode->GetWindowMode());
+                needReZOrderNode->GetWindowToken()->UpdateWindowMode(
+                    WindowModeInfo{ needReZOrderNode->GetWindowMode() });
             }
             auto windowPair = displayGroupController_->GetWindowPairByDisplayId(needReZOrderNode->GetDisplayId());
             if (windowPair == nullptr) {
@@ -2359,7 +2350,7 @@ void WindowNodeContainer::RaiseShowWhenLockedWindowIfNeeded(const sptr<WindowNod
         // when change mode, need to reset shadow and radius
         WindowSystemEffect::SetWindowEffect(node);
         if (node->GetWindowToken() != nullptr) {
-            node->GetWindowToken()->UpdateWindowMode(node->GetWindowMode());
+            node->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ node->GetWindowMode() });
         }
     }
     WLOGI("ShowWhenLocked window %{public}u raise itself", node->GetWindowId());
@@ -2524,7 +2515,7 @@ WMError WindowNodeContainer::SetWindowMode(sptr<WindowNode>& node, WindowMode ds
     MinimizeOldestMainFloatingWindow(node->GetWindowId());
 
     if (node->GetWindowToken() != nullptr) {
-        node->GetWindowToken()->UpdateWindowMode(node->GetWindowMode());
+        node->GetWindowToken()->UpdateWindowMode(WindowModeInfo{ node->GetWindowMode() });
     }
     res = UpdateWindowNode(node, WindowUpdateReason::UPDATE_MODE);
     if (res != WMError::WM_OK) {

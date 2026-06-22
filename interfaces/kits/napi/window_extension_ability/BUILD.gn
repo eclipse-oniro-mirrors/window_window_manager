@@ -41,6 +41,7 @@ ohos_shared_library("windowextensionability_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "window_extension_ability_module.cpp" ]
 

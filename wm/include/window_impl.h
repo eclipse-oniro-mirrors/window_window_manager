@@ -106,9 +106,11 @@ public:
     static WMError GetWindowTypeForArkUI(WindowType parentWindowType, WindowType& windowType);
     virtual std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const override;
     virtual Rect GetRect() const override;
+    virtual Rect GetRect(bool useHookedSize) const override;
     virtual Rect GetRequestRect() const override;
     virtual WindowType GetType() const override;
     virtual WindowMode GetWindowMode() const override;
+    virtual WindowMode GetWindowModeCompat() const override;
     virtual float GetAlpha() const override;
     virtual WindowState GetWindowState() const override;
     virtual WMError SetFocusable(bool isFocusable) override;
@@ -143,6 +145,9 @@ public:
     /*
      * Window Immersive
      */
+    WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
+    WMError SetFloatNavigationAvoidAreaEnabled(bool enable) override { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const override { return WMError::WM_OK; }
     WMError GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea, const Rect& rect = Rect::EMPTY_RECT,
         int32_t apiVersion = API_VERSION_INVALID) override;
     WMError SetAvoidAreaOption(uint32_t avoidAreaOption) override
@@ -169,17 +174,18 @@ public:
         bool isColdStart) override;
     WMError Create(uint32_t parentId,
         const std::shared_ptr<AbilityRuntime::Context>& context = nullptr);
-    virtual WMError Destroy(uint32_t reason = 0) override;
+    virtual WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) override;
     void SetShowWithOptions(bool showWithOptions) override;
     bool IsShowWithOptions() const override;
-    virtual WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true) override;
-    virtual WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach) override;
+    virtual WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
+    virtual WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+        int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     virtual WMError Hide(uint32_t reason = 0, bool withAnimation = false, bool isFromInnerkits = true) override;
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
-    virtual WMError Resize(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+    virtual WMError Resize(uint32_t width, uint32_t height) override;
     float GetVirtualPixelRatio() override;
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) override;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) override;
@@ -228,6 +234,8 @@ public:
 
     virtual WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) override;
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     virtual WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
     virtual WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) override;
@@ -309,8 +317,9 @@ public:
     virtual std::string GetContentInfo(BackupAndRestoreType type = BackupAndRestoreType::CONTINUATION) override;
     WMError SetRestoredRouterStack(const std::string& routerStack) override;
     virtual const std::shared_ptr<AbilityRuntime::Context> GetContext() const override;
-    virtual Ace::UIContent* GetUIContent() const override;
     virtual Ace::UIContent* GetUIContentWithId(uint32_t winId) const override;
+    Ace::UIContent* GetUIContent() const override;
+    std::shared_ptr<Ace::UIContent> GetUIContentSharedPtr() const;
     virtual void OnNewWant(const AAFwk::Want& want) override;
     virtual void SetRequestedOrientation(Orientation orientation, bool needAnimation = true) override;
     virtual Orientation GetRequestedOrientation() override;
@@ -339,8 +348,7 @@ public:
     void PendingClose();
 
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) override;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) override;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) override;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) override;
 
@@ -357,7 +365,7 @@ public:
     void UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
     void RegisterWindowInspectorCallback();
     uint32_t GetApiTargetVersion() const;
-    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true) override;
 
     /*
      * Keyboard
@@ -406,6 +414,7 @@ private:
     void NotifyAfterBackground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
     void NotifyAfterDidForeground(uint32_t reason, bool forceNotify = false);
     void NotifyAfterDidBackground(uint32_t reason, bool forceNotify = false);
+    void NotifyAfterDestroy();
     void NotifyAfterFocused();
     void NotifyAfterUnfocused(bool needNotifyUiContent = true);
     void NotifyAfterResumed();
@@ -537,7 +546,8 @@ private:
     NotifyNativeWinDestroyFunc notifyNativefunc_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::string name_;
-    std::unique_ptr<Ace::UIContent> uiContent_;
+    std::shared_ptr<Ace::UIContent> uiContent_;
+    mutable std::shared_mutex uiContentMutex_;
     std::shared_ptr<AbilityRuntime::Context> context_;
     std::recursive_mutex mutex_;
     std::recursive_mutex windowStateMutex_;
@@ -557,6 +567,7 @@ private:
     uint32_t mouseStyleID_ = 0;
     bool isIgnoreSafeAreaNeedNotify_ = false;
     bool isIgnoreSafeArea_ = false;
+    uint32_t windowStatusBarColor_ = 0;
     bool needDefaultAnimation_ = true;
     bool postTaskDone_ = false;
     static float ConvertRadiusToSigma(float radius)

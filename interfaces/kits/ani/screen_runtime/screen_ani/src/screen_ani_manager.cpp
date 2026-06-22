@@ -31,6 +31,9 @@
 
 namespace OHOS {
 namespace Rosen {
+constexpr uint32_t MAX_VALID_VALUE = 2147483647;
+constexpr uint32_t MIN_VIRTUAL_SCREEN_ID = 1000;
+constexpr uint32_t MIN_VIRTUAL_SIZE = 1;
 
 ScreenManagerAni::ScreenManagerAni() {}
 
@@ -82,8 +85,15 @@ void ScreenManagerAni::OnRegisterCallback(ani_env* env, ani_string type, ani_ref
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg);
         return;
     }
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, aniRet: %{public}u", aniRet);
+        env->GlobalReference_Delete(cbRef);
+        return;
+    }
     TLOGI(WmsLogTag::DMS, "create listener");
-    sptr<ScreenAniListener> screenAniListener = new (std::nothrow) ScreenAniListener(env);
+    sptr<ScreenAniListener> screenAniListener = new (std::nothrow) ScreenAniListener(env, vm);
     if (screenAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] screenListener is nullptr");
         env->GlobalReference_Delete(cbRef);
@@ -309,6 +319,7 @@ void ScreenManagerAni::CreateVirtualScreen(ani_env* env, ani_object options, ani
     }
 
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::ANI_SCREEN_MANAGER;
     auto ret = ScreenAniUtils::GetVirtualScreenOption(env, options, option);
     if (ret != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen options failed");
@@ -324,6 +335,8 @@ void ScreenManagerAni::CreateVirtualScreen(ani_env* env, ani_object options, ani
             ret = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
         } else if (screenId == ERROR_ID_NO_PERMISSION) {
             ret = DmErrorCode::DM_ERROR_NO_PERMISSION;
+        } else if (screenId == ERROR_INVALID_PARAM) {
+            ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
         }
         TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen failed");
         AniErrUtils::ThrowBusinessError(env, ret, "Get virtual screen failed");
@@ -519,6 +532,37 @@ ani_object ScreenManagerAni::MakeUnique(ani_env* env, ani_object uniqueScreenIds
     return ScreenAniUtils::CreateDisplayIdVectorAniObject(env, displayIds);
 }
 
+void ScreenManagerAni::ResizeVirtualScreen(ani_env* env, ani_long screenId, ani_long width, ani_long height)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] ResizeVirtualScreen start");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullpre");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "env is nullptr");
+        return;
+    }
+    auto checkRange = [](const std::string& paramName, uint32_t value, const uint32_t& minValue,
+        const uint32_t& maxValue) -> bool {
+            if (value < minValue || value > maxValue) {
+                TLOGE(WmsLogTag::DMS, "[ANI] %{public}s is out of legal range", paramName.c_str());
+                return false;
+            }
+            return true;
+        };
+    ScreenId actualScreenId = static_cast<ScreenId>(screenId);
+    if (!checkRange("screenId", actualScreenId, MIN_VIRTUAL_SCREEN_ID, MAX_VALID_VALUE) ||
+        !checkRange("width", width, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE) ||
+        !checkRange("height", height, MIN_VIRTUAL_SIZE, MAX_VALID_VALUE)) {
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "param is out of range");
+        return;
+    }
+    DmErrorCode res = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().ResizeVirtualScreen(static_cast<ScreenId>(screenId),
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height)));
+    if (res != DmErrorCode::DM_OK) {
+        AniErrUtils::ThrowBusinessError(env, res, "[ANI] ScreenManager::ResizeVirtualScreen failed.");
+    }
+}
+
 ani_long ScreenManagerAni::MakeMirrorWithRegion(ani_env* env,
                                                 ani_long mainScreen,
                                                 ani_object mirrorScreen,
@@ -683,6 +727,8 @@ ani_status ScreenManagerAni::NspBindNativeFunctions(ani_env* env, ani_namespace 
                              reinterpret_cast<void*>(ScreenManagerAni::SetScreenPrivacyMaskImage) },
         ani_native_function{ "makeUniqueInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeUnique) },
         ani_native_function{
+            "resizeVirtualScreenInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::ResizeVirtualScreen) },
+        ani_native_function{
             "makeMirrorWithRegionInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeMirrorWithRegion) },
         ani_native_function{ "stopMirrorInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::StopMirror) },
         ani_native_function{ "makeExpandInternal", nullptr, reinterpret_cast<void*>(ScreenManagerAni::MakeExpand) },
@@ -703,6 +749,8 @@ ani_status ScreenManagerAni::ClassBindNativeFunctions(ani_env* env, ani_class sc
         ani_native_function{
             "setScreenActiveModeInternal", nullptr, reinterpret_cast<void*>(ScreenAni::SetScreenActiveMode) },
         ani_native_function{ "setOrientationInternal", nullptr, reinterpret_cast<void*>(ScreenAni::SetOrientation) },
+        ani_native_function{ "setOrientationWithOptions", nullptr,
+            reinterpret_cast<void*>(ScreenAni::SetOrientationWithOptions) },
     };
     ani_status ret = env->Class_BindNativeMethods(screenCls, methods.data(), methods.size());
     if (ret != ANI_OK) {

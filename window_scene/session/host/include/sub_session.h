@@ -21,7 +21,7 @@
 namespace OHOS::Rosen {
 class SubSession : public SceneSession {
 public:
-    SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback, int32_t userId = 0);
+    SubSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback);
     ~SubSession();
 
     void OnFirstStrongRef(const void* objectId) override;
@@ -33,7 +33,7 @@ public:
     WSError ProcessPointDownSession(int32_t posX, int32_t posY) override;
     int32_t GetMissionId() const override;
     WSError TransferKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
-    void RectCheck(uint32_t curWidth, uint32_t curHeight) override;
+    void RectCheck(float curWidth, float curHeight, const ScreenMetrics& screenMetrics) override;
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;
     bool IsNeedCrossDisplayRendering() const override;
@@ -44,6 +44,38 @@ public:
     void SetParentSessionCallback(NotifySetParentSessionFunc&& func) override;
     WMError NotifySetParentSession(int32_t oldParentWindowId, int32_t newParentWindowId) override;
 
+    /*
+     * Window Layout
+     */
+    /**
+     * @brief Sub window implementation: update own limits only
+     *
+     * Sub window only updates its own attached window limits. Does not propagate
+     * to other windows as the parent main window handles propagation.
+     *
+     * @param sourcePersistentId the persistentId of the window providing the limits
+     * @param attachedWindowLimits the other window's limits
+     * @param isIntersectedHeightLimit whether to limit height with attached window's limits
+     * @param isIntersectedWidthLimit whether to limit width with attached window's limits
+     * @return Returns WSError::WS_OK if success, otherwise failed.
+     */
+    WSError RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit = true,
+        bool isIntersectedWidthLimit = true, int32_t excludePersistentId = INVALID_SESSION_ID) override;
+
+    /**
+     * @brief Sub window implementation: remove own limits only
+     *
+     * Sub window only removes its own attached window limits. Does not propagate
+     * to other windows as the parent main window handles propagation.
+     *
+     * @param sourcePersistentId the persistentId of the source window whose limits should be removed
+     * @param excludePersistentId unused parameter for sub window
+     * @return Returns WSError::WS_OK if success, otherwise failed.
+     */
+    WSError RequestRemoveAttachedWindowLimits(int32_t sourcePersistentId,
+        int32_t excludePersistentId = INVALID_SESSION_ID) override;
+
 protected:
     void UpdatePointerArea(const WSRect& rect) override;
     bool CheckPointerEventDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const override;
@@ -52,10 +84,9 @@ protected:
      * Window Layout
      */
     void NotifySessionRectChange(const WSRect& rect,
-        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID,
-        const RectAnimationConfig& rectAnimationConfig = {}) override;
+        SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
-        const MoveConfiguration& moveConfiguration, const RectAnimationConfig& rectAnimationConfig = {}) override;
+        const MoveConfiguration& moveConfiguration) override;
 
     /*
      * Window Hierarchy
@@ -77,6 +108,13 @@ protected:
      * Sub Window
      */
     NotifySetParentSessionFunc setParentSessionFunc_;
+
+    /*
+     * Sub Window zLevel above parent loosened
+     */
+    WSError HideSubWindowZLevelAboveParentLoosened() override;
+    WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
 private:
     /*

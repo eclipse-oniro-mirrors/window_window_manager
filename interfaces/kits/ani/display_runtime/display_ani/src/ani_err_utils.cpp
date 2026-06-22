@@ -99,10 +99,10 @@ ani_object AniErrUtils::CreateAniError(ani_env* env, const DMError& errorCode, s
     env->String_NewUTF8(msg.c_str(), msg.size(), &aniMsg);
     ani_object aniError = nullptr;
     ani_class cls;
-    if (ANI_OK != env->FindClass("escompat.Error", &cls)) {
+    if (ANI_OK != env->FindClass("std.core.Error", &cls)) {
         TLOGE(WmsLogTag::DMS, "[ANI] null class FoldCreaseRegionImpl");
     }
-    DisplayAniUtils::NewAniObject(env, cls, "C{std.core.String}C{escompat.ErrorOptions}:", &aniError, aniMsg);
+    DisplayAniUtils::NewAniObject(env, cls, "C{std.core.String}C{std.core.ErrorOptions}:", &aniError, aniMsg);
     return aniError;
 }
 
@@ -113,10 +113,10 @@ ani_object AniErrUtils::CreateAniError(ani_env* env, const DmErrorCode& errorCod
     env->String_NewUTF8(msg.c_str(), msg.size(), &aniMsg);
     ani_object aniError = nullptr;
     ani_class cls;
-    if (ANI_OK != env->FindClass("escompat.Error", &cls)) {
+    if (ANI_OK != env->FindClass("std.core.Error", &cls)) {
         TLOGE(WmsLogTag::DMS, "[ANI] null class FoldCreaseRegionImpl");
     }
-    DisplayAniUtils::NewAniObject(env, cls, "C{std.core.String}C{escompat.ErrorOptions}:", &aniError, aniMsg);
+    DisplayAniUtils::NewAniObject(env, cls, "C{std.core.String}C{std.core.ErrorOptions}:", &aniError, aniMsg);
     return aniError;
 }
 
@@ -154,7 +154,7 @@ ani_status AniErrUtils::CreateBusinessError(ani_env* env, int32_t error, std::st
         return status;
     }
     ani_method aniCtor;
-    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{escompat.ErrorOptions}:", &aniCtor);
+    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{std.core.ErrorOptions}:", &aniCtor);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] ctor not found, status:%{public}d", static_cast<int32_t>(status));
         return status;

@@ -34,12 +34,15 @@ class ScreenSettingHelper {
 public:
     static void RegisterSettingDpiObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingDpiObserver();
+    static void RegisterSettingOffScreenRenderObserver(SettingObserver::UpdateFunc func);
+    static bool GetSettingOffScreenRenderValue(bool& offerRenderValue, const std::string& key);
     static bool GetSettingDpi(uint32_t& dpi, const std::string& key = SETTING_DPI_KEY);
     static bool SetSettingDefaultDpi(uint32_t& dpi, const std::string& key);
     static bool GetSettingValue(uint32_t& value, const std::string& key);
     static bool SetSettingValue(const std::string& key, uint32_t value);
     static bool GetSettingValue(const std::string& key, std::string& value);
     static bool SetSettingValue(const std::string& key, const std::string& value);
+    static bool GetSettingValue(const std::string& key, bool& value);
     static void RegisterSettingCastObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingCastObserver();
     static bool GetSettingCast(bool& enable, const std::string& key = SETTING_CAST_KEY);
@@ -55,8 +58,11 @@ public:
     static std::map<std::string, MultiScreenInfo> GetMultiScreenInfo(const std::string& key = SETTING_SCREEN_MODE_KEY);
     static std::map<std::string, SupportedScreenModes> GetResolutionMode(const std::string& key =
         SETTING_SCREEN_RESOLUTION_MODE_KEY);
+    static std::map<std::string, std::string> GetDpiMode(const std::string& key =
+        SETTING_EXTEND_INDEP_DPI_KEY);
     static std::map<std::string, uint32_t> GetBorderingAreaPercent(const std::string& key =
         SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY);
+    static std::string GetWiredScreenGamut(const std::string& key = SETTING_DISPLAY_WIRED_SCREEN_GAMUT);
     static bool GetScreenMode(MultiScreenInfo& info, const std::string& inputString);
     static bool UpdateScreenMode(MultiScreenInfo& info, uint32_t mode, bool isExternal);
     static bool GetScreenActiveMode(SupportedScreenModes& info, const std::string& inputString);
@@ -67,8 +73,12 @@ public:
     static void UnregisterSettingWireCastObserver();
     static void RegisterSettingBorderingAreaPercentObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingBorderingAreaPercentObserver();
+    static void RegisterSettingWiredScreenGamutObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingWiredScreenGamutObserver();
     static void RegisterSettingExtendScreenDpiObserver(SettingObserver::UpdateFunc func);
     static void UnRegisterSettingExtendScreenDpiObserver();
+    static void RegisterSettingExtendScreenIndepDpiObserver(SettingObserver::UpdateFunc func);
+    static void UnRegisterSettingExtendScreenIndepDpiObserver();
     static void RegisterSettingDuringCallStateObserver(SettingObserver::UpdateFunc func);
     static void UnregisterSettingDuringCallStateObserver();
     static bool GetSettingDuringCallState(bool& enable, const std::string& key = SETTING_DURING_CALL_KEY);
@@ -86,6 +96,10 @@ public:
         const std::string& key = SETTING_COMPATIBLE_APP_STRATEGY_KEY);
     static void GetCorrectionExemptionListFromJson(const std::string& exemptionListJsonStr,
         std::vector<std::string>& exemptionApps);
+    static void RegisterSettingCoordinationReadyObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingCoordinationReadyObserver();
+    static bool GetSettingIsCoordinationReady(bool& isCoordinationReady,
+        const std::string& key = SETTING_DUAL_DISPLAY_READY_KEY);
     template<typename T>
     static bool GetJsonValue(const nlohmann::json& payload, const std::string& key, T& result)
     {
@@ -110,6 +124,27 @@ public:
         }
         return false;
     }
+    static void RegisterRotationCorrectionWhiteListObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterRotationCorrectionWhiteListObserver();
+    static bool GetRotationCorrectionWhiteList(
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs,
+        const std::string& key = SETTING_ROTATION_CORRECT_KEY);
+    static void GetCorrectionWhiteListFromJson(const std::string& whiteListJsonStr,
+        std::unordered_map<std::string, RotationCorrectionWhiteConfig>& appConfigs);
+    static bool GetWhiteConfigFromJson(const nlohmann::json& j,
+        RotationCorrectionWhiteConfig& config, std::string& appName);
+    static bool ParseJsonObjectToEnumMap(const nlohmann::json& j,
+        std::unordered_map<FoldDisplayMode, int32_t>& resultMap);
+    static FoldDisplayMode ConvertStringToFoldDisplayModeSafely(const std::string& str);
+    static void RegisterSettingOsSwitchStatusObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingOsSwitchStatusObserver();
+    static bool GetOsSwitchStatus(std::string& status, const std::string& key = SETTING_OS_SWITCH_STATUS);
+    static void RegisterSettingCustomResolutionObserver(SettingObserver::UpdateFunc func);
+    static void UnregisterSettingCustomResolutionObserver();
+    static bool GetCustomResolution(uint32_t& width, uint32_t& height,
+        const std::string& key = SETTING_CUSTOM_RESOLUTION_KEY);
+    static bool SetCustomResolution(uint32_t width, uint32_t height,
+        const std::string& key = SETTING_CUSTOM_RESOLUTION_KEY);
 private:
     static const constexpr char* SETTING_DPI_KEY {"user_set_dpi_value"};
     static const constexpr char* SETTING_CAST_KEY {"huaweicast.data.privacy_projection_state"};
@@ -117,21 +152,34 @@ private:
     static const constexpr char* SETTING_ROTATION_SCREEN_ID_KEY {"screen_rotation_screen_id_value"};
     static const constexpr char* SETTING_SCREEN_MODE_KEY {"user_set_screen_mode_edid"};
     static const constexpr char* SETTING_EXTEND_DPI_KEY {"user_set_dpi_extend"};
+    static const constexpr char* SETTING_EXTEND_INDEP_DPI_KEY {"user_set_indep_dpi_extend"};
     static const constexpr char* SETTING_DURING_CALL_KEY {"during_call_state"};
     static const constexpr char* SETTING_RESOLUTION_EFFECT_KEY {"user_set_resolution_effect_select"};
     static const constexpr char* SETTING_COMPATIBLE_APP_STRATEGY_KEY {"COMPATIBLE_APP_STRATEGY"};
+    static const constexpr char* SETTING_ROTATION_CORRECT_KEY {"APP_LOGICAL_DEVICE_CONFIGURATION"};
     static const constexpr char* SETTING_SCREEN_RESOLUTION_MODE_KEY {"user_set_resolution_mode"};
     static const constexpr char* SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY {"bordering_area_percent"};
+    static const constexpr char* SETTING_DUAL_DISPLAY_READY_KEY {"settings.display.dual_display_ready"};
+    static const constexpr char* SETTING_DISPLAY_WIRED_SCREEN_GAMUT {"settings.display.wired_screen_gamut"};
+    static const constexpr char* SETTING_OS_SWITCH_STATUS {"os_switch_status"};
+    static const constexpr char* SETTING_CUSTOM_RESOLUTION_KEY {"user_set_custom_resolution"};
     static const constexpr uint32_t BASE_TEN = 10;
     static sptr<SettingObserver> dpiObserver_;
+    static sptr<SettingObserver> offScreenRenderObserver_;
     static sptr<SettingObserver> castObserver_;
     static sptr<SettingObserver> rotationObserver_;
     static sptr<SettingObserver> wireCastObserver_;
     static sptr<SettingObserver> extendScreenDpiObserver_;
+    static sptr<SettingObserver> extendScreenIndepDpiObserver_;
     static sptr<SettingObserver> duringCallStateObserver_;
     static sptr<SettingObserver> resolutionEffectObserver_;
     static sptr<SettingObserver> correctionExemptionListObserver_;
+    static sptr<SettingObserver> correctionWhiteListObserver_;
     static sptr<SettingObserver> borderingAreaPercentObserver_;
+    static sptr<SettingObserver> coordinationReadyObserver_;
+    static sptr<SettingObserver> wiredScreenGamutObserver_;
+    static sptr<SettingObserver> osSwitchStatusObserver_;
+    static sptr<SettingObserver> customResolutionObserver_;
 };
 } // namespace Rosen
 } // namespace OHOS

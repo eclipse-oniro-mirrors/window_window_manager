@@ -328,14 +328,37 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     /* Run your code on data */
     OHOS::Rosen::ScreenPowerFuzzTest(data, size);
     OHOS::Rosen::MakeMirrorWithVirtualScreenFuzzTest(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestTwoInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::Rosen::MakeMirrorFuzzTest(data, size);
     OHOS::Rosen::MakeExpandWithVirtualScreenFuzzTest(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestThreeInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::Rosen::MakeExpandFuzzTest(data, size);
     OHOS::Rosen::CreateAndDestroyVirtualScreenFuzzTest(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestFourInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::Rosen::SetVirtualScreenSurfaceFuzzTest(data, size);
     OHOS::Rosen::RemoveVirtualScreenFromGroupFuzzTest(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestFiveInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::Rosen::SetScreenRotationLockedFuzzTest(data, size);
     OHOS::Rosen::IsScreenRotationLocked(data, size);
     return 0;
 }
-

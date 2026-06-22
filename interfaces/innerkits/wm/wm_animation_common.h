@@ -33,6 +33,11 @@ enum class WindowTransitionType : uint32_t {
      * Window destroy.
      */
     DESTROY = 0,
+
+    /**
+     * window start.
+     */
+    START = 1,
     
     /**
      * end type.
@@ -240,6 +245,12 @@ struct StartAnimationSystemOptions : public Parcelable {
 struct WindowCreateParams : public Parcelable {
     std::shared_ptr<StartAnimationOptions> animationParams = nullptr;
     std::shared_ptr<StartAnimationSystemOptions> animationSystemParams = nullptr;
+    std::shared_ptr<bool> needAnimation = nullptr;
+
+    /**
+     * @brief Whether application-defined window size limits are allowed to exceed system limits.
+     */
+    bool isWindowLimitsForcible = false;
 
     // LCOV_EXCL_START
     bool Marshalling(Parcel& parcel) const override
@@ -250,18 +261,46 @@ struct WindowCreateParams : public Parcelable {
         if (!parcel.WriteParcelable(animationSystemParams.get())) {
             return false;
         }
+        bool hasNeedAnimation = (needAnimation != nullptr);
+        if (!parcel.WriteBool(hasNeedAnimation)) {
+            return false;
+        }
+        if (hasNeedAnimation) {
+            if (!parcel.WriteBool(*needAnimation)) {
+                return false;
+            }
+        }
+        if (!parcel.WriteBool(isWindowLimitsForcible)) {
+            return false;
+        }
         return true;
     }
     // LCOV_EXCL_STOP
 
     static WindowCreateParams* Unmarshalling(Parcel& parcel)
     {
-        WindowCreateParams* windowCreateParams = new WindowCreateParams();
+        auto windowCreateParams = std::make_unique<WindowCreateParams>();
         windowCreateParams->animationParams =
             std::shared_ptr<StartAnimationOptions>(parcel.ReadParcelable<StartAnimationOptions>());
         windowCreateParams->animationSystemParams =
             std::shared_ptr<StartAnimationSystemOptions>(parcel.ReadParcelable<StartAnimationSystemOptions>());
-        return windowCreateParams;
+        bool hasNeedAnimation = false;
+        if (!parcel.ReadBool(hasNeedAnimation)) {
+            return nullptr;
+        }
+        if (hasNeedAnimation) {
+            bool needAnimationValue = false;
+            if (!parcel.ReadBool(needAnimationValue)) {
+                return nullptr;
+            }
+            windowCreateParams->needAnimation = std::make_shared<bool>(needAnimationValue);
+        } else {
+            windowCreateParams->needAnimation = nullptr;
+        }
+        if (!parcel.ReadBool(windowCreateParams->isWindowLimitsForcible)) {
+            return nullptr;
+        }
+        return windowCreateParams.release();
     }
 };
 

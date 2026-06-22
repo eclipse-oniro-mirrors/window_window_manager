@@ -84,6 +84,7 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
             break;
         }
         case WindowMessage::TRANS_ID_UPDATE_WINDOW_MODE: {
+            WindowModeInfo windowModeInfo;
             uint32_t windowMode = 0;
             if (!data.ReadUint32(windowMode)) {
                 TLOGE(WmsLogTag::WMS_LAYOUT, "read windowMode failed");
@@ -94,8 +95,20 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_LAYOUT, "invalid windowMode: %{public}d", windowMode);
                 return ERR_INVALID_DATA;
             }
-            WindowMode mode = static_cast<WindowMode>(windowMode);
-            UpdateWindowMode(mode);
+            windowModeInfo.windowMode = static_cast<WindowMode>(windowMode);
+            uint32_t splitStyle = 0;
+            if (!data.ReadUint32(splitStyle)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "read splitStyle failed");
+                return ERR_INVALID_DATA;
+            }
+            windowModeInfo.splitStyle = static_cast<SplitStyle>(splitStyle);
+            int32_t splitIndex = 0;
+            if (!data.ReadInt32(splitIndex)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT, "read splitIndex failed");
+                return ERR_INVALID_DATA;
+            }
+            windowModeInfo.splitIndex = splitIndex;
+            UpdateWindowMode(windowModeInfo);
             break;
         }
         case WindowMessage::TRANS_ID_UPDATE_MODE_SUPPORT_INFO: {
@@ -164,33 +177,10 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 return ERR_INVALID_DATA;
             }
             std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
-            uint32_t size = 0;
-            if (!data.ReadUint32(size)) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
-                return ERR_INVALID_VALUE;
-            }
-            constexpr uint32_t AVOID_AREA_TYPE_MAX_SIZE = 100;
-            if (size > AVOID_AREA_TYPE_MAX_SIZE) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Avoid area size: %{public}d is invalid", size);
-                return ERR_INVALID_VALUE;
-            }
-            for (uint32_t i = 0; i < size; i++) {
-                uint32_t type = static_cast<uint32_t>(AvoidAreaType::TYPE_START);
-                if (!data.ReadUint32(type)) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
-                    return ERR_INVALID_VALUE;
-                }
-                if (type < static_cast<uint32_t>(AvoidAreaType::TYPE_START) ||
-                    type >= static_cast<uint32_t>(AvoidAreaType::TYPE_END)) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "invalid avoid area type: %{public}d", type);
-                    return ERR_INVALID_VALUE;
-                }
-                sptr<AvoidArea> area = data.ReadParcelable<AvoidArea>();
-                if (area == nullptr) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area failed");
-                    return ERR_INVALID_VALUE;
-                }
-                avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
+            int res = ParseAvoidAreas(data, avoidAreas);
+            if (res != ERR_NONE) {
+                TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid areas failed, code: %{public}d", res);
+                return res;
             }
             bool hasRSTransaction = data.ReadBool();
             if (hasRSTransaction) {
@@ -212,6 +202,12 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "OccupiedAreaChangeInfo is null");
                 return ERR_INVALID_DATA;
             }
+            std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
+            int res = ParseAvoidAreas(data, avoidAreas);
+            if (res != ERR_NONE) {
+                TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid areas failed, code: %{public}d", res);
+                return res;
+            }
             int32_t posX = 0;
             int32_t posY = 0;
             uint32_t width = 0;
@@ -221,36 +217,7 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "Rect value read failed.");
                 return ERR_INVALID_DATA;
             }
-            Rect rect { posX, posY, width, height };
-            std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
-            uint32_t size = 0;
-            if (!data.ReadUint32(size)) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
-                return ERR_INVALID_VALUE;
-            }
-            constexpr uint32_t AVOID_AREA_TYPE_MAX_SIZE = 100;
-            if (size > AVOID_AREA_TYPE_MAX_SIZE) {
-                TLOGE(WmsLogTag::WMS_KEYBOARD, "Avoid area size: %{public}d is invalid", size);
-                return ERR_INVALID_VALUE;
-            }
-            for (uint32_t i = 0; i < size; i++) {
-                uint32_t type = static_cast<uint32_t>(AvoidAreaType::TYPE_START);
-                if (!data.ReadUint32(type)) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
-                    return ERR_INVALID_VALUE;
-                }
-                if (type < static_cast<uint32_t>(AvoidAreaType::TYPE_START) ||
-                    type >= static_cast<uint32_t>(AvoidAreaType::TYPE_END)) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "invalid avoid area type: %{public}d", type);
-                    return ERR_INVALID_VALUE;
-                }
-                sptr<AvoidArea> area = data.ReadParcelable<AvoidArea>();
-                if (area == nullptr) {
-                    TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area failed");
-                    return ERR_INVALID_VALUE;
-                }
-                avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
-            }
+            struct Rect rect { posX, posY, width, height };
             bool hasRSTransaction = false;
             if (!data.ReadBool(hasRSTransaction)) {
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "hasRSTransaction value read failed.");
@@ -364,6 +331,39 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
         default:
             WLOGFW("unknown transaction code %{public}d", code);
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
+    }
+    return ERR_NONE;
+}
+
+int WindowStub::ParseAvoidAreas(MessageParcel& data, std::map<AvoidAreaType, AvoidArea>& avoidAreas)
+{
+    uint32_t size = 0;
+    if (!data.ReadUint32(size)) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
+        return ERR_INVALID_VALUE;
+    }
+    constexpr uint32_t AVOID_AREA_TYPE_MAX_SIZE = 100;
+    if (size > AVOID_AREA_TYPE_MAX_SIZE) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "Avoid area size: %{public}d is invalid", size);
+        return ERR_INVALID_VALUE;
+    }
+    for (uint32_t i = 0; i < size; i++) {
+        uint32_t type = static_cast<uint32_t>(AvoidAreaType::TYPE_START);
+        if (!data.ReadUint32(type)) {
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area size failed");
+            return ERR_INVALID_VALUE;
+        }
+        if (type < static_cast<uint32_t>(AvoidAreaType::TYPE_START) ||
+            type >= static_cast<uint32_t>(AvoidAreaType::TYPE_END)) {
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "invalid avoid area type: %{public}d", type);
+            return ERR_INVALID_VALUE;
+        }
+        sptr<AvoidArea> area = data.ReadParcelable<AvoidArea>();
+        if (area == nullptr) {
+            TLOGE(WmsLogTag::WMS_KEYBOARD, "Read avoid area failed");
+            return ERR_INVALID_VALUE;
+        }
+        avoidAreas[static_cast<AvoidAreaType>(type)] = *area;
     }
     return ERR_NONE;
 }

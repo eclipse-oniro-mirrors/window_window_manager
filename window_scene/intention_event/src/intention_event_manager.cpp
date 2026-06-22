@@ -64,8 +64,8 @@ void LogPointInfo(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
         if (pointerEvent->GetPointerItem(id, item)) {
             TLOGD(WmsLogTag::WMS_EVENT, "all point info: id:%{public}d,x:%{private}d,y:%{private}d,"
                 "isPressend:%{public}d,pressure:%{public}f,tiltX:%{public}f,tiltY:%{public}f",
-            actionId, item.GetWindowX(), item.GetWindowY(), item.IsPressed(), item.GetPressure(),
-            item.GetTiltX(), item.GetTiltY());
+                item.GetPointerId(), item.GetWindowX(), item.GetWindowY(), item.IsPressed(), item.GetPressure(),
+                item.GetTiltX(), item.GetTiltY());
         }
     }
 }

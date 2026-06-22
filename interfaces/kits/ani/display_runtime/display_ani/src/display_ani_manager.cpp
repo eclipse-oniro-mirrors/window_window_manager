@@ -154,6 +154,28 @@ ani_boolean DisplayManagerAni::IsCaptured(ani_env* env)
     return static_cast<ani_boolean>(isCapture);
 }
 
+ani_boolean DisplayManagerAni::IsCapturedByBundleNameList(ani_env* env, ani_object bundleNameListObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] IsCapturedByBundleNameList begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return false;
+    }
+
+    std::vector<std::string> bundleNameList;
+    ani_status ret = DisplayAniUtils::GetStdStringVector(env, bundleNameListObj, bundleNameList);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] GetStdStringVector fail");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert attributes");
+        return false;
+    }
+
+    bool isCapture = SingletonContainer::Get<DisplayManager>().IsCapturedByBundleNameList(bundleNameList);
+    TLOGI(WmsLogTag::DMS, "[ANI] BundleNameList size: %{public}zu, isCapturedByBundleNameList: %{public}u.",
+        bundleNameList.size(), isCapture);
+    return static_cast<ani_boolean>(isCapture);
+}
+
 ani_int DisplayManagerAni::GetFoldStatus(ani_env* env)
 {
     auto status = SingletonContainer::Get<DisplayManager>().GetFoldStatus();
@@ -320,7 +342,14 @@ void DisplayManagerAni::OnRegisterCallback(ani_env* env, ani_string type, ani_re
         env->GlobalReference_Delete(cbRef);
         return;
     }
-    sptr<DisplayAniListener> displayAniListener = sptr<DisplayAniListener>::MakeSptr(env);
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, retL: %{public}u", aniRet);
+        env->GlobalReference_Delete(cbRef);
+        return;
+    }
+    sptr<DisplayAniListener> displayAniListener = sptr<DisplayAniListener>::MakeSptr(env, vm);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI]displayListener is nullptr");
         env->GlobalReference_Delete(cbRef);
@@ -434,8 +463,14 @@ void DisplayManagerAni::OnRegisterDisplayAttributeListener(ani_env* env, ani_obj
         AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "callback undefined");
         return;
     }
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Get vm failed, retL: %{public}u", aniRet);
+        return;
+    }
     TLOGI(WmsLogTag::DMS, "[ANI] OnRegisterDisplayAttributeListener");
-    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env);
+    sptr<DisplayAniListener> displayAniListener = new(std::nothrow) DisplayAniListener(env, vm);
     if (displayAniListener == nullptr) {
         TLOGE(WmsLogTag::DMS, "[ANI] displayAniListener is nullptr");
         env->GlobalReference_Delete(cbRef);
@@ -883,6 +918,7 @@ ani_long DisplayManagerAni::OnCreateVirtualScreen(ani_env* env, ani_object virtu
         return static_cast<ani_long>(screenId);
     }
     VirtualScreenOption option;
+    option.caller_ = VirtualScreenCaller::ANI_DISPLAY_MANAGER;
     DmErrorCode errCode = DisplayAniUtils::GetVirtualScreenOptionFromAni(env, virtualScreenConfig, option);
     if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::DMS, "[ANI] Get virtual screen option from ani failed");
@@ -964,6 +1000,94 @@ void DisplayManagerAni::OnSetVirtualScreenSurface(ani_env* env, ani_long screenI
     if (ret != DmErrorCode::DM_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] Set virtual screen surface failed.");
         AniErrUtils::ThrowBusinessError(env, ret, "set virtual screen surface failed.");
+    }
+}
+
+void DisplayManagerAni::AddVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId,
+    ani_object surfaceRegionObj, ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnAddVirtualScreenSurface(env, screenId, surfaceId, surfaceRegionObj);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnAddVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId,
+    ani_object surfaceRegionObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    sptr<Surface> surface;
+    if (!DisplayAniUtils::GetSurfaceFromAni(env, surfaceId, surface) || surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert surface.");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert surface.");
+        return;
+    }
+    DMRect surfaceRegion = {0, 0, 0, 0};
+    bool hasSurfaceRegion = false;
+    if (surfaceRegionObj != nullptr) {
+        ani_long left = 0;
+        ani_long top = 0;
+        ani_long width = 0;
+        ani_long height = 0;
+        if (ANI_OK == env->Object_GetFieldByName_Long(surfaceRegionObj, "left", &left) &&
+            ANI_OK == env->Object_GetFieldByName_Long(surfaceRegionObj, "top", &top) &&
+            ANI_OK == env->Object_GetFieldByName_Long(surfaceRegionObj, "width", &width) &&
+            ANI_OK == env->Object_GetFieldByName_Long(surfaceRegionObj, "height", &height)) {
+            surfaceRegion.posX_ = static_cast<int32_t>(left);
+            surfaceRegion.posY_ = static_cast<int32_t>(top);
+            surfaceRegion.width_ = static_cast<uint32_t>(width);
+            surfaceRegion.height_ = static_cast<uint32_t>(height);
+            hasSurfaceRegion = true;
+        }
+    }
+    DMRect region = hasSurfaceRegion ? surfaceRegion : DMRect{0, 0, 0, 0};
+    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().AddVirtualScreenSurface(screenId, surface, region));
+    ret = (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : ret;
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Add virtual screen surface failed.");
+        AniErrUtils::ThrowBusinessError(env, ret, "Add virtual screen surface failed.");
+    }
+}
+
+void DisplayManagerAni::RemoveVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId,
+    ani_long nativeObj)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env is nullptr");
+        return;
+    }
+    DisplayManagerAni* displayManagerAni = reinterpret_cast<DisplayManagerAni*>(nativeObj);
+    if (displayManagerAni != nullptr) {
+        displayManagerAni->OnRemoveVirtualScreenSurface(env, screenId, surfaceId);
+    } else {
+        TLOGI(WmsLogTag::DMS, "[ANI] null ptr");
+    }
+}
+
+void DisplayManagerAni::OnRemoveVirtualScreenSurface(ani_env* env, ani_long screenId, ani_string surfaceId)
+{
+    TLOGI(WmsLogTag::DMS, "[ANI] begin");
+    sptr<Surface> surface;
+    if (!DisplayAniUtils::GetSurfaceFromAni(env, surfaceId, surface) || surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to convert surface.");
+        AniErrUtils::ThrowBusinessError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, "Failed to convert surface.");
+        return;
+    }
+    auto ret = DM_JS_TO_ERROR_CODE_MAP.at(
+        SingletonContainer::Get<ScreenManager>().RemoveVirtualScreenSurface(screenId, surface));
+    ret = (ret == DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) ? DmErrorCode::DM_ERROR_NO_PERMISSION : ret;
+    if (ret != DmErrorCode::DM_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Remove virtual screen surface failed.");
+        AniErrUtils::ThrowBusinessError(env, ret, "Remove virtual screen surface failed.");
     }
 }
 

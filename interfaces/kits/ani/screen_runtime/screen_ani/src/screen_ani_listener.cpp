@@ -20,6 +20,10 @@
  
 namespace OHOS {
 namespace Rosen {
+
+const std::string ANI_EVENT_CONNECT = "connect";
+const std::string ANI_EVENT_DISCONNECT = "disconnect";
+const std::string ANI_EVENT_CHANGE = "change";
  
 ScreenAniListener::~ScreenAniListener()
 {
@@ -92,22 +96,34 @@ void ScreenAniListener::OnConnect(ScreenId id)
         return;
     }
     std::vector<ani_ref> vec = it->second;
-    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}d", vec.size());
+    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}zu", vec.size());
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
-        if (env_ == nullptr) {
-            TLOGE(WmsLogTag::DMS, "[ANI] null env");
+        if (vm_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] null vm");
+            return;
+        }
+        auto aniVm = AniVm(vm_);
+        auto env = aniVm.GetAniEnv();
+        if (env == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
             return;
         }
         ani_boolean undefRes = 0;
-        env_->Reference_IsUndefined(oneAniCallback, &undefRes);
+        env->Reference_IsUndefined(oneAniCallback, &undefRes);
         // judge is null or undefined
         if (undefRes) {
             TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback is undef");
             continue;
         }
 
-        auto task = [env = env_, oneAniCallback, id] {
+        auto task = [vm = vm_, oneAniCallback, id] {
+            auto aniVm = AniVm(vm);
+            auto env = aniVm.GetAniEnv();
+            if (env == nullptr) {
+                TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
+                return;
+            }
             ScreenAniUtils::CallAniFunctionVoid(env, "@ohos.screen.screen", "screenEventCallBack",
                 "C{std.core.Object}l:", oneAniCallback, static_cast<ani_long>(id));
         };
@@ -139,22 +155,34 @@ void ScreenAniListener::OnDisconnect(ScreenId id)
         return;
     }
     std::vector<ani_ref> vec = it->second;
-    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}d", vec.size());
+    TLOGI(WmsLogTag::DMS, "vec_callback size: %{public}zu", vec.size());
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
-        if (env_ == nullptr) {
-            TLOGE(WmsLogTag::DMS, "[ANI] null env");
+        if (vm_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] null vm");
+            return;
+        }
+        auto aniVm = AniVm(vm_);
+        auto env = aniVm.GetAniEnv();
+        if (env == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
             return;
         }
         ani_boolean undefRes = 0;
-        env_->Reference_IsUndefined(oneAniCallback, &undefRes);
+        env->Reference_IsUndefined(oneAniCallback, &undefRes);
         // judge is null or undefined
         if (undefRes) {
             TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback is undef");
             continue;
         }
 
-        auto task = [env = env_, oneAniCallback, id] {
+        auto task = [vm = vm_, oneAniCallback, id] {
+            auto aniVm = AniVm(vm);
+            auto env = aniVm.GetAniEnv();
+            if (env == nullptr) {
+                TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
+                return;
+            }
             ScreenAniUtils::CallAniFunctionVoid(env, "@ohos.screen.screen", "screenEventCallBack",
                 "C{std.core.Object}l:", oneAniCallback, static_cast<ani_long>(id));
         };
@@ -189,17 +217,29 @@ void ScreenAniListener::OnChange(ScreenId id)
     std::vector<ani_ref> vec = it->second;
     // find callbacks in vector
     for (auto oneAniCallback : vec) {
-        if (env_ == nullptr) {
-            TLOGE(WmsLogTag::DMS, "[ANI] null env");
+        if (vm_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] null vm");
+            return;
+        }
+        auto aniVm = AniVm(vm_);
+        auto env = aniVm.GetAniEnv();
+        if (env == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
             return;
         }
         ani_boolean undefRes = 0;
-        env_->Reference_IsUndefined(oneAniCallback, &undefRes);
+        env->Reference_IsUndefined(oneAniCallback, &undefRes);
         if (undefRes) {
             TLOGE(WmsLogTag::DMS, "[ANI] oneAniCallback undefRes, continue");
             continue;
         }
-        auto task = [env = env_, oneAniCallback, id] () {
+        auto task = [vm = vm_, oneAniCallback, id] () {
+            auto aniVm = AniVm(vm);
+            auto env = aniVm.GetAniEnv();
+            if (env == nullptr) {
+                TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
+                return;
+            }
             ScreenAniUtils::CallAniFunctionVoid(env, "@ohos.screen.screen", "screenEventCallBack",
                 "C{std.core.Object}l:", oneAniCallback, static_cast<ani_long>(id));
         };
@@ -216,18 +256,28 @@ ani_status ScreenAniListener::CallAniMethodVoid(ani_object object, const char* c
     const char* method, const char* signature, ...)
 {
     ani_class aniClass;
-    ani_status ret = env_->FindClass(cls, &aniClass);
+    if (vm_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] vm is nullptr");
+        return ANI_ERROR;
+    }
+    auto aniVm = AniVm(vm_);
+    auto env = aniVm.GetAniEnv();
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[ANI] env got from vm is nullptr");
+        return ANI_ERROR;
+    }
+    ani_status ret = env->FindClass(cls, &aniClass);
     if (ret != ANI_OK) {
         return ret;
     }
     ani_method aniMethod;
-    ret = env_->Class_FindMethod(aniClass, method, signature, &aniMethod);
+    ret = env->Class_FindMethod(aniClass, method, signature, &aniMethod);
     if (ret != ANI_OK) {
         return ret;
     }
     va_list args;
     va_start(args, signature);
-    ret = env_->Object_CallMethod_Void(object, aniMethod, args);
+    ret = env->Object_CallMethod_Void(object, aniMethod, args);
     va_end(args);
     return ret;
 }

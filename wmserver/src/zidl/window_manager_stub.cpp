@@ -117,6 +117,28 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
             reply.WriteParcelable(&avoidArea);
             break;
         }
+        case WindowManagerMessage::TRANS_ID_GET_WINDOW_STATE_SNAPSHOT: {
+            int32_t persistentId = 0;
+            if (!data.ReadInt32(persistentId)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId fail");
+                return ERR_INVALID_DATA;
+            }
+            std::string winStateSnapshotJsonStr;
+            if (!data.ReadString(winStateSnapshotJsonStr)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read winStateSnapshotJsonStr failed");
+                return ERR_INVALID_DATA;
+            }
+            auto errCode = GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+            if (!reply.WriteString(winStateSnapshotJsonStr)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write winStateSnapshotJsonStr failed");
+                return ERR_INVALID_DATA;
+            }
+            if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write error code failed");
+                return ERR_INVALID_DATA;
+            }
+            break;
+        }
         case WindowManagerMessage::TRANS_ID_REGISTER_WINDOW_MANAGER_AGENT: {
             uint32_t windowType = 0;
             if (!data.ReadUint32(windowType) ||
@@ -221,7 +243,7 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
         }
         case WindowManagerMessage::TRANS_ID_UPDATE_LAYOUT_MODE: {
             uint32_t layoutMode = 0;
-            if (!data.ReadUint32(layoutMode)) {
+            if (!data.ReadUint32(layoutMode) || layoutMode >= static_cast<uint32_t>(WindowLayoutMode::END)) {
                 TLOGE(WmsLogTag::WMS_LAYOUT, "read layoutMode failed");
                 return ERR_INVALID_DATA;
             }
@@ -310,7 +332,7 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
             sptr<WindowTransitionInfo> from = data.ReadParcelable<WindowTransitionInfo>();
             sptr<WindowTransitionInfo> to = data.ReadParcelable<WindowTransitionInfo>();
             bool isFromClient = false;
-            if (!data.ReadBool(isFromClient)) {
+            if (!data.ReadBool(isFromClient) || from == nullptr || to == nullptr) {
                 return ERR_INVALID_DATA;
             }
             WMError errCode = NotifyWindowTransition(from, to, isFromClient);

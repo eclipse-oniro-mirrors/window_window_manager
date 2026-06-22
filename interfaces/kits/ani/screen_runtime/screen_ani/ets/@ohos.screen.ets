@@ -21,8 +21,8 @@ export default namespace screen {
 
 loadLibraryWithPermissionCheck("screenani_kit.z", "@ohos.screen");
 
-const SCREEN_ARRAY_LENGTH = 15;
-const SCREEN_MODE_INFO = 15;
+const SCREEN_ARRAY_LENGTH: int = 15;
+const SCREEN_MODE_INFO: int = 15;
 
 export function on<T>(eventType: string, callback: Callback<T>): void{
     syncOn(eventType, callback, screenMgrRef);
@@ -88,10 +88,7 @@ export native function makeMirrorInternal(mainScreen: long, mirrorScreen: Array<
 
 export function getAllScreens(callback: AsyncCallback<Array<Screen>>): void {
     taskpool.execute((): Array<Screen> => {
-        let screens: Array<Screen> = new Array<Screen>(SCREEN_ARRAY_LENGTH);
-        for (let i = 0; i < 10; i++) {
-            screens[i] = new ScreenImpl();
-        }
+        let screens: Array<Screen> = new Array<Screen>(SCREEN_ARRAY_LENGTH, () => { return new ScreenImpl() });
         getAllScreensInternal(screens);
         minusScreens(screens);
         return screens;
@@ -106,10 +103,7 @@ export function getAllScreens(): Promise<Array<Screen>> {
     return new Promise<Array<Screen>>((resolve: (value: Array<Screen>) => void,
         reject: (error: BusinessError) => void ) => {
             taskpool.execute((): Array<Screen> => {
-                let screens: Array<Screen> = new Array<Screen>(SCREEN_ARRAY_LENGTH);
-                for (let i = 0; i < 10; i++) {
-                    screens[i] = new ScreenImpl();
-                }
+                let screens: Array<Screen> = new Array<Screen>(SCREEN_ARRAY_LENGTH, () => { return new ScreenImpl() });
                 getAllScreensInternal(screens);
                 minusScreens(screens);
                 return screens;
@@ -122,7 +116,7 @@ export function getAllScreens(): Promise<Array<Screen>> {
     );
 }
 
-function minusScreens(screens: Array<Screen>) {
+function minusScreens(screens: Array<Screen>): void {
     let i = 0;
     for (; i < screens.length; i++) {
         let currentScreen: ScreenImpl = screens[i] as ScreenImpl;
@@ -134,7 +128,7 @@ function minusScreens(screens: Array<Screen>) {
     }
 }
 
-function minusScreenModeInfo(screenModeInfo: Array<ScreenModeInfo>) {
+function minusScreenModeInfo(screenModeInfo: Array<ScreenModeInfo>): void {
     let i = 0;
     for (; i < screenModeInfo.length; i++) {
         let currentScreenMode: ScreenModeInfoImpl = screenModeInfo[i] as ScreenModeInfoImpl;
@@ -310,6 +304,19 @@ export function makeUnique(uniqueScreen: Array<long>): Promise<Array<long>> {
     });
 }
 
+export function resizeVirtualScreen(screenId: long, width: long, height: long):
+    Promise<void> {
+    return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+        taskpool.execute((): void => {
+            resizeVirtualScreenInternal(screenId, width, height);
+        }).then(() => {
+            resolve(undefined);
+        }).catch((err: Any) => {
+            reject(err as BusinessError);
+        });
+    })
+}
+
 export function makeMirrorWithRegion(mainScreen: long, mirrorScreen: Array<long>, mainScreenRegion: Rect):
     Promise<long> {
     return new Promise<long>((resolve: (value: long) => void, reject: (error: BusinessError) => void) => {
@@ -401,6 +408,7 @@ export native function setMultiScreenModeInternal(primaryScreenId: long, seconda
     secondaryScreenMode: MultiScreenMode): void;
 export native function setScreenPrivacyMaskImageInternal(screenId: long, image?: image.PixelMap): void;
 export native function makeUniqueInternal(uniqueScreen: Array<long>): Array<long>;
+export native function resizeVirtualScreenInternal(screenId: long, width: long, height: long): void;
 export native function makeMirrorWithRegionInternal(mainScreen: long, mirrorScreen: Array<long>,
     mainScreenRegion: Rect): long;
 export native function stopMirrorInternal(mirrorScreen: Array<long>): void;
@@ -432,6 +440,8 @@ export interface Screen {
     setOrientation(orientation: Orientation, callback: AsyncCallback<void>): void;
     
     setOrientation(orientation: Orientation): Promise<void>;
+
+    setOrientation(orientation: Orientation, orientationOptions: OrientationOptions): Promise<void>;
 }
 
 class ScreenImpl implements Screen {
@@ -440,10 +450,7 @@ class ScreenImpl implements Screen {
 
     constructor() {
         this.id = -1;
-        this.supportedModeInfo = new Array<ScreenModeInfo>(SCREEN_MODE_INFO);
-        for (let i = 0; i < this.supportedModeInfo.length;i++) {
-            this.supportedModeInfo[i] = new ScreenModeInfoImpl();
-        }
+        this.supportedModeInfo = new Array<ScreenModeInfo>(SCREEN_MODE_INFO, () => { return new ScreenModeInfoImpl() });
     }
 
     readonly id: long;
@@ -546,11 +553,25 @@ class ScreenImpl implements Screen {
         });
     }
 
+    setOrientation(orientation: Orientation, orientationOptions: OrientationOptions): Promise<void> {
+        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void):
+            void => {
+            taskpool.execute((): void => {
+                this.setOrientationWithOptions(orientation, orientationOptions);
+            }).then(() => {
+                resolve(undefined);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
     native setDensityDpiInternal(densityDpi: double): void;
     native static nativeTransferStatic(input: ESValue, screen: Object): boolean;
     native static nativeTransferDynamic(nativeObj: long): ESValue;
     native setScreenActiveModeInternal(modeIndex: long): void;
     native setOrientationInternal(orientation: Orientation): void;
+    native setOrientationWithOptions(orientation: Orientation, orientationOptions: OrientationOptions): void;
 }
 
 export interface ScreenModeInfo {
@@ -617,6 +638,12 @@ export enum Orientation {
     REVERSE_HORIZONTAL = 4
 }
 
+interface OrientationOptions {
+    needAnimation?: boolean;
+
+    ignoreRotationLock?: boolean;
+}
+
 export interface VirtualScreenOption {
     name: string;
 
@@ -629,6 +656,8 @@ export interface VirtualScreenOption {
     surfaceId: string;
 
     supportsFocus?: boolean;
+
+    userId?: int;
 }
 
 class VirtualScreenOptionImpl implements VirtualScreenOption {

@@ -26,6 +26,8 @@
 #include <ui/rs_node.h>
 #include <ui/rs_ui_context.h>
 #include <ui/rs_ui_director.h>
+#include <event_handler.h>
+#include "iremote_object.h"
 
 #define RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(...)      \
     do {                                                      \
@@ -109,6 +111,7 @@ public:
 
     static std::shared_ptr<RSTransaction> GetRSTransaction(const std::shared_ptr<RSUIContext>& rsUIContext);
     static std::shared_ptr<RSTransaction> GetRSTransaction(const std::shared_ptr<RSNode>& rsNode);
+    // isInnerProcess means sync only in sceneboard process
     static void OpenSyncTransaction(const std::shared_ptr<RSUIContext>& rsUIContext, bool isInnerProcess,
         const std::shared_ptr<AppExecFwk::EventHandler>& handler = nullptr);
     static void OpenSyncTransaction(const std::shared_ptr<RSUIContext>& rsUIContext,
@@ -172,10 +175,8 @@ private:
 class RSAdapterUtil {
 public:
     static bool IsClientMultiInstanceEnabled();
-    static void InitRSUIDirector(std::shared_ptr<RSUIDirector>& rsUIDirector,
-                                 bool shouldCreateRenderThread = true,
-                                 bool isMultiInstance = false,
-                                 const std::shared_ptr<RSUIContext>& rsUiContext = nullptr);
+    static void InitRSUIDirector(std::shared_ptr<RSUIDirector>& rsUIDirector, sptr<IRemoteObject> connectToRenderToken,
+        const std::shared_ptr<RSUIContext>& rsUiContext = nullptr);
     static void SetRSUIContext(const std::shared_ptr<RSNode>& rsNode,
                                const std::shared_ptr<RSUIContext>& rsUIContext,
                                bool skipCheckInMultiInstance = false);

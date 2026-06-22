@@ -24,8 +24,6 @@ group("systemtest") {
     ":wms_window_gesture_navigation_enabled_test",
     ":wms_window_multi_ability_test",
     ":wms_window_nointeraction_listener_test",
-    ":wms_window_recover_test",
-    ":wms_window_status_change_test",
     ":wms_window_systemsubwindow_test",
   ]
   if (!window_manager_use_sceneboard) {
@@ -40,7 +38,6 @@ group("systemtest") {
       ":wms_window_immersive_test",
       ":wms_window_input_method_test",
       ":wms_window_input_test",
-      ":wms_window_layout_test",
       ":wms_window_mode_support_info_test",
       ":wms_window_move_drag_test",
       ":wms_window_occupied_area_change_test",
@@ -56,12 +53,14 @@ group("systemtest") {
     ]
   } else {
     deps += [
-      ":wms_window_app_floating_window_test",    
+      ":wms_window_app_floating_window_test",
       ":wms_window_callback_test",
       ":wms_window_decor_test",
       ":wms_window_layout_integration_test",
       ":wms_window_pc_test",
       ":wms_window_specialwindow_test",
+      ":wms_window_layout_test",
+      ":wms_window_status_change_test",
     ]
   }
 }
@@ -599,10 +598,10 @@ ohos_static_library("wms_systemtest_common") {
   public_deps = [
     "${window_base_path}/dm:libdm",
     "${window_base_path}/dmserver:libdms",
-    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_static",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-    "${window_base_path}/wm:libwm",
+    "${window_base_path}/wm:libwm_static",
   ]
   external_deps = test_external_deps
 

@@ -53,6 +53,7 @@ enum class HDRFormat : uint32_t {
     IMAGE_HDR_VIVID_SINGLE = 5,
     IMAGE_HDR_ISO_DUAL = 6,
     IMAGE_HDR_ISO_SINGLE = 7,
+    VIDEO_AIHDR = 8,
 };
 
 std::shared_ptr<NativeReference> FindJsDisplayObject(DisplayId displayId);

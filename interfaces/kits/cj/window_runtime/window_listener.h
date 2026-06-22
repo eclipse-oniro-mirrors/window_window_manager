@@ -48,6 +48,7 @@ const std::string WINDOW_RECT_CHANGE_CB = "windowRectChange";
 const std::string WINDOW_SUB_WINDOW_CLOSE_CB = "subWindowClose";
 const std::string WINDOW_STAGE_CLOSE_CB = "windowStageClose";
 const std::string WINDOW_WILL_CLOSE_CB = "windowWillClose";
+const std::string APPLICATION_FOCUS_STATE_CHANGE_CB = "applicationFocusStageChange";
 
 class CjWindowListener : public IWindowChangeListener,
                          public ISystemBarChangedListener,
@@ -59,6 +60,7 @@ class CjWindowListener : public IWindowChangeListener,
                          public IDialogTargetTouchListener,
                          public IDialogDeathRecipientListener,
                          public IWaterMarkFlagChangedListener,
+                         public IApplicationFocusChangedListener,
                          public IGestureNavigationEnabledChangedListener,
                          public IWindowVisibilityChangedListener,
                          public IWindowTitleButtonRectChangedListener,
@@ -94,6 +96,7 @@ public:
     void OnDialogDeathRecipient() const override;
     void OnGestureNavigationEnabledUpdate(bool enable) override;
     void OnWaterMarkFlagUpdate(bool showWaterMark) override;
+    void OnApplicationFocusUpdate(bool isFocused) override;
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;
     void OnWindowStatusChange(WindowStatus status) override;
     void OnWindowTitleButtonRectChanged(const TitleButtonRect& titleButtonRect) override;

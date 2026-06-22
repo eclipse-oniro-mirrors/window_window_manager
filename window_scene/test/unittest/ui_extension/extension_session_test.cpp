@@ -22,6 +22,7 @@
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
+#include "extension_data_handler_mock.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -87,6 +88,23 @@ HWTEST_F(ExtensionSessionTest, Connect, TestSize.Level0)
     extensionSession_->state_ = SessionState::STATE_DISCONNECT;
     res = extensionSession_->Connect(mockSessionStage_, nullptr, nullptr, sessionConfig, nullptr, nullptr, "");
     ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: Connect_TestTransparentUIExtension
+ * @tc.desc: test function : Connect test transparent ability
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExtensionSessionTest, Connect_TestTransparentUIExtension, TestSize.Level1)
+{
+    SystemSessionConfig sessionConfig;
+    extensionSession_->state_ = SessionState::STATE_DISCONNECT;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    extensionSession_->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    extensionSession_->SetIsTransparentUIExtension(true);
+    auto res = extensionSession_->Connect(mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property,
+        nullptr, "");
+    ASSERT_EQ(res, WSError::WS_OK);
 }
 
 /**

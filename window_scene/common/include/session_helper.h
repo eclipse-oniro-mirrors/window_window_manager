@@ -29,19 +29,17 @@ namespace OHOS {
 namespace Rosen {
 class SessionHelper {
 public:
-    static WSRect GetOverlap(const WSRect& rect1, const WSRect& rect2, int offsetX, int offsetY)
+    template<typename T>
+    static WSRectT<T> GetOverlap(const WSRectT<T>& rect1, const WSRectT<T>& rect2, T offsetX, T offsetY)
     {
-        int32_t x_begin = std::max(rect1.posX_, rect2.posX_);
-        int32_t x_end = std::min(rect1.posX_ + static_cast<int32_t>(rect1.width_),
-            rect2.posX_ + static_cast<int32_t>(rect2.width_));
-        int32_t y_begin = std::max(rect1.posY_, rect2.posY_);
-        int32_t y_end = std::min(rect1.posY_ + static_cast<int32_t>(rect1.height_),
-            rect2.posY_ + static_cast<int32_t>(rect2.height_));
+        T x_begin = std::max(rect1.posX_, rect2.posX_);
+        T x_end = std::min(rect1.posX_ + rect1.width_, rect2.posX_ + rect2.width_);
+        T y_begin = std::max(rect1.posY_, rect2.posY_);
+        T y_end = std::min(rect1.posY_ + rect1.height_, rect2.posY_ + rect2.height_);
         if (y_begin >= y_end || x_begin >= x_end) {
             return { 0, 0, 0, 0 };
         }
-        return { x_begin - offsetX, y_begin - offsetY,
-            static_cast<uint32_t>(x_end - x_begin), static_cast<uint32_t>(y_end - y_begin) };
+        return { x_begin - offsetX, y_begin - offsetY, x_end - x_begin, y_end - y_begin };
     }
 
     static inline bool IsEmptyRect(const WSRect& r)
@@ -120,10 +118,9 @@ public:
         return usage == UIExtensionUsage::CONSTRAINED_EMBEDDED || usage == UIExtensionUsage::PREVIEW_EMBEDDED;
     }
 
-    static inline bool IsNeedSACalling(WindowType type)
+    static inline bool IsMagnificationWindow(WindowType type)
     {
-        return type == WindowType::WINDOW_TYPE_MAGNIFICATION || type == WindowType::WINDOW_TYPE_MAGNIFICATION_MENU ||
-            type == WindowType::WINDOW_TYPE_SELECTION;
+        return type == WindowType::WINDOW_TYPE_MAGNIFICATION || type == WindowType::WINDOW_TYPE_MAGNIFICATION_MENU;
     }
 
     static AreaType GetAreaType(int32_t pointWinX, int32_t pointWinY,
@@ -148,7 +145,7 @@ public:
         int32_t bottomCornerTouch = rect.height_ - insideCornerTouch;
         int32_t bottomIn = rect.height_ - insideEdge;
         int32_t bottomOut = rect.height_ + outside;
-
+ 
         auto isInRange = [](int32_t min, int32_t max, int32_t value) { return min <= value && value <= max; };
         auto isInRect = [pointWinX, pointWinY, &isInRange](int32_t xMin, int32_t xMax, int32_t yMin, int32_t yMax) {
             return isInRange(xMin, xMax, pointWinX) && isInRange(yMin, yMax, pointWinY);
@@ -184,17 +181,17 @@ public:
         }
 
         if (sourceType == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
-            if (isInRect(leftOut, leftCornerTouch, topOut, topCorner) ||
-                isInRect(leftOut, leftCorner, topOut, topCornerTouch)) {
+            if (isInRect(leftOut, leftCornerTouch, topOut, topIn) ||
+                isInRect(leftOut, leftIn, topOut, topCornerTouch)) {
                 type = AreaType::LEFT_TOP;
-            } else if (isInRect(leftOut, leftCornerTouch, bottomCorner, bottomOut) ||
-                isInRect(leftOut, leftCorner, bottomCornerTouch, bottomOut)) {
+            } else if (isInRect(leftOut, leftCornerTouch, bottomIn, bottomOut) ||
+                isInRect(leftOut, leftIn, bottomCornerTouch, bottomOut)) {
                 type = AreaType::LEFT_BOTTOM;
-            } else if (isInRect(rightCornerTouch, rightOut, topOut, topCorner) ||
-                isInRect(rightCorner, rightOut, topOut, topCornerTouch)) {
+            } else if (isInRect(rightCornerTouch, rightOut, topOut, topIn) ||
+                isInRect(rightIn, rightOut, topOut, topCornerTouch)) {
                 type = AreaType::RIGHT_TOP;
-            } else if (isInRect(rightCorner, rightOut, bottomCornerTouch, bottomOut) ||
-                isInRect(rightCornerTouch, rightOut, bottomCorner, bottomOut)) {
+            } else if (isInRect(rightIn, rightOut, bottomCornerTouch, bottomOut) ||
+                isInRect(rightCornerTouch, rightOut, bottomIn, bottomOut)) {
                 type = AreaType::RIGHT_BOTTOM;
             }
         }
@@ -208,9 +205,9 @@ public:
         int32_t rightOut = rect.width_ + outside;
         int32_t topOut = -outside;
         int32_t bottomOut = rect.height_ + outside;
-
+ 
         auto isInRange = [](int32_t min, int32_t max, int32_t value) { return min <= value && value <= max; };
-
+ 
         AreaType type;
         if (isInRange(leftOut, rightOut / HALF, pointWinX) &&
             isInRange(topOut, bottomOut / HALF, pointWinY)) {
@@ -255,6 +252,16 @@ public:
             return 0; //Returns 0 if an overflow occurs.
         }
         return value * std::pow(DECIMAL_BASE, shift);
+    }
+
+    static bool IsHexChar(char c)
+    {
+        return std::isxdigit(static_cast<unsigned char>(c)) != 0;
+    }
+
+    static bool IsDecChar(char c)
+    {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
     }
 };
 } // Rosen

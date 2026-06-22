@@ -101,6 +101,8 @@ public:
         TRANS_ID_SET_IMAGE_FOR_RECENT,
         TRANS_ID_SET_IMAGE_FOR_RECENT_PIXELMAP,
         TRANS_ID_REMOVE_IMAGE_FOR_RECENT,
+        TRANS_ID_GET_FLOAT_VIEW_LIMITS,
+        TRANS_ID_GET_WINDOW_STATE_SNAPSHOT,
     };
     virtual WMError CreateWindow(sptr<IWindow>& window, sptr<WindowProperty>& property,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode,
@@ -140,8 +142,11 @@ public:
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) { return WMError::WM_OK; }
-    virtual WMError GetAllWindowLayoutInfo(DisplayId displayId,
-        std::vector<sptr<WindowLayoutInfo>>& infos) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -151,19 +156,34 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     virtual WMError GetTopNavDestinationName(int32_t windowId,
         std::string& topNavDestName) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap, uint32_t priority,
+        std::string& bundleName) { return WMError::WM_DO_NOTHING; }
+    virtual WMError CleanScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap)
+    {
+        return WMError::WM_DO_NOTHING;
+    }
+    virtual WMError RecoverScreenWatermarkImage(const std::string& bundleName, uint32_t priority)
+    {
+        return WMError::WM_DO_NOTHING;
+    }
     virtual WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
         std::string& watermarkName) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError RecoverWatermarkImageForApp(const std::string& watermarkName)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
-    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) = 0;
+    virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) = 0;
     virtual WMError SetWindowAnimationController(const sptr<RSIWindowAnimationController>& controller) = 0;
     virtual WMError GetSystemConfig(SystemConfig& systemConfig) = 0;
     virtual WMError NotifyWindowTransition(sptr<WindowTransitionInfo>& from, sptr<WindowTransitionInfo>& to,
@@ -200,7 +220,7 @@ public:
     virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) {}
     virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
-                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) = 0;
+                                 std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) {};
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid) { return WMError::WM_OK; }
     virtual WSError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener) { return WSError::WS_OK; }
     virtual WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener)
@@ -216,9 +236,21 @@ public:
     {
         return WSError::WS_OK;
     }
+    virtual WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener)
+    {
+        return WMError::WM_OK;
+    }
     virtual WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual WSError NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha)
+    {
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
     virtual WSError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId)
     {
@@ -232,10 +264,15 @@ public:
     {
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId)
+    {
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject> token = nullptr) { return WSError::WS_OK; }
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        sptr<IRemoteObject> token = nullptr) { return WSError::WS_OK; }
     virtual WSError RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, sptr<ISession>& session, sptr<IRemoteObject> token = nullptr)
@@ -259,6 +296,10 @@ public:
     {
         return WSError::WS_OK;
     }
+    virtual WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo)
+    {
+        return WMError::WM_OK;
+    }
     virtual WMError RequestFocusStatus(int32_t persistentId, bool isFocused, bool byForeground = true,
         FocusChangeReason reason = FocusChangeReason::DEFAULT)
     {
@@ -266,6 +307,11 @@ public:
     }
     virtual WMError RequestFocusStatusBySA(int32_t persistentId, bool isFocused = true,
         bool byForeground = true, FocusChangeReason reason = FocusChangeReason::SA_REQUEST)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual WMError Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap,
+        int32_t persistentId, const SnapshotConfig& config)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -293,11 +339,12 @@ public:
     {
         return WMError::WM_OK;
     }
-    virtual WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect)
+    virtual WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false)
     {
         return WSError::WS_OK;
     }
-    virtual WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect)
+    virtual WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false)
     {
         return WSError::WS_OK;
     }
@@ -318,13 +365,17 @@ public:
     {
         return WMError::WM_OK;
     };
+    virtual WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) { return WMError::WM_OK; }
     virtual WMError NotifySupportRotationRegistered() { return WMError::WM_OK; }
     virtual WMError SkipSnapshotForAppProcess(int32_t pid, bool skip) { return WMError::WM_OK; }
     virtual WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName,
         bool isEnabled) { return WMError::WM_OK; }
+    virtual WMError RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError GetWindowIdsByCoordinate(DisplayId displayId, int32_t windowNumber,
         int32_t x, int32_t y, std::vector<int32_t>& windowIds) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-    virtual WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) { return WMError::WM_OK; }
     virtual WMError UpdateScreenLockStatusForApp(
         const std::string& bundleName, bool isRelease) { return WMError::WM_OK; }
     virtual WMError IsPcWindow(bool& isPcWindow) { return WMError::WM_OK; }
@@ -347,13 +398,13 @@ public:
         DragResizeType& dragResizeType) { return WMError::WM_OK; }
     virtual WMError SetAppKeyFramePolicy(const std::string& bundleName,
         const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
-    virtual WMError NotifyWatchGestureConsumeResult(int32_t keyCode,
-        bool isConsumed) { return WMError::WM_OK; }
-    virtual WMError NotifyWatchFocusActiveChange(bool isActive) { return WMError::WM_OK; }
     virtual WMError ShiftAppWindowPointerEvent(int32_t sourcePersistentId, int32_t targetPersistentId,
         int32_t fingerId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
         uint32_t color, int32_t uid) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError NotifyWatchGestureConsumeResult(int32_t keyCode,
+        bool isConsumed) { return WMError::WM_OK; }
+    virtual WMError NotifyWatchFocusActiveChange(bool isActive) { return WMError::WM_OK; }
     virtual WMError HasFloatingWindowForeground(const sptr<IRemoteObject>& abilityToken,
         bool& hasOrNot) { return WMError::WM_OK; }
     virtual WMError MinimizeByWindowId(const std::vector<int32_t>& windowIds) { return WMError::WM_OK; }
@@ -389,6 +440,13 @@ public:
     virtual WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams)
     {
         return WMError::WM_OK;
+    }
+    /*
+     * Float view
+     */
+    virtual WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 };
 }

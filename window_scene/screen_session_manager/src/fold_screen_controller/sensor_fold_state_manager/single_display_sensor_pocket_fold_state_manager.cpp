@@ -235,6 +235,7 @@ void SingleDisplaySensorPocketFoldStateManager::TentModeHandleSensorChange(float
             SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
         }
         ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_CANCEL);
+        PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
     }
 }
 

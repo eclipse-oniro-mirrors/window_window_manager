@@ -46,6 +46,7 @@ ohos_shared_library("embeddablewindowstageani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "src/ani_embeddable_window_stage.cpp",
@@ -79,11 +80,20 @@ ohos_shared_library("embeddablewindowstageani_kit") {
     "hitrace:hitrace_meter",
     "image_framework:image",
     "image_framework:image_ani",
+    "image_framework:image_taihe",
     "ipc:ipc_single",
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
   ]
+
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
+  
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
@@ -98,6 +108,7 @@ ohos_shared_library("embeddablewindowstageani_module") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "src/ani_embeddable_window_stage_module.cpp" ]
 
@@ -127,6 +138,7 @@ ohos_shared_library("embeddablewindowstageani_module") {
     "hitrace:hitrace_meter",
     "image_framework:image",
     "image_framework:image_ani",
+    "image_framework:image_taihe",
     "ipc:ipc_single",
     "napi:ace_napi",
     "runtime_core:ani",

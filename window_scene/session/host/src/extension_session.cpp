@@ -247,6 +247,9 @@ WSError ExtensionSession::ConnectInner(
         }
 
         session->dataHandler_->SetRemoteProxyObject(sessionStage->AsObject());
+        if (session->IsTransparentUIExtension()) {
+            sessionStage->SetUIExtensionTransparent();
+        }
         return session->Session::ConnectInner(
             sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid);
     };
@@ -504,7 +507,7 @@ AvoidArea ExtensionSession::GetAvoidAreaByType(AvoidAreaType type, const WSRect&
     return avoidArea;
 }
 
-WSError ExtensionSession::Background(bool isFromClient, const std::string& identityToken)
+WSError ExtensionSession::Background(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     SessionState state = GetSessionState();
     TLOGI(WmsLogTag::WMS_LIFE, "Background ExtensionSession, id: %{public}d, state: %{public}" PRIu32"",

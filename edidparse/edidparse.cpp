@@ -175,11 +175,11 @@ int ParseBaseEdid(const uint8_t* edidData, const uint32_t edidSize, struct baseE
     constexpr size_t videoInputDefinitionOffset = 0x14;
     uint8_t bpc = 0;
     constexpr uint8_t bpcHighNum = 3;
-    constexpr uint8_t bpcNumOffset = 4;
+    constexpr uint8_t bpcNumOffSet = 4;
     if ((edid[videoInputDefinitionOffset] & 0x80) && (outEdid->edid_minor >= BASE_MINOR)) {
         uint8_t colorBitDepth = edid[videoInputDefinitionOffset] & 0x70;
         if (!(colorBitDepth == 0x00 || colorBitDepth == 0x70)) {
-            bpc = ((colorBitDepth >> bpcHighNum) + bpcNumOffset);
+            bpc = ((colorBitDepth >> bpcHighNum) + bpcNumOffSet);
         }
     }
     outEdid->bitsPerPrimaryColor = bpc;

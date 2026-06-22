@@ -93,6 +93,8 @@ enum class ApiWindowType : uint32_t {
     TYPE_DYNAMIC,
     TYPE_MUTISCREEN_COLLABORATION,
     TYPE_FB,
+    TYPE_FV,
+    TYPE_MAIN = 32,
     TYPE_END
 };
 
@@ -176,6 +178,13 @@ enum class ApiModalityType : uint32_t {
 inline const std::map<ApiModalityType, ModalityType> JS_TO_NATIVE_MODALITY_TYPE_MAP {
     { ApiModalityType::WINDOW_MODALITY,         ModalityType::WINDOW_MODALITY      },
     { ApiModalityType::APPLICATION_MODALITY,    ModalityType::APPLICATION_MODALITY },
+};
+
+struct WindowMaskWithAlphaParams {
+    uint8_t* maskData = nullptr;
+    size_t byteLength = 0;
+    uint32_t maskWidth = 0;
+    uint32_t maskHeight = 0;
 };
 
 using AsyncCallbackFunc_ = std::function<void(napi_env env, size_t argc, napi_value* argv)>;
@@ -262,11 +271,13 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     napi_value WindowTypeInit(napi_env env);
     napi_value AvoidAreaTypeInit(napi_env env);
     napi_value WindowModeInit(napi_env env);
+    napi_value SplitRatioPreferenceInit(napi_env env);
+    napi_value ScreenshotEventTypeInit(napi_env env);
     napi_value GlobalWindowModeInit(napi_env env);
     napi_value WindowOcclusionStateInit(napi_env env);
-    napi_value ScreenshotEventTypeInit(napi_env env);
     napi_value ColorSpaceInit(napi_env env);
     napi_value OrientationInit(napi_env env);
+    napi_value OrientationExecutionResultInit(napi_env env);
     napi_value WindowStageEventTypeInit(napi_env env);
     napi_value WindowStageLifecycleEventTypeInit(napi_env env);
     napi_value WindowAnchorInit(napi_env env);
@@ -275,6 +286,7 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     napi_value WindowLayoutModeInit(napi_env env);
     napi_value BlurStyleInit(napi_env env);
     napi_value MaximizePresentationInit(napi_env env);
+    napi_value AcrossDisplayPresentationInit(napi_env env);
     napi_value WindowErrorCodeInit(napi_env env);
     napi_value WindowErrorInit(napi_env env);
     napi_value WindowStatusTypeInit(napi_env env);
@@ -295,9 +307,11 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     bool ConvertDecorButtonStyleFromJs(napi_env env, napi_value jsObject, DecorButtonStyle& decorButtonStyle);
     bool GetAPI7Ability(napi_env env, AppExecFwk::Ability* &ability);
     bool GetWindowMaskFromJsValue(napi_env env, napi_value jsObject, std::vector<std::vector<uint32_t>>& windowMask);
+    bool GetWindowMaskWithAlphaFromJsValue(napi_env env, napi_value jsObject, uint8_t** data, size_t& byteLength);
+    WmErrorCode ParseWindowMaskWithAlphaParams(napi_env env, napi_value* argv, size_t argc,
+        WindowMaskWithAlphaParams& params, const sptr<Window>& windowToken);
     bool GetWindowIdFromJsValue(napi_env env, napi_value jsObject, std::vector<int32_t>& windowIds);
     bool GetMoveConfigurationFromJsValue(napi_env env, napi_value jsObject, MoveConfiguration& moveConfiguration);
-    bool ParseRectAnimationConfig(napi_env env, napi_value jsObject, RectAnimationConfig& rectAnimationConfig);
     void ConvertJSSystemBarStyleToSystemBarProperties(napi_env env, napi_value jsObject,
         std::map<WindowType, SystemBarProperty>& properties,
         std::map<WindowType, SystemBarPropertyFlag>& propertyFlags);
@@ -371,6 +385,52 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     }
 
     /**
+     * @brief Get an optional property from an NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param object The NAPI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param outPropValue Output parameter to hold the property value.
+     *                     Could be undefined if not present/undefined/error.
+     * @return napi_ok on success, or appropriate error code on failure.
+     */
+    napi_status GetOptionalProperty(
+        napi_env env, napi_value object, const char* propertyName, napi_value& outPropValue);
+
+    /**
+     * @brief Get an optional boolean property from an NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param object The NAPI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optBoolProp Output parameter to hold the boolean value or std::nullopt if not present/undefined/error.
+     * @return napi_ok on success, or appropriate error code on failure.
+     */
+    napi_status GetOptionalBoolProperty(
+        napi_env env, napi_value object, const char* propertyName, std::optional<bool>& optBoolProp);
+
+    /**
+     * @brief Get an optional Rect property from an NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param object The NAPI object from which to retrieve the property.
+     * @param propertyName The name of the property to retrieve.
+     * @param optRectProp Output parameter to hold the Rect value or std::nullopt if not present/undefined/error.
+     * @return napi_ok on success, or appropriate error code on failure.
+     */
+    napi_status GetOptionalRectProperty(
+        napi_env env, napi_value object, const char* propertyName, std::optional<Rect>& optRectProp);
+
+    /**
+     * @brief Check whether the given NAPI value is undefined.
+     *
+     * @param env The NAPI environment.
+     * @param value The NAPI value to be checked.
+     * @return true if the value is undefined, or if the check fails.
+     */
+    bool IsUndefined(napi_env env, napi_value value);
+
+    /**
      * @brief Create a JS object representing a window rectangle change event.
      *
      * The resulting object has the following structure:
@@ -410,6 +470,17 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
      * @return The corresponding WmErrorCode enumeration value, or WmErrorCode::WM_ERROR_STATE_ABNORMALLY if unmapped.
      */
     WmErrorCode MappingWmErrorCodeSafely(WMError err);
+
+    /**
+     * @brief Parse StartMovingOptions from NAPI object.
+     *
+     * @param env The NAPI environment.
+     * @param napiOptions The NAPI object containing the options. Can be undefined.
+     * @return Parsing result status and optional StartMovingOptions.
+     *         Returns nullopt if napiOptions is nullptr, undefined, or parsing fails.
+     */
+    std::pair<napi_status, std::optional<StartMovingOptions>> ParseStartMovingOptions(napi_env env,
+                                                                                      napi_value napiOptions);
 }
 }
 #endif

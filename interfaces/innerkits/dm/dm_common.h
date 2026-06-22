@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 #include <parcel.h>
 
@@ -38,12 +39,14 @@ constexpr ScreenId SCREEN_ID_FAKE = 999;
 constexpr DisplayId DISPLAY_ID_FAKE = 999;
 constexpr ScreenId ERROR_ID_NO_PERMISSION = -201ULL;
 constexpr ScreenId ERROR_ID_NOT_SYSTEM_APP = -202ULL;
+constexpr ScreenId ERROR_INVALID_PARAM = -401ULL;
 constexpr bool IS_ROTATION_LOCKED_DEFAULT = false;
 constexpr int DOT_PER_INCH = 160;
-const static std::string DEFAULT_SCREEN_NAME = "buildIn";
 constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr int32_t CONCURRENT_USER_ID_DEFAULT = -1;
+constexpr int32_t INVALID_UID = -1;
+constexpr int32_t INVALID_USERID = -1;
 constexpr int32_t USER_ID_DEFAULT = 0;
 constexpr int32_t ROTATION_UNSET = -1;
 constexpr int32_t ROTATION_MIN = 0;
@@ -53,25 +56,13 @@ constexpr uint32_t BASELINE_DENSITY = 160;
 constexpr uint32_t HALF_SCREEN_PARAM = 2;
 constexpr uint32_t DISPLAY_A_HEIGHT = 3296;
 constexpr uint32_t DISPLAY_B_HEIGHT = 1608;
+constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
+constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
 constexpr uint32_t DISPLAY_A_WIDTH = 2472;
 constexpr float DEFAULT_SNAPSHOT_SCALE = 1.0f;
-
-/**
- * @struct HookInfo.
- *
- * @brief hook diaplayinfo deepending on the window size.
- */
-struct DMHookInfo {
-    uint32_t width_;
-    uint32_t height_;
-    float_t density_;
-    uint32_t rotation_;
-    bool enableHookRotation_;
-    uint32_t displayOrientation_;
-    bool enableHookDisplayOrientation_;
-    bool isFullScreenInForceSplit_;
-};
+constexpr uint64_t PC_WATCH_DOG_TIME_INTERVAL = 10 * 1000;
+constexpr uint64_t NON_PC_WATCH_DOG_TIME_INTERVAL = 5 * 1000;
 
 /**
  * @brief Power state change reason.
@@ -119,7 +110,13 @@ enum class PowerStateChangeReason : uint32_t {
     STATE_CHANGE_REASON_END_DREAM = 50,
     STATE_CHANGE_REASON_SYNCHRONIZE_POWER_STATE = 51,
     STATE_CHANGE_REASON_APPCAST = 52,
+    STATE_CHANGE_REASON_AOD_SET_DOZE = 53,
+    STATE_CHANGE_REASON_AOD_SET_DOZE_SUSPEND = 54,
+    STATE_CHANGE_REASON_AOD_SET_OFF = 55,
+    STATE_CHANGE_REASON_AOD_SET_FORCE_OFF = 56,
+    STATE_CHANGE_REASON_FOR_ONE_SCREEN_OFF = 57,
     STATE_CHANGE_REASON_REMOTE = 100,
+    STATE_CHANGE_REASON_PEOPLE_LEAVING = 101,
     STATE_CHANGE_REASON_UNKNOWN = 1000,
 };
 
@@ -133,6 +130,15 @@ enum class ScreenPowerState : uint32_t {
     POWER_OFF,
     POWER_BUTT,
     INVALID_STATE,
+    POWER_DOZE,
+    POWER_DOZE_SUSPEND,
+};
+
+/**
+ * @brief Enumerates the state of the screen power by SceneBoard.
+ */
+enum class ScbScreenPowerState : uint32_t {
+    POWER_OFF,
     POWER_DOZE,
     POWER_DOZE_SUSPEND,
 };
@@ -261,6 +267,7 @@ enum class TentMode : uint32_t {
     UNKNOWN,
     TENT_MODE,
     HOVER,
+    TENT_MODE_MAX
 };
 
 /**
@@ -378,6 +385,14 @@ enum class Orientation : uint32_t {
 };
 
 /**
+ * @brief The parameter of setting orientation options.
+ */
+struct OrientationOptions {
+    bool needAnimation = true;
+    bool ignoreRotationLock = false;
+};
+
+/**
  * @brief Rotation info type
  */
 enum class RotationInfoType : uint32_t {
@@ -486,6 +501,32 @@ enum class FoldDisplayMode: uint32_t {
     SUB = 3,
     COORDINATION = 4,
     GLOBAL_FULL = 5,
+    V_MAIN = 6,
+    N_MAIN = 7,
+    L_FULL = 8,
+};
+
+struct RotationCorrectionWhiteConfig {
+    std::unordered_map<FoldDisplayMode, int32_t> useLogicCamera;
+    std::unordered_map<FoldDisplayMode, int32_t> customLogicDirection;
+
+    int32_t GetUseLogicCamera(FoldDisplayMode key) const
+    {
+        auto it = useLogicCamera.find(key);
+        if (it != useLogicCamera.end()) {
+            return it->second;
+        }
+        return DEFAULT_USE_LOGIC_CAMERA;
+    }
+
+    int32_t GetCustomLogicDirection(FoldDisplayMode key) const
+    {
+        auto it = customLogicDirection.find(key);
+        if (it != customLogicDirection.end()) {
+            return it->second;
+        }
+        return DEFAULT_CUSTOM_LOGIC_DIRECTION;
+    }
 };
 
 /**
@@ -577,6 +618,12 @@ enum class ScreenModeChangeEvent: uint32_t {
     END,
 };
 
+enum class DisplayIntentType: uint32_t {
+    CANONICAL = 0, //fixed nits
+    LOCAL = 1, // current screen nits
+    DISPLAY_INTENT_BUTT, // a boundary for DisplayIntentType Security Check
+};
+
 class Point : public Parcelable {
 public:
     int32_t posX_{0};
@@ -646,11 +693,29 @@ struct DMRect {
     }
 };
 
+/**
+ * @struct HookInfo.
+ *
+ * @brief hook diaplayinfo deepending on the window size.
+ */
+struct DMHookInfo {
+    uint32_t width_;
+    uint32_t height_;
+    float_t density_;
+    uint32_t rotation_;
+    bool enableHookRotation_;
+    uint32_t displayOrientation_;
+    bool enableHookDisplayOrientation_;
+    DMRect actualRect_ = { 0, 0, 0, 0};
+    bool isFullScreenInForceSplit_;
+};
+
 struct CaptureOption {
     DisplayId displayId_ = DISPLAY_ID_INVALID;
     bool isNeedNotify_ = true;
     bool isNeedPointer_ = true;
     bool isCaptureFullOfScreen_ = false;
+    DisplayIntentType displayIntent_ = DisplayIntentType::CANONICAL;
     std::vector<NodeId> surfaceNodesList_ = {}; // exclude surfacenodes in screenshot
     std::vector<NodeId> blackWindowIdList_ = {};
     float scaleX_ = DEFAULT_SNAPSHOT_SCALE;
@@ -674,6 +739,38 @@ struct ScreenBrightnessInfo {
     float currentHeadroom = DEFAULT_HEADROOM;
     float maxHeadroom = DEFAULT_HEADROOM;
     float sdrNits = DEFAULT_SDR_NITS;
+    float brightnessPosition = -1.0f;
+};
+
+/*
+ * @brief Defines the screen brightness data. This structure must align with RsScreenBrightnessData.
+ */
+class DmsScreenBrightnessData : public Parcelable {
+public:
+    ScreenId screenId;
+    uint32_t level;
+    float brightnessPosition;
+ 
+    DmsScreenBrightnessData() : screenId(0), level(0), brightnessPosition(-1.0f) {}
+ 
+    DmsScreenBrightnessData(ScreenId id, uint32_t lvl, float position = -1.0f)
+        : screenId(id), level(lvl), brightnessPosition(position) {}
+ 
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return parcel.WriteUint64(screenId) && parcel.WriteUint32(level) && parcel.WriteFloat(brightnessPosition);
+    }
+ 
+    static DmsScreenBrightnessData* Unmarshalling(Parcel& parcel)
+    {
+        ScreenId screenId;
+        uint32_t level;
+        float brightnessPosition;
+        if (!(parcel.ReadUint64(screenId) && parcel.ReadUint32(level) && parcel.ReadFloat(brightnessPosition))) {
+            return nullptr;
+        }
+        return new (std::nothrow) DmsScreenBrightnessData(screenId, level, brightnessPosition);
+    }
 };
 
 struct MultiScreenPositionOptions {
@@ -754,22 +851,6 @@ struct ScreenDirectionInfo {
     int32_t screenRotation_;
     int32_t rotation_;
     int32_t phyRotation_;
-};
-
-/**
- * @brief Session option when connect
- */
-struct SessionOption {
-    ScreenId rsId_;
-    std::string name_;
-    bool isExtend_;
-    std::string innerName_;
-    ScreenId screenId_;
-    std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
-    bool supportsFocus_ {true};
-    bool isRotationLocked_;
-    int32_t rotation_;
-    std::map<int32_t, int32_t> rotationOrientationMap_;
 };
 
 /**
@@ -876,6 +957,12 @@ enum class DisplayModeChangeReason : uint32_t {
     INVALID,
     SETMODE,
     FORCE_SET
+};
+
+enum class ScreenClosedState : uint32_t {
+    UNKNOWN = 0,
+    CLOSE,
+    OPEN
 };
 }
 #endif // OHOS_ROSEN_DM_COMMON_H

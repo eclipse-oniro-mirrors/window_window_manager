@@ -23,12 +23,14 @@
 #include "singleton_container.h"
 
 #include "session/host/include/extension_session.h"
+#include "transaction/rs_interfaces.h"
 #include "perform_reporter.h"
 
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "ExtensionSessionManager" };
 const std::string EXTENSION_SESSION_MANAGER_THREAD = "OS_ExtensionSessionManager";
+constexpr const char* SET_UIEXTENSION_TRANSPARENT = "ohos.extra.param.key.setUIExtensionTransparent";
 } // namespace
 
 ExtensionSessionManager::ExtensionSessionManager()
@@ -58,6 +60,7 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     abilitySessionInfo->density = sessionInfo.config_.density_;
     abilitySessionInfo->orientation = sessionInfo.config_.orientation_;
     abilitySessionInfo->isDensityFollowHost = sessionInfo.config_.isDensityFollowHost_;
+    abilitySessionInfo->renderSession = sessionInfo.connectToRenderToken_;
     if (sessionInfo.want != nullptr) {
         abilitySessionInfo->want = sessionInfo.GetWantSafely();
     }
@@ -84,6 +87,7 @@ sptr<ExtensionSession> ExtensionSessionManager::RequestExtensionSession(const Se
 {
     auto task = [this, newSessionInfo = sessionInfo]() mutable -> sptr<ExtensionSession> {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "RequestExtensionSession");
+        TLOGNI(WmsLogTag::WMS_UIEXT, "in");
         if (!newSessionInfo.config_.isDensityFollowHost_) {
             newSessionInfo.config_.density_ = GetSystemDensity(newSessionInfo.config_.displayId_);
         }
@@ -92,8 +96,13 @@ sptr<ExtensionSession> ExtensionSessionManager::RequestExtensionSession(const Se
             newSessionInfo.isAtomicService_ = (screenMode == AAFwk::ScreenMode::EMBEDDED_FULL_SCREEN_MODE) ||
                 (screenMode == AAFwk::ScreenMode::EMBEDDED_HALF_SCREEN_MODE);
         }
+        bool isTransparentUIExtension = false;
+        if (newSessionInfo.want && newSessionInfo.want->HasParameter(SET_UIEXTENSION_TRANSPARENT)) {
+            isTransparentUIExtension = newSessionInfo.want->GetBoolParam(SET_UIEXTENSION_TRANSPARENT, false);
+        }
         sptr<ExtensionSession> extensionSession = sptr<ExtensionSession>::MakeSptr(newSessionInfo);
         extensionSession->SetEventHandler(taskScheduler_->GetEventHandler(), nullptr);
+        extensionSession->SetIsTransparentUIExtension(isTransparentUIExtension);
         auto persistentId = extensionSession->GetPersistentId();
         if (persistentId == INVALID_SESSION_ID) {
             return nullptr;
@@ -165,10 +174,10 @@ WSError ExtensionSessionManager::RequestExtensionSessionBackground(const sptr<Ex
     auto abilitySessionInfo = SetAbilitySessionInfo(extensionSession);
     wptr<ExtensionSession> weakExtSession(extensionSession);
     auto task = [this, weakExtSession, callback = std::move(resultCallback),
-        extSessionInfo = std::move(abilitySessionInfo)]() {
+        extSessionInfo = std::move(abilitySessionInfo), where = __func__]() {
         auto extSession = weakExtSession.promote();
         if (extSession == nullptr) {
-            WLOGFE("session is nullptr");
+            TLOGNE(WmsLogTag::WMS_UIEXT, "session is nullptr");
             return WSError::WS_ERROR_NULLPTR;
         }
         auto persistentId = extSession->GetPersistentId();
@@ -177,7 +186,8 @@ WSError ExtensionSessionManager::RequestExtensionSessionBackground(const sptr<Ex
         extSession->SetActive(false);
         extSession->Background();
         if (IsExtensionSessionInvalid(persistentId)) {
-            WLOGFE("RequestExtensionSessionBackground Session is invalid! persistentId:%{public}d", persistentId);
+            TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s Session is invalid! persistentId:%{public}d",
+                where, persistentId);
             return WSError::WS_ERROR_INVALID_SESSION;
         }
         auto errorCode = AAFwk::AbilityManagerClient::GetInstance()->MinimizeUIExtensionAbility(extSessionInfo);

@@ -42,6 +42,8 @@ public:
     void SetAgentDeathCallback(std::function<void(const sptr<IRemoteObject>&)> callback);
     int32_t GetAgentPid(const sptr<T1>& agent);
     std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> GetAttributeAgentsMap();
+    template <typename Func>
+    auto ParseAttributeAgentsMap(Func&& func);
 
 private:
     void RemoveAgent(const sptr<IRemoteObject>& remoteObject);
@@ -110,6 +112,7 @@ bool ClientAgentContainer<T1, T2>::RegisterAttributeAgent(uintptr_t key, const s
     } else {
         std::set<std::string> attrSet(attributes.begin(), attributes.end());
         attributeAgentMap_[key] = {agent, attrSet};
+        agentPidMap_[agent] = IPCSkeleton::GetCallingPid();
     }
  
     auto iter = attributeAgentMap_.find(key);
@@ -138,6 +141,12 @@ bool ClientAgentContainer<T1, T2>::UnRegisterAllAttributeAgent(uintptr_t key, co
     if (attributeAgentMap_.count(key) == 0) {
         WLOGFD("repeat unregister agent");
         return true;
+    }
+    auto agentPidIt = agentPidMap_.find(agent);
+    if (agentPidIt != agentPidMap_.end()) {
+        int32_t agentPid = agentPidMap_[agent];
+        agentPidMap_.erase(agentPidIt);
+        WLOGFD("agent pid: %{public}d unregistered", agentPid);
     }
     attributeAgentMap_.erase(key);
     agent->AsObject()->RemoveDeathRecipient(deathRecipient_);
@@ -172,7 +181,16 @@ bool ClientAgentContainer<T1, T2>::UnRegisterAttribute(uintptr_t key, const sptr
 template<typename T1, typename T2>
 std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> ClientAgentContainer<T1, T2>::GetAttributeAgentsMap()
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return attributeAgentMap_;
+}
+
+template<typename T1, typename T2>
+template <typename Func>
+auto ClientAgentContainer<T1, T2>::ParseAttributeAgentsMap(Func&& func)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return func(attributeAgentMap_);
 }
 
 template<typename T1, typename T2>
@@ -201,7 +219,17 @@ std::set<sptr<T1>> ClientAgentContainer<T1, T2>::GetAgentsByType(T2 type)
         WLOGFD("no such type of agent registered! type:%{public}u", type);
         return std::set<sptr<T1>>();
     }
-    return agentMap_.at(type);
+    auto agents = agentMap_.at(type);
+    std::ostringstream pids;
+    for (const auto& agent : agents) {
+        auto it = agentPidMap_.find(agent);
+        if (it != agentPidMap_.end()) {
+            pids << it->second << ",";
+        }
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, #agents=%{public}u, pids=[%{public}s]",
+        type, static_cast<uint32_t>(agents.size()), pids.str().c_str());
+    return agents;
 }
 
 template<typename T1, typename T2>

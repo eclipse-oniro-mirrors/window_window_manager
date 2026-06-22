@@ -34,7 +34,8 @@
         "window_manager_feature_screenless",
         "window_manager_feature_asbng_path",
         "window_manager_feature_support_dsoftbus",
-        "window_manager_feature_support_dmsfwk"
+        "window_manager_feature_support_dmsfwk",
+        "window_manager_feature_support_api_metrics"
       ],
       "adapted_system_type": [ "standard" ],
       "rom": "8000KB",
@@ -72,6 +73,7 @@
           "dsoftbus",
           "hicollie",
           "eventhandler",
+          "icu",
           "c_utils",
           "soc_perf",
           "relational_store",
@@ -93,7 +95,8 @@
           "zlib",
           "screenlock_mgr",
           "os_account",
-          "time_service"
+          "api_metrics",
+          "json"
         ],
         "third_party": [
         ]
@@ -129,7 +132,8 @@
             "//foundation/window/window_manager/utils:libwmutil_base",
             "//foundation/window/window_manager/window_scene/common:window_scene_common",
             "//foundation/window/window_manager/wm:libpip_web",
-            "//foundation/window/window_manager/wm:libpip_ndk"
+            "//foundation/window/window_manager/wm:libpip_ndk",
+            "//foundation/window/window_manager/wm:libmmi_client_adapter"
           ],
           "service_group": [
             "//foundation/window/window_manager/sa_profile:wms_sa_profile",
@@ -523,6 +527,9 @@
               ],
               "header_base": "//foundation/window/window_manager/interfaces/innerkits/wm"
             }
+          },
+          {
+            "name": "//foundation/window/window_manager/interfaces/kits/ani/environmental:copy_window_env_static_ets"
           }
         ],
         "test": [

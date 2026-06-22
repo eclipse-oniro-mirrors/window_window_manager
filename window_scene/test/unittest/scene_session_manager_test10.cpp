@@ -15,15 +15,19 @@
 
 #include <gtest/gtest.h>
 
+#include "display_manager.h"
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include <parameters.h>
 #include "session_manager/include/scene_session_manager.h"
+#include "session_manager/include/session_manager_agent_controller.h"
 #include "session_info.h"
 #include "session/host/include/root_scene_session.h"
 #include "session/host/include/scene_session.h"
 #include "session_manager.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "window_manager_agent.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -31,12 +35,28 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 namespace {
+    constexpr float DEFAULT_BLUR_RADIUS = 200.0f;
+
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
         const char *msg)
     {
         g_errLog = msg;
     }
+
+    class WindowPropertyChangeAgentTest : public WindowManagerAgent {
+    public:
+        WindowPropertyChangeAgentTest() : WindowManagerAgent(INVALID_USER_ID) {}
+
+        void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override
+        {
+            propertyDirtyFlags_ = propertyDirtyFlags;
+            windowInfoListSize_ = windowInfoList.size();
+        }
+
+        uint32_t propertyDirtyFlags_ = 0;
+        size_t windowInfoListSize_ = 0;
+    };
 }
 class SceneSessionManagerTest10 : public testing::Test {
 public:
@@ -230,6 +250,37 @@ HWTEST_F(SceneSessionManagerTest10, TestRequestSceneSessionDestructionInner_01, 
 }
 
 /**
+ * @tc.name: TestRequestSceneSessionDestructionInner_02
+ * @tc.desc: Test RequestSceneSessionDestructionInner with session is dropping
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, TestRequestSceneSessionDestructionInner_02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    sptr<SceneSession::SpecificSessionCallback> specificCallback = nullptr;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCallback);
+
+    auto task1 = []() {};
+    sceneSession->PostLifeCycleTask(task1, "task1", LifeCycleTaskType::START);
+    sptr<AAFwk::SessionInfo> sceneSessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    bool needRemoveSession = false;
+    bool isForceClean = false;
+
+    SessionInfo sessionInfo;
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    auto res =
+        ssm_->RequestSceneSessionDestructionInner(sceneSession, sceneSessionInfo, needRemoveSession, isForceClean);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    sceneSession->ClearLifeCycleTask();
+    res = ssm_->RequestSceneSessionDestructionInner(sceneSession, sceneSessionInfo,
+        needRemoveSession, isForceClean);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
  * @tc.name: TestRegisterWindowManagerAgent_01
  * @tc.desc: Test RegisterWindowManagerAgent with WindowManagerAgentType WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR
  * @tc.type: FUNC
@@ -383,6 +434,219 @@ HWTEST_F(SceneSessionManagerTest10, RegisterAcquireRotateAnimationConfigFunc, Te
     SizeChangeReason reason = SizeChangeReason::ROTATION;
     WSError result = sceneSession->UpdateRect(rect, reason, "SceneSessionManagerTest10");
     ASSERT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: GetRssPayload
+ * @tc.desc: Verify GetRssPayload contains time and uid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetRssPayload, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    auto payload = ssm_->GetRssPayload();
+    EXPECT_TRUE(payload.contains("time"));
+    EXPECT_TRUE(payload.contains("uid"));
+    EXPECT_FALSE(payload["time"].get<std::string>().empty());
+    EXPECT_FALSE(payload["uid"].get<std::string>().empty());
+}
+
+/**
+ * @tc.name: CheckHasForegroundSessionByType_FB
+ * @tc.desc: Verify CheckHasForegroundSessionByType for floating-ball windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, CheckHasForegroundSessionByType_FB, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    info.abilityName_ = "testFb";
+    info.bundleName_ = "testFb";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    fbSession->property_->SetPersistentId(1001);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    ssm_->sceneSessionMap_.insert({fbSession->GetPersistentId(), fbSession});
+
+    EXPECT_TRUE(ssm_->CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB));
+
+    ssm_->sceneSessionMap_.clear();
+    EXPECT_FALSE(ssm_->CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FB));
+}
+
+/**
+ * @tc.name: ReportRssFB
+ * @tc.desc: Verify ReportRssFB inserts and erases sessions in foreground set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ReportRssFB, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatBallSet_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    info.abilityName_ = "fbReport";
+    info.bundleName_ = "fbReport";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    fbSession->property_->SetPersistentId(2001);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // report foreground
+    ssm_->ReportRssFB(true, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 1);
+
+    // report background with erase(session)
+    ssm_->ReportRssFB(false, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 0);
+
+    // report background without erase(session)
+    ssm_->ReportRssFB(false, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 0);
+}
+
+/**
+ * @tc.name: ReportRssFloatWindowV1
+ * @tc.desc: Verify ReportRssFloatWindowV1 inserts and erases sessions in foreground set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ReportRssFloatWindowV1, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatWindowV1Set_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    SessionInfo info;
+    info.abilityName_ = "floatReport";
+    info.bundleName_ = "floatReport";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    floatSession->property_->SetPersistentId(3001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // report foreground
+    ssm_->ReportRssFloatWindowV1(true, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 1);
+
+    // report background with erase(session)
+    ssm_->ReportRssFloatWindowV1(false, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 0);
+
+    // report background without erase(session)
+    ssm_->ReportRssFloatWindowV1(false, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 0);
+}
+
+/**
+ * @tc.name: ReportWindowRss_Dispatch
+ * @tc.desc: Verify ReportWindowRss dispatches to the correct reporter
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ReportWindowRss_Dispatch, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatWindowV1Set_.clear();
+    ssm_->foregroundSessionFloatBallSet_.clear();
+    ASSERT_NE(ssm_, nullptr);
+
+    // float window
+    SessionInfo infoFloat;
+    infoFloat.abilityName_ = "floatDispatch";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(infoFloat, nullptr);
+    floatSession->property_->SetPersistentId(4001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // fb window
+    SessionInfo infoFb;
+    infoFb.abilityName_ = "fbDispatch";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(infoFb, nullptr);
+    fbSession->property_->SetPersistentId(4002);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // default branch
+    SessionInfo infoDefault;
+    infoDefault.abilityName_ = "defaultDispatch";
+    sptr<SceneSession> defaultSession = sptr<SceneSession>::MakeSptr(infoDefault, nullptr);
+    defaultSession->property_->SetPersistentId(4003);
+    defaultSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    defaultSession->SetSessionState(SessionState::STATE_FOREGROUND);
+
+    // floatWindowV1 branch
+    ssm_->ReportWindowRss(true, WindowType::WINDOW_TYPE_FLOAT, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 1);
+
+    // floatingBall branch
+    ssm_->ReportWindowRss(true, WindowType::WINDOW_TYPE_FB, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 1);
+
+    // default branch
+    ssm_->ReportWindowRss(true, WindowType::APP_MAIN_WINDOW_BASE, defaultSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(defaultSession), 0);
+}
+
+/**
+ * @tc.name: SetResTypeFloatingBall
+ * @tc.desc: Call SetResTypeFloatingBall with a basic payload to ensure it runs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, SetResTypeFloatingBall, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    nlohmann::json payload;
+    payload["testKey"] = "testValue";
+    // function should run without crashing; actual RSS call is guarded by compile flags / mock in environment
+    ssm_->SetResTypeFloatingBall(payload);
+    SUCCEED();
+}
+
+/**
+ * @tc.name: SetResTypeFloatingWindowV1_NoForeground
+ * @tc.desc: Call SetResTypeFloatingWindowV1 when no WINDOW_TYPE_FLOAT session is in foreground; value should be 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, SetResTypeFloatingWindowV1_NoForeground, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+    nlohmann::json payload;
+    payload["testKey"] = "testValue";
+    // No float window in sceneSessionMap_, so hasForeground == 0; should run without crashing
+    ssm_->SetResTypeFloatingWindowV1(payload);
+    SUCCEED();
+}
+
+/**
+ * @tc.name: SetResTypeFloatingWindowV1_WithForeground
+ * @tc.desc: Call SetResTypeFloatingWindowV1 when a WINDOW_TYPE_FLOAT session is in foreground; value should be 1
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, SetResTypeFloatingWindowV1_WithForeground, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo info;
+    info.abilityName_ = "floatWindowV1";
+    info.bundleName_ = "floatWindowV1";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(floatSession, nullptr);
+    floatSession->property_->SetPersistentId(5001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    ssm_->sceneSessionMap_.insert({floatSession->GetPersistentId(), floatSession});
+
+    nlohmann::json payload;
+    payload["testKey"] = "testValue";
+    // A foreground WINDOW_TYPE_FLOAT exists, so hasForeground == 1; should run without crashing
+    ssm_->SetResTypeFloatingWindowV1(payload);
+    EXPECT_TRUE(ssm_->CheckHasForegroundSessionByType(WindowType::WINDOW_TYPE_FLOAT));
+
+    ssm_->sceneSessionMap_.clear();
 }
 
 /**
@@ -840,6 +1104,30 @@ HWTEST_F(SceneSessionManagerTest10, NotifyVisibleChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetBlurRadiusFromParam
+ * @tc.desc: test GetBlurRadiusFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurRadiusFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    EXPECT_FLOAT_EQ(12.0f, ssm_->GetBlurRadiusFromParam("12"));
+    EXPECT_FLOAT_EQ(DEFAULT_BLUR_RADIUS, ssm_->GetBlurRadiusFromParam("-1"));
+}
+
+/**
+ * @tc.name: GetBlurBackgroundColorFromParam
+ * @tc.desc: test GetBlurBackgroundColorFromParam
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, GetBlurBackgroundColorFromParam, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    std::string color = "FFFFFFFF";
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), ssm_->GetBlurBackgroundColorFromParam(color));
+}
+
+/**
  * @tc.name: TestIsInDefaultScreen_01
  * @tc.desc: Test IsInDefaultScreen with not DefaultScreen id
  * @tc.type: FUNC
@@ -879,14 +1167,102 @@ HWTEST_F(SceneSessionManagerTest10, TestIsInDefaultScreen_02, TestSize.Level1)
  */
 HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFunc01, TestSize.Level1)
 {
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(nullptr));
     SessionInfo info;
     info.abilityName_ = "RegisterRequestVsyncFunc01";
     info.bundleName_ = "RegisterRequestVsyncFunc01";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(nullptr, sceneSession);
-    ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession);
+    EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
     EXPECT_NE(nullptr, sceneSession->sessionPropertyChangeNotifyManagerFunc_);
+}
+
+/**
+ * @tc.name: RegisterSessionPropertyChangeNotifyManagerFunc02
+ * @tc.desc: test RegisterSessionPropertyChangeNotifyManagerFunc notify path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFunc02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    SessionInfo info;
+    info.persistentId_ = 100;
+    info.bundleName_ = "RegisterSessionPropertyChangeNotifyManagerFunc02";
+    info.abilityName_ = "RegisterSessionPropertyChangeNotifyManagerFunc02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
+    windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
+
+    ssm_->sceneSessionMap_.emplace(sceneSession->GetPersistentId(), sceneSession);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+    ssm_->sceneSessionMap_.erase(sceneSession->GetPersistentId());
+}
+
+/**
+ * @tc.name: NotifySessionPropertyChangeFromSession01
+ * @tc.desc: test NotifySessionPropertyChangeFromSession notify path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    const int32_t persistentId = 200;
+
+    SessionInfo info;
+    info.persistentId_ = persistentId;
+    info.bundleName_ = "NotifySessionPropertyChangeFromSession01";
+    info.abilityName_ = "NotifySessionPropertyChangeFromSession01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    ssm_->sceneSessionMap_.emplace(persistentId, sceneSession);
+
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    EXPECT_EQ(WSError::WS_OK, ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    EXPECT_EQ(WSError::WS_OK,
+        ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE_INFO));
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+    ssm_->sceneSessionMap_.erase(persistentId);
 }
 
 /**
@@ -1415,6 +1791,46 @@ HWTEST_F(SceneSessionManagerTest10, ListWindowInfo01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ListWindowInfo02
+ * @tc.desc: verify displayName is returned with WINDOW_DISPLAY_INFO
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, ListWindowInfo02, TestSize.Level1)
+{
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplay();
+    ASSERT_NE(defaultDisplay, nullptr);
+    MockAccesstokenKit::MockIsSACalling(true);
+    ssm_->sceneSessionMap_.clear();
+
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->SetVisibilityState(WINDOW_VISIBILITY_STATE_NO_OCCLUSION);
+    sceneSession->GetSessionProperty()->SetWindowName("listWindowInfoTest");
+    sceneSession->GetSessionProperty()->SetDisplayId(defaultDisplay->GetId());
+    sceneSession->UpdateWindowMode({ WindowMode::WINDOW_MODE_SPLIT, SplitStyle::TWO_WINDOW_VERTICAL,
+        SPLIT_INDEX_SECONDARY });
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+
+    WindowInfoOption windowInfoOption;
+    windowInfoOption.windowId = sceneSession->GetWindowId();
+    windowInfoOption.windowInfoTypeOption =
+        WindowInfoTypeOption::WINDOW_DISPLAY_INFO | WindowInfoTypeOption::WINDOW_META_INFO;
+    std::vector<sptr<WindowInfo>> infos;
+    ASSERT_EQ(ssm_->ListWindowInfo(windowInfoOption, infos), WMError::WM_OK);
+    ASSERT_EQ(infos.size(), 1);
+    ASSERT_NE(infos[0], nullptr);
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowName, "listWindowInfoTest");
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.windowMode, WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitStyle, SplitStyle::TWO_WINDOW_VERTICAL);
+    EXPECT_EQ(infos[0]->windowMetaInfo.windowModeInfo.splitIndex, SPLIT_INDEX_SECONDARY);
+    EXPECT_EQ(infos[0]->windowDisplayInfo.displayId, defaultDisplay->GetId());
+}
+
+/**
  * @tc.name: FilterForListWindowInfo01
  * @tc.desc: ALL
  * @tc.type: FUNC
@@ -1604,215 +2020,6 @@ HWTEST_F(SceneSessionManagerTest10, FilterForListWindowInfo08, TestSize.Level1)
         }
     }
     ASSERT_EQ(filterNum, 5);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_statusBar
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_statusBar
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_statusBar, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 0, 0, 1260, 123 };
-    WSRect landspaceRect = { 0, 0, 2720, 123 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_SYSTEM, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_statusBar";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_statusBar";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::map<WindowType, SystemBarProperty> properties;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR].settingFlag_ = SystemBarSettingFlag::ENABLE_SETTING;
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR] = SystemBarProperty();
-    std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, properties, avoidAreas);
-    Rect rect = { 0, 0, 1260, 123 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_SYSTEM].topRect_, rect);
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR].enable_ = false;
-    rect = { 0, 0, 0, 0 };
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 123 }, properties, avoidAreas);
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_SYSTEM].topRect_, rect);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_statusBar_01
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_statusBar_01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_statusBar_01, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 0, 0, 1260, 123 };
-    WSRect landspaceRect = { 0, 0, 2720, 123 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_SYSTEM, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_statusBar_01";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_statusBar_01";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::map<WindowType, SystemBarProperty> properties;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR].settingFlag_ = SystemBarSettingFlag::ENABLE_SETTING;
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR] = SystemBarProperty();
-    std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    Rect rect = { 0, 0, 2720, 123 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_SYSTEM].topRect_, rect);
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].enable_ = false;
-    rect = { 0, 0, 0, 0 };
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_keyboard
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_keyboard
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_keyboard, TestSize.Level0)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_keyboard";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_keyboard";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onKeyboardRotationChange_ =
-        [](int32_t persistentId, Rotation rotation, std::vector<std::pair<bool, WSRect>>& avoidAreas) {
-            ssm_->GetKeyboardOccupiedAreaWithRotation(persistentId, rotation, avoidAreas);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    AvoidArea avoidArea;
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, avoidArea);
-    Rect rect = { 0, 0, 0, 0 };
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_keyboard_01
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_keyboard_01
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_keyboard_01, TestSize.Level0)
-{
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_keyboard_01";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_keyboard_01";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onKeyboardRotationChange_ =
-        [](int32_t persistentId, Rotation rotation, std::vector<std::pair<bool, WSRect>>& avoidAreas) {
-            ssm_->GetKeyboardOccupiedAreaWithRotation(persistentId, rotation, avoidAreas);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    SessionInfo keyboardSessionInfo;
-    keyboardSessionInfo.abilityName_ = "keyboard";
-    keyboardSessionInfo.bundleName_ = "keyboard";
-    keyboardSessionInfo.screenId_ = 0;
-    sptr<SceneSession> keyboardSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    keyboardSession->state_ = SessionState::STATE_FOREGROUND;
-    keyboardSession->property_->type_ = WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT;
-    keyboardSession->property_->keyboardLayoutParams_.PortraitPanelRect_ = { 0, 1700, 1260, 1020 };
-    keyboardSession->property_->keyboardLayoutParams_.LandscapePanelRect_ = { 0, 538, 2720, 722 };
-    keyboardSession->property_->SetPersistentId(2);
-    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
-    ssm_->sceneSessionMap_.insert({ keyboardSession->GetPersistentId(), keyboardSession });
-    auto uiType = ssm_->systemConfig_.windowUIType_;
-    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    AvoidArea avoidArea;
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, avoidArea);
-    Rect rect = { 0, 1700, 1260, 1020 };
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, avoidArea);
-    rect = { 0, 538, 2720, 722 };
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    keyboardSession->state_ = SessionState::STATE_BACKGROUND;
-    rect = { 0, 0, 0, 0 };
-    avoidArea.bottomRect_ = rect;
-    sceneSession->GetKeyboardAvoidAreaByRotation(Rotation::ROTATION_180, { 0, 0, 1260, 2720 }, avoidArea);
-    ASSERT_EQ(avoidArea.bottomRect_, rect);
-    ssm_->systemConfig_.windowUIType_ = uiType;
-    ssm_->sceneSessionMap_.clear();
-}
-
-/**
- * @tc.name: NotifyNextAvoidRectInfo_AIBar
- * @tc.desc: SceneSesionManager test NotifyNextAvoidRectInfo_AIBar
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest10, NotifyNextAvoidRectInfo_AIBar, TestSize.Level0)
-{
-    ASSERT_NE(ssm_, nullptr);
-    WSRect portraitRect = { 409, 2629, 442, 91 };
-    WSRect landspaceRect = { 884, 1169, 952, 91 };
-    auto ret = ssm_->NotifyNextAvoidRectInfo(AvoidAreaType::TYPE_NAVIGATION_INDICATOR, portraitRect, landspaceRect, 0);
-    ASSERT_EQ(ret, WSError::WS_OK);
-    SessionInfo info;
-    info.abilityName_ = "NotifyNextAvoidRectInfo_AIBar";
-    info.bundleName_ = "NotifyNextAvoidRectInfo_AIBar";
-    info.screenId_ = 0;
-    auto specificCb = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    specificCb->onGetNextAvoidAreaRectInfo_ =
-        [](DisplayId displayId, AvoidAreaType type, std::pair<WSRect, WSRect>& nextSystemBarAvoidAreaRectInfo) {
-            return ssm_->GetNextAvoidRectInfo(displayId, type, nextSystemBarAvoidAreaRectInfo);
-        };
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, specificCb);
-    sceneSession->property_->SetPersistentId(1);
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 1260, 2720 });
-    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    std::map<WindowType, SystemBarProperty> properties;
-    properties[WindowType::WINDOW_TYPE_STATUS_BAR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR] = SystemBarProperty();
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].settingFlag_ = SystemBarSettingFlag::ENABLE_SETTING;
-    std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 1260, 2720 }, properties, avoidAreas);
-    Rect rect = { 409, 2629, 442, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_90, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    rect = { 884, 1169, 952, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_180, { 0, 0, 1260, 2720 }, properties, avoidAreas);
-    rect = { 409, 2629, 442, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_270, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    rect = { 884, 1169, 952, 91 };
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].bottomRect_, rect);
-    properties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].enable_ = false;
-    rect = { 0, 0, 0, 0 };
-    sceneSession->GetAvoidAreasByRotation(Rotation::ROTATION_0, { 0, 0, 2720, 1260 }, properties, avoidAreas);
-    ASSERT_EQ(avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR].topRect_, rect);
     ssm_->sceneSessionMap_.clear();
 }
 

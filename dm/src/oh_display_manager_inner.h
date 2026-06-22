@@ -60,6 +60,7 @@ enum class DM_HDRFormat : uint32_t {
     IMAGE_HDR_VIVID_SINGLE = 5,
     IMAGE_HDR_ISO_DUAL = 6,
     IMAGE_HDR_ISO_SINGLE = 7,
+    VIDEO_AIHDR = 8,
 };
 
 enum class DM_GraphicCM_ColorSpaceType : uint32_t {
@@ -168,6 +169,7 @@ enum class DM_ScreenHDRFormat : uint32_t {
     IMAGE_HDR_VIVID_SINGLE,
     IMAGE_HDR_ISO_DUAL,
     IMAGE_HDR_ISO_SINGLE,
+    VIDEO_AIHDR,
 };
 
 #define DISPLAY_MANAGER_FREE_MEMORY(ptr) \

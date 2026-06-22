@@ -25,7 +25,6 @@
 #include "window_display_change_adapter.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
-#include "wm_common.h"
 #include "ws_common.h"
 
 namespace OHOS {
@@ -34,17 +33,19 @@ namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowManager"};
 }
 std::unordered_map<int32_t, sptr<WindowManager>> WindowManager::windowManagerMap_ = {};
-std::mutex WindowManager::windowManagerMapMutex_;
+std::shared_mutex WindowManager::windowManagerMapMutex_;
 
 class WindowManager::Impl {
 public:
-    void NotifyWMSConnected(int32_t userId, int32_t screenId);
-    void NotifyWMSDisconnected(int32_t userId, int32_t screenId);
+    explicit Impl(std::recursive_mutex& mutex) : mutex_(mutex) {}
+    void NotifyWMSConnected(int32_t userId, int32_t screenId, int32_t pid = INVALID_PID);
+    void NotifyWMSDisconnected(int32_t userId, int32_t screenId, int32_t pid = INVALID_PID);
     void NotifyFocused(uint32_t windowId, const sptr<IRemoteObject>& abilityToken,
         WindowType windowType, DisplayId displayId);
     void NotifyUnfocused(uint32_t windowId, const sptr<IRemoteObject>& abilityToken,
         WindowType windowType, DisplayId displayId);
     void NotifyFocused(const sptr<FocusChangeInfo>& focusChangeInfo);
+    void NotifyApplicationFocusChangedResult(bool isFocused);
     void NotifyWindowModeChange(WindowModeType type);
     void NotifyUnfocused(const sptr<FocusChangeInfo>& focusChangeInfo);
     void NotifySystemBarChanged(DisplayId displayId, const SystemBarRegionTints& tints);
@@ -63,6 +64,7 @@ public:
         float density, DisplayOrientation orientation);
     void NotifyDisplayIdChange(const WindowInfoList& windowInfoList);
     void NotifyWindowModeChangeForPropertyChange(const WindowInfoList& windowInfoList);
+    void NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList);
     void NotifyFloatingScaleChange(const WindowInfoList& windowInfoList);
     void NotifyMidSceneStatusChange(const WindowInfoList& windowInfoList);
     WindowInfoList GetWindowInfoListByInterestWindowIds(
@@ -74,79 +76,137 @@ public:
     void NotifyWindowGlobalRectChange(const WindowInfoList& windowInfoList);
     void NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycleInfo, void* jsWindowNapiValue);
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
+    void NotifySessionSaveSnapShotComplete(int32_t persistentId);
 
     static inline SingletonDelegator<WindowManager> delegator_;
+    template<typename T>
+    using ListenerSet = std::unordered_set<sptr<T>, SptrHash<T>>;
 
-    std::shared_mutex listenerMutex_;
-    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener_;
-    std::vector<sptr<IFocusChangedListener>> focusChangedListeners_;
-    sptr<WindowManagerAgent> focusChangedListenerAgent_;
-    std::vector<sptr<IWindowModeChangedListener>> windowModeListeners_;
-    sptr<WindowManagerAgent> windowModeListenerAgent_;
-    std::vector<sptr<ISystemBarChangedListener>> systemBarChangedListeners_;
-    sptr<WindowManagerAgent> systemBarChangedListenerAgent_;
-    std::vector<sptr<IWindowUpdateListener>> windowUpdateListeners_;
-    sptr<WindowManagerAgent> windowUpdateListenerAgent_;
-    std::vector<sptr<IVisibilityChangedListener>> windowVisibilityListeners_;
-    sptr<WindowManagerAgent> windowVisibilityListenerAgent_;
-    std::vector<sptr<IWindowInfoChangedListener>> windowVisibilityStateListeners_;
-    sptr<WindowManagerAgent> windowVisibilityStateListenerAgent_;
-    std::vector<sptr<IDrawingContentChangedListener>> windowDrawingContentListeners_;
-    sptr<WindowManagerAgent> windowDrawingContentListenerAgent_;
-    std::vector<sptr<ICameraFloatWindowChangedListener>> cameraFloatWindowChangedListeners_;
-    sptr<WindowManagerAgent> cameraFloatWindowChangedListenerAgent_;
-    std::vector<sptr<IWaterMarkFlagChangedListener>> waterMarkFlagChangeListeners_;
-    sptr<WindowManagerAgent> waterMarkFlagChangeAgent_;
-    std::vector<sptr<IGestureNavigationEnabledChangedListener>> gestureNavigationEnabledListeners_;
-    sptr<WindowManagerAgent> gestureNavigationEnabledAgent_;
-    std::vector<sptr<IVisibleWindowNumChangedListener>> visibleWindowNumChangedListeners_;
-    sptr<WindowManagerAgent> visibleWindowNumChangedListenerAgent_;
-    std::vector<sptr<IWindowStyleChangedListener>> windowStyleListeners_;
-    sptr<WindowManagerAgent> windowStyleListenerAgent_;
-    std::map<sptr<IRemoteObject>,
-        std::vector<sptr<WindowDisplayChangeAdapter>>> displayInfoChangedListeners_;
-    std::vector<sptr<IWindowPidVisibilityChangedListener>> windowPidVisibilityListeners_;
-    sptr<WindowManagerAgent> windowPidVisibilityListenerAgent_;
-    std::shared_mutex visibilityListenerAgentListenerMutex_;
-    sptr<WindowManagerAgent> WindowDisplayIdChangeListenerAgent_;
-    std::vector<sptr<IWindowInfoChangedListener>> windowDisplayIdChangeListeners_;
+    // Attribute
+    std::recursive_mutex& mutex_;
+    sptr<WindowManagerAgent> WindowDisplayIdChangeListenerAgent_; // can not be deleted or CI will fail
     sptr<WindowManagerAgent> windowPropertyChangeAgent_;
-    std::vector<sptr<IWindowInfoChangedListener>> windowRectChangeListeners_;
-    std::vector<sptr<IWindowInfoChangedListener>> windowGlobalRectChangeListeners_;
-    std::vector<sptr<IWindowInfoChangedListener>> windowModeChangeListeners_;
-    std::vector<sptr<IWindowInfoChangedListener>> floatingScaleChangeListeners_;
-    std::vector<sptr<IWindowInfoChangedListener>> midSceneStatusChangeListeners_;
-    sptr<WindowManagerAgent> windowSystemBarPropertyChangeAgent_;
-    std::vector<sptr<IWindowSystemBarPropertyChangedListener>> windowSystemBarPropertyChangedListeners_;
-    sptr<IWindowLifeCycleListener> windowLifeCycleListener_;
-    std::vector<sptr<IWindowSupportRotationListener>> windowSupportRotationListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowDisplayIdChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowRectChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowGlobalRectChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowModeChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> windowModeInfoChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> floatingScaleChangeListeners_;
+    ListenerSet<IWindowInfoChangedListener> midSceneStatusChangeListeners_;
+    // Window support rotation
     sptr<WindowManagerAgent> windowSupportRotationListenerAgent_;
+    ListenerSet<IWindowSupportRotationListener> windowSupportRotationListeners_;
+
+    // Session save snapshot complete
+    sptr<WindowManagerAgent> sessionSaveSnapshotCompleteListenerAgent_;
+    ListenerSet<ISessionSaveSnapShotCompleteListener> sessionSaveSnapshotCompleteListeners_;
+    // Above locked by mutex_
+
+    ListenerSet<IApplicationFocusChangedListener> applicationFocusChangeListeners_;
+
+    std::map<sptr<IRemoteObject>, std::vector<sptr<WindowDisplayChangeAdapter>>> displayInfoChangedListeners_;
+
+    // Life cycle listener
+    sptr<IWindowLifeCycleListener> windowLifeCycleListener_ = nullptr;
+
+    // WMS Connection listener
+    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener_ = nullptr;
+    std::mutex wmsConnectionChangedMutex_;
+
+    // --------------- Listeners and need to register agent -----------------
+    // Focus
+    ListenerSet<IFocusChangedListener> focusChangedListeners_;
+    sptr<WindowManagerAgent> focusChangedListenerAgent_ = nullptr;
+    std::recursive_mutex focusChangedMutex_;
+
+    // Window mode
+    ListenerSet<IWindowModeChangedListener> windowModeListeners_;
+    sptr<WindowManagerAgent> windowModeListenerAgent_ = nullptr;
+
+    // System bar
+    ListenerSet<ISystemBarChangedListener> systemBarChangedListeners_;
+    sptr<WindowManagerAgent> systemBarChangedListenerAgent_ = nullptr;
+
+    // Window update
+    ListenerSet<IWindowUpdateListener> windowUpdateListeners_;
+    sptr<WindowManagerAgent> windowUpdateListenerAgent_ = nullptr;
+
+    // Window visbility
+    ListenerSet<IVisibilityChangedListener> windowVisibilityListeners_;
+    sptr<WindowManagerAgent> windowVisibilityListenerAgent_ = nullptr;
+
+    // Window visibility state
+    ListenerSet<IWindowInfoChangedListener> windowVisibilityStateListeners_;
+    sptr<WindowManagerAgent> windowVisibilityStateListenerAgent_ = nullptr;
+
+    // Window drawing content
+    ListenerSet<IDrawingContentChangedListener> windowDrawingContentListeners_;
+    sptr<WindowManagerAgent> windowDrawingContentListenerAgent_ = nullptr;
+
+    // Camera float window
+    ListenerSet<ICameraFloatWindowChangedListener> cameraFloatWindowChangedListeners_;
+    sptr<WindowManagerAgent> cameraFloatWindowChangedListenerAgent_ = nullptr;
+
+    // Water mark flag
+    ListenerSet<IWaterMarkFlagChangedListener> waterMarkFlagChangeListeners_;
+    sptr<WindowManagerAgent> waterMarkFlagChangeAgent_ = nullptr;
+
+    // Gesture navigation enable
+    ListenerSet<IGestureNavigationEnabledChangedListener> gestureNavigationEnabledListeners_;
+    sptr<WindowManagerAgent> gestureNavigationEnabledAgent_ = nullptr;
+
+    // Visible window num
+    ListenerSet<IVisibleWindowNumChangedListener> visibleWindowNumChangedListeners_;
+    sptr<WindowManagerAgent> visibleWindowNumChangedListenerAgent_ = nullptr;
+
+    // Window style
+    ListenerSet<IWindowStyleChangedListener> windowStyleListeners_;
+    sptr<WindowManagerAgent> windowStyleListenerAgent_ = nullptr;
+
+    // Window pid visibility
+    ListenerSet<IWindowPidVisibilityChangedListener> windowPidVisibilityListeners_;
+    sptr<WindowManagerAgent> windowPidVisibilityListenerAgent_ = nullptr;
+
+    // Window system bar property
+    ListenerSet<IWindowSystemBarPropertyChangedListener> windowSystemBarPropertyChangedListeners_;
+    sptr<WindowManagerAgent> windowSystemBarPropertyChangeAgent_ = nullptr;
 };
 
-void WindowManager::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId)
+void WindowManager::Impl::NotifyWMSConnected(int32_t userId, int32_t screenId, int32_t pid)
 {
-    TLOGD(WmsLogTag::WMS_MULTI_USER, "WMS connected [userId:%{public}d; screenId:%{public}d]", userId, screenId);
-    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener;
+    sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        wmsConnectionChangedListener = wmsConnectionChangedListener_;
+        std::lock_guard<std::mutex> lock(wmsConnectionChangedMutex_);
+        if (!wmsConnectionChangedListener_) {
+            TLOGE(WmsLogTag::WMS_MULTI_USER, "listener is null, userId=%{public}d, screenId=%{public}d",
+                userId, screenId);
+            return;
+        }
+        listener = wmsConnectionChangedListener_;
     }
-    if (wmsConnectionChangedListener != nullptr) {
-        wmsConnectionChangedListener->OnConnected(userId, screenId);
-    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "WMS on connected, userId=%{public}d, screenId=%{public}d, pid=%{public}d",
+        userId, screenId, pid);
+    listener->OnConnected(userId, screenId, pid);
 }
 
-void WindowManager::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId)
+
+void WindowManager::Impl::NotifyWMSDisconnected(int32_t userId, int32_t screenId, int32_t pid)
 {
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "WMS disconnected [userId:%{public}d; screenId:%{public}d]", userId, screenId);
-    sptr<IWMSConnectionChangedListener> wmsConnectionChangedListener;
+    sptr<IWMSConnectionChangedListener> listener = nullptr;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        wmsConnectionChangedListener = wmsConnectionChangedListener_;
+        std::lock_guard<std::mutex> lock(wmsConnectionChangedMutex_);
+        if (!wmsConnectionChangedListener_) {
+            TLOGE(WmsLogTag::WMS_MULTI_USER, "listener is null, userId=%{public}d, screenId=%{public}d",
+                userId, screenId);
+            return;
+        }
+        listener = wmsConnectionChangedListener_;
     }
-    if (wmsConnectionChangedListener != nullptr) {
-        wmsConnectionChangedListener->OnDisconnected(userId, screenId);
-    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER,
+        "WMS on disconnected, userId=%{public}d, screenId=%{public}d, pid=%{public}d",
+        userId, screenId, pid);
+    listener->OnDisconnected(userId, screenId, pid);
 }
 
 void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChangeInfo)
@@ -156,9 +216,10 @@ void WindowManager::Impl::NotifyFocused(const sptr<FocusChangeInfo>& focusChange
         static_cast<uint32_t>(focusChangeInfo->windowType_));
     std::vector<sptr<IFocusChangedListener>> focusChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        focusChangeListeners = focusChangedListeners_;
+        std::lock_guard<std::recursive_mutex> lock(focusChangedMutex_);
+        focusChangeListeners.assign(focusChangedListeners_.begin(), focusChangedListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_FOCUS, "Notify focused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnFocused(focusChangeInfo);
     }
@@ -171,9 +232,10 @@ void WindowManager::Impl::NotifyUnfocused(const sptr<FocusChangeInfo>& focusChan
         static_cast<uint32_t>(focusChangeInfo->windowType_));
     std::vector<sptr<IFocusChangedListener>> focusChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        focusChangeListeners = focusChangedListeners_;
+        std::lock_guard<std::recursive_mutex> lock(focusChangedMutex_);
+        focusChangeListeners.assign(focusChangedListeners_.begin(), focusChangedListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_FOCUS, "Notify unfocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
         listener->OnUnfocused(focusChangeInfo);
     }
@@ -181,14 +243,14 @@ void WindowManager::Impl::NotifyUnfocused(const sptr<FocusChangeInfo>& focusChan
 
 void WindowManager::Impl::NotifyWindowModeChange(WindowModeType type)
 {
-    TLOGI(WmsLogTag::WMS_MAIN, "WindowManager::Impl UpdateWindowModeTypeInfo type: %{public}d",
-        static_cast<uint8_t>(type));
     std::vector<sptr<IWindowModeChangedListener>> windowModeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        windowModeListeners = windowModeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowModeListeners.assign(windowModeListeners_.begin(), windowModeListeners_.end());
     }
-    for (auto &listener : windowModeListeners) {
+    TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
+        static_cast<uint8_t>(type), static_cast<uint32_t>(windowModeListeners.size()));
+    for (auto& listener : windowModeListeners) {
         listener->OnWindowModeUpdate(type);
     }
 }
@@ -204,8 +266,8 @@ void WindowManager::Impl::NotifySystemBarChanged(DisplayId displayId, const Syst
     }
     std::vector<sptr<ISystemBarChangedListener>> systemBarChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        systemBarChangeListeners = systemBarChangedListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        systemBarChangeListeners.assign(systemBarChangedListeners_.begin(), systemBarChangedListeners_.end());
     }
     for (auto& listener : systemBarChangeListeners) {
         listener->OnSystemBarPropertyChange(displayId, tints);
@@ -239,9 +301,10 @@ void WindowManager::Impl::NotifyAccessibilityWindowInfo(const std::vector<sptr<A
 
     std::vector<sptr<IWindowUpdateListener>> windowUpdateListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        windowUpdateListeners = windowUpdateListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowUpdateListeners.assign(windowUpdateListeners_.begin(), windowUpdateListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowUpdateListeners.size()));
     for (auto& listener : windowUpdateListeners) {
         listener->OnWindowUpdate(infos, type);
     }
@@ -252,11 +315,11 @@ void WindowManager::Impl::NotifyWindowVisibilityInfoChanged(
 {
     std::vector<sptr<IVisibilityChangedListener>> visibilityChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        visibilityChangeListeners = windowVisibilityListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        visibilityChangeListeners.assign(windowVisibilityListeners_.begin(), windowVisibilityListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(visibilityChangeListeners.size()));
     for (auto& listener : visibilityChangeListeners) {
-        WLOGD("Notify WindowVisibilityInfo to caller");
         listener->OnWindowVisibilityChanged(windowVisibilityInfos);
     }
 }
@@ -264,12 +327,13 @@ void WindowManager::Impl::NotifyWindowVisibilityInfoChanged(
 void WindowManager::Impl::NotifyWindowVisibilityStateChanged(
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in");
     std::vector<sptr<IWindowInfoChangedListener>> windowVisibilityStateListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        windowVisibilityStateListeners = windowVisibilityStateListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowVisibilityStateListeners.assign(windowVisibilityStateListeners_.begin(),
+                                              windowVisibilityStateListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowVisibilityStateListeners.size()));
     for (auto& listener : windowVisibilityStateListeners) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
@@ -312,8 +376,9 @@ void WindowManager::Impl::NotifyWindowDrawingContentInfoChanged(
 {
     std::vector<sptr<IDrawingContentChangedListener>> windowDrawingContentChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        windowDrawingContentChangeListeners = windowDrawingContentListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowDrawingContentChangeListeners.assign(windowDrawingContentListeners_.begin(),
+                                                   windowDrawingContentListeners_.end());
     }
     for (auto& listener : windowDrawingContentChangeListeners) {
         WLOGFD("Notify windowDrawingContentInfo to caller");
@@ -327,8 +392,9 @@ void WindowManager::Impl::UpdateCameraFloatWindowStatus(uint32_t accessTokenId, 
         "Camera float window, accessTokenId=%{private}u, isShowing=%{public}u", accessTokenId, isShowing);
     std::vector<sptr<ICameraFloatWindowChangedListener>> cameraFloatWindowChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        cameraFloatWindowChangeListeners = cameraFloatWindowChangedListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        cameraFloatWindowChangeListeners.assign(cameraFloatWindowChangedListeners_.begin(),
+                                                cameraFloatWindowChangedListeners_.end());
     }
     for (auto& listener : cameraFloatWindowChangeListeners) {
         listener->OnCameraFloatWindowChange(accessTokenId, isShowing);
@@ -337,14 +403,29 @@ void WindowManager::Impl::UpdateCameraFloatWindowStatus(uint32_t accessTokenId, 
 
 void WindowManager::Impl::NotifyWaterMarkFlagChangedResult(bool showWaterMark)
 {
-    TLOGI(WmsLogTag::DEFAULT, "%{public}d", showWaterMark);
     std::vector<sptr<IWaterMarkFlagChangedListener>> waterMarkFlagChangeListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        waterMarkFlagChangeListeners = waterMarkFlagChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        waterMarkFlagChangeListeners.assign(waterMarkFlagChangeListeners_.begin(), waterMarkFlagChangeListeners_.end());
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "showWaterMark=%{public}d, size=%{public}u",
+        showWaterMark, static_cast<uint32_t>(waterMarkFlagChangeListeners.size()));
     for (auto& listener : waterMarkFlagChangeListeners) {
         listener->OnWaterMarkFlagUpdate(showWaterMark);
+    }
+}
+
+void WindowManager::Impl::NotifyApplicationFocusChangedResult(bool isFocused)
+{
+    TLOGI(WmsLogTag::WMS_FOCUS, "%{public}d", isFocused);
+    std::vector<sptr<IApplicationFocusChangedListener>> applicationFocusChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        applicationFocusChangeListeners.assign(applicationFocusChangeListeners_.begin(),
+                                               applicationFocusChangeListeners_.end());
+    }
+    for (auto& listener : applicationFocusChangeListeners) {
+        listener->OnApplicationFocusUpdate(isFocused);
     }
 }
 
@@ -353,8 +434,9 @@ void WindowManager::Impl::NotifyGestureNavigationEnabledResult(bool enable)
     WLOGFI("Notify gesture navigation enable result, enable=%{public}d", enable);
     std::vector<sptr<IGestureNavigationEnabledChangedListener>> gestureNavigationEnabledListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        gestureNavigationEnabledListeners = gestureNavigationEnabledListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        gestureNavigationEnabledListeners.assign(gestureNavigationEnabledListeners_.begin(),
+                                                 gestureNavigationEnabledListeners_.end());
     }
     for (auto& listener : gestureNavigationEnabledListeners) {
         listener->OnGestureNavigationEnabledUpdate(enable);
@@ -366,9 +448,11 @@ void WindowManager::Impl::NotifyVisibleWindowNumChanged(
 {
     std::vector<sptr<IVisibleWindowNumChangedListener>> visibleWindowNumChangedListeners;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        visibleWindowNumChangedListeners = visibleWindowNumChangedListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        visibleWindowNumChangedListeners.assign(visibleWindowNumChangedListeners_.begin(),
+                                                visibleWindowNumChangedListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(visibleWindowNumChangedListeners.size()));
     for (auto& listener : visibleWindowNumChangedListeners) {
         if (listener == nullptr) {
             continue;
@@ -380,18 +464,18 @@ void WindowManager::Impl::NotifyVisibleWindowNumChanged(
 void WindowManager::Impl::NotifyDisplayInfoChanged(const sptr<IRemoteObject>& token, DisplayId displayId,
     float density, DisplayOrientation orientation)
 {
-    auto iter = displayInfoChangedListeners_.end();
     std::vector<sptr<WindowDisplayChangeAdapter>> displayInfoChangedListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        iter = displayInfoChangedListeners_.find(token);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        auto iter = displayInfoChangedListeners_.find(token);
         if (iter == displayInfoChangedListeners_.end()) {
-            TLOGE_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES, "can not find token in listener list");
+            TLOGI_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES, "can not find token in listener list");
             return;
         }
         displayInfoChangedListeners = iter->second;
     }
 
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(displayInfoChangedListeners.size()));
     for (auto& listener : displayInfoChangedListeners) {
         listener->OnDisplayInfoChange(token, displayId, density, orientation);
     }
@@ -401,11 +485,31 @@ void WindowManager::Impl::NotifyWindowModeChangeForPropertyChange(const WindowIn
 {
     std::vector<sptr<IWindowInfoChangedListener>> windowModeChangeListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowModeChangeListeners = windowModeChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowModeChangeListeners.assign(
+            windowModeChangeListeners_.begin(), windowModeChangeListeners_.end());
     }
 
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowModeChangeListeners.size()));
     for (auto &listener : windowModeChangeListeners) {
+        WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
+        if (listener != nullptr && !windowInfoListForNotify.empty()) {
+            listener->OnWindowInfoChanged(windowInfoListForNotify);
+        }
+    }
+}
+
+void WindowManager::Impl::NotifyWindowModeInfoChangeForPropertyChange(const WindowInfoList& windowInfoList)
+{
+    std::vector<sptr<IWindowInfoChangedListener>> windowModeInfoChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowModeInfoChangeListeners.assign(windowModeInfoChangeListeners_.begin(),
+            windowModeInfoChangeListeners_.end());
+    }
+
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowModeInfoChangeListeners.size()));
+    for (auto& listener : windowModeInfoChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
             listener->OnWindowInfoChanged(windowInfoListForNotify);
@@ -417,10 +521,12 @@ void WindowManager::Impl::NotifyFloatingScaleChange(const WindowInfoList& window
 {
     std::vector<sptr<IWindowInfoChangedListener>> floatingScaleChangeListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        floatingScaleChangeListeners = floatingScaleChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        floatingScaleChangeListeners.assign(
+            floatingScaleChangeListeners_.begin(), floatingScaleChangeListeners_.end());
     }
 
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(floatingScaleChangeListeners.size()));
     for (auto &listener : floatingScaleChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -433,9 +539,11 @@ void WindowManager::Impl::NotifyMidSceneStatusChange(const WindowInfoList& windo
 {
     std::vector<sptr<IWindowInfoChangedListener>> midSceneStatusChangeListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        midSceneStatusChangeListeners = midSceneStatusChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        midSceneStatusChangeListeners.assign(
+            midSceneStatusChangeListeners_.begin(), midSceneStatusChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(midSceneStatusChangeListeners.size()));
     for (auto& listener : midSceneStatusChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -448,10 +556,12 @@ void WindowManager::Impl::NotifyDisplayIdChange(const WindowInfoList& windowInfo
 {
     std::vector<sptr<IWindowInfoChangedListener>> windowDisplayIdChangeListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowDisplayIdChangeListeners = windowDisplayIdChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowDisplayIdChangeListeners.assign(
+            windowDisplayIdChangeListeners_.begin(), windowDisplayIdChangeListeners_.end());
     }
 
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowDisplayIdChangeListeners.size()));
     for (auto &listener : windowDisplayIdChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -489,10 +599,10 @@ void WindowManager::Impl::NotifyWindowStyleChange(WindowStyleType type)
           static_cast<uint8_t>(type));
     std::vector<sptr<IWindowStyleChangedListener>> windowStyleListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowStyleListeners = windowStyleListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowStyleListeners.assign(windowStyleListeners_.begin(), windowStyleListeners_.end());
     }
-    for (auto &listener : windowStyleListeners) {
+    for (auto& listener : windowStyleListeners) {
         TLOGI(WmsLogTag::WMS_MAIN, "WindowStyleChange type: %{public}d",
               static_cast<uint8_t>(type));
         listener->OnWindowStyleUpdate(type);
@@ -504,10 +614,12 @@ void WindowManager::Impl::NotifyWindowPidVisibilityChanged(
 {
     std::vector<sptr<IWindowPidVisibilityChangedListener>> windowPidVisibilityListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowPidVisibilityListeners = windowPidVisibilityListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowPidVisibilityListeners.assign(
+            windowPidVisibilityListeners_.begin(), windowPidVisibilityListeners_.end());
     }
-    for (auto &listener : windowPidVisibilityListeners) {
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowPidVisibilityListeners.size()));
+    for (auto& listener : windowPidVisibilityListeners) {
         if (listener != nullptr) {
             listener->NotifyWindowPidVisibilityChanged(info);
         }
@@ -518,10 +630,11 @@ void WindowManager::Impl::NotifyWindowRectChange(const WindowInfoList& windowInf
 {
     std::vector<sptr<IWindowInfoChangedListener>> windowRectChangeListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowRectChangeListeners = windowRectChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowRectChangeListeners.assign(windowRectChangeListeners_.begin(), windowRectChangeListeners_.end());
     }
-    for (auto &listener : windowRectChangeListeners) {
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowRectChangeListeners.size()));
+    for (auto& listener : windowRectChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowInfoChanged(windowInfoList);
         }
@@ -532,9 +645,11 @@ void WindowManager::Impl::NotifyWindowGlobalRectChange(const WindowInfoList& win
 {
     std::vector<sptr<IWindowInfoChangedListener>> windowGlobalRectChangeListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowGlobalRectChangeListeners = windowGlobalRectChangeListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowGlobalRectChangeListeners.assign(
+            windowGlobalRectChangeListeners_.begin(), windowGlobalRectChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowGlobalRectChangeListeners.size()));
     for (auto &listener : windowGlobalRectChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowInfoChanged(windowInfoList);
@@ -545,10 +660,9 @@ void WindowManager::Impl::NotifyWindowGlobalRectChange(const WindowInfoList& win
 void WindowManager::Impl::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycleInfo, void* jsWindowNapiValue)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "notify window destroyed");
-
     sptr<IWindowLifeCycleListener> wmsWindowDestroyedListener;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         wmsWindowDestroyedListener = windowLifeCycleListener_;
     }
     if (wmsWindowDestroyedListener == nullptr) {
@@ -562,8 +676,9 @@ void WindowManager::Impl::NotifySupportRotationChange(const SupportRotationInfo&
 {
     std::vector<sptr<IWindowSupportRotationListener>> windowSupportRotationListener;
     {
-        std::shared_lock<std::shared_mutex> lock(listenerMutex_);
-        windowSupportRotationListener = windowSupportRotationListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowSupportRotationListener.assign(
+            windowSupportRotationListeners_.begin(), windowSupportRotationListeners_.end());
     }
     for (auto& listener : windowSupportRotationListener) {
         TLOGD(WmsLogTag::WMS_ROTATION, "Notify supportRotationInfo to caller");
@@ -571,8 +686,23 @@ void WindowManager::Impl::NotifySupportRotationChange(const SupportRotationInfo&
     }
 }
 
+void WindowManager::Impl::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    std::vector<sptr<ISessionSaveSnapShotCompleteListener>> sessionSaveSnapshotCompleteListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        sessionSaveSnapshotCompleteListeners.assign(
+            sessionSaveSnapshotCompleteListeners_.begin(), sessionSaveSnapshotCompleteListeners_.end());
+    }
+    for (const auto& listener : sessionSaveSnapshotCompleteListeners) {
+        if (listener != nullptr) {
+            listener->OnSessionSaveSnapShotComplete(persistentId);
+        }
+    }
+}
+
 WindowManager::WindowManager(const int32_t userId) : userId_(userId),
-    pImpl_(std::make_unique<Impl>())
+    pImpl_(std::make_unique<Impl>(mutex_))
 {
 }
 
@@ -594,52 +724,67 @@ WindowManager& WindowManager::GetInstance(const int32_t userId)
      * Only system applications or services with a userId of 0 are allowed to communicate
      * with multiple WMS-Servers and are permitted to listen for WMS connection status.
      */
-    static int32_t clientUserId = GetUserIdByUid(getuid());
+    int32_t clientUserId = GetUserIdByUid(getuid());
     if (clientUserId != SYSTEM_USERID || userId <= INVALID_USER_ID) {
+        return GetInstance();
+    }
+
+    if (!IsMultiInstanceEnabled()) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance, userId: %{public}d", userId);
         return GetInstance();
     }
 
     /**
      * multi-instance mode
-     * At present, the map does not have memory leak issues. In actual business scenarios,
-     * the number of instances created is limited (estimated to be less than 20).
+     * At present, map does not have memory leak issues. In actual business scenarios,
+     * number of instances created is limited (estimated to be less than 20).
      */
-    std::lock_guard<std::mutex> lock(windowManagerMapMutex_);
+    std::unique_lock<std::shared_mutex> lock(windowManagerMapMutex_);
     auto iter = windowManagerMap_.find(userId);
-    if (iter != windowManagerMap_.end() && iter->second) {
+    if (iter != windowManagerMap_.end()) {
         return *iter->second;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "create new instance, userId: %{public}d", userId);
+    if (windowManagerMap_.size() > MAX_INSTANCE_NUM) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "Can not create a new instance that limited by MAX_INSTANCE_NUM");
+        return GetInstance();
+    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "get new instance, userId: %{public}d", userId);
     auto instance = sptr<WindowManager>::MakeSptr(userId);
     windowManagerMap_.insert({ userId, instance });
-    return *windowManagerMap_[userId];
+    return *instance;
 }
 
 WMError WindowManager::RemoveInstanceByUserId(const int32_t userId)
 {
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "remove instance userId: %{public}d", userId);
-    std::lock_guard<std::mutex> lock(windowManagerMapMutex_);
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "Remove instance, userId=%{public}d", userId);
+    std::unique_lock<std::shared_mutex> lock(windowManagerMapMutex_);
     windowManagerMap_.erase(userId);
     return WMError::WM_OK;
 }
 
-void WindowManager::ActiveFaultAgentReregister(const WindowManagerAgentType type,
-    const sptr<WindowManagerAgent>& agent, WMError& ret)
+WMError WindowManager::ActiveFaultAgentReregister(const WindowManagerAgentType type,
+    const sptr<WindowManagerAgent>& agent)
 {
-    // Note: Only the failure is caused by the sceneboard is restarting, activate the
-    // fault recovery solution and agents will be re-registered by independent recovery.
-    if (WindowAdapter::GetInstance(userId_).GetWindowManagerServiceProxy() == nullptr) {
-        TLOGI(WmsLogTag::WMS_SCB, "activate the re-register solution, type: %{public}d", type);
-        WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgentWhenSCBFault(type, agent);
-        ret = WMError::WM_OK;
-    } else {
-        TLOGE(WmsLogTag::WMS_SCB, "not activated due to scb is ready");
+    // Note: When register agent failed due to the sceneboard is restarting and wms proxy is not ready,
+    // activate the fault recovery solution and agents will be re-registered by independent recovery.
+    if (!WindowAdapter::GetInstance(userId_).IsMockSMSProxyAlive()) {
+        TLOGE(WmsLogTag::DEFAULT, "SA not alive, fault recovery unavailable");
+        return WMError::WM_ERROR_SAMGR;
     }
-    return;
+    auto isWMSProxyValid = WindowAdapter::GetInstance(userId_).IsWindowManagerServiceProxyValid();
+    if (isWMSProxyValid) {
+        TLOGE(WmsLogTag::DEFAULT, "Not activated, scb is ready");
+        return WMError::WM_ERROR_INVALID_CALLING;
+    }
+    TLOGI(WmsLogTag::DEFAULT, "Activate the agent re-register solution, type: %{public}d", type);
+    WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgentWhenSCBFault(type, agent);
+    return WMError::WM_OK;
 }
+
 
 WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConnectionChangedListener>& listener)
 {
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "enter");
     int32_t clientUserId = GetUserIdByUid(getuid());
     // only system applications or services with a userId of 0 are allowed to communicate
     // with multiple WMS-Servers and are permitted to listen for WMS connection status.
@@ -651,9 +796,8 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
         TLOGE(WmsLogTag::WMS_MULTI_USER, "Register failed: listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "Start registration");
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::mutex> lock(pImpl_->wmsConnectionChangedMutex_);
         if (pImpl_->wmsConnectionChangedListener_) {
             TLOGI(WmsLogTag::WMS_MULTI_USER, "Listener already registered, skipping");
             return WMError::WM_OK;
@@ -661,17 +805,17 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
         pImpl_->wmsConnectionChangedListener_ = listener;
     }
     auto ret = WindowAdapter::GetInstance(userId_).RegisterWMSConnectionChangedListener(
-        [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected) {
+        [weakThis = wptr(this)](int32_t userId, int32_t screenId, bool isConnected, int32_t pid) {
             auto windowManager = weakThis.promote();
             if (!windowManager) {
-                TLOGE(WmsLogTag::WMS_SCB, "window adapter is null");
+                TLOGE(WmsLogTag::WMS_SCB, "window manager is null");
                 return;
             }
-            windowManager->OnWMSConnectionChanged(userId, screenId, isConnected);
+            windowManager->OnWMSConnectionChanged(userId, screenId, isConnected, pid);
         });
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_MULTI_USER, "Register failed: error = %{public}d", static_cast<int32_t>(ret));
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "Register callback failed");
+        std::lock_guard<std::mutex> lock(pImpl_->wmsConnectionChangedMutex_);
         pImpl_->wmsConnectionChangedListener_ = nullptr;
     }
     return ret;
@@ -679,10 +823,12 @@ WMError WindowManager::RegisterWMSConnectionChangedListener(const sptr<IWMSConne
 
 WMError WindowManager::UnregisterWMSConnectionChangedListener()
 {
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->wmsConnectionChangedListener_ = nullptr;
     WindowAdapter::GetInstance(userId_).UnregisterWMSConnectionChangedListener();
-    TLOGI(WmsLogTag::WMS_MULTI_USER, "end unregister");
+    {
+        std::lock_guard<std::mutex> lock(pImpl_->wmsConnectionChangedMutex_);
+        pImpl_->wmsConnectionChangedListener_ = nullptr;
+    }
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "Unregister success");
     return WMError::WM_OK;
 }
 
@@ -697,27 +843,25 @@ WMError WindowManager::RegisterFocusChangedListener(const sptr<IFocusChangedList
     auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
     sptr<WindowManagerAgent> tempAgent = nullptr; // for avoid holding locks to send ipc
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
         if (pImpl_->focusChangedListenerAgent_ == nullptr) {
-            pImpl_->focusChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+            pImpl_->focusChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
         }
         tempAgent = pImpl_->focusChangedListenerAgent_;
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(agentType, tempAgent);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(agentType, tempAgent);
+    }
     if (ret != WMError::WM_OK) {
-        ActiveFaultAgentReregister(agentType, tempAgent, ret);
+        TLOGE(WmsLogTag::WMS_FOCUS, "register failed");
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+        pImpl_->focusChangedListenerAgent_ = nullptr;
+        return ret;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    if (ret == WMError::WM_OK) {
-        auto iter = std::find(pImpl_->focusChangedListeners_.begin(), pImpl_->focusChangedListeners_.end(), listener);
-        if (iter == pImpl_->focusChangedListeners_.end()) {
-            pImpl_->focusChangedListeners_.push_back(listener);
-        }
-    } else {
-        TLOGE(WmsLogTag::WMS_FOCUS, "register failed");
-        pImpl_->focusChangedListenerAgent_ = nullptr;
-    }
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+    pImpl_->focusChangedListeners_.insert(listener);
     return ret;
 }
 
@@ -728,13 +872,8 @@ WMError WindowManager::UnregisterFocusChangedListener(const sptr<IFocusChangedLi
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->focusChangedListeners_.begin(), pImpl_->focusChangedListeners_.end(), listener);
-    if (iter == pImpl_->focusChangedListeners_.end()) {
-        WLOGFE("could not find this listener");
-        return WMError::WM_OK;
-    }
-    pImpl_->focusChangedListeners_.erase(iter);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+    pImpl_->focusChangedListeners_.erase(listener);
     WMError ret = WMError::WM_OK;
     if (pImpl_->focusChangedListeners_.empty() && pImpl_->focusChangedListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
@@ -753,24 +892,27 @@ WMError WindowManager::RegisterWindowModeChangedListener(const sptr<IWindowModeC
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowModeListenerAgent_ == nullptr) {
-        pImpl_->windowModeListenerAgent_ = new WindowManagerAgent();
+        pImpl_->windowModeListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE, pImpl_->windowModeListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE, pImpl_->windowModeListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_MAIN, "RegisterWindowManagerAgent failed!");
         pImpl_->windowModeListenerAgent_ = nullptr;
         return ret;
     }
-    auto iter = std::find(pImpl_->windowModeListeners_.begin(), pImpl_->windowModeListeners_.end(), listener);
-    if (iter != pImpl_->windowModeListeners_.end()) {
+    if (pImpl_->windowModeListeners_.count(listener)) {
         TLOGW(WmsLogTag::WMS_MAIN, "Listener is already registered.");
         return WMError::WM_OK;
     }
-    pImpl_->windowModeListeners_.push_back(listener);
+    pImpl_->windowModeListeners_.insert(listener);
     return ret;
 }
 
@@ -781,13 +923,11 @@ WMError WindowManager::UnregisterWindowModeChangedListener(const sptr<IWindowMod
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->windowModeListeners_.begin(), pImpl_->windowModeListeners_.end(), listener);
-    if (iter == pImpl_->windowModeListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->windowModeListeners_.erase(listener)) {
         TLOGE(WmsLogTag::WMS_MAIN, "could not find this listener");
         return WMError::WM_OK;
     }
-    pImpl_->windowModeListeners_.erase(iter);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowModeListeners_.empty() && pImpl_->windowModeListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
@@ -806,24 +946,22 @@ WMError WindowManager::RegisterSystemBarChangedListener(const sptr<ISystemBarCha
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->systemBarChangedListenerAgent_ == nullptr) {
-        pImpl_->systemBarChangedListenerAgent_ = new WindowManagerAgent();
+        pImpl_->systemBarChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR, pImpl_->systemBarChangedListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR, pImpl_->systemBarChangedListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         WLOGFW("RegisterWindowManagerAgent failed!");
         pImpl_->systemBarChangedListenerAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->systemBarChangedListeners_.begin(), pImpl_->systemBarChangedListeners_.end(),
-            listener);
-        if (iter != pImpl_->systemBarChangedListeners_.end()) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->systemBarChangedListeners_.push_back(listener);
+        pImpl_->systemBarChangedListeners_.insert(listener);
     }
     return ret;
 }
@@ -835,14 +973,11 @@ WMError WindowManager::UnregisterSystemBarChangedListener(const sptr<ISystemBarC
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->systemBarChangedListeners_.begin(), pImpl_->systemBarChangedListeners_.end(),
-        listener);
-    if (iter == pImpl_->systemBarChangedListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->systemBarChangedListeners_.erase(listener)) {
         WLOGFE("could not find this listener");
         return WMError::WM_OK;
     }
-    pImpl_->systemBarChangedListeners_.erase(iter);
     WMError ret = WMError::WM_OK;
     if (pImpl_->systemBarChangedListeners_.empty() && pImpl_->systemBarChangedListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
@@ -882,23 +1017,23 @@ WMError WindowManager::RegisterWindowUpdateListener(const sptr<IWindowUpdateList
         WLOGFE("listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowUpdateListenerAgent_ == nullptr) {
-        pImpl_->windowUpdateListenerAgent_ = new WindowManagerAgent();
+        pImpl_->windowUpdateListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE, pImpl_->windowUpdateListenerAgent_);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", ret);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE, pImpl_->windowUpdateListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         WLOGFW("RegisterWindowManagerAgent failed!");
         pImpl_->windowUpdateListenerAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowUpdateListeners_.begin(), pImpl_->windowUpdateListeners_.end(), listener);
-        if (iter != pImpl_->windowUpdateListeners_.end()) {
-            WLOGI("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->windowUpdateListeners_.emplace_back(listener);
+        pImpl_->windowUpdateListeners_.insert(listener);
     }
     return ret;
 }
@@ -909,17 +1044,16 @@ WMError WindowManager::UnregisterWindowUpdateListener(const sptr<IWindowUpdateLi
         WLOGFE("listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->windowUpdateListeners_.begin(), pImpl_->windowUpdateListeners_.end(), listener);
-    if (iter == pImpl_->windowUpdateListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->windowUpdateListeners_.erase(listener)) {
         WLOGFE("could not find this listener");
         return WMError::WM_OK;
     }
-    pImpl_->windowUpdateListeners_.erase(iter);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowUpdateListeners_.empty() && pImpl_->windowUpdateListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_UPDATE, pImpl_->windowUpdateListenerAgent_);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", ret);
         if (ret == WMError::WM_OK) {
             pImpl_->windowUpdateListenerAgent_ = nullptr;
         }
@@ -936,25 +1070,23 @@ WMError WindowManager::RegisterVisibilityChangedListener(const sptr<IVisibilityC
     auto ret = WMError::WM_OK;
     auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY;
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     if (pImpl_->windowVisibilityListenerAgent_ == nullptr) {
-        pImpl_->windowVisibilityListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowVisibilityListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         agentType, pImpl_->windowVisibilityListenerAgent_);
-    if (ret != WMError::WM_OK) {
-        ActiveFaultAgentReregister(agentType, pImpl_->windowVisibilityListenerAgent_, ret);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", ret);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowVisibilityListenerAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SCB, "register failed");
         pImpl_->windowVisibilityListenerAgent_ = nullptr;
         return ret;
     }
-    auto iter = std::find(pImpl_->windowVisibilityListeners_.begin(),
-        pImpl_->windowVisibilityListeners_.end(), listener);
-    if (iter == pImpl_->windowVisibilityListeners_.end()) {
-        pImpl_->windowVisibilityListeners_.emplace_back(listener);
-    }
+
+    pImpl_->windowVisibilityListeners_.insert(listener);
     return ret;
 }
 
@@ -964,17 +1096,15 @@ WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilit
         WLOGFE("listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowVisibilityListeners_.erase(std::remove_if(pImpl_->windowVisibilityListeners_.begin(),
-        pImpl_->windowVisibilityListeners_.end(), [listener](sptr<IVisibilityChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->windowVisibilityListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowVisibilityListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowVisibilityListeners_.empty() && pImpl_->windowVisibilityListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
             pImpl_->windowVisibilityListenerAgent_);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", ret);
         if (ret == WMError::WM_OK) {
             pImpl_->windowVisibilityListenerAgent_ = nullptr;
         }
@@ -988,10 +1118,10 @@ WMError WindowManager::RegisterDisplayIdChangedListener(const sptr<IWindowInfoCh
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
@@ -1004,21 +1134,19 @@ WMError WindowManager::RegisterDisplayIdChangedListener(const sptr<IWindowInfoCh
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::DISPLAY_ID, interestInfo, pImpl_->windowPropertyChangeAgent_);
-    if (ret != WMError::WM_OK) {
-        auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-        ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_, ret);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY,
+                                         pImpl_->windowPropertyChangeAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
         pImpl_->windowPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowDisplayIdChangeListeners_.begin(),
-            pImpl_->windowDisplayIdChangeListeners_.end(), listener);
-        if (iter != pImpl_->windowDisplayIdChangeListeners_.end()) {
+        if (pImpl_->windowDisplayIdChangeListeners_.count(listener)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->windowDisplayIdChangeListeners_.emplace_back(listener);
+        pImpl_->windowDisplayIdChangeListeners_.insert(listener);
     }
     return ret;
 }
@@ -1029,11 +1157,8 @@ WMError WindowManager::UnregisterDisplayIdChangedListener(const sptr<IWindowInfo
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowDisplayIdChangeListeners_.erase(std::remove_if(pImpl_->windowDisplayIdChangeListeners_.begin(),
-        pImpl_->windowDisplayIdChangeListeners_.end(), [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->windowDisplayIdChangeListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowDisplayIdChangeListeners_.erase(listener);
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
         if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
@@ -1062,10 +1187,10 @@ WMError WindowManager::RegisterRectChangedListener(const sptr<IWindowInfoChanged
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
@@ -1078,21 +1203,19 @@ WMError WindowManager::RegisterRectChangedListener(const sptr<IWindowInfoChanged
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::WINDOW_RECT, interestInfo, pImpl_->windowPropertyChangeAgent_);
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_ERROR_SAMGR) {
         auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-        ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_, ret);
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
         pImpl_->windowPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowRectChangeListeners_.begin(), pImpl_->windowRectChangeListeners_.end(),
-            listener);
-        if (iter != pImpl_->windowRectChangeListeners_.end()) {
+        if (pImpl_->windowRectChangeListeners_.count(listener)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->windowRectChangeListeners_.emplace_back(listener);
+        pImpl_->windowRectChangeListeners_.insert(listener);
     }
     return ret;
 }
@@ -1103,11 +1226,8 @@ WMError WindowManager::UnregisterRectChangedListener(const sptr<IWindowInfoChang
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowRectChangeListeners_.erase(std::remove_if(pImpl_->windowRectChangeListeners_.begin(),
-        pImpl_->windowRectChangeListeners_.end(), [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->windowRectChangeListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowRectChangeListeners_.erase(listener);
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
         if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
@@ -1136,10 +1256,10 @@ WMError WindowManager::RegisterGlobalRectChangedListener(const sptr<IWindowInfoC
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
@@ -1152,21 +1272,19 @@ WMError WindowManager::RegisterGlobalRectChangedListener(const sptr<IWindowInfoC
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::WINDOW_GLOBAL_RECT, interestInfo, pImpl_->windowPropertyChangeAgent_);
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_ERROR_SAMGR) {
         auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-        ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_, ret);
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
         pImpl_->windowPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowGlobalRectChangeListeners_.begin(),
-            pImpl_->windowGlobalRectChangeListeners_.end(), listener);
-        if (iter != pImpl_->windowGlobalRectChangeListeners_.end()) {
+        if (pImpl_->windowGlobalRectChangeListeners_.count(listener)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->windowGlobalRectChangeListeners_.emplace_back(listener);
+        pImpl_->windowGlobalRectChangeListeners_.insert(listener);
     }
     return ret;
 }
@@ -1177,12 +1295,8 @@ WMError WindowManager::UnregisterGlobalRectChangedListener(const sptr<IWindowInf
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowGlobalRectChangeListeners_.erase(std::remove_if(pImpl_->windowGlobalRectChangeListeners_.begin(),
-        pImpl_->windowGlobalRectChangeListeners_.end(),
-        [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->windowGlobalRectChangeListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    pImpl_->windowGlobalRectChangeListeners_.erase(listener);
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
         if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
@@ -1212,10 +1326,10 @@ WMError WindowManager::RegisterWindowModeChangedListenerForPropertyChange(
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
@@ -1228,21 +1342,19 @@ WMError WindowManager::RegisterWindowModeChangedListenerForPropertyChange(
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::WINDOW_MODE, interestInfo, pImpl_->windowPropertyChangeAgent_);
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_ERROR_SAMGR) {
         auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-        ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_, ret);
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
         pImpl_->windowPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowModeChangeListeners_.begin(), pImpl_->windowModeChangeListeners_.end(),
-            listener);
-        if (iter != pImpl_->windowModeChangeListeners_.end()) {
+        if (pImpl_->windowModeChangeListeners_.count(listener)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->windowModeChangeListeners_.emplace_back(listener);
+        pImpl_->windowModeChangeListeners_.insert(listener);
     }
     return ret;
 }
@@ -1254,11 +1366,8 @@ WMError WindowManager::UnregisterWindowModeChangedListenerForPropertyChange(
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowModeChangeListeners_.erase(std::remove_if(pImpl_->windowModeChangeListeners_.begin(),
-        pImpl_->windowModeChangeListeners_.end(), [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->windowModeChangeListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowModeChangeListeners_.erase(listener);
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
         if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
@@ -1281,16 +1390,87 @@ WMError WindowManager::UnregisterWindowModeChangedListenerForPropertyChange(
     return ret;
 }
 
+WMError WindowManager::RegisterWindowModeInfoChangedListenerForPropertyChange(
+    const sptr<IWindowInfoChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
+    }
+    uint32_t interestInfo = 0;
+    for (auto windowInfoKey : listener->GetInterestInfo()) {
+        if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
+            interestInfoMap_[windowInfoKey] = 1;
+        } else {
+            interestInfoMap_[windowInfoKey]++;
+        }
+        interestInfo |= static_cast<uint32_t>(windowInfoKey);
+    }
+    ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
+        WindowInfoKey::WINDOW_MODE_INFO, interestInfo, pImpl_->windowPropertyChangeAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
+    }
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
+        pImpl_->windowPropertyChangeAgent_ = nullptr;
+    } else {
+        if (pImpl_->windowModeInfoChangeListeners_.count(listener)) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
+            return WMError::WM_OK;
+        }
+        pImpl_->windowModeInfoChangeListeners_.insert(listener);
+    }
+    return ret;
+}
+
+WMError WindowManager::UnregisterWindowModeInfoChangedListenerForPropertyChange(
+    const sptr<IWindowInfoChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowModeInfoChangeListeners_.erase(listener);
+    uint32_t interestInfo = 0;
+    for (auto windowInfoKey : listener->GetInterestInfo()) {
+        if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
+            continue;
+        } else if (interestInfoMap_[windowInfoKey] == 1) {
+            interestInfoMap_.erase(windowInfoKey);
+            interestInfo |= static_cast<uint32_t>(windowInfoKey);
+        } else {
+            interestInfoMap_[windowInfoKey]--;
+        }
+    }
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->windowModeInfoChangeListeners_.empty() && pImpl_->windowPropertyChangeAgent_ != nullptr) {
+        ret = WindowAdapter::GetInstance(userId_).UnregisterWindowPropertyChangeAgent(
+            WindowInfoKey::WINDOW_MODE_INFO, interestInfo, pImpl_->windowPropertyChangeAgent_);
+        if (ret == WMError::WM_OK) {
+            pImpl_->windowPropertyChangeAgent_ = nullptr;
+        }
+    }
+    return ret;
+}
+
 WMError WindowManager::RegisterFloatingScaleChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
@@ -1303,21 +1483,19 @@ WMError WindowManager::RegisterFloatingScaleChangedListener(const sptr<IWindowIn
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::FLOATING_SCALE, interestInfo, pImpl_->windowPropertyChangeAgent_);
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_ERROR_SAMGR) {
         auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-        ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_, ret);
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
         pImpl_->windowPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->floatingScaleChangeListeners_.begin(),
-            pImpl_->floatingScaleChangeListeners_.end(), listener);
-        if (iter != pImpl_->floatingScaleChangeListeners_.end()) {
+        if (pImpl_->floatingScaleChangeListeners_.count(listener)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->floatingScaleChangeListeners_.emplace_back(listener);
+        pImpl_->floatingScaleChangeListeners_.insert(listener);
     }
     return ret;
 }
@@ -1328,11 +1506,8 @@ WMError WindowManager::UnregisterFloatingScaleChangedListener(const sptr<IWindow
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->floatingScaleChangeListeners_.erase(std::remove_if(pImpl_->floatingScaleChangeListeners_.begin(),
-        pImpl_->floatingScaleChangeListeners_.end(), [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->floatingScaleChangeListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->floatingScaleChangeListeners_.erase(listener);
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
         if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
@@ -1362,10 +1537,10 @@ WMError WindowManager::RegisterMidSceneChangedListener(const sptr<IWindowInfoCha
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+        pImpl_->windowPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
@@ -1378,21 +1553,19 @@ WMError WindowManager::RegisterMidSceneChangedListener(const sptr<IWindowInfoCha
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowPropertyChangeAgent(
         WindowInfoKey::MID_SCENE, interestInfo, pImpl_->windowPropertyChangeAgent_);
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_ERROR_SAMGR) {
         auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
-        ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_, ret);
+        ret = ActiveFaultAgentReregister(agentType, pImpl_->windowPropertyChangeAgent_);
     }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RegisterWindowPropertyChangeAgent failed!");
         pImpl_->windowPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->midSceneStatusChangeListeners_.begin(),
-            pImpl_->midSceneStatusChangeListeners_.end(), listener);
-        if (iter != pImpl_->midSceneStatusChangeListeners_.end()) {
+        if (pImpl_->midSceneStatusChangeListeners_.count(listener)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->midSceneStatusChangeListeners_.emplace_back(listener);
+        pImpl_->midSceneStatusChangeListeners_.insert(listener);
     }
     return ret;
 }
@@ -1404,11 +1577,8 @@ WMError WindowManager::UnregisterMidSceneChangedListener(const sptr<IWindowInfoC
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->midSceneStatusChangeListeners_.erase(std::remove_if(pImpl_->midSceneStatusChangeListeners_.begin(),
-        pImpl_->midSceneStatusChangeListeners_.end(), [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->midSceneStatusChangeListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->midSceneStatusChangeListeners_.erase(listener);
     uint32_t interestInfo = 0;
     for (auto windowInfoKey : listener->GetInterestInfo()) {
         if (interestInfoMap_.find(windowInfoKey) == interestInfoMap_.end()) {
@@ -1442,24 +1612,20 @@ WMError WindowManager::RegisterVisibilityStateChangedListener(const sptr<IWindow
     auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY;
     sptr<WindowManagerAgent> tempAgent = nullptr;
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         if (pImpl_->windowVisibilityStateListenerAgent_ == nullptr) {
-            pImpl_->windowVisibilityStateListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
+            pImpl_->windowVisibilityStateListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
         }
         tempAgent = pImpl_->windowVisibilityStateListenerAgent_;
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(agentType, tempAgent);
-    if (ret != WMError::WM_OK) {
-        ActiveFaultAgentReregister(agentType, tempAgent, ret);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(agentType, tempAgent);
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     if (ret == WMError::WM_OK) {
-        auto iter = std::find(pImpl_->windowVisibilityStateListeners_.begin(),
-            pImpl_->windowVisibilityStateListeners_.end(), listener);
-        if (iter == pImpl_->windowVisibilityStateListeners_.end()) {
-            pImpl_->windowVisibilityStateListeners_.emplace_back(listener);
-        }
+        pImpl_->windowVisibilityStateListeners_.insert(listener);
     } else {
         pImpl_->windowVisibilityStateListenerAgent_ = nullptr;
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "register failed");
@@ -1473,11 +1639,8 @@ WMError WindowManager::UnregisterVisibilityStateChangedListener(const sptr<IWind
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowVisibilityStateListeners_.erase(std::remove_if(pImpl_->windowVisibilityStateListeners_ .begin(),
-        pImpl_->windowVisibilityStateListeners_.end(), [listener](sptr<IWindowInfoChangedListener> registeredListener) {
-            return registeredListener == listener;
-        }), pImpl_->windowVisibilityStateListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowVisibilityStateListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowVisibilityStateListeners_.empty() && pImpl_->windowVisibilityStateListenerAgent_ != nullptr) {
@@ -1498,25 +1661,24 @@ WMError WindowManager::RegisterCameraFloatWindowChangedListener(const sptr<ICame
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->cameraFloatWindowChangedListenerAgent_ == nullptr) {
-        pImpl_->cameraFloatWindowChangedListenerAgent_ = new WindowManagerAgent();
+        pImpl_->cameraFloatWindowChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
         pImpl_->cameraFloatWindowChangedListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT,
+            pImpl_->cameraFloatWindowChangedListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         WLOGFW("RegisterWindowManagerAgent failed!");
         pImpl_->cameraFloatWindowChangedListenerAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->cameraFloatWindowChangedListeners_.begin(),
-            pImpl_->cameraFloatWindowChangedListeners_.end(), listener);
-        if (iter != pImpl_->cameraFloatWindowChangedListeners_.end()) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->cameraFloatWindowChangedListeners_.push_back(listener);
+        pImpl_->cameraFloatWindowChangedListeners_.insert(listener);
     }
     return ret;
 }
@@ -1529,14 +1691,11 @@ WMError WindowManager::UnregisterCameraFloatWindowChangedListener(
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->cameraFloatWindowChangedListeners_.begin(),
-        pImpl_->cameraFloatWindowChangedListeners_.end(), listener);
-    if (iter == pImpl_->cameraFloatWindowChangedListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->cameraFloatWindowChangedListeners_.erase(listener)) {
         WLOGFE("could not find this listener");
         return WMError::WM_OK;
     }
-    pImpl_->cameraFloatWindowChangedListeners_.erase(iter);
     WMError ret = WMError::WM_OK;
     if (pImpl_->cameraFloatWindowChangedListeners_.empty() &&
         pImpl_->cameraFloatWindowChangedListenerAgent_ != nullptr) {
@@ -1557,25 +1716,24 @@ WMError WindowManager::RegisterWaterMarkFlagChangedListener(const sptr<IWaterMar
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->waterMarkFlagChangeAgent_ == nullptr) {
-        pImpl_->waterMarkFlagChangeAgent_ = new WindowManagerAgent();
+        pImpl_->waterMarkFlagChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
         pImpl_->waterMarkFlagChangeAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WATER_MARK_FLAG,
+            pImpl_->waterMarkFlagChangeAgent_);
+    }
     if (ret != WMError::WM_OK) {
         WLOGFW("RegisterWindowManagerAgent failed!");
         pImpl_->waterMarkFlagChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->waterMarkFlagChangeListeners_.begin(),
-            pImpl_->waterMarkFlagChangeListeners_.end(), listener);
-        if (iter != pImpl_->waterMarkFlagChangeListeners_.end()) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->waterMarkFlagChangeListeners_.push_back(listener);
+        pImpl_->waterMarkFlagChangeListeners_.insert(listener);
     }
     WLOGFD("Try to registerWaterMarkFlagChangedListener && result : %{public}u", static_cast<uint32_t>(ret));
     return ret;
@@ -1588,14 +1746,11 @@ WMError WindowManager::UnregisterWaterMarkFlagChangedListener(const sptr<IWaterM
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->waterMarkFlagChangeListeners_.begin(),
-        pImpl_->waterMarkFlagChangeListeners_.end(), listener);
-    if (iter == pImpl_->waterMarkFlagChangeListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->waterMarkFlagChangeListeners_.erase(listener)) {
         WLOGFE("could not find this listener");
         return WMError::WM_OK;
     }
-    pImpl_->waterMarkFlagChangeListeners_.erase(iter);
     WMError ret = WMError::WM_OK;
     if (pImpl_->waterMarkFlagChangeListeners_.empty() &&
         pImpl_->waterMarkFlagChangeAgent_ != nullptr) {
@@ -1610,6 +1765,39 @@ WMError WindowManager::UnregisterWaterMarkFlagChangedListener(const sptr<IWaterM
     return ret;
 }
 
+WMError WindowManager::RegisterApplicationFocusChangedListener(const sptr<IApplicationFocusChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "listener could not be null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (pImpl_->applicationFocusChangeListeners_.count(listener)) {
+        TLOGI(WmsLogTag::WMS_FOCUS, "Listener is already registered.");
+        return WMError::WM_OK;
+    }
+    pImpl_->applicationFocusChangeListeners_.insert(listener);
+    TLOGD(WmsLogTag::WMS_FOCUS, "Try to registerApplicationFocusChangedListener end");
+    return WMError::WM_OK;
+}
+
+WMError WindowManager::UnregisterApplicationFocusChangedListener(const sptr<IApplicationFocusChangedListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "listener could not be null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (pImpl_->applicationFocusChangeListeners_.erase(listener) == 0) {
+        TLOGW(WmsLogTag::WMS_FOCUS, "could not find this listener");
+        return WMError::WM_OK;
+    }
+    TLOGD(WmsLogTag::WMS_FOCUS, "Try to unregisterApplicationFocusChangedListener end");
+    return WMError::WM_OK;
+}
+
 WMError WindowManager::RegisterGestureNavigationEnabledChangedListener(
     const sptr<IGestureNavigationEnabledChangedListener>& listener)
 {
@@ -1618,15 +1806,20 @@ WMError WindowManager::RegisterGestureNavigationEnabledChangedListener(
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->gestureNavigationEnabledAgent_ == nullptr) {
-        pImpl_->gestureNavigationEnabledAgent_ = new (std::nothrow)WindowManagerAgent();
+        pImpl_->gestureNavigationEnabledAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     if (pImpl_->gestureNavigationEnabledAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
             pImpl_->gestureNavigationEnabledAgent_);
+        if (ret == WMError::WM_ERROR_SAMGR) {
+            ret = ActiveFaultAgentReregister(
+                WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED,
+                pImpl_->gestureNavigationEnabledAgent_);
+        }
     } else {
         WLOGFE("Create windowManagerAgent object failed!");
         ret = WMError::WM_ERROR_NULLPTR;
@@ -1635,13 +1828,7 @@ WMError WindowManager::RegisterGestureNavigationEnabledChangedListener(
         WLOGFE("RegisterWindowManagerAgent failed!");
         pImpl_->gestureNavigationEnabledAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->gestureNavigationEnabledListeners_.begin(),
-            pImpl_->gestureNavigationEnabledListeners_.end(), listener);
-        if (iter != pImpl_->gestureNavigationEnabledListeners_.end()) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->gestureNavigationEnabledListeners_.push_back(listener);
+        pImpl_->gestureNavigationEnabledListeners_.insert(listener);
     }
     WLOGFD("Try to registerGestureNavigationEnabledChangedListener and result is %{public}u",
         static_cast<uint32_t>(ret));
@@ -1656,14 +1843,11 @@ WMError WindowManager::UnregisterGestureNavigationEnabledChangedListener(
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->gestureNavigationEnabledListeners_.begin(),
-        pImpl_->gestureNavigationEnabledListeners_.end(), listener);
-    if (iter == pImpl_->gestureNavigationEnabledListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->gestureNavigationEnabledListeners_.erase(listener)) {
         WLOGFE("could not find this listener");
         return WMError::WM_ERROR_INVALID_PARAM;
     }
-    pImpl_->gestureNavigationEnabledListeners_.erase(iter);
     WMError ret = WMError::WM_OK;
     if (pImpl_->gestureNavigationEnabledListeners_.empty() &&
         pImpl_->gestureNavigationEnabledAgent_ != nullptr) {
@@ -1697,7 +1881,7 @@ WMError WindowManager::RegisterDisplayInfoChangedListener(const sptr<IRemoteObje
         TLOGE(WmsLogTag::DMS, "create listener adapter failed.");
         return WMError::WM_ERROR_NO_MEM;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     auto iter = pImpl_->displayInfoChangedListeners_.find(token);
     if (iter == pImpl_->displayInfoChangedListeners_.end()) {
         pImpl_->displayInfoChangedListeners_.insert({token, {listenerAdapter}});
@@ -1729,7 +1913,7 @@ WMError WindowManager::UnregisterDisplayInfoChangedListener(const sptr<IRemoteOb
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     auto iter = pImpl_->displayInfoChangedListeners_.find(token);
     if (iter == pImpl_->displayInfoChangedListeners_.end()) {
         TLOGW(WmsLogTag::DMS, "can not find the ability token");
@@ -1758,30 +1942,24 @@ WMError WindowManager::RegisterWindowPidVisibilityChangedListener(
         TLOGE(WmsLogTag::WMS_LIFE, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
-    {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->visibilityListenerAgentListenerMutex_);
-        if (pImpl_->windowPidVisibilityListenerAgent_ == nullptr) {
-            pImpl_->windowPidVisibilityListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr();
-        }
-    
-        ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
+    if (pImpl_->windowPidVisibilityListenerAgent_ == nullptr) {
+        pImpl_->windowPidVisibilityListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
+    }
+    ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
+        pImpl_->windowPidVisibilityListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
             pImpl_->windowPidVisibilityListenerAgent_);
-        if (ret != WMError::WM_OK) {
-            TLOGE(WmsLogTag::WMS_LIFE, "RegisterWindowManagerAgent failed!");
-            pImpl_->windowPidVisibilityListenerAgent_ = nullptr;
-        }
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    if (ret == WMError::WM_OK) {
-        auto iter = std::find(pImpl_->windowPidVisibilityListeners_.begin(),
-            pImpl_->windowPidVisibilityListeners_.end(), listener);
-        if (iter != pImpl_->windowPidVisibilityListeners_.end()) {
-            WLOGI("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->windowPidVisibilityListeners_.emplace_back(listener);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "RegisterWindowManagerAgent failed!");
+        pImpl_->windowPidVisibilityListenerAgent_ = nullptr;
+    } else {
+        pImpl_->windowPidVisibilityListeners_.insert(listener);
     }
     return ret;
 }
@@ -1793,25 +1971,13 @@ WMError WindowManager::UnregisterWindowPidVisibilityChangedListener(
         TLOGE(WmsLogTag::WMS_LIFE, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    bool isListenEmpty = true;
-    {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-        auto iter = std::find(pImpl_->windowPidVisibilityListeners_.begin(),
-            pImpl_->windowPidVisibilityListeners_.end(), listener);
-        if (iter == pImpl_->windowPidVisibilityListeners_.end()) {
-            TLOGE(WmsLogTag::WMS_LIFE, "could not find this listener");
-            return WMError::WM_OK;
-        }
-        pImpl_->windowPidVisibilityListeners_.erase(iter);
-        isListenEmpty = pImpl_->windowPidVisibilityListeners_.empty();
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->windowPidVisibilityListeners_.erase(listener)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "could not find this listener");
+        return WMError::WM_OK;
     }
-    
     WMError ret = WMError::WM_OK;
-    if (!isListenEmpty) {
-        return ret;
-    }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->visibilityListenerAgentListenerMutex_);
-    if (isListenEmpty && pImpl_->windowPidVisibilityListenerAgent_ != nullptr) {
+    if (pImpl_->windowPidVisibilityListeners_.empty() && pImpl_->windowPidVisibilityListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY,
             pImpl_->windowPidVisibilityListenerAgent_);
@@ -1846,12 +2012,12 @@ void WindowManager::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
     WindowAdapter::GetInstance(userId_).GetFocusWindowInfoByAbilityToken(focusInfo, abilityToken);
 }
 
-void WindowManager::OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected) const
+void WindowManager::OnWMSConnectionChanged(int32_t userId, int32_t screenId, bool isConnected, int32_t pid) const
 {
     if (isConnected) {
-        pImpl_->NotifyWMSConnected(userId, screenId);
+        pImpl_->NotifyWMSConnected(userId, screenId, pid);
     } else {
-        pImpl_->NotifyWMSDisconnected(userId, screenId);
+        pImpl_->NotifyWMSDisconnected(userId, screenId, pid);
     }
 }
 
@@ -1951,9 +2117,10 @@ WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     return ret;
 }
 
-WMError WindowManager::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos) const
+WMError WindowManager::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+    const WindowInfoOptions& option, bool useHookedSize) const
 {
-    WMError ret = WindowAdapter::GetInstance(userId_).GetAllWindowLayoutInfo(displayId, infos);
+    WMError ret = WindowAdapter::GetInstance(userId_).GetAllWindowLayoutInfo(displayId, infos, option, useHookedSize);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed");
     }
@@ -1979,9 +2146,22 @@ WMError WindowManager::GetMainWindowSnapshot(const std::vector<int32_t>& windowI
     return ret;
 }
 
+WMError WindowManager::SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
+{
+    WMError ret = WindowAdapter::GetInstance(userId_).SetWindowSnapshotSkip(windowId, isSkip);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "userId=%{public}d, winId=%{public}d, isSkip=%{public}d, retCode=%{public}d",
+        userId_, windowId, isSkip, static_cast<int32_t>(ret));
+    return ret;
+}
+
 WMError WindowManager::GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode) const
 {
     return WindowAdapter::GetInstance(userId_).GetGlobalWindowMode(displayId, globalWinMode);
+}
+
+WMError WindowManager::GetFloatViewLimits(uint32_t templateType, FloatViewLimits &limits) const
+{
+    return WindowAdapter::GetInstance(userId_).GetFloatViewLimits(templateType, limits);
 }
 
 WMError WindowManager::GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName) const
@@ -1994,9 +2174,20 @@ WMError WindowManager::SetWatermarkImageForApp(const std::shared_ptr<Media::Pixe
     return WindowAdapter::GetInstance(userId_).SetWatermarkImageForApp(pixelMap);
 }
 
-WMError WindowManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const
+WMError WindowManager::SetScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap, uint32_t priority)
 {
-    WMError ret = WindowAdapter::GetInstance(userId_).GetVisibilityWindowInfo(infos);
+    return WindowAdapter::GetInstance(userId_).SetScreenWatermarkImage(pixelMap, priority);
+}
+
+WMError WindowManager::CleanScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap)
+{
+    return WindowAdapter::GetInstance(userId_).CleanScreenWatermarkImage(pixelMap);
+}
+
+WMError WindowManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+    bool useHookedSize) const
+{
+    WMError ret = WindowAdapter::GetInstance(userId_).GetVisibilityWindowInfo(infos, useHookedSize);
     if (ret != WMError::WM_OK) {
         WLOGFE("get window visibility info failed");
     }
@@ -2067,6 +2258,11 @@ void WindowManager::NotifyWaterMarkFlagChangedResult(bool showWaterMark) const
     pImpl_->NotifyWaterMarkFlagChangedResult(showWaterMark);
 }
 
+void WindowManager::NotifyApplicationFocusChangedResult(bool isFocused) const
+{
+    pImpl_->NotifyApplicationFocusChangedResult(isFocused);
+}
+
 void WindowManager::NotifyGestureNavigationEnabledResult(bool enable) const
 {
     pImpl_->NotifyGestureNavigationEnabledResult(enable);
@@ -2098,25 +2294,24 @@ WMError WindowManager::RegisterDrawingContentChangedListener(const sptr<IDrawing
         WLOGFE("listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowDrawingContentListenerAgent_ == nullptr) {
-        pImpl_->windowDrawingContentListenerAgent_ = new WindowManagerAgent();
+        pImpl_->windowDrawingContentListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
         pImpl_->windowDrawingContentListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE,
+            pImpl_->windowDrawingContentListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         WLOGFW("RegisterWindowManagerAgent failed!");
         pImpl_->windowDrawingContentListenerAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowDrawingContentListeners_.begin(),
-            pImpl_->windowDrawingContentListeners_.end(), listener);
-        if (iter != pImpl_->windowDrawingContentListeners_.end()) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->windowDrawingContentListeners_.emplace_back(listener);
+        pImpl_->windowDrawingContentListeners_.insert(listener);
     }
     return ret;
 }
@@ -2127,11 +2322,8 @@ WMError WindowManager::UnregisterDrawingContentChangedListener(const sptr<IDrawi
         WLOGFE("listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    pImpl_->windowDrawingContentListeners_.erase(std::remove_if(pImpl_->windowDrawingContentListeners_.begin(),
-        pImpl_->windowDrawingContentListeners_.end(),
-        [listener](sptr<IDrawingContentChangedListener> registeredListener) { return registeredListener == listener; }),
-        pImpl_->windowDrawingContentListeners_.end());
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    pImpl_->windowDrawingContentListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowDrawingContentListeners_.empty() && pImpl_->windowDrawingContentListenerAgent_ != nullptr) {
@@ -2152,25 +2344,24 @@ WMError WindowManager::RegisterWindowSystemBarPropertyChangedListener(
         TLOGE(WmsLogTag::WMS_IMMS, "listener is nullptr.");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowSystemBarPropertyChangeAgent_ == nullptr) {
-        pImpl_->windowSystemBarPropertyChangeAgent_ = new WindowManagerAgent();
+        pImpl_->windowSystemBarPropertyChangeAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
         pImpl_->windowSystemBarPropertyChangeAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
+            pImpl_->windowSystemBarPropertyChangeAgent_);
+    }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "RegisterWindowManagerAgent failed.");
         pImpl_->windowSystemBarPropertyChangeAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->windowSystemBarPropertyChangedListeners_.begin(),
-            pImpl_->windowSystemBarPropertyChangedListeners_.end(), listener);
-        if (iter != pImpl_->windowSystemBarPropertyChangedListeners_.end()) {
-            TLOGI(WmsLogTag::WMS_IMMS, "listener is already registered.");
-            return WMError::WM_DO_NOTHING;
-        }
-        pImpl_->windowSystemBarPropertyChangedListeners_.emplace_back(listener);
+        pImpl_->windowSystemBarPropertyChangedListeners_.insert(listener);
         TLOGI(WmsLogTag::WMS_IMMS, "listener registered success.");
     }
     return ret;
@@ -2183,11 +2374,9 @@ WMError WindowManager::UnregisterWindowSystemBarPropertyChangedListener(
         TLOGE(WmsLogTag::WMS_IMMS, "listener is nullptr.");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->windowSystemBarPropertyChangedListeners_.begin(),
-        pImpl_->windowSystemBarPropertyChangedListeners_.end(), listener);
-    if (iter == pImpl_->windowSystemBarPropertyChangedListeners_.end()) {
-        TLOGI(WmsLogTag::WMS_IMMS, "could not find this listener.");
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->windowSystemBarPropertyChangedListeners_.erase(listener)) {
+        TLOGE(WmsLogTag::WMS_IMMS, "could not find this listener");
         return WMError::WM_DO_NOTHING;
     }
     WMError ret = WMError::WM_OK;
@@ -2212,8 +2401,9 @@ void WindowManager::Impl::NotifyWindowSystemBarPropertyChange(
 {
     std::vector<sptr<IWindowSystemBarPropertyChangedListener>> windowSystemBarPropertyChangedListeners;
     {
-        std::unique_lock<std::shared_mutex> lock(listenerMutex_);
-        windowSystemBarPropertyChangedListeners = windowSystemBarPropertyChangedListeners_;
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        windowSystemBarPropertyChangedListeners.assign(windowSystemBarPropertyChangedListeners_.begin(),
+                                                       windowSystemBarPropertyChangedListeners_.end());
     }
     for (auto &listener : windowSystemBarPropertyChangedListeners) {
         if (listener != nullptr) {
@@ -2241,31 +2431,39 @@ WMError WindowManager::SetSpecificSystemWindowZIndex(WindowType windowType, int3
     return ret;
 }
 
+WMError WindowManager::MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId)
+{
+    WMError ret = WindowAdapter::GetInstance(userId_).MoveMainWindowToTargetDisplay(displayId, windowId);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "failed, windowId: %{public}d, displayId: %{public}" PRIu64, windowId, displayId);
+    }
+    return ret;
+}
+
 WMError WindowManager::RegisterVisibleWindowNumChangedListener(const sptr<IVisibleWindowNumChangedListener>& listener)
 {
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     WMError ret = WMError::WM_OK;
     if (pImpl_->visibleWindowNumChangedListenerAgent_ == nullptr) {
-        pImpl_->visibleWindowNumChangedListenerAgent_ = new WindowManagerAgent();
+        pImpl_->visibleWindowNumChangedListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
     }
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM,
         pImpl_->visibleWindowNumChangedListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM,
+            pImpl_->visibleWindowNumChangedListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_MAIN, "RegisterWindowManagerAgent failed!");
         pImpl_->visibleWindowNumChangedListenerAgent_ = nullptr;
     } else {
-        auto iter = std::find(pImpl_->visibleWindowNumChangedListeners_.begin(),
-            pImpl_->visibleWindowNumChangedListeners_.end(), listener);
-        if (iter != pImpl_->visibleWindowNumChangedListeners_.end()) {
-            TLOGE(WmsLogTag::WMS_MAIN, "Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->visibleWindowNumChangedListeners_.emplace_back(listener);
+        pImpl_->visibleWindowNumChangedListeners_.insert(listener);
     }
     return ret;
 }
@@ -2275,16 +2473,24 @@ WMError WindowManager::GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<M
     return WindowAdapter::GetInstance(userId_).GetSnapshotByWindowId(windowId, pixelMap);
 }
 
+WMError WindowManager::Snapshot(
+    std::shared_ptr<Media::PixelMap>& pixelMap, int32_t windowId, const SnapshotConfig& config)
+{
+    WMError ret = WindowAdapter::GetInstance(userId_).Snapshot(pixelMap, windowId, config);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "snapshot failed");
+    }
+    return ret;
+}
+
 WMError WindowManager::UnregisterVisibleWindowNumChangedListener(const sptr<IVisibleWindowNumChangedListener>& listener)
 {
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-    auto iter = std::find(pImpl_->visibleWindowNumChangedListeners_.begin(),
-        pImpl_->visibleWindowNumChangedListeners_.end(), listener);
-    if (iter == pImpl_->visibleWindowNumChangedListeners_.end()) {
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (!pImpl_->visibleWindowNumChangedListeners_.erase(listener)) {
         TLOGE(WmsLogTag::WMS_MAIN, "could not find this listener");
         return WMError::WM_OK;
     }
@@ -2315,28 +2521,28 @@ WMError WindowManager::RegisterWindowStyleChangedListener(const sptr<IWindowStyl
         return WMError::WM_ERROR_NULLPTR;
     }
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         if (pImpl_->windowStyleListenerAgent_ == nullptr) {
-            pImpl_->windowStyleListenerAgent_ = new WindowManagerAgent();
+            pImpl_->windowStyleListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
         }
-        auto iter = std::find(pImpl_->windowStyleListeners_.begin(), pImpl_->windowStyleListeners_.end(), listener);
-        if (iter != pImpl_->windowStyleListeners_.end()) {
+        if (pImpl_->windowStyleListeners_.count(listener)) {
             TLOGW(WmsLogTag::WMS_MAIN, "Listener is already registered.");
             return WMError::WM_OK;
         }
-        pImpl_->windowStyleListeners_.push_back(listener);
+        pImpl_->windowStyleListeners_.insert(listener);
     }
     WMError ret = WMError::WM_OK;
     ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE, pImpl_->windowStyleListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE, pImpl_->windowStyleListenerAgent_);
+    }
     if (ret != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_MAIN, "RegisterWindowManagerAgent failed!");
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         pImpl_->windowStyleListenerAgent_ = nullptr;
-        auto iter = std::find(pImpl_->windowStyleListeners_.begin(), pImpl_->windowStyleListeners_.end(), listener);
-        if (iter != pImpl_->windowStyleListeners_.end()) {
-            pImpl_->windowStyleListeners_.erase(iter);
-        }
+        pImpl_->windowStyleListeners_.erase(listener);
     }
     return ret;
 }
@@ -2349,20 +2555,18 @@ WMError WindowManager::UnregisterWindowStyleChangedListener(const sptr<IWindowSt
         return WMError::WM_ERROR_NULLPTR;
     }
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-        auto iter = std::find(pImpl_->windowStyleListeners_.begin(), pImpl_->windowStyleListeners_.end(), listener);
-        if (iter == pImpl_->windowStyleListeners_.end()) {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        if (!pImpl_->windowStyleListeners_.erase(listener)) {
             TLOGE(WmsLogTag::WMS_MAIN, "could not find this listener");
             return WMError::WM_OK;
         }
-        pImpl_->windowStyleListeners_.erase(iter);
     }
     WMError ret = WMError::WM_OK;
     if (pImpl_->windowStyleListeners_.empty() && pImpl_->windowStyleListenerAgent_ != nullptr) {
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE, pImpl_->windowStyleListenerAgent_);
         if (ret == WMError::WM_OK) {
-            std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+            std::lock_guard<std::recursive_mutex> lock(mutex_);
             pImpl_->windowStyleListenerAgent_ = nullptr;
         }
     }
@@ -2382,7 +2586,7 @@ WMError WindowManager::SkipSnapshotForAppProcess(int32_t pid, bool skip)
 {
     WMError ret = WindowAdapter::GetInstance(userId_).SkipSnapshotForAppProcess(pid, skip);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "skip failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "set process snapshot skip failed");
     }
     return ret;
 }
@@ -2550,6 +2754,8 @@ WMError WindowManager::ProcessRegisterWindowInfoChangeCallback(WindowInfoKey obs
             return RegisterRectChangedListener(listener);
         case WindowInfoKey::WINDOW_MODE :
             return RegisterWindowModeChangedListenerForPropertyChange(listener);
+        case WindowInfoKey::WINDOW_MODE_INFO :
+            return RegisterWindowModeInfoChangedListenerForPropertyChange(listener);
         case WindowInfoKey::FLOATING_SCALE :
             return RegisterFloatingScaleChangedListener(listener);
         case WindowInfoKey::MID_SCENE :
@@ -2574,6 +2780,8 @@ WMError WindowManager::ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey o
             return UnregisterRectChangedListener(listener);
         case WindowInfoKey::WINDOW_MODE :
             return UnregisterWindowModeChangedListenerForPropertyChange(listener);
+        case WindowInfoKey::WINDOW_MODE_INFO :
+            return UnregisterWindowModeInfoChangedListenerForPropertyChange(listener);
         case WindowInfoKey::FLOATING_SCALE :
             return UnregisterFloatingScaleChangedListener(listener);
         case WindowInfoKey::MID_SCENE :
@@ -2605,6 +2813,7 @@ WMError WindowManager::RegisterWindowInfoChangeCallback(const std::unordered_set
             listener->AddInterestInfo(WindowInfoKey::WINDOW_ID);
         }
         ret = ProcessRegisterWindowInfoChangeCallback(info, listener);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "infoKey=%{public}d, ret=%{public}d", info, ret);
         if (ret != WMError::WM_OK) {
             observedInfoForLog << "failed";
             break;
@@ -2633,6 +2842,7 @@ WMError WindowManager::UnregisterWindowInfoChangeCallback(const std::unordered_s
             listener->AddInterestInfo(WindowInfoKey::WINDOW_ID);
         }
         ret = ProcessUnregisterWindowInfoChangeCallback(info, listener);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "infoKey=%{public}d, ret=%{public}d", info, ret);
         if (ret != WMError::WM_OK) {
             observedInfoForLog << "failed";
             break;
@@ -2649,24 +2859,27 @@ WMError WindowManager::RegisterWindowSupportRotationListener(const sptr<IWindowS
         return WMError::WM_ERROR_NULLPTR;
     }
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         WMError ret = WMError::WM_OK;
         if (pImpl_->windowSupportRotationListenerAgent_ == nullptr) {
-            pImpl_->windowSupportRotationListenerAgent_ = new WindowManagerAgent();
+            pImpl_->windowSupportRotationListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
         }
         ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
             pImpl_->windowSupportRotationListenerAgent_);
+        if (ret == WMError::WM_ERROR_SAMGR) {
+            ret = ActiveFaultAgentReregister(
+                WindowManagerAgentType::WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
+                pImpl_->windowSupportRotationListenerAgent_);
+        }
         if (ret != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_ROTATION, "RegisterWindowManagerAgent failed.");
         } else {
-            auto iter = std::find(pImpl_->windowSupportRotationListeners_.begin(),
-                pImpl_->windowSupportRotationListeners_.end(), listener);
-            if (iter != pImpl_->windowSupportRotationListeners_.end()) {
+            if (pImpl_->windowSupportRotationListeners_.count(listener)) {
                 TLOGE(WmsLogTag::WMS_ROTATION, "Listener is already registered.");
                 return WMError::WM_OK;
             }
-            pImpl_->windowSupportRotationListeners_.emplace_back(listener);
+            pImpl_->windowSupportRotationListeners_.insert(listener);
         }
     }
 
@@ -2684,11 +2897,8 @@ WMError WindowManager::UnregisterWindowSupportRotationListener(const sptr<IWindo
         return WMError::WM_ERROR_NULLPTR;
     }
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
-        pImpl_->windowSupportRotationListeners_.erase(std::remove_if(pImpl_->windowSupportRotationListeners_.begin(),
-        pImpl_->windowSupportRotationListeners_.end(),
-        [listener](sptr<IWindowSupportRotationListener>registeredListener) { return registeredListener == listener; }),
-            pImpl_->windowSupportRotationListeners_.end());
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        pImpl_->windowSupportRotationListeners_.erase(listener);
         WMError ret = WMError::WM_OK;
         if (pImpl_->windowSupportRotationListeners_.empty() && pImpl_->windowSupportRotationListenerAgent_ != nullptr) {
             ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
@@ -2707,6 +2917,68 @@ void WindowManager::NotifySupportRotationChange(const SupportRotationInfo& suppo
     pImpl_->NotifySupportRotationChange(supportRotationInfo);
 }
 
+WMError WindowManager::RegisterSessionSaveSnapShotCompleteListener(
+    const sptr<ISessionSaveSnapShotCompleteListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->sessionSaveSnapshotCompleteListenerAgent_ == nullptr) {
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
+    }
+    ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+            pImpl_->sessionSaveSnapshotCompleteListenerAgent_);
+    }
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "RegisterWindowManagerAgent failed");
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_ = nullptr;
+        return ret;
+    }
+    if (pImpl_->sessionSaveSnapshotCompleteListeners_.count(listener)) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "Listener is already registered");
+        return WMError::WM_OK;
+    }
+    pImpl_->sessionSaveSnapshotCompleteListeners_.insert(listener);
+    return ret;
+}
+
+WMError WindowManager::UnregisterSessionSaveSnapShotCompleteListener(
+    const sptr<ISessionSaveSnapShotCompleteListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    pImpl_->sessionSaveSnapshotCompleteListeners_.erase(listener);
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->sessionSaveSnapshotCompleteListeners_.empty() &&
+        pImpl_->sessionSaveSnapshotCompleteListenerAgent_ != nullptr) {
+        ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+            pImpl_->sessionSaveSnapshotCompleteListenerAgent_);
+        if (ret == WMError::WM_OK) {
+            pImpl_->sessionSaveSnapshotCompleteListenerAgent_ = nullptr;
+        }
+    }
+    return ret;
+}
+
+void WindowManager::NotifySessionSaveSnapShotComplete(int32_t persistentId)
+{
+    pImpl_->NotifySessionSaveSnapShotComplete(persistentId);
+}
+
 void WindowManager::SetIsModuleHookOffToSet(const std::string& moduleName)
 {
     isModuleHookOffSet_.insert(moduleName);
@@ -2715,16 +2987,13 @@ void WindowManager::SetIsModuleHookOffToSet(const std::string& moduleName)
 
 bool WindowManager::GetIsModuleHookOffFromSet(const std::string& moduleName)
 {
-    auto iter = isModuleHookOffSet_.find(moduleName);
-    if (iter != isModuleHookOffSet_.end()) {
-        return true;
-    }
-    return false;
+    return isModuleHookOffSet_.find(moduleName) != isModuleHookOffSet_.end();
 }
 
 bool WindowManager::IsModuleHookOff(bool isModuleAbilityHookEnd, const std::string& moduleName)
 {
     if (isModuleAbilityHookEnd) {
+        TLOGI(WmsLogTag::WMS_MAIN, "set IsModuleHookOff to set");
         SetIsModuleHookOffToSet(moduleName);
     }
     if (GetIsModuleHookOffFromSet(moduleName)) {
@@ -2744,6 +3013,9 @@ void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, cons
     }
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE)) {
         pImpl_->NotifyWindowModeChangeForPropertyChange(windowInfoList);
+    }
+    if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_MODE_INFO)) {
+        pImpl_->NotifyWindowModeInfoChangeForPropertyChange(windowInfoList);
     }
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::FLOATING_SCALE)) {
         pImpl_->NotifyFloatingScaleChange(windowInfoList);
@@ -2776,7 +3048,7 @@ WMError WindowManager::RegisterWindowLifeCycleCallback(const sptr<IWindowLifeCyc
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Register window lifecycle listener");
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         if (pImpl_->windowLifeCycleListener_) {
             TLOGI(WmsLogTag::WMS_LIFE, "WindowLifeCycleListener is already registered, do nothing");
             return WMError::WM_OK;
@@ -2795,10 +3067,10 @@ WMError WindowManager::UnregisterWindowLifeCycleCallback(const sptr<IWindowLifeC
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Unregister window lifecycle listener");
     {
-        std::unique_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         pImpl_->windowLifeCycleListener_ = nullptr;
     }
- 
+
     return WMError::WM_OK;
 }
 
@@ -2810,7 +3082,7 @@ void WindowManager::RegisterGetJSWindowCallback(GetJSWindowObjFunc&& getJSWindow
 void WindowManager::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycleInfo)
 {
     {
-        std::shared_lock<std::shared_mutex> lock(pImpl_->listenerMutex_);
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         if (pImpl_->windowLifeCycleListener_ == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
             return;
@@ -2828,7 +3100,7 @@ void WindowManager::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycl
 WMError WindowManager::AddSessionBlackList(
     const std::unordered_set<std::string>& bundleNames, const std::unordered_set<std::string>& privacyWindowTags)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in");
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size: [%{public}zu, %{public}zu]", bundleNames.size(), privacyWindowTags.size());
     auto ret = WindowAdapter::GetInstance(userId_).AddSessionBlackList(bundleNames, privacyWindowTags);
     return ret;
 }
@@ -2836,7 +3108,7 @@ WMError WindowManager::AddSessionBlackList(
 WMError WindowManager::RemoveSessionBlackList(
     const std::unordered_set<std::string>& bundleNames, const std::unordered_set<std::string>& privacyWindowTags)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in");
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size: [%{public}zu, %{public}zu]", bundleNames.size(), privacyWindowTags.size());
     auto ret = WindowAdapter::GetInstance(userId_).RemoveSessionBlackList(bundleNames, privacyWindowTags);
     return ret;
 }

@@ -170,13 +170,13 @@ void ScreenshotManagerAni::GetHdrScreenshot(ani_env *env, std::unique_ptr<HdrPar
         return;
     }
     CaptureOption option = { param->option.displayId, param->option.isNeedNotify, true,
-        param->option.isCaptureFullOfScreen };
+        param->option.isCaptureFullOfScreen, param->option.displayIntent };
     if (!option.isNeedNotify_) {
         param->imageVec = DisplayManager::GetInstance().GetScreenHDRshotWithOption(option, param->wret);
     } else {
         TLOGI(WmsLogTag::DMS, "[ANI] Get Screenshot by default option");
         param->imageVec = DisplayManager::GetInstance().GetScreenHDRshot(param->option.displayId, param->wret,
-            true, param->option.isCaptureFullOfScreen);
+            true, param->option.isCaptureFullOfScreen, param->option.displayIntent);
     }
     if ((param->imageVec.size() != PIXMAP_VECTOR_SIZE || param->imageVec[SDR_PIXMAP] == nullptr) &&
         param->wret == DmErrorCode::DM_OK) {
@@ -203,7 +203,8 @@ ani_object ScreenshotManagerAni::Capture(ani_env* env, ani_object options)
     if (!optionsUndefined) {
         ani_long displayId = 0;
         ani_status ret = ScreenshotAniUtils::ReadOptionalLongField(env, options, "displayId", displayId);
-        TLOGI(WmsLogTag::DMS, "[ANI] displayId %{public}llu", static_cast<DisplayId>(displayId));
+        TLOGI(WmsLogTag::DMS, "[ANI] displayId %{public}" PRIu64,
+            static_cast<uint64_t>(static_cast<DisplayId>(displayId)));
         if (ret != ANI_OK) {
             TLOGE(WmsLogTag::DMS, "[ANI] get displayId failed");
             return nullptr;

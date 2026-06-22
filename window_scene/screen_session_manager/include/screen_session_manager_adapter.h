@@ -60,7 +60,8 @@ public:
     ClientAgentContainer<IDisplayManagerAgent, DisplayManagerAgentType> dmAgentContainer_;
     ClientAgentContainer<IDisplayManagerAgent, std::string> dmAttributeAgentContainer_;
     void NotifyAbnormalScreenConnectChange(ScreenId screenId);
-    void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes);
+    void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes,
+        int32_t uid = INVALID_UID);
     bool IsAgentListenedAttributes(std::set<std::string>& listenedAttributes,
         const std::vector<std::string>& attributes);
 private:

@@ -41,8 +41,8 @@ public:
     enum class ComponentRectChangeReason : uint32_t {
         HOST_WINDOW_RECT_CHANGE = 1,
     };
-    AniExtensionWindowListener(ani_env* env, ani_ref func)
-        : env_(env), aniCallback_(func), weakRef_(wptr<AniExtensionWindowListener> (this)) {}
+    AniExtensionWindowListener(ani_env* env, ani_vm* vm, ani_ref func)
+        : env_(env), vm_(vm), aniCallback_(func), weakRef_(wptr<AniExtensionWindowListener> (this)) {}
     ~AniExtensionWindowListener();
     ani_ref GetAniCallback() const { return aniCallback_; }
     void SetAniCallback(ani_ref aniCallback) { aniCallback_ = aniCallback; }
@@ -61,6 +61,7 @@ private:
     uint32_t currentHeight_ = 0;
     Rect currRect_;
     ani_env* env_ = nullptr;
+    ani_vm* vm_ = nullptr;
     ani_ref aniCallback_;
     wptr<AniExtensionWindowListener> weakRef_ = nullptr;
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;

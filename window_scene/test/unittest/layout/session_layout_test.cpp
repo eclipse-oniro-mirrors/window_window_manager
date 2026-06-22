@@ -136,8 +136,6 @@ namespace {
  */
 HWTEST_F(SessionLayoutTest, UpdateRect01, TestSize.Level1)
 {
-    bool preBackgroundUpdateRectNotifyEnabled = Session::IsBackgroundUpdateRectNotifyEnabled();
-    Session::SetBackgroundUpdateRectNotifyEnabled(true);
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     session_->sessionStage_ = mockSessionStage;
     EXPECT_CALL(*(mockSessionStage), UpdateRect(_, _, _, _)).Times(AtLeast(1)).WillOnce(Return(WSError::WS_OK));
@@ -164,28 +162,6 @@ HWTEST_F(SessionLayoutTest, UpdateRect01, TestSize.Level1)
     session_->sessionStage_ = nullptr;
     ASSERT_EQ(WSError::WS_OK, session_->UpdateRect(rect, SizeChangeReason::UNDEFINED, "SessionLayoutTest"));
     ASSERT_EQ(rect, session_->GetSessionRect());
-    Session::SetBackgroundUpdateRectNotifyEnabled(preBackgroundUpdateRectNotifyEnabled);
-}
-
-/**
- * @tc.name: UpdateRect_TestForeground
- * @tc.desc: update rect
- * @tc.type: FUNC
- * @tc.require: #I6JLSI
- */
-HWTEST_F(SessionLayoutTest, UpdateRect_TestForeground, TestSize.Level1)
-{
-    bool preBackgroundUpdateRectNotifyEnabled = Session::IsBackgroundUpdateRectNotifyEnabled();
-    Session::SetBackgroundUpdateRectNotifyEnabled(false);
-    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
-    session_->sessionStage_ = mockSessionStage;
-
-    WSRect rect = { 0, 0, 100, 100 };
-    session_->UpdateSessionState(SessionState::STATE_ACTIVE);
-    ASSERT_EQ(WSError::WS_OK, session_->UpdateRect(rect, SizeChangeReason::UNDEFINED, "SessionLayoutTest"));
-    session_->UpdateSessionState(SessionState::STATE_BACKGROUND);
-    ASSERT_EQ(WSError::WS_DO_NOTHING, session_->UpdateRect(rect, SizeChangeReason::UNDEFINED, "SessionLayoutTest"));
-    Session::SetBackgroundUpdateRectNotifyEnabled(preBackgroundUpdateRectNotifyEnabled);
 }
 
 /**
@@ -255,24 +231,6 @@ HWTEST_F(SessionLayoutTest, SetDragStart, TestSize.Level1)
     ASSERT_EQ(true, session->IsDragStart());
     session->SetDragStart(false);
     ASSERT_EQ(false, session->IsDragStart());
-}
-
-/**
- * @tc.name: UpdateWindowModeSupportType01
- * @tc.desc: UpdateWindowModeSupportType
- * @tc.type: FUNC
- */
-HWTEST_F(SessionLayoutTest, UpdateWindowModeSupportType01, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "UpdateWindowModeSupportType01";
-    info.bundleName_ = "UpdateWindowModeSupportType01";
-    sptr<Session> session = sptr<Session>::MakeSptr(info);
-
-    EXPECT_EQ(session->UpdateWindowModeSupportType(nullptr), false);
-
-    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
-    EXPECT_EQ(session->UpdateWindowModeSupportType(abilityInfo), false);
 }
 
 /**
@@ -451,24 +409,47 @@ HWTEST_F(SessionLayoutTest, SetGetRsCmdBlockingCountFunc, TestSize.Level1)
 }
 
 /**
- * @tc.name: NotifyAppHookWindowInfoUpdated
- * @tc.desc: NotifyAppHookWindowInfoUpdated
+ * @tc.name: SetDragActivated01
+ * @tc.desc: Test SetDragActivated with activated=true sets bit
  * @tc.type: FUNC
  */
-HWTEST_F(SessionLayoutTest, NotifyAppHookWindowInfoUpdated, TestSize.Level1)
+HWTEST_F(SessionLayoutTest, SetDragActivated01, TestSize.Level1)
 {
     SessionInfo info;
-    info.abilityName_ = "NotifyAppHookWindowInfoUpdated";
-    info.bundleName_ = "NotifyAppHookWindowInfoUpdated";
+    info.abilityName_ = "SetDragActivated01";
+    info.bundleName_ = "SetDragActivated01";
     sptr<Session> session = sptr<Session>::MakeSptr(info);
+    uint32_t layoutBit = static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT);
+    uint32_t appLockBit = static_cast<uint32_t>(DragActivateSource::APP_LOCK);
+    session->dragActivatedBitmap_ = 0;
 
-    session->sessionStage_ = nullptr;
-    WSError errCode = session->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_ERROR_NULLPTR);
+    session->SetDragActivated(DragActivateSource::FOLLOW_PARENT_LAYOUT, true);
+    EXPECT_EQ(layoutBit, session->GetDragActivatedBitmap());
 
-    session->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
-    errCode = session->NotifyAppHookWindowInfoUpdated();
-    EXPECT_EQ(errCode, WSError::WS_OK);
+    session->SetDragActivated(DragActivateSource::APP_LOCK, true);
+    EXPECT_EQ(layoutBit | appLockBit, session->GetDragActivatedBitmap());
+}
+
+/**
+ * @tc.name: SetDragActivated02
+ * @tc.desc: Test SetDragActivated with activated=false clears bit
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, SetDragActivated02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetDragActivated02";
+    info.bundleName_ = "SetDragActivated02";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    uint32_t layoutBit = static_cast<uint32_t>(DragActivateSource::FOLLOW_PARENT_LAYOUT);
+    uint32_t appLockBit = static_cast<uint32_t>(DragActivateSource::APP_LOCK);
+
+    EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK, session->GetDragActivatedBitmap());
+    session->SetDragActivated(DragActivateSource::FOLLOW_PARENT_LAYOUT, false);
+    EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK & ~layoutBit, session->GetDragActivatedBitmap());
+
+    session->SetDragActivated(DragActivateSource::APP_LOCK, false);
+    EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK & ~layoutBit & ~appLockBit, session->GetDragActivatedBitmap());
 }
 } // namespace
 } // namespace Rosen

@@ -65,6 +65,17 @@ HWTEST_F(DisplayManagerAdapterTest, GetDisplayInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetDisplayInfoWithGetActualInfo
+ * @tc.desc: test GetDisplayInfo with isGetActualInfo = true
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetDisplayInfoWithGetActualInfo, TestSize.Level1)
+{
+    sptr<DisplayInfo> info = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(DISPLAY_ID_INVALID, true);
+    ASSERT_EQ(info, nullptr);
+}
+
+/**
  * @tc.name: GetCutoutInfo
  * @tc.desc: test nullptr
  * @tc.type: FUNC
@@ -328,6 +339,19 @@ HWTEST_F(DisplayManagerAdapterTest, GetSupportedHDRFormats, TestSize.Level1)
     } else {
         ASSERT_EQ(err, DMError::DM_OK);
     }
+}
+
+/**
+ * @tc.name: QueryMultiScreenCapture
+ * @tc.desc: QueryMultiScreenCapture test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, QueryMultiScreenCapture, TestSize.Level1)
+{
+    std::vector<ScreenId> displayIdList = {DISPLAY_ID_INVALID};
+    DMRect rect;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().QueryMultiScreenCapture(displayIdList, rect);
+    EXPECT_NE(err, DMError::DM_OK);
 }
 
 /**
@@ -711,8 +735,13 @@ HWTEST_F(DisplayManagerAdapterTest, SetResolution, TestSize.Level1)
  */
 HWTEST_F(DisplayManagerAdapterTest, ResizeVirtualScreen, TestSize.Level1)
 {
+    sptr<IScreenSessionManager> screenSessionManagerServiceProxyTmp =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
     DMError err = SingletonContainer::Get<ScreenManagerAdapter>().ResizeVirtualScreen(0, 70, 100);
-    ASSERT_EQ(err, DMError::DM_OK);
+    ASSERT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxyTmp;
 }
 
 /**
@@ -1289,6 +1318,101 @@ HWTEST_F(DisplayManagerAdapterTest, RemoveVirtualScreenWhiteList_proxyNotNull, T
     SingletonContainer::Get<ScreenManagerAdapter>().RemoveVirtualScreenWhiteList(screenId, missionIds);
     EXPECT_TRUE(g_errLog.find("Device not support") == std::string::npos);
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions01
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions01, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err =
+        SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions02
+ * @tc.desc: test SetOrientation with options success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions02, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::VERTICAL;
+    OrientationOptions options;
+    options.needAnimation = true;
+    options.ignoreRotationLock = false;
+    bool isFromNapi = true;
+
+    DMError err =
+        SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: SetOrientationWithOptions03
+ * @tc.desc: test SetOrientation with options custom values
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions03, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    Orientation orientation = Orientation::HORIZONTAL;
+    OrientationOptions options;
+    options.needAnimation = false;
+    options.ignoreRotationLock = true;
+    bool isFromNapi = false;
+
+    DMError err =
+        SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: GetScreenCapability01
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetScreenCapability01, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    ScreenCapability capability;
+
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().GetScreenCapability(screenId, capability);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<ScreenManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: GetScreenCapability02
+ * @tc.desc: test GetScreenCapability success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, GetScreenCapability02, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    ScreenCapability capability;
+
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().GetScreenCapability(screenId, capability);
+    EXPECT_EQ(err, DMError::DM_OK);
 }
 } // namespace
 } // namespace OHOS::Rosen

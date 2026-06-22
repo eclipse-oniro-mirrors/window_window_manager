@@ -54,6 +54,10 @@ namespace {
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
     };
+    const char* ARKUI_WINDOW_PIP_CREATE = "ArkUI.window.pip.create";
+
+    const char* ARKUI_WINDOW_PIP_ISPIPENABLED_BOOL = "ArkUI.window.pip.isPipEnabled.bool";
+    const char* ARKUI_WINDOW_PIP_CREATE_BOOL = "ArkUI.window.pip.create.bool";
 }
 
 static int32_t checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups)
@@ -92,8 +96,9 @@ static void checkLocalStorage(napi_env env, PipOption& option, napi_value storag
     if (valueType != napi_object) {
         option.SetStorageRef(nullptr);
     } else {
-        napi_ref storageRef;
-        napi_create_reference(env, storage, 1, &storageRef);
+        napi_ref result = nullptr;
+        napi_create_reference(env, storage, 1, &result);
+        std::shared_ptr<NativeReference> storageRef(reinterpret_cast<NativeReference*>(result));
         option.SetStorageRef(storageRef);
         TLOGI(WmsLogTag::WMS_PIP, "localStorage is set");
     }
@@ -158,6 +163,100 @@ static bool GetControlGroupFromJs(napi_env env, napi_value controlGroup, std::ve
     return true;
 }
 
+static void GetAndSetContext(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value contextPtrValue = nullptr;
+    void* contextPtr = nullptr;
+    napi_get_named_property(env, optionObject, "context", &contextPtrValue);
+    napi_unwrap(env, contextPtrValue, &contextPtr);
+    option.SetContext(contextPtr);
+}
+
+static void GetAndSetNavigationId(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value navigationIdValue = nullptr;
+    std::string navigationId = "";
+    napi_get_named_property(env, optionObject, "navigationId", &navigationIdValue);
+    ConvertFromJsValue(env, navigationIdValue, navigationId);
+    option.SetNavigationId(navigationId);
+}
+
+static uint32_t GetAndSetTemplateType(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value templateTypeValue = nullptr;
+    uint32_t templateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_PLAY);
+    napi_get_named_property(env, optionObject, "templateType", &templateTypeValue);
+    ConvertFromJsValue(env, templateTypeValue, templateType);
+    option.SetPipTemplate(templateType);
+    return templateType;
+}
+
+static void GetAndSetContentSize(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value widthValue = nullptr;
+    napi_value heightValue = nullptr;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    napi_get_named_property(env, optionObject, "contentWidth", &widthValue);
+    napi_get_named_property(env, optionObject, "contentHeight", &heightValue);
+    ConvertFromJsValue(env, widthValue, width);
+    ConvertFromJsValue(env, heightValue, height);
+    option.SetContentSize(width, height);
+}
+
+static void GetAndSetDefaultWindowSizeType(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value defaultWindowSizeTypeValue = nullptr;
+    uint32_t defaultWindowSizeType = 0;
+    napi_get_named_property(env, optionObject, "defaultWindowSizeType", &defaultWindowSizeTypeValue);
+    ConvertFromJsValue(env, defaultWindowSizeTypeValue, defaultWindowSizeType);
+    option.SetDefaultWindowSizeType(defaultWindowSizeType);
+}
+
+static void GetAndSetXComponentController(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value xComponentControllerValue = nullptr;
+    napi_get_named_property(env, optionObject, "componentController", &xComponentControllerValue);
+    std::shared_ptr<XComponentController> xComponentControllerResult =
+        XComponentController::GetXComponentControllerFromNapiValue(env, xComponentControllerValue);
+    option.SetXComponentController(xComponentControllerResult);
+}
+
+static void GetAndSetControlGroup(napi_env env, napi_value optionObject, PipOption& option, uint32_t templateType)
+{
+    napi_value controlGroup = nullptr;
+    std::vector<uint32_t> controls;
+    napi_get_named_property(env, optionObject, "controlGroups", &controlGroup);
+    GetControlGroupFromJs(env, controlGroup, controls, templateType);
+    option.SetControlGroup(controls);
+}
+
+static void GetAndSetNodeControllerRef(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value nodeController = nullptr;
+    napi_ref result = nullptr;
+    napi_get_named_property(env, optionObject, "customUIController", &nodeController);
+    napi_create_reference(env, nodeController, 1, &result);
+    std::shared_ptr<NativeReference> nodeControllerRef(reinterpret_cast<NativeReference*>(result));
+    option.SetNodeControllerRef(nodeControllerRef);
+}
+
+static void GetAndSetLocalStorage(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value storage = nullptr;
+    napi_get_named_property(env, optionObject, "localStorage", &storage);
+    checkLocalStorage(env, option, storage);
+}
+
+static void GetAndSetCornerAdsorptionEnabled(napi_env env, napi_value optionObject, PipOption& option)
+{
+    napi_value cornerAdsorptionValue = nullptr;
+    bool cornerAdsorptionEnabled = true;
+    napi_get_named_property(env, optionObject, "cornerAdsorptionEnabled", &cornerAdsorptionValue);
+    ConvertFromJsValue(env, cornerAdsorptionValue, cornerAdsorptionEnabled);
+    option.SetCornerAdsorptionEnabled(cornerAdsorptionEnabled);
+}
+
 template <class T>
 static void GetPipOptionParamFromJs(napi_env env, napi_value optionObject,
                                     const std::string& propertyName, T& property)
@@ -171,86 +270,6 @@ static void GetPipOptionParamFromJs(napi_env env, napi_value optionObject,
     ConvertFromJsValue(env, propertyValue, property);
 }
 
-static void GetAndSetContext(napi_env env, napi_value optionObject, PipOption& option)
-{
-    napi_value contextPtrValue = nullptr;
-    void* contextPtr = nullptr;
-    napi_get_named_property(env, optionObject, "context", &contextPtrValue);
-    napi_unwrap(env, contextPtrValue, &contextPtr);
-    option.SetContext(contextPtr);
-}
-
-static void GetAndSetNavigationId(napi_env env, napi_value optionObject, PipOption& option)
-{
-    std::string navigationId = "";
-    GetPipOptionParamFromJs(env, optionObject, "navigationId", navigationId);
-    option.SetNavigationId(navigationId);
-}
-
-static void GetAndSetTemplateType(napi_env env, napi_value optionObject, PipOption& option)
-{
-    uint32_t templateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_PLAY);
-    GetPipOptionParamFromJs(env, optionObject, "templateType", templateType);
-    option.SetPipTemplate(templateType);
-}
-
-static void GetAndSetContentSize(napi_env env, napi_value optionObject, PipOption& option)
-{
-    uint32_t width = 0;
-    uint32_t height = 0;
-    GetPipOptionParamFromJs(env, optionObject, "contentWidth", width);
-    GetPipOptionParamFromJs(env, optionObject, "contentHeight", height);
-    option.SetContentSize(width, height);
-}
-
-static void GetAndSetDefaultWindowSizeType(napi_env env, napi_value optionObject, PipOption& option)
-{
-    uint32_t defaultWindowSizeType = 0;
-    GetPipOptionParamFromJs(env, optionObject, "defaultWindowSizeType", defaultWindowSizeType);
-    option.SetDefaultWindowSizeType(defaultWindowSizeType);
-}
-
-static void GetAndSetXComponentController(napi_env env, napi_value optionObject, PipOption& option)
-{
-    napi_value xComponentControllerValue = nullptr;
-    napi_get_named_property(env, optionObject, "componentController", &xComponentControllerValue);
-    std::shared_ptr<XComponentController> xComponentControllerResult =
-        XComponentController::GetXComponentControllerFromNapiValue(env, xComponentControllerValue);
-    option.SetXComponentController(xComponentControllerResult);
-}
-
-static void GetAndSetControlGroup(napi_env env, napi_value optionObject, PipOption& option)
-{
-    napi_value controlGroup = nullptr;
-    std::vector<uint32_t> controls;
-    napi_get_named_property(env, optionObject, "controlGroups", &controlGroup);
-    GetControlGroupFromJs(env, controlGroup, controls, option.GetPipTemplate());
-    option.SetControlGroup(controls);
-}
-
-static void GetAndSetNodeControllerRef(napi_env env, napi_value optionObject, PipOption& option)
-{
-    napi_value nodeController = nullptr;
-    napi_ref nodeControllerRef = nullptr;
-    napi_get_named_property(env, optionObject, "customUIController", &nodeController);
-    napi_create_reference(env, nodeController, 1, &nodeControllerRef);
-    option.SetNodeControllerRef(nodeControllerRef);
-}
-
-static void GetAndSetLocalStorage(napi_env env, napi_value optionObject, PipOption& option)
-{
-    napi_value storage = nullptr;
-    napi_get_named_property(env, optionObject, "localStorage", &storage);
-    checkLocalStorage(env, option, storage);
-}
-
-static void GetAndSetCornerAdsorptionEnabled(napi_env env, napi_value optionObject, PipOption& option)
-{
-    bool cornerAdsorptionEnabled = true;
-    GetPipOptionParamFromJs(env, optionObject, "cornerAdsorptionEnabled", cornerAdsorptionEnabled);
-    option.SetCornerAdsorptionEnabled(cornerAdsorptionEnabled);
-}
-
 static void GetAndSetHandleId(napi_env env, napi_value optionObject, PipOption& option)
 {
     int32_t handleId = -1;
@@ -262,11 +281,11 @@ static int32_t GetPictureInPictureOptionFromJs(napi_env env, napi_value optionOb
 {
     GetAndSetContext(env, optionObject, option);
     GetAndSetNavigationId(env, optionObject, option);
-    GetAndSetTemplateType(env, optionObject, option);
+    uint32_t templateType = GetAndSetTemplateType(env, optionObject, option);
     GetAndSetContentSize(env, optionObject, option);
     GetAndSetDefaultWindowSizeType(env, optionObject, option);
     GetAndSetXComponentController(env, optionObject, option);
-    GetAndSetControlGroup(env, optionObject, option);
+    GetAndSetControlGroup(env, optionObject, option, templateType);
     GetAndSetNodeControllerRef(env, optionObject, option);
     GetAndSetLocalStorage(env, optionObject, option);
     GetAndSetCornerAdsorptionEnabled(env, optionObject, option);
@@ -298,6 +317,7 @@ napi_value JsPipWindowManager::OnIsPipEnabled(napi_env env, napi_callback_info i
 {
     TLOGD(WmsLogTag::WMS_PIP, "OnIsPipEnabled called");
     bool isPipEnabled = PictureInPictureManager::GetPipEnabled();
+    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ISPIPENABLED_BOOL, 1);
     return CreateJsValue(env, isPipEnabled);
 }
 
@@ -321,24 +341,24 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, &result);
     auto asyncTask = [this, env, task = napiAsyncTask, pipOption]() mutable {
         if (!PictureInPictureManager::IsSupportPiP()) {
-            pipOption.ClearNapiRefs(env);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(
                 WMError::WM_ERROR_DEVICE_NOT_SUPPORT), "device not support pip."));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<PipOption> pipOptionPtr = new PipOption(pipOption);
         auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOptionPtr->GetContext());
         if (context == nullptr) {
-            pipOption.ClearNapiRefs(env);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(
                 WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Invalid context"));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
         if (mainWindow == nullptr) {
-            pipOption.ClearNapiRefs(env);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(
                 WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Invalid mainWindow"));
+            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<PictureInPictureController> pipController =
@@ -347,9 +367,9 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
         PiPTemplateInfo pipTemplateInfo;
         pipOption.GetPiPTemplateInfo(pipTemplateInfo);
         mainWindow->UpdatePiPTemplateInfo(pipTemplateInfo);
+        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "NapiSendTask") != napi_status::napi_ok) {
-        pipOption.ClearNapiRefs(env);
         napiAsyncTask->Reject(env, CreateJsError(env,
             static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Send event failed"));
     }
@@ -363,28 +383,31 @@ napi_value JsPipWindowManager::OnCreatePipController(napi_env env, napi_callback
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        return NapiThrowInvalidParam(env, "Missing args when creating pipController");
+        return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: Missing args when creating pipController",
+            ARKUI_WINDOW_PIP_CREATE, ARKUI_WINDOW_PIP_CREATE_BOOL);
     }
     napi_value config = argv[0];
-    if (config == nullptr) {
+    if (config == nullptr || GetType(env, config) == napi_undefined || GetType(env, config) == napi_null) {
         TLOGE(WmsLogTag::WMS_PIP, "config is null");
-        return NapiThrowInvalidParam(env, "Failed to convert object to pipConfiguration or pipConfiguration is null");
+        return NapiThrowInvalidParam(env, "[PiPWindow][create]msg: The pipConfiguration is null",
+            ARKUI_WINDOW_PIP_CREATE, ARKUI_WINDOW_PIP_CREATE_BOOL);
     }
     PipOption pipOption;
     if (GetPictureInPictureOptionFromJs(env, config, pipOption) == -1) {
-        std::string errMsg = "Invalid parameters in config, please check if context/xComponentController is null,"
+        std::string errMsg = "[PiPWindow][create]msg: Invalid parameters in config,"
+            " please check if context/xComponentController is null,"
             " or controlGroup mismatch the corresponding pipTemplateType, or defaultWindowSizeType is invalid";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        pipOption.ClearNapiRefs(env);
-        return NapiThrowInvalidParam(env, errMsg);
+        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_CREATE, ARKUI_WINDOW_PIP_CREATE_BOOL);
     }
     if (argc > 1) {
         napi_value typeNode = argv[1];
-        napi_ref typeNodeRef = nullptr;
+        napi_ref result = nullptr;
         if (typeNode != nullptr && GetType(env, typeNode) != napi_undefined) {
             TLOGI(WmsLogTag::WMS_PIP, "typeNode enabled");
             pipOption.SetTypeNodeEnabled(true);
-            napi_create_reference(env, typeNode, 1, &typeNodeRef);
+            napi_create_reference(env, typeNode, 1, &result);
+            std::shared_ptr<NativeReference> typeNodeRef(reinterpret_cast<NativeReference*>(result));
             pipOption.SetTypeNodeRef(typeNodeRef);
         } else {
             pipOption.SetTypeNodeEnabled(false);

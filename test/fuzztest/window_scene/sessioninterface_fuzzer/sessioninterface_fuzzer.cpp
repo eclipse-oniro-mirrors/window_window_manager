@@ -34,7 +34,7 @@ static std::shared_ptr<AbilityRuntime::AbilityContext> abilityContext =
     std::make_shared<AbilityRuntime::AbilityContextImpl>();
 static sptr<WindowSessionImpl> savedWindow;
 
-std::pair<sptr<ISession>, sptr<IRemoteObject>> GetProxy()
+std::pair<sptr<ISession>, sptr<WindowSessionImpl>> GetProxy()
 {
     if (savedWindow) {
         savedWindow->Destroy();
@@ -63,7 +63,7 @@ std::pair<sptr<ISession>, sptr<IRemoteObject>> GetProxy()
 
     WLOGFD("GetProxy success");
 
-    return {proxy, session->AsObject()};
+    return {proxy, window};
 }
 
 template<class T>
@@ -88,104 +88,154 @@ void IPCFuzzTest(const uint8_t* data, size_t size)
     int flags = source.GetObject<int>();
     int waitTime = source.GetObject<int>();
 
-    MessageParcel sendData;
+    MessageParcel parcel;
     MessageParcel reply;
     MessageOption option(flags, waitTime);
     auto rawSize = source.size_ - source.pos_;
     auto buf = source.GetRaw(rawSize);
     if (buf) {
-        sendData.WriteBuffer(buf, rawSize);
+        parcel.WriteBuffer(buf, rawSize);
     }
-    remoteObject->SendRequest(code, sendData, reply, option);
+    parcel.RewindRead(0);
+    remoteObject->OnRemoteRequest(code, parcel, reply, option);
 }
 
-void IPCSpecificInterfaceFuzzTest1(sptr<IRemoteObject> proxy, MessageParcel& sendData, MessageParcel& reply,
+void IPCSpecificInterfaceFuzzTest1(sptr<WindowSessionImpl> proxy, MessageParcel& parcel, MessageParcel& reply,
     MessageOption& option)
 {
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_CONNECT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_FOREGROUND),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKGROUND),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DISCONNECT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SYNC_SESSION_EVENT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_SESSION_RECT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RAISE_TO_APP_TOP),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKPRESSED),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_MARK_PROCESSED),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_MAXIMIZE_MODE),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_MAXIMIZE_MODE),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_CHANGE_KEYBOARD_VIEW_MODE),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_DID_SHOW_REGISTERED),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_DID_HIDE_REGISTERED),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_WILL_SHOW_REGISTERED),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_WILL_HIDE_REGISTERED),
-        sendData, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_CONNECT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_FOREGROUND),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKGROUND),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DISCONNECT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SESSION_EVENT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SYNC_SESSION_EVENT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_SESSION_RECT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RAISE_TO_APP_TOP),
+        parcel, reply, option);
 }
 
-void IPCSpecificInterfaceFuzzTest2(sptr<IRemoteObject> proxy, MessageParcel& sendData, MessageParcel& reply,
+void IPCSpecificInterfaceFuzzTest2(sptr<WindowSessionImpl> proxy, MessageParcel& parcel, MessageParcel& reply,
     MessageOption& option)
 {
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NEED_AVOID),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_AVOID_AREA),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_ASPECT_RATIO),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_WINDOW_ANIMATION_FLAG),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_CUSTOM_ANIMATION),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RAISE_ABOVE_TARGET),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RAISE_MAIN_WINDOW_ABOVE_TARGET),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_ACTIVE_PENDING_SESSION),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TERMINATE),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_EXCEPTION),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TRANSFER_ABILITY_RESULT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TRANSFER_EXTENSION_DATA),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_EXTENSION_DIED),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_WINDOW_RECT_AUTO_SAVE),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_IS_SET_IMAGE_FOR_RECENT),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLOATING_BALL),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_FLOATING_BALL_PREPARE_CLOSE),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_FLOATING_BALL_MAIN_WINDOW),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_FLOATING_BALL_WINDOW_ID),
-        sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_SNAPSHOT_UPDATE),
-        sendData, reply, option);
-    proxy->SendRequest(
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_BACKPRESSED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_MARK_PROCESSED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_MAXIMIZE_MODE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_MAXIMIZE_MODE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_CHANGE_KEYBOARD_VIEW_MODE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_DID_SHOW_REGISTERED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_DID_HIDE_REGISTERED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_WILL_SHOW_REGISTERED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_KEYBOARD_WILL_HIDE_REGISTERED),
+        parcel, reply, option);
+}
+
+void IPCSpecificInterfaceFuzzTest3(sptr<WindowSessionImpl> proxy, MessageParcel& parcel, MessageParcel& reply,
+    MessageOption& option)
+{
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NEED_AVOID),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_AVOID_AREA),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_ASPECT_RATIO),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_WINDOW_ANIMATION_FLAG),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_CUSTOM_ANIMATION),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RAISE_ABOVE_TARGET),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_RAISE_MAIN_WINDOW_ABOVE_TARGET),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_ACTIVE_PENDING_SESSION),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TERMINATE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_EXCEPTION),
+        parcel, reply, option);
+}
+
+void IPCSpecificInterfaceFuzzTest4(sptr<WindowSessionImpl> proxy, MessageParcel& parcel, MessageParcel& reply,
+    MessageOption& option)
+{
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TRANSFER_ABILITY_RESULT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_TRANSFER_EXTENSION_DATA),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_EXTENSION_DIED),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_WINDOW_RECT_AUTO_SAVE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_IS_SET_IMAGE_FOR_RECENT),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_FLOATING_BALL),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_FLOATING_BALL_PREPARE_CLOSE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_FLOATING_BALL_MAIN_WINDOW),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_FLOATING_BALL_WINDOW_ID),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_SNAPSHOT_UPDATE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
+    proxy->OnRemoteRequest(
         static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_WINDOW_ATTACH_STATE_LISTENER_REGISTERED),
-        sendData, reply, option);
+        parcel, reply, option);
 }
 
 void IPCInterfaceFuzzTest(const uint8_t* data, size_t size)
@@ -199,17 +249,19 @@ void IPCInterfaceFuzzTest(const uint8_t* data, size_t size)
     int flags = source.GetObject<int>();
     int waitTime = source.GetObject<int>();
 
-    MessageParcel sendData;
+    MessageParcel parcel;
     MessageParcel reply;
     MessageOption option(flags, waitTime);
-    sendData.WriteInterfaceToken(proxy->GetDescriptor());
+    parcel.WriteInterfaceToken(proxy->GetDescriptor());
     auto rawSize = source.size_ - source.pos_;
     auto buf = source.GetRaw(rawSize);
     if (buf) {
-        sendData.WriteBuffer(buf, rawSize);
+        parcel.WriteBuffer(buf, rawSize);
     }
-    IPCSpecificInterfaceFuzzTest1(remoteObject, sendData, reply, option);
-    IPCSpecificInterfaceFuzzTest2(remoteObject, sendData, reply, option);
+    IPCSpecificInterfaceFuzzTest1(remoteObject, parcel, reply, option);
+    IPCSpecificInterfaceFuzzTest2(remoteObject, parcel, reply, option);
+    IPCSpecificInterfaceFuzzTest3(remoteObject, parcel, reply, option);
+    IPCSpecificInterfaceFuzzTest4(remoteObject, parcel, reply, option);
 }
 
 void ProxyInterfaceFuzzTestPart1(const uint8_t* data, size_t size)

@@ -31,7 +31,7 @@ public:
 
     WMError UpdateWindowRect(const struct Rect& rect, bool decoStatus, WindowSizeChangeReason reason,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;
-    WMError UpdateWindowMode(WindowMode mode) override;
+    WMError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WMError UpdateWindowModeSupportType(uint32_t windowModeSupportType) override;
     WMError UpdateFocusStatus(bool focused) override;
     WMError UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;
@@ -41,6 +41,7 @@ public:
     WMError UpdateOccupiedAreaChangeInfo(const sptr<OccupiedAreaChangeInfo>& info,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;
+    WMError SendOccupiedAreaAndRectRequest(MessageParcel& data, MessageParcel& reply, MessageOption& option);
     WMError UpdateOccupiedAreaAndRect(const sptr<OccupiedAreaChangeInfo>& info, const Rect& rect,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr) override;

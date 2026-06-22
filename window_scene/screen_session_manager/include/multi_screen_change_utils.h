@@ -50,6 +50,9 @@ public:
     static void ScreenPhysicalInfoChange(sptr<ScreenSession>& innerScreen,
         sptr<ScreenSession>& externalScreen);
 
+    static void ScreenHdrFormatsChange(sptr<ScreenSession>& innerScreen,
+        sptr<ScreenSession>& externalScreen);
+
     static void CreateMirrorSession(sptr<ScreenSession>& mainSession,
         sptr<ScreenSession>& screenSession);
 

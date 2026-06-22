@@ -19,16 +19,17 @@
 #include "rate_limited_logger.h"
 namespace OHOS {
 namespace Rosen {
+const std::unordered_set<WmsLogTag> TAG_WHITE_LIST = {WmsLogTag::WMS_LAYOUT};
 RateLimitedLogger& RateLimitedLogger::getInstance()
 {
     static RateLimitedLogger instance_;
     return instance_;
 }
 
-bool RateLimitedLogger::logFunction(const std::string& functionName, int32_t timeWindowMs, int32_t maxCount)
+bool RateLimitedLogger::logFunction(const std::uintptr_t& functionAddress, uint32_t timeWindowMs, uint32_t maxCount)
 {
     // Parameter abnormality
-    if (timeWindowMs <= 0 || maxCount <= 0) {
+    if (timeWindowMs == 0 || maxCount == 0) {
         return false;
     }
 
@@ -41,7 +42,7 @@ bool RateLimitedLogger::logFunction(const std::string& functionName, int32_t tim
     auto now = std::chrono::steady_clock::now();
 
     // Find or create function record
-    auto& record = functionRecords_[functionName];
+    auto& record = functionRecords_[functionAddress];
     
     // If new record or time window expired, reset count
     if (record.count == 0 ||
@@ -51,7 +52,7 @@ bool RateLimitedLogger::logFunction(const std::string& functionName, int32_t tim
     }
 
     // Check if within limit
-    if (record.count < maxCount) {
+    if (static_cast<uint32_t>(record.count) < maxCount) {
         record.count++;
         return true;
     }
@@ -70,10 +71,10 @@ void RateLimitedLogger::setEnabled(bool enabled)
     enabled_ = enabled;
 }
 
-int32_t RateLimitedLogger::getCurrentCount(const std::string& functionName)
+int32_t RateLimitedLogger::getCurrentCount(const std::uintptr_t& functionAddress)
 {
     std::lock_guard<std::mutex> lock(functionRecordsMutex_);
-    auto it = functionRecords_.find(functionName);
+    auto it = functionRecords_.find(functionAddress);
     return (it != functionRecords_.end()) ? it->second.count : 0;
 }
 } // namespace Rosen

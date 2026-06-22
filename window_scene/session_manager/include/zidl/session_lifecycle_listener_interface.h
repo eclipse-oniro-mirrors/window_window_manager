@@ -28,6 +28,8 @@ public:
 
     enum class ISessionLifecycleListenerMessage : uint32_t {
         TRANS_ON_LIFECYCLE_EVENT = 0,
+        TRANS_ON_APP_INSTANCE_LIFECYCLE_EVENT,
+        TRANS_ON_BATCH_LIFECYCLE_EVENT
     };
 
     enum SessionLifecycleEvent {
@@ -51,13 +53,16 @@ public:
             return parcel.WriteString(bundleName_) &&
                    parcel.WriteString(moduleName_) &&
                    parcel.WriteString(abilityName_) &&
+                   parcel.WriteString(windowName_) &&
                    parcel.WriteInt32(appIndex_) &&
                    parcel.WriteInt32(persistentId_) &&
+                   parcel.WriteString(appInstanceKey_) &&
                    parcel.WriteUint32(resultCode_) &&
                    parcel.WriteUint64(fromScreenId_) &&
                    parcel.WriteUint64(toScreenId_) &&
                    parcel.WriteUint64(screenId_) &&
-                   parcel.WriteUint32(static_cast<uint32_t>(lifeCycleChangeReason_));
+                   parcel.WriteUint32(static_cast<uint32_t>(lifeCycleChangeReason_)) &&
+                   parcel.WriteUint32(static_cast<uint32_t>(sessionState_));
         }
 
         static LifecycleEventPayload* Unmarshalling(Parcel& parcel)
@@ -66,8 +71,10 @@ public:
             if (!parcel.ReadString(payload->bundleName_) ||
                 !parcel.ReadString(payload->moduleName_) ||
                 !parcel.ReadString(payload->abilityName_) ||
+                !parcel.ReadString(payload->windowName_) ||
                 !parcel.ReadInt32(payload->appIndex_) ||
                 !parcel.ReadInt32(payload->persistentId_) ||
+                !parcel.ReadString(payload->appInstanceKey_) ||
                 !parcel.ReadUint32(payload->resultCode_) ||
                 !parcel.ReadUint64(payload->fromScreenId_) ||
                 !parcel.ReadUint64(payload->toScreenId_) ||
@@ -75,26 +82,39 @@ public:
                 return nullptr;
             }
             uint32_t reason = 0;
-            if (!parcel.ReadUint32(reason) || reason >= static_cast<uint32_t>(LifeCycleChangeReason::REASON_END)) {
+            uint32_t sessionState = 0;
+            if (!parcel.ReadUint32(reason) ||
+                reason >= static_cast<uint32_t>(LifeCycleChangeReason::REASON_END) ||
+                !parcel.ReadUint32(sessionState)) {
+                return nullptr;
+            }
+            if (sessionState < static_cast<uint32_t>(SessionState::STATE_DISCONNECT) ||
+                sessionState >= static_cast<uint32_t>(SessionState::STATE_END)) {
                 return nullptr;
             }
             payload->lifeCycleChangeReason_ = static_cast<LifeCycleChangeReason>(reason);
+            payload->sessionState_ = static_cast<SessionState>(sessionState);
             return payload.release();
         }
 
         std::string bundleName_;
         std::string moduleName_;
         std::string abilityName_;
+        std::string windowName_;
         int32_t appIndex_ = 0;
         int32_t persistentId_ = 0;
+        std::string appInstanceKey_;
         uint32_t resultCode_ = 0;
         uint64_t fromScreenId_ = 0;
         uint64_t toScreenId_ = 0;
         uint64_t screenId_ = 0;
         LifeCycleChangeReason lifeCycleChangeReason_ = LifeCycleChangeReason::DEFAULT;
+        SessionState sessionState_ = SessionState::STATE_DISCONNECT;
     };
 
     virtual void OnLifecycleEvent(SessionLifecycleEvent event, const LifecycleEventPayload& payload) {};
+    virtual void OnAppInstanceLifecycleEvent(const LifecycleEventPayload& payload) {};
+    virtual void OnBatchLifecycleEvent(const std::vector<LifecycleEventPayload>& payloads) {};
 };
 } // namespace OHOS
 #endif // OHOS_ROSEN_SESSION_LIFECYCLE_LISTENER_INTERFACE_H

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <libxml/globals.h>
+#include <libxml/parser.h>
 #include <libxml/xmlstring.h>
 #include <map>
 #include <string>
@@ -49,6 +50,7 @@ enum XmlNodeElement {
     IS_CONCURRENT_USER,
     BUILD_IN_DEFAULT_ORIENTATION,
     DEFAULT_DEVICE_ROTATION_OFFSET,
+    SUB_DEVICE_ROTATION_OFFSET,
     DEFAULT_DISPLAY_CUTOUT_PATH,
     SUB_DISPLAY_CUTOUT_PATH,
     HALL_SWITCH_APP,
@@ -75,7 +77,11 @@ enum XmlNodeElement {
     HALF_FOLDED_BUFFER,
     LARGER_BOUNDARY_FOR_THRESHOLD,
     POSTURE_SIZE,
-    HALL_SIZE
+    HALL_SIZE,
+    WAIT_COORDINATION_READY_MAX_TIME,
+    ENABLE_ROG,
+    ROG_RESOLUTION,
+    ROG_DPI,
 };
 }
 
@@ -94,8 +100,13 @@ bool ScreenSceneConfig::isSupportCapture_ = false;
 bool ScreenSceneConfig::isScreenCompressionEnableInLandscape_ = false;
 bool ScreenSceneConfig::isSupportOffScreenRendering_ = false;
 bool ScreenSceneConfig::isConcurrentUser_ = false;
+bool ScreenSceneConfig::enableRog_ = false;
 uint32_t ScreenSceneConfig::curvedAreaInLandscape_ = 0;
 uint32_t ScreenSceneConfig::offScreenPPIThreshold_ = 0;
+uint64_t ScreenSceneConfig::bootTimeThreshold_ =
+    system::GetIntParameter<int32_t>("persist.window.boot.threshold", 60); // default 60s
+int32_t ScreenSceneConfig::rogDpi_ = 0;
+RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 0, 0, 0, 0 };
 std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {DPI, "dpi"},
     {SUB_DPI, "subDpi"},
@@ -106,6 +117,7 @@ std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {IS_CURVED_COMPRESS_ENABLED, "isWaterfallAreaCompressionEnableWhenHorizontal"},
     {BUILD_IN_DEFAULT_ORIENTATION, "buildInDefaultOrientation"},
     {DEFAULT_DEVICE_ROTATION_OFFSET, "defaultDeviceRotationOffset"},
+    {SUB_DEVICE_ROTATION_OFFSET, "subDeviceRotationOffset"},
     {DEFAULT_DISPLAY_CUTOUT_PATH, "defaultDisplayCutoutPath"},
     {SUB_DISPLAY_CUTOUT_PATH, "subDisplayCutoutPath"},
     {HALL_SWITCH_APP, "hallSwitchApp"},
@@ -132,7 +144,11 @@ std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {HALF_FOLDED_BUFFER, "halfFoldedBuffer"},
     {LARGER_BOUNDARY_FOR_THRESHOLD, "largerBoundaryForThreshold"},
     {POSTURE_SIZE, "postureSize"},
-    {HALL_SIZE, "hallSize"}
+    {HALL_SIZE, "hallSize"},
+    {WAIT_COORDINATION_READY_MAX_TIME, "waitCoordinationReadyMaxTime"},
+    {ENABLE_ROG, "enableRog"},
+    {ROG_RESOLUTION, "rogResolution"},
+    {ROG_DPI, "rogDpi"},
 };
 
 std::vector<std::string> ScreenSceneConfig::Split(std::string str, std::string pattern)
@@ -224,13 +240,15 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         (xmlNodeMap_[IS_CONCURRENT_USER] == nodeName) ||
         (xmlNodeMap_[SUPPORT_ROTATE_WITH_SCREEN] == nodeName)||
         (xmlNodeMap_[IS_SUPPORT_OFFSCREEN_RENDERING] == nodeName) ||
-        (xmlNodeMap_[SUPPORT_DURING_CALL] == nodeName);
+        (xmlNodeMap_[SUPPORT_DURING_CALL] == nodeName) ||
+        (xmlNodeMap_[ENABLE_ROG] == nodeName);
     bool numberConfigCheck = (xmlNodeMap_[DPI] == nodeName) ||
         (xmlNodeMap_[SUB_DPI] == nodeName) ||
         (xmlNodeMap_[CURVED_SCREEN_BOUNDARY] == nodeName) ||
         (xmlNodeMap_[CURVED_AREA_IN_LANDSCAPE] == nodeName) ||
         (xmlNodeMap_[BUILD_IN_DEFAULT_ORIENTATION] == nodeName) ||
         (xmlNodeMap_[DEFAULT_DEVICE_ROTATION_OFFSET] == nodeName) ||
+        (xmlNodeMap_[SUB_DEVICE_ROTATION_OFFSET] == nodeName) ||
         (xmlNodeMap_[OFF_SCREEN_PPI_THRESHOLD] == nodeName) ||
         (xmlNodeMap_[PC_MODE_DPI] == nodeName) ||
         (xmlNodeMap_[HALF_FOLDED_MAX_THRESHOLD] == nodeName) ||
@@ -239,7 +257,9 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         (xmlNodeMap_[HALF_FOLDED_BUFFER] == nodeName) ||
         (xmlNodeMap_[LARGER_BOUNDARY_FOR_THRESHOLD] == nodeName) ||
         (xmlNodeMap_[POSTURE_SIZE] == nodeName) ||
-        (xmlNodeMap_[HALL_SIZE] == nodeName);
+        (xmlNodeMap_[HALL_SIZE] == nodeName) ||
+        (xmlNodeMap_[WAIT_COORDINATION_READY_MAX_TIME] == nodeName) ||
+        (xmlNodeMap_[ROG_DPI] == nodeName);
     bool stringConfigCheck = (xmlNodeMap_[DEFAULT_DISPLAY_CUTOUT_PATH] == nodeName) ||
         (xmlNodeMap_[SUB_DISPLAY_CUTOUT_PATH] == nodeName) ||
         (xmlNodeMap_[ROTATION_POLICY] == nodeName) ||
@@ -261,6 +281,8 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         ReadPhysicalDisplayConfigInfo(currNode);
     } else if (xmlNodeMap_[SCROLLABLE_PARAM] == nodeName) {
         ReadScrollableParam(currNode);
+    } else if (xmlNodeMap_[ROG_RESOLUTION] == nodeName) {
+        ReadRogResolutionConfigInfo(currNode);
     } else {
         TLOGI(WmsLogTag::DMS, "xml config node name is not match, nodeName:%{public}s", nodeName.c_str());
     }
@@ -420,6 +442,12 @@ void ScreenSceneConfig::ReadPhysicalDisplayConfigInfo(const xmlNodePtr& currNode
         physicalSize.foldDisplayMode_ = FoldDisplayMode::SUB;
     } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_GLOBAL_FULL"))) {
         physicalSize.foldDisplayMode_ = FoldDisplayMode::GLOBAL_FULL;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_L_FULL"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::L_FULL;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_N_MAIN"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::N_MAIN;
+    } else if (!xmlStrcmp(displayMode, reinterpret_cast<const xmlChar*>("FOLD_DISPLAY_MODE_V_MAIN"))) {
+        physicalSize.foldDisplayMode_ = FoldDisplayMode::V_MAIN;
     } else {
         physicalSize.foldDisplayMode_ = FoldDisplayMode::UNKNOWN;
     }
@@ -506,6 +534,86 @@ std::map<FoldDisplayMode, ScrollableParam> ScreenSceneConfig::GetAllScrollablePa
 }
 // LCOV_EXCL_STOP
 
+void ScreenSceneConfig::ReadRogResolutionConfigInfo(const xmlNodePtr& currNode)
+{
+    xmlChar* context = xmlNodeGetContent(currNode);
+    if (context == nullptr) {
+        TLOGE(WmsLogTag::DMS, "read xml node error: nodeName:(%{public}s)", currNode->name);
+        return;
+    }
+    std::string rogResolutionStr = reinterpret_cast<const char*>(context);
+    if (rogResolutionStr.empty()) {
+        xmlFree(context);
+        return;
+    }
+    auto rogResolutionArray = Split(rogResolutionStr, ":");
+    if (rogResolutionArray.size() != DISPLAY_PHYSICAL_SIZE) {
+        TLOGE(WmsLogTag::DMS, "rogResolution format error: %{public}s", rogResolutionStr.c_str());
+        xmlFree(context);
+        return;
+    }
+    if (IsNumber(rogResolutionArray[0]) && IsNumber(rogResolutionArray[1])) {
+        rogResolution_.width = static_cast<uint32_t>(std::stoi(rogResolutionArray[0]));
+        rogResolution_.height = static_cast<uint32_t>(std::stoi(rogResolutionArray[1]));
+    }
+    xmlFree(context);
+}
+
+uint64_t ScreenSceneConfig::GetUptimeSeconds()
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return static_cast<uint64_t>(ts.tv_sec);
+}
+
+void ScreenSceneConfig::SetRogResolution(const RogResolution& rogResolution)
+{
+    rogResolution_ = rogResolution;
+}
+
+RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t height)
+{
+    if (rogResolution_.notInit) {
+        bool isBoot = (GetUptimeSeconds() <= bootTimeThreshold_);
+        if (isBoot) {
+            bool apsUserset = (system::GetIntParameter<int32_t>("persist.aps.rog.userset", 0) > 0);
+            bool apsSupport = (system::GetIntParameter<int32_t>("persist.aps.rog.support", 0) > 0);
+            uint32_t apsWidth = system::GetIntParameter<int32_t>("persist.aps.rog.width", 0);
+            uint32_t apsHeight = system::GetIntParameter<int32_t>("persist.aps.rog.height", 0);
+            float apsDpi = static_cast<float>(system::GetIntParameter<int32_t>("persist.aps.rog.density", 0));
+            if (apsUserset && apsSupport && apsWidth > 0 && apsHeight > 0 && apsDpi > 0) {
+                SetRogResolution(RogResolution{ true, false, 0, apsDpi, apsWidth, apsHeight });
+            } else if (!apsUserset && enableRog_ && rogResolution_.width > 0 && rogResolution_.height > 0 &&
+                       GetRogDpi() > 0) {
+                SetRogResolution(RogResolution{ true, false, 0, rogDpi_, rogResolution_.width, rogResolution_.height });
+            } else {
+                int32_t densityDpi = 0;
+                if (intNumbersConfig_.count(xmlNodeMap_[DPI]) != 0) {
+                    densityDpi = intNumbersConfig_[xmlNodeMap_[DPI]][0];
+                }
+                SetRogResolution(RogResolution{ false, false, 0, static_cast<float>(densityDpi), width, height });
+            }
+            TLOGNFI(WmsLogTag::DMS, "rogResolution Init");
+        } else {
+            bool dmsSupport = (system::GetIntParameter<int32_t>("persist.window.screen.isSupportRog", 0) > 0);
+            uint32_t dmsWidth = system::GetIntParameter<int32_t>("persist.window.screen.width", width);
+            uint32_t dmsHeight = system::GetIntParameter<int32_t>("persist.window.screen.height", height);
+            int32_t densityDpi = 0;
+            if (intNumbersConfig_.count(xmlNodeMap_[DPI]) != 0) {
+                densityDpi = intNumbersConfig_[xmlNodeMap_[DPI]][0];
+            }
+            float dmsDpi =
+                static_cast<float>(system::GetIntParameter<int32_t>("persist.window.screen.dpi", densityDpi));
+            SetRogResolution(RogResolution{ dmsSupport, false, 0, dmsDpi, dmsWidth, dmsHeight });
+            TLOGNFI(WmsLogTag::DMS, "rogResolution Recover");
+        }
+    }
+    TLOGNFI(WmsLogTag::DMS, "rogResolution - [%{public}u, %{public}u, %{public}u, %{public}f, %{public}d]",
+            rogResolution_.width, rogResolution_.height, rogResolution_.isSupportRog,
+            rogResolution_.dpi, rogResolution_.rogMode);
+    return rogResolution_;
+}
+
 void ScreenSceneConfig::ReadEnableConfigInfo(const xmlNodePtr& currNode)
 {
     xmlChar* enable = xmlGetProp(currNode, reinterpret_cast<const xmlChar*>("enable"));
@@ -527,6 +635,10 @@ void ScreenSceneConfig::ReadEnableConfigInfo(const xmlNodePtr& currNode)
             isSupportOffScreenRendering_ = true;
         } else if (xmlNodeMap_[IS_CONCURRENT_USER] == nodeName) {
             isConcurrentUser_ = true;
+            TLOGE(WmsLogTag::DMS, "set ConcurrentUser true");
+            system::SetParameter("persist.dms.concurrentuser", "true");
+        } else if (xmlNodeMap_[ENABLE_ROG] == nodeName) {
+            enableRog_ = true;
         }
     } else {
         enableConfig_[nodeName] = false;
@@ -719,6 +831,19 @@ bool ScreenSceneConfig::IsWaterfallDisplay()
 bool ScreenSceneConfig::IsSupportCapture()
 {
     return isSupportCapture_;
+}
+
+uint64_t ScreenSceneConfig::GetBootTimeThreshold()
+{
+    return bootTimeThreshold_;
+}
+
+int32_t ScreenSceneConfig::GetRogDpi()
+{
+    if (enableRog_ && intNumbersConfig_[xmlNodeMap_[ROG_DPI]].size() > 0) {
+        rogDpi_ = static_cast<int32_t>(intNumbersConfig_[xmlNodeMap_[ROG_DPI]][0]);
+    }
+    return rogDpi_;
 }
 
 void ScreenSceneConfig::SetCurvedCompressionAreaInLandscape()

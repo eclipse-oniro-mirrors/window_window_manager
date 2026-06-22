@@ -24,7 +24,7 @@
 #include "screen_session_manager.h"
 #include "product_config.h"
 #include "fold_screen_state_internel.h"
-
+#include "product_ext_wrapper.h"
 namespace OHOS::Rosen::DMS {
 namespace {
 constexpr float DUAL_INVALID_ANGLE_VALUE = -1.0F;
@@ -46,7 +46,12 @@ ScreenSensorMgr& ScreenSensorMgr::GetInstance()
     if (instance_ == nullptr) {
         std::lock_guard<std::mutex> lock(singletonMutex_);
         if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init screenSensorMgr from ext");
+            instance_ = ProductExtWrapper::GetExtInstance<ScreenSensorMgr>("GetScreenSensorMgr");
+        }
+        if (instance_ == nullptr) {
             // 这里通过设备类型创建对象
+            TLOGI(WmsLogTag::DMS, "init ScreenSensorMgr");
             instance_ = new ScreenSensorMgr();
         }
     }
@@ -62,7 +67,7 @@ ScreenSensorMgr::ScreenSensorMgr()
 
 void ScreenSensorMgr::RegisterPostureCallback()
 {
-    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
+    if (!ProductConfig::GetInstance().IsLoadDmsExt()) {
         if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
             SecondaryFoldSensorManager::GetInstance().RegisterPostureCallback();
         } else {
@@ -84,7 +89,7 @@ void ScreenSensorMgr::RegisterPostureCallback()
 
 void ScreenSensorMgr::RegisterHallCallback()
 {
-    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
+    if (!ProductConfig::GetInstance().IsLoadDmsExt()) {
         if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
             SecondaryFoldSensorManager::GetInstance().RegisterHallCallback();
         } else {
@@ -105,42 +110,66 @@ void ScreenSensorMgr::RegisterHallCallback()
 
 void ScreenSensorMgr::UnRegisterHallCallback()
 {
-    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
-        if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
-            SecondaryFoldSensorManager::GetInstance().UnRegisterHallCallback();
-        } else {
-            FoldScreenSensorManager::GetInstance().UnRegisterHallCallback();
-        }
-        return;
-    }
-
-    int ret = UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
-    if (ret == SENSOR_SUCCESS) {
+    if (UnRegisterHallCallbackInner()) {
         registerHall_ = false;
-        TLOGI(WmsLogTag::DMS, "success.");
-    } else {
-        TLOGE(WmsLogTag::DMS, "unregister hall sensor failed with ret: %{public}d", ret);
     }
 }
 
 void ScreenSensorMgr::UnRegisterPostureCallback()
 {
-    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice()) {
+    if (UnRegisterPostureCallbackInner()) {
+        registerPosture_ = false;
+    }
+}
+
+void ScreenSensorMgr::UnRegisterHallCallbackForTest()
+{
+    UnRegisterHallCallbackInner();
+}
+
+void ScreenSensorMgr::UnRegisterPostureCallbackForTest()
+{
+    UnRegisterPostureCallbackInner();
+}
+
+bool ScreenSensorMgr::UnRegisterHallCallbackInner()
+{
+    if (!ProductConfig::GetInstance().IsLoadDmsExt()) {
+        if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
+            SecondaryFoldSensorManager::GetInstance().UnRegisterHallCallback();
+        } else {
+            FoldScreenSensorManager::GetInstance().UnRegisterHallCallback();
+        }
+        return false;
+    }
+
+    int ret = UnSubscribeSensorCallback(SENSOR_TYPE_ID_HALL_EXT);
+    if (ret == SENSOR_SUCCESS) {
+        TLOGI(WmsLogTag::DMS, "success.");
+        return true;
+    }
+    TLOGE(WmsLogTag::DMS, "unregister hall sensor failed with ret: %{public}d", ret);
+    return false;
+}
+
+bool ScreenSensorMgr::UnRegisterPostureCallbackInner()
+{
+    if (!ProductConfig::GetInstance().IsLoadDmsExt()) {
         if (ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
             SecondaryFoldSensorManager::GetInstance().UnRegisterPostureCallback();
         } else {
             FoldScreenSensorManager::GetInstance().UnRegisterPostureCallback();
         }
-        return;
+        return false;
     }
 
     int ret = UnSubscribeSensorCallback(SENSOR_TYPE_ID_POSTURE);
     if (ret == SENSOR_SUCCESS) {
-        registerPosture_ = false;
         TLOGI(WmsLogTag::DMS, "success.");
-    } else {
-        TLOGE(WmsLogTag::DMS, "UnRegisterPostureCallback failed with ret: %{public}d", ret);
+        return true;
     }
+    TLOGE(WmsLogTag::DMS, "UnRegisterPostureCallback failed with ret: %{public}d", ret);
+    return false;
 }
 
 static void GlobalSensorCallback(SensorEvent* event)
@@ -152,7 +181,10 @@ static void GlobalSensorCallback(SensorEvent* event)
 int32_t ScreenSensorMgr::SubscribeSensorCallback(
     int32_t sensorTypeId, int64_t interval, const RecordSensorCallback taskCallback)
 {
-    sensorCallbacks_[sensorTypeId] = {taskCallback, interval};
+    {
+        std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
+        sensorCallbacks_[sensorTypeId] = {taskCallback, interval};
+    }
     auto& user = users_[sensorTypeId];
     user.callback = GlobalSensorCallback;
     int32_t subscribeRet = SubscribeSensor(sensorTypeId, &user);
@@ -170,6 +202,7 @@ int32_t ScreenSensorMgr::SubscribeSensorCallback(
 
 void ScreenSensorMgr::CleanupCallback(int32_t sensorTypeId)
 {
+    std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
     auto callbackIt = sensorCallbacks_.find(sensorTypeId);
     if (callbackIt != sensorCallbacks_.end()) {
         sensorCallbacks_.erase(callbackIt);
@@ -223,6 +256,7 @@ int32_t ScreenSensorMgr::UpdateSensorInterval(int32_t sensorTypeId, int64_t inte
 
 bool ScreenSensorMgr::HasSubscribedSensor(int32_t sensorTypeId)
 {
+    std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
     return sensorCallbacks_.find(sensorTypeId) != sensorCallbacks_.end();
 }
 
@@ -238,12 +272,16 @@ void ScreenSensorMgr::HandleSensorData(SensorEvent* event)
         return;
     }
 
-    auto it = sensorCallbacks_.find(event->sensorTypeId);
-    if (it == sensorCallbacks_.end()) {
-        TLOGI(WmsLogTag::DMS, "No callback registered for sensorTypeId: %{public}d", event->sensorTypeId);
-        return;
+    SensorCallbackEntry entry;
+    {
+        std::lock_guard<std::mutex> lock(sensorCallbacksMutex_);
+        auto it = sensorCallbacks_.find(event->sensorTypeId);
+        if (it == sensorCallbacks_.end()) {
+            TLOGI(WmsLogTag::DMS, "No callback registered for sensorTypeId: %{public}d", event->sensorTypeId);
+            return;
+        }
+        entry = it->second;
     }
-    const auto& entry = it->second;
     entry.taskCallback(event);
 }
 
@@ -254,8 +292,7 @@ void ScreenSensorMgr::HandleTentSensorData(int32_t tentType, int32_t hall)
     SensorFoldStateMgr::GetInstance().HandleSensorEvent(GetSensorStatus(DmsSensorType::SENSOR_TYPE_TENT));
 }
 
-template <typename T>
-T* ScreenSensorMgr::GetSensorData(const SensorEvent* const event)
+void* ScreenSensorMgr::GetSensorData(const SensorEvent* const event, uint32_t dataSize)
 {
     if (event == nullptr) {
         TLOGE(WmsLogTag::DMS, "SensorEvent is nullptr.");
@@ -265,11 +302,11 @@ T* ScreenSensorMgr::GetSensorData(const SensorEvent* const event)
         TLOGE(WmsLogTag::DMS, "SensorEvent[0].data is nullptr.");
         return nullptr;
     }
-    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < sizeof(T)) {
+    if (event[SENSOR_EVENT_FIRST_DATA].dataLen < dataSize) {
         TLOGE(WmsLogTag::DMS, "SensorEvent dataLen less than data size.");
         return nullptr;
     }
-    return reinterpret_cast<T*>(event[SENSOR_EVENT_FIRST_DATA].data);
+    return event[SENSOR_EVENT_FIRST_DATA].data;
 }
 
 void ScreenSensorMgr::HandlePostureData(const SensorEvent* const event)
@@ -303,6 +340,7 @@ void ScreenSensorMgr::HandleHallData(const SensorEvent* const event)
         for (auto& it : angle_) {
             it = ANGLE_MIN_VAL;
         }
+        reflexionAngle_ = ANGLE_MIN_VAL;
     }
 
     SensorFoldStateMgr::GetInstance().HandleSensorEvent(GetSensorStatus(DmsSensorType::SENSOR_TYPE_HALL));
@@ -310,7 +348,7 @@ void ScreenSensorMgr::HandleHallData(const SensorEvent* const event)
 
 bool ScreenSensorMgr::ParsePostureData(const SensorEvent* const event)
 {
-    PostureData* postureData = GetSensorData<PostureData>(event);
+    PostureData* postureData = reinterpret_cast<PostureData*>(GetSensorData(event, sizeof(PostureData)));
     if (postureData == nullptr) {
         return false;
     }
@@ -321,7 +359,7 @@ bool ScreenSensorMgr::ParsePostureData(const SensorEvent* const event)
 
 bool ScreenSensorMgr::ParseHallData(const SensorEvent* const event)
 {
-    ExtHallData* extHallData = GetSensorData<ExtHallData>(event);
+    ExtHallData* extHallData = reinterpret_cast<ExtHallData*>(GetSensorData(event, sizeof(ExtHallData)));
     if (extHallData == nullptr) {
         return false;
     }
@@ -402,7 +440,7 @@ bool ScreenSensorMgr::GetSensorRegisterStatus()
 
 void ScreenSensorMgr::RegisterApplicationStateObserver()
 {
-    if (!ProductConfig::GetInstance().IsSingleDisplaySuperFoldDevice() &&
+    if (!ProductConfig::GetInstance().IsLoadDmsExt() &&
         !ProductConfig::GetInstance().IsSecondaryDisplayFoldDevice()) {
         FoldScreenSensorManager::GetInstance().RegisterApplicationStateObserver();
     }

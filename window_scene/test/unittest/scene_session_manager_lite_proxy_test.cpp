@@ -12,19 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #include "iremote_object_mocker.h"
-#include "ws_common.h"
-#include "mock_message_parcel.h"
 #include "mock/mock_session.h"
 #include "mock/mock_session_stage.h"
+#include "mock_message_parcel.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
+#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_interface.h"
 #include "session_manager/include/zidl/scene_session_manager_lite_proxy.h"
 #include "session_manager/include/zidl/session_router_stack_listener_stub.h"
-#include "session_manager/include/zidl/pip_change_listener_stub.h"
 #include "window_manager_agent.h"
- 
+#include "ws_common.h"
+
 using namespace testing;
 using namespace testing::ext;
 namespace OHOS {
@@ -41,15 +42,15 @@ private:
     sptr<MockIRemoteObject> iRemoteObjectMocker_ {nullptr};
     sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy_ {nullptr};
 };
- 
+
 void sceneSessionManagerLiteProxyTest::SetUpTestCase()
 {
 }
- 
+
 void sceneSessionManagerLiteProxyTest::TearDownTestCase()
 {
 }
- 
+
 void sceneSessionManagerLiteProxyTest::SetUp()
 {
     iRemoteObjectMocker_ = sptr<MockIRemoteObject>::MakeSptr();
@@ -57,14 +58,14 @@ void sceneSessionManagerLiteProxyTest::SetUp()
     sceneSessionManagerLiteProxy_ = sptr<SceneSessionManagerLiteProxy>::MakeSptr(iRemoteObjectMocker_);
     ASSERT_NE(sceneSessionManagerLiteProxy_, nullptr);
 }
- 
+
 void sceneSessionManagerLiteProxyTest::TearDown()
 {
     iRemoteObjectMocker_ = nullptr;
     sceneSessionManagerLiteProxy_ = nullptr;
     MockMessageParcel::ClearAllErrorFlag();
 }
- 
+
 namespace {
 /**
  * @tc.name: PendingSessionToBackground
@@ -128,6 +129,55 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, PendingSessionToBackground, TestSize.
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackground(token, params);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: SetProcessWatermark
+ * @tc.desc: set watermark for process
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, SetProcessWatermark, TestSize.Level1)
+{
+    int32_t pid = 1000;
+    const std::string watermarkName = "SetProcessWatermarkName";
+    bool isEnabled = false;
+    auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->SetProcessWatermark(pid, watermarkName, isEnabled);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(ERR_NONE);
     MockMessageParcel::ClearAllErrorFlag();
 }
 
@@ -420,32 +470,32 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, PendingSessionToBackgroundByPersisten
     WSError errCode =
         sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_OK);
- 
+
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
- 
+
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
- 
+
     MockMessageParcel::SetWriteBoolErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteBoolErrorFlag(false);
- 
+
     sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy2 =
         sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
     errCode = sceneSessionManagerLiteProxy2->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
- 
+
     iRemoteObjectMocker->SetRequestResult(1);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     iRemoteObjectMocker->SetRequestResult(0);
- 
+
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
     MockMessageParcel::SetReadInt32ErrorFlag(false);
@@ -468,27 +518,27 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateWindowModeByIdForUITest01, Test
     WMError errCode =
         sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_OK);
- 
+
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
- 
+
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
- 
+
     sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy2 =
         sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
     errCode = sceneSessionManagerLiteProxy2->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_NULLPTR);
- 
+
     iRemoteObjectMocker->SetRequestResult(1);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     EXPECT_EQ(errCode, WMError::WM_ERROR_IPC_FAILED);
     iRemoteObjectMocker->SetRequestResult(0);
- 
+
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     errCode = sceneSessionManagerLiteProxy->UpdateWindowModeByIdForUITest(windowId, updateMode);
     MockMessageParcel::SetReadInt32ErrorFlag(false);
@@ -710,6 +760,48 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RecoverWindowPropertyChangeFlag, Test
 }
 
 /**
+ * @tc.name: RecoverProcessWatermark01
+ * @tc.desc: recover watermark image for process
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, RecoverProcessWatermark01, TestSize.Level1)
+{
+    int32_t pid = 1;
+    std::string watermarkName = "test";
+    auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ret = proxy->RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteStringErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ret = proxy->RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
+}
+
+/**
  * @tc.name: IsFocusWindowParent
  * @tc.desc: normal function
  * @tc.type: FUNC
@@ -746,6 +838,76 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, IsFocusWindowParent, TestSize.Level1)
     errCode = sceneSessionManagerLiteProxy->IsFocusWindowParent(token, isParent);
     EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetReadInt32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: CheckCollaborator
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, CheckCollaborator, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> iRemoteObjectMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy =
+        sptr<SceneSessionManagerLiteProxy>::MakeSptr(iRemoteObjectMocker);
+    EXPECT_NE(sceneSessionManagerLiteProxy, nullptr);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<IRemoteObject> token = nullptr;
+    bool isParent = false;
+    WSError errCode = sceneSessionManagerLiteProxy->IsFocusWindowParent(token, isParent);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    int32_t type = CollaboratorType::RESERVE_TYPE;
+    EXPECT_TRUE(sceneSessionManagerLiteProxy->CheckCollaborator(type));
+    type = CollaboratorType::OTHERS_TYPE;
+    EXPECT_TRUE(sceneSessionManagerLiteProxy->CheckCollaborator(type));
+    type = CollaboratorType::REDIRECT_TYPE;
+    EXPECT_TRUE(sceneSessionManagerLiteProxy->CheckCollaborator(type));
+    type = CollaboratorType::DEFAULT_TYPE;
+    EXPECT_FALSE(sceneSessionManagerLiteProxy->CheckCollaborator(type));
+}
+
+/**
+ * @tc.name: NotifyAppUseControlDisplay
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyAppUseControlDisplay, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> iRemoteObjectMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy =
+        sptr<SceneSessionManagerLiteProxy>::MakeSptr(iRemoteObjectMocker);
+    ASSERT_NE(sceneSessionManagerLiteProxy, nullptr);
+    DisplayId displayId = 1000;
+    bool useControl = false;
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    WSError errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_INVALID_PARAM);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_OK);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<SceneSessionManagerLiteProxy> tmpProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    errCode = tmpProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    iRemoteObjectMocker->SetRequestResult(ERR_INVALID_DATA);
+    errCode = sceneSessionManagerLiteProxy->NotifyAppUseControlDisplay(displayId, useControl);
+    EXPECT_EQ(errCode, WSError::WS_ERROR_IPC_FAILED);
+    iRemoteObjectMocker->SetRequestResult(ERR_NONE);
 }
 
 /**
@@ -994,6 +1156,114 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UnsetPipEnableByScreenId_ReadIntFaile
 {
     MockMessageParcel::SetReadInt32ErrorFlag(true);
     EXPECT_EQ(sceneSessionManagerLiteProxy_->UnsetPipEnableByScreenId(1), WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_Success
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_Success, TestSize.Level1)
+{
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    appInfo.appIndex = 0;
+    appInfo.appInstanceKey = "";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_OK);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_WriteTokenFailed
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_WriteTokenFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_WriteStringFailed
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName when WriteString failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_WriteStringFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteStringErrorFlag(true);
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_WriteIntFailed
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName when WriteInt32 failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_WriteIntFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_SendReqFailed
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_SendReqFailed, TestSize.Level1)
+{
+    iRemoteObjectMocker_->SetRequestResult(1);
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_ERROR_IPC_FAILED);
+    iRemoteObjectMocker_->SetRequestResult(0);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_RemoteNullFailed
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName when remote object is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_RemoteNullFailed, TestSize.Level1)
+{
+    sptr<SceneSessionManagerLiteProxy> liteProxyNullRemote = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    ASSERT_NE(liteProxyNullRemote, nullptr);
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(liteProxyNullRemote->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetAppWindowShowingInfosByBundleName_ReadRetFailed
+ * @tc.desc: Test GetAppWindowShowingInfosByBundleName when ReadInt32 failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_ReadRetFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    ApplicationInfo appInfo;
+    appInfo.bundleName = "com.test.app";
+    std::vector<AppWindowShowingInfo> windowInfos;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
+        WMError::WM_ERROR_IPC_FAILED);
 }
 }
 }

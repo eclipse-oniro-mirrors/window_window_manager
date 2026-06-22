@@ -76,6 +76,13 @@ public:
 
     void SetPivotY(float pivotY);
     float GetPivotY() const;
+    
+    void SetNeedCastScale(bool SetNeedCastScale);
+    bool GetNeedCastScale() const;
+    void SetCastScaleX(float scaleX);
+    float GetCastScaleX() const;
+    void SetCastScaleY(float scaleY);
+    float GetCastScaleY() const;
 
     void SetTranslateX(float translateX);
     float GetTranslateX() const;
@@ -103,6 +110,9 @@ public:
 
     void SetRsId(ScreenId rsId);
     ScreenId GetRsId() const;
+
+    void SetInternalStatus(bool isInternal);
+    bool GetInternalStatus() const;
 
     void SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason);
     ScreenPropertyChangeReason GetPropertyChangeReason() const;
@@ -185,7 +195,7 @@ public:
 
     void SetXYPosition(int32_t x, int32_t y);
 
-    DMRect GetAvailableArea()
+    DMRect GetAvailableArea() const
     {
         return availableArea_;
     }
@@ -277,9 +287,9 @@ public:
     void SetCurrentOffScreenRendering(bool enable) { isCurrentOffScreenRendering_ = enable; }
     bool GetCurrentOffScreenRendering() { return isCurrentOffScreenRendering_; }
     void SetScreenRealWidth(uint32_t width) { screenRealWidth_ = width; }
-    uint32_t GetScreenRealWidth() { return screenRealWidth_; }
+    uint32_t GetScreenRealWidth() const { return screenRealWidth_; }
     void SetScreenRealHeight(uint32_t height) { screenRealHeight_ = height; }
-    uint32_t GetScreenRealHeight() { return screenRealHeight_; }
+    uint32_t GetScreenRealHeight() const { return screenRealHeight_; }
     void SetScreenRealPPI() { screenRealPPI_ = CalculatePPI(); }
     float GetScreenRealPPI() { return screenRealPPI_; }
     void SetScreenRealDPI() { screenRealDPI_ = CalculateDPI(); }
@@ -303,6 +313,8 @@ public:
     uint32_t GetScreenAreaWidth() const { return screenAreaWidth_; }
     void SetScreenAreaHeight(uint32_t screenAreaHeight) { screenAreaHeight_ = screenAreaHeight; }
     uint32_t GetScreenAreaHeight() const { return screenAreaHeight_; }
+    void CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight);
+    void SetRogScreenResolution(uint32_t width, uint32_t height);
 
 private:
     SuperFoldStatusChangeEvents changeEvent_ {SuperFoldStatusChangeEvents::UNDEFINED};
@@ -328,6 +340,10 @@ private:
     float translateX_ { 0.0f };
     float translateY_ { 0.0f };
 
+    bool needCastScale_ = false;
+    float castScaleX_{ 1.0f };
+    float castScaleY_{ 1.0f };
+
     uint32_t phyWidth_ { UINT32_MAX };
     uint32_t phyHeight_ { UINT32_MAX };
 
@@ -338,6 +354,8 @@ private:
     uint32_t defaultDeviceRotationOffset_ { 0 };
 
     ScreenId rsId_ = SCREEN_ID_INVALID;
+
+    bool isInternal_ = false;
 
     ScreenPropertyChangeReason propertyChangeReason_;
 
@@ -381,7 +399,6 @@ private:
 
     void UpdateXDpi();
     void UpdateYDpi();
-    void CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight);
     DMRect availableArea_;  // can be used for all devices
     DMRect expandAvailableArea_;  // only used for 2in1 device
     DMRect creaseRect_;
@@ -407,6 +424,8 @@ private:
     uint32_t mirrorHeight_ { 0 };
 
     FoldDisplayMode displayMode_;
+    uint32_t rogWidth_{ 0 };
+    uint32_t rogHeight_{ 0 };
 };
 } // namespace OHOS::Rosen
 

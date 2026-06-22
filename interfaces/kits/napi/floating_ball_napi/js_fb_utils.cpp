@@ -30,8 +30,15 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowInvalidParam(napi_env env, const std::string& msg)
+napi_value NapiThrowInvalidParam(napi_env env, const std::string& msg, const char* enumerationName,
+    const char* boolName)
 {
+    if (enumerationName != nullptr &&  *enumerationName != '\0') {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(enumerationName, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
+    }
+    if (boolName != nullptr &&  *boolName != '\0') {
+        HISTOGRAM_BOOLEAN(boolName, 0);
+    }
     napi_throw(env, AbilityRuntime::CreateJsError(env,
         static_cast<int32_t>(WmErrorCode::WM_ERROR_FB_PARAM_INVALID), msg));
     return NapiGetUndefined(env);
@@ -95,11 +102,28 @@ static napi_value ExportFloatingBallTemplate(napi_env env, napi_callback_info in
     return result;
 }
 
+static napi_value ExportFbTextUpdateAnimationType(napi_env env, napi_callback_info info)
+{
+    napi_value result = nullptr;
+    napi_create_object(env, &result);
+    if (result == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to get object");
+        return nullptr;
+    }
+    (void)SetEnumProperty(env, result, "ANIMATION_NONE",
+        static_cast<int32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_NONE));
+    (void)SetEnumProperty(env, result, "ANIMATION_OPACITY",
+        static_cast<int32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_OPACITY));
+    napi_object_freeze(env, result);
+    return result;
+}
+
 napi_status InitFbEnums(napi_env env, napi_value exports)
 {
     const napi_property_descriptor properties[] = {
         DECLARE_NAPI_GETTER("FloatingBallState", ExportFloatingBallState),
         DECLARE_NAPI_GETTER("FloatingBallTemplate", ExportFloatingBallTemplate),
+        DECLARE_NAPI_GETTER("FloatingBallTextUpdateAnimationType", ExportFbTextUpdateAnimationType),
     };
     const size_t count = sizeof(properties) / sizeof(napi_property_descriptor);
     return napi_define_properties(env, exports, count, properties);

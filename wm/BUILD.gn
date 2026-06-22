@@ -44,9 +44,6 @@ ohos_static_library("libwm_static") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
-    integer_overflow = true
-    ubsan = true
-    boundary_sanitize = true
   }
   include_dirs = [
     "../utils/include",
@@ -63,6 +60,10 @@ ohos_static_library("libwm_static") {
     "src/floating_ball_controller.cpp",
     "src/floating_ball_manager.cpp",
     "src/floating_ball_option.cpp",
+    "src/float_view_controller.cpp",
+    "src/float_view_manager.cpp",
+    "src/float_view_option.cpp",
+    "src/float_window_manager.cpp",
     "src/future_callback.cpp",
     "src/lifecycle_future_callback.cpp",
     "src/load_intention_event.cpp",
@@ -75,6 +76,8 @@ ohos_static_library("libwm_static") {
     "src/picture_in_picture_controller_base.cpp",
     "src/picture_in_picture_manager.cpp",
     "src/picture_in_picture_option.cpp",
+    "src/picture_in_picture_controller_ani.cpp",
+    "src/picture_in_picture_option_ani.cpp",
     "src/root_scene.cpp",
     "src/screen_scene.cpp",
     "src/static_call.cpp",
@@ -133,6 +136,7 @@ ohos_static_library("libwm_static") {
     "ability_runtime:ability_context_native",
     "ability_runtime:ability_manager",
     "ability_runtime:app_manager",
+    "ability_runtime:runtime",
     "accessibility:accessibility_common",
     "ace_engine:ace_uicontent",
     "ace_engine:ace_xcomponent_controller",
@@ -143,6 +147,7 @@ ohos_static_library("libwm_static") {
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
     "hilog:libhilog",
+    "hilog:libsandboxlog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "image_framework:image_native",
@@ -201,6 +206,7 @@ ohos_shared_library("libwm") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   include_dirs = [
     "../utils/include",
@@ -217,6 +223,10 @@ ohos_shared_library("libwm") {
     "src/floating_ball_controller.cpp",
     "src/floating_ball_manager.cpp",
     "src/floating_ball_option.cpp",
+    "src/float_view_controller.cpp",
+    "src/float_view_manager.cpp",
+    "src/float_view_option.cpp",
+    "src/float_window_manager.cpp",
     "src/future_callback.cpp",
     "src/lifecycle_future_callback.cpp",
     "src/load_intention_event.cpp",
@@ -229,6 +239,8 @@ ohos_shared_library("libwm") {
     "src/picture_in_picture_controller_base.cpp",
     "src/picture_in_picture_manager.cpp",
     "src/picture_in_picture_option.cpp",
+    "src/picture_in_picture_controller_ani.cpp",
+    "src/picture_in_picture_option_ani.cpp",
     "src/root_scene.cpp",
     "src/screen_scene.cpp",
     "src/static_call.cpp",
@@ -270,6 +282,10 @@ ohos_shared_library("libwm") {
 
   public_configs = [ ":libwm_public_config" ]
 
+  if (window_manager_use_sceneboard) {
+    version_script = "libwm.map"
+  }
+
   deps = [
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
@@ -300,6 +316,7 @@ ohos_shared_library("libwm") {
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
     "hilog:libhilog",
+    "hilog:libsandboxlog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "image_framework:image_native",
@@ -311,6 +328,7 @@ ohos_shared_library("libwm") {
   ]
 
   defines = []
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   if (defined(global_parts_info) &&
       defined(global_parts_info.barrierfree_accessibility)) {
@@ -345,13 +363,19 @@ ohos_shared_library("libwm") {
     defines += [ "IMF_ENABLE" ]
   }
 
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
   if (is_ohos && is_clang && target_cpu == "arm64") {
-    ldflags = [
+    ldflags += [
       "-Wl,--emit-relocs",
       "-Wl,--no-relax",
       "-mno-fix-cortex-a53-843419"
     ]
   }
+
   part_name = "window_manager"
   subsystem_name = "window"
 
@@ -397,7 +421,6 @@ ohos_shared_library("libwm_lite") {
     "hilog:libhilog",
     "image_framework:image_native",
     "init:libbegetutil",
-    "input:libmmi-client",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -436,6 +459,7 @@ ohos_shared_library("libwm_lite") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("test") {
@@ -454,11 +478,12 @@ ohos_shared_library("libwm_ndk") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   include_dirs = [
     "${window_base_path}/interfaces/kits/ndk/wm",
-    "${window_base_path}/interfaces/inner_kits/wm",
+    "${window_base_path}/interfaces/innerkits/wm",
   ]
 
   sources = [
@@ -481,11 +506,11 @@ ohos_shared_library("libwm_ndk") {
     "ability_runtime:ability_context_native",
     "ability_runtime:ability_manager",
     "ability_runtime:app_manager",
+    "ability_runtime:runtime",
     "ace_engine:ace_uicontent",
     "ace_engine:ace_xcomponent_controller",
     "c_utils:utils",
     "eventhandler:libeventhandler",
-    "graphic_2d:color_manager",
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "image_framework:pixelmap",
@@ -522,9 +547,12 @@ ohos_shared_library("libpip_web") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   install_enable = true
-  sources = [ "src/web_picture_in_picture_controller_interface.cpp" ]
+  sources = [
+    "src/web_picture_in_picture_controller_interface.cpp",
+  ]
 
   configs = [
     ":libpip_web_private_config",
@@ -534,7 +562,6 @@ ohos_shared_library("libpip_web") {
   public_configs = [ ":libpip_web_public_config" ]
 
   deps = [
-    "${window_base_path}/dm:libdm",
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",
     "${window_base_path}/window_scene/common:window_scene_common",
@@ -544,6 +571,7 @@ ohos_shared_library("libpip_web") {
     "${window_base_path}/window_scene/session:scene_session",
     "${window_base_path}/window_scene/session_manager:session_manager",
     "${window_base_path}/wm:libwm",
+    "${window_base_path}/dm:libdm",
   ]
 
   external_deps = [
@@ -553,6 +581,7 @@ ohos_shared_library("libpip_web") {
     "ability_runtime:ability_manager",
     "ability_runtime:app_context",
     "ability_runtime:app_manager",
+    "ability_runtime:runtime",
     "accessibility:accessibility_common",
     "ace_engine:ace_uicontent",
     "ace_engine:ace_xcomponent_controller",
@@ -574,6 +603,7 @@ ohos_shared_library("libpip_web") {
     "samgr:samgr_proxy",
   ]
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -585,7 +615,9 @@ ohos_shared_library("libpip_web") {
 }
 
 config("libpip_ndk_public_config") {
-  include_dirs = [ "//foundation/window/window_manager/interfaces/kits/ndk/wm" ]
+  include_dirs = [
+    "//foundation/window/window_manager/interfaces/kits/ndk/wm",
+  ]
 }
 
 ## Build libpip_ndk.so
@@ -598,6 +630,7 @@ ohos_shared_library("libpip_ndk") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
 
   public_configs = [ ":libpip_ndk_public_config" ]
@@ -605,12 +638,14 @@ ohos_shared_library("libpip_ndk") {
   include_dirs = [
     "//foundation/window/window_manager",
     "//foundation/window/window_manager/interfaces/innerkits",
-    "//foundation/window/window_manager/interfaces/inner_kits/wm",
+    "//foundation/window/window_manager/interfaces/innerkits/wm",
     "//foundation/window/window_manager/interfaces/kits/ndk/wm",
     "//foundation/window/window_manager/wm/include",
   ]
 
-  sources = [ "src/oh_window_pip.cpp" ]
+  sources = [
+    "src/oh_window_pip.cpp",
+  ]
 
   deps = [
     ":libwm",
@@ -627,6 +662,7 @@ ohos_shared_library("libpip_ndk") {
     "ability_runtime:ability_manager",
     "ability_runtime:app_context",
     "ability_runtime:app_manager",
+    "ability_runtime:runtime",
     "accessibility:accessibility_common",
     "ace_engine:ace_uicontent",
     "ace_engine:ace_xcomponent_controller",
@@ -650,4 +686,35 @@ ohos_shared_library("libpip_ndk") {
 
   part_name = "window_manager"
   subsystem_name = "window"
+}
+
+## Build libmmi_client_adapter.z.so
+ohos_shared_library("libmmi_client_adapter") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
+
+  include_dirs = [
+    "${window_base_path}/wm/include",
+    "../utils/include",
+  ]
+  sources = [
+    "src/mmi_client_adapter.cpp",
+  ]
+  deps = [
+    "${window_base_path}/utils:libwmutil_base",
+  ]
+  external_deps = [
+    "input:libmmi-client",
+    "ipc:ipc_single",
+    "hilog:libhilog",
+  ]
+
+    part_name = "window_manager"
+    subsystem_name = "window"
 }

@@ -81,12 +81,14 @@ public:
     sptr<Display> GetDefaultDisplaySync(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution();
     sptr<Display> GetDisplayById(DisplayId displayId);
+    sptr<Display> GetDisplayById(DisplayId displayId, bool isGetActualInfo);
     sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId);
     DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area);
     DMError HasPrivateWindow(DisplayId displayId, bool& hasPrivateWindow);
     bool ConvertScreenIdToRsScreenId(ScreenId screenId, ScreenId& rsScreenId);
     bool IsFoldable();
     bool IsCaptured();
+    bool IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList);
     FoldStatus GetFoldStatus();
     FoldDisplayMode GetFoldDisplayMode();
     FoldDisplayMode GetFoldDisplayModeForExternal();
@@ -140,7 +142,7 @@ public:
     sptr<Display> GetPrimaryDisplaySync();
     DisplayId GetPrimaryDisplayId();
     void OnRemoteDied();
-    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation);
+    sptr<CutoutInfo> GetCutoutInfoWithRotation(Rotation rotation, int32_t width, int32_t height);
     DMError GetScreenAreaOfDisplayArea(DisplayId displayId, const DMRect& displayArea,
         ScreenId& screenId, DMRect& screenArea);
     DMError GetBrightnessInfo(DisplayId dispalyId, ScreenBrightnessInfo& brightnessInfo);
@@ -154,6 +156,7 @@ public:
     DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributesNotListened);
 
 private:
+    FoldDisplayMode FoldDisplayModeTrans(FoldDisplayMode displaymode);
     void ClearDisplayStateCallback();
     void ClearFoldStatusCallback();
     void ClearFoldAngleCallback();
@@ -177,11 +180,13 @@ private:
     void NotifyAvailableAreaChanged(DMRect rect, DisplayId displayId);
     void Clear();
     std::string GetDisplayInfoSrting(sptr<DisplayInfo> displayInfo);
-    std::atomic<bool> needUpdateDisplayFromDMS_ = false;
+    bool CheckNeedUpdateDisplayByTag(DisplayId displayId);
+    uint64_t GetCurrentTimeTagNs();
     DisplayId defaultDisplayId_ = DISPLAY_ID_INVALID;
     DisplayId primaryDisplayId_ = DISPLAY_ID_INVALID;
-    std::map<DisplayId, sptr<Display>> displayMap_;
-    std::map<DisplayId, std::chrono::steady_clock::time_point> displayUptateTimeMap_;
+    static thread_local std::map<DisplayId, sptr<Display>> displayMap_;
+    std::map<DisplayId, uint64_t> globalDisplayTagMap_;
+    static thread_local std::map<DisplayId, uint64_t> currentDisplayTagMap_;
     DisplayStateCallback displayStateCallback_;
     std::recursive_mutex& mutex_;
     std::set<sptr<IDisplayListener>> displayListeners_;
@@ -233,6 +238,8 @@ private:
     sptr<DisplayManagerBrightnessInfoAgent> brightnessInfoListenerAgent_;
 };
 
+thread_local std::map<DisplayId, sptr<Display>> DisplayManager::Impl::displayMap_;
+thread_local std::map<DisplayId, uint64_t> DisplayManager::Impl::currentDisplayTagMap_;
 class DisplayManager::Impl::DisplayManagerListener : public DisplayManagerAgentDefault {
 public:
     explicit DisplayManagerListener(sptr<Impl> impl) : pImpl_(impl)
@@ -566,6 +573,32 @@ bool DisplayManager::Impl::CheckSizeValid(const Media::Size& size, int32_t oriHe
     return true;
 }
 
+FoldDisplayMode DisplayManager::Impl::FoldDisplayModeTrans(FoldDisplayMode displaymode)
+{
+    FoldDisplayMode transdisplaymode = FoldDisplayMode::UNKNOWN;
+    switch (displaymode) {
+        case FoldDisplayMode::FULL:
+        case FoldDisplayMode::L_FULL:
+            transdisplaymode = FoldDisplayMode::FULL;
+            break;
+        case FoldDisplayMode::N_MAIN:
+        case FoldDisplayMode::V_MAIN:
+        case FoldDisplayMode::MAIN:
+            transdisplaymode = FoldDisplayMode::MAIN;
+            break;
+        case FoldDisplayMode::GLOBAL_FULL:
+            transdisplaymode = FoldDisplayMode::GLOBAL_FULL;
+            break;
+        case FoldDisplayMode::COORDINATION:
+            transdisplaymode = FoldDisplayMode::COORDINATION;
+            break;
+        default:
+            transdisplaymode = FoldDisplayMode::UNKNOWN;
+            break;
+    }
+    return transdisplaymode;
+}
+
 void DisplayManager::Impl::ClearDisplayStateCallback()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -758,25 +791,33 @@ bool DisplayManager::Impl::SetVirtualScreenAsDefault(ScreenId screenId)
 
 sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
 {
+    return DisplayManager::Impl::GetDisplayById(displayId, false);
+}
+
+sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId, bool isGetActualInfo)
+{
+    if (displayId == DISPLAY_ID_INVALID) {
+        TLOGE(WmsLogTag::DMS, "screen id is invalid");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DMS, "GetDisplayById start, displayId: %{public}" PRIu64" ", displayId);
-    auto currentTime = std::chrono::steady_clock::now();
+    uint64_t targetTag = GetCurrentTimeTagNs();
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
-        auto lastRequestIter = displayUptateTimeMap_.find(displayId);
-        static uint32_t getDisplayIntervalUs_ = (std::string(program_invocation_name) != "com.ohos.sceneboard")
-             ? APP_GET_DISPLAY_INTERVAL_US : SCB_GET_DISPLAY_INTERVAL_US;
-        if (displayId != DISPLAY_ID_INVALID && lastRequestIter != displayUptateTimeMap_.end()) {
-            auto interval = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastRequestIter->second)
-                .count();
-            if (interval < getDisplayIntervalUs_ && !needUpdateDisplayFromDMS_) {
-                auto iter = displayMap_.find(displayId);
-                if (iter != displayMap_.end()) {
-                    return displayMap_[displayId];
-                }
+        auto iter = displayMap_.find(displayId);
+        if (iter != displayMap_.end() && !isGetActualInfo) {
+            static uint32_t getDisplayIntervalUs_ = (std::string(program_invocation_name) != "com.ohos.sceneboard")
+                                                        ? APP_GET_DISPLAY_INTERVAL_US
+                                                        : SCB_GET_DISPLAY_INTERVAL_US;
+            auto interval = iter->second->GetDisplayInfoLifeTime();
+            if (interval < getDisplayIntervalUs_ && !CheckNeedUpdateDisplayByTag(displayId)) {
+                    return iter->second;
             }
+            targetTag = globalDisplayTagMap_[displayId];
         }
     }
-    sptr<DisplayInfo> displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(displayId);
+    sptr<DisplayInfo> displayInfo =
+        SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayInfo(displayId, isGetActualInfo);
     if (displayInfo == nullptr) {
         TLOGW(WmsLogTag::DMS, "display null id : %{public}" PRIu64" ", displayId);
         return nullptr;
@@ -785,13 +826,41 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!UpdateDisplayInfoLocked(displayInfo)) {
         displayMap_.erase(displayId);
-        //map erase函数删除不存在key行为安全
-        displayUptateTimeMap_.erase(displayId);
-        return nullptr;
     }
-    needUpdateDisplayFromDMS_ = false;
-    displayUptateTimeMap_[displayId] = currentTime;
+    currentDisplayTagMap_[displayId] = targetTag;
+    if (isGetActualInfo && displayMap_[displayId] != nullptr &&
+        displayMap_[displayId]->GetDisplayInfoWithCache() != nullptr) {
+        TLOGI(WmsLogTag::DMS, "display: %{public}" PRIu64 " width: %{public}d, height: %{public}d", displayId,
+            displayMap_[displayId]->GetDisplayInfoWithCache()->GetWidth(),
+            displayMap_[displayId]->GetDisplayInfoWithCache()->GetHeight());
+    }
     return displayMap_[displayId];
+}
+
+bool DisplayManager::Impl::CheckNeedUpdateDisplayByTag(DisplayId displayId)
+{
+    uint64_t globalTag = GetCurrentTimeTagNs();
+    auto iter = globalDisplayTagMap_.find(displayId);
+    if (iter != globalDisplayTagMap_.end()) {
+        globalTag = iter->second;
+    } else {
+        globalDisplayTagMap_[displayId] = globalTag;
+        return true;
+    }
+    auto iterCur = currentDisplayTagMap_.find(displayId);
+    if (iterCur != currentDisplayTagMap_.end()) {
+        return iterCur->second != globalTag;
+    }
+    return true;
+}
+
+uint64_t DisplayManager::Impl::GetCurrentTimeTagNs()
+{
+    auto now = std::chrono::system_clock::now();
+    auto duration_since_epoch = now.time_since_epoch();
+    uint64_t nanoseconds = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count());
+    return nanoseconds;
 }
 
 sptr<DisplayInfo> DisplayManager::Impl::GetVisibleAreaDisplayInfoById(DisplayId displayId)
@@ -808,12 +877,17 @@ sptr<DisplayInfo> DisplayManager::Impl::GetVisibleAreaDisplayInfoById(DisplayId 
 
 sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId)
 {
+    return GetDisplayById(displayId, false);
+}
+
+sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId, bool isGetActualInfo)
+{
     if (g_dmIsDestroyed) {
         TLOGI(WmsLogTag::DMS, "DM has been destructed");
         return nullptr;
     }
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return pImpl_->GetDisplayById(displayId);
+    return pImpl_->GetDisplayById(displayId, isGetActualInfo);
 }
 
 sptr<DisplayInfo> DisplayManager::GetVisibleAreaDisplayInfoById(DisplayId displayId)
@@ -889,7 +963,7 @@ std::shared_ptr<Media::PixelMap> DisplayManager::GetScreenshot(DisplayId display
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> DisplayManager::GetScreenHDRshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "displayId invalid!");
@@ -897,7 +971,7 @@ std::vector<std::shared_ptr<Media::PixelMap>> DisplayManager::GetScreenHDRshot(D
     }
     const std::vector<std::shared_ptr<Media::PixelMap>>& screenShotVec =
         SingletonContainer::Get<DisplayManagerAdapter>().GetDisplayHDRSnapshot(displayId, errorCode,
-            isUseDma, isCaptureFullOfScreen);
+            isUseDma, isCaptureFullOfScreen, displayIntent);
     if (screenShotVec.size() != PIXMAP_VECTOR_SIZE) {
         TLOGE(WmsLogTag::DMS, "failed!");
         return { nullptr, nullptr };
@@ -1154,7 +1228,15 @@ std::vector<DisplayId> DisplayManager::GetAllDisplayIds(int32_t userId)
 
 std::vector<DisplayPhysicalResolution> DisplayManager::Impl::GetAllDisplayPhysicalResolution()
 {
-    return SingletonContainer::Get<DisplayManagerAdapter>().GetAllDisplayPhysicalResolution();
+    auto physicalResolution = SingletonContainer::Get<DisplayManagerAdapter>().GetAllDisplayPhysicalResolution();
+    for (auto& info : physicalResolution) {
+        auto displayMode = FoldDisplayModeTrans(info.foldDisplayMode_);
+        info.foldDisplayMode_ = displayMode;
+        if (displayMode == FoldDisplayMode::GLOBAL_FULL) {
+            info.foldDisplayMode_ = FoldDisplayMode::FULL;
+        }
+    }
+    return physicalResolution;
 }
 
 std::vector<DisplayPhysicalResolution> DisplayManager::GetAllDisplayPhysicalResolution()
@@ -1208,6 +1290,16 @@ bool DisplayManager::Impl::IsCaptured()
     return SingletonContainer::Get<DisplayManagerAdapter>().IsCaptured();
 }
 
+bool DisplayManager::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    return pImpl_->IsCapturedByBundleNameList(bundleNameList);
+}
+
+bool DisplayManager::Impl::IsCapturedByBundleNameList(const std::vector<std::string>& bundleNameList)
+{
+    return SingletonContainer::Get<DisplayManagerAdapter>().IsCapturedByBundleNameList(bundleNameList);
+}
+
 FoldStatus DisplayManager::GetFoldStatus()
 {
     return pImpl_->GetFoldStatus();
@@ -1236,6 +1328,7 @@ FoldDisplayMode DisplayManager::Impl::GetFoldDisplayMode()
 FoldDisplayMode DisplayManager::Impl::GetFoldDisplayModeForExternal()
 {
     FoldDisplayMode displayMode = SingletonContainer::Get<DisplayManagerAdapter>().GetFoldDisplayMode();
+    displayMode = FoldDisplayModeTrans(displayMode);
     if (displayMode == FoldDisplayMode::GLOBAL_FULL) {
         return FoldDisplayMode::FULL;
     }
@@ -1984,6 +2077,7 @@ DMError DisplayManager::Impl::UnregisterDisplayUpdateListener(sptr<IDisplayUpdat
 
 void DisplayManager::Impl::NotifyDisplayModeChanged(FoldDisplayMode displayMode)
 {
+    displayMode = FoldDisplayModeTrans(displayMode);
     std::set<sptr<IDisplayModeListener>> displayModeListeners;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -2390,7 +2484,13 @@ void DisplayManager::Impl::NotifyDisplayStateChanged(DisplayId id, DisplayState 
 void DisplayManager::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    needUpdateDisplayFromDMS_ = true;
+    if (info == nullptr) {
+        TLOGW(WmsLogTag::DMS, "displayInfo is null");
+        return;
+    }
+    DisplayId displayId = info->GetDisplayId();
+    uint64_t currentTag = GetCurrentTimeTagNs();
+    globalDisplayTagMap_[displayId] = currentTag;
 }
 
 void DisplayManager::Impl::NotifyDisplayDestroy(DisplayId displayId)
@@ -2398,12 +2498,20 @@ void DisplayManager::Impl::NotifyDisplayDestroy(DisplayId displayId)
     TLOGD(WmsLogTag::DMS, "displayId:%{public}" PRIu64".", displayId);
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     displayMap_.erase(displayId);
+    globalDisplayTagMap_.erase(displayId);
+    currentDisplayTagMap_.erase(displayId);
 }
 
 void DisplayManager::Impl::NotifyDisplayChange(sptr<DisplayInfo> displayInfo)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    needUpdateDisplayFromDMS_ = true;
+    if (displayInfo == nullptr) {
+        TLOGW(WmsLogTag::DMS, "displayInfo is null");
+        return;
+    }
+    DisplayId displayId = displayInfo->GetDisplayId();
+    uint64_t currentTag = GetCurrentTimeTagNs();
+    globalDisplayTagMap_[displayId] = currentTag;
 }
 
 bool DisplayManager::Impl::UpdateDisplayInfoLocked(sptr<DisplayInfo> displayInfo)
@@ -2535,10 +2643,12 @@ bool DisplayManager::TryToCancelScreenOff()
     return SingletonContainer::Get<DisplayManagerAdapter>().TryToCancelScreenOff();
 }
 
-bool DisplayManager::SetScreenBrightness(uint64_t screenId, uint32_t level)
+bool DisplayManager::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
-    TLOGI(WmsLogTag::DMS, "[UL_POWER]ScreenId:%{public}" PRIu64", level:%{public}u,", screenId, level);
-    RSInterfaces::GetInstance().SetScreenBacklight(screenId, level);
+    RsScreenBrightnessData data{brightnessData.screenId, brightnessData.level, brightnessData.brightnessPosition};
+    TLOGI(WmsLogTag::DMS, "[UL_POWER]ScreenId:%{public}" PRIu64", level:%{public}u, brightnessPosition:%{public}.4f",
+        data.screenId, data.level, data.brightnessPosition);
+    RSInterfaces::GetInstance().SetScreenBacklight(data);
     return true;
 }
 
@@ -2811,10 +2921,16 @@ std::shared_ptr<Media::PixelMap> DisplayManager::GetScreenshotWithOption(const C
         TLOGE(WmsLogTag::DMS, "size invalid! w %{public}d, h %{public}d", size.width, size.height);
         return nullptr;
     }
+    std::shared_ptr<Media::PixelMap> screenShot = nullptr;
     if (CheckUseGpuScreenshotWithOption(rect, size)) {
-        return GetScreenshotWithOptionUseGpu(captureOption, rect, size, rotation, errorCode);
+        screenShot = GetScreenshotWithOptionUseGpu(captureOption, rect, size, rotation, errorCode);
+        if (screenShot != nullptr) {
+            TLOGI(WmsLogTag::DMS, "set snapshot with option by gpu success!");
+            return screenShot;
+        }
+        TLOGI(WmsLogTag::DMS, "set snapshot with option by gpu failed, try to use cpu!");
     }
-    std::shared_ptr<Media::PixelMap> screenShot = GetScreenshotWithOption(captureOption, errorCode);
+    screenShot = GetScreenshotWithOption(captureOption, errorCode);
     if (screenShot == nullptr) {
         TLOGE(WmsLogTag::DMS, "set snapshot with option failed!");
         return nullptr;
@@ -2889,19 +3005,21 @@ float DisplayManager::GetPrimaryDisplaySystemDpi() const
     return displayInfo->GetDensityInCurResolution();
 }
 
-sptr<CutoutInfo> DisplayManager::GetCutoutInfoWithRotation(Rotation rotation)
+sptr<CutoutInfo> DisplayManager::GetCutoutInfoWithRotation(Rotation rotation, int32_t width, int32_t height)
 {
-    return pImpl_->GetCutoutInfoWithRotation(rotation);
+    return pImpl_->GetCutoutInfoWithRotation(rotation, width, height);
 }
 
-sptr<CutoutInfo> DisplayManager::Impl::GetCutoutInfoWithRotation(Rotation rotation)
+sptr<CutoutInfo> DisplayManager::Impl::GetCutoutInfoWithRotation(Rotation rotation, int32_t width, int32_t height)
 {
     auto displayInfo = SingletonContainer::Get<DisplayManagerAdapter>().GetDefaultDisplayInfo();
     if (displayInfo == nullptr) {
         return nullptr;
     }
+    width = width > 0 ? width : displayInfo->GetWidth();
+    height = height > 0 ? height : displayInfo->GetHeight();
     return SingletonContainer::Get<DisplayManagerAdapter>().GetCutoutInfo(displayInfo->GetDisplayId(),
-        displayInfo->GetWidth(), displayInfo->GetHeight(), rotation);
+        width, height, rotation);
 }
 
 DMError DisplayManager::GetScreenAreaOfDisplayArea(DisplayId displayId, const DMRect& displayArea,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,6 +14,7 @@
  */
 
 #include "wm_common.h"
+#include "parameters.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -61,6 +62,11 @@ const std::map<WMError, WmErrorCode> WM_JS_TO_ERROR_CODE_MAP {
     {WMError::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED,  WmErrorCode::WM_ERROR_FB_UPDATE_STATIC_TEMPLATE_DENIED  },
     {WMError::WM_ERROR_UI_EFFECT_ERROR,                WmErrorCode::WM_ERROR_UI_EFFECT_ERROR          },
     {WMError::WM_ERROR_INVALID_WINDOW_TYPE,            WmErrorCode::WM_ERROR_INVALID_WINDOW_TYPE      },
+    {WMError::WM_ERROR_FV_REPEAT_OPERATION,            WmErrorCode::WM_ERROR_FV_REPEAT_OPERATION  },
+    {WMError::WM_ERROR_FV_INVALID_STATE,               WmErrorCode::WM_ERROR_FV_INVALID_STATE  },
+    {WMError::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED,  WmErrorCode::WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED  },
+    {WMError::WM_ERROR_FV_START_FAILED,                WmErrorCode::WM_ERROR_FV_START_FAILED          },
+    {WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,     WmErrorCode::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS      },
 };
 
 WmErrorCode ConvertErrorToCode(WMError error, WmErrorCode defaultCode)
@@ -73,5 +79,15 @@ WmErrorCode ConvertErrorToCode(WMError error, WmErrorCode defaultCode)
         "No mapping found for WMError: %{public}d, fallback to default WmErrorCode: %{public}d",
         static_cast<int32_t>(error), static_cast<int32_t>(defaultCode));
     return defaultCode;
+}
+
+bool IsMultiInstanceEnabled()
+{
+    static bool enabled = [] {
+        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", false);
+        TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
+        return isConcurrentUser;
+    }();
+    return enabled;
 }
 }

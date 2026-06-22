@@ -40,6 +40,7 @@ ohos_shared_library("windowstageani_kit") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "window_stage_ani/src/ani_err_utils.cpp",
@@ -76,6 +77,7 @@ ohos_shared_library("windowstageani_kit") {
     "ability_runtime:ability_manager",
     "ability_runtime:abilitykit_native",
     "ability_runtime:dialog_request_info_ani_kit",
+    "ability_runtime:napi_common",
     "ability_runtime:runtime",
     "ability_runtime:ani_common",
     "access_token:libaccesstoken_sdk",
@@ -98,6 +100,13 @@ ohos_shared_library("windowstageani_kit") {
     "runtime_core:ani_helpers",
   ]
 
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
+
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
@@ -111,6 +120,7 @@ ohos_shared_library("windowstageani_module") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [ "window_stage_ani/src/ani_window_stage_module.cpp" ]
 
@@ -153,6 +163,12 @@ ohos_shared_library("windowstageani_module") {
     "runtime_core:ani",
     "runtime_core:ani_helpers",
   ]
+
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"

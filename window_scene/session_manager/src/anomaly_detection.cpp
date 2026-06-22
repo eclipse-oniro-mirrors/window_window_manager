@@ -16,6 +16,7 @@
 #include "anomaly_detection.h"
 #include <hitrace_meter.h>
 
+#include "parameters.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_helper.h"
 #include "perform_reporter.h"
@@ -24,11 +25,13 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr OHOS::HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "AnomalyDetection" };
+static const std::string REAL_TIME_ENABLED = OHOS::system::GetParameter("persist.window.realTimeIoDataOutput", "0");
 }
 
 void AnomalyDetection::SceneZOrderCheckProcess()
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::SceneZOrderCheckProcess");
+    TLOGE(WmsLogTag::WMS_HIERARCHY, "ZOrderCheck start");
     bool keyGuardFlag = false;
     uint32_t curZOrder = 0;
     auto func = [&curZOrder, &keyGuardFlag](sptr<SceneSession> session) {
@@ -59,7 +62,7 @@ void AnomalyDetection::SceneZOrderCheckProcess()
     SceneSessionManager::GetInstance().TraverseSessionTree(func, false);
 }
 
-void AnomalyDetection::CheckCallingSession(sptr<SceneSession>& session)
+void AnomalyDetection::CheckCallingSession(const sptr<SceneSession>& session)
 {
     if (session->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         uint32_t callingWindowId = session->GetCallingSessionId();
@@ -75,7 +78,7 @@ void AnomalyDetection::CheckCallingSession(sptr<SceneSession>& session)
     }
 }
 
-void AnomalyDetection::CheckSubWindow(sptr<SceneSession>& session)
+void AnomalyDetection::CheckSubWindow(const sptr<SceneSession>& session)
 {
     if (WindowHelper::IsSubWindow(session->GetWindowType()) ||
         session->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) {
@@ -90,7 +93,7 @@ void AnomalyDetection::CheckSubWindow(sptr<SceneSession>& session)
     }
 }
 
-void AnomalyDetection::CheckShowWhenLocked(sptr<SceneSession>& session, bool& keyGuardFlag)
+void AnomalyDetection::CheckShowWhenLocked(const sptr<SceneSession>& session, bool& keyGuardFlag)
 {
     if (session->GetWindowType() == WindowType::WINDOW_TYPE_KEYGUARD) {
         keyGuardFlag = true;
@@ -102,24 +105,39 @@ void AnomalyDetection::CheckShowWhenLocked(sptr<SceneSession>& session, bool& ke
     }
 }
 
-void AnomalyDetection::CheckWallpaper(sptr<SceneSession>& session)
+void AnomalyDetection::CheckWallpaper(const sptr<SceneSession>& session)
 {
-    if (session->GetWindowType() == WindowType::WINDOW_TYPE_WALLPAPER) {
-        constexpr uint32_t defaultWallpaperZOrder = 1;
-        if (!SceneSessionManager::GetInstance().IsScreenLocked() && session->GetZOrder() != defaultWallpaperZOrder) {
-            TLOGE(
-                WmsLogTag::WMS_HIERARCHY, "ZOrderCheck err %{public}d wallpaper zOrder abnormal", session->GetZOrder());
-            ReportZOrderException("check wallpaperWhenLocked", session);
-        }
+    if (!(session->GetWindowType() == WindowType::WINDOW_TYPE_WALLPAPER)) {
+        return;
     }
-}
-
-void AnomalyDetection::FocusCheckProcess(int32_t focusedId, int32_t nextId)
-{
-    if (nextId == INVALID_SESSION_ID) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "FocusCheck err: invalid id, focusedId:%{public}d nextId:%{public}d",
-            focusedId, nextId);
-        ReportFocusException("invalid id", focusedId, nextId, nullptr);
+    // "1" means constructing a fault scenario and printing it in real time.
+    bool realTimeEnabled = (REAL_TIME_ENABLED == "1");
+    // This means setting the default wallpaper ZOder to 1 or 2.
+    uint32_t defaultWallpaperZOrder = realTimeEnabled ? 1 : 2;
+    if (!SceneSessionManager::GetInstance().IsScreenLocked() && session->GetZOrder() != defaultWallpaperZOrder) {
+        TLOGD(WmsLogTag::WMS_HIERARCHY,
+              "ZOrderCheck err %{public}d, persitentId:%{public}d, wallpaper zOrder abnormal pre",
+              session->GetZOrder(), session->GetPersistentId());
+        auto task = [session, defaultWallpaperZOrder] {
+            if (session == nullptr) {
+                return;
+            }
+            if (session->IsVisibleForeground() && session->GetZOrder() > defaultWallpaperZOrder) {
+                TLOGE(WmsLogTag::WMS_HIERARCHY,
+                      "ZOrderCheck err %{public}d, persitentId:%{public}d, wallpaper zOrder abnormal",
+                      session->GetZOrder(), session->GetPersistentId());
+                std::string msg("windowId: " + std::to_string(session->GetPersistentId()) + ", windowType: " +
+                    std::to_string(static_cast<uint32_t>(session->GetWindowType())) + ", ZOrder: " +
+                    std::to_string(session->GetZOrder()));
+                WindowInfoReporter::GetInstance().ReportWindowFrozen(
+                    WindowDFXHelperType::WINDOW_WALLPAPER_ZORDER_CHECK, msg);
+            }
+        };
+        auto handler = SceneSessionManager::GetInstance().GetTaskScheduler();
+        const int64_t delayTime = 300;
+        if (handler) {
+            handler->PostTask(task, "SceneZOrderCheckProcessCheckWallpaper", delayTime);
+        }
     }
 }
 
@@ -137,19 +155,5 @@ void AnomalyDetection::ReportZOrderException(const std::string& errorReason, spt
         static_cast<int32_t>(WindowDFXHelperType::WINDOW_ZORDER_CHECK), getpid(), oss.str());
 }
 
-void AnomalyDetection::ReportFocusException(const std::string& errorReason, int32_t focusedId, int32_t nextId,
-    sptr<SceneSession> session)
-{
-    std::ostringstream oss;
-    oss << " FocusCheck err " << errorReason;
-    if (session != nullptr) {
-        oss << " cur persistentId: " << session->GetPersistentId() << ",";
-        oss << " windowType: " << static_cast<uint32_t>(session->GetWindowType()) << ",";
-    }
-    oss << " focusedId: " << focusedId << ",";
-    oss << " nextId: " << nextId << ";";
-    WindowInfoReporter::GetInstance().ReportWindowException(
-        static_cast<int32_t>(WindowDFXHelperType::WINDOW_FOCUS_CHECK), getpid(), oss.str());
-}
 } // namespace Rosen
 } // namespace OHOS

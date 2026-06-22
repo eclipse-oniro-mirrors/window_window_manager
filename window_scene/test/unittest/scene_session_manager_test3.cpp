@@ -1090,23 +1090,6 @@ HWTEST_F(SceneSessionManagerTest3, PreHandleCollaborator, TestSize.Level1)
 }
 
 /**
- * @tc.name: CheckCollaboratorType
- * @tc.desc: SceneSesionManager check collborator type
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest3, CheckCollaboratorType, TestSize.Level1)
-{
-    int32_t type = CollaboratorType::RESERVE_TYPE;
-    EXPECT_TRUE(ssm_->CheckCollaboratorType(type));
-    type = CollaboratorType::OTHERS_TYPE;
-    EXPECT_TRUE(ssm_->CheckCollaboratorType(type));
-    type = CollaboratorType::REDIRECT_TYPE;
-    EXPECT_TRUE(ssm_->CheckCollaboratorType(type));
-    type = CollaboratorType::DEFAULT_TYPE;
-    ASSERT_FALSE(ssm_->CheckCollaboratorType(type));
-}
-
-/**
  * @tc.name: NotifyUpdateSessionInfo
  * @tc.desc: SceneSesionManager notify update session info
  * @tc.type: FUNC
@@ -1444,7 +1427,7 @@ HWTEST_F(SceneSessionManagerTest3, UpdateWindowMode, TestSize.Level1)
 {
     int32_t persistentId = 10086;
     int32_t windowMode = 3;
-    WSError result = ssm_->UpdateWindowMode(persistentId, windowMode);
+    WSError result = ssm_->UpdateWindowMode(persistentId, WindowModeInfo{ static_cast<WindowMode>(windowMode) });
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_WINDOW);
     WindowChangedFunc func = [](int32_t persistentId, WindowUpdateType type) {
         OHOS::Rosen::WindowChangedFuncTest3(persistentId, type);
@@ -1922,6 +1905,39 @@ HWTEST_F(SceneSessionManagerTest3, SchedulePcAppInPadLifecycle, TestSize.Level1)
     ssm_->sceneSessionMap_.erase(4);
     ssm_->SetTrayAppList(std::move(trayAppListOld));
 }
+
+/**
+ * @tc.name: SchedulePcAppInPadLifecycleByPersistentId
+ * @tc.desc: call SchedulePcAppInPadLifecycleByPersistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, SchedulePcAppInPadLifecycleByPersistentId, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    info.persistentId_ = 808;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    int32_t persistentId = 808;
+    std::string bundleName = "testBundleName";
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+    ssm_->sceneSessionMap_.insert({ 808, sceneSession });
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, -1);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, persistentId);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(false);
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, persistentId);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
+    ssm_->SchedulePcAppInPadLifecycleByPersistentId(true, persistentId);
+    EXPECT_EQ(SessionState::STATE_FOREGROUND, sceneSession->GetSessionState());
+    sleep(1);
+    ssm_->sceneSessionMap_.erase(persistentId);
+}
  
 /**
  * @tc.name: StartOrMinimizePcAppInPadUIAbilityBySCB
@@ -1957,6 +1973,7 @@ HWTEST_F(SceneSessionManagerTest3, StartOrMinimizePcAppInPadUIAbilityBySCB, Test
     std::vector<std::string> trayAppList;
     trayAppList.push_back("test2");
     ssm_->SetTrayAppList(std::move(trayAppList));
+    ssm_->isSupportPcAppInPhone_ = false;
     EXPECT_EQ(WSError::WS_DO_NOTHING, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, true));
     EXPECT_EQ(WSError::WS_DO_NOTHING, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, false));
     EXPECT_EQ(WSError::WS_DO_NOTHING, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession2, true));
@@ -1964,6 +1981,20 @@ HWTEST_F(SceneSessionManagerTest3, StartOrMinimizePcAppInPadUIAbilityBySCB, Test
     EXPECT_EQ(WSError::WS_OK, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession3, true));
     EXPECT_EQ(WSError::WS_OK, ssm_->StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession3, false));
     ssm_->SetTrayAppList(std::move(trayAppListOld));
+}
+
+/**
+ * @tc.name: NotifyRotationBegin
+ * @tc.desc: call NotifyRotationBegin
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, NotifyRotationBegin, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->NotifyRotationBegin();
+    EXPECT_TRUE(g_logMsg.find("NotifyRotationBegin") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 } // namespace
 } // namespace Rosen

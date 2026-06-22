@@ -66,6 +66,9 @@ void SessionStubNorthBoundTest(sptr<Session> sessionStub, MessageParcel& parcel)
     parcel.RewindRead(0);
     sessionStub->OnRemoteRequest(static_cast<uint32_t>
         (Rosen::SessionInterfaceCode::TRANS_ID_UPDATE_FLAG), parcel, reply, option);
+    parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>
+        (Rosen::SessionInterfaceCode::TRANS_ID_SET_WINDOW_RECT_AUTO_SAVE), parcel, reply, option);
 }
 
 bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)

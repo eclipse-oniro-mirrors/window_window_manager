@@ -58,7 +58,7 @@ ScreenScene::~ScreenScene()
     Destroy();
 }
 
-WMError ScreenScene::Destroy(uint32_t reason)
+WMError ScreenScene::Destroy(uint32_t reason, bool isFromInnerkits)
 {
     std::function<void()> task; //延长task的生命周期
     {
@@ -168,9 +168,14 @@ void ScreenScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configur
         }
         std::string colorMode = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
         bool isDark = (colorMode == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
-        bool ret = RSInterfaces::GetInstance().SetGlobalDarkColorMode(isDark);
-        if (!ret) {
-            TLOGI(WmsLogTag::DMS, "SetGlobalDarkColorMode fail with colorMode : %{public}s", colorMode.c_str());
+        auto rsUICtx = GetRSUIContext();
+        if (rsUICtx == nullptr) {
+            TLOGE(WmsLogTag::DMS, "no rsUICtx");
+            return;
+        }
+        if (auto rsInterface = rsUICtx->GetRSRenderInterface()) {
+            bool ret = rsInterface->SetGlobalDarkColorMode(isDark);
+            TLOGI(WmsLogTag::DMS, "screen colorMode: %{public}s, ret: %{public}d", colorMode.c_str(), ret);
         }
     }
 }
@@ -276,21 +281,9 @@ Ace::UIContent* ScreenScene::GetUIContent() const
 std::shared_ptr<RSUIDirector> ScreenScene::GetRSUIDirector() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
-    sptr<Display> display;
-    if (displayId_ == DISPLAY_ID_INVALID) {
-        display = DisplayManager::GetInstance().GetDefaultDisplay();
-        TLOGE(WmsLogTag::WMS_SCB, "displayId is invalid, use default display");
-    } else {
-        display = DisplayManager::GetInstance().GetDisplayById(displayId_);
-    }
-    if (!display) {
-        TLOGE(WmsLogTag::WMS_SCB, "display is null, displayId: %{public}" PRIu64, displayId_);
-        return nullptr;
-    }
-    auto screenId = display->GetScreenId();
-    auto rsUIDirector = ScreenSessionManagerClient::GetInstance().GetRSUIDirector(screenId);
-    TLOGD(WmsLogTag::WMS_SCB, "%{public}s, screenId: %{public}" PRIu64 ", windowId: %{public}d",
-          RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str(), screenId, GetWindowId());
+    auto rsUIDirector = ScreenSessionManagerClient::GetInstance().GetRSUIDirector(displayId_);
+    TLOGD(WmsLogTag::WMS_SCB, "%{public}s, displayId: %{public}" PRIu64 ", windowId: %{public}d",
+        RSAdapterUtil::RSUIDirectorToStr(rsUIDirector).c_str(), displayId_, GetWindowId());
     return rsUIDirector;
 }
 

@@ -516,6 +516,29 @@ HWTEST_F(ScreenSessionManagerTest, GetPhysicalScreenSession002, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnGetHdrFormats
+ * @tc.desc: OnGetHdrFormats
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, OnGetHdrFormats, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ASSERT_EQ(ssm_->clientProxy_, nullptr);
+
+    ScreenId screenId = 123;
+    std::vector<ScreenHDRFormat> rsHdrFormats{ScreenHDRFormat::VIDEO_AIHDR};
+    std::vector<ScreenHDRFormat> rsHdrFormatsEmpty{};
+    ssm_->OnGetHdrFormats(screenId, nullptr, rsHdrFormatsEmpty);
+    ssm_->OnGetHdrFormats(screenId, nullptr, rsHdrFormats);
+
+    sptr<ScreenSession> session = new ScreenSession();
+    ssm_->OnGetHdrFormats(screenId, session, rsHdrFormatsEmpty);
+    ssm_->OnGetHdrFormats(screenId, session, rsHdrFormats);
+    auto hdrFormats = session->hdrFormats_;
+    EXPECT_TRUE(std::find(hdrFormats.begin(), hdrFormats.end(), ScreenHDRFormat::VIDEO_AIHDR) != hdrFormats.end());
+}
+
+/**
  * @tc.name: OnScreenModeChange
  * @tc.desc: OnScreenModeChange
  * @tc.type: FUNC
@@ -819,6 +842,8 @@ HWTEST_F(ScreenSessionManagerTest, NotifyCreatedScreen, TestSize.Level1)
     }
     ssm_->NotifyCreatedScreen(screenSession);
     EXPECT_TRUE(g_logMsg.find("super fold device, change by rotation.") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -854,12 +879,12 @@ HWTEST_F(ScreenSessionManagerTest, HandleSwitchPcMode, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     if (IS_SUPPORT_PC_MODE) {
-        bool isPcDevice = ssm_->HandleSwitchPcMode();
+        bool isPcDevice = ssm_->HandleSwitchPcMode(g_isPcDevice);
         ASSERT_EQ(isPcDevice, g_isPcDevice);
         GTEST_SKIP();
     }
     bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-    bool isPcDevice = ssm_->HandleSwitchPcMode();
+    bool isPcDevice = ssm_->HandleSwitchPcMode(isPcMode);
     if (isPcMode) {
         EXPECT_TRUE(isPcDevice);
     } else {
@@ -1065,6 +1090,8 @@ HWTEST_F(ScreenSessionManagerTest, OnFoldPropertyChange, TestSize.Level1)
 
     ssm_->clientProxy_ = sptr<ScreenSessionManagerClientTest>::MakeSptr();
     ssm_->OnFoldPropertyChange(screenId, screenProperty, reason, displayMode);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
 }
 
 /**
@@ -1099,6 +1126,7 @@ HWTEST_F(ScreenSessionManagerTest, SetOptionConfig, TestSize.Level1)
     screenId++;
     ssm_->SetOptionConfig(screenId, option);
     EXPECT_TRUE(g_logMsg.find("screenSession is nullptr") != std::string::npos);
+    g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
 }

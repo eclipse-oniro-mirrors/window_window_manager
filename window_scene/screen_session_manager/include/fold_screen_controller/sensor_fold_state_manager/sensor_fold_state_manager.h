@@ -29,6 +29,7 @@ enum class ReportTentModeStatus : int32_t {
     ABNORMAL_EXIT_TENT_MODE_DUE_TO_ANGLE = 2,
     ABNORMAL_EXIT_TENT_MODE_DUE_TO_HALL = 3,
 };
+class TaskSequenceProcess;
 class SensorFoldStateManager : public RefBase {
 public:
     SensorFoldStateManager();
@@ -43,6 +44,7 @@ public:
     void ClearState(sptr<FoldScreenPolicy> foldScreenPolicy);
     bool IsTentMode();
     void FinishTaskSequence();
+    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
 protected:
     virtual FoldStatus HandleSecondaryOneStep(FoldStatus currentStatus, FoldStatus nextStatus,
         const std::vector<float>& previousAngles, const std::vector<uint16_t>& previousHalls) { return nextStatus; }
@@ -51,7 +53,8 @@ protected:
         const std::vector<uint16_t>& halls, sptr<FoldScreenPolicy> foldScreenPolicy);
     FoldStatus GetCurrentState();
     void SetTentMode(int tentType);
-    std::recursive_mutex mStateMutex_;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
     int tentModeType_ = 0;
     inline static bool isInOneStep_ = false;
     inline static std::condition_variable oneStep_;
@@ -70,6 +73,7 @@ private:
 
     void ProcessNotifyFoldStatusChange(FoldStatus currentStatus, FoldStatus nextStatus,
         const std::vector<float>& angles, sptr<FoldScreenPolicy> foldScreenPolicy);
+    TaskSequenceProcess* taskProcess_;
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_SMALL_DEVICE_SCREEN_SENSOR_MANAGER_H

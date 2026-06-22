@@ -21,6 +21,7 @@ ohos_shared_library("libintention_event") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   include_dirs = [
     "./include",
@@ -85,4 +86,5 @@ ohos_shared_library("libintention_event") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

@@ -29,7 +29,7 @@ public:
     ~ModalSystemUiExtension();
 
     bool CreateModalUIExtension(const AAFwk::Want& want);
-    static std::string ToString(const AAFwk::WantParams& wantParams);
+    bool CreateModalUIExtension(const AAFwk::Want& want, const int32_t userId);
 
 private:
     class DialogAbilityConnection : public OHOS::AAFwk::AbilityConnectionStub {

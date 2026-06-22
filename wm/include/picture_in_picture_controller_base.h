@@ -23,10 +23,13 @@
 #include "navigation_controller.h"
 #include "picture_in_picture_interface.h"
 #include "picture_in_picture_option.h"
+#include "picture_in_picture_option_ani.h"
 #include "pip_report.h"
 #include "xcomponent_controller.h"
 #include "window.h"
 #include "wm_common.h"
+#include "ani.h"
+
 
 namespace OHOS {
 namespace Rosen {
@@ -58,6 +61,10 @@ public:
     PictureInPictureControllerBase() { weakRef_ = this; }
     PictureInPictureControllerBase(sptr<PipOption> pipOption, sptr<Window> mainWindow, uint32_t windowId, napi_env env);
     virtual ~PictureInPictureControllerBase();
+
+    // napi only
+    static napi_value CallJsFunction(napi_env env, napi_value method, napi_value const * argv, size_t argc);
+
     WMError StopPictureInPicture(bool destroyWindow, StopPipType stopPipType, bool withAnim = true);
     WMError StopPictureInPictureFromClient();
     WMError DestroyPictureInPictureWindow();
@@ -79,14 +86,12 @@ public:
     WMError RegisterPiPActionObserver(const sptr<IPiPActionObserver>& listener);
     WMError RegisterPiPControlObserver(const sptr<IPiPControlObserver>& listener);
     WMError RegisterPiPWindowSize(const sptr<IPiPWindowSize>& listener);
-    WMError RegisterPiPTypeNodeChange(const sptr<IPiPTypeNodeObserver>& listener);
     WMError RegisterPiPStart(const sptr<IPiPStartObserver>& listener);
     WMError RegisterPiPActiveStatusChange(const sptr<IPiPActiveStatusObserver>& listener);
     WMError UnregisterPiPLifecycle(const sptr<IPiPLifeCycle>& listener);
     WMError UnregisterPiPActionObserver(const sptr<IPiPActionObserver>& listener);
     WMError UnregisterPiPControlObserver(const sptr<IPiPControlObserver>& listener);
     WMError UnregisterPiPWindowSize(const sptr<IPiPWindowSize>& listener);
-    WMError UnRegisterPiPTypeNodeChange(const sptr<IPiPTypeNodeObserver>& listener);
     WMError UnregisterPiPStart(const sptr<IPiPStartObserver>& listener);
     WMError UnregisterPiPActiveStatusChange(const sptr<IPiPActiveStatusObserver>& listener);
     void UnregisterAllPiPLifecycle();
@@ -105,10 +110,36 @@ public:
     uint64_t GetSurfaceId() const;
     bool GetPipSettingSwitchStatusEnabled();
     bool GetPiPSettingSwitchStatus();
+    WMError IsPiPActive(bool& status);
     bool isWeb_ = false;
     void SetStateChangeReason(PiPStateChangeReason reason);
     PiPStateChangeReason GetStateChangeReason() const;
-    WMError IsPiPActive(bool& status);
+    virtual std::string GetPiPNavigationId() const { return ""; };
+    inline sptr<PipOption> GetPipOption() const { return pipOption_; }
+    inline sptr<IWindowLifeCycle> GetMainWindowLifeCycleListener() const { return mainWindowLifeCycleListener_; }
+    inline void SetMainWindowLifeCycleListener(sptr<IWindowLifeCycle> listener)
+    {
+        mainWindowLifeCycleListener_ = listener;
+    }
+    inline const Rect& GetWindowRect() const { return windowRect_; }
+    inline void SetWindowRect(const Rect& rect) { windowRect_ = rect; }
+    inline bool GetIsAutoStartEnabled() const { return isAutoStartEnabled_; }
+    inline void SetIsAutoStartEnabled(bool enable) { isAutoStartEnabled_ = enable; }
+    inline bool GetCurActiveStatus() const { return curActiveStatus_; }
+    inline void SetCurActiveStatus(bool status) { curActiveStatus_ = status; }
+    inline std::shared_ptr<XComponentController> GetPipXComponentController() const
+    {
+        return pipXComponentController_;
+    }
+    inline void SetPipXComponentController(std::shared_ptr<XComponentController> controller)
+    {
+        pipXComponentController_ = controller;
+    }
+    inline bool GetIsStoppedFromClient() const { return isStoppedFromClient_; }
+    inline void SetIsStoppedFromClient(bool stopped) { isStoppedFromClient_ = stopped; }
+    inline int32_t GetHandleId() const { return handleId_; }
+    inline void SetHandleId(int32_t id) { handleId_ = id; }
+    inline sptr<Window> GetMainWindow() const { return mainWindow_; }
 
     // diffrent between normal and web
     virtual WMError StartPictureInPicture(StartPipType startType) = 0;
@@ -119,11 +150,22 @@ public:
     // normal
     virtual void SetAutoStartEnabled(bool enable) {}
     virtual void IsAutoStartEnabled(bool& enable) const {};
-    virtual void UpdateContentNodeRef(napi_ref nodeRef) {};
+    virtual void UpdateContentNodeRef(std::shared_ptr<NativeReference> nodeRef) {};
+    virtual void UpdateContentNodeRef(ani_ref nodeRef) {};
     virtual void PrepareSource() {};
-    virtual napi_ref GetCustomNodeController() { return nullptr; };
-    virtual napi_ref GetTypeNode() const { return nullptr; };
+    virtual WMError RegisterPipContentListenerWithType(const std::string&,
+        std::shared_ptr<NativeReference> updateNodeCallbackRef) { return WMError::WM_OK; };
+    virtual WMError RegisterPipContentListenerWithType(const std::string&,
+        ani_ref updateNodeCallbackRef) { return WMError::WM_OK; };
+    virtual WMError UnRegisterPipContentListenerWithType(const std::string&) { return WMError::WM_OK; };
+
+    virtual std::shared_ptr<NativeReference> GetPipContentCallbackRef(const std::string&) { return nullptr; };
+    virtual std::shared_ptr<NativeReference> GetCustomNodeController() { return nullptr; };
+    virtual std::shared_ptr<NativeReference> GetTypeNode() const { return nullptr; };
     virtual bool IsTypeNodeEnabled() const { return false; };
+    virtual ani_ref GetANIPipContentCallbackRef(const std::string&) { return nullptr; };
+    virtual ani_ref GetANICustomNodeController() { return nullptr; };
+    virtual ani_ref GetANITypeNode() const { return nullptr; };
 
     // web
     virtual uint8_t GetWebRequestId() { return 0; };
@@ -150,7 +192,6 @@ protected:
     std::vector<sptr<IPiPActionObserver>> pipActionObservers_;
     std::vector<sptr<IPiPControlObserver>> pipControlObservers_;
     std::vector<sptr<IPiPWindowSize>> pipWindowSizeListeners_;
-    std::vector<sptr<IPiPTypeNodeObserver>> pipTypeNodeObserver_;
     std::vector<sptr<IPiPStartObserver>> pipStartListeners_;
     std::vector<sptr<IPiPActiveStatusObserver>> PiPActiveStatusObserver_;
     sptr<Window> window_ = nullptr;
@@ -176,7 +217,11 @@ protected:
 
     // normal
     virtual void ResetExtController() {};
-    virtual void NotifyNodeUpdate(napi_ref nodeRef) {};
+    virtual void NotifyNodeUpdate(std::shared_ptr<NativeReference> nodeRef) {};
+    virtual void NotifyNodeUpdate(ani_ref nodeRef) {};
+    virtual void NotifyStateChangeInner(PiPState state) {};
+    virtual void NotifyStateChangeInner(napi_env env, PiPState state) {};
+    virtual void NotifyStateChangeInner(ani_env* env, PiPState state) {};
 
     // web
     virtual WMError SetPipParentWindowId(uint32_t windowId) { return WMError::WM_ERROR_PIP_INTERNAL_ERROR; };
@@ -186,4 +231,4 @@ private:
 };
 } // namespace Rosen
 } // namespace OHOS
-#endif // OHOS_PICTURE_IN_PICTURE_CONTROLLER_H
+#endif // OHOS_PICTURE_IN_PICTURE_CONTROLLER_BASE_H

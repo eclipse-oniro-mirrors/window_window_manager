@@ -37,16 +37,17 @@ ohos_shared_library("intention_event_anr_manager") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../dfx/src/dfx_hisysevent.cpp",
     "../utils/src/util.cpp",
   ]
 
-  public_configs = [ ":intention_event_public_config" ]
-  public_external_deps = [ "accessibility:accessibility_common" ]
+  public_configs = [ ":intention_event_public_config" ] 
   external_deps = [
     "ability_base:want",
+    "accessibility:accessibility_common",
     "bundle_framework:appexecfwk_base",
     "c_utils:utils",
     "eventhandler:libeventhandler",

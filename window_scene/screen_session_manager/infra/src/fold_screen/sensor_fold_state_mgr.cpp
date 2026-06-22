@@ -25,9 +25,11 @@
 #include "screen_session_manager.h"
 #include "fold_screen_base_policy.h"
 #include "task_sequence_process.h"
+#include "product_ext_wrapper.h"
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
 #endif
+#include "ffrt.h"
 
 namespace OHOS::Rosen::DMS {
 
@@ -41,11 +43,17 @@ constexpr float TENT_MODE_EXIT_MIN_THRESHOLD = 5.0F;
 constexpr float TENT_MODE_EXIT_MAX_THRESHOLD = 175.0F;
 constexpr int32_t TENT_MODE_OFF = 0;
 constexpr int32_t TENT_MODE_ON = 1;
+constexpr int32_t TENT_MODE_HOVER_ON = 2;
 constexpr int32_t MAX_QUEUE_SIZE = 1;
-constexpr uint64_t MAX_TIME_INTERVAL_MS = 200;
-TaskSequenceProcess g_taskProcessor(MAX_QUEUE_SIZE, MAX_TIME_INTERVAL_MS, "newfoldStatusProcessor");
+constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
+
 std::chrono::time_point<std::chrono::system_clock> g_lastUpdateTime = std::chrono::system_clock::now();
 }  // namespace
+
+class SensorFoldStateMgr::Impl {
+public:
+    ffrt::recursive_mutex statusMutex_;
+};
 
 SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
 {
@@ -54,16 +62,36 @@ SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
     if (instance_ == nullptr) {
         std::lock_guard<std::mutex> lock(singletonMutex_);
         if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init sensorFoldStateMgr from ext");
+            instance_ = ProductExtWrapper::GetExtInstance<SensorFoldStateMgr>("GetSensorFoldStateMgr");
+        }
+        if (instance_ == nullptr) {
+            TLOGI(WmsLogTag::DMS, "init SensorFoldStateMgr");
             instance_ = new SensorFoldStateMgr();
         }
     }
     return *instance_;
 }
 
-SensorFoldStateMgr::SensorFoldStateMgr()
+SensorFoldStateMgr::SensorFoldStateMgr() : pImpl_(std::make_unique<Impl>())
 {
+    taskProcess_ = new TaskSequenceProcess(
+        MAX_QUEUE_SIZE,
+        MAX_TIME_INTERVAL_MS
+    );
     currentFoldStatus_ = {FoldStatus::UNKNOWN};
     foldAlgorithmStrategy_ = {0, 0};
+}
+
+SensorFoldStateMgr::~SensorFoldStateMgr() = default;
+
+void SensorFoldStateMgr::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
+{
+    if (scheduler == nullptr) {
+        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
+        return;
+    }
+    taskProcess_->SetTaskScheduler(scheduler);
 }
 
 void SensorFoldStateMgr::HandleSensorEvent(const SensorStatus& sensorStatus)
@@ -89,6 +117,9 @@ void SensorFoldStateMgr::HandleSensorEvent(const SensorStatus& sensorStatus)
 
 FoldStatus SensorFoldStateMgr::GetNextFoldStatus(const SensorStatus& sensorStatus)
 {
+    if (IsGetFoldStatusByHalls(sensorStatus)) {
+        return GetFoldStatusByHalls(sensorStatus);
+    }
     UpdateFoldAlgorithmStrategy(sensorStatus.axis_);
     std::vector<FoldStatus> nextFoldStatus;
     for (size_t i = 0; i < sensorStatus.axis_.size(); ++i) {
@@ -193,7 +224,7 @@ std::vector<std::string> SensorFoldStateMgr::getHallSwitchAppList()
 
 void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
 {
-    std::lock_guard<std::recursive_mutex> lock(statusMutex_);
+    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->statusMutex_);
     if (nextStatus == FoldStatus::UNKNOWN) {
         TLOGW(WmsLogTag::DMS, "fold state is UNKNOWN");
         return;
@@ -210,9 +241,7 @@ void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
 
             FoldScreenBasePolicy::GetInstance().SetFoldStatus(globalFoldStatus_);
             ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(globalFoldStatus_);
-            if (!FoldScreenBasePolicy::GetInstance().GetLockDisplayStatus()) {
-                FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
-            }
+            FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
         } else {
             TLOGD(WmsLogTag::DMS, "fold state doesn't change, foldState = %{public}d.", globalFoldStatus_);
         }
@@ -220,13 +249,13 @@ void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
             FinishTaskSequence();
         }
     };
-    g_taskProcessor.AddTask(task);
+    taskProcess_->AddTask(task);
 }
 
 void SensorFoldStateMgr::FinishTaskSequence()
 {
     TLOGI(WmsLogTag::DMS, "TaskSequenceProcess SensorFoldStateMgr::FinishTaskSequence");
-    g_taskProcessor.FinishTask();
+    taskProcess_->FinishTask();
 }
 
 void SensorFoldStateMgr::UpdateFoldAlgorithmStrategy(const std::vector<ScreenAxis>& axis)
@@ -302,12 +331,21 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
     }
 
     SetTentMode(tentSensor.tentType_);
-    if (tentSensor.tentType_ == TENT_MODE_ON) {
+    TLOGNFI(WmsLogTag::DMS, "tent mode:%{public}d", tentSensor.tentType_);
+    if (tentSensor.tentType_ != TENT_MODE_OFF) {
         ReportTentStatusChange(ReportTentModeStatus::NORMAL_ENTER_TENT_MODE);
+        currentFoldStatus_ = {FoldStatus::FOLDED};
         HandleSensorChange(FoldStatus::FOLDED);
         FoldScreenBasePolicy::GetInstance().ChangeOnTentMode(FoldStatus::FOLDED);
-        SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
-        ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
+        if (tentSensor.tentType_ == TENT_MODE_ON) {
+            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
+            ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
+        } else if (tentSensor.tentType_ == TENT_MODE_HOVER_ON) {
+            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT_HOVER));
+            ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_HOVER);
+        } else {
+            TLOGW(WmsLogTag::DMS, "unknown tent mode:%{public}d, no processing", tentModeType_);
+        }
     } else {
         if (tentSensor.hall_ == HALL_FOLDED_THRESHOLD) {
             tmpSensorStatus.axis_[0].angle_ = ANGLE_MIN_VAL;
@@ -355,7 +393,7 @@ bool SensorFoldStateMgr::IsSupportTentMode()
 bool SensorFoldStateMgr::CheckInputSensorStatus(const SensorStatus& sensorStatus)
 {
     if (sensorStatus.axis_.size() != DEFAULT_AXIS_SIZE) {
-        TLOGI(WmsLogTag::DMS, "invalid sensor status, axis size: %{public}u", sensorStatus.axis_.size());
+        TLOGI(WmsLogTag::DMS, "invalid sensor status, axis size: %{public}zu", sensorStatus.axis_.size());
         return false;
     }
     return true;
@@ -381,7 +419,7 @@ bool SensorFoldStateMgr::TriggerTentExit(const ScreenAxis& axis)
 
 void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorStatus)
 {
-    const ScreenAxis& axis = sensorStatus.axis_[0];
+    const ScreenAxis& axis = GetTentModeScreenAxis(sensorStatus);
     if (TriggerTentExit(axis)) {
         FoldStatus nextStatus = GetNextFoldStatus(sensorStatus);
         HandleSensorChange(nextStatus);
@@ -393,7 +431,17 @@ void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorSt
             SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
         }
         ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_CANCEL);
+        PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
     }
+}
+
+ScreenAxis SensorFoldStateMgr::GetTentModeScreenAxis(const SensorStatus& sensorStatus)
+{
+    ScreenAxis screenAxis = {.angle_ = -1.0F, .hall_ = -1};
+    if (sensorStatus.axis_.size() > 0) {
+        screenAxis = sensorStatus.axis_[0];
+    }
+    return screenAxis;
 }
 
 void SensorFoldStateMgr::SetDeviceStatusAndParam(uint32_t deviceStatus)
@@ -409,4 +457,13 @@ void SensorFoldStateMgr::SetTentMode(int tentType)
     tentModeType_ = tentType;
 }
 
+bool SensorFoldStateMgr::IsGetFoldStatusByHalls(const SensorStatus& sensorStatus)
+{
+    return false;
+}
+
+FoldStatus SensorFoldStateMgr::GetFoldStatusByHalls(const SensorStatus& sensorStatus)
+{
+    return FoldStatus::UNKNOWN;
+}
 }  // namespace OHOS::Rosen::DMS

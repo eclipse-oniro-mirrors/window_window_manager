@@ -30,6 +30,10 @@ class WindowStage {
     return this.windowStage_.loadContentByName(name, storage, asyncCallback);
   }
 
+  releaseUIContent() {
+    return this.windowStage_.releaseUIContent();
+  }
+
   getWindowMode(asyncCallback) {
     return this.windowStage_.getWindowMode(asyncCallback);
   }

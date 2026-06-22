@@ -23,7 +23,6 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowManagerAgentStub"};
-constexpr uint32_t MAX_VECTOR_SIZE = 10000;
 }
 
 int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
@@ -99,7 +98,7 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
                 return ERR_INVALID_DATA;
             }
             uint32_t settingFlag = 0;
-            uint32_t MAX_SETTINGFLAG = 7;
+            constexpr uint32_t MAX_SETTINGFLAG = 7;
             if (!data.ReadUint32(settingFlag) ||
                 settingFlag < static_cast<uint32_t>(SystemBarSettingFlag::DEFAULT_SETTING) ||
                 settingFlag > MAX_SETTINGFLAG) {
@@ -288,6 +287,15 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
             NotifySupportRotationChange(*supportRotationInfo);
             break;
         }
+        case WindowManagerAgentMsg::TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE: {
+            int32_t persistentId = 0;
+            if (!data.ReadInt32(persistentId)) {
+                TLOGE(WmsLogTag::WMS_PATTERN, "read persistentId failed");
+                return ERR_INVALID_DATA;
+            }
+            NotifySessionSaveSnapShotComplete(persistentId);
+            break;
+        }
         default:
             WLOGFW("unknown transaction code %{public}d", code);
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -304,11 +312,6 @@ bool WindowManagerAgentStub::ReadWindowInfoList(MessageParcel& data, WindowInfoL
         return false;
     }
     size_t windowInfoListSize = static_cast<size_t>(windowInfoListLength);
-
-    if (windowInfoListSize > MAX_VECTOR_SIZE) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "windowInfoListSize is too large, size: %{public}zu", windowInfoListSize);
-        return false;
-    }
 
     for (size_t i = 0; i < windowInfoListSize; i++) {
         uint32_t windowInfoLength = 0;
@@ -384,6 +387,15 @@ bool WindowManagerAgentStub::ReadWindowInfo(MessageParcel& data,
                 return false;
             }
             windowInfo[windowInfoKey] = static_cast<WindowMode>(value);
+            break;
+        }
+        case WindowInfoKey::WINDOW_MODE_INFO : {
+            WindowModeInfo value;
+            if (!value.Unmarshalling(data)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read WindowModeInfo failed");
+                return false;
+            }
+            windowInfo[windowInfoKey] = value;
             break;
         }
         case WindowInfoKey::DISPLAY_ID : {

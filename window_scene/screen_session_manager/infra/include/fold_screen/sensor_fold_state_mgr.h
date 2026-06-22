@@ -19,9 +19,10 @@
 #include <vector>
 #include "iapplication_state_observer.h"
 #include "fold_screen_common.h"
-
+#include "task_scheduler.h"
 namespace OHOS {
 namespace Rosen {
+class TaskSequenceProcess;
 namespace DMS {
 enum class ReportTentModeStatus : int32_t {
     NORMAL_EXIT_TENT_MODE = 0,
@@ -39,9 +40,11 @@ public:
     void RegisterApplicationStateObserver();
     bool IsTentMode();
     void FinishTaskSequence();
+    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
 
 protected:
     SensorFoldStateMgr();
+    virtual ~SensorFoldStateMgr();
     FoldStatus GetNextFoldStatus(const SensorStatus& sensorStatus);
     virtual FoldStatus GetNextFoldStatusByAxis(
         const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy);
@@ -52,7 +55,10 @@ protected:
     virtual bool TriggerTentExit(const ScreenAxis& axis);
     virtual bool IsSupportTentMode();
     virtual bool CheckInputSensorStatus(const SensorStatus& sensorStatus);
-    void HandleSensorChange(FoldStatus nextStatus);
+    virtual bool IsGetFoldStatusByHalls(const SensorStatus& sensorStatus);
+    virtual FoldStatus GetFoldStatusByHalls(const SensorStatus& sensorStatus);
+    virtual ScreenAxis GetTentModeScreenAxis(const SensorStatus& sensorStatus);
+    virtual void HandleSensorChange(FoldStatus nextStatus);
     void UpdateFoldAlgorithmStrategy(const std::vector<ScreenAxis>& axis);
     void ReportTentStatusChange(ReportTentModeStatus tentStatus);
     void SetTentMode(int tentType);
@@ -61,6 +67,7 @@ protected:
     SensorStatus currentSensorStatus_;
     std::vector<FoldStatus> currentFoldStatus_;
     int32_t tentModeType_ = 0;
+    FoldStatus globalFoldStatus_ = FoldStatus::UNKNOWN;
 
 private:
     std::vector<std::string> getHallSwitchAppList();
@@ -69,8 +76,9 @@ private:
     void SetDeviceStatusAndParam(uint32_t deviceStatus);
 
     std::vector<int32_t> foldAlgorithmStrategy_;
-    std::recursive_mutex statusMutex_;
-    FoldStatus globalFoldStatus_ = FoldStatus::UNKNOWN;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
+    TaskSequenceProcess* taskProcess_;
 };
 
 }  // namespace DMS

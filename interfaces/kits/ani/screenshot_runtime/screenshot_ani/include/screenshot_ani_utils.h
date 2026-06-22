@@ -57,6 +57,7 @@ static ani_status ReadOptionalField(ani_env* env, ani_object obj, const char* fi
 static ani_status ReadOptionalLongField(ani_env* env, ani_object obj, const char* fieldName, ani_long& value);
 static ani_status ReadOptionalIntField(ani_env* env, ani_object obj, const char* fieldName, int& value);
 static ani_status ReadOptionalBoolField(ani_env* env, ani_object obj, const char* fieldName, bool& value);
+static ani_status ReadOptionalEnumField(ani_env* env, ani_object obj, const char* fieldName, ani_int& value);
 };
 }
 #endif

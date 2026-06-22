@@ -26,6 +26,7 @@ config("session_manager_public_config") {
     "${window_base_path}/window_scene/screen_session_manager/include",
     "${window_base_path}/window_scene/screen_session_manager/infra/include/fold_screen",
     "${window_base_path}/window_scene/screen_session_manager/infra/include/common",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/ffrt",
     "${window_base_path}/window_scene/screen_session_manager/include/zidl",
     "${window_base_path}/window_scene/session_manager_service/include",
 
@@ -59,6 +60,7 @@ ohos_shared_library("screen_session_manager") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "../../dm/src/zidl/display_manager_agent_proxy.cpp",
@@ -78,6 +80,7 @@ ohos_shared_library("screen_session_manager") {
     "src/screen_scene_config.cpp",
     "src/screen_sensor_connector.cpp",
     "src/screen_sensor_plugin.cpp",
+    "src/motion_manager.cpp",
     "src/screen_session_dumper.cpp",
     "src/screen_session_manager.cpp",
     "src/screen_setting_helper.cpp",
@@ -88,18 +91,14 @@ ohos_shared_library("screen_session_manager") {
     "src/setting_observer.cpp",
     "src/setting_provider.cpp",
     "src/zidl/screen_session_manager_stub.cpp",
-    "src/screen_session_manager_adapter.cpp"
+    "src/screen_session_manager_adapter.cpp",
+    "src/rs_event_data_manager.cpp"
   ]
 
   cflags_cc = [ "-std=c++17" ]
 
   public_configs = [ ":session_manager_public_config" ]
-  public_external_deps = [
-    "ability_runtime:session_handler",
-    "accessibility:accessibility_common",
-    "input:libmmi-client",
-    "input:libmmi-napi",
-  ]
+
   deps = [
     "${window_base_path}/etc:wms_etc",
     "${window_base_path}/utils:libwmutil",
@@ -120,6 +119,8 @@ ohos_shared_library("screen_session_manager") {
     "ability_runtime:app_manager",
     "ability_runtime:dataobs_manager",
     "ability_runtime:extension_manager",
+    "ability_runtime:session_handler",
+    "accessibility:accessibility_common",
     "access_token:libaccesstoken_sdk",
     "access_token:libprivacy_sdk",
     "access_token:libtokenid_sdk",
@@ -138,14 +139,15 @@ ohos_shared_library("screen_session_manager") {
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "init:libbeget_proxy",
+    "input:libmmi-client",
+    "input:libmmi-napi",
     "ipc:ipc_core",
     "libxml2:libxml2",
+    "json:nlohmann_json_static",
     "os_account:os_account_innerkits",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "screenlock_mgr:screenlock_client",
-    "time_service:time_client",
-    "ability_runtime:wantagent_innerkits",
   ]
 
   defines = []
@@ -208,10 +210,8 @@ ohos_shared_library("screen_session_manager") {
       "src/fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.cpp",
       "src/fold_screen_controller/sensor_fold_state_manager/single_display_sensor_fold_state_manager.cpp",
       "src/fold_screen_controller/sensor_fold_state_manager/single_display_sensor_pocket_fold_state_manager.cpp",
-      "src/fold_screen_controller/sensor_fold_state_manager/single_display_sensor_super_fold_state_manager.cpp",
       "src/fold_screen_controller/single_display_fold_policy.cpp",
       "src/fold_screen_controller/single_display_pocket_fold_policy.cpp",
-      "src/fold_screen_controller/single_display_super_fold_policy.cpp",
       "src/fold_screen_controller/super_fold_policy.cpp",
       "src/fold_screen_controller/super_fold_sensor_manager.cpp",
       "src/fold_screen_controller/super_fold_state_manager.cpp",
@@ -221,6 +221,8 @@ ohos_shared_library("screen_session_manager") {
       "infra/src/fold_screen/screen_sensor_mgr.cpp",
       "infra/src/fold_screen/sensor_fold_state_mgr.cpp",
       "infra/src/common/product_config.cpp",
+      "infra/src/common/product_ext_wrapper.cpp",
+      "infra/src/ffrt/ffrt_queue.cpp",
     ]
     print("window manager fold ability is enabled.")
   } else {
@@ -284,6 +286,7 @@ ohos_shared_library("screen_session_manager") {
     print("window manager screen multi usr ability is disabled.")
   }
 
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

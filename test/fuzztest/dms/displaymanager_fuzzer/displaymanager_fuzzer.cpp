@@ -18,6 +18,7 @@
 #include <securec.h>
 #include <ui/rs_surface_node.h>
 #include "display_manager.h"
+#include <fuzzer/FuzzedDataProvider.h>
 
 namespace OHOS ::Rosen {
 namespace {
@@ -160,15 +161,17 @@ bool ScreenBrightnessFuzzTest(const uint8_t* data, size_t size)
 {
     uint64_t screenId;
     uint32_t level;
-    if (data == nullptr || size < sizeof(screenId) + sizeof(level)) {
+    float brightnessPosition;
+    if (data == nullptr || size < sizeof(screenId) + sizeof(level) + sizeof(brightnessPosition)) {
         return false;
     }
     size_t startPos = 0;
     DisplayManager& displayManager = DisplayManager::GetInstance();
 
     startPos += GetObject<uint64_t>(screenId, data + startPos, size - startPos);
-    GetObject<uint32_t>(level, data + startPos, size - startPos);
-    displayManager.SetScreenBrightness(screenId, level);
+    startPos += GetObject<uint32_t>(level, data + startPos, size - startPos);
+    GetObject<float>(brightnessPosition, data + startPos, size - startPos);
+    displayManager.SetScreenBrightness(DmsScreenBrightnessData(screenId, level, brightnessPosition));
     displayManager.GetScreenBrightness(screenId);
     return true;
 }
@@ -211,10 +214,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     /* Run your code on data */
     OHOS::Rosen::DisplayFuzzTest(data, size);
     OHOS::Rosen::GetScreenshotFuzzTest(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestTwoInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::Rosen::DisplayPowerFuzzTest(data, size);
     OHOS::Rosen::ScreenBrightnessFuzzTest(data, size);
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestThreeInput(const uint8_t* data, size_t size)
+{
+    /* Run your code on data */
     OHOS::Rosen::FreezeFuzzTest(data, size);
     OHOS::Rosen::NotifyDisplayEventFuzzTest(data, size);
     return 0;
 }
-

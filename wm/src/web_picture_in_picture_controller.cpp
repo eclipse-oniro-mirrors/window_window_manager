@@ -16,6 +16,7 @@
 #include "singleton_container.h"
 #include "parameters.h"
 #include "picture_in_picture_manager.h"
+#include "float_window_manager.h"
 #include "web_picture_in_picture_controller.h"
 #include "window_manager_hilog.h"
 #include "window_scene_session_impl.h"
@@ -63,12 +64,13 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     WMError errCode = WMError::WM_OK;
     PiPTemplateInfo pipTemplateInfo;
     pipOption_->GetPiPTemplateInfo(pipTemplateInfo);
+    pipTemplateInfo.isWeb = true;
     auto context = mainWindow_->GetContext();
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(context->GetApplicationInfo()->name);
-    sptr<Window> window = Window::CreatePiP(windowOption, pipTemplateInfo, context, errCode);
+    sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context, errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     window_ = window;
     window_->UpdatePiPRect(windowRect_, WindowSizeChangeReason::PIP_START);
@@ -98,9 +100,9 @@ WMError WebPictureInPictureController::StartPictureInPicture(StartPipType startT
 void WebPictureInPictureController::SetUIContent() const
 {
     napi_value storage = nullptr;
-    napi_ref storageRef = pipOption_->GetStorageRef();
+    std::shared_ptr<NativeReference> storageRef = pipOption_->GetStorageRef();
     if (storageRef != nullptr) {
-        napi_get_reference_value(env_, storageRef, &storage);
+        storage = storageRef->GetNapiValue();
         TLOGI(WmsLogTag::WMS_PIP, "startPiP with localStorage");
     }
     window_->SetUIContentByAbc(WEB_PIP_CONTENT_PATH, env_, storage, nullptr);

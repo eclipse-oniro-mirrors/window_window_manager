@@ -20,7 +20,6 @@
 using namespace testing;
 using namespace testing::ext;
 
-
 namespace OHOS {
 namespace Rosen {
 class ScreenPowerUtilsTest : public testing::Test {

@@ -31,26 +31,24 @@ WM_IMPLEMENT_SINGLE_INSTANCE(FoldCreaseRegionController)
 FoldCreaseRegionController::FoldCreaseRegionController()
 {
     InitModeCreaseRegion();
+    ScreenId screenIdFull = 0;
+    int32_t foldCreaseRegionPosX = 0;
+    int32_t foldCreaseRegionPosY = 1194;
+    uint32_t foldCreaseRegionPosWidth = 1828;
+    uint32_t foldCreaseRegionPosHeight = 196;
+
+    std::vector<DMRect> rect = {
+        {
+            foldCreaseRegionPosX, foldCreaseRegionPosY,
+            foldCreaseRegionPosWidth, foldCreaseRegionPosHeight
+        }
+    };
+    currentFoldCreaseRegion_ = new FoldCreaseRegion(screenIdFull, rect);
 }
 
 sptr<FoldCreaseRegion> FoldCreaseRegionController::GetCurrentFoldCreaseRegion()
 {
-    TLOGI(WmsLogTag::DMS, "GetCurrentFoldCreaseRegion");
-    if (!isInitModeCreaseRegion_.load()) {
-        InitModeCreaseRegion();
-    }
-    if (currentFoldCreaseRegion_ == nullptr) {
-        FoldDisplayMode displayMode = FoldDisplayMode::FULL;
-        sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
-        if (screenSession == nullptr) {
-            TLOGE(WmsLogTag::DMS, "screenSession is null");
-            return currentFoldCreaseRegion_;
-        }
-        Rotation targetRotation = Rotation::ROTATION_90;
-        screenSession->AddRotationCorrection(targetRotation, displayMode);
-        std::vector<DMRect> rects = GetCreaseRegionRects(SCREEN_ID_FULL, displayMode, targetRotation);
-        currentFoldCreaseRegion_ = new FoldCreaseRegion(SCREEN_ID_FULL, rects);
-    }
+    TLOGD(WmsLogTag::DMS, "GetCurrentFoldCreaseRegion");
     return currentFoldCreaseRegion_;
 }
 
@@ -86,6 +84,16 @@ std::vector<DMRect> FoldCreaseRegionController::GetCreaseRegionRects(ScreenId sc
     RRect bounds = screenSession->CalcBoundsInRotationZero(displayMode);
     std::shared_lock<std::shared_mutex> lock(creaseRegionMutex_);
     return RotateRectArray(displayModeRects_[displayMode], bounds.rect_.width_, bounds.rect_.height_, targetRotation);
+}
+
+void FoldCreaseRegionController::SortCreaseRegionRects(std::vector<DMRect>& creaseRegion)
+{
+    std::sort(creaseRegion.begin(), creaseRegion.end(), [](const DMRect& rectA, const DMRect& rectB) {
+        if (rectA.posX_ != rectB.posX_) {
+            return rectA.posX_ < rectB.posX_;
+        }
+        return rectA.posY_ < rectB.posY_;
+    });
 }
  
 void FoldCreaseRegionController::GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems)

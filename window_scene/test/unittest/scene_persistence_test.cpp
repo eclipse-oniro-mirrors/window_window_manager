@@ -44,7 +44,10 @@ static sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSpt
 
 void ScenePersistenceTest::SetUpTestCase() {}
 
-void ScenePersistenceTest::TearDownTestCase() {}
+void ScenePersistenceTest::TearDownTestCase()
+{
+    scenePersistence = nullptr;
+}
 
 void ScenePersistenceTest::SetUp() {}
 
@@ -106,6 +109,40 @@ HWTEST_F(ScenePersistenceTest, SaveUpdatedIcon, TestSize.Level1)
  
     std::shared_ptr<Media::PixelMap> pixelMap3 = ConstructPixmap(1, 1025);
     scenePersistenceTmp->SaveUpdatedIcon(pixelMap3);
+    EXPECT_EQ(pixelMap3->GetWidth(), 1);
+}
+
+/**
+ * @tc.name: CreateAbilityIconDir
+ * @tc.desc: test function : CreateAbilityIconDir
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScenePersistenceTest, CreateAbilityIconDir, TestSize.Level1)
+{
+    std::string directory = "0/Storage";
+    ASSERT_NE(nullptr, scenePersistence);
+    bool result = scenePersistence->CreateAbilityIconDir(directory);
+    EXPECT_EQ(result, false);
+}
+
+/**
+ * @tc.name: SaveAbilityIcon
+ * @tc.desc: test function : SaveUpdatedIcon
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScenePersistenceTest, SaveAbilityIcon, TestSize.Level1)
+{
+    sptr<ScenePersistence> scenePersistenceTmp = sptr<ScenePersistence>::MakeSptr("testBundleName", 1423);
+    scenePersistenceTmp->CreateAbilityIconDir("/tmp");
+    std::shared_ptr<Media::PixelMap> pixelMap = ConstructPixmap(1, 1);
+    scenePersistenceTmp->SaveAbilityIcon(pixelMap);
+ 
+    std::shared_ptr<Media::PixelMap> pixelMap2 = ConstructPixmap(1025, 1);
+    scenePersistenceTmp->SaveAbilityIcon(pixelMap2);
+    EXPECT_EQ(pixelMap2->GetHeight(), 1);
+ 
+    std::shared_ptr<Media::PixelMap> pixelMap3 = ConstructPixmap(1, 1025);
+    scenePersistenceTmp->SaveAbilityIcon(pixelMap3);
     EXPECT_EQ(pixelMap3->GetWidth(), 1);
 }
 } // namespace

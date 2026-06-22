@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -31,12 +31,11 @@ public:
     int32_t OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     void OnSessionManagerServiceRecover(const sptr<IRemoteObject>& sessionManagerService) override;
     void OnWMSConnectionChanged(int32_t wmsUserId,
-                                int32_t screenId,
-                                bool isConnected,
-                                const sptr<IRemoteObject>& sessionManagerService) override;
-
+        int32_t screenId, bool isConnected, int32_t pid,
+        int32_t fromUserId, int32_t fromPid,
+        const sptr<IRemoteObject>& sessionManagerService) override;
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class SSMDeathRecipient : public IRemoteObject::DeathRecipient {
@@ -45,7 +44,7 @@ public:
     void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class FoundationDeathRecipient : public IRemoteObject::DeathRecipient {
@@ -54,16 +53,19 @@ public:
     void OnRemoteDied(const wptr<IRemoteObject>& wptrDeath) override;
 
 private:
-    int32_t userId_;
+    const int32_t userId_;
 };
 
 class SessionManager : public RefBase {
-    WM_DECLARE_SINGLE_INSTANCE_BASE(SessionManager);
+WM_DECLARE_SINGLE_INSTANCE_BASE(SessionManager);
 
 public:
     static SessionManager& GetInstance(const int32_t userId);
     void ClearSessionManagerProxy();
     void RemoveSSMDeathRecipient();
+    void RemoveMockFoundationDeathRecipient();
+
+    sptr<IMockSessionManagerInterface> GetMockSessionManagerServiceProxy();
 
     sptr<ISceneSessionManager> GetSceneSessionManagerProxy();
     void OnFoundationDied();
@@ -71,11 +73,13 @@ public:
     /*
      * Multi User
      */
-    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool)>;
+    using WMSConnectionChangedCallbackFunc = std::function<void(int32_t, int32_t, bool, int32_t)>;
     WMError RegisterWMSConnectionChangedListener(const WMSConnectionChangedCallbackFunc& callbackFunc);
     WMError UnregisterWMSConnectionChangedListener();
     void OnWMSConnectionChanged(
-        int32_t userId, int32_t screenId, bool isConnected, const sptr<ISessionManagerService>& sessionManagerService);
+        int32_t userId, int32_t screenId, bool isConnected,
+        int32_t pid, int32_t fromUserId, int32_t fromPid,
+        const sptr<ISessionManagerService>& sessionManagerService);
 
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
@@ -107,9 +111,7 @@ private:
     void RegisterSMSRecoverListener();
     void UnregisterSMSRecoverListener();
 
-    sptr<FoundationDeathRecipient> foundationDeath_ = nullptr;
-    bool isFoundationListenerRegistered_ = false;
-    std::mutex foundationListenerRegisterdMutex_;
+    sptr<FoundationDeathRecipient> mockFoundationDeathRecipient_ = nullptr;
     sptr<IMockSessionManagerInterface> mockSessionManagerServiceProxy_ = nullptr;
     std::mutex mockSessionManagerServiceMutex_;
 
@@ -130,18 +132,23 @@ private:
     /*
      * Multi User and multi screen
      */
-    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected);
+    void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected, int32_t pid);
     void OnUserSwitch(const sptr<ISessionManagerService>& sessionManagerService);
-    int32_t userId_;
+    const int32_t userId_;
     static std::unordered_map<int32_t, sptr<SessionManager>> sessionManagerMap_;
     static std::mutex sessionManagerMapMutex_;
+
+    struct ScreenUserInfo {
+        int32_t userId;
+        int32_t screenId;
+        int32_t pid;
+    };
+
     UserSwitchCallbackFunc userSwitchCallbackFunc_ = nullptr;
     std::mutex userSwitchCallbackFuncMutex_;
-
     std::mutex wmsConnectionMutex_;
     bool isWMSConnected_ = false;
-    int32_t currentWMSUserId_ = INVALID_USER_ID;
-    int32_t currentScreenId_ = DEFAULT_SCREEN_ID;
+    ScreenUserInfo currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
     WMSConnectionChangedCallbackFunc wmsConnectionChangedFunc_ = nullptr;
     // above guarded by wmsConnectionMutex_, among OnWMSConnectionChanged for wms connection event, user switched,
     // register WMSConnectionChangedListener.

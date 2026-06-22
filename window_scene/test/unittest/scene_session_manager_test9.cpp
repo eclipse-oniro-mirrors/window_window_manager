@@ -724,6 +724,14 @@ HWTEST_F(SceneSessionManagerTest9, ProcessFocusWhenForeground, TestSize.Level1)
     sceneSession->isVisible_ = true;
     sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
     ssm_->ProcessFocusWhenForeground(sceneSession);
+
+    ssm_->needBlockNotifyFocusStatusUntilForeground_ = true;
+    focusGroup->SetFocusedSessionId(1);
+    ssm_->ProcessFocusWhenForeground(sceneSession);
+
+    focusGroup->SetFocusedSessionId(-1);
+    ssm_->ProcessFocusWhenForeground(sceneSession);
+    ASSERT_NE(focusGroup->GetLastFocusedSessionId(), INVALID_SESSION_ID);
 }
 
 /**
@@ -830,6 +838,34 @@ HWTEST_F(SceneSessionManagerTest9, ProcessSubSessionForeground03, TestSize.Level
 
     focusGroup->SetFocusedSessionId(2);
     ssm_->ProcessSubSessionForeground(sceneSession);
+}
+
+/**
+ * @tc.name: ProcessSubSessionForeground04
+ * @tc.desc: ProcessSubSessionForeground
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest9, ProcessSubSessionForeground04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest9";
+    sessionInfo.abilityName_ = "ProcessSubSessionForeground04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+
+    SessionInfo subSessionInfo;
+    sptr<SceneSession> subSceneSession = sptr<SceneSession>::MakeSptr(subSessionInfo, nullptr);
+    subSceneSession->SetTopmost(true);
+    subSceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    subSceneSession->persistentId_ = 100;
+    sceneSession->GetSubSession().push_back(subSceneSession);
+    ssm_->sceneSessionMap_.insert(std::make_pair(100, subSceneSession));
+
+    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    focusGroup->SetFocusedSessionId(100);
+    ssm_->needBlockNotifyFocusStatusUntilForeground_ = true;
+    ssm_->ProcessSubSessionForeground(sceneSession);
+    EXPECT_NE(nullptr, ssm_->GetSceneSession(focusGroup->GetFocusedSessionId()));
 }
 
 /**
@@ -1375,6 +1411,28 @@ HWTEST_F(SceneSessionManagerTest9, CheckClickFocusIsDownThroughFullScreen_FullSc
     focusedSession->GetSessionProperty()->SetTouchHotAreas(touchHotAreasInSceneSession);
     bool ret = ssm_->CheckClickFocusIsDownThroughFullScreen(focusedSession, sceneSession, FocusChangeReason::CLICK);
     EXPECT_EQ(ret, true);
+}
+
+/**
+ * @tc.name: GetScreenWidthAndHeightFromClient
+ * @tc.desc: GetScreenWidthAndHeightFromClient
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest9, GetScreenWidthAndHeightFromClient, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetScreenWidthAndHeightFromClient";
+    info.abilityName_ = "GetScreenWidthAndHeightFromClient";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    uint32_t screenWidth = 0;
+    uint32_t screenHeight = 0;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetDisplayId(0);
+    EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
+
+    sceneSession->SetIsSystemKeyboard(true);
+    EXPECT_EQ(sceneSession->IsSystemKeyboard(), true);
+    EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
 }
 
 /**

@@ -30,7 +30,7 @@ public:
     MOCK_METHOD(WSError, PendingSessionToForeground, (const sptr<IRemoteObject>& token, int32_t windowMode),
         (override));
     MOCK_METHOD(WSError, PendingSessionToBackgroundForDelegator, (const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller), (override));
+        bool shouldBackToCaller, int32_t reason), (override));
     MOCK_METHOD(WSError, GetFocusSessionToken, (sptr<IRemoteObject>& token, DisplayId displayId), (override));
     MOCK_METHOD(WSError, GetFocusSessionElement, (AppExecFwk::ElementName& element, DisplayId displayId), (override));
     MOCK_METHOD(WSError, RegisterSessionListener, (const sptr<ISessionListener>& listener), (override));
@@ -56,8 +56,6 @@ public:
         (const std::vector<std::int32_t>& sessionIds, int32_t topSessionId), (override));
     MOCK_METHOD(WSError, MoveSessionsToBackground,
         (const std::vector<std::int32_t>& sessionIds, std::vector<std::int32_t>& result), (override));
-    MOCK_METHOD(WSError, RegisterIAbilityManagerCollaborator,
-        (int32_t type, const sptr<AAFwk::IAbilityManagerCollaborator>& impl), (override));
     MOCK_METHOD(WSError, UnregisterIAbilityManagerCollaborator, (int32_t type), (override));
     MOCK_METHOD(WMError, GetProcessSurfaceNodeIdByPersistentId, (const int32_t pid,
         const std::vector<int32_t>& persistentIds, std::vector<uint64_t>& surfaceNodeIds), (override));
@@ -78,7 +76,7 @@ public:
     MOCK_METHOD(WMError, RaiseToAppTop, (uint32_t windowId), (override));
     MOCK_METHOD(WMError, MinimizeByWindowId, (const std::vector<int32_t>& windowIds), (override));
     MOCK_METHOD(WSError, ShiftAppWindowFocus, (int32_t sourcePersistentId, int32_t targetPersistentId), (override));
-    MOCK_METHOD(WSError, GetHostWindowRect, (int32_t hostWindowId, Rect& rect), (override));
+    MOCK_METHOD(WSError, GetHostWindowRect, (int32_t hostWindowId, Rect& rect, bool useHookedSize), (override));
     MOCK_METHOD(WMError, GetWindowModeType, (WindowModeType& windowModeType), (override));
     MOCK_METHOD(WMError, GetWindowIdsByCoordinate,
         (DisplayId displayId, int32_t windowNumber, int32_t x, int32_t y, std::vector<int32_t>& windowIds), (override));

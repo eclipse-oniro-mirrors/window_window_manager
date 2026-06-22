@@ -171,6 +171,15 @@ sptr<WindowNode> WindowRoot::GetWindowNodeByMissionId(uint32_t missionId) const
     return it == windowNodeMap_.end() ? nullptr : it->second;
 }
 
+sptr<WindowNode> WindowRoot::GetWindowNodeByWindowType(WindowType type) const
+{
+    using ValueType = const std::map<uint32_t, sptr<WindowNode>>::value_type&;
+    auto iter = std::find_if(windowNodeMap_.begin(), windowNodeMap_.end(), [type] (ValueType item) {
+        return item.second && item.second->GetWindowType() == type;
+    });
+    return iter == windowNodeMap_.end() ? nullptr : iter->second;
+}
+
 void WindowRoot::GetBackgroundNodesByScreenId(ScreenId screenGroupId, std::vector<sptr<WindowNode>>& windowNodes)
 {
     for (const auto& it : windowNodeMap_) {
@@ -425,7 +434,8 @@ void WindowRoot::GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<Unre
 void WindowRoot::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) const
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
-        WLOGFE("Get Visible Window Permission Denied");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Get Visible Window Permission Denied");
+        return;
     }
     for (auto [surfaceId, _] : lastVisibleData_) {
         auto iter = surfaceIdWindowNodeMap_.find(surfaceId);
@@ -578,8 +588,7 @@ WMError WindowRoot::ToggleShownStateForAllAppWindows()
             if (property == nullptr) {
                 return false;
             }
-            if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
-                mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+            if (WindowHelper::IsSplitWindowMode(mode)) {
                 property->SetWindowMode(mode);
                 // when change mode, need to reset shadow and radius
                 windowNode->SetWindowMode(mode);

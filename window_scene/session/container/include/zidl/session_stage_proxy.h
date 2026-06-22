@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
-#define OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
+#ifndef OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H
+#define OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H
 
 #include <iremote_proxy.h>
 #include <transaction/rs_transaction.h>
@@ -57,9 +57,12 @@ public:
     WSError NotifyTouchOutside() override;
     WSError NotifyWindowVisibility(bool isVisible) override;
     WSError NotifyWindowOcclusionState(const WindowVisibilityState state) override;
-    WSError UpdateWindowMode(WindowMode mode) override;
+    WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
+    WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
+    WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
+        bool isLayoutFullScreen) override;
     WMError UpdateWindowModeForUITest(int32_t updateMode) override;
     void NotifyForegroundInteractiveStatus(bool interactive) override;
     WSError UpdateMaximizeMode(MaximizeMode mode) override;
@@ -70,6 +73,14 @@ public:
     void NotifyTransformChange(const Transform& transform) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) override;
     void NotifyGlobalScaledRectChange(const Rect& globalScaledRect) override;
+    WSError UpdateAttachedWindowLimits(int32_t sourcePersistentId,
+        const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit,
+        bool isIntersectedWidthLimit) override;
+    WSError RemoveAttachedWindowLimits(int32_t sourcePersistentId) override;
+    WSError SyncAllAttachedLimitsToChild(
+        const std::vector<std::pair<int32_t, WindowLimits>>& limitsList,
+        const std::vector<std::pair<int32_t, AttachLimitOptions>>& optionsList) override;
+    WSError NotifyRebindAttachAfterParentChange(int32_t newParentWindowId) override;
     WSError NotifyDialogStateChange(bool isForeground) override;
     WSError SetPipActionEvent(const std::string& action, int32_t status) override;
     WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -78,25 +89,30 @@ public:
     WSError UpdateDisplayId(uint64_t displayId) override;
     void NotifyDisplayMove(DisplayId from, DisplayId to) override;
     WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
     void NotifyKeyboardPanelInfoChange(const KeyboardPanelInfo& keyboardPanelInfo) override;
+    void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     WSError PcAppInPadNormalClose() override;
     WSError NotifyCompatibleModePropertyChange(const sptr<CompatibleModeProperty> property) override;
-    void SetUniqueVirtualPixelRatio(bool useUniqueDensity, float virtualPixelRatio) override;
     void UpdateAnimationSpeed(float speed) override;
     void NotifySessionFullScreen(bool fullScreen) override;
     WSError NotifyTargetRotationInfo(OrientationInfo& info, OrientationInfo& currentInfo) override;
     WSError NotifyPageRotationIsIgnored() override;
     RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo) override;
+    WSError HideSubWindowZLevelAboveParentLoosened() override;
+    WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
     // UIExtension
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
+    WSError SetUIExtensionTransparent() override;
 
     WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
 
-    WSError SetDragActivated(bool dragActivated) override;
+    WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetSplitButtonVisible(bool isVisible) override;
     WSError SetEnableDragBySystem(bool dragEnable) override;
     WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
@@ -110,27 +126,35 @@ public:
     void NotifyKeyboardAnimationWillBegin(const KeyboardAnimationInfo& keyboardAnimationInfo,
         const std::shared_ptr<RSTransaction>& rsTransaction) override;
     WSError SetCurrentRotation(int32_t currentRotation) override;
+    WSError GetSceneNodeCount(uint32_t& nodeCount) override;
+    WSError GetSceneNodeCount(const sptr<IRemoteObject>& callback) override;
+    WSError NotifyOrientationExecutionResult(uint32_t promiseId, OrientationExecutionResult result) override;
     WSError NotifyAppForceLandscapeConfigUpdated() override;
-    WSError NotifyAppForceLandscapeConfigEnableUpdated() override;
-    WSError NotifyAppHookWindowInfoUpdated() override;
+    WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WSError CloseSpecificScene() override;
-
-    // Window LifeCycle
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
+    WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
+    WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
+    WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
+    WSError AddSidebarBlur() override;
+    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
+    WSError UpdateWindowUIType(WindowUIType windowUIType) override;
+    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
+    WSError NotifyParentLifecycleEvent(ParentLifeCycleEvent eventType) override;
 
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
-    WSError AddSidebarBlur() override;
-    WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
+    WSError SetIsStartMoving(bool isStartMoving) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;
 };
 } // namespace OHOS::Rosen
-#endif // OHOS_WINDOW_SCENE_SESSION_STAGE_RPOXY_H
+#endif // OHOS_WINDOW_SCENE_SESSION_STAGE_PROXY_H

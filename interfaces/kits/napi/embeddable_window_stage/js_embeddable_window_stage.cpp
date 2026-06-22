@@ -19,9 +19,10 @@
 #include "js_extension_window.h"
 #include "js_extension_window_utils.h"
 #include "window_manager_hilog.h"
-#include "js_window_utils.h"
 #include "js_window.h"
 #include "permission.h"
+#include "js_window_utils.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -327,12 +328,16 @@ napi_value JsEmbeddableWindowStage::OnLoadContent(napi_env env, napi_callback_in
         napi_create_reference(env, storage, 1, &result);
         contentStorage = std::shared_ptr<NativeReference>(reinterpret_cast<NativeReference*>(result));
     }
-
+    if (sessionInfo_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "sessionInfo_ is null");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
     sptr<IRemoteObject> parentToken = sessionInfo_->parentToken;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callBack, &result);
     auto asyncTask = [window = windowExtensionSessionImpl_, contentStorage, contextUrl, parentToken, isLoadedByName,
-        env, task = napiAsyncTask] {
+        task = napiAsyncTask, env] {
         if (window == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
             TLOGNE(WmsLogTag::WMS_UIEXT, "Get windowExtensionSessionImpl failed");
@@ -351,6 +356,8 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
 {
     if (windowExtensionSessionImpl_ == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
         return NapiGetUndefined(env);
     }
@@ -360,25 +367,47 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
     std::string windowName;
     if (!ConvertFromJsValue(env, argv[0], windowName)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to windowName");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
     sptr<WindowOption> option = new WindowOption();
     if (!ParseSubWindowOptions(env, argv[1], option)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Get invalid options param");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM)));
+        return NapiGetUndefined(env);
+    }
+    if (option->IsSubWindowZLevelAboveParentLoosened()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Get invalid options param zLevelAboveParentLoosened");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_FORBID_SUBWINDOW)));
         return NapiGetUndefined(env);
     }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !windowExtensionSessionImpl_->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "device not support");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT)));
         return NapiGetUndefined(env);
     }
 
     if (option->GetWindowTopmost() && !Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::WMS_SUB, "Modal subwindow has topmost, but no system permission");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_NOT_SYSTEM_APP)));
+        return NapiGetUndefined(env);
+    }
+    if (sessionInfo_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SUB, "sessionInfo_ is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
         return NapiGetUndefined(env);
     }
     option->SetParentId(sessionInfo_->hostWindowId);
@@ -389,6 +418,8 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
     auto asyncTask = [where, extensionWindow = windowExtensionSessionImpl_, windowName = std::move(windowName),
         windowOption = option, env, task = napiAsyncTask]() mutable {
         if (extensionWindow == nullptr) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, CreateJsError(env,
                 static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY), "extension's window is null"));
             return;
@@ -400,6 +431,8 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
         auto window = Window::Create(windowName, windowOption, extensionWindow->GetContext());
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s Create window failed", where);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
                 "create sub window failed"));
             return;
@@ -412,6 +445,8 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
             where, windowName.c_str());
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateSubWindowWithOptions") != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env, CreateJsError(env,
             static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY), "send event failed"));
     }
@@ -510,11 +545,11 @@ napi_value JsEmbeddableWindowStage::CreateJsEmbeddableWindowStage(napi_env env, 
         objValue, "getMainWindowSync", moduleName, JsEmbeddableWindowStage::GetMainWindowSync);
     BindNativeFunction(env, objValue, "on", moduleName, JsEmbeddableWindowStage::On);
     BindNativeFunction(env, objValue, "off", moduleName, JsEmbeddableWindowStage::Off);
-    BindNativeFunction(env, objValue, "createSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
-    BindNativeFunction(env, objValue, "getSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
     BindNativeFunction(env, objValue, "createSubWindowWithOptions", moduleName,
         JsEmbeddableWindowStage::CreateSubWindowWithOptions);
     BindNativeFunction(env, objValue, "setUIContent", moduleName, JsEmbeddableWindowStage::SetUIContent);
+    BindNativeFunction(env, objValue, "createSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
+    BindNativeFunction(env, objValue, "getSubWindow", moduleName, JsEmbeddableWindowStage::EmptyAsyncCall);
 
     BindNativeFunction(env, objValue, "setDefaultDensityEnabled", moduleName, JsEmbeddableWindowStage::EmptySyncCall);
     BindNativeFunction(env, objValue, "setCustomDensity", moduleName, JsEmbeddableWindowStage::EmptySyncCall);

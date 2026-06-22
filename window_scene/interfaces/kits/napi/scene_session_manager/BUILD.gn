@@ -29,6 +29,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     cfi_cross_dso = true
     cfi_vcall_icall_only = true
     debug = false
+    cfi_policy = "adaptive"
   }
   sources = [
     "js_root_scene_session.cpp",
@@ -71,6 +72,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     "hitrace:hitrace_meter",
     "image_framework:image",
     "image_framework:image_native",
+    "json:nlohmann_json_static",
     "input:libmmi-client",
     "ipc:ipc_single",
     "libxml2:libxml2",
@@ -80,6 +82,13 @@ ohos_shared_library("scenesessionmanager_napi") {
   ]
 
   defines = []
+    if (win_compatibility_config_center_enabled) {
+    defines += [ "COMPATIBILITY_CONFIG_CENTER_ENABLE" ]
+    external_deps += [
+      "compatibility_config_center:compconfigclient" 
+    ]
+  }
+  
   if (defined(global_parts_info) &&
       defined(global_parts_info.resourceschedule_soc_perf)) {
     external_deps += [ "soc_perf:socperf_client" ]

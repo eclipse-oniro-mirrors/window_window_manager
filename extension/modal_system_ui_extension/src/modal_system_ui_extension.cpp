@@ -44,6 +44,11 @@ ModalSystemUiExtension::~ModalSystemUiExtension()
 
 bool ModalSystemUiExtension::CreateModalUIExtension(const AAFwk::Want& want)
 {
+    return CreateModalUIExtension(want, INVALID_USERID);
+}
+
+bool ModalSystemUiExtension::CreateModalUIExtension(const AAFwk::Want& want, const int32_t userId)
+{
     auto abilityManagerClient = AbilityManagerClient::GetInstance();
     if (abilityManagerClient == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "AbilityManagerClient is nullptr");
@@ -53,37 +58,13 @@ bool ModalSystemUiExtension::CreateModalUIExtension(const AAFwk::Want& want)
     AAFwk::Want systemUIWant;
     systemUIWant.SetElementName("com.ohos.sceneboard", "com.ohos.sceneboard.systemdialog");
     dialogConnectionCallback_ = sptr<DialogAbilityConnection>::MakeSptr(want);
-    auto result = abilityManagerClient->ConnectAbility(systemUIWant, dialogConnectionCallback_, INVALID_USERID);
+    auto result = abilityManagerClient->ConnectAbility(systemUIWant, dialogConnectionCallback_, userId);
     if (result != ERR_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "ConnectAbility failed, result=%{public}d", result);
         return false;
     }
     TLOGI(WmsLogTag::WMS_UIEXT, "ConnectAbility success");
     return true;
-}
-
-std::string ModalSystemUiExtension::ToString(const AAFwk::WantParams& wantParams)
-{
-    std::string result;
-    if (wantParams.Size() != 0) {
-        result += "{";
-        for (auto it : wantParams.GetParams()) {
-            int typeId = AAFwk::WantParams::GetDataType(it.second);
-            result += "\"" + it.first + "\":";
-            if (typeId == VALUE_TYPE_STRING && AAFwk::WantParams::GetStringByType(it.second, typeId)[0] != '{') {
-                result += "\"" + AAFwk::WantParams::GetStringByType(it.second, typeId) + "\"";
-            } else {
-                result += AAFwk::WantParams::GetStringByType(it.second, typeId);
-            }
-            if (it != *wantParams.GetParams().rbegin()) {
-                result += ",";
-            }
-        }
-        result += "}";
-    } else {
-        result += "{}";
-    }
-    return result;
 }
 
 bool ModalSystemUiExtension::DialogAbilityConnection::SendWant(const sptr<IRemoteObject>& remoteObject)
@@ -103,8 +84,7 @@ bool ModalSystemUiExtension::DialogAbilityConnection::SendWant(const sptr<IRemot
         TLOGE(WmsLogTag::WMS_UIEXT, "write abilityName failed");
         return false;
     }
-    if (!data.WriteString16(u"parameters") ||
-        !data.WriteString16(Str8ToStr16(ModalSystemUiExtension::ToString(want_.GetParams())))) {
+    if (!data.WriteString16(u"parameters") || !data.WriteString16(Str8ToStr16(want_.GetParams().ToString()))) {
         TLOGE(WmsLogTag::WMS_UIEXT, "write parameters failed");
         return false;
     }

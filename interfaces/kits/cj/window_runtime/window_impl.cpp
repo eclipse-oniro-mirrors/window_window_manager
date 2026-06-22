@@ -459,7 +459,7 @@ int32_t CJWindowImpl::SetWindowTouchable(bool touchable)
     }
     sptr<Window> weakWindow = result.nativeWindow;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SetTouchable(touchable));
-    TLOGI(WmsLogTag::WMS_DIALOG, "Window [%{public}u, %{public}s] end",
+    TLOGI(WmsLogTag::WMS_DIALOG, "Window [%{public}u, %{public}s] set touchable end",
         weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
     return static_cast<int32_t>(ret);
 }

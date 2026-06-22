@@ -72,7 +72,7 @@ HWTEST_F(SessionEventTest, SetTouchable01, TestSize.Level1)
     ASSERT_NE(session_, nullptr);
     session_->state_ = SessionState::STATE_DISCONNECT;
     session_->sessionInfo_.isSystem_ = true;
-    ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetTouchable(false));
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetTouchable(false));
 }
 
 /**
@@ -85,7 +85,7 @@ HWTEST_F(SessionEventTest, SetTouchable02, TestSize.Level1)
     ASSERT_NE(session_, nullptr);
     session_->state_ = SessionState::STATE_FOREGROUND;
     session_->sessionInfo_.isSystem_ = false;
-    ASSERT_EQ(WSError::WS_OK, session_->SetTouchable(false));
+    EXPECT_EQ(WSError::WS_OK, session_->SetTouchable(false));
 }
 
 /**
@@ -99,6 +99,238 @@ HWTEST_F(SessionEventTest, SetTouchable03, TestSize.Level1)
     session_->SetSessionState(SessionState::STATE_FOREGROUND);
     session_->sessionInfo_.isSystem_ = false;
     EXPECT_EQ(WSError::WS_OK, session_->SetTouchable(true));
+}
+
+/**
+ * @tc.name: GetTouchable
+ * @tc.desc: GetTouchable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetTouchable, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->SetTouchable(true);
+    bool res = session_->GetTouchable();
+    EXPECT_EQ(true, res);
+}
+
+/**
+ * @tc.name: SetForceTouchable
+ * @tc.desc: SetForceTouchable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, SetForceTouchable, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    bool touchable = false;
+    session_->SetForceTouchable(touchable);
+    EXPECT_EQ(session_->forceTouchable_, touchable);
+}
+
+/**
+ * @tc.name: SetSystemTouchable
+ * @tc.desc: SetSystemTouchable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, SetSystemTouchable, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    bool touchable = false;
+    session_->SetSystemTouchable(touchable);
+    EXPECT_EQ(session_->systemTouchable_, touchable);
+}
+
+/**
+ * @tc.name: GetSystemTouchable
+ * @tc.desc: GetSystemTouchable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetSystemTouchable, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->SetSystemTouchable(true);
+    bool res = session_->GetSystemTouchable();
+    EXPECT_EQ(res, true);
+}
+
+/**
+ * @tc.name: GetWindowTouchableForMMITest001
+ * @tc.desc: GetWindowTouchableForMMI Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetWindowTouchableForMMITest001, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "event_test_bundleName";
+    sessionInfo.abilityName_ = "event_test_abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto screenId = 0;
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+    auto isTouchable = sceneSession->GetWindowTouchableForMMI(screenId);
+    EXPECT_EQ(isTouchable, true);
+}
+
+/**
+ * @tc.name: GetWindowTouchableForMMITest002
+ * @tc.desc: GetWindowTouchableForMMI Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetWindowTouchableForMMITest002, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "event_test_bundleName";
+    sessionInfo.abilityName_ = "event_test_abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto screenId = 0;
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    sptr<DisplayInfo> displayInfo = new(std::nothrow) DisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetScreenId(screenId);
+    displayInfo->SetDisplayId(screenId);
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+
+    screenSession->SetTouchEnabledFromJs(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    auto isTouchable = sceneSession->GetWindowTouchableForMMI(screenId);
+    EXPECT_EQ(isTouchable, false);
+}
+
+/**
+ * @tc.name: GetWindowTouchableForMMITest003
+ * @tc.desc: GetWindowTouchableForMMI Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetWindowTouchableForMMITest003, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "event_test_bundleName";
+    sessionInfo.abilityName_ = "event_test_abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto screenId = 0;
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    sptr<DisplayInfo> displayInfo = new(std::nothrow) DisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetScreenId(screenId);
+    displayInfo->SetDisplayId(screenId);
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+
+    screenSession->SetTouchEnabledFromJs(true);
+    sceneSession->SetSystemTouchable(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    auto isTouchable = sceneSession->GetWindowTouchableForMMI(screenId);
+    EXPECT_EQ(isTouchable, false);
+}
+
+/**
+ * @tc.name: GetWindowTouchableForMMITest004
+ * @tc.desc: GetWindowTouchableForMMI Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetWindowTouchableForMMITest004, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "event_test_bundleName";
+    sessionInfo.abilityName_ = "event_test_abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto screenId = 0;
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    sptr<DisplayInfo> displayInfo = new(std::nothrow) DisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetScreenId(screenId);
+    displayInfo->SetDisplayId(screenId);
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+
+    screenSession->SetTouchEnabledFromJs(true);
+    sceneSession->SetSystemTouchable(true);
+    sceneSession->SetForegroundInteractiveStatus(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    auto isTouchable = sceneSession->GetWindowTouchableForMMI(screenId);
+    EXPECT_EQ(isTouchable, false);
+}
+
+/**
+ * @tc.name: GetWindowTouchableForMMITest005
+ * @tc.desc: GetWindowTouchableForMMI Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetWindowTouchableForMMITest005, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "event_test_bundleName";
+    sessionInfo.abilityName_ = "event_test_abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto screenId = 0;
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    sptr<DisplayInfo> displayInfo = new(std::nothrow) DisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetScreenId(screenId);
+    displayInfo->SetDisplayId(screenId);
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+
+    screenSession->SetTouchEnabledFromJs(true);
+    sceneSession->SetSystemTouchable(true);
+    sceneSession->SetForegroundInteractiveStatus(true);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    auto isTouchable = sceneSession->GetWindowTouchableForMMI(screenId);
+    EXPECT_EQ(isTouchable, true);
+}
+
+/**
+ * @tc.name: GetWindowTouchableForMMITest006
+ * @tc.desc: GetWindowTouchableForMMI Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionEventTest, GetWindowTouchableForMMITest006, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.isSystem_ = false;
+    sessionInfo.bundleName_ = "event_test_bundleName";
+    sessionInfo.abilityName_ = "event_test_abilityName";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    auto screenId = 0;
+    ScreenSessionConfig config;
+    sptr<ScreenSession> screenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    ASSERT_NE(screenSession, nullptr);
+    sptr<DisplayInfo> displayInfo = new(std::nothrow) DisplayInfo();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetScreenId(screenId);
+    displayInfo->SetDisplayId(screenId);
+    sceneSession->GetSessionProperty()->SetDisplayId(screenId);
+
+    screenSession->SetTouchEnabledFromJs(false);
+    sceneSession->SetSystemTouchable(false);
+    sceneSession->SetForegroundInteractiveStatus(false);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
+    auto isTouchable = sceneSession->GetWindowTouchableForMMI(screenId);
+    EXPECT_EQ(isTouchable, false);
 }
 }
 }

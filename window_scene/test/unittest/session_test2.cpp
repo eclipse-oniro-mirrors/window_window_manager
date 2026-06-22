@@ -85,6 +85,18 @@ private:
     sptr<WindowEventChannelMocker> mockEventChannel_ = nullptr;
 };
 
+class SurfaceNodeChangedSession : public Session {
+public:
+    explicit SurfaceNodeChangedSession(const SessionInfo& info) : Session(info) {}
+    bool isOnSurfaceNodeChangedCalled_ = false;
+
+protected:
+    void OnSurfaceNodeChanged() override
+    {
+        isOnSurfaceNodeChangedCalled_ = true;
+    }
+};
+
 void WindowSessionTest2::SetUpTestCase() {}
 
 void WindowSessionTest2::TearDownTestCase() {}
@@ -674,7 +686,7 @@ HWTEST_F(WindowSessionTest2, UpdateFocus02, TestSize.Level1)
 HWTEST_F(WindowSessionTest2, UpdateWindowMode01, TestSize.Level1)
 {
     ASSERT_NE(session_, nullptr);
-    ASSERT_EQ(WSError::WS_OK, session_->UpdateWindowMode(WindowMode::WINDOW_MODE_UNDEFINED));
+    ASSERT_EQ(WSError::WS_OK, session_->UpdateWindowMode(WindowModeInfo{ WindowMode::WINDOW_MODE_UNDEFINED }));
 }
 
 /**
@@ -795,14 +807,31 @@ HWTEST_F(WindowSessionTest2, SetAndGetShadowSurfaceNode, TestSize.Level1)
     session_->SetSurfaceNode(nullptr);
     EXPECT_EQ(session_->GetSurfaceNode(), nullptr);
     EXPECT_EQ(session_->GetShadowSurfaceNode(), nullptr);
-    EXPECT_EQ(session_->GetRSShadowContext(), nullptr);
 
     std::shared_ptr<RSSurfaceNode> surfaceNode = WindowSessionTest2::CreateRSSurfaceNode();
     EXPECT_NE(nullptr, surfaceNode);
     session_->SetSurfaceNode(surfaceNode);
     EXPECT_NE(session_->GetSurfaceNode(), nullptr);
     EXPECT_NE(session_->GetShadowSurfaceNode(), nullptr);
-    EXPECT_NE(session_->GetRSShadowContext(), nullptr);
+}
+
+/**
+ * @tc.name: SetSurfaceNodeTriggerOnSurfaceNodeChanged
+ * @tc.desc: SetSurfaceNode should trigger OnSurfaceNodeChanged callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest2, SetSurfaceNodeTriggerOnSurfaceNodeChanged, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetSurfaceNodeTriggerOnSurfaceNodeChanged";
+    info.bundleName_ = "SetSurfaceNodeTriggerOnSurfaceNodeChanged";
+    sptr<SurfaceNodeChangedSession> session = sptr<SurfaceNodeChangedSession>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+
+    std::shared_ptr<RSSurfaceNode> surfaceNode = WindowSessionTest2::CreateRSSurfaceNode();
+    ASSERT_NE(surfaceNode, nullptr);
+    session->SetSurfaceNode(surfaceNode);
+    EXPECT_TRUE(session->isOnSurfaceNodeChangedCalled_);
 }
 
 /**
@@ -816,14 +845,12 @@ HWTEST_F(WindowSessionTest2, SetAndGetLeashWinShadowSurfaceNode, TestSize.Level1
     session_->SetLeashWinSurfaceNode(nullptr);
     EXPECT_EQ(session_->GetLeashWinSurfaceNode(), nullptr);
     EXPECT_EQ(session_->GetLeashWinShadowSurfaceNode(), nullptr);
-    EXPECT_EQ(session_->GetRSLeashWinShadowContext(), nullptr);
 
     std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode = WindowSessionTest2::CreateRSSurfaceNode();
     EXPECT_NE(nullptr, leashWinSurfaceNode);
     session_->SetLeashWinSurfaceNode(leashWinSurfaceNode);
     EXPECT_NE(session_->GetLeashWinSurfaceNode(), nullptr);
     EXPECT_NE(session_->GetLeashWinShadowSurfaceNode(), nullptr);
-    EXPECT_NE(session_->GetRSLeashWinShadowContext(), nullptr);
 }
 
 /**
@@ -1657,6 +1684,32 @@ HWTEST_F(WindowSessionTest2, SetBorderUnoccupied, TestSize.Level1)
     bool res = session_->GetBorderUnoccupied();
     ASSERT_EQ(res, true);
 }
+
+/**
+ * @tc.name: TestGetMoveDragTargetSurfaceNode
+ * @tc.desc: Verify GetMoveDragTargetSurfaceNode in different scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest2, TestGetMoveDragTargetSurfaceNode, TestSize.Level1)
+{
+    // Case 1: leashWinSurfaceNode_ is not null, return leashWinSurfaceNode_
+    {
+        RSSurfaceNodeConfig config;
+        session_->leashWinSurfaceNode_ = RSSurfaceNode::Create(config);
+
+        auto result = session_->GetMoveDragTargetSurfaceNode();
+        EXPECT_EQ(result, session_->leashWinSurfaceNode_);
+    }
+
+    // Case 2: leashWinSurfaceNode_ is null, return surfaceNode_
+    {
+        session_->leashWinSurfaceNode_ = nullptr;
+
+        auto result = session_->GetMoveDragTargetSurfaceNode();
+        EXPECT_EQ(result, session_->surfaceNode_);
+    }
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

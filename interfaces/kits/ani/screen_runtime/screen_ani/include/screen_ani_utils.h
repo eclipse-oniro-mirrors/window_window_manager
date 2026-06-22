@@ -20,6 +20,7 @@
 #include "ani.h"
 #include "screen.h"
 #include "singleton_container.h"
+#include "window_manager_hilog.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -64,6 +65,46 @@ static ani_status GetScreenIdArrayFromAni(ani_env* env, ani_object mirrorScreen,
     std::vector<ScreenId>& mirrorScreenIds);
 
 static ani_status GetExpandOptionFromAni(ani_env* env, ani_object optionAniObj, ExpandOption& expandOption);
+
+template <typename T>
+static DmErrorCode GetOptionalFieldFromAni(ani_env* env, ani_object obj, T& value, const char* field);
+
+template <typename T>
+static void CastDefinedFieldToValue(ani_env* env, ani_object obj, T& value);
+};
+
+class AniVm {
+public:
+    explicit AniVm(ani_vm* vm) : vm_(vm) {}
+    ~AniVm()
+    {
+        if (vm_ == nullptr || !needDetach_) {
+            return;
+        }
+        auto ret = vm_->DetachCurrentThread();
+        TLOGD(WmsLogTag::DMS, "[ANI] detach: ret=%{public}d", static_cast<int32_t>(ret));
+    }
+ 
+    ani_env* GetAniEnv()
+    {
+        if (vm_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "[ANI] vm is null");
+            return nullptr;
+        }
+        ani_env* env = nullptr;
+        auto ret = vm_->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            ret = vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env);
+            needDetach_ = (ret == ANI_OK && env != nullptr);
+            TLOGD(WmsLogTag::DMS, "[ANI] attach: ret=%{public}d, needDetach=%{public}d",
+                static_cast<int32_t>(ret), needDetach_);
+        }
+        return env;
+    }
+
+private:
+    ani_vm* vm_ = nullptr;
+    bool needDetach_ = false;
 };
 }
 }

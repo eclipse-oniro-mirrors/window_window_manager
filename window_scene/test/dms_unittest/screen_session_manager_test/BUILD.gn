@@ -1,0 +1,279 @@
+# Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/test.gni")
+import("../../../../windowmanager_aafwk.gni")
+module_out_path = "window_manager/OH-DMS/window_scene"
+
+group("unittest") {
+  testonly = true
+
+  deps = [
+    ":ws_screen_session_manager_connect_test",
+  ]
+}
+
+test_external_deps = [
+  "ability_base:configuration",
+  "ability_base:base",
+  "ability_base:want",
+  "ability_base:zuri",
+  "ability_runtime:ability_manager",
+  "ability_runtime:app_manager",
+  "ability_runtime:session_handler",
+  "ability_runtime:abilitykit_native",
+  "ability_runtime:dataobs_manager",
+  "ability_runtime:extension_manager",
+  "ability_runtime:ability_connect_callback_stub",
+  "access_token:libaccesstoken_sdk",
+  "access_token:libprivacy_sdk",
+  "access_token:libtokenid_sdk",
+  "accessibility:accessibility_common",
+  "accessibility:accessibility_interface",
+  "googletest:gmock",
+  "googletest:gtest",
+  "googletest:gtest_main",
+  "hilog:libhilog",
+  "image_framework:image_native",
+  "input:libmmi-client",
+  "input:libmmi-napi",
+  "ipc:ipc_single",
+  "libxml2:libxml2",
+  "napi:ace_napi",
+  "safwk:system_ability_fwk",
+  "os_account:os_account_innerkits",
+  "bundle_framework:appexecfwk_base",
+  "c_utils:utils",
+  "common_event_service:cesfwk_innerkits",
+  "config_policy:configpolicy_util",
+  "data_share:datashare_common",
+  "data_share:datashare_consumer",
+  "eventhandler:libeventhandler",
+  "ffrt:libffrt",
+  "hicollie:libhicollie",
+  "hisysevent:libhisysevent",
+  "hitrace:hitrace_meter",
+  "ipc:ipc_core",
+  "samgr:samgr_proxy",
+  "init:libbegetutil",
+]
+
+test_source_common = [
+  "${window_base_path}/dm/src/zidl/display_manager_agent_proxy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager_client/src/zidl/screen_session_manager_client_proxy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/connection/screen_cast_connection.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/connection/screen_session_ability_connection.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/connection/screen_snapshot_picker_connection.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_change_utils.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_power_change_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/multi_screen_mode_change_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/publish/screen_session_publish.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/rs_event_data_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_aod_plugin.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_cutout_controller.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_edid_parse.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_power_utils.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_rotation_property.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_sensor_connector.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_session_dumper.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/motion_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_setting_helper.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_tent_property.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_power_fsm/session_display_power_controller.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_power_fsm/screen_state_machine.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_power_fsm/screen_state_timer.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/setting_observer.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/setting_provider.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/zidl/screen_session_manager_stub.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager_adapter.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/dual_display_fold_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_controller.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_sensor_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_state_machine.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/secondary_display_fold_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/secondary_fold_sensor_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/sensor_fold_state_manager/dual_display_sensor_fold_state_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/sensor_fold_state_manager/secondary_display_sensor_fold_state_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/sensor_fold_state_manager/single_display_sensor_fold_state_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/sensor_fold_state_manager/single_display_sensor_pocket_fold_state_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/single_display_fold_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/single_display_pocket_fold_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/super_fold_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/super_fold_sensor_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/super_fold_state_manager.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/fold_screen_base_controller.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/fold_screen_base_policy.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/fold_crease_region_controller.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/screen_sensor_mgr.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/fold_screen/sensor_fold_state_mgr.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/common/product_config.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/common/product_ext_wrapper.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/ffrt/ffrt_queue.cpp",
+
+  # ScreenSession
+  "${window_base_path}/window_scene/session/screen/src/screen_property.cpp",
+  "${window_base_path}/window_scene/session/screen/src/screen_session.cpp",
+
+  # utils
+  "${window_base_path}/utils/src/window_manager_hilog.cpp",
+  "${window_base_path}/utils/src/dms_global_mutex.cpp",
+  "${window_base_path}/utils/src/agent_death_recipient.cpp",
+  "${window_base_path}/utils/src/screenshot_info.cpp",
+  "${window_base_path}/utils/src/display_change_info.cpp",
+  "${window_base_path}/utils/src/display_info.cpp",
+  "${window_base_path}/utils/src/xml_config_base.cpp",
+  "${window_base_path}/utils/src/cutout_info.cpp",
+  "${window_base_path}/utils/src/rs_adapter.cpp",
+  "${window_base_path}/utils/src/ffrt_queue_helper.cpp",
+  "${window_base_path}/utils/src/task_sequence_process.cpp",
+  "${window_base_path}/utils/src/dms_xcollie.cpp",
+  "${window_base_path}/utils/src/sys_cap_util.cpp",
+  "${window_base_path}/utils/src/string_util.cpp",
+  "${window_base_path}/utils/src/screen_info.cpp",
+  "${window_base_path}/utils/src/screen_group_info.cpp",
+
+  # common
+  "${window_base_path}/window_scene/common/src/dms_task_scheduler.cpp",
+  "${window_base_path}/window_scene/common/src/task_scheduler.cpp",
+
+  # mock
+  "../mock/sensor/sensor_agent.cpp",
+  "../mock/sensor/screen_sensor_plugin_mock.cpp",
+  "../mock/sensor/sensor_plugin_mock_impl.cpp",
+  "../mock/inner_mock/mock_scene_board_judgement.cpp",
+  "../mock/inner_mock/mock_session_permission.cpp",
+  "../mock/rs/transaction/mock_rs_interfaces.cpp",
+  "../mock/rs/rs_mock_impl.cpp",
+  "../mock/product_mock/product_config_mock.cpp",
+  "../mock/init/param_mock.cpp",
+  "../mock/inner_mock/mock_screen_scene_config.cpp",
+  "../mock/inner_mock/mock_permission.cpp",
+]
+
+ohos_unittest("ws_screen_session_manager_connect_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "screen_session_manager_connect_test.cpp",
+  ]
+
+  deps = [ ":dms_unittest_base" ]
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_screen_sensor_tent_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "screen_sensor_tent_test.cpp",
+  ]
+
+  deps = [ ":dms_unittest_base" ]
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  external_deps = test_external_deps
+}
+
+config("dms_unittest_base_config") {
+  include_dirs = [
+    "${window_base_path}/interfaces/innerkits/wm",
+    "${window_base_path}/interfaces/include",
+    "${window_base_path}/window_scene",
+    "${window_base_path}/window_scene/common/include",
+    "${window_base_path}/window_scene/interfaces/include",
+    "${window_base_path}/window_scene/screen_session_manager/include",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/fold_screen",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/common",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/ffrt",
+    "${window_base_path}/window_scene/screen_session_manager/include/zidl",
+    "${window_base_path}/window_scene/session_manager_service/include",
+
+    # for screen_session_manager
+    "${window_base_path}/utils/include",
+    "${window_base_path}/dm/include",
+    "${window_base_path}/interfaces/innerkits/dm",
+    "${window_base_path}/dmserver/include",
+
+    # for scene session manager
+    "${window_base_path}/interfaces/innerkits/wm",
+    "${window_base_path}/window_scene/screen_session_manager_client/include",
+
+    # for window_manager_hilog
+    "${window_base_path}/utils/include",
+
+    "${window_base_path}/wm/include",
+    "${window_base_path}/wm/include/zidl",
+
+    # for mock
+    "${window_base_path}/window_scene/interfaces/innerkits/include",
+    "../dms_test_framework",
+    "../mock/power_manager",
+    "../mock/sensor",
+    "../mock/inner_mock",
+    "../mock/rs",
+    "../mock/product_mock",
+    "../mock/init",
+  ]
+}
+
+ohos_static_library("dms_unittest_base") {
+  visibility = [ ":*" ]
+  testonly = true
+
+  public_configs = [
+    ":dms_unittest_base_config",
+    "${window_base_path}/resources/config/build:coverage_flags",
+    "${window_base_path}/wmserver:libidl_config",
+  ]
+
+  deps = []
+
+  sources = test_source_common
+  sources += [
+    "../dms_test_framework/dms_test_base.cpp",
+  ]
+  
+  external_deps = test_external_deps
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  defines = [ 
+    "FOLD_ABILITY_ENABLE",
+    "POWER_MANAGER_ENABLE",
+    "SENSOR_ENABLE",
+    "DMS_UNIT_TEST",
+    "WM_SUBSCRIBE_MOTION_ENABLE",
+  ]
+
+  part_name = "window_manager"
+  subsystem_name = "window"
+}

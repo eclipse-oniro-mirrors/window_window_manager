@@ -18,8 +18,13 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-    constexpr uint32_t SLEEP_TIME_US = 10000;
-    constexpr uint32_t RETRY_TIMES = 3;
+constexpr uint32_t SLEEP_TIME_US = 10000;
+constexpr uint32_t RETRY_TIMES = 3;
+#if (defined(__aarch64__) || defined(__x86_64__))
+const std::string INTENTION_EVENT_SO_PATH = "/system/lib64/libintention_event.z.so";
+#else
+const std::string INTENTION_EVENT_SO_PATH = "/system/lib/libintention_event.z.so";
+#endif
 }
 
 static void *g_handle = nullptr;

@@ -30,45 +30,49 @@
 
 namespace OHOS {
 namespace Rosen {
-const std::string WINDOW_SIZE_CHANGE_CB = "windowSizeChange";
-const std::string SYSTEM_BAR_TINT_CHANGE_CB = "systemBarTintChange";
-const std::string SYSTEM_AVOID_AREA_CHANGE_CB = "systemAvoidAreaChange";
-const std::string AVOID_AREA_CHANGE_CB = "avoidAreaChange";
-const std::string LIFECYCLE_EVENT_CB = "lifeCycleEvent";
-const std::string WINDOW_STAGE_EVENT_CB = "windowStageEvent";
-const std::string WINDOW_STAGE_LIFECYCLE_EVENT_CB = "windowStageLifecycleEvent";
-const std::string WINDOW_EVENT_CB = "windowEvent";
-const std::string KEYBOARD_HEIGHT_CHANGE_CB = "keyboardHeightChange";
-const std::string KEYBOARD_WILL_SHOW_CB = "keyboardWillShow";
-const std::string KEYBOARD_WILL_HIDE_CB = "keyboardWillHide";
-const std::string KEYBOARD_DID_SHOW_CB = "keyboardDidShow";
-const std::string KEYBOARD_DID_HIDE_CB = "keyboardDidHide";
-const std::string TOUCH_OUTSIDE_CB = "touchOutside";
-const std::string SCREENSHOT_EVENT_CB = "screenshot";
-const std::string SCREENSHOT_APP_EVENT_CB = "screenshotAppEvent";
-const std::string DIALOG_TARGET_TOUCH_CB = "dialogTargetTouch";
-const std::string DIALOG_DEATH_RECIPIENT_CB = "dialogDeathRecipient";
-const std::string GESTURE_NAVIGATION_ENABLED_CHANGE_CB = "gestureNavigationEnabledChange";
-const std::string WATER_MARK_FLAG_CHANGE_CB = "waterMarkFlagChange";
-const std::string WINDOW_VISIBILITY_CHANGE_CB = "windowVisibilityChange";
-const std::string OCCLUSION_STATE_CHANGE_CB = "occlusionStateChanged";
-const std::string FRAME_METRICS_MEASURED_CHANGE_CB = "frameMetricsMeasured";
-const std::string WINDOW_DISPLAYID_CHANGE_CB = "displayIdChange";
-const std::string SYSTEM_DENSITY_CHANGE_CB = "systemDensityChange";
-const std::string ACROSS_DISPLAYS_CHANGE_CB = "mainWindowFullScreenAcrossDisplaysChanged";
-const std::string WINDOW_STATUS_CHANGE_CB = "windowStatusChange";
-const std::string WINDOW_STATUS_DID_CHANGE_CB = "windowStatusDidChange";
-const std::string WINDOW_TITLE_BUTTON_RECT_CHANGE_CB = "windowTitleButtonRectChange";
-const std::string WINDOW_NO_INTERACTION_DETECT_CB = "noInteractionDetected";
-const std::string WINDOW_RECT_CHANGE_CB = "windowRectChange";
-const std::string RECT_CHANGE_IN_GLOBAL_DISPLAY_CB = "rectChangeInGlobalDisplay";
-const std::string SUB_WINDOW_CLOSE_CB = "subWindowClose";
-const std::string WINDOW_STAGE_CLOSE_CB = "windowStageClose";
-const std::string EXTENSION_SECURE_LIMIT_CHANGE_CB = "uiExtensionSecureLimitChange";
-const std::string WINDOW_HIGHLIGHT_CHANGE_CB = "windowHighlightChange";
-const std::string WINDOW_WILL_CLOSE_CB = "windowWillClose";
-const std::string WINDOW_ROTATION_CHANGE_CB = "rotationChange";
-const std::string FREE_WINDOW_MODE_CHANGE_CB = "freeWindowModeChange";
+extern const std::string WINDOW_SIZE_CHANGE_CB;
+extern const std::string SYSTEM_BAR_TINT_CHANGE_CB;
+extern const std::string SYSTEM_AVOID_AREA_CHANGE_CB;
+extern const std::string AVOID_AREA_CHANGE_CB;
+extern const std::string LIFECYCLE_EVENT_CB;
+extern const std::string WINDOW_STAGE_EVENT_CB;
+extern const std::string WINDOW_STAGE_LIFECYCLE_EVENT_CB;
+extern const std::string WINDOW_EVENT_CB;
+extern const std::string KEYBOARD_HEIGHT_CHANGE_CB;
+extern const std::string KEYBOARD_WILL_SHOW_CB;
+extern const std::string KEYBOARD_WILL_HIDE_CB;
+extern const std::string KEYBOARD_DID_SHOW_CB;
+extern const std::string KEYBOARD_DID_HIDE_CB;
+extern const std::string TOUCH_OUTSIDE_CB;
+extern const std::string SCREENSHOT_EVENT_CB;
+extern const std::string SCREENSHOT_APP_EVENT_CB;
+extern const std::string DIALOG_TARGET_TOUCH_CB;
+extern const std::string DIALOG_DEATH_RECIPIENT_CB;
+extern const std::string GESTURE_NAVIGATION_ENABLED_CHANGE_CB;
+extern const std::string WATER_MARK_FLAG_CHANGE_CB;
+extern const std::string WINDOW_VISIBILITY_CHANGE_CB;
+extern const std::string OCCLUSION_STATE_CHANGE_CB;
+extern const std::string FRAME_METRICS_MEASURED_CHANGE_CB;
+extern const std::string WINDOW_DISPLAYID_CHANGE_CB;
+extern const std::string SYSTEM_DENSITY_CHANGE_CB;
+extern const std::string ACROSS_DISPLAYS_CHANGE_CB;
+extern const std::string WINDOW_STATUS_CHANGE_CB;
+extern const std::string WINDOW_STATUS_DID_CHANGE_CB;
+extern const std::string PARENT_WINDOW_SIZE_CHANGE_CB;
+extern const std::string PARENT_WINDOW_STATUS_CHANGE_CB;
+extern const std::string WINDOW_TITLE_BUTTON_RECT_CHANGE_CB;
+extern const std::string WINDOW_NO_INTERACTION_DETECT_CB;
+extern const std::string WINDOW_RECT_CHANGE_CB;
+extern const std::string RECT_CHANGE_IN_GLOBAL_DISPLAY_CB;
+extern const std::string SUB_WINDOW_CLOSE_CB;
+extern const std::string WINDOW_STAGE_CLOSE_CB;
+extern const std::string EXTENSION_SECURE_LIMIT_CHANGE_CB;
+extern const std::string WINDOW_HIGHLIGHT_CHANGE_CB;
+extern const std::string WINDOW_WILL_CLOSE_CB;
+extern const std::string WINDOW_ROTATION_CHANGE_CB;
+extern const std::string FREE_WINDOW_MODE_CHANGE_CB;
+extern const std::string APPLICATION_FOCUS_STATE_CHANGE_CB;
+extern const std::string PARENT_LIFECYCLE_EVENT_CB;
 
 class JsWindowListener : public IWindowChangeListener,
                          public ISystemBarChangedListener,
@@ -82,6 +86,7 @@ class JsWindowListener : public IWindowChangeListener,
                          public IDialogTargetTouchListener,
                          public IDialogDeathRecipientListener,
                          public IWaterMarkFlagChangedListener,
+                         public IApplicationFocusChangedListener,
                          public IGestureNavigationEnabledChangedListener,
                          public IWindowVisibilityChangedListener,
                          public IOcclusionStateChangedListener,
@@ -92,6 +97,8 @@ class JsWindowListener : public IWindowChangeListener,
                          public IWindowTitleButtonRectChangedListener,
                          public IWindowStatusChangeListener,
                          public IWindowStatusDidChangeListener,
+                         public IParentWindowSizeChangeListener,
+                         public IParentWindowStatusChangeListener,
                          public IWindowNoInteractionListener,
                          public IWindowRectChangeListener,
                          public IRectChangeInGlobalDisplayListener,
@@ -105,7 +112,8 @@ class JsWindowListener : public IWindowChangeListener,
                          public IKeyboardWillHideListener,
                          public IKeyboardDidShowListener,
                          public IKeyboardDidHideListener,
-                         public IFreeWindowModeChangeListener {
+                         public IFreeWindowModeChangeListener,
+                         public IParentLifecycleEventListener {
 public:
     JsWindowListener(napi_env env, std::shared_ptr<NativeReference> callback, CaseType caseType)
         : env_(env), jsCallBack_(callback), caseType_(caseType), weakRef_(wptr<JsWindowListener> (this)) {}
@@ -142,6 +150,7 @@ public:
     void OnDialogDeathRecipient() const override;
     void OnGestureNavigationEnabledUpdate(bool enable) override;
     void OnWaterMarkFlagUpdate(bool showWaterMark) override;
+    void OnApplicationFocusUpdate(bool isFocused) override;
     napi_value CallJsMethod(const char* methodName, napi_value const * argv = nullptr, size_t argc = 0);
     void SetMainEventHandler();
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;
@@ -153,6 +162,8 @@ public:
 
     void OnWindowStatusChange(WindowStatus status) override;
     void OnWindowStatusDidChange(WindowStatus status) override;
+    void OnParentWindowSizeChange(Rect rect) override;
+    void OnParentWindowStatusChange(WindowStatus status) override;
     void OnWindowNoInteractionCallback() override;
     void OnWindowTitleButtonRectChanged(const TitleButtonRect& titleButtonRect) override;
     void SetTimeout(int64_t timeout) override;
@@ -182,6 +193,12 @@ public:
      * Window Decor listener
      */
     std::atomic<uint32_t> asyncCloseExecuteCount_ { 0 };
+
+    void OnParentForeground(int32_t windowId) override;
+    void OnParentActive(int32_t windowId) override;
+    void OnParentInactive(int32_t windowId) override;
+    void OnParentBackground(int32_t windowId) override;
+    void OnParentDestroyed(int32_t windowId) override;
 
 private:
     void OnLastStrongRef(const void *) override;

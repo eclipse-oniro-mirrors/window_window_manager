@@ -20,6 +20,7 @@
 #include <refbase.h>
 #include <pixel_map.h>
 #include <iremote_object.h>
+#include <optional>
 
 #include "wm_common.h"
 #include "window_option.h"
@@ -65,6 +66,7 @@ class RSTransaction;
 class RSUIContext;
 class RSUIDirector;
 using NotifyNativeWinDestroyFunc = std::function<void(std::string windowName)>;
+using NotifyOrientationExecutionResultFunc = std::function<void(uint32_t, OrientationExecutionResult)>;
 using SendRenderDataCallback = bool (*)(const void*, const size_t, const int32_t, const int32_t, const uint64_t);
 using ContentInfoCallback = std::function<void(std::string contentInfo)>;
 enum class ImageFit;
@@ -108,10 +110,6 @@ class IAnimationTransitionController : virtual public RefBase {
 public:
     virtual void AnimationForShown() = 0;
     virtual void AnimationForHidden() = 0;
-};
-class ISystemBarPropertyListener : virtual public RefBase {
-public:
-    virtual void OnSystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 };
 class IScreenshotListener : virtual public RefBase {
 };
@@ -165,6 +163,7 @@ public:
 
     virtual const std::shared_ptr<AbilityRuntime::Context> GetContext() const = 0;
     virtual Rect GetRect() const = 0;
+    virtual Rect GetRect(bool useHookedSize) const = 0;
     virtual Rect GetRequestRect() const = 0;
 
     /**
@@ -172,7 +171,7 @@ public:
      *
      * @return The rectangle (position and size) of the window in global coordinates.
      */
-    virtual Rect GetGlobalDisplayRect() const { return { 0, 0, 0, 0 }; }
+    virtual Rect GetGlobalDisplayRect(bool useHookedSize = false) const { return { 0, 0, 0, 0 }; }
 
     /**
      * @brief Convert a position from client (window-relative) coordinates to global coordinates.
@@ -200,6 +199,7 @@ public:
 
     virtual WindowType GetType() const = 0;
     virtual WindowMode GetWindowMode() const = 0;
+    virtual WindowMode GetWindowModeCompat() const = 0;
     virtual float GetAlpha() const = 0;
     virtual const std::string& GetWindowName() const = 0;
     virtual uint32_t GetWindowId() const = 0;
@@ -232,6 +232,10 @@ public:
         const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
         const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags)
         { return WMError::WM_OK; }
+    virtual WMError SetOwnSystemBarProperty(WindowType type, const PartialSystemBarProperty& prop,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
+    virtual WMError RemoveOwnSystemBarProperty(WindowType type, const SystemBarPropertyFlag& flag,
+        SystemBarPropertyOwner owner) { return WMError::WM_OK; }
     virtual void UpdateSpecificSystemBarEnabled(bool systemBarEnable, bool systemBarEnableAnimation,
         SystemBarProperty& property) {}
     virtual WMError UpdateSystemBarPropertyForPage(WindowType type,
@@ -241,8 +245,7 @@ public:
     }
     virtual WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property) = 0;
     virtual WMError SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) = 0;
-    virtual WMError SetSystemBarProperties(const std::map<WindowType, SystemBarProperty>& properties,
-        const std::map<WindowType, SystemBarPropertyFlag>& propertyFlags) = 0;
+    virtual WMError SetStatusBarColorForNavigation(const std::optional<uint32_t> color) = 0;
     virtual WMError GetSystemBarProperties(std::map<WindowType, SystemBarProperty>& properties) = 0;
     virtual WMError SetFullScreen(bool status) = 0;
     virtual WMError SetLayoutFullScreen(bool status) = 0;
@@ -276,10 +279,12 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
-    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-    virtual WMError Resize(uint32_t width, uint32_t height, const RectAnimationConfig& rectAnimationConfig = {}) = 0;
-    virtual WMError ResizeAsync(uint32_t width, uint32_t height,
-        const RectAnimationConfig& rectAnimationConfig = {}) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual WMError Resize(uint32_t width, uint32_t height) = 0;
+    virtual WMError ResizeAsync(uint32_t width, uint32_t height) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) = 0;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) = 0;
     virtual bool IsKeepScreenOn() const = 0;
@@ -332,6 +337,8 @@ public:
     virtual WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) = 0;
     virtual WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) = 0;
     virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) = 0;
+    virtual WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener,
+        bool useHookedSize) = 0;
     virtual WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) = 0;
     virtual WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) = 0;
     virtual WMError UnregisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener) = 0;
@@ -341,6 +348,8 @@ public:
     virtual WMError UnregisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) = 0;
     virtual void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func) = 0;
     virtual void UnregisterWindowDestroyedListener() {}
+    virtual void RegisterNotifyOrientationExecutionResultFunc(const NotifyOrientationExecutionResultFunc& func) {};
+    virtual void UnregisterNotifyOrientationExecutionResultFunc() {}
     virtual WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener) = 0;
     virtual WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener) = 0;
     virtual WMError RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) = 0;
@@ -382,6 +391,11 @@ public:
     virtual Ace::UIContent* GetUIContent() const = 0;
     virtual void OnNewWant(const AAFwk::Want& want) = 0;
     virtual void SetRequestedOrientation(Orientation) = 0;
+    virtual WMError SetPreferredOrientationWithResult(
+        Orientation orientation, uint32_t promiseId, bool needAnimation = true)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
@@ -429,6 +443,18 @@ public:
     virtual WMError SetFollowParentMultiScreenPolicy(bool enabled) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual void StartMove() = 0;
     virtual WmErrorCode StartMoveWindow() { return WmErrorCode::WM_OK; }
+
+    /**
+     * @brief Start moving window with options.
+     *
+     * @param options Options to control focus request and avoid region during this movement.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError StartMovingWithOptions(const StartMovingOptions& options)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX,
         int32_t offsetY) { return WmErrorCode::WM_OK; }
     virtual WmErrorCode StopMoveWindow() { return WmErrorCode::WM_OK; }
@@ -562,7 +588,10 @@ public:
      * @param isModal bool.
      * @return WMError
      */
-    virtual WMError SetWindowModal(bool isModal) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetWindowModal(bool isModal)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set the modality of sub window.
@@ -598,7 +627,30 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    /**
+     * @brief Raise main window above another.
+     *
+     * @param targetId Indicates the id of the target main window.
+     * @return WM_OK means raise success, others means raise failed.
+     */
+    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual WMError Recover(uint32_t reason = 0) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    
+    /**
+     * @brief Recovery the main window with snapshot animation config.
+     *
+     * @param reason Reason of update.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     virtual WMError Maximize(MaximizePresentation present) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
@@ -614,7 +666,36 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
 
+    /**
+     * @brief Maximize window with presentation, across-display presentation, and snapshot animation config.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param acrossDisplayPresentation The across-display presentation to apply when maximizing.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError MaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation acrossDisplayPresentation, const SnapshotAnimationConfig& snapshotAnimationConfig)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
     virtual WMError SetWindowMask(const std::vector<std::vector<uint32_t>>& windowMask)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    virtual WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Clear the window mask of window.
+     *
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError ClearWindowMask()
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
@@ -659,6 +740,20 @@ public:
      * @return WM_OK means get success, others means get failed.
      */
     virtual WMError GetGestureBackEnabled(bool& enable) const { return WMError::WM_OK; }
+
+    /*
+     * @brief Set whether to enable float navigation avoid area.
+     * @param enable value true means to enable float navigation avoid area, and false means to opposite.
+     * @return WM_OK means set success, others means set failed.
+     */
+    virtual WMError SetFloatNavigationAvoidAreaEnabled(bool enable) { return WMError::WM_OK; }
+
+    /*
+     * @brief Get whether to enable float navigation avoid area.
+     * @param enable value true means to enable float navigation avoid area, and false means to opposite.
+     * @return WM_OK means get success, others means get failed.
+     */
+    virtual WMError GetFloatNavigationAvoidAreaEnabled(bool& enable) const { return WMError::WM_OK; }
 
     /**
      * @brief Flush layout size.
@@ -741,36 +836,6 @@ public:
      * @param WindowType of the root host window.
      */
     virtual void SetRootHostWindowType(WindowType& rootHostWindowType) {}
-
-    /**
-     * @brief Register SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means register success, others means register failed.
-     */
-    virtual WMError RegisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Unregister SystemBarProperty listener.
-     *
-     * @param listener ISystemBarPropertyListener.
-     * @return WM_OK means unregister success, others means unregister failed.
-     */
-    virtual WMError UnregisterSystemBarPropertyListener(const sptr<ISystemBarPropertyListener>& listener)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
-
-    /**
-     * @brief Notify SystemBarProperty listener.
-     *
-     * @param type The WindowType.
-     * @param property new property value setted by developer.
-     */
-    virtual void NotifySystemBarPropertyUpdate(WindowType type, const SystemBarProperty& property) {}
 
     /**
      * @brief Get window state snapshot.
@@ -877,7 +942,10 @@ public:
      * @param windowPropertyInfo the window property struct.
      * @return WMError.
      */
-    virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo) { return WMError::WM_OK; }
+    virtual WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize = true)
+    {
+        return WMError::WM_OK;
+    }
 
     /**
      * @brief notify avoid area for compatible mode app
@@ -887,28 +955,17 @@ public:
      /**
      * @brief The comaptible mode app adapt to immersive or not.
      *
-     * @return true comptbleMode adapt to immersive, others means not.
+     * @return true means compatible app adapt to immersive, others means not.
      */
     virtual bool IsAdaptToCompatibleImmersive() const { return false; }
 
     /**
      * @brief Set the source of subwindow.
      *
-     * @param source 0 - defalut, 1 - arkui.
-     * @return WM_OK means set success.
+     * @param source 0 - default, 1 - arkui.
+     * @return WM_OK means set success, others means failed.
      */
-    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-
-    /**
-     * @brief Raise main window above another.
-     *
-     * @param targetId Indicates the id of the target main window.
-     * @return WM_OK means raise success, others means raise failed.
-     */
-    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+    virtual WMError SetSubWindowSource(SubWindowSource source) { return WMError::WM_OK; }
 
     /**
      * @brief Set whether this window limits screen rotation when this window is shown.
@@ -981,6 +1038,11 @@ public:
      * @brief Flush vsync for prelaunch.
      */
     virtual void FlushVsync() {}
+
+    /**
+     * @brief Destroy window ui content
+     */
+    virtual void ReleaseUIContent() {}
 };
 }
 }

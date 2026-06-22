@@ -18,6 +18,7 @@
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "mock/mock_accesstoken_kit.h"
+#include "pointer_event.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
@@ -174,6 +175,37 @@ HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChange01, TestSize.Le
     ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap, type);
     ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
     ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap, type);
+}
+
+/**
+ * @tc.name: ProcessVirtualPixelRatioChangeByDpiChange
+ * @tc.desc: ProcessVirtualPixelRatioChange when display DPI changes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChangeByDpiChange, TestSize.Level1)
+{
+    DisplayId defaultDisplayId = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    std::map<DisplayId, sptr<DisplayInfo>> displayInfoMap;
+    bool isCallbackCalled = false;
+    constexpr float virtualPixelRatio = 2.0f;
+
+    ASSERT_NE(nullptr, displayInfo);
+    ASSERT_NE(nullptr, ssm_);
+    displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
+    displayInfo->SetDensityInCurResolution(virtualPixelRatio);
+    ProcessVirtualPixelRatioChangeFunc func = [&isCallbackCalled](
+        float ratio, const OHOS::Rosen::Rect& rect) {
+        isCallbackCalled = true;
+        EXPECT_FLOAT_EQ(ratio, virtualPixelRatio);
+    };
+    ssm_->SetVirtualPixelRatioChangeListener(func);
+
+    ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap,
+        DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
+
+    EXPECT_TRUE(isCallbackCalled);
+    ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
 }
 
 /**
@@ -334,7 +366,7 @@ HWTEST_F(SceneSessionManagerTest7, FlushUIParams03, Function | SmallTest | Level
     ssm_->FlushUIParams(screenId, std::move(uiParams));
     usleep(WAIT_SYNC_IN_NS);
     EXPECT_EQ(false, keyboardSession->stateChanged_);
-    
+
     uiParams.clear();
     uiParams.insert(std::make_pair(1, callingSessionUIParam));
     uiParams.insert(std::make_pair(3, keyboardSessionUIParam));
@@ -1235,30 +1267,6 @@ HWTEST_F(SceneSessionManagerTest7, NotifySessionMovedToFront05, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateNormalSessionAvoidArea02
- * @tc.desc: UpdateNormalSessionAvoidArea
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest7, UpdateNormalSessionAvoidArea02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "SceneSessionManagerTest7";
-    sessionInfo.abilityName_ = "UpdateNormalSessionAvoidArea02";
-    sessionInfo.isSystem_ = true;
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(nullptr, sceneSession);
-    sceneSession->isVisible_ = true;
-    sceneSession->state_ = SessionState::STATE_FOREGROUND;
-    sceneSession->GetLayoutController()->SetSessionRect({ 1, 1, 1, 1 });
-    int32_t persistentId = 1;
-    bool needUpdate = true;
-    ASSERT_NE(nullptr, ssm_);
-    ssm_->avoidAreaListenerSessionSet_.clear();
-    ssm_->avoidAreaListenerSessionSet_.insert(persistentId);
-    ssm_->UpdateNormalSessionAvoidArea(persistentId, sceneSession, needUpdate);
-}
-
-/**
  * @tc.name: SetSessionSnapshotSkipForAppProcess
  * @tc.desc: SceneSesionManager SetSessionSnapshotSkipForAppProcess
  * @tc.type: FUNC
@@ -1347,7 +1355,7 @@ HWTEST_F(SceneSessionManagerTest7, TestReportIncompleteScreenFoldStatusChangeEve
 HWTEST_F(SceneSessionManagerTest7, SetAppForceLandscapeConfig, TestSize.Level1)
 {
     std::string bundleName = "SetAppForceLandscapeConfig";
-    AppForceLandscapeConfig config = { 0, false, false, {}, {}, {}, false, false, false, false };
+    AppForceLandscapeConfig config = {};
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     ASSERT_EQ(result, WSError::WS_OK);
 }
@@ -1374,13 +1382,9 @@ HWTEST_F(SceneSessionManagerTest7, SetAppForceLandscapeConfig02, TestSize.Level1
 {
     std::string bundleName = "com.example.app";
     AppForceLandscapeConfig config;
-    config.mode_ = 5; // 5: FORCE_SPLIT_MODE
-    config.supportSplit_ = 5;
 
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     EXPECT_EQ(result, WSError::WS_OK);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].mode_, 5);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].supportSplit_, 5);
 }
 
 /**
@@ -1392,31 +1396,12 @@ HWTEST_F(SceneSessionManagerTest7, SetAppForceLandscapeConfig03, TestSize.Level1
 {
     std::string bundleName = "com.example.app";
     AppForceLandscapeConfig preConfig;
-    preConfig.mode_ = 0;
-    preConfig.supportSplit_ = -1;
     ssm_->appForceLandscapeMap_[bundleName] = preConfig;
 
     AppForceLandscapeConfig config;
-    config.mode_ = 5; // 5: FORCE_SPLIT_MODE
-    config.supportSplit_ = 5;
 
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     EXPECT_EQ(result, WSError::WS_OK);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].mode_, 5);
-    EXPECT_EQ(ssm_->appForceLandscapeMap_[bundleName].supportSplit_, 5);
-}
-
-/**
- * @tc.name: GetAppForceLandscapeConfig
- * @tc.desc: SceneSesionManager GetAppForceLandscapeConfig
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest7, GetAppForceLandscapeConfig, TestSize.Level1)
-{
-    std::string bundleName = "GetAppForceLandscapeConfig";
-    AppForceLandscapeConfig config = ssm_->GetAppForceLandscapeConfig(bundleName);
-    EXPECT_EQ(config.mode_, 0);
-    EXPECT_EQ(config.supportSplit_, -1);
 }
 
 /**
@@ -1431,6 +1416,23 @@ HWTEST_F(SceneSessionManagerTest7, SetSessionWatermarkForAppProcess, TestSize.Le
     sceneSession->SetCallingPid(1);
     ASSERT_FALSE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
     ssm_->processWatermarkPidMap_.insert({ 1, "test" });
+    ASSERT_TRUE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
+    ssm_->processWatermarkPidMap_.erase(1);
+}
+
+/**
+ * @tc.name: SetSessionWatermarkForAppProcess01
+ * @tc.desc: test the consistency of the pid in map and sceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest7, SetSessionWatermarkForAppProcess01, TestSize.Level0)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(info, nullptr);
+    sceneSession->SetCallingPid(-1);
+    ssm_->processWatermarkPidMap_.insert({ 1, "test" });
+    ASSERT_FALSE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
+    sceneSession->SetCallingPid(1);
     ASSERT_TRUE(ssm_->SetSessionWatermarkForAppProcess(sceneSession));
     ssm_->processWatermarkPidMap_.erase(1);
 }
@@ -1732,7 +1734,7 @@ HWTEST_F(SceneSessionManagerTest7, SetImageForRecent001, TestSize.Level1)
     abilityInfo->applicationInfo = applicationInfo;
     sceneSession->SetAbilitySessionInfo(abilityInfo);
     result = ssm_->SetImageForRecent(1, ImageFit::FILL, sceneSession->GetPersistentId());
-    ASSERT_EQ(result, WMError::WM_ERROR_NOT_SYSTEM_APP);
+    ASSERT_EQ(result, WMError::WM_ERROR_NULLPTR);
 
     applicationInfo.isSystemApp = true;
     abilityInfo->applicationInfo = applicationInfo;

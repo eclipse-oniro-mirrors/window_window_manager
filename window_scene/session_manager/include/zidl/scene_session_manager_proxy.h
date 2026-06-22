@@ -30,7 +30,8 @@ public:
     WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-        SystemSessionConfig& systemConfig, sptr<IRemoteObject> token = nullptr) override;
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        sptr<IRemoteObject> token = nullptr) override;
     WSError RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, sptr<ISession>& session, sptr<IRemoteObject> token = nullptr) override;
@@ -47,6 +48,7 @@ public:
     WMError RequestFocusStatusBySA(int32_t persistentId, bool isFocused = true,
         bool byForeground = true, FocusChangeReason reason = FocusChangeReason::SA_REQUEST) override;
     WSError RaiseWindowToTop(int32_t persistentId) override;
+    WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo) override;
 
     /*
      * Sub Window
@@ -72,7 +74,7 @@ public:
     WSError PendingSessionToForeground(const sptr<IRemoteObject>& token,
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
-        bool shouldBackToCaller = true) override;
+        bool shouldBackToCaller = true, int32_t reason = 0) override;
     WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot) override;
     WMError GetSnapshotByWindowId(int32_t persistentId, std::shared_ptr<Media::PixelMap>& pixelMap) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
@@ -84,6 +86,8 @@ public:
     WSError GetSessionInfos(const std::string& deviceId, int32_t numMax,
                             std::vector<SessionInfoBean>& sessionInfos) override;
     WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId, SessionInfoBean& sessionInfo) override;
+    WSError GetSessionInfo(const std::string& deviceId, int32_t persistentId, SessionInfoBean& sessionInfo,
+        AAFwk::DisplayInfo& displayInfo) override;
     WSError GetSessionInfoByContinueSessionId(const std::string& continueSessionId,
         SessionInfoBean& sessionInfo) override;
 
@@ -97,7 +101,10 @@ public:
     WSError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener) override;
     WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener) override;
     WSError UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener) override;
+    WMError UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener) override;
     WMError UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener) override;
+    WMError GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr) override;
+    WSError NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha) override;
     WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,
                                SessionSnapshot& snapshot, bool isLowResolution) override;
     WSError GetUIContentRemoteObj(int32_t persistentId, sptr<IRemoteObject>& uiContentRemoteObj) override;
@@ -117,19 +124,29 @@ public:
     WMError NotifyWatchFocusActiveChange(bool isActive) override;
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) override;
-    WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos) override;
+    WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
+        const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override;
     WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos) override;
     WMError GetMainWindowSnapshot(const std::vector<int32_t>& windowIds, const WindowSnapshotConfiguration& config,
         const sptr<IRemoteObject>& callback) override;
+    WMError Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap,
+        int32_t persistentId, const SnapshotConfig& config) override;
+    WMError SetWindowSnapshotSkip(int32_t windowId, bool isSkip) override;
     WMError GetGlobalWindowMode(DisplayId displayId, GlobalWindowMode& globalWinMode) override;
     WMError GetTopNavDestinationName(int32_t windowId, std::string& topNavDestName) override;
+    WMError SetScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap, uint32_t priority,
+        std::string& bundleName) override;
+    WMError CleanScreenWatermarkImage(const std::shared_ptr<Media::PixelMap>& pixelMap) override;
+    WMError RecoverScreenWatermarkImage(const std::string& bundleName, uint32_t priority) override;
     WMError SetWatermarkImageForApp(const std::shared_ptr<Media::PixelMap>& pixelMap,
         std::string& watermarkName) override;
     WMError RecoverWatermarkImageForApp(const std::string& watermarkName) override;
-    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
+    WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
+        bool useHookedSize = true) override;
     WSError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId) override;
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override;
     WSError ResetSpecificWindowZIndex(int32_t pid) override;
+    WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override;
     void AddExtensionWindowStageToSCB(const sptr<ISessionStage>& sessionStage,
         const sptr<IRemoteObject>& token, uint64_t surfaceNodeId, int64_t startModalExtensionTimeStamp,
         bool isConstrainedModal = false) override;
@@ -140,8 +157,9 @@ public:
     WSError AddOrRemoveSecureSession(int32_t persistentId, bool shouldHide) override;
     WSError UpdateExtWindowFlags(const sptr<IRemoteObject>& token, uint32_t extWindowFlags,
         uint32_t extWindowActions) override;
-    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect) override;
-    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect) override;
+    WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override;
+    WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
+        bool useHookedSize = false) override;
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) override;
     WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) override;
@@ -155,6 +173,7 @@ public:
     WMError SkipSnapshotByUserIdAndBundleNames(int32_t userId,
         const std::vector<std::string>& bundleNameList) override;
     WMError SetProcessWatermark(int32_t pid, const std::string& watermarkName, bool isEnabled) override;
+    WMError RecoverProcessWatermark(int32_t pid, const std::string& watermarkName) override;
     WMError GetWindowIdsByCoordinate(DisplayId displayId, int32_t windowNumber,
         int32_t x, int32_t y, std::vector<int32_t>& windowIds) override;
     WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease) override;
@@ -194,14 +213,17 @@ public:
         const WindowAnimationOption& animationOption) override;
     WMError CreateUIEffectController(const sptr<IUIEffectControllerClient>& controllerClient,
         sptr<IUIEffectController>& controller, int32_t& controllerId) override;
+    WMError GetPiPSettingSwitchStatus(bool& switchStatus) override;
+    WMError GetIsPipEnabled(bool& isPipEnabled) override;
     WMError AddSessionBlackList(const std::unordered_set<std::string>& bundleNames,
         const std::unordered_set<std::string>& privacyWindowTags) override;
     WMError RemoveSessionBlackList(const std::unordered_set<std::string>& bundleNames,
         const std::unordered_set<std::string>& privacyWindowTags) override;
-    WMError GetPiPSettingSwitchStatus(bool& switchStatus) override;
-    WMError GetIsPipEnabled(bool& isPipEnabled) override;
     WMError UpdateOutline(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams) override;
     WMError NotifySupportRotationRegistered() override;
+    WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
+    WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
+        std::vector<AppWindowShowingInfo>& windowInfos) override;
 
 private:
     template<typename T>

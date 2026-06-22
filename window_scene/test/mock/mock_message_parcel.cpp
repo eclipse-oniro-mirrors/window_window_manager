@@ -22,6 +22,7 @@ namespace {
 bool g_setWriteBoolErrorFlag = false;
 bool g_setWriteInt32ErrorFlag = false;
 bool g_setWriteInt64ErrorFlag = false;
+bool g_setWriteUint8ErrorFlag = false;
 bool g_setWriteUint32ErrorFlag = false;
 bool g_setWriteUint64ErrorFlag = false;
 bool g_setWriteFloatErrorFlag = false;
@@ -39,6 +40,7 @@ bool g_setReadFloatErrorFlag = false;
 bool g_setWriteUint64VectorErrorFlag = false;
 bool g_setReadStringVectorErrorFlag = false;
 bool g_setReadStringErrorFlag = false;
+bool g_setWriteStringVectorErrorFlag = false;
 std::vector<int32_t> g_int32Cache;
 int32_t g_WriteInt32ErrorCount = 0;
 int32_t g_WriteBoolErrorCount = 0;
@@ -60,6 +62,7 @@ void MockMessageParcel::ClearAllErrorFlag()
     g_setWriteBoolErrorFlag = false;
     g_setWriteInt32ErrorFlag = false;
     g_setWriteInt64ErrorFlag = false;
+    g_setWriteUint8ErrorFlag = false;
     g_setWriteUint32ErrorFlag = false;
     g_setWriteUint64ErrorFlag = false;
     g_setWriteFloatErrorFlag = false;
@@ -77,6 +80,7 @@ void MockMessageParcel::ClearAllErrorFlag()
     g_setReadStringVectorErrorFlag = false;
     g_setWriteUint64VectorErrorFlag = false;
     g_setReadStringErrorFlag = false;
+    g_setWriteStringVectorErrorFlag = false;
 }
 
 void MockMessageParcel::SetWriteBoolErrorFlag(bool flag)
@@ -92,6 +96,11 @@ void MockMessageParcel::SetWriteInt32ErrorFlag(bool flag)
 void MockMessageParcel::SetWriteInt64ErrorFlag(bool flag)
 {
     g_setWriteInt64ErrorFlag = flag;
+}
+
+void MockMessageParcel::SetWriteUint8ErrorFlag(bool flag)
+{
+    g_setWriteUint8ErrorFlag = flag;
 }
 
 void MockMessageParcel::SetWriteUint32ErrorFlag(bool flag)
@@ -172,6 +181,11 @@ void MockMessageParcel::SetReadStringVectorErrorFlag(bool flag)
 void MockMessageParcel::SetReadStringErrorFlag(bool flag)
 {
     g_setReadStringErrorFlag = flag;
+}
+
+void MockMessageParcel::SetWriteStringVectorErrorFlag(bool flag)
+{
+    g_setWriteStringVectorErrorFlag = flag;
 }
 
 void MockMessageParcel::SetWriteUint64VectorErrorFlag(bool flag)
@@ -264,6 +278,15 @@ bool Parcel::WriteInt64(int64_t value)
 {
     (void)value;
     if (g_setWriteInt64ErrorFlag || value == ERROR_INT) {
+        return false;
+    }
+    return true;
+}
+
+bool Parcel::WriteUint8(uint8_t value)
+{
+    (void)value;
+    if (g_setWriteUint8ErrorFlag) {
         return false;
     }
     return true;
@@ -374,6 +397,14 @@ bool Parcel::WriteStringVector(const std::vector<std::string>& val)
 {
     (void)val;
     if (val.size() == ERROR_SIZE) {
+        return false;
+    }
+    return true;
+}
+#else
+bool Parcel::WriteStringVector(const std::vector<std::string>& val)
+{
+    if (g_setWriteStringVectorErrorFlag) {
         return false;
     }
     return true;
