@@ -5906,8 +5906,8 @@ void SceneSession::SetWatermarkEnabled(const std::string& watermarkName, bool is
         TLOGE(WmsLogTag::DEFAULT, "surfaceNode is null");
         return;
     }
-    TLOGI(WmsLogTag::DEFAULT, "watermarkName:%{public}s, isEnabled:%{public}d, wid:%{public}d",
-        watermarkName.c_str(), isEnabled, GetPersistentId());
+    TLOGI(WmsLogTag::DEFAULT, "watermarkName:%{public}s, isEnabled:%{public}d, wid:%{public}d, winName:%{public}s",
+        watermarkName.c_str(), isEnabled, GetPersistentId(), GetWindowName().c_str());
     {
         AutoRSTransaction trans(GetRSShadowContext());
         surfaceNode->SetWatermarkEnabled(watermarkName, isEnabled);

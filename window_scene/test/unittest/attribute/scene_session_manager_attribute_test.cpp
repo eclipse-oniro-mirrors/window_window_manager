@@ -488,6 +488,10 @@ HWTEST_F(SceneSessionManagerAttributeTest, RecoverScreenWatermarkImage001, TestS
     ASSERT_NE(nullptr, ssm_);
     auto oldScreenWatermarkBundleName = ssm_->screenWatermarkBundleName_;
     auto oldScreenWatermarkPriority = ssm_->screenWatermarkPriority_;
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    EXPECT_EQ(ssm_->RecoverScreenWatermarkImage("", 1), WMError::WM_ERROR_NOT_SYSTEM_APP);
+    MockAccesstokenKit::MockIsSACalling(true);
     ssm_->screenWatermarkBundleName_ = "";
     ssm_->screenWatermarkPriority_ = 0;
     EXPECT_EQ(ssm_->RecoverScreenWatermarkImage("", 1), WMError::WM_OK);
@@ -556,6 +560,10 @@ HWTEST_F(SceneSessionManagerAttributeTest, RecoverProcessWatermark001, TestSize.
     ASSERT_NE(nullptr, ssm_);
     auto ret = ssm_->RecoverProcessWatermark(123, "RecoverProcessWatermarkName");
     EXPECT_EQ(ret, WMError::WM_OK);
+    MockAccesstokenKit::MockIsSACalling(false);
+    ret = ssm_->RecoverProcessWatermark(123, "RecoverProcessWatermarkName");
+    EXPECT_NE(ret, WMError::WM_ERROR_NOT_SYSTEM_APP);
+    MockAccesstokenKit::ChangeMockStateToInit();
 }
 
 /**
