@@ -36,10 +36,6 @@ AbstractScreen::AbstractScreen(sptr<AbstractScreenController> screenController, 
         name_ = name;
     }
     RSAdapterUtil::InitRSUIDirector(rsUIDirector_, connectToRenderToken_);
-    if (connectToRenderToken_ != nullptr) {
-        RSUIContextContainer::SetRenderSession(connectToRenderToken_);
-        TLOGI(WmsLogTag::DMS, "ywj: RSUIContextContainer::SetRenderSession one");
-    }
 }
 
 AbstractScreen::~AbstractScreen()
@@ -558,10 +554,6 @@ AbstractScreenGroup::AbstractScreenGroup(sptr<AbstractScreenController> screenCo
 {
     type_ = ScreenType::UNDEFINED;
     isScreenGroup_ = true;
-    if (connectToRenderToken != nullptr) {
-        RSUIContextContainer::SetRenderSession(connectToRenderToken);
-        TLOGI(WmsLogTag::DMS, "ywj: RSUIContextContainer::SetRenderSession two");
-    }
 }
 
 AbstractScreenGroup::~AbstractScreenGroup()

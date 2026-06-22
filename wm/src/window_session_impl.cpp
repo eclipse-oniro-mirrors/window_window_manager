@@ -394,18 +394,11 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
         TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
         vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
     } else {
-        TLOGI(WmsLogTag::WMS_LIFE, "ywj: uec type: %{public}d.", GetType());
-        if (WindowType::WINDOW_TYPE_UI_EXTENSION == GetType()) {
-            nodeId_ = RSNode::GenerateId();
-            TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
-            vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
-        } else {
-            RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
-            surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
-            if (surfaceNode_ != nullptr) {
-                vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
-                nodeId_ = surfaceNode_->GetId();
-            }
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
+        surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
+        if (surfaceNode_ != nullptr) {
+            vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
+            nodeId_ = surfaceNode_->GetId();
         }
     }
     WindowHelper::SplitStringByDelimiter(
@@ -843,9 +836,17 @@ WMError WindowSessionImpl::Connect()
         property_->SetTokenState(true);
     }
     property_->SetApiVersion(GetTargetAPIVersion());
-    auto ret = hostSession->Connect(
-        iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode_, property_,
-        token, identityToken_);
+    WSError ret;
+    if (IsSceneBoardEnabled()) {
+        ret = hostSession->Connect(
+            iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode_, property_,
+            token, identityToken_);
+    } else {
+        std::shared_ptr<RSSurfaceNode> surfaceNode;
+        ret = hostSession->Connect(
+            iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode, property_,
+            token, identityToken_);
+    }
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -866,12 +867,14 @@ WMError WindowSessionImpl::Connect()
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
-    if (IsSceneBoardEnabled() && renderSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
-            property_->GetWindowName().c_str());
-        return WMError::WM_ERROR_NULLPTR;
+    if (IsSceneBoardEnabled()) {
+        if (renderSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "connect failed, renderSession is nullptr, name: %{public}s",
+                property_->GetWindowName().c_str());
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        PostInitSurfaceNode(renderSession);
     }
-    PostInitSurfaceNode(renderSession);
     if (originDisplayId != property_->GetDisplayId() && property_->GetDisplayId() != DISPLAY_ID_C) {
         NotifyDmsDisplayMove(property_->GetDisplayId());
     }

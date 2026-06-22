@@ -71,10 +71,6 @@ void AbstractScreenController::RegisterRsScreenConnectionChangeListener()
                 TLOGE(WmsLogTag::DMS, "hwcdead, ignore");
                 return;
             }
-            if (connectToRenderToken != nullptr) {
-                RSUIContextContainer::SetRenderSession(connectToRenderToken);
-                TLOGI(WmsLogTag::DMS, "ywj: RSUIContextContainer::SetRenderSession three");
-            }
             OnRsScreenConnectionChange(rsScreenId, screenEvent, connectToRenderToken);
         });
     if (res != StatusCode::SUCCESS) {
