@@ -15,6 +15,10 @@
 
 #include "scene_input_manager.h"
 
+#include <cerrno>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+
 #include <hitrace_meter.h>
 #include "parameters.h"
 #include "perform_reporter.h"
@@ -39,6 +43,7 @@ constexpr int DEFAULT_SCREEN_POS = 0;
 constexpr int DEFAULT_SCREEN_SCALE = 100;
 constexpr int DEFAULT_EXPAND_HEIGHT = 0;
 constexpr int DELAY_REPORT_TIME = 3000;
+constexpr int FLUSH_DISPLAY_INFO_THREAD_PRIORITY = -20;
 constexpr float DIRECTION90 = 90.0F;
 
 bool IsEqualUiExtentionWindowInfo(const std::vector<MMI::WindowInfo>& a, const std::vector<MMI::WindowInfo>& b);
@@ -213,6 +218,17 @@ void SceneInputManager::Init()
     sceneSessionDirty_ = std::make_shared<SceneSessionDirtyManager>();
     eventLoop_ = AppExecFwk::EventRunner::Create(FLUSH_DISPLAY_INFO_THREAD);
     eventHandler_ = std::make_shared<AppExecFwk::EventHandler>(eventLoop_);
+
+    // Fix the priority issue of FlushWindowInfoToMMI, raising the priority to 40.
+    eventHandler_->PostTask([]() {
+        int tid = syscall(SYS_gettid);
+        if (setpriority(PRIO_PROCESS, tid, FLUSH_DISPLAY_INFO_THREAD_PRIORITY) != 0) {
+            TLOGNE(WmsLogTag::WMS_EVENT, "Failed to set thread priority, errno=%{public}d", errno);
+        } else {
+            TLOGNI(WmsLogTag::WMS_EVENT, "FlushDisplayInfo thread priority set to %{public}d",
+                FLUSH_DISPLAY_INFO_THREAD_PRIORITY);
+        }
+    });
     SceneSession::RegisterGetConstrainedModalExtWindowInfo(
         [](const sptr<SceneSession>& sceneSession) -> std::optional<ExtensionWindowEventInfo> {
             return SceneInputManager::GetInstance().GetConstrainedModalExtWindowInfo(sceneSession);
