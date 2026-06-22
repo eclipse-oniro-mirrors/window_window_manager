@@ -49,6 +49,7 @@ constexpr const char* const PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missio
 constexpr const char* const PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
 constexpr const char* const PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
 }
+class MoveDragBoundsApplier;
 class SceneSession;
 class ScreenSession;
 
@@ -1262,6 +1263,7 @@ protected:
 
     friend class MoveDragController;
     sptr<MoveDragController> moveDragController_ = nullptr;
+    std::shared_ptr<MoveDragBoundsApplier> moveDragBoundsApplier_;
 
     std::mutex displayIdSetDuringMoveToMutex_;
     std::set<uint64_t> displayIdSetDuringMoveTo_;
@@ -1617,27 +1619,6 @@ private:
     bool ShouldSkipUpdateRectNotify(const WSRect& rect);
     bool ShouldProcessAttachStateChange(bool wasAttached, bool isAttached,
         bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit, bool& isDetaching);
-
-    /**
-     * @brief Set surface bounds via the original surface node.
-     *
-     * This method is used for normal transaction commit together with ArkUI relayout.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
-     */
-    void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
-
-    /**
-     * @brief Set surface bounds via the shadow surface node.
-     *
-     * This method is used for immediate RS commit to avoid flushing other pending
-     * SurfaceNode updates in the current transaction.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
-     */
-    void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
 
     /**
      * @brief Request the next vsync-driven move resampling iteration.

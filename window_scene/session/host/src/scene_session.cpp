@@ -54,6 +54,7 @@
 #include "session_coordinate_helper.h"
 #include "session/screen/include/screen_session.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "session/host/include/move_drag_bounds_applier.h"
 #include "session/host/include/scene_persistent_storage.h"
 #include "session/host/include/session_change_recorder.h"
 #include "session/host/include/session_utils.h"
@@ -180,6 +181,7 @@ GetConstrainedModalExtWindowInfoFunc SceneSession::onGetConstrainedModalExtWindo
 SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback)
     : Session(info)
 {
+    moveDragBoundsApplier_ = std::make_shared<MoveDragBoundsApplier>(wptr(this));
     GeneratePersistentId(false, info.persistentId_);
     specificCallback_ = specificCallback;
     SetCollaboratorType(info.collaboratorType_);
@@ -5335,7 +5337,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     auto targetSurfaceNode = GetMoveDragTargetSurfaceNode();
     RETURN_IF_NULL(targetSurfaceNode);
 
-    auto targetShadowSurfaceNode = GetMoveDragTargetShadowSurfaceNode();
+    auto targetShadowSurfaceNode = moveDragBoundsApplier_->GetTargetShadowSurfaceNode();
     RETURN_IF_NULL(targetShadowSurfaceNode);
 
     const auto startDisplayId = moveDragController_->GetMoveDragStartDisplayId();
@@ -5557,62 +5559,7 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
         TLOGD(WmsLogTag::WMS_LAYOUT, "On drag end, needFlush: %{public}d", needFlush);
     }
 
-    // If the bounds update needs to be flushed to RS immediately, operate on a
-    // shadow node instead of the original one.
-    // SurfaceNode updates are recorded as RS commands and committed through the
-    // current RSTransaction. Flushing the original node may also commit other
-    // pending modifications on the same node prematurely.
-    // Using the shadow node isolates this update, ensuring that only the bounds
-    // change is flushed to RS without affecting other SurfaceNode updates.
-    if (needFlush) {
-        SetSurfaceBoundsWithShadowNode(rect, isGlobal);
-    } else {
-        // Otherwise, commit together with the next ArkUI relayout in the normal transaction.
-        SetSurfaceBoundsWithOriginalNode(rect, isGlobal);
-    }
-}
-
-void SceneSession::SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal)
-{
-    auto surfaceNode = GetSurfaceNode();
-    RETURN_IF_NULL(surfaceNode);
-
-    if (auto leashWinSurfaceNode = GetLeashWinSurfaceNode()) {
-        surfaceNode->SetBounds(0.0f, 0.0f, rect.width_, rect.height_);
-        surfaceNode->SetFrame(0.0f, 0.0f, rect.width_, rect.height_);
-        leashWinSurfaceNode->SetGlobalPositionEnabled(isGlobal);
-        leashWinSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        leashWinSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    } else {
-        surfaceNode->SetGlobalPositionEnabled(isGlobal);
-        surfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        surfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    }
-}
-
-void SceneSession::SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal)
-{
-    auto shadowSurfaceNode = EnsureMoveDragShadowSurfaceNode();
-    RETURN_IF_NULL(shadowSurfaceNode);
-
-    if (auto leashWinShadowSurfaceNode = EnsureMoveDragLeashWinShadowSurfaceNode()) {
-        {
-            AutoRSTransaction trans(shadowSurfaceNode);
-            shadowSurfaceNode->SetBounds(0.0f, 0.0f, rect.width_, rect.height_);
-            shadowSurfaceNode->SetFrame(0.0f, 0.0f, rect.width_, rect.height_);
-        }
-        {
-            AutoRSTransaction trans(leashWinShadowSurfaceNode);
-            leashWinShadowSurfaceNode->SetGlobalPositionEnabled(isGlobal);
-            leashWinShadowSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-            leashWinShadowSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        }
-    } else {
-        AutoRSTransaction trans(shadowSurfaceNode);
-        shadowSurfaceNode->SetGlobalPositionEnabled(isGlobal);
-        shadowSurfaceNode->SetBounds(rect.posX_, rect.posY_, rect.width_, rect.height_);
-        shadowSurfaceNode->SetFrame(rect.posX_, rect.posY_, rect.width_, rect.height_);
-    }
+    moveDragBoundsApplier_->Apply(rect, isGlobal, needFlush);
 }
 
 void SceneSession::SetZOrder(uint32_t zOrder)

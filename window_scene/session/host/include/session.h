@@ -54,6 +54,7 @@ class RSSurfaceNode;
 class RSUIContext;
 class RSTransaction;
 class Session;
+
 using NotifySessionRectChangeFunc = std::function<void(const WSRect& rect,
     SizeChangeReason reason, DisplayId displayId)>;
 using NotifySessionWindowLimitsChangeFunc = std::function<void(const WindowLimits& windowLimits)>;
@@ -340,35 +341,9 @@ public:
     std::optional<NodeId> GetSurfaceNodeId() const;
     std::shared_ptr<RSSurfaceNode> GetShadowSurfaceNode() const;
 
-    /**
-     * @brief Ensures the shadow surface node used for window move-drag operations.
-     *
-     * If RS client multi-instance mode is disabled, the original surface node
-     * is returned directly. Otherwise a shadow node is lazily created from the
-     * original node. The shadow node copies RSBoundsModifier and RSFrameModifier
-     * required for drag updates.
-     *
-     * @return The shadow surface node, the original node if shadow creation is
-     *         skipped or fails, or nullptr if the original node does not exist.
-     */
-    std::shared_ptr<RSSurfaceNode> EnsureMoveDragShadowSurfaceNode();
-
     void SetLeashWinSurfaceNode(std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode);
     std::shared_ptr<RSSurfaceNode> GetLeashWinSurfaceNode() const;
     std::shared_ptr<RSSurfaceNode> GetLeashWinShadowSurfaceNode() const;
-
-    /**
-     * @brief Ensure the shadow surface node used for leash window move-drag operations.
-     *
-     * If RS client multi-instance mode is disabled, the original leash window
-     * surface node is returned directly. Otherwise a shadow node is lazily created
-     * from the original node. The shadow node copies RSBoundsModifier and RSFrameModifier
-     * required for drag updates.
-     *
-     * @return The shadow surface node, the original node if shadow creation is
-     *         skipped or fails, or nullptr if the original node does not exist.
-     */
-    std::shared_ptr<RSSurfaceNode> EnsureMoveDragLeashWinShadowSurfaceNode();
 
     /**
      * @brief Get the target surface node for window move-drag operations.
@@ -379,16 +354,6 @@ public:
      * @return The surface node used as the move-drag target.
      */
     std::shared_ptr<RSSurfaceNode> GetMoveDragTargetSurfaceNode() const;
-
-    /**
-     * @brief Get the target shadow surface node for window move-drag operations.
-     *
-     * If a leash window shadow surface node exists, it will be used as the drag target.
-     * Otherwise, the original shadow surface node is returned.
-     *
-     * @return The shadow surface node used as the move-drag target.
-     */
-    std::shared_ptr<RSSurfaceNode> GetMoveDragTargetShadowSurfaceNode();
 
     /*
      * Window Scene Snapshot
@@ -1112,15 +1077,6 @@ protected:
     mutable std::mutex surfaceNodeMutex_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::shared_ptr<RSSurfaceNode> shadowSurfaceNode_;
-
-    /**
-     * @brief Shadow surface node used during window move-drag.
-     *
-     * This node is lazily initialized when the window is dragged for the first time.
-     * It copies the necessary RSBoundsModifier and RSFrameModifier from the original
-     * surface node to support drag updates.
-     */
-    std::shared_ptr<RSSurfaceNode> moveDragShadowSurfaceNode_;
     // guarded by surfaceNodeMutex_
 
     mutable std::mutex preloadSnapshotMutex_;
@@ -1421,15 +1377,6 @@ private:
     mutable std::mutex leashWinSurfaceNodeMutex_;
     std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode_;
     std::shared_ptr<RSSurfaceNode> leashWinShadowSurfaceNode_;
-
-    /**
-     * @brief Shadow surface node used during window move-drag for the leash window.
-     *
-     * This node is lazily initialized when the window is dragged for the first time.
-     * Initialization occurs only if `leashWinSurfaceNode_` exists, and copies the
-     * necessary RSBoundsModifier and RSFrameModifier from it to support drag updates.
-     */
-    std::shared_ptr<RSSurfaceNode> moveDragLeashWinShadowSurfaceNode_;
     // guarded by leashWinSurfaceNodeMutex_
 
     DetectTaskInfo detectTaskInfo_;

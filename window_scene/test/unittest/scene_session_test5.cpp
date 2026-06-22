@@ -2186,7 +2186,6 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType);
     sceneSession->SetSurfaceNode(surfaceNode);
-    sceneSession->moveDragShadowSurfaceNode_ = surfaceNode;
     // set displayId to moveDrag map
     sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(0);
     sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(1001);
