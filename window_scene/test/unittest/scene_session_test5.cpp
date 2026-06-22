@@ -3403,15 +3403,15 @@ HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenNotPcScenePanel, TestSize.L
 }
 
 /**
- * @tc.name: UpdateUIParam_NoZOrder_WhenPcScenePanelAndNotPcWindow
- * @tc.desc: Verify ZOrder is not updated when isPcScenePanel_ is true and IsPcWindow() returns false
+ * @tc.name: UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is true and IsPcWindow() returns false
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest5, UpdateUIParam_NoZOrder_WhenPcScenePanelAndNotPcWindow, TestSize.Level1)
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow, TestSize.Level1)
 {
     SessionInfo info;
-    info.abilityName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndNotPcWindow";
-    info.bundleName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndNotPcWindow";
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
     session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
@@ -3427,20 +3427,20 @@ HWTEST_F(SceneSessionTest5, UpdateUIParam_NoZOrder_WhenPcScenePanelAndNotPcWindo
 
     uint32_t result = session->UpdateUIParam(uiParam);
 
-    EXPECT_FALSE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
-    EXPECT_EQ(session->zOrder_, 0u);
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
 }
 
 /**
- * @tc.name: UpdateUIParam_ZOrder_WhenPcScenePanelAndPcWindow
- * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is true and IsPcWindow() returns true
+ * @tc.name: UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow
+ * @tc.desc: Verify ZOrder is not updated when isPcScenePanel_ is true and IsPcWindow() returns true
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenPcScenePanelAndPcWindow, TestSize.Level1)
+HWTEST_F(SceneSessionTest5, UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow, TestSize.Level1)
 {
     SessionInfo info;
-    info.abilityName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndPcWindow";
-    info.bundleName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndPcWindow";
+    info.abilityName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow";
+    info.bundleName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow";
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
     session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
@@ -3456,8 +3456,8 @@ HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenPcScenePanelAndPcWindow, Te
 
     uint32_t result = session->UpdateUIParam(uiParam);
 
-    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
-    EXPECT_EQ(session->zOrder_, 10u);
+    EXPECT_FALSE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 0u);
 }
 
 /**
