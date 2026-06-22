@@ -27,11 +27,10 @@ sptr<Window> StaticCall::CreateWindow(const std::string& windowName,
 }
 
 sptr<Window> StaticCall::CreateWindow(sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context,
-    const sptr<IRemoteObject>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
-    sptr<IRemoteObject> renderSession)
+    const sptr<IRemoteObject>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd)
 {
     WMError errCode = WMError::WM_OK;
-    return Window::Create(option, context, iSession, errCode, identityToken, isModuleAbilityHookEnd, renderSession);
+    return Window::Create(option, context, iSession, errCode, identityToken, isModuleAbilityHookEnd);
 }
 
 std::vector<sptr<Window>> StaticCall::GetSubWindow(uint32_t parentId)
