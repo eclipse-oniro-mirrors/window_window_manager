@@ -12777,13 +12777,13 @@ void ScreenSessionManager::RecoverMultiScreenModeWhenSwitchUser(std::vector<int3
     }
 }
 
-bool ScreenSessionManager::HandleSwitchPcMode()
+bool ScreenSessionManager::HandleSwitchPcMode(bool isTargetPcMode)
 {
     if (!IS_SUPPORT_PC_MODE) {
         return g_isPcDevice;
     }
     std::lock_guard<std::mutex> lock(pcModeSwitchMutex_);
-    if (system::GetBoolParameter(IS_PC_MODE_KEY, false)) {
+    if (isTargetPcMode) {
         if (isPhyScreenConnected_) {
             HandlePhysicalMirrorColorSpace(GraphicCM_ColorSpaceType::GRAPHIC_CM_SRGB_FULL);
         }
@@ -12993,7 +12993,8 @@ void ScreenSessionManager::SetClient(const sptr<IScreenSessionManagerClient>& cl
         TLOGNFE(WmsLogTag::DMS, "SetClient client is null");
         return;
     }
-    bool isPcMode = HandleSwitchPcMode();
+    bool isPcMode = system::GetBoolParameter(IS_PC_MODE_KEY, false);
+    HandleSwitchPcMode(isPcMode);
     if (g_isPcDevice && userSwitching_) {
         std::unique_lock<std::mutex> lock(switchUserMutex_);
         if (DmUtils::safe_wait_for(switchUserCV_, lock, std::chrono::milliseconds(CV_WAIT_USERSWITCH_MS)) == std::cv_status::timeout) {
@@ -13004,9 +13005,13 @@ void ScreenSessionManager::SetClient(const sptr<IScreenSessionManagerClient>& cl
     auto userId = GetUserIdByCallingUid();
     auto newScbPid = IPCSkeleton::GetCallingPid();
     {
+        std::lock_guard<std::mutex> lock(userIdDisplayInfoMapMutex_);
+        userIdDisplayInfoMap_[userId].isPcDevice = g_isPcDevice;
+    }
+    {
         std::unique_lock<std::mutex> lock(oldScbPidsMutex_);
         SetClientProxy(client);
-        SwitchModeHandleExternalScreen(isPcMode);
+        SwitchModeHandleExternalScreen(g_isPcDevice);
 
         {
             std::lock_guard<std::recursive_mutex> lock(userPidMapMutex_);
@@ -13202,6 +13207,20 @@ void ScreenSessionManager::HotSwitch(int32_t newUserId, int32_t newScbPid)
         }
     }
     SetClientProxy(multiClientProxyMapCopy[newUserId]);
+    bool isTargetUserPcDevice = g_isPcDevice;
+    {
+        std::lock_guard<std::mutex> lock(userIdDisplayInfoMapMutex_);
+        auto iter = userIdDisplayInfoMap_.find(newUserId);
+        if (iter != userIdDisplayInfoMap_.end()) {
+            isTargetUserPcDevice = iter->second.isPcDevice;
+        }
+    }
+    if (isTargetUserPcDevice != g_isPcDevice) {
+        TLOGNFI(WmsLogTag::DMS, "HotSwitch userId:%{public}d, change isPcDevice from %{public}d to %{public}d",
+            newUserId, g_isPcDevice, isTargetUserPcDevice);
+        HandleSwitchPcMode(isTargetUserPcDevice);
+        SwitchModeHandleExternalScreen(isTargetUserPcDevice);
+    }
     ScbStatusRecoveryWhenSwitchUser(oldScbPids_, newScbPid);
 }
 
