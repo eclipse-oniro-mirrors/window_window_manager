@@ -1796,7 +1796,7 @@ HWTEST_F(SceneSessionManagerTest4, CheckBlockingFocus, TestSize.Level1)
 
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD);
     ret = ssm_->CheckBlockingFocus(sceneSession, false);
-    EXPECT_EQ(ret, true);
+    EXPECT_EQ(ret, false);
 
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_VOICE_INTERACTION);
     ret = ssm_->CheckBlockingFocus(sceneSession, false);

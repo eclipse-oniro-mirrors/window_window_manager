@@ -9388,6 +9388,7 @@ sptr<SceneSession> SceneSessionManager::GetNextFocusableSession(DisplayId displa
         if (session->CheckFocusable() && session->IsVisibleNotBackground() &&
             (session->IsLoosenedWithFreeMultiMode() || IsParentSessionVisible(session))) {
             if (!systemConfig_.IsPcWindow() || session->GetWindowType() != WindowType::WINDOW_TYPE_DESKTOP ||
+                session->GetWindowType() != WindowType::WINDOW_TYPE_WALLPAPER ||
                 currentSessionDisplayId == displayId) {
                 nextFocusableSession = session;
                 return true;
@@ -16141,6 +16142,9 @@ void SceneSessionManager::PostProcessFocus()
                 ret = RequestSessionFocus(persistentId, processFocusState.byForeground_, reason);
             } else {
                 ret = RequestSessionFocus(persistentId, true, reason);
+            }
+            if (session->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+                ProcessSubSessionForeground(session);
             }
         } else {
             ret = RequestSessionUnfocus(persistentId, processFocusState.reason_);
