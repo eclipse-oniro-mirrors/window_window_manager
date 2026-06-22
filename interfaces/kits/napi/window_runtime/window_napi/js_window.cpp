@@ -184,7 +184,11 @@ napi_value JsWindow::Recover(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnRecover(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnRecover(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][recover]msg: Window is nullptr.");
 }
 
 napi_value JsWindow::Restore(napi_env env, napi_callback_info info)
@@ -1018,7 +1022,11 @@ napi_value JsWindow::GetWindowLimits(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnGetWindowLimits(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnGetWindowLimits(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][getWindowLimits]msg: Window is nullptr.");
 }
 
 /** @note @window.layout */
@@ -1026,7 +1034,11 @@ napi_value JsWindow::GetWindowLimitsVP(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnGetWindowLimitsVP(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnGetWindowLimitsVP(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][getWindowLimitsVP]msg: Window is nullptr.");
 }
 
 /** @note @window.layout */
@@ -1058,7 +1070,11 @@ napi_value JsWindow::SetWindowLimits(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnSetWindowLimits(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnSetWindowLimits(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][setWindowLimits]msg: Window is nullptr.");
 }
 
 napi_value JsWindow::SetWindowDecorVisible(napi_env env, napi_callback_info info)
