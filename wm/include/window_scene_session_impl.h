@@ -410,6 +410,21 @@ public:
     WMError SetSeparationTouchEnabled(bool enabled) override;
     bool IsSeparationTouchEnabled() override;
 
+    /**
+     * For C API native event filter.
+     */
+    WMError SaveNativeKeyEventFilter(NativeKeyEventFilter nativeFilter) override;
+    NativeKeyEventFilter GetNativeKeyEventFilter() const override;
+    WMError ClearNativeKeyEventFilter() override;
+
+    WMError SaveNativeMouseEventFilter(NativeMouseEventFilter nativeFilter) override;
+    NativeMouseEventFilter GetNativeMouseEventFilter() const override;
+    WMError ClearNativeMouseEventFilter() override;
+
+    WMError SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter) override;
+    NativeTouchEventFilter GetNativeTouchEventFilter() const override;
+    WMError ClearNativeTouchEventFilter() override;
+
 protected:
     WMError CreateAndConnectSpecificSession();
     void PostInitSurfaceNode(sptr<IRemoteObject> renderSession);
@@ -777,6 +792,16 @@ private:
     bool isSeparationTouchEnabled_ = true;
     std::bitset<ADVANCED_FEATURE_BIT_MAX> advancedFeatureFlag_ = 0;
     void UpdateStartRecoverEventFlag();
+
+    /*
+     * For C API native event filter.
+     */
+    NativeKeyEventFilter nativeKeyEventFilter_ = nullptr;
+    mutable std::shared_mutex nativeKeyEventFilterMutex_;
+    NativeMouseEventFilter nativeMouseEventFilter_ = nullptr;
+    mutable std::shared_mutex nativeMouseEventFilterMutex_;
+    NativeTouchEventFilter nativeTouchEventFilter_ = nullptr;
+    mutable std::shared_mutex nativeTouchEventFilterMutex_;
 
     /*
      * Window Decor
