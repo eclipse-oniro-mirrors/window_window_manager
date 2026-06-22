@@ -2644,7 +2644,7 @@ HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlip, TestSize.Level1
     info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlip";
     info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlip";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     WSRect rect = { 100, 100, 400, 400 };
     mainSession->GetLayoutController()->SetSessionRect(rect);
@@ -2676,7 +2676,7 @@ HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlipBackground, TestS
     info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlipBackground";
     info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlipBackground";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     WSRect rect = { 100, 100, 400, 400 };
     mainSession->GetLayoutController()->SetSessionRect(rect);
@@ -2700,7 +2700,7 @@ HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlipNullCallback, Tes
     info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlipNullCallback";
     info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlipNullCallback";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     WSRect rect = { 100, 100, 400, 400 };
     mainSession->GetLayoutController()->SetSessionRect(rect);
@@ -2725,7 +2725,7 @@ HWTEST_F(SceneSessionTest5, HandleFullScreenWindowInThrowSlip, TestSize.Level1)
     info.abilityName_ = "HandleFullScreenWindowInThrowSlip";
     info.bundleName_ = "HandleFullScreenWindowInThrowSlip";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
     mainSession->isVisible_ = true;
@@ -2756,7 +2756,7 @@ HWTEST_F(SceneSessionTest5, HandleFullScreenWindowInThrowSlipSessionNull, TestSi
     info.abilityName_ = "HandleFullScreenWindowInThrowSlipSessionNull";
     info.bundleName_ = "HandleFullScreenWindowInThrowSlipSessionNull";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
     mainSession->isVisible_ = true;
@@ -2777,12 +2777,12 @@ HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlip, TestSize.Level1)
     info.abilityName_ = "HandleFloatingWindowInThrowSlip";
     info.bundleName_ = "HandleFloatingWindowInThrowSlip";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
     mainSession->isVisible_ = true;
     mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    sptr compatibleModeProperty = sptr::MakeSptr();
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
     ASSERT_NE(compatibleModeProperty, nullptr);
     compatibleModeProperty->SetIsAdaptToDragScale(true);
     mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
@@ -2816,12 +2816,12 @@ HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNotFloatingMode, Test
     info.abilityName_ = "HandleFloatingWindowInThrowSlipNotFloatingMode";
     info.bundleName_ = "HandleFloatingWindowInThrowSlipNotFloatingMode";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
     mainSession->isVisible_ = true;
     mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sptr compatibleModeProperty = sptr::MakeSptr();
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
     ASSERT_NE(compatibleModeProperty, nullptr);
     compatibleModeProperty->SetIsAdaptToDragScale(true);
     mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
@@ -2849,12 +2849,12 @@ HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNotAdaptToDragScale, 
     info.abilityName_ = "HandleFloatingWindowInThrowSlipNotAdaptToDragScale";
     info.bundleName_ = "HandleFloatingWindowInThrowSlipNotAdaptToDragScale";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
     mainSession->isVisible_ = true;
     mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    sptr compatibleModeProperty = sptr::MakeSptr();
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
     ASSERT_NE(compatibleModeProperty, nullptr);
     compatibleModeProperty->SetIsAdaptToDragScale(false);
     mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
@@ -2883,7 +2883,7 @@ HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNullSession, TestSize
     info.abilityName_ = "HandleFloatingWindowInThrowSlipNullSession";
     info.bundleName_ = "HandleFloatingWindowInThrowSlipNullSession";
     info.screenId_ = 0;
-    sptr mainSession = sptr::MakeSptr(info, nullptr);
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(mainSession, nullptr);
     mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
     mainSession->isVisible_ = true;

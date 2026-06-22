@@ -4837,7 +4837,7 @@ void SceneSession::CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isSca
  */
 void SceneSession::HandleFullScreenWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect)
 {
-    finishCallback = [weakThis = wptr(this), rect, where = func] {
+    finishCallback = [weakThis = wptr(this), rect, where = __func__] {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is nullptr", where);
@@ -4854,7 +4854,7 @@ void SceneSession::HandleFullScreenWindowInThrowSlip(std::function<void()>& fini
  */
 void SceneSession::HandleFloatingWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect)
 {
-    finishCallback = [weakThis = wptr(this), rect, where = func] {
+    finishCallback = [weakThis = wptr(this), rect, where = __func__] {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is nullptr", where);
@@ -4960,7 +4960,7 @@ void SceneSession::NotifyFullScreenAfterThrowSlip(const WSRect& rect)
 
 void SceneSession::NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect)
 {
-    PostTask([weakThis = wptr(this), rect, where = func] {
+    PostTask([weakThis = wptr(this), rect, where = __func__] {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s session is nullptr", where);
@@ -4977,7 +4977,7 @@ void SceneSession::NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect)
         TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s rect: %{public}s", where, rect.ToString().c_str());
         session->onSessionEvent_(static_cast<uint32_t>(SessionEvent::EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP),
             SessionEventParam {rect.posX_, rect.posY_, rect.width_, rect.height_});
-    }, func);
+    }, __func__);
 }
 
 void SceneSession::ThrowSlipDirectly(ThrowSlipMode throwSlipMode, const WSRectF& velocity)
@@ -6913,7 +6913,6 @@ WSError SceneSession::BatchPendingSessionsActivation(const std::vector<sptr<AAFw
             abilitySessionInfos.size(), configs.size());
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-
     bool isFoundationCall = SessionPermission::IsFoundationCall();
     PostTask([weakThis = wptr(this), abilitySessionInfos, configs, isFoundationCall, where = __func__] {
         auto session = weakThis.promote();
