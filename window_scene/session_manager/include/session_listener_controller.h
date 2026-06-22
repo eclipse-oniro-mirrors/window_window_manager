@@ -142,11 +142,15 @@ private:
    /*
     * Window Lifecycle
     */
+    WMError PrepareListenerRegistration(const sptr<ISessionLifecycleListener>& listener);
     void ConstructPayload(ISessionLifecycleListener::LifecycleEventPayload& payload, const SessionInfo& sessionInfo,
         const uint32_t resultCode = 0, const uint64_t fromScreenId = 0, const uint64_t toScreenId = 0,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT) const;
     void ConstructBatchPayload(std::vector<ISessionLifecycleListener::LifecycleEventPayload>& payloads,
         const std::vector<sptr<SceneSession>>& sessions);
+    AppInstanceFilterKey ResolveAppInstanceFilterKey(const sptr<SceneSession>& session) const;
+    ISessionLifecycleListener::LifecycleEventPayload ConstructAppInstancePayload(const sptr<SceneSession>& session,
+        SessionState state, LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT) const;
     void OnSessionLifecycleListenerDied(const wptr<IRemoteObject>& remote);
     void RemoveSessionLifecycleListener(const sptr<IRemoteObject>& target);
     template <typename MapType>
