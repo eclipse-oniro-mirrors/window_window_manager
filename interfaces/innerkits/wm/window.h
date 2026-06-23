@@ -4232,7 +4232,7 @@ public:
     /**
      * @brief Clear the window mask of window.
      *
-     * @return WM_OK means set success, others means failed.
+     * @return WM_OK means clear success, others means failed.
      */
     virtual WMError ClearWindowMask()
     {

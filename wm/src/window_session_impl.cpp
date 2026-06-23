@@ -2238,7 +2238,6 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     } else {
         uiContent->UpdateViewportConfig(config, reason, rsTransaction, lastAvoidAreaMap_, occupiedAreaInfo_);
     }
-
     if (WindowHelper::IsUIExtensionWindow(GetType())) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id: %{public}d, reason: %{public}d, viewportRect: %{public}s, "
             "displayOrientation: %{public}d, config[%{public}u, %{public}u, %{public}u, "
@@ -2876,6 +2875,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
     }
     NotifyAfterUIContentReady();
     TLOGD(WmsLogTag::WMS_LIFE, "end");
+
     return WMError::WM_OK;
 }
 
@@ -2898,7 +2898,6 @@ std::shared_ptr<std::vector<uint8_t>> WindowSessionImpl::GetAbcContent(const std
     end = file.tellg();
     int len = end - begin;
     WLOGFD("abc file: %{public}s, size: %{public}d", abcPath.c_str(), len);
-
     if (len <= 0) {
         WLOGFE("abc file size is 0");
         return nullptr;
@@ -3824,11 +3823,13 @@ std::string WindowSessionImpl::GetContentInfo(BackupAndRestoreType type)
     if (type == BackupAndRestoreType::NONE) {
         return "";
     }
+
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     if (uiContent == nullptr) {
         WLOGFE("fail to GetContentInfo id: %{public}d", GetPersistentId());
         return "";
     }
+
     return uiContent->GetContentInfo(GetAceContentInfoType(type));
 }
 
