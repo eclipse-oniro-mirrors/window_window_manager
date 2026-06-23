@@ -9389,7 +9389,7 @@ sptr<SceneSession> SceneSessionManager::GetNextFocusableSession(DisplayId displa
         displayGroupId, displayId](sptr<SceneSession> session) {
         if (session == nullptr) {
             return false;
-        } 
+        }
         if (session->GetPersistentId() == persistentId) {
             preFocusedSessionFound = true;
             return false;
