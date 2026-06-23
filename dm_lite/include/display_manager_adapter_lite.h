@@ -82,6 +82,10 @@ public:
     virtual uint32_t GetScreenBrightness(uint64_t screenId);
     virtual DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
     virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
+    virtual DMError RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent);
+    virtual DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent);
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
 };
