@@ -4321,7 +4321,7 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenProperty
         return;
     }
 #ifdef FOLD_ABILITY_ENABLE
-    sptr<ScreenSession> internalSession = GetInternalScreenSession();
+    sptr<ScreenSession> internalSession = GetInternalMainScreenSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Internal Session null");
         return;
@@ -4352,9 +4352,8 @@ bool ScreenSessionManager::HandleResolutionEffectChange()
         return false;
     }
     TLOGNFI(WmsLogTag::DMS, "start");
-    sptr<ScreenSession> internalSession = nullptr;
-    sptr<ScreenSession> externalSession = nullptr;
-    GetInternalAndExternalSession(internalSession, externalSession);
+    sptr<ScreenSession> internalSession = GetInternalMainSession();
+    sptr<ScreenSession> externalSession = GetExternalSession();
     if (internalSession == nullptr || externalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "internal or external Session null");
         return false;
@@ -4425,9 +4424,8 @@ bool ScreenSessionManager::SetResolutionEffect(ScreenId screenId,  uint32_t widt
     }
     TLOGNFI(WmsLogTag::DMS, "change resolution according to extend screen when in mirror screen combination: "
         "%{public}" PRIu64 " %{public}d %{public}d", screenId, width, height);
-    sptr<ScreenSession> internalSession = nullptr;
-    sptr<ScreenSession> externalSession = nullptr;
-    GetInternalAndExternalSession(internalSession, externalSession);
+    sptr<ScreenSession> internalSession = GetInternalMainSession();
+    sptr<ScreenSession> externalSession = GetExternalSession();
     if (externalSession == nullptr ||
         externalSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
         return false;
@@ -4461,9 +4459,8 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
         return false;
     }
     TLOGNFI(WmsLogTag::DMS, "recovery inner and external screen resolution");
-    sptr<ScreenSession> internalSession = nullptr;
-    sptr<ScreenSession> externalSession = nullptr;
-    GetInternalAndExternalSession(internalSession, externalSession);
+    sptr<ScreenSession> internalSession = GetInternalMainSession();
+    sptr<ScreenSession> externalSession = GetExternalSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "internalSession null");
         return false;
@@ -7036,9 +7033,7 @@ void ScreenSessionManager::HandleOsSwitchStatusChange()
  
 void ScreenSessionManager::HandleOsSwitchResolutionStatusChange(const std::string& status)
 {
-    sptr<ScreenSession> internalSession = nullptr;
-    sptr<ScreenSession> externalSession = nullptr;
-    GetInternalAndExternalSession(internalSession, externalSession);
+    sptr<ScreenSession> externalSession = GetExternalSession();
     if (externalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "extend session is null.");
         return;
