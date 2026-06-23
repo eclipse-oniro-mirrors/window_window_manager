@@ -3006,6 +3006,12 @@ public:
     virtual void NotifyRotationChangeResult(RotationChangeResult rotationChangeResult) {}
 
     /**
+     * @brief notify windowStage create finished.
+     * It is called by Ability Manager Service when onWindowStageCreate finished.
+     */
+    virtual void NotifyWindowStageCreateFinished() {}
+
+    /**
      * @brief start move main window. It is called by ACE when title is moved.
      *
      */

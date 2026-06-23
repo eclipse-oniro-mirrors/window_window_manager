@@ -54,6 +54,7 @@ public:
     void PreProcessCreate();
     void SetDefaultProperty();
     WMError Minimize() override;
+    void NotifyWindowStageCreateFinished() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;

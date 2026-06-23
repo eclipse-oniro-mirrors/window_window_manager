@@ -5053,6 +5053,19 @@ WMError WindowSceneSessionImpl::RemoveImageForRecent()
     return ret;
 }
 
+void WindowSceneSessionImpl::NotifyWindowStageCreateFinished()
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is invalid");
+        return;
+    }
+    auto hostSession = GetHostSession();
+    if (hostSession) {
+        hostSession->OnSessionEvent(SessionEvent::EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED);
+    }
+}
+
 /** @note @window.drag */
 void WindowSceneSessionImpl::StartMove()
 {
