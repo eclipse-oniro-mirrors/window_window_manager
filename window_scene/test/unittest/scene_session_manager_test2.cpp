@@ -951,13 +951,13 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowEffect08, TestSize.Level1)
 */
 HWTEST_F(SceneSessionManagerTest2, ConfigWindowEffect09, TestSize.Level1)
 {
-    std::string xmlStr =
-        "<?xml version='1.0' encoding=\"utf-8\"?>"
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
         "<Configs>"
-        "<windowEffect>"
-        "<appWindows>"
-        "</appWindows>"
-        "</windowEffect>"
+            "<windowEffect>"
+                "<appWindows>"
+                
+                "</appWindows>"
+            "</windowEffect>"
         "</Configs>";
     WindowSceneConfig::config_ = ReadConfig(xmlStr);
     const auto& config = WindowSceneConfig::GetConfig();
