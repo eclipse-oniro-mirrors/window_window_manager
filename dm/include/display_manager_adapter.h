@@ -32,6 +32,7 @@
 namespace OHOS::Rosen {
 class BaseAdapter {
 public:
+    BaseAdapter();
     virtual ~BaseAdapter();
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type);
@@ -40,7 +41,8 @@ public:
     virtual void Clear();
 protected:
     bool InitDMSProxy();
-    std::recursive_mutex mutex_;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
     sptr<IScreenSessionManager> screenSessionManagerServiceProxy_ = nullptr;
     sptr<IDisplayManager> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;

@@ -8767,6 +8767,14 @@ DMError ScreenSessionManager::SetVirtualMirrorScreenCanvasRotation(ScreenId scre
     return DMError::DM_OK;
 }
 
+void UpdatePropertyChangeReason(sptr<ScreenSession> screenSession, ScreenPropertyChangeReason& reason)
+{
+    if (reason == ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE
+        && screenSession->GetDisplaySourceMode() == DisplaySourceMode::EXTEND) {
+        reason = ScreenPropertyChangeReason::CHANGE_MODE;
+    }
+}
+
 DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
     uint32_t renderWidth, uint32_t renderHeight)
 {
@@ -8804,8 +8812,9 @@ DMError ScreenSessionManager::ResizeVirtualScreen(ScreenId screenId, uint32_t wi
     }
     ApplyVirtualScreenScale(screenSession, width, height, renderWidth, renderHeight);
     screenSession->Resize(width, height);
-    screenSession->PropertyChange(screenSession->GetScreenProperty(),
-        ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE);
+    ScreenPropertyChangeReason reason = ScreenPropertyChangeReason::VIRTUAL_SCREEN_RESIZE;
+    UpdatePropertyChangeReason(screenSession, reason);
+    screenSession->PropertyChange(screenSession->GetScreenProperty(), reason);
     return DMError::DM_OK;
 }
 
