@@ -4321,7 +4321,7 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenProperty
         return;
     }
 #ifdef FOLD_ABILITY_ENABLE
-    sptr<ScreenSession> internalSession = GetInternalMainScreenSession();
+    sptr<ScreenSession> internalSession = GetInternalMainSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Internal Session null");
         return;
