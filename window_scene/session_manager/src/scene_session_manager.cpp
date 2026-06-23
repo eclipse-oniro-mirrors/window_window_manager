@@ -1041,6 +1041,11 @@ void SceneSessionManager::LoadFreeMultiWindowConfig(bool enable)
         item = config["windowEffect"];
         if (item.IsMap()) {
             ConfigWindowEffect(item, appWindowSceneConfig_);
+        } else {
+            appWindowSceneConfig_.focusedShadow_ = WindowShadowConfig();
+            appWindowSceneConfig_.unfocusedShadow_ = WindowShadowConfig();
+            appWindowSceneConfig_.focusedShadowDark_ = WindowShadowConfig();
+            appWindowSceneConfig_.unfocusedShadowDark_ = WindowShadowConfig();
         }
     }
     systemConfig_.freeMultiWindowEnable_ = enable;
