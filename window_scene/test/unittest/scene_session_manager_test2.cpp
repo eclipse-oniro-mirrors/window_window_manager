@@ -942,13 +942,10 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowEffect08, TestSize.Level1)
 }
 
 /**
-
-@tc.name: ConfigWindowEffect09
-
-@tc.desc: call ConfigWindowEffect radius.size is not 1
-
-@tc.type: FUNC
-*/
+ * @tc.name: ConfigWindowEffect09
+ * @tc.desc: call ConfigWindowEffect radius.size is not 1
+ * @tc.type: FUNC
+ */
 HWTEST_F(SceneSessionManagerTest2, ConfigWindowEffect09, TestSize.Level1)
 {
     std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
@@ -2034,6 +2031,64 @@ HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest, TestSize.Level
     EXPECT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetY_, 3);
     EXPECT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.radius_, 0.5);
 }
+
+/**
+ * @tc.name: LoadFreeMultiWindowConfigTest02
+ * @tc.desc: call LoadFreeMultiWindowConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest02, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowConfig_.defaultDragResizeType_ = DragResizeType::RESIZE_TYPE_UNDEFINED;
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<windowEffect>"
+        "<appWindows>"
+        "</appWindows>"
+        "</windowEffect>"
+        "<freeMultiWindow enable=\"true\">"
+        "<windowEffect>"
+        "<appWindows>"
+        "<shadow>"
+        "<focused>"
+        "<elevation>0</elevation>"
+        "<color>#F0900CE2</color>"
+        "<alpha>0</alpha>"
+        "<offsetX>3</offsetX>"
+        "<offsetY>3</offsetY>"
+        "<radius>0.5</radius>"
+        "</focused>"
+        "<unfocused>"
+        "<elevation>0</elevation>"
+        "<color>#F0E2BE0C</color>"
+        "<offsetX>3</offsetX>"
+        "<offsetY>3</offsetY>"
+        "<alpha>0</alpha>"
+        "<radius>0.5</radius>"
+        "</unfocused>"
+        "</shadow>"
+        "</appWindows>"
+        "</windowEffect>"
+        "</freeMultiWindow>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigFreeMultiWindow();
+    ASSERT_EQ(ssm_->systemConfig_.freeMultiWindowSupport_, true);
+    // load windowEffect
+    ssm_->LoadFreeMultiWindowConfig(false);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.alpha_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.offsetX_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.offsetY_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.radius_, 0);
+    EXPECT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.color_, "#00000000");
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.radius_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.alpha_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetX_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetY_, 0);
+    EXPECT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.color_, "#00000000");
+}
+
 
 /**
  * @tc.name: ConfigSingleHandBackgroundLayout01

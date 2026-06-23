@@ -7005,7 +7005,7 @@ void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEna
             }
         }
     }
-    if(!freeMultiWindowEnable) {
+    if (!freeMultiWindowEnable) {
         // remove immersive mode if non-immersive in pad mode and enter immersive using the maximize in freeMultiWindow
         bool isNeedRemoveMaximizeLayout = maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_;
         // recover immersive mode if immersive in pad mode
