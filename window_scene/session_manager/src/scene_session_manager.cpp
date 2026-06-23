@@ -16105,7 +16105,7 @@ void SceneSessionManager::PostProcessFocus()
     std::vector<sptr<SceneSession>> processingSessions = CollectProcessingSessions();
     // only change focus one time
     std::unordered_set<DisplayId> focusChangedSet;
-    for (const auto& session : processingSessions) {
+    for (auto& session : processingSessions) {
         if (session == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "session is nullptr");
             continue;
@@ -16114,7 +16114,6 @@ void SceneSessionManager::PostProcessFocus()
         const auto displayGroupId = windowFocusController_->GetDisplayGroupId(displayId);
         const auto& processFocusState = session->GetPostProcessFocusState();
         const auto persistentId = session->GetPersistentId();
-
         TLOGD(WmsLogTag::WMS_PIPELINE,
             "id: %{public}d, isFocused: %{public}d, reason: %{public}d, focusableOnShow: %{public}d",
             persistentId, processFocusState.isFocused_, processFocusState.reason_, session->IsFocusableOnShow());
@@ -16144,7 +16143,9 @@ void SceneSessionManager::PostProcessFocus()
             } else {
                 ret = RequestSessionFocus(persistentId, true, reason);
             }
-            if (session->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+            if ((reason == FocusChangeReason::SCB_START_APP || reason == FocusChangeReason::FOREGROUND ||
+                 reason == FocusChangeReason::APP_FOREGROUND) &&
+                session->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
                 ProcessSubSessionForeground(session);
             }
         } else {
