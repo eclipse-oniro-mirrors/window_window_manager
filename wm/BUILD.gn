@@ -386,6 +386,14 @@ ohos_shared_library("libwm") {
 
 ## Build libwm_lite.so
 ohos_shared_library("libwm_lite") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
   defines = [ "USE_ADAPTER_LITE" ]
   include_dirs = [
     "../interfaces/innerkits/wm",
