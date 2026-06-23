@@ -5892,6 +5892,30 @@ void ScreenSessionManager::GetInternalAndExternalSession(sptr<ScreenSession>& in
     }
 }
 
+sptr<ScreenSession> ScreenSessionManager::GetInternalMainSession()
+{
+    std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+    for (auto sessionIt : screenSessionMap_) {
+        auto screenSession = sessionIt.second;
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr!");
+            continue;
+        }
+        if (!screenSession->GetIsCurrentInUse()) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() != ScreenType::REAL) {
+            continue;
+        }
+        if (screenSession->isInternal_ && screenSession->GetName() != "SubScreen") {
+            TLOGNFI(WmsLogTag::DMS, "internal main screenId = %{public}" PRIu64, sessionIt.first);
+            return screenSession;
+        }
+    }
+    return nullptr;
+}
+
 sptr<ScreenSession> ScreenSessionManager::GetExternalSession()
 {
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMap;
