@@ -5055,9 +5055,9 @@ WMError WindowSceneSessionImpl::RemoveImageForRecent()
 
 void WindowSceneSessionImpl::NotifyWindowStageCreateFinished()
 {
-    TLOGI("id: %{public}d", GetPersistentId());
+    TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
     if (IsWindowSessionInvalid()) {
-        TLOGE("session is invalid");
+        TLOGE(WmsLogTag::WMS_LIFE, "session is invalid");
         return;
     }
     auto hostSession = GetHostSession();
