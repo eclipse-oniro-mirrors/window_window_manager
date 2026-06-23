@@ -2089,7 +2089,6 @@ HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest02, TestSize.Lev
     EXPECT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.color_, "#00000000");
 }
 
-
 /**
  * @tc.name: ConfigSingleHandBackgroundLayout01
  * @tc.desc: call ConfigSingleHandBackgroundLayout
