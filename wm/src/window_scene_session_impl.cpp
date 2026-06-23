@@ -6989,6 +6989,7 @@ void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScree
 
 void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable)
 {
+    //todo
     if (freeMultiWindowEnable && enableImmersiveMode_) {
         maximizeLayoutFullScreen_.store(false);
         cacheEnableImmersiveMode_.store(true);
