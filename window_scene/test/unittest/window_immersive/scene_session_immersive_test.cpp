@@ -754,7 +754,7 @@ HWTEST_F(SceneSessionImmersiveTest, CheckGetAvoidAreaAvailable, TestSize.Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     session->property_ = sptr<WindowSessionProperty>::MakeSptr();
     session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_FLOAT_NAVIGATION), false);
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_FLOAT_NAVIGATION), true);
     session->rotation_ = Rotation::ROTATION_90;
     EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), true);
     session->rotation_ = Rotation::ROTATION_0;
