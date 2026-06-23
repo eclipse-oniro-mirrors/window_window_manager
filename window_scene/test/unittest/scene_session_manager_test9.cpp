@@ -1760,23 +1760,7 @@ HWTEST_F(SceneSessionManagerTest9, SetParentWindowInner, TestSize.Level1)
 HWTEST_F(SceneSessionManagerTest9, ResetSpecificWindowZIndex, TestSize.Level1)
 {
     WSError ret = ssm_->ResetSpecificWindowZIndex(123);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
-
-    ssm_->specificZIndexByPidMap_[WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD] = 123;
-    ret = ssm_->ResetSpecificWindowZIndex(123);
-    EXPECT_EQ(ret, WSError::WS_OK);
-
-    SetSpecificZIndexReason setReason = SetSpecificZIndexReason::SET;
-    NotifySetSpecificWindowZIndexFunc func = [&setReason](WindowType windowType, int32_t zIndex,
-        SetSpecificZIndexReason reason) {
-        setReason = reason;
-    };
-    ssm_->SetSpecificWindowZIndexListener(func);
-    ret = ssm_->ResetSpecificWindowZIndex(123);
-    EXPECT_EQ(ret, WSError::WS_OK);
-    EXPECT_EQ(setReason, SetSpecificZIndexReason::RESET);
-    ssm_->SetSpecificWindowZIndexListener(nullptr);
-    ssm_->specificZIndexByPidMap_.clear();
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
 /**

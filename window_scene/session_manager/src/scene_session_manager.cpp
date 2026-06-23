@@ -16408,6 +16408,11 @@ WSError SceneSessionManager::MoveMainWindowToTargetDisplay(DisplayId displayId, 
 /** @note @window.hierarchy */
 WSError SceneSessionManager::ResetSpecificWindowZIndex(int32_t pid)
 {
+    bool isFoundationCall = SessionPermission::IsFoundationCall();
+    if (!isFoundationCall) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "permission denied");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
     const char* const where = __func__;
     return taskScheduler_->PostSyncTask([this, pid, where] {
         TLOGNI(WmsLogTag::WMS_FOCUS, "id: %{public}d", pid);
