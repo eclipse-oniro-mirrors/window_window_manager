@@ -14836,6 +14836,35 @@ void SceneSessionManager::SetVirtualPixelRatioChangeListener(const ProcessVirtua
     TLOGI(WmsLogTag::DEFAULT, "end");
 }
 
+bool SceneSessionManager::ShouldProcessVirtualPixelRatioChange(
+    DisplayStateChangeType type, sptr<DisplayInfo> displayInfo)
+{
+    if (displayInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "displayInfo is nullptr");
+        return false;
+    }
+    auto rootSceneSession = GetRootSceneSession();
+    if (rootSceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rootSceneSession is nullptr");
+        return false;
+    }
+    bool isInternal = system::GetIntParameter("const.product.has_buildin_screen", 1);
+    auto result = processVirtualPixelRatioChangeFunc_ != nullptr &&
+                  ((type == DisplayStateChangeType::RESOLUTION_CHANGE &&
+                    displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
+                   (type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE && !isInternal &&
+                    displayInfo->GetDisplayId() == rootSceneSession->GetDisplayId()));
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+          "result=%{public}d isInternal=%{public}d type=%{public}u rootDisplayId=%{public}" PRIu64
+          " inputDisplayId=%{public}" PRIu64,
+          result,
+          isInternal,
+          type,
+          rootSceneSession->GetDisplayId(),
+          displayInfo->GetDisplayId());
+    return result;
+}
+
 void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
     const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type)
 {
@@ -14844,10 +14873,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
         return;
     }
     taskScheduler_->PostSyncTask([this, displayInfo, type, where = __func__]() {
-        if (processVirtualPixelRatioChangeFunc_ != nullptr &&
-            ((type == DisplayStateChangeType::RESOLUTION_CHANGE &&
-            displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
-                type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE)){
+        if (ShouldProcessVirtualPixelRatioChange(type, displayInfo)) {
             Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
                           displayInfo->GetWidth(), displayInfo->GetHeight() };
             processVirtualPixelRatioChangeFunc_(displayInfo->GetVirtualPixelRatio(), rect);
