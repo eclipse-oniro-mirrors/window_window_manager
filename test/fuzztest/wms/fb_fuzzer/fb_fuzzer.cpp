@@ -116,7 +116,7 @@ bool DoSomethingInterestingWithMyAPI(const uint8_t* data, size_t size)
     controller->UpdateFloatingBall(option);
 
     CheckFbControllerFunctionsPart(controller, data + startPos, size - startPos);
-    controller->DestroyFloatingBallWindow();
+    controller->DestroyFloatingBallWindow("fuzztest");
     return true;
 }
 

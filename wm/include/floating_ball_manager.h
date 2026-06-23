@@ -35,11 +35,11 @@ public:
 
     static sptr<FloatingBallController> GetActiveController() { return activeController_; }
 
-    static void DoActionClick();
-    static void DoActionClose();
+    static void DoActionClick(const std::string& reason);
+    static void DoActionClose(const std::string& reason);
     static void DoDestroy();
 
-    static void DoFbActionEvent(const std::string& actionName);
+    static void DoFbActionEvent(const std::string& actionName, const std::string& reason);
 
 private:
     // controller in use

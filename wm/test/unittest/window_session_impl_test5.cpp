@@ -1960,7 +1960,8 @@ HWTEST_F(WindowSessionImplTest5, SendFbActionEvent, TestSize.Level1)
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     window->hostSession_ = nullptr;
     std::string action = "click";
-    ASSERT_EQ(WSError::WS_OK, window->SendFbActionEvent(action));
+    std::string reason = "APP_STOP";
+    ASSERT_EQ(WSError::WS_OK, window->SendFbActionEvent(action, reason));
 }
 
 /**

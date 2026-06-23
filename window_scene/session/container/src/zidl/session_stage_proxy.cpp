@@ -1547,6 +1547,11 @@ WSError SessionStageProxy::SendFbActionEvent(const std::string& action, const st
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
+    if (!data.WriteString(reason)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Write reason failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "remote is null");

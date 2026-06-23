@@ -22,6 +22,12 @@
 
 namespace OHOS {
 namespace Rosen {
+    struct AniFunctionIdentifier {
+        const char* funNamespace;
+        const char* functionName;
+        const char* signature;
+    };
+
     ani_ref AniGetUndefined(ani_env* env);
     std::string GetErrorMsg(WMError error);
     std::string GetErrorMsg(WmErrorCode error);
@@ -33,6 +39,8 @@ namespace Rosen {
     ani_status GetContextPtr(ani_env* env, ani_object floatingBallConfigurations, void*& contextPtr);
     bool IsInstanceOf(ani_env* env, ani_object obj, const char* className);
     ani_status CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...);
+    ani_status CallAniFunctionVoidWithString(ani_env* env, const AniFunctionIdentifier& funcId, ani_ref callback,
+        const std::string& strParam);
     ani_status GetAniString(ani_env* env, const std::string& str, ani_string* result);
     ani_object CreateAniUndefined(ani_env* env);
 

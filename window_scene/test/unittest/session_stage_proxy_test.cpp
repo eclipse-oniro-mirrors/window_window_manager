@@ -1277,14 +1277,13 @@ HWTEST_F(SessionStageProxyTest, SendFbActionEvent, TestSize.Level1)
     ASSERT_TRUE(sessionStage_ != nullptr);
 
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFbActionEvent("SendFbActionEvent", ""));
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFbActionEvent("SendFbActionEvent", "APP_STOP"));
 
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
-
-    ASSERT_EQ(WSError::WS_OK, sessionStage_->SendFbActionEvent("SendFbActionEvent", ""));
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->SendFbActionEvent("SendFbActionEvent", "APP_STOP"));
 
     sptr<SessionStageProxy> sProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
-    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sProxy->SendFbActionEvent("SendFbActionEvent", ""));
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sProxy->SendFbActionEvent("SendFbActionEvent", "APP_STOP"));
 
     auto remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
     remoteMocker->sendRequestResult_ = 1;
@@ -1292,8 +1291,9 @@ HWTEST_F(SessionStageProxyTest, SendFbActionEvent, TestSize.Level1)
     ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage->SendFbActionEvent("click", ""));
 
     MockMessageParcel::SetWriteStringErrorFlag(true);
-    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFbActionEvent("error", ""));
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SendFbActionEvent("error", "APP_STOP"));
     MockMessageParcel::SetWriteStringErrorFlag(false);
+
     MockMessageParcel::ClearAllErrorFlag();
 }
 

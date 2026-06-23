@@ -38,6 +38,8 @@ public:
     static napi_value UpdateFloatingBall(napi_env env, napi_callback_info info);
     static napi_value RegisterCallback(napi_env env, napi_callback_info info);
     static napi_value UnregisterCallback(napi_env env, napi_callback_info info);
+    static napi_value OnDestroy(napi_env env, napi_callback_info info);
+    static napi_value OffDestroy(napi_env env, napi_callback_info info);
     static napi_value GetFloatingBallWindowInfo(napi_env env, napi_callback_info info);
     static napi_value SetInApplicationVisible(napi_env env, napi_callback_info info);
     napi_value GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option);
@@ -54,6 +56,9 @@ private:
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
     napi_value OnUnregisterCallback(napi_env env, napi_callback_info info);
 
+    napi_value OnDestroyRegister(napi_env env, napi_callback_info info);
+    napi_value OnDestroyUnRegister(napi_env env, napi_callback_info info);
+
     napi_value OnGetFloatingBallWindowInfo(napi_env env, napi_callback_info info);
 
     bool IsCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject);
@@ -63,8 +68,10 @@ private:
 
     WMError ProcessStateChangeRegister(const sptr<JsFbWindowListener>& listener);
     WMError ProcessClickEventRegister(const sptr<JsFbWindowListener>& listener);
+    WMError ProcessDestroyEventRegister(const sptr<JsFbWindowListener>& listener);
     WMError ProcessStateChangeUnRegister(const sptr<JsFbWindowListener>& listener);
     WMError ProcessClickEventUnRegister(const sptr<JsFbWindowListener>& listener);
+    WMError ProcessDestroyEventUnRegister(const sptr<JsFbWindowListener>& listener);
 
     template <typename T>
  	void HandleProperty(napi_env env, napi_value optionObject, const char* propertyName,
