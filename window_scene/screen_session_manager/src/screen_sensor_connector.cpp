@@ -87,6 +87,7 @@ void ScreenSensorConnector::UnsubscribeTentSensor()
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 void MotionSubscriber::SubscribeMotionSensor()
 {
+    return;
     TLOGI(WmsLogTag::DMS, "start");
     if (isMotionSensorSubscribed_) {
         TLOGE(WmsLogTag::DMS, "motion sensor's already subscribed");
@@ -109,6 +110,7 @@ void MotionSubscriber::SubscribeMotionSensor()
 
 void MotionSubscriber::UnsubscribeMotionSensor()
 {
+    return;
     if (!isMotionSensorSubscribed_) {
         TLOGI(WmsLogTag::DMS, "start");
         return;
