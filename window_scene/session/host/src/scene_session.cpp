@@ -197,12 +197,13 @@ SceneSession::~SceneSession()
 
 WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token, int32_t pid, int32_t uid,
     const std::string& identityToken)
 {
-    return PostSyncTask([weakThis = wptr(this), sessionStage, eventChannel, surfaceNode, &systemConfig,
-        property, token, pid, uid, identityToken, where = __func__] {
+    return PostSyncTask([weakThis = wptr(this), sessionStage, eventChannel, nodeId, &surfaceNode, &systemConfig,
+        property, token, pid, uid, identityToken, &renderSession, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
@@ -235,7 +236,9 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
         }
         session->RetrieveStatusBarDefaultVisibility();
         auto ret = LOCK_GUARD_EXPR(SCENE_GUARD, session->Session::ConnectInner(
-            sessionStage, eventChannel, surfaceNode, systemConfig, property, token, pid, uid));
+            sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode, property, token, pid, uid));
+        renderSession = ScreenSessionManagerClient::GetInstance().GetRenderSessionToken();
+        RSUIContextContainer::SetRenderSession(renderSession);
         if (ret != WSError::WS_OK) {
             return ret;
         }
@@ -250,14 +253,15 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
 }
 
 WSError SceneSession::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {
     // Get pid and uid before posting task.
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     int32_t uid = IPCSkeleton::GetCallingUid();
-    return ConnectInner(sessionStage, eventChannel, surfaceNode, systemConfig,
+    return ConnectInner(sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode,
         property, token, pid, uid, identityToken);
 }
 
