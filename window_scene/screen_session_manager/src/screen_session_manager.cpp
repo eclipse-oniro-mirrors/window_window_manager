@@ -6250,7 +6250,7 @@ bool ScreenSessionManager::SetScreenBrightness(const DmsScreenBrightnessData& br
 uint32_t ScreenSessionManager::GetScreenBrightness(uint64_t screenId)
 {
     uint32_t level = static_cast<uint32_t>(RSInterfaces::GetInstance().GetScreenBacklight(screenId));
-    TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64", level: %{public}u", screenId, level);
+    TLOGI_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "screenId: %{public}" PRIu64", level: %{public}u", screenId, level);
     return level;
 }
 
@@ -10930,7 +10930,7 @@ void ScreenSessionManager::SetScreenPrivacyWindowList(DisplayId id, std::vector<
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return;
     }
-    TLOGNW(WmsLogTag::DMS, "SetPrivList enter");
+    TLOGW_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "SetPrivList enter");
     std::vector<ScreenId> screenIds = GetAllScreenIds();
     auto iter = std::find(screenIds.begin(), screenIds.end(), id);
     if (iter == screenIds.end()) {
@@ -10972,7 +10972,7 @@ DMError ScreenSessionManager::HasPrivateWindow(DisplayId id, bool& hasPrivateWin
             hasPrivateWindow = false;
         }
     }
-    TLOGNI(WmsLogTag::DMS, "id: %{public}" PRIu64" privW: %{public}u",
+    TLOGI_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "id: %{public}" PRIu64" privW: %{public}u",
         id, static_cast<uint32_t>(hasPrivateWindow));
     return DMError::DM_OK;
 }

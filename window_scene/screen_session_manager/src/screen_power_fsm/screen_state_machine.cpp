@@ -119,7 +119,7 @@ bool ScreenStateMachine::HandlePowerStateChange(ScreenPowerEvent event, const Sc
 
 bool ScreenStateMachine::DoWakeUpBegin(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    TLOGNFI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     return ScreenSessionManager::GetInstance().DoWakeUpBegin(std::get<PowerStateChangeReason>(type));
 }
 

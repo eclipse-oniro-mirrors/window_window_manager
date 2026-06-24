@@ -165,7 +165,7 @@ ScreenSession::ScreenSession(ScreenId screenId, ScreenId rsId, const std::string
     const ScreenProperty& property, const std::shared_ptr<RSDisplayNode>& displayNode)
     : name_(name), screenId_(screenId), rsId_(rsId), property_(property), displayNode_(displayNode)
 {
-    TLOGI(WmsLogTag::DMS, "Success to create screenSession in constructor_0, screenid is %{public}" PRIu64"",
+    TLOGD(WmsLogTag::DMS, "Success to create screenSession in constructor_0, screenid is %{public}" PRIu64"",
         screenId_);
     sessionId_ = sessionIdGenerator_++;
     property_.SetRsId(rsId_);
@@ -2811,7 +2811,7 @@ void ScreenSession::SetForceCloseHdr(bool isForceCloseHdr)
             hdrDuration = DURATION_0MS;
         }
     }
-    TLOGI(WmsLogTag::DMS, "ForceCloseHdr is %{public}d, hdrDuration is %{public}d", isForceCloseHdr, hdrDuration);
+    TLOGNFI(WmsLogTag::DMS, "ForceCloseHdr is %{public}d, hdrDuration is %{public}d", isForceCloseHdr, hdrDuration);
     auto rsUIContext = GetRSUIContext();
     RSAnimationTimingProtocol timingProtocol;
     // Duration of the animation
@@ -3097,7 +3097,7 @@ int32_t ScreenSession::GetApiVersion()
         TLOGI(WmsLogTag::DMS, "IPC get");
         g_uidVersionMap.Set(currentPid, apiVersion);
     }
-    TLOGI(WmsLogTag::DMS, "pid:%{public}d, apiVersion:%{public}d", apiVersion, apiVersion);
+    TLOGNFI(WmsLogTag::DMS, "pid:%{public}d, api:%{public}d", apiVersion, apiVersion);
     lastRequestTime = currentTime;
     return apiVersion;
 }

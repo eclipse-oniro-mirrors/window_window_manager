@@ -919,7 +919,7 @@ uint32_t ScreenSceneConfig::GetNumberConfigValue(const std::string& name, const 
     if (intNumbersConfig_.count(name) != 0) {
         return static_cast<uint32_t>(intNumbersConfig_[name][0]);
     }
-    TLOGI(WmsLogTag::DMS, "default %{public}s = %{public}u", name.c_str(), default_value);
+    TLOGNFI(WmsLogTag::DMS, "default %{public}s = %{public}u", name.c_str(), default_value);
     return default_value;
 }
 } // namespace OHOS::Rosen
