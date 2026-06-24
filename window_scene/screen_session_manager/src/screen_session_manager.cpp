@@ -8243,7 +8243,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         clientProxy->OnGetSurfaceNodeIdsFromMissionIdsChanged(option.missionIds_, surfaceNodeIds);
         option.missionIds_ = FilterMissionIdsBySurfaceNodeIds(option.missionIds_, surfaceNodeIds);
     }
-    ScreenId associatedScreenId = GetAssociatedScreenId();
+    ScreenId associatedScreenId = GetAssociatedScreenId(option);
     TLOGNFI(WmsLogTag::DMS, "missionID size:%{public}ud, associatedScreenId: %{public}" PRIu64,
         static_cast<uint32_t>(option.missionIds_.size()), associatedScreenId);
     uint32_t width = option.width_;
@@ -8347,13 +8347,18 @@ void ScreenSessionManager::ApplyVirtualScreenScale(const sptr<ScreenSession>& sc
     }
 }
 
-ScreenId ScreenSessionManager::GetAssociatedScreenId()
+ScreenId ScreenSessionManager::GetAssociatedScreenId(VirtualScreenOption& option)
 {
     if (!IsConcurrentUser()) {
         TLOGNFI(WmsLogTag::DMS, "not support mulyi-screen nulti-user");
         return MAIN_SCREEN_ID_DEFAULT;
     }
-    auto userId = GetUserIdByCallingUid();
+    auto userId = INVALID_USERID;
+    if (option.userId_ !=  INVALID_USERID){
+        userId = option.userId_;
+    } else {
+        userId = GetUserIdByCallingUid();
+    }
     std::shared_ptr<UserInfo> userInfo = nullptr;
     if (userId == INVALID_USER_ID) {
         userId = GetForegroundConcurrentUser(CONTROL_PANEL_PHYSICAL_ID);

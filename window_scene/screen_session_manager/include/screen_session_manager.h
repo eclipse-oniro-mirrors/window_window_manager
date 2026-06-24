@@ -136,7 +136,7 @@ public:
     std::vector<uint64_t> FilterMissionIdsBySurfaceNodeIds(const std::vector<uint64_t>& missionIds,
         const std::vector<uint64_t>& surfaceNodeIds);
     void SetVirtualScreenUser(sptr<ScreenSession> screenSession, int32_t userId);
-    ScreenId GetAssociatedScreenId();
+    ScreenId GetAssociatedScreenId(VirtualScreenOption& option);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
     virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
         const DMRect& surfaceRegion) override;
