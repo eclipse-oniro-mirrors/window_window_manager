@@ -24,6 +24,7 @@
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
 #include "mock/mock_ibundle_mgr.h"
+#include "parameters.h"
 #include "pointer_event.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
