@@ -9786,6 +9786,14 @@ void JsSceneSession::ProcessSplitRatioChangeRegister()
         }
         jsSceneSession->OnSplitRatioChange(newRatio);
     });
+    auto property = session->GetSessionProperty();
+    if (property != nullptr) {
+        auto ratio = property->GetHookWindowInfo().widthHookRatio;
+        TLOGI(WmsLogTag::WMS_COMPAT, "windowId: %{public}d, ratio: %{public}f", persistentId_, ratio);
+        if (!MathHelper::NearEqual(ratio, HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
+            session->NotifySplitRatioChanged(ratio);
+        }
+    }
 }
 
 void JsSceneSession::OnCompatibleModeChange(CompatibleStyleMode mode)

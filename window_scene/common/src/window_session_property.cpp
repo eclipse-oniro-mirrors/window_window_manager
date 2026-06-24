@@ -1931,6 +1931,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
+    SetWidthHookRatio(property->GetHookWindowInfo().widthHookRatio);
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
