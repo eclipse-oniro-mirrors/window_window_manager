@@ -6228,13 +6228,13 @@ WMError WindowSessionImpl::UnregisterScreenshotListener(const sptr<IScreenshotLi
         std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
         auto ret = UnregisterListenerInMap(screenshotListeners_, persistentId, listener);
         if (ret != WMError::WM_OK) {
-                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
-                return ret;
-            }
-            if (screenshotListeners_[persistentId].empty()) {
-                screenshotListeners_.erase(persistentId);
-                isLastUnregister = true;
-            }
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
+            return ret;
+        }
+        if (screenshotListeners_[persistentId].empty()) {
+            screenshotListeners_.erase(persistentId);
+            isLastUnregister = true;
+        }
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isLastUnregister=%{public}d", persistentId, isLastUnregister);
     if (!isLastUnregister) {
