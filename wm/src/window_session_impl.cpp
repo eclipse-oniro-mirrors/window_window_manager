@@ -6588,7 +6588,6 @@ EnableIfSame<T, IScreenshotAppEventListener, std::vector<IScreenshotAppEventList
     return screenshotAppEventListeners_[GetPersistentId()];
 }
 
-
 WSError WindowSessionImpl::NotifyDestroy()
 {
     if (WindowHelper::IsDialogWindow(property_->GetWindowType())) {
