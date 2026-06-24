@@ -83,6 +83,7 @@
             OHOS::Rosen::FvOption::FvOption*;
             OHOS::Rosen::FvOption::SetContext*;
             OHOS::Rosen::FvOption::SetTemplate*;
+            OHOS::Rosen::FvOption::SetCloseConfirm*;
             OHOS::Rosen::FvOption::GetContext*;
             OHOS::Rosen::FvOption::GetTemplate*;
             OHOS::Rosen::FvOption::SetUIPath*;
