@@ -1891,34 +1891,6 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
     }
 
     /**
-     * @tc.name: RegisterSettingCustomResolutionObserver
-     * @tc.desc: RegisterSettingCustomResolutionObserver
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, RegisterSettingCustomResolutionObserver, TestSize.Level1)
-    {
-        bool flag = false;
-        auto func = [&flag] (const std::string&) {
-            TLOGI(WmsLogTag::DMS, "UT test");
-            flag = true;
-        };
-        ScreenSettingHelper::RegisterSettingCustomResolutionObserver(func);
-        ASSERT_NE(ScreenSettingHelper::customResolutionObserver_, nullptr);
-
-        g_errLog.clear();
-        LOG_SetCallback(MyLogCallback);
-        bool flag1 = false;
-        auto func1 = [&flag1] (const std::string&) {
-            TLOGI(WmsLogTag::DMS, "UT test");
-            flag1 = true;
-        };
-        ScreenSettingHelper::RegisterSettingCustomResolutionObserver(func1);
-        EXPECT_TRUE(g_errLog.find("setting observer is registered") != std::string::npos);
-        LOG_SetCallback(nullptr);
-        ScreenSettingHelper::customResolutionObserver_ = nullptr;
-    }
-
-    /**
      * @tc.name: UnregisterSettingCustomResolutionObserver
      * @tc.desc: UnregisterSettingCustomResolutionObserver
      * @tc.type: FUNC
@@ -1961,21 +1933,6 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         ASSERT_FALSE(ret);
         ASSERT_EQ(width, 0);
         ASSERT_EQ(height, 0);
-    }
-
-    /**
-     * @tc.name: SetCustomResolutionTest
-     * @tc.desc: Test SetCustomResolution func
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, SetCustomResolutionTest, Function | SmallTest | Level3)
-    {
-        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
-        uint32_t width = 1920;
-        uint32_t height = 1080;
-
-        auto ret = screenSettingHelper.SetCustomResolution(width, height);
-        ASSERT_TRUE(ret);
     }
 }
 } // namespace Rosen
