@@ -729,11 +729,11 @@ public:
     virtual void SetFloatingScale(float floatingScale);
     float GetFloatingScale() const;
     virtual void SetScale(float scaleX, float scaleY, float pivotX, float pivotY);
-    void SetRsScale(float rsScaleX, float rsScaleY);
+    void SetIgnoreRotateScale(float ignoreRotateScaleX, float ignoreRotateScaleY);
     float GetScaleX() const;
     float GetScaleY() const;
-    float GetRsScaleX() const;
-    float GetRsScaleY() const;
+    float GetIgnoreRotateScaleX() const;
+    float GetIgnoreRotateScaleY() const;
     float GetPivotX() const;
     float GetPivotY() const;
     void SetSCBKeepKeyboard(bool scbKeepKeyboardFlag);

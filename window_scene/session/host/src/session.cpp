@@ -5494,9 +5494,9 @@ void Session::SetScale(float scaleX, float scaleY, float pivotX, float pivotY)
     layoutController_->SetScale(scaleX, scaleY, pivotX, pivotY);
 }
 
-void Session::SetRsScale(float rsScaleX, float rsScaleY)
+void Session::SetIgnoreRotateScale(float ignoreRotateScaleX, float ignoreRotateScaleY)
 {
-    layoutController_->SetRsScale(rsScaleX, rsScaleY);
+    layoutController_->SetIgnoreRotateScale(ignoreRotateScaleX, ignoreRotateScaleY);
 }
 
 void Session::SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY)
@@ -5514,14 +5514,14 @@ float Session::GetScaleY() const
     return layoutController_->GetScaleY();
 }
 
-float Session::GetRsScaleX() const
+float Session::GetIgnoreRotateScaleX() const
 {
-    return layoutController_->GetRsScaleX();
+    return layoutController_->GetIgnoreRotateScaleX();
 }
 
-float Session::GetRsScaleY() const
+float Session::GetIgnoreRotateScaleY() const
 {
-    return layoutController_->GetRsScaleY();
+    return layoutController_->GetIgnoreRotateScaleY();
 }
 
 float Session::GetPivotX() const

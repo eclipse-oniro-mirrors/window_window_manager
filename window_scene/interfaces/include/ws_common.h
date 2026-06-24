@@ -1562,8 +1562,8 @@ struct SessionUIParam {
     WSRect rect_;
     float scaleX_ { 1.0f };
     float scaleY_ { 1.0f };
-    float rsScaleX_ { 1.0f };
-    float rsScaleY_ { 1.0f };
+    float ignoreRotateScaleX_ { 1.0f };
+    float ignoreRotateScaleY_ { 1.0f };
     float pivotX_ { 1.0f };
     float pivotY_ { 1.0f };
     float transX_ { 0.0f }; // global translateX
