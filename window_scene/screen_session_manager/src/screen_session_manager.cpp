@@ -4322,7 +4322,7 @@ void ScreenSessionManager::HandleResolutionEffectChangeWhenRotate(ScreenProperty
         return;
     }
 #ifdef FOLD_ABILITY_ENABLE
-    sptr<ScreenSession> internalSession = GetInternalMainSession();
+    sptr<ScreenSession> internalSession = GetInternalScreenSession();
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Internal Session null");
         return;
@@ -4353,8 +4353,9 @@ bool ScreenSessionManager::HandleResolutionEffectChange()
         return false;
     }
     TLOGNFI(WmsLogTag::DMS, "start");
-    sptr<ScreenSession> internalSession = GetInternalMainSession();
-    sptr<ScreenSession> externalSession = GetExternalSession();
+    sptr<ScreenSession> internalSession = nullptr;
+    sptr<ScreenSession> externalSession = nullptr;
+    GetInternalAndExternalSession(internalSession, externalSession);
     if (internalSession == nullptr || externalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "internal or external Session null");
         return false;
@@ -4425,8 +4426,9 @@ bool ScreenSessionManager::SetResolutionEffect(ScreenId screenId,  uint32_t widt
     }
     TLOGNFI(WmsLogTag::DMS, "change resolution according to extend screen when in mirror screen combination: "
         "%{public}" PRIu64 " %{public}d %{public}d", screenId, width, height);
-    sptr<ScreenSession> internalSession = GetInternalMainSession();
-    sptr<ScreenSession> externalSession = GetExternalSession();
+    sptr<ScreenSession> internalSession = nullptr;
+    sptr<ScreenSession> externalSession = nullptr;
+    GetInternalAndExternalSession(internalSession, externalSession);
     if (externalSession == nullptr ||
         externalSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
         return false;
@@ -4460,8 +4462,9 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
         return false;
     }
     TLOGNFI(WmsLogTag::DMS, "recovery inner and external screen resolution");
-    sptr<ScreenSession> internalSession = GetInternalMainSession();
-    sptr<ScreenSession> externalSession = GetExternalSession();
+    sptr<ScreenSession> internalSession = nullptr;
+    sptr<ScreenSession> externalSession = nullptr;
+    GetInternalAndExternalSession(internalSession, externalSession);
     if (internalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "internalSession null");
         return false;
@@ -5896,30 +5899,6 @@ void ScreenSessionManager::GetInternalAndExternalSession(sptr<ScreenSession>& in
     }
 }
 
-sptr<ScreenSession> ScreenSessionManager::GetInternalMainSession()
-{
-    std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
-    for (auto sessionIt : screenSessionMap_) {
-        auto screenSession = sessionIt.second;
-        if (screenSession == nullptr) {
-            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr!");
-            continue;
-        }
-        if (!screenSession->GetIsCurrentInUse()) {
-            TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
-            continue;
-        }
-        if (screenSession->GetScreenProperty().GetScreenType() != ScreenType::REAL) {
-            continue;
-        }
-        if (screenSession->isInternal_ && screenSession->GetName() != "SubScreen") {
-            TLOGNFI(WmsLogTag::DMS, "internal main screenId = %{public}" PRIu64, sessionIt.first);
-            return screenSession;
-        }
-    }
-    return nullptr;
-}
-
 sptr<ScreenSession> ScreenSessionManager::GetExternalSession()
 {
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMap;
@@ -7061,7 +7040,9 @@ void ScreenSessionManager::HandleOsSwitchStatusChange()
  
 void ScreenSessionManager::HandleOsSwitchResolutionStatusChange(const std::string& status)
 {
-    sptr<ScreenSession> externalSession = GetExternalSession();
+    sptr<ScreenSession> internalSession = nullptr;
+    sptr<ScreenSession> externalSession = nullptr;
+    GetInternalAndExternalSession(internalSession, externalSession);
     if (externalSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "extend session is null.");
         return;
