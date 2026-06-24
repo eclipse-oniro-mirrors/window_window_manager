@@ -14854,7 +14854,7 @@ bool SceneSessionManager::ShouldProcessVirtualPixelRatioChange(
                     displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
                    (type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE && !isInternal &&
                     displayInfo->GetDisplayId() == rootSceneSession->GetDisplayId()));
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE,
           "result=%{public}d isInternal=%{public}d type=%{public}u rootDisplayId=%{public}" PRIu64
           " inputDisplayId=%{public}" PRIu64,
           result,
