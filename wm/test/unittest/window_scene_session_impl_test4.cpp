@@ -2693,6 +2693,12 @@ HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition01, TestSize.Level
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.5 + 100);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, 300.0);
     EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 400.0);
+
+    windowSceneSessionImpl->property_->SetWindowDelayRaiseEnabled(true);
+    ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 100);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 200);
 }
 } // namespace
 } // namespace Rosen
