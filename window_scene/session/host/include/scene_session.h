@@ -677,6 +677,7 @@ public:
      * Window Watermark
      */
     void SetWatermarkEnabled(const std::string& watermarkName, bool isEnabled);
+    void SetLeashNodeWatermarkEnabled(const std::string& watermarkName, bool isEnabled);
 
     bool IsDecorEnable() const;
     bool IsAppSession() const;

@@ -7672,6 +7672,9 @@ bool SceneSessionManager::NotifyVisibleChange(int32_t persistentId)
                        sceneSession->keepScreenLock_);
     HandleKeepScreenOn(sceneSession, sceneSession->IsViewKeepScreenOn(), VIEW_SCREEN_LOCK_PREFIX,
                        sceneSession->viewKeepScreenLock_);
+    if (sceneSession->IsVisible()) {
+        SetLeashNodeWatermarkForAppProcess(sceneSession);
+    }
     return true;
 }
 
@@ -19156,6 +19159,21 @@ bool SceneSessionManager::SetSessionWatermarkForAppProcess(const sptr<SceneSessi
         return true;
     }
     return false;
+}
+
+void SceneSessionManager::SetLeashNodeWatermarkForAppProcess(const sptr<SceneSession>& session)
+{
+    taskScheduler_->PostTask([this, weakSession = wptr(session), where = __func__] {
+        sptr<SceneSession> sceneSession = weakSession.promote();
+        if (sceneSession == nullptr) {
+            TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+            return;
+        }
+        auto iter = processWatermarkPidMap_.find(sceneSession->GetCallingPid());
+        if (iter != processWatermarkPidMap_.end()) {
+            sceneSession->SetLeashNodeWatermarkEnabled(iter->second, true);
+        }
+    }, __func__);
 }
 
 std::string SceneSessionManager::MakeScreenWatermarkOwnerName(int32_t pid, uint32_t tokenId)
