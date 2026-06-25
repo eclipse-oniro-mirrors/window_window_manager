@@ -54,6 +54,7 @@ constexpr int64_t DISPATCH_KEY_EVENT_TIMEOUT_TIME_MS = 1000;
 #endif // IMF_ENABLE
 constexpr int32_t UIEXTENTION_ROTATION_ANIMATION_TIME = 400;
 constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
+constexpr uint64_t INVALID_NODE_ID = 0;
 }
 
 #define CHECK_HOST_SESSION_RETURN_IF_NULL(hostSession)                         \
@@ -73,8 +74,7 @@ constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
     } while (false)
 
 WindowExtensionSessionImpl::WindowExtensionSessionImpl(
-    const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession)
-    : WindowSessionImpl(option, nullptr, renderSession)
+    const sptr<WindowOption>& option) : WindowSessionImpl(option, nullptr)
 {
     if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL ||
         SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
@@ -171,13 +171,13 @@ void WindowExtensionSessionImpl::AddExtensionWindowStageToSCB(bool isConstrained
         TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
         return;
     }
-    if (surfaceNode_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "surfaceNode_ is nullptr");
+    if (nodeId_ == INVALID_NODE_ID) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "nodeId_ is invalid");
         return;
     }
 
     SingletonContainer::Get<WindowAdapter>().AddExtensionWindowStageToSCB(sptr<ISessionStage>(this), abilityToken_,
-        surfaceNode_->GetId(), startModalExtensionTimeStamp_, isConstrainedModal);
+        nodeId_, startModalExtensionTimeStamp_, isConstrainedModal);
 }
 
 void WindowExtensionSessionImpl::RemoveExtensionWindowStageFromSCB(bool isConstrainedModal)
@@ -2244,47 +2244,36 @@ WMError WindowExtensionSessionImpl::OnExtensionMessage(uint32_t code, int32_t pe
     switch (code) {
         case static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE): {
             return HandleHostWindowRaise(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleRegisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
             return HandleUnregisterHostWindowRectChangeListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtRegisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_SHOW_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidShowListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtRegisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER): {
             return HandleUIExtUnregisterKeyboardDidHideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleRegisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
             return HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtRegisterTouchOutsideListener(code, persistentId, data);
-            break;
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
-            break;
         }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);

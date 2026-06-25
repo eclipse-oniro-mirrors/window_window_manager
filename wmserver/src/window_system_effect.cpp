@@ -27,6 +27,7 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowSystemEffect"};
+constexpr float INVALID_RADIUS = -1.0f;
 }
 
 AppWindowEffectConfig WindowSystemEffect::windowSystemEffectConfig_;
@@ -136,7 +137,7 @@ WMError WindowSystemEffect::SetWindowShadow(const sptr<WindowNode>& node)
         if (MathHelper::GreatNotEqual(shadow.elevation_, 0.f)) {
             surfaceNode->SetShadowElevation(0.f);
         } else {
-            surfaceNode->SetShadowRadius(0.f);
+            surfaceNode->SetShadowRadius(INVALID_RADIUS);
         }
         surfaceNode->SetShadowAlpha(0.f);
         WLOGFD("[WEffect]close shadow id: %{public}u", node->GetWindowId());
@@ -157,7 +158,8 @@ WMError WindowSystemEffect::SetWindowShadow(const sptr<WindowNode>& node)
     if (MathHelper::GreatNotEqual(shadow.elevation_, 0.f)) {
         surfaceNode->SetShadowElevation(shadow.elevation_ * vpr);
     } else {
-        surfaceNode->SetShadowRadius(ConvertRadiusToSigma(shadow.radius_ * vpr));
+        surfaceNode->SetShadowRadius(MathHelper::Equal(shadow.radius_, 0.0) ?
+            INVALID_RADIUS : ConvertRadiusToSigma(shadow.radius_ * vpr));
     }
     surfaceNode->SetShadowColor(colorValue);
     surfaceNode->SetShadowOffsetX(shadow.offsetX_ * vpr);

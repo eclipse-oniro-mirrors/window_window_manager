@@ -79,7 +79,7 @@ HWTEST_F(WindowExtensionProxyTest, OnWindowReady, TestSize.Level1)
     windowExtensionClientProxy_->OnWindowReady(nullptr);
 
     struct RSSurfaceNodeConfig config;
-    auto surfaceNode = RSSurfaceNode::Create(config);
+    auto surfaceNode = RSSurfaceNode::CreateSurfaceNode(config, true);
     windowExtensionClientProxy_->OnWindowReady(surfaceNode);
 }
 

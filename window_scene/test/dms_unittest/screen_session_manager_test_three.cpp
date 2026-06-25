@@ -879,12 +879,12 @@ HWTEST_F(ScreenSessionManagerTest, HandleSwitchPcMode, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
     if (IS_SUPPORT_PC_MODE) {
-        bool isPcDevice = ssm_->HandleSwitchPcMode();
+        bool isPcDevice = ssm_->HandleSwitchPcMode(g_isPcDevice);
         ASSERT_EQ(isPcDevice, g_isPcDevice);
         GTEST_SKIP();
     }
     bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-    bool isPcDevice = ssm_->HandleSwitchPcMode();
+    bool isPcDevice = ssm_->HandleSwitchPcMode(isPcMode);
     if (isPcMode) {
         EXPECT_TRUE(isPcDevice);
     } else {

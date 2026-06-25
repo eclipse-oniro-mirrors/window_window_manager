@@ -87,8 +87,16 @@ typedef enum {
      * @since 15
      */
     WINDOW_MANAGER_ERRORCODE_DEVICE_NOT_SUPPORTED = 801,
+
     /** window id is invaild. */
     INVAILD_WINDOW_ID = 1000,
+    /**
+     * Invalid window ID.
+     *
+     * @since 26.0.0
+     */
+    INVALID_WINDOW_ID = INVAILD_WINDOW_ID,
+
     /** failed. */
     SERVICE_ERROR = 2000,
     /**

@@ -173,6 +173,7 @@
             OHOS::Rosen::ScreenSession::GetScreenHDRFormat*;
             OHOS::Rosen::ScreenSession::GetScreenId*;
             OHOS::Rosen::ScreenSession::GetScreenModes*;
+            OHOS::Rosen::ScreenSession::GetDisplaySourceMode*;
             OHOS::Rosen::ScreenSession::GetScreenProperty*;
             OHOS::Rosen::ScreenSession::GetScreenRequestedOrientation*;
             OHOS::Rosen::ScreenSession::GetScreenSnapshot*;

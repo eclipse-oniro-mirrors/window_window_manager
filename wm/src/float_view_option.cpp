@@ -36,8 +36,11 @@ void FvOption::SetStorage(const std::shared_ptr<NativeReference>& storageRef)
     storage_ = storageRef;
 }
 
-void FvOption::SetStorage(const ani_object& storageRef)
+void FvOption::SetStorage(ani_env* env, const ani_ref& storageRef)
 {
+    if (aniStorage_ && env) {
+        env->GlobalReference_Delete(aniStorage_);
+    }
     aniStorage_ = storageRef;
 }
 
@@ -61,6 +64,19 @@ void FvOption::SetShowWhenCreate(bool showWhenCreate)
     showWhenCreate_ = showWhenCreate;
 }
 
+void FvOption::ClearAniReference(ani_env* env)
+{
+    if (aniStorage_ && env) {
+        env->GlobalReference_Delete(aniStorage_);
+        aniStorage_ = nullptr;
+    }
+}
+
+void FvOption::SetCloseConfirm(bool closeConfirm)
+{
+    closeConfirm_ = closeConfirm;
+}
+
 // LCOV_EXCL_START
 uint32_t FvOption::GetTemplate() const
 {
@@ -77,7 +93,7 @@ std::shared_ptr<NativeReference> FvOption::GetStorage() const
     return storage_;
 }
 
-ani_object FvOption::GetAniStorage() const
+ani_ref FvOption::GetAniStorage() const
 {
     return aniStorage_;
 }
@@ -121,6 +137,7 @@ void FvOption::GetFvTemplateInfo(FloatViewTemplateInfo& fvTemplateInfo) const
     fvTemplateInfo.visibleInApp_ = visibleInApp_;
     fvTemplateInfo.rect_ = rect_;
     fvTemplateInfo.showWhenCreate_ = showWhenCreate_;
+    fvTemplateInfo.closeConfirm_ = closeConfirm_;
 }
 
 // LCOV_EXCL_STOP

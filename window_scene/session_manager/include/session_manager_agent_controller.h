@@ -54,6 +54,7 @@ public:
     void UpdatePiPWindowStateChanged(const std::string& bundleName, bool isForeground);
     void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList);
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
+    void NotifySessionSaveSnapShotComplete(int32_t persistentId);
 
 private:
     SessionManagerAgentController()

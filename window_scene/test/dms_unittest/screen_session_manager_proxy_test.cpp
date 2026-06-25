@@ -3393,5 +3393,316 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetScreenCapability05, TestSize.Level1)
     EXPECT_EQ(capability.interfaceType_, static_cast<ScreenInterfaceType>(0));
     EXPECT_EQ(capability.colorBitDepth_, 0);
 }
+
+/**
+ * @tc.name: AddVirtualScreenSurface01
+ * @tc.desc: AddVirtualScreenSurface with remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_REMOTE_CREATE_FAILED);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface02
+ * @tc.desc: AddVirtualScreenSurface with WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface03
+ * @tc.desc: AddVirtualScreenSurface with WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("Write screenId/surface/surfaceRegion failed") != std::string::npos);
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface04
+ * @tc.desc: AddVirtualScreenSurface with SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface05
+ * @tc.desc: AddVirtualScreenSurface normal success with surface nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface05, TestSize.Level1)
+{
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface01
+ * @tc.desc: RemoveVirtualScreenSurface with remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    auto ret = proxy->RemoveVirtualScreenSurface(screenId, surface);
+    EXPECT_EQ(ret, DMError::DM_ERROR_REMOTE_CREATE_FAILED);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface02
+ * @tc.desc: RemoveVirtualScreenSurface with WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    auto ret = proxy->RemoveVirtualScreenSurface(screenId, surface);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface03
+ * @tc.desc: RemoveVirtualScreenSurface with WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    auto ret = proxy->RemoveVirtualScreenSurface(screenId, surface);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("Write screenId/surface failed") != std::string::npos);
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface04
+ * @tc.desc: RemoveVirtualScreenSurface with SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    auto ret = proxy->RemoveVirtualScreenSurface(screenId, surface);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface05
+ * @tc.desc: RemoveVirtualScreenSurface normal success with surface nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface05, TestSize.Level1)
+{
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    auto ret = proxy->RemoveVirtualScreenSurface(screenId, surface);
+    EXPECT_EQ(ret, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface06
+ * @tc.desc: AddVirtualScreenSurface with WriteInt32 failed (surfaceRegion.posX_)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface06, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("Write screenId/surface/surfaceRegion failed") != std::string::npos);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface07
+ * @tc.desc: AddVirtualScreenSurface with WriteUint32 failed (surfaceRegion.width_)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface07, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: AddVirtualScreenSurface08
+ * @tc.desc: AddVirtualScreenSurface with WriteBool failed (isSurfaceValid)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, AddVirtualScreenSurface08, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+    DMRect surfaceRegion = {0, 0, 100, 100};
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    auto ret = proxy->AddVirtualScreenSurface(screenId, surface, surfaceRegion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("Write screenId/surface/surfaceRegion failed") != std::string::npos);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: RemoveVirtualScreenSurface06
+ * @tc.desc: RemoveVirtualScreenSurface with WriteBool failed (isSurfaceValid)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface06, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+    sptr<IBufferProducer> surface = nullptr;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    auto ret = proxy->RemoveVirtualScreenSurface(screenId, surface);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(logMsg.find("Write screenId/surface failed") != std::string::npos);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

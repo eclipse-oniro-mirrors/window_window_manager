@@ -383,7 +383,6 @@ WmErrorCode JsExtensionWindowRegisterManager::RegisterListenerInner(sptr<Window>
     return WmErrorCode::WM_OK;
 }
 
-
 WmErrorCode JsExtensionWindowRegisterManager::AtomicServiceUnregisterListener(sptr<Window> window, std::string type,
     CaseType caseType, napi_env env, napi_value value)
 {

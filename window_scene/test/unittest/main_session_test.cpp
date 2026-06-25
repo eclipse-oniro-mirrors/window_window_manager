@@ -1530,6 +1530,158 @@ HWTEST_F(MainSessionTest, RegisterSetSelectModeCallback01, TestSize.Level1)
     session->setSelectModeCallback_(SelectMode::WIDE_MODE);
     EXPECT_TRUE(callbackCalled);
 }
+
+/**
+ * @tc.name: NotifySplitRatioChanged01
+ * @tc.desc: Test NotifySplitRatioChanged when property is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifySplitRatioChanged01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "NotifySplitRatioChanged01";
+    info.abilityName_ = "NotifySplitRatioChanged01";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->property_ = nullptr;
+
+    auto ret = session->NotifySplitRatioChanged(0.5f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged02
+ * @tc.desc: Test NotifySplitRatioChanged when splitRatioChangeCallback_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifySplitRatioChanged02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "NotifySplitRatioChanged02";
+    info.abilityName_ = "NotifySplitRatioChanged02";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+    session->splitRatioChangeCallback_ = nullptr;
+
+    auto ret = session->NotifySplitRatioChanged(0.5f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged03
+ * @tc.desc: Test NotifySplitRatioChanged success with callback triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifySplitRatioChanged03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "NotifySplitRatioChanged03";
+    info.abilityName_ = "NotifySplitRatioChanged03";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+
+    float receivedRatio = 0.0f;
+    session->RegisterSplitRatioChangeCallback([&receivedRatio](float newRatio) {
+        receivedRatio = newRatio;
+    });
+
+    float testRatio = 1.0f / 3.0f;
+    auto ret = session->NotifySplitRatioChanged(testRatio);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_FLOAT_EQ(receivedRatio, testRatio);
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged04
+ * @tc.desc: Test NotifySplitRatioChanged with widthHookRatio set correctly
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifySplitRatioChanged04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "NotifySplitRatioChanged04";
+    info.abilityName_ = "NotifySplitRatioChanged04";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+
+    float receivedRatio = 0.0f;
+    session->RegisterSplitRatioChangeCallback([&receivedRatio](float newRatio) {
+        receivedRatio = newRatio;
+    });
+
+    float testRatio = 2.0f / 3.0f;
+    auto ret = session->NotifySplitRatioChanged(testRatio);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_FLOAT_EQ(session->GetSessionProperty()->GetHookWindowInfo().widthHookRatio, testRatio);
+    EXPECT_FLOAT_EQ(receivedRatio, testRatio);
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged05
+ * @tc.desc: Test NotifySplitRatioChanged with multiple ratio values
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, NotifySplitRatioChanged05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "NotifySplitRatioChanged05";
+    info.abilityName_ = "NotifySplitRatioChanged05";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->SetSessionProperty(property);
+
+    std::vector<float> receivedRatios;
+    session->RegisterSplitRatioChangeCallback([&receivedRatios](float newRatio) {
+        receivedRatios.push_back(newRatio);
+    });
+
+    std::vector<float> testRatios = { 1.0f / 3.0f, 1.0f / 2.0f, 2.0f / 3.0f };
+    for (auto ratio : testRatios) {
+        auto ret = session->NotifySplitRatioChanged(ratio);
+        EXPECT_EQ(ret, WMError::WM_OK);
+    }
+
+    EXPECT_EQ(receivedRatios.size(), testRatios.size());
+    for (size_t i = 0; i < testRatios.size(); ++i) {
+        EXPECT_FLOAT_EQ(receivedRatios[i], testRatios[i]);
+    }
+}
+
+/**
+ * @tc.name: RegisterSplitRatioChangeCallback01
+ * @tc.desc: Test RegisterSplitRatioChangeCallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionTest, RegisterSplitRatioChangeCallback01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "RegisterSplitRatioChangeCallback01";
+    info.abilityName_ = "RegisterSplitRatioChangeCallback01";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    EXPECT_EQ(session->splitRatioChangeCallback_, nullptr);
+
+    bool callbackCalled = false;
+    session->RegisterSplitRatioChangeCallback([&callbackCalled](float newRatio) {
+        callbackCalled = true;
+    });
+
+    EXPECT_NE(session->splitRatioChangeCallback_, nullptr);
+    session->splitRatioChangeCallback_(0.5f);
+    EXPECT_TRUE(callbackCalled);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

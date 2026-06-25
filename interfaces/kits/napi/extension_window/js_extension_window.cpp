@@ -911,7 +911,7 @@ napi_value JsExtensionWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_c
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setSpecificSystemBarEnabled]msg: Incorrect parameter types");
     }
-    
+
     bool systemBarEnable = false;
     bool systemBarEnableAnimation = false;
     if (!GetSpecificBarStatus(env, info, systemBarEnable, systemBarEnableAnimation)) {
@@ -1627,6 +1627,15 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
             "[window][createSubWindowWithOptions]msg: Failed to convert parameter to options"));
         return NapiGetUndefined(env);
     }
+    if (option->IsSubWindowZLevelAboveParentLoosened()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Get invalid options param zLevelAboveParentLoosened");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW,
+            "[window][createSubWindowWithOptions]msg: ExtensionWindow does not support creating subwindow"
+            " with the parameter zLevelAboveParentLoosened set to true."));
+        return NapiGetUndefined(env);
+    }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !extensionWindow_->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "device not support");
@@ -1756,7 +1765,7 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
     }
     return result;
 }
- 
+
 napi_value JsExtensionWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_callback_info info)
 {
     WmErrorCode errCode = WmErrorCode::WM_OK;

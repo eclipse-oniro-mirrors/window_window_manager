@@ -1931,6 +1931,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
+    SetWidthHookRatio(property->GetHookWindowInfo().widthHookRatio);
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
@@ -2805,6 +2806,24 @@ HookWindowInfo WindowSessionProperty::GetHookWindowInfo() const
     return hookWindowInfo_;
 }
 
+void WindowSessionProperty::SetWidthHookRatio(float ratio)
+{
+    std::lock_guard<std::mutex> lock(hookWindowInfoMutex_);
+    hookWindowInfo_.widthHookRatio = ratio;
+}
+
+void WindowSessionProperty::SetSelectMode(SelectMode selectMode)
+{
+    std::lock_guard<std::mutex> lock(selectModeMutex_);
+    selectMode_ = selectMode;
+}
+
+SelectMode WindowSessionProperty::GetSelectMode() const
+{
+    std::lock_guard<std::mutex> lock(selectModeMutex_);
+    return selectMode_;
+}
+
 bool WindowSessionProperty::GetPcAppInpadCompatibleMode() const
 {
     return isPcAppInpadCompatibleMode_;
@@ -3121,6 +3140,16 @@ void WindowSessionProperty::SetIsShowDecorInFreeMultiWindow(bool isShow)
 bool WindowSessionProperty::GetIsShowDecorInFreeMultiWindow() const
 {
     return isShowDecorInFreeMultiWindow_;
+}
+
+void WindowSessionProperty::SetIsNeedUpdateShowDecor(bool isNeed)
+{
+    isNeedUpdateShowDecor_ = isNeed;
+}
+
+bool WindowSessionProperty::GetIsNeedUpdateShowDecor() const
+{
+    return isNeedUpdateShowDecor_;
 }
 
 void WindowSessionProperty::SetAspectRatio(float ratio)

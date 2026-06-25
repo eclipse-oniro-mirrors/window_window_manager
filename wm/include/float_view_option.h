@@ -34,16 +34,18 @@ public:
     void SetTemplate(uint32_t type);
     void SetUIPath(const std::string& uiPath);
     void SetStorage(const std::shared_ptr<NativeReference>& storageRef);
-    void SetStorage(const ani_object& storageRef);
+    void SetStorage(ani_env* env, const ani_ref& storageRef);
     void SetRect(const Rect& rect);
     void SetVisibilityInApp(bool visible);
     void SetContext(void* contextPtr);
     void SetShowWhenCreate(bool showWhenCreate);
+    void ClearAniReference(ani_env* env);
+    void SetCloseConfirm(bool closeConfirm);
 
     uint32_t GetTemplate() const;
     const std::string& GetUIPath() const;
     std::shared_ptr<NativeReference> GetStorage() const;
-    ani_object GetAniStorage() const;
+    ani_ref GetAniStorage() const;
     Rect GetRect() const;
     bool GetVisibilityInApp() const;
     void* GetContext() const;
@@ -58,11 +60,12 @@ private:
     uint32_t template_ {};
     std::string uiPath_ {};
     std::shared_ptr<NativeReference> storage_ = nullptr;
-    ani_object aniStorage_ = nullptr;
+    ani_ref aniStorage_ = nullptr;
     Rect rect_ {};
     bool visibleInApp_ {true};
     void* contextPtr_ = nullptr;
     bool showWhenCreate_ {true};
+    bool closeConfirm_ = false;
 };
 }
 }

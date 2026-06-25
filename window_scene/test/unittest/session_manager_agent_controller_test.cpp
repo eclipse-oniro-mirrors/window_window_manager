@@ -297,5 +297,23 @@ HWTEST_F(SessionManagerAgentControllerTest, NotifySupportRotationChange, TestSiz
               SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
 }
 
+/**
+ * @tc.name: NotifySessionSaveSnapShotComplete
+ * @tc.desc: NotifySessionSaveSnapShotComplete Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerAgentControllerTest, NotifySessionSaveSnapShotComplete, TestSize.Level1)
+{
+    int32_t pid = 65535;
+    sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE;
+
+    EXPECT_EQ(WMError::WM_OK,
+              SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+    SessionManagerAgentController::GetInstance().NotifySessionSaveSnapShotComplete(1001);
+    EXPECT_EQ(WMError::WM_OK,
+              SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+}
+
 } // namespace Rosen
 } // namespace OHOS

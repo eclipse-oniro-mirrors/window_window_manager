@@ -25,91 +25,157 @@
 extern "C" {
 #endif
 /**
- * @brief the callback funcation type when keyEvent was filter
- * @param keyEvent multimodal keyEvent
+ * @brief Defines a function for filtering multimodal key events.
+ * @param keyEvent multimodal key event. For details, see {@link Input_KeyEvent}.
+ * @return Returns whether to filter this event. Returning true prevents the window from dispatching it further;
+ *         returning false indicates that the event is not intercepted.
  * @since 12
  */
 typedef bool (*OH_NativeWindowManager_KeyEventFilter)(Input_KeyEvent* keyEvent);
 
 /**
- * @brief Registers a filter callback for the window, the callback is called when the
- * window is dispatched to the event
+ * @brief Registers a function for filtering multimodal key events.
  *
- * @param windowId windowId when window is created
- * @param keyEventFilter key event callback ,called when the window is dispatched
- * to the event
+ * @param windowId ID of the window.
+ * @param keyEventFilter Filter function for multimodal key event.
  * @return Returns the status code of the execution.
+ *     Returns {@link OK} if the operation is successful.
+ *     Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ *     Returns {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} if the keyEventFilter is invalid.
+ *     Returns {@link SERVICE_ERROR} if the window manager service error occurs.
  * @since 12
  */
 WindowManager_ErrorCode OH_NativeWindowManager_RegisterKeyEventFilter(int32_t windowId,
     OH_NativeWindowManager_KeyEventFilter keyEventFilter);
 
 /**
- * @brief clear callback for the window
+ * @brief Unregisters a function for filtering multimodal key events.
  *
- * @param windowId windowId when window is created
+ * @param windowId ID of the window.
  * @return Returns the status code of the execution.
+ *     Returns {@link OK} if the operation is successful.
+ *     Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ *     Returns {@link SERVICE_ERROR} if the window manager service error occurs.
  * @since 12
  */
 WindowManager_ErrorCode OH_NativeWindowManager_UnregisterKeyEventFilter(int32_t windowId);
 
 /**
- * @brief the callback function type when mouseEvent was filtered
- * @param mouseEvent multimodal mouseEvent
+ * @brief Defines a function for filtering multimodal mouse events.
+ * @param mouseEvent multimodal mouse event. For details, see {@link Input_MouseEvent}.
+ * @return Returns whether to filter this event. Returning true prevents the window from dispatching it further;
+ *         returning false indicates that the event is not intercepted.
  * @since 15
  */
 typedef bool (*OH_NativeWindowManager_MouseEventFilter)(Input_MouseEvent* mouseEvent);
 
 /**
- * @brief Registers a filter callback for the window, the callback is called when the
- * window is dispatched to the event
+ * @brief Registers a function for filtering multimodal mouse events.
  *
- * @param windowId windowId when window is created
- * @param mouseEventFilter mouse event callback, called when the window is dispatched
- * to the event
+ * @param windowId ID of the window for which the function is registered.
+ * @param mouseEventFilter Filter function for multimodal mouse event.
  * @return Returns the status code of the execution.
+ *     Returns {@link OK} if the operation is successful.
+ *     Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ *     Returns {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} if the mouseEventFilter is invalid.
+ *     Returns {@link SERVICE_ERROR} if the window manager service error occurs.
  * @since 15
  */
 WindowManager_ErrorCode OH_NativeWindowManager_RegisterMouseEventFilter(int32_t windowId,
     OH_NativeWindowManager_MouseEventFilter mouseEventFilter);
 
 /**
- * @brief clear mouse event filter callback for the window
+ * @brief Unregisters a function for filtering multimodal mouse events.
  *
- * @param windowId windowId when window is created
+ * @param windowId ID of the window.
  * @return Returns the status code of the execution.
+ *     Returns {@link OK} if the operation is successful.
+ *     Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ *     Returns {@link SERVICE_ERROR} if the window manager service error occurs.
  * @since 15
  */
 WindowManager_ErrorCode OH_NativeWindowManager_UnregisterMouseEventFilter(int32_t windowId);
 
 /**
- * @brief the callback function type when touchEvent was filtered
- * @param touchEvent multimodal touchEvent
+ * @brief Defines a function for filtering multimodal touch events.
+ * @param touchEvent multimodal touchEvent. For details, see {@link Input_TouchEvent}.
+ * @return Returns whether to filter this event. Returning true prevents the window from dispatching it further;
+ *         returning false indicates that the event is not intercepted.
  * @since 15
  */
 typedef bool (*OH_NativeWindowManager_TouchEventFilter)(Input_TouchEvent* touchEvent);
 
 /**
- * @brief Registers a filter callback for the window, the callback is called when the
- * window is dispatched to the event
+ * @brief Registers a function for filtering multimodal touch events.
  *
- * @param windowId windowId when window is created
- * @param touchEventFilter touch event callback, called when the window is dispatched
- * to the event
+ * @param windowId ID of the window.
+ * @param touchEventFilter Filter function for multimodal touch event.
  * @return Returns the status code of the execution.
+ *     Returns {@link OK} if the operation is successful.
+ *     Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ *     Returns {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} if the touchEventFilter is invalid.
+ *     Returns {@link SERVICE_ERROR} if the window manager service error occurs.
  * @since 15
  */
 WindowManager_ErrorCode OH_NativeWindowManager_RegisterTouchEventFilter(int32_t windowId,
     OH_NativeWindowManager_TouchEventFilter touchEventFilter);
 
 /**
- * @brief clear touch event filter callback for the window
+ * @brief Unregisters a function for filtering multimodal touch events.
  *
- * @param windowId windowId when window is created
+ * @param windowId ID of the window.
  * @return Returns the status code of the execution.
+ *     Returns {@link OK} if the operation is successful.
+ *     Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ *     Returns {@link SERVICE_ERROR} if the window manager service error occurs.
  * @since 15
  */
 WindowManager_ErrorCode OH_NativeWindowManager_UnregisterTouchEventFilter(int32_t windowId);
+
+/**
+ * @brief Gets the key event filter callback for the window.
+ *
+ * @param windowId ID of the window.
+ * @param outKeyEventFilter Output parameter for the registered key event filter callback.
+ *                          If no filter has been registered, *outKeyEventFilter will return NULL.
+ * @return Returns the error code defined by {@link WindowManager_ErrorCode}.
+ *         Returns {@link OK} if the operation is successful.
+ *         Returns {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} if the outKeyEventFilter is NULL.
+ *         Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ * @since 26.0.0
+ */
+WindowManager_ErrorCode OH_NativeWindowManager_GetKeyEventFilter(int32_t windowId,
+    OH_NativeWindowManager_KeyEventFilter* outKeyEventFilter);
+
+/**
+ * @brief Gets the mouse event filter callback for the window.
+ *
+ * @param windowId ID of the window.
+ * @param outMouseEventFilter Output parameter for the registered mouse event filter callback.
+ *                            If no filter has been registered, *outMouseEventFilter will return NULL.
+ * @return Returns the error code defined by {@link WindowManager_ErrorCode}.
+ *         Returns {@link OK} if the operation is successful.
+ *         Returns {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} if the outMouseEventFilter is NULL.
+ *         Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ * @since 26.0.0
+ */
+WindowManager_ErrorCode OH_NativeWindowManager_GetMouseEventFilter(int32_t windowId,
+    OH_NativeWindowManager_MouseEventFilter* outMouseEventFilter);
+
+/**
+ * @brief Gets the touch event filter callback for the window.
+ *
+ * @param windowId ID of the window.
+ * @param outTouchEventFilter Output parameter for the registered touch event filter callback.
+ *                            If no filter has been registered, *outTouchEventFilter will return NULL.
+ * @return Returns the error code defined by {@link WindowManager_ErrorCode}.
+ *         Returns {@link OK} if the operation is successful.
+ *         Returns {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} if the outTouchEventFilter is NULL.
+ *         Returns {@link INVALID_WINDOW_ID} if the windowId is invalid.
+ * @since 26.0.0
+ */
+WindowManager_ErrorCode OH_NativeWindowManager_GetTouchEventFilter(int32_t windowId,
+    OH_NativeWindowManager_TouchEventFilter* outTouchEventFilter);
 
 #ifdef __cplusplus
 }

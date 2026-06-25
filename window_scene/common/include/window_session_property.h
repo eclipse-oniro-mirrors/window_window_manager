@@ -319,6 +319,7 @@ public:
     bool GetForceSplitEnable() const;
     void SetHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     HookWindowInfo GetHookWindowInfo() const;
+    void SetWidthHookRatio(float ratio);
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
     void SetDragDisabledAreas(const std::vector<Rect>& areas);
@@ -410,6 +411,8 @@ public:
     CompatibleStyleMode GetPageCompatibleMode() const;
     void SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig);
     std::vector<std::string> GetCombinedCompatibleConfig() const;
+    void SetSelectMode(SelectMode selectMode);
+    SelectMode GetSelectMode() const;
 
     /*
      * Keyboard
@@ -433,6 +436,8 @@ public:
 
     void SetIsShowDecorInFreeMultiWindow(bool isShow);
     bool GetIsShowDecorInFreeMultiWindow() const;
+    void SetIsNeedUpdateShowDecor(bool isNeed);
+    bool GetIsNeedUpdateShowDecor() const;
 
     /*
      * Window Layout
@@ -725,6 +730,8 @@ private:
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
     mutable std::mutex hookWindowInfoMutex_;
     HookWindowInfo hookWindowInfo_;
+    mutable std::mutex selectModeMutex_;
+    SelectMode selectMode_ = SelectMode::INVALID_MODE;
     bool isPcAppInpadCompatibleMode_ = false;
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
@@ -748,6 +755,7 @@ private:
     std::unordered_map<WindowTransitionType, std::shared_ptr<TransitionAnimation>> transitionAnimationConfig_;
 
     bool isShowDecorInFreeMultiWindow_ { true };
+    bool isNeedUpdateShowDecor_ { false };
 
     /*
      * Window Layout

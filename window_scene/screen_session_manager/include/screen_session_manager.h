@@ -138,6 +138,9 @@ public:
     void SetVirtualScreenUser(sptr<ScreenSession> screenSession, int32_t userId);
     ScreenId GetAssociatedScreenId();
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
+        const DMRect& surfaceRegion) override;
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
     DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
@@ -1198,7 +1201,7 @@ private:
     void RegisterSettingWiredScreenGamutObserver();
     void SetWiredScreenGamut();
     void SetBorderingAreaPercent();
-    bool HandleSwitchPcMode();
+    bool HandleSwitchPcMode(bool isTargetPcMode);
     void ChangeWatchDogTimeInterval(const std::string& name, uint64_t interval);
     void SwitchModeHandleExternalScreen(bool isSwitchToPcMode);
     void SetScreenNameWhenSwitchMode(const sptr<ScreenSession>& screenSession, bool isSwitchToPcMode);
@@ -1286,7 +1289,7 @@ private:
     void SetInternalScreenResolutionEffect(const sptr<ScreenSession>& internalSession, DMRect& toRect);
     void SetExternalScreenResolutionEffect(const sptr<ScreenSession>& externalSession, DMRect& toRect);
     void GetCastVirtualMirrorSession(sptr<ScreenSession>& virtualSession);
-    void HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation);
+    void HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation, ScreenId screenId);
     void CalculateTargetResolution(const sptr<ScreenSession>& internalSession,
         const sptr<ScreenSession>& externalSession, const bool& effectFlag,
         uint32_t& targetWidth, uint32_t& targetHeight);
@@ -1315,6 +1318,11 @@ private:
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
+    struct UserDisplayInfo {
+        bool isPcDevice;
+    };
+    std::map<int32_t, UserDisplayInfo> userIdDisplayInfoMap_;
+    std::mutex userIdDisplayInfoMapMutex_;
     std::atomic<FoldDisplayMode> foldDisplayModeAfterRotation_ = FoldDisplayMode::UNKNOWN;
     std::atomic<bool> onBootAnimation_ = false;
     bool isBoot_ = false;

@@ -238,6 +238,7 @@ HWTEST_F(FloatViewControllerTest, CreateFloatViewWindow, TestSize.Level1)
     fvController_ = sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, fvController_->CreateFloatViewWindow());
 
+    fvController_->UpdateMainWindow(mw_);
     std::shared_ptr<AbilityRuntime::Context> context = std::make_shared<AbilityRuntime::AbilityContextImpl>();
     fvController_->option_.contextPtr_ = &context;
     EXPECT_EQ(WMError::WM_ERROR_FV_START_FAILED, fvController_->CreateFloatViewWindow());
@@ -433,7 +434,7 @@ HWTEST_F(FloatViewControllerTest, ANISetUIContext, TestSize.Level1)
     sptr<FloatViewController> aniController =
         sptr<FloatViewController>::MakeSptr(*option_, static_cast<ani_env*>(nullptr));
     std::string contextUrl = "test_url";
-    ani_object contentStorage = nullptr;
+    ani_ref contentStorage = nullptr;
 
     std::shared_ptr<NativeReference> fakeStorage = nullptr;
     EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, aniController->SetUIContext(contextUrl, fakeStorage, false));

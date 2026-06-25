@@ -691,16 +691,19 @@ HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.
     ssm_->listenerController_ = std::make_shared<SessionListenerController>(ssm_->taskScheduler_);
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     int32_t persistentId = 1;
     sptr<ISession> session = nullptr;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
 
     property->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
     auto result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(result, WSError::WS_ERROR_NOT_SYSTEM_APP);
 
     property->SetTopmost(false);
@@ -711,23 +714,27 @@ HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.
     ssm_->sceneSessionMap_.insert({ 1, parentSession });
     property->SetParentPersistentId(1);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_WINDOW);
 
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     parentSession->GetSessionProperty()->SetSubWindowLevel(1);
     property->SetWindowType(WindowType::WINDOW_TYPE_FB);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, result);
     MockAccesstokenKit::MockAccessTokenKitRet(0);
     parentSession->SetSessionState(SessionState::STATE_DISCONNECT);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_PARENT, result);
     parentSession->SetSessionState(SessionState::STATE_FOREGROUND);
     result = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, persistentId, session, systemConfig, iRemoteObjectMocker);
+        sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
+        surfaceNode, iRemoteObjectMocker);
     ASSERT_EQ(WSError::WS_OK, result);
 }
 
@@ -2292,6 +2299,48 @@ HWTEST_F(SceneSessionManagerTest11, GetSceneSessionsByAppInstance_MainSessionKey
 
     ASSERT_EQ(sceneSessions.size(), 0);
     ssm_->sceneSessionMap_.clear();
+}
+
+/**
+ * @tc.name: NotifyStartWindowsAbility
+ * @tc.desc: NotifyStartWindowsAbility
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.abilityName_ = "NotifyStartWindowsAbility";
+    ASSERT_NE(nullptr, ssm_);
+    auto ret = ssm_->NotifyStartWindowsAbility(sessionInfo);
+    EXPECT_EQ(ret, BrokerStates::BROKER_UNKOWN);
+}
+
+/**
+ * @tc.name: NotifyStartWindowsAbility02
+ * @tc.desc: Test NotifyStartWindowsAbility with abilityInfoMap_ set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, NotifyStartWindowsAbility02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->bundleMgr_ = ssm_->GetBundleManager();
+    ssm_->currentUserId_ = USER_ID;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest11";
+    sessionInfo.moduleName_ = "SceneSessionManager";
+    sessionInfo.abilityName_ = "NotifyStartWindowsAbility02";
+    sessionInfo.want = std::make_shared<AAFwk::Want>();
+    SceneSessionManager::SessionInfoList list = {
+        .uid_ = USER_ID, .bundleName_ = "SceneSessionManagerTest11",
+        .abilityName_ = "NotifyStartWindowsAbility02", .moduleName_ = "SceneSessionManager"
+    };
+    std::shared_ptr<AppExecFwk::AbilityInfo> abilityInfo = std::make_shared<AppExecFwk::AbilityInfo>();
+    ASSERT_NE(abilityInfo, nullptr);
+    ssm_->abilityInfoMap_[list] = abilityInfo;
+    auto ret = ssm_->NotifyStartWindowsAbility(sessionInfo);
+    ASSERT_EQ(ret, BrokerStates::BROKER_UNKOWN);
+    ssm_->abilityInfoMap_.erase(list);
 }
 } // namespace
 } // namespace Rosen

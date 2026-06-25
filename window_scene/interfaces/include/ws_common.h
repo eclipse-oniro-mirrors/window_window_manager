@@ -571,6 +571,7 @@ struct SessionInfo {
     std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
     WindowSizeLimits windowSizeLimits;
     bool isFollowParentMultiScreenPolicy = false;
+    bool isStartInFMWindowModeDisabled = false;
 
     /*
      * Window Rotation
@@ -673,6 +674,7 @@ enum class SizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SPLIT_ENABLE_CHANGE,
     SWITCH_WINDOW_DISPLAY,
     END,
 };
@@ -702,6 +704,7 @@ enum class SessionEvent : uint32_t {
     EVENT_COMPATIBLE_TO_MAXIMIZE,
     EVENT_COMPATIBLE_TO_RECOVER,
     EVENT_MAXIMIZE_FULLSCREEN,
+    EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP,
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
     EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
@@ -1360,7 +1363,7 @@ struct SingleHandCompatibleModeConfig {
 };
 
 struct SingleHandScreenInfo {
-    int32_t scaleRatio = DEFAULT_SCALE_RATIO;
+    float scaleRatio = DEFAULT_SCALE_RATIO;
     int32_t scalePivotX = 0;
     int32_t scalePivotY = 0;
     SingleHandMode mode = SingleHandMode::MIDDLE;
@@ -1375,6 +1378,7 @@ struct SingleHandBackgroundTextConfig {
     int32_t minFontSize = 0;
     int32_t maxLines = -1;
     int32_t textAlign = 1;
+    int32_t marginBottom = -1;
     std::string maxFontScale = "";
 };
 
@@ -1560,8 +1564,8 @@ struct SessionUIParam {
     WSRect rect_;
     float scaleX_ { 1.0f };
     float scaleY_ { 1.0f };
-    float rsScaleX_ { 1.0f };
-    float rsScaleY_ { 1.0f };
+    float ignoreRotateScaleX_ { 1.0f };
+    float ignoreRotateScaleY_ { 1.0f };
     float pivotX_ { 1.0f };
     float pivotY_ { 1.0f };
     float transX_ { 0.0f }; // global translateX

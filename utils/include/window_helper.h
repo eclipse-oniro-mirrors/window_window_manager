@@ -638,6 +638,12 @@ public:
         return false;
     }
 
+    static bool IsOnlySupportFullScreen(uint32_t windowModeSupportType)
+    {
+        return (windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN) &&
+               !(windowModeSupportType & ~WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    }
+
     static bool IsInvalidWindowInTileLayoutMode(uint32_t supportModeInfo, WindowLayoutMode layoutMode)
     {
         if ((!IsWindowModeSupported(supportModeInfo, WindowMode::WINDOW_MODE_FLOATING)) &&

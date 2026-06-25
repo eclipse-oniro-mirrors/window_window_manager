@@ -39,7 +39,7 @@ enum class EnvironmentType {
 
 class WindowExtensionSessionImpl : public WindowSessionImpl {
 public:
-    explicit WindowExtensionSessionImpl(const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession = nullptr);
+    explicit WindowExtensionSessionImpl(const sptr<WindowOption>& option);
     ~WindowExtensionSessionImpl();
 
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,

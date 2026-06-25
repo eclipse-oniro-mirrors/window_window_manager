@@ -32,6 +32,7 @@
 namespace OHOS::Rosen {
 class BaseAdapter {
 public:
+    BaseAdapter();
     virtual ~BaseAdapter();
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type);
@@ -40,7 +41,8 @@ public:
     virtual void Clear();
 protected:
     bool InitDMSProxy();
-    std::recursive_mutex mutex_;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
     sptr<IScreenSessionManager> screenSessionManagerServiceProxy_ = nullptr;
     sptr<IDisplayManager> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;
@@ -150,6 +152,8 @@ public:
         const sptr<IDisplayManagerAgent>& displayManagerAgent);
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion);
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
     virtual DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds);
     virtual DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds);
     virtual DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds);

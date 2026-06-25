@@ -658,6 +658,7 @@ enum class WindowSizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SPLIT_ENABLE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
     HOOK_INFO_CHANGE,
     SWITCH_WINDOW_DISPLAY,
@@ -1086,6 +1087,7 @@ constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;
 constexpr int32_t DEFAULT_SCREEN_ID = 0;
+constexpr int32_t INVALID_SCREEN_ID_INT32 = -1;
 constexpr int32_t ZERO_CIRCLE_DEGREE = 0;
 constexpr int32_t FULL_CIRCLE_DEGREE = 360;
 constexpr int32_t ONE_FOURTH_FULL_CIRCLE_DEGREE = 90;
@@ -4183,6 +4185,7 @@ enum class WindowManagerAgentType : uint32_t {
     WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
     WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
     WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
+    WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
     WINDOW_MANAGER_AGENT_TYPE_END,
 };
 
@@ -4237,6 +4240,8 @@ struct StartMovingOptions {
         return oss.str();
     }
 };
+
+bool IsMultiInstanceEnabled();
 }
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

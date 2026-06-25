@@ -67,30 +67,6 @@ bool ModalSystemUiExtension::CreateModalUIExtension(const AAFwk::Want& want, con
     return true;
 }
 
-std::string ModalSystemUiExtension::ToString(const AAFwk::WantParams& wantParams)
-{
-    std::string result;
-    if (wantParams.Size() != 0) {
-        result += "{";
-        for (auto it : wantParams.GetParams()) {
-            int typeId = AAFwk::WantParams::GetDataType(it.second);
-            result += "\"" + it.first + "\":";
-            if (typeId == VALUE_TYPE_STRING && AAFwk::WantParams::GetStringByType(it.second, typeId)[0] != '{') {
-                result += "\"" + AAFwk::WantParams::GetStringByType(it.second, typeId) + "\"";
-            } else {
-                result += AAFwk::WantParams::GetStringByType(it.second, typeId);
-            }
-            if (it != *wantParams.GetParams().rbegin()) {
-                result += ",";
-            }
-        }
-        result += "}";
-    } else {
-        result += "{}";
-    }
-    return result;
-}
-
 bool ModalSystemUiExtension::DialogAbilityConnection::SendWant(const sptr<IRemoteObject>& remoteObject)
 {
     MessageParcel data;
@@ -108,8 +84,7 @@ bool ModalSystemUiExtension::DialogAbilityConnection::SendWant(const sptr<IRemot
         TLOGE(WmsLogTag::WMS_UIEXT, "write abilityName failed");
         return false;
     }
-    if (!data.WriteString16(u"parameters") ||
-        !data.WriteString16(Str8ToStr16(ModalSystemUiExtension::ToString(want_.GetParams())))) {
+    if (!data.WriteString16(u"parameters") || !data.WriteString16(Str8ToStr16(want_.GetParams().ToString()))) {
         TLOGE(WmsLogTag::WMS_UIEXT, "write parameters failed");
         return false;
     }

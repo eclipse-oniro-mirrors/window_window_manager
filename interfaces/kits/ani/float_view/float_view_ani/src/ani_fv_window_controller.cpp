@@ -211,8 +211,15 @@ void AniFvController::OnSetUIContextAni(ani_env* env,
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "The ui path is empty.");
         return;
     }
-    WMError errCode = fvController_->SetUIContext(url, contentStorage, isLoadByName);
+    ani_ref ref {};
+    if (env->GlobalReference_Create(contentStorage, &ref) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]create storage ref failed");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Unexpected internal error.");
+        return;
+    }
+    WMError errCode = fvController_->SetUIContext(url, ref, isLoadByName);
     if (errCode != WMError::WM_OK) {
+        env->GlobalReference_Delete(ref);
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContext failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set UI content.");
         return;

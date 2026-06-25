@@ -57,18 +57,6 @@ HWTEST_F(ModalSystemUiExtensionTest, ModalSystemUiExtensionConnection01, TestSiz
 }
 
 /**
- * @tc.name: ToString
- * @tc.desc: ToString
- * @tc.type: FUNC
- */
-HWTEST_F(ModalSystemUiExtensionTest, ToString, TestSize.Level1)
-{
-    AAFwk::WantParams wantParams;
-    std::string ret = ModalSystemUiExtension::ToString(wantParams);
-    ASSERT_EQ("{}", ret);
-}
-
-/**
  * @tc.name: DialogAbilityConnectionOnAbilityConnectDone
  * @tc.desc: DialogAbilityConnectionOnAbilityConnectDone
  * @tc.type: FUNC

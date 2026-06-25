@@ -989,37 +989,9 @@ static uint32_t GetColorFromJs(const std::string& colorStr, uint32_t defaultColo
     return hexColor;
 }
 
-static void UpdateSystemBarProperties(std::map<WindowType, SystemBarProperty>& systemBarProperties,
-    const std::map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags, sptr<Window> weakToken)
-{
-    for (auto it : systemBarPropertyFlags) {
-        WindowType type = it.first;
-        SystemBarPropertyFlag flag = it.second;
-        auto property = weakToken->GetSystemBarPropertyByType(type);
-        if (flag.enableFlag == false) {
-            systemBarProperties[type].enable_ = property.enable_;
-        } else {
-            systemBarProperties[type].settingFlag_ = static_cast<SystemBarSettingFlag>(
-                static_cast<uint32_t>(systemBarProperties[type].settingFlag_) |
-                static_cast<uint32_t>(SystemBarSettingFlag::ENABLE_SETTING));
-        }
-        if (flag.backgroundColorFlag == false) {
-            systemBarProperties[type].backgroundColor_ = property.backgroundColor_;
-        }
-        if (flag.contentColorFlag == false) {
-            systemBarProperties[type].contentColor_ = property.contentColor_;
-        }
-        if (flag.backgroundColorFlag || flag.contentColorFlag) {
-            systemBarProperties[type].settingFlag_ = static_cast<SystemBarSettingFlag>(
-                static_cast<uint32_t>(systemBarProperties[type].settingFlag_) |
-                static_cast<uint32_t>(SystemBarSettingFlag::COLOR_SETTING));
-        }
-    }
-}
-
 void SetBarPropertyMap(
-    std::map<WindowType, SystemBarProperty>& properties,
-    std::map<WindowType, SystemBarPropertyFlag>& propertyFlags,
+    std::unordered_map<WindowType, SystemBarProperty>& properties,
+    std::unordered_map<WindowType, SystemBarPropertyFlag>& propertyFlags,
     const CBarProperties& cProperties,
     sptr<Window> nativeWindow)
 {
@@ -1068,18 +1040,13 @@ int32_t CJWindowImpl::SetWindowSystemBarProperties(const CBarProperties& cProper
         TLOGE(WmsLogTag::WMS_DIALOG, "WindowToken_ is nullptr");
         return static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-    std::map<WindowType, SystemBarProperty> properties;
-    std::map<WindowType, SystemBarPropertyFlag> propertyFlags;
+    std::unordered_map<WindowType, SystemBarProperty> properties;
+    std::unordered_map<WindowType, SystemBarPropertyFlag> propertyFlags;
     SetBarPropertyMap(properties, propertyFlags, cProperties, windowToken_);
-    UpdateSystemBarProperties(properties, propertyFlags, windowToken_);
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetSystemBarProperty(
-        WindowType::WINDOW_TYPE_STATUS_BAR, properties.at(WindowType::WINDOW_TYPE_STATUS_BAR)));
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->UpdateSystemBarProperties(properties, propertyFlags));
     if (ret != WmErrorCode::WM_OK) {
         return static_cast<int32_t>(ret);
     }
-    ret = WM_JS_TO_ERROR_CODE_MAP.at(
-        windowToken_->SetSystemBarProperty(WindowType::WINDOW_TYPE_NAVIGATION_BAR,
-            properties.at(WindowType::WINDOW_TYPE_NAVIGATION_BAR)));
     return static_cast<int32_t>(ret);
 }
 
@@ -1089,8 +1056,8 @@ int32_t CJWindowImpl::SetWindowSystemBarEnable(char** arr, uint32_t size)
         TLOGE(WmsLogTag::WMS_DIALOG, "WindowToken_ is nullptr");
         return static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-    std::map<WindowType, SystemBarProperty> systemBarProperties;
-    std::map<WindowType, SystemBarPropertyFlag> systemBarPropertyFlags;
+    std::unordered_map<WindowType, SystemBarProperty> systemBarProperties;
+    std::unordered_map<WindowType, SystemBarPropertyFlag> systemBarPropertyFlags;
     auto statusProperty = windowToken_->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
     auto navProperty = windowToken_->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
     statusProperty.enable_ = false;
@@ -1109,9 +1076,8 @@ int32_t CJWindowImpl::SetWindowSystemBarEnable(char** arr, uint32_t size)
     }
     systemBarPropertyFlags[WindowType::WINDOW_TYPE_STATUS_BAR].enableFlag = true;
     systemBarPropertyFlags[WindowType::WINDOW_TYPE_NAVIGATION_BAR].enableFlag = true;
-    UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags, windowToken_);
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetSystemBarProperty(
-        WindowType::WINDOW_TYPE_STATUS_BAR, systemBarProperties.at(WindowType::WINDOW_TYPE_STATUS_BAR)));
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        windowToken_->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
     if (ret != WmErrorCode::WM_OK) {
         return static_cast<int32_t>(ret);
     }
@@ -1528,51 +1494,36 @@ int32_t CJWindowImpl::GetWindowSystemBarProperties(CJBarProperties& retPtr)
     return result.ret;
 }
 
-int32_t CJWindowImpl::SpecificSystemBarEnabled(int32_t name, bool enable,
-                                               bool enableAnimation)
+int32_t CJWindowImpl::SpecificSystemBarEnabled(int32_t name, bool enable, bool enableAnimation)
 {
     ResWindow result = CheckWindow();
     if (result.ret != 0) {
         return result.ret;
     }
-    sptr<Window> weakWindow = result.nativeWindow;
-    std::map<WindowType, SystemBarProperty> systemBarProperties;
-    if (name < 0 || name >= static_cast<int32_t>(SYSTEM_BAR.size())) {
+    if (name < 0 || name >= static_cast<int32_t>(SYSTEM_BAR.size()) ||
+        (SYSTEM_BAR[name] != SpecificSystemBar::STATUS &&
+         SYSTEM_BAR[name] != SpecificSystemBar::NAVIGATION &&
+         SYSTEM_BAR[name] != SpecificSystemBar::NAVIGATION_INDICATOR)) {
         TLOGE(WmsLogTag::WMS_IMMS, "Invalid input");
         return static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
-    SpecificSystemBar barName = SYSTEM_BAR[name];
-    if (barName == SpecificSystemBar::STATUS) {
-        systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR].enable_ = enable;
-        systemBarProperties[WindowType::WINDOW_TYPE_STATUS_BAR].enableAnimation_ = enableAnimation;
-    } else if (barName == SpecificSystemBar::NAVIGATION) {
-        systemBarProperties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].enable_ = enable;
-        systemBarProperties[WindowType::WINDOW_TYPE_NAVIGATION_BAR].enableAnimation_ = enableAnimation;
-    } else if (barName == SpecificSystemBar::NAVIGATION_INDICATOR) {
-        systemBarProperties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].enable_ = enable;
-        systemBarProperties[WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR].enableAnimation_ = enableAnimation;
+    sptr<Window> window = result.nativeWindow;
+    if (!window) {
+        TLOGE(WmsLogTag::WMS_IMMS, "window is nullptr");
+        return static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-
-    WmErrorCode ret = WmErrorCode::WM_OK;
-    if (barName == SpecificSystemBar::STATUS) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SetSpecificBarProperty(
-            WindowType::WINDOW_TYPE_STATUS_BAR,
-            systemBarProperties.at(WindowType::WINDOW_TYPE_STATUS_BAR)));
-    } else if (barName == SpecificSystemBar::NAVIGATION) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SetSpecificBarProperty(
-            WindowType::WINDOW_TYPE_NAVIGATION_BAR,
-            systemBarProperties.at(WindowType::WINDOW_TYPE_NAVIGATION_BAR)));
-    } else if (barName == SpecificSystemBar::NAVIGATION_INDICATOR) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SetSpecificBarProperty(
-            WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR,
-            systemBarProperties.at(WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR)));
-    }
-
+    auto systemBarType = SYSTEM_BAR[name] == SpecificSystemBar::STATUS ? WindowType::WINDOW_TYPE_STATUS_BAR :
+        (SYSTEM_BAR[name] == SpecificSystemBar::NAVIGATION ? WindowType::WINDOW_TYPE_NAVIGATION_BAR :
+        WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR);
+    auto systemBarProperty = window->GetSystemBarPropertyByType(systemBarType);
+    window->UpdateSpecificSystemBarEnabled(enable, enableAnimation, systemBarProperty);
+    SystemBarPropertyFlag propertyFlag = { true, false, false, true };
+    auto ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        window->UpdateSystemBarPropertyForPage(systemBarType, systemBarProperty, propertyFlag));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "Get window status failed, window [%{public}u, %{public}s]",
-              weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
+            window->GetWindowId(), window->GetWindowName().c_str());
     }
-
     return static_cast<int32_t>(ret);
 }
 

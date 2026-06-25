@@ -44,7 +44,6 @@ class WindowManagerLite : public RefBase {
 public:
     static WindowManagerLite& GetInstance(const int32_t userId);
     static WMError RemoveInstanceByUserId(const int32_t userId);
-    static bool IsMultiInstanceEnabled();
 
     /**
      * @brief Register focus changed listener.

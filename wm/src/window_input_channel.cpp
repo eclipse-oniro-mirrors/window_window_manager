@@ -164,13 +164,17 @@ void WindowInputChannel::HandlePointerEvent(std::shared_ptr<MMI::PointerEvent>& 
     if ((window_->GetType() == WindowType::WINDOW_TYPE_DIALOG ||
          WindowHelper::IsModalSubWindow(window_->GetType(), window_->GetWindowFlags()) ||
          WindowHelper::IsModalMainWindow(window_->GetType(), window_->GetWindowFlags())) &&
-        pointerEvent->GetAgentWindowId() != pointerEvent->GetTargetWindowId() &&
-        action != MMI::PointerEvent::POINTER_ACTION_PULL_UP) {
+        pointerEvent->GetAgentWindowId() != pointerEvent->GetTargetWindowId()) {
         if (isPointDown && isValidPointItem) {
             window_->NotifyTouchDialogTarget(pointerItem.GetDisplayX(), pointerItem.GetDisplayY());
         }
-        pointerEvent->MarkProcessed();
-        return;
+        if (action != MMI::PointerEvent::POINTER_ACTION_PULL_UP) {
+            pointerEvent->MarkProcessed();
+            return;
+        } else {
+            pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_PULL_CANCEL);
+            TLOGI(WmsLogTag::WMS_EVENT, "Transfer pull_up to pull_cancel for modal window.");
+        }
     }
     TLOGD(WmsLogTag::WMS_EVENT, "Dispatch move event, windowId: %{public}u, action: %{public}d",
         window_->GetWindowId(), action);

@@ -35,6 +35,7 @@ group("unittest") {
     deps += [
       ":dm_screen_manager_test",
       ":dm_display_manager_adapter_test",
+      ":dm_display_manager_adapter_test_two",
       ":dm_display_manager_agent_proxy_test",
       ":dm_display_manager_test",
     ]
@@ -184,6 +185,18 @@ ohos_unittest("dm_display_manager_adapter_test") {
 
   external_deps = test_external_deps
 }
+
+ohos_unittest("dm_display_manager_adapter_test_two") {
+  module_out_path = module_out_path
+
+  sources = [ "display_manager_adapter_test_two.cpp" ]
+
+  deps = [ ":dm_unittest_common" ]
+  deps += dm_unittest_common_deps
+
+  external_deps = test_external_deps
+}
+
 
 ohos_unittest("dm_display_manager_test") {
   module_out_path = module_out_path

@@ -2598,6 +2598,48 @@ HWTEST_F(WindowSessionPropertyTest, SetForceSplitEnable001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetSelectMode001
+ * @tc.desc: SetSelectMode and GetSelectMode test with WIDE_MODE
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, SetSelectMode001, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    property->SetSelectMode(SelectMode::WIDE_MODE);
+    ASSERT_EQ(property->GetSelectMode(), SelectMode::WIDE_MODE);
+}
+
+/**
+ * @tc.name: SetSelectMode002
+ * @tc.desc: SetSelectMode and GetSelectMode test with SQUARE_MODE
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, SetSelectMode002, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    property->SetSelectMode(SelectMode::SQUARE_MODE);
+    ASSERT_EQ(property->GetSelectMode(), SelectMode::SQUARE_MODE);
+}
+
+/**
+ * @tc.name: SetSelectMode003
+ * @tc.desc: SetSelectMode and GetSelectMode test with INVALID_MODE
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, SetSelectMode003, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    property->SetSelectMode(SelectMode::INVALID_MODE);
+    ASSERT_EQ(property->GetSelectMode(), SelectMode::INVALID_MODE);
+}
+
+/**
  * @tc.name: SetHookWindowInfo001
  * @tc.desc: SetHookWindowInfo and GetHookWindowInfo test
  * @tc.type: FUNC

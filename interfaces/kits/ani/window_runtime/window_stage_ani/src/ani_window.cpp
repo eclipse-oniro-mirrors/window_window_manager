@@ -64,6 +64,15 @@ namespace {
 static std::map<ani_ref, AniWindow*> g_localObjs;
 constexpr double MIN_GRAY_SCALE = 0.0;
 constexpr double MAX_GRAY_SCALE = 1.0;
+constexpr DisplayId VIRTUAL_DISPLAY_ID_MIN = 500;
+constexpr DisplayId VIRTUAL_DISPLAY_ID_MAX = 900;
+constexpr DisplayId VIRTUAL_DISPLAY_ID_EXT_MIN = 1000;
+
+static bool IsVirtualDisplay(DisplayId displayId)
+{
+    return (displayId >= VIRTUAL_DISPLAY_ID_MIN && displayId <= VIRTUAL_DISPLAY_ID_MAX) ||
+           (displayId >= VIRTUAL_DISPLAY_ID_EXT_MIN);
+}
 } // namespace
 static std::mutex g_aniWindowMap_mutex;
 static std::map<std::string, ani_ref> g_aniWindowMap;
@@ -5591,6 +5600,10 @@ void AniWindow::MoveWindowToGlobal(ani_env* env, ani_int x, ani_int y, ani_objec
         }
     }
 
+    if (IsVirtualDisplay(moveConfiguration.displayId)) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToGlobal", WmErrorCode::WM_OK);
+    }
+
     int32_t posX = static_cast<int32_t>(x);
     int32_t posY = static_cast<int32_t>(y);
     const WMError ret = windowToken_->MoveWindowToGlobal(posX, posY, moveConfiguration);
@@ -5627,6 +5640,10 @@ void AniWindow::MoveWindowToAsync(ani_env* env, ani_int x, ani_int y, ani_object
         if (aniRet == ANI_OK) {
             moveConfiguration.displayId = static_cast<DisplayId>(displayId);
         }
+    }
+
+    if (IsVirtualDisplay(moveConfiguration.displayId)) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", WmErrorCode::WM_OK);
     }
 
     int32_t posX = static_cast<int32_t>(x);
@@ -6212,40 +6229,39 @@ static void RegisterAttachOptionCallbacks(sptr<Window> windowToken, ani_env* env
     auto getPropertyAndCheckUndefined = [env](ani_object obj, const char* propName,
         ani_ref& outRef, std::string_view errorPrefix) -> bool {
         if (env->Object_GetPropertyByName_Ref(obj, propName, &outRef) != ANI_OK) {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "%s: Failed to get %s.", errorPrefix.data(), propName);
-            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-                std::string("Failed to get") + propName + ".");
+            TLOGE(WmsLogTag::WMS_LAYOUT, "%s: Failed to get %s", errorPrefix.data(), propName);
             return false;
         }
         ani_boolean isUndefined;
-        if (env->Reference_IsUndefined(outRef, &isUndefined) != ANI_OK || isUndefined) {
+        if (env->Reference_IsUndefined(outRef, &isUndefined) != ANI_OK) {
             TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] Check %s isUndefined fail", propName);
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            return false;
+        }
+        if (isUndefined) {
             return false;
         }
         return true;
     };
 
     ani_ref parentWindowSizeChangeCallback;
-    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowSizeChangeCallback",
+    if (getPropertyAndCheckUndefined(attachOptions, "parentWindowSizeChangeCallback",
         parentWindowSizeChangeCallback, "parentWindowSizeChangeCallback")) {
-        return;
-    }
-    if (parentWindowSizeChangeCallback && registerManager->RegisterListener(windowToken, "parentWindowSizeChange",
-        CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallback, 0) != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return;
+        if (registerManager->RegisterListener(windowToken, "parentWindowSizeChange",
+            CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallback, 0) != WmErrorCode::WM_OK) {
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            return;
+        }
     }
 
     ani_ref parentWindowStatusChangeCallback;
-    if (!getPropertyAndCheckUndefined(attachOptions, "parentWindowStatusChangeCallback",
+    if (getPropertyAndCheckUndefined(attachOptions, "parentWindowStatusChangeCallback",
         parentWindowStatusChangeCallback, "parentWindowStatusChangeCallback")) {
-        return;
-    }
-    if (parentWindowStatusChangeCallback && registerManager->RegisterListener(windowToken, "parentWindowStatusChange",
-        CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallback, 0) != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return;
+        if (registerManager->RegisterListener(windowToken, "parentWindowStatusChange",
+            CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallback, 0) != WmErrorCode::WM_OK) {
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+            return;
+        }
     }
 }
 

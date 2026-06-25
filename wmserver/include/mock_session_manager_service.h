@@ -56,7 +56,7 @@ public:
     ErrCode GetSceneSessionManagerByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManager) override;
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteBySA(int32_t userId);
     sptr<ISceneSessionManager> GetSceneSessionManagerBySA(int32_t userId);
-
+    ErrCode GetActiveUserIds(std::vector<int32_t>& activeUserIds) override;
     /*
      * Window Recover
      */
@@ -109,16 +109,20 @@ private:
     void NotifySceneBoardAvailableToClient(int32_t userId, bool isLite);
     void NotifySceneBoardAvailableToSystemAppClient(int32_t userId, bool isLite);
 
-    void NotifyWMSConnectionChanged(int32_t wmsUserId, DisplayId screenId, bool isConnected);
+    void NotifyWMSConnectionChanged(int32_t wmsUserId, DisplayId screenId,
+        bool isConnected, int32_t fromUserId, int32_t fromPid = INVALID_PID);
     void NotifyWMSConnectionChangedToClient(int32_t wmsUserId, DisplayId screenId,
-        bool isConnected, bool isLite, int32_t wmsPid);
+        bool isConnected, bool isLite, int32_t wmsPid, int32_t fromUserId, int32_t fromPid);
 
     void AddSMSRecoverListener(int32_t clientUserId, int32_t pid, int32_t instanceUserId, bool isLite,
         const sptr<ISessionManagerServiceRecoverListener>& smsListener);
-    
+
     void UpdateUserId2PidMapping(int32_t userId, int32_t pid);
     int32_t GetWmsPidByUserId(int32_t userId);
     void RemoveUserId2PidMapping(int32_t userId);
+    int32_t GetUserIdOnScreen(DisplayId screenId, int32_t userId);
+    void UpdateScreenUserInfo(int32_t userId, DisplayId screenId);
+    void RemoveScreenUserMappingIfMatched(DisplayId screenId, int32_t userId);
 
     RecoverListenerPairs CollectListenersByClientUserId(int32_t clientUserId, bool isLite);
     RecoverListenerPairs CollectListenersByInstanceUserId(int32_t clientUserId, int32_t instanceUserId, bool isLite);
@@ -163,8 +167,10 @@ private:
     int32_t defaultWMSUserId_;
     std::mutex defaultWMSUserIdMutex_;
     DisplayId defaultScreenId_;
-    std::mutex userId2ScreenIdMapMutex_;
-    std::map<int32_t, DisplayId> userId2ScreenIdMap_;
+    std::mutex userId2ScreenIdMutex_;
+    std::map<int32_t, DisplayId> userId2ScreenId_;
+    std::mutex screenId2UserIdMutex_;
+    std::map<DisplayId, int32_t> screenId2UserId_;
     std::shared_mutex smsDeathRecipientMapLock_;
     std::map<int32_t, sptr<SMSDeathRecipient>> smsDeathRecipientMap_;
     std::mutex sessionManagerServiceMapMutex_;

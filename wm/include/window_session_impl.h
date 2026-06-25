@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ using IKBWillHideListener = IKeyboardWillHideListener;
 class WindowSessionImpl : public Window, public virtual SessionStageStub {
 public:
     explicit WindowSessionImpl(const sptr<WindowOption>& option,
-        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr, sptr<IRemoteObject> renderSession = nullptr);
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
     ~WindowSessionImpl();
 
     static sptr<Window> Find(const std::string& name);
@@ -250,8 +250,7 @@ public:
     bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY) override;
     WMError SetIntentParam(const std::string& intentParam, const std::function<void()>& loadPageCallback,
         bool isColdStart) override;
-    virtual void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
-        SelectMode selectMode = SelectMode::INVALID_MODE) {};
+    virtual void SetForceSplitConfigEnable(bool needUpdateViewport = false) {};
     void SetForceSplitConfig(const AppForceLandscapeConfig& config);
 
     /*
@@ -446,7 +445,7 @@ public:
     WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
         const std::shared_ptr<Media::PixelMap>& icon) override;
     void NotifyPrepareCloseFloatingBall() override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
 
     WMError GetFloatingBallWindowId(uint32_t& windowId) override;
@@ -730,6 +729,7 @@ public:
 protected:
     RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
     WMError Connect();
+    void PostInitSurfaceNode(sptr<IRemoteObject> renderSession);
     bool IsWindowSessionInvalid() const;
     void NotifyWindowAfterUnfocused();
     void NotifyWindowAfterFocused();
@@ -900,6 +900,7 @@ protected:
     WMError ClearKeyEventFilter() override;
     WMError SetMouseEventFilter(MouseEventFilterFunc filter) override;
     WMError ClearMouseEventFilter() override;
+
     WMError SetTouchEventFilter(TouchEventFilterFunc filter) override;
     WMError ClearTouchEventFilter() override;
 
@@ -949,6 +950,7 @@ protected:
     std::shared_ptr<AbilityRuntime::Context> context_;
     mutable std::shared_mutex contextMutex_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
+    uint64_t nodeId_;
 
     sptr<WindowSessionProperty> property_;
     WindowModeInfo windowModeInfo_;
@@ -1070,6 +1072,7 @@ protected:
     void HookWindowSizeByHookWindowInfo(Rect& rect) const;
     void SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
+    virtual WMError GetForceSplitEnable(bool& enable) { return WMError::WM_OK; }
 
     /*
      * Window Immersive
@@ -1129,6 +1132,7 @@ protected:
      * Window Rotation
      */
     int16_t rotationAnimationCount_ { 0 };
+    int16_t sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
     mutable std::mutex virtualPixelRatioMutex_;
 
@@ -1150,12 +1154,6 @@ protected:
      */
     std::shared_ptr<RSUIDirector> rsUIDirector_;
     std::shared_ptr<RSUIContext> rsUIContext_;
-
-    /**
-     * RS Multi Process
-     */
-    sptr<IRemoteObject> renderSession_;
-    bool needCreateCompleteSurfaceNode_ = false;
 
     /**
      * Game Prelaunch flag

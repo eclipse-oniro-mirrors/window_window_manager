@@ -1135,29 +1135,6 @@ HWTEST_F(WindowSessionImplTest4, Notify03, TestSize.Level1)
 }
 
 /**
- * @tc.name: Filter
- * @tc.desc: Filter
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest4, Filter, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("Filter");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    std::shared_ptr<MMI::KeyEvent> keyEvent = MMI::KeyEvent::Create();
-    window->FilterKeyEvent(keyEvent);
-    ASSERT_EQ(window->keyEventFilter_, nullptr);
-    window->SetKeyEventFilter([](const MMI::KeyEvent& keyEvent) {
-        GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetKeyEventFilter";
-        return true;
-    });
-    ASSERT_NE(window->keyEventFilter_, nullptr);
-    window->FilterKeyEvent(keyEvent);
-    auto ret = window->ClearKeyEventFilter();
-    ASSERT_EQ(ret, WMError::WM_OK);
-}
-
-/**
  * @tc.name: UpdateOrientation
  * @tc.desc: UpdateOrientation
  * @tc.type: FUNC

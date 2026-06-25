@@ -186,7 +186,7 @@ using NotifyMoveMainWindowToTargetDisplayFunc = std::function<void(DisplayId dis
 using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 using PageEnableFunc = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
-using GetFloatViewLimitFunc = std::function<bool(std::map<uint32_t, FloatViewLimits>& limit)>;
+using GetFloatViewLimitFunc = std::function<void()>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
     void OnAppDebugStarted(const std::vector<AppExecFwk::AppDebugInfo>& debugInfos) override;
@@ -247,9 +247,10 @@ public:
     std::vector<sptr<SceneSession>> GetSceneSessionByBundleName(const std::string& bundleName);
 
     WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
-        const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
+        const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
         SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<IRemoteObject> token = nullptr) override;
     WSError DestroyAndDisconnectSpecificSession(const int32_t persistentId) override;
     WSError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
@@ -383,7 +384,7 @@ public:
     /*
      * Float view
      */
-    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits);
+    WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits> &limits, bool isChanged);
     WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
     void RegisterGetFloatViewLimitCallback(GetFloatViewLimitFunc&& func);
 
@@ -502,6 +503,7 @@ public:
     void GetSceneSessionPrivacyModeBundles(DisplayId displayId,
         std::unordered_map<DisplayId, std::unordered_set<std::string>>& privacyBundles);
     BrokerStates CheckIfReuseSession(SessionInfo& sessionInfo);
+    BrokerStates NotifyStartWindowsAbility(SessionInfo& sessionInfo);
     sptr<SceneSession> FindSessionByAffinity(const std::string& affinity);
     void AddWindowDragHotArea(DisplayId displayId, uint32_t type, WSRect& area);
     void PreloadInLakeApp(const std::string& bundleName);
@@ -624,6 +626,7 @@ public:
      * Free Multi Window
      */
     WSError SwitchFreeMultiWindow(bool enable);
+    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId);
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     void RegisterSetForegroundWindowNumCallback(SetForegroundWindowNumFunc&& func);
@@ -1337,6 +1340,7 @@ private:
     sptr<SceneSession> SelectSesssionFromMap(const uint64_t& surfaceId);
     void WindowDestroyNotifyVisibility(const sptr<SceneSession>& sceneSession);
     void RegisterSessionSnapshotFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterSessionSaveSnapshotCompleteFunc(const sptr<SceneSession>& sceneSession);
 
     /*
      * Window Property
@@ -1687,6 +1691,8 @@ private:
     void NotifyCreateSpecificSession(sptr<SceneSession> session,
         sptr<WindowSessionProperty> property, const WindowType& type);
     sptr<SceneSession> CreateSceneSession(const SessionInfo& sessionInfo, sptr<WindowSessionProperty> property);
+    void AddPermissionUsedRecord(const std::string& permission, int32_t successCount, int32_t failCount,
+        int32_t tokenId);
 
     /*
      * Keyboard
@@ -1783,6 +1789,7 @@ private:
     bool GetDisplaySizeById(DisplayId displayId, int32_t& displayWidth, int32_t& displayHeight);
     void UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status, SuperFoldStatus prevStatus);
     void ConfigSingleHandCompatibleMode(const WindowSceneConfig::ConfigItem& configItem);
+    void ConfigIntValue(const WindowSceneConfig::ConfigItem& configItem, const std::string& key, int& value);
     void ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
         SingleHandBackgroundTextConfig& textConfig);
     void ConfigSingleHandBackgroundLayout(const WindowSceneConfig::ConfigItem& configItem);
@@ -2103,6 +2110,7 @@ private:
     std::mutex floatViewLimitsMutex_;
     GetFloatViewLimitFunc getFloatViewLimitFunc_;
     std::map<uint32_t, FloatViewLimits> floatViewLimits_{};
+    std::condition_variable getLimitsFinishCv_;
 };
 } // namespace OHOS::Rosen
 
