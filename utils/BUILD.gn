@@ -231,6 +231,13 @@ ohos_shared_library("libwmutil_base") {
 ## Build libwmutil.so
 ohos_shared_library("libwmutil") {
   branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
   sources = wmutil_sources
 
   configs = [
