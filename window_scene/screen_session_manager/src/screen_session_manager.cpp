@@ -15554,38 +15554,6 @@ void ScreenSessionManager::SetForceCloseHdr(ScreenId screenId, bool isForceClose
     screenSession->SetForceCloseHdr(isForceCloseHdr);
 }
 
-void ScreenSessionManager::SetDeviceMode(uint32_t deviceMode)
-{
-    // 0 phone 1 pc 2 others
-    TLOGI(WmsLogTag::DMS, "SetDeviceMode: %{public}u", deviceMode);
-    if (deviceMode == PHONE_MODE) {
-        g_isPcDevice = false;
-    } else if (deviceMode == PC_MODE) {
-        g_isPcDevice = true;
-    } else {
-        g_isPcDevice = false;
-        TLOGNFW(WmsLogTag::DMS, "unknow device mode");
-    }
-
-    auto iter = screenSessionMap_.find(SCREEN_ID_DEFAULT);
-    if (iter == screenSessionMap_.end() || iter->second == nullptr) {
-        TLOGNFE(WmsLogTag::DMS, "not have screen session");
-        return;
-    }
-    // create new displaynode
-    auto oldDisplayNode = iter->second->GetDisplayNode();
-    CreateDisplayNodeForScreen(iter->second, currentUserId_);
-
-    removeFromTreeDisplayNodeList_.emplace_back(oldDisplayNode);
-    WaitSwitchUserAnimationFinishTask(currentUserId_, currentUserId_, false, true);
-
-    auto clientProxy = GetClientProxy();
-    if (clientProxy) {
-        clientProxy->OnScreenConnectionChanged(GetSessionOption(iter->second, SCREEN_ID_DEFAULT), ScreenEvent::CONNECTED);
-    }
-    SwitchModeHandleExternalScreen(g_isPcDevice);
-}
-
 void ScreenSessionManager::RegisterSettingBorderingAreaPercentObserver()
 {
     TLOGNFI(WmsLogTag::DMS, "Register Setting bordering area percent Observer");
