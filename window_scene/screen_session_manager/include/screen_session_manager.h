@@ -472,7 +472,6 @@ public:
     void ReportFoldDisplayTime(uint64_t screenId, int64_t rsFirstFrameTime);
     void RegisterFirstFrameCommitCallback();
     void SetForceCloseHdr(ScreenId screenId, bool isForceCloseHdr) override;
-    void SetDeviceMode(uint32_t deviceMode) override;
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) override;
 
