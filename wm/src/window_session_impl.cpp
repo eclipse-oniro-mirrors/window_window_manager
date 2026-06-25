@@ -5109,7 +5109,7 @@ template<typename T>
 EnableIfSame<T, IWindowTitleChangeListener, std::vector<sptr<IWindowTitleChangeListener>>> WindowSessionImpl::GetListeners()
 {
     std::vector<sptr<IWindowTitleChangeListener>> windowTitleChangeListeners;
-    std::lock_guard<std::mutex> lockRectListener(windowTitleChangeListenerMutex_);
+    std::lock_guard<std::mutex> lockListener(windowTitleChangeListenerMutex_);
     for (auto& listener : windowTitleChangeListeners_[GetPersistentId()]) {
         windowTitleChangeListeners.push_back(listener);
     }
@@ -5145,7 +5145,7 @@ EnableIfSame<T, IWindowTitleOrHotAreasListener, std::vector<sptr<IWindowTitleOrH
  
 WMError WindowSessionImpl::RegisterWindowTitleOrHotAreasListener(const sptr<IWindowTitleOrHotAreasListener>& listener)
 {
-    std::lock_guard<std::mutex> lockListener(windowTitleChangeListenerMutex_);
+    std::lock_guard<std::mutex> lockListener(windowTitleOrHotAreasListenerMutex_);
     WMError ret = RegisterListener(windowTitleOrHotAreasListeners_[GetPersistentId()], listener);
     TLOGI(WmsLogTag::WMS_DECOR, "RegisterWindowTitleOrHotAreasListener");
     return ret;
@@ -5400,12 +5400,30 @@ bool WindowSessionImpl::IsHitTitleBar(std::shared_ptr<MMI::PointerEvent>& pointe
     Rect windowRect = property_->GetWindowRect();
     int32_t decorHeight = uiContent->GetContainerModalTitleHeight();
     int32_t statusBarHeight = property_->GetStatusBarHeightInImmersive();
+    int32_t foldCreaseRegionHeight = 0;
+    int32_t displayHeight = 0;
     MMI::PointerEvent::PointerItem pointerItem;
     bool isValidPointItem = pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
-    bool isHitTitleBarX = pointerItem.GetDisplayX() > windowRect.posX_
-        && pointerItem.GetDisplayX() < windowRect.posX_ + windowRect.width_;
-    bool isHitTitleBarY = pointerItem.GetDisplayY() > windowRect.posY_ + statusBarHeight
-        && pointerItem.GetDisplayY() < windowRect.posY_ + decorHeight + statusBarHeight;
+    auto foldCreaseRegion = DisplayManager::GetInstance().GetCurrentFoldCreaseRegion();
+    if (foldCreaseRegion != nullptr) {
+        const auto& creaseRects = foldCreaseRegion->GetCreaseRects();
+        if (!creaseRects.empty()) {
+            foldCreaseRegionHeight = creaseRects.front().height_;
+        }
+    }
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display != nullptr) {
+        displayHeight = display->GetHeight();
+    }
+    int32_t displayX = pointerItem.GetDisplayX();
+    int32_t displayY = pointerItem.GetDisplayY();
+    if (property_->GetDisplayId() == DISPLAY_ID_C) {
+        displayY -= (displayHeight + foldCreaseRegionHeight);
+    }
+    bool isHitTitleBarX = displayX > windowRect.posX_
+        && displayX < windowRect.posX_ + static_cast<int32_t>(windowRect.width_);
+    bool isHitTitleBarY = displayY > windowRect.posY_ + statusBarHeight
+        && displayY < windowRect.posY_ + decorHeight + statusBarHeight;
     bool isHitTitleBar = isValidPointItem && isHitTitleBarX && isHitTitleBarY;
     if (isHitTitleBar) {
         TLOGI(WmsLogTag::WMS_DECOR, "hitTitleBar success");
@@ -6880,7 +6898,7 @@ void WindowSessionImpl::NotifySwitchFreeMultiWindow(bool enable)
 
 void WindowSessionImpl::NotifyTitleChange(bool isShow, int32_t height)
 {
-    if (!IsAnco()) {
+    if (!IsAnco() || !IsPcOrPadFreeMultiWindowMode()) {
         return;
     }
     auto windowTitleOrHotAreasListeners = GetListeners<IWindowTitleOrHotAreasListener>();
@@ -6898,11 +6916,13 @@ void WindowSessionImpl::NotifyTitleChange(bool isShow, int32_t height)
 std::vector<Rect> WindowSessionImpl::GetAncoWindowHotAreas()
 {
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
+    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
     std::vector<Rect> rectAreas;
     if (uiContent == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "uiContent is null, windowId: %{public}u", GetWindowId());
         return rectAreas;
     }
+    WindowMode mode = GetWindowMode();
     float vpr = GetVirtualPixelRatio();
     float outsideArea = HOTZONE_TOUCH * vpr;
     float insideArea = WINDOW_FRAME_WIDTH * vpr;
@@ -6913,9 +6933,14 @@ std::vector<Rect> WindowSessionImpl::GetAncoWindowHotAreas()
     int32_t posY = property_->GetWindowRect().posY_;
     int32_t decorHeight = uiContent->GetContainerModalTitleHeight();
     int32_t statusBarHeight = property_->GetStatusBarHeightInImmersive();
- 
+    if (isFullScreen && !isTitleShowInFullScreen_) {
+        return rectAreas;
+    }
     Rect titleRect = {posX, posY + statusBarHeight, width * compatScaleX_, decorHeight * compatScaleY_};
     rectAreas.push_back(titleRect);
+    if (isFullScreen) {
+        return rectAreas;
+    }
     Rect rectTop = {posX - outsideArea * compatScaleX_, posY - outsideArea * compatScaleY_,
         (width + outsideArea * 2) * compatScaleX_, (outsideArea + insideArea) * compatScaleY_};
     rectAreas.push_back(rectTop);
@@ -9700,19 +9725,21 @@ WMError WindowSessionImpl::UpdateCompatScaleInfo(const Transform& transform)
         TLOGD(WmsLogTag::WMS_COMPAT, "id:%{public}d not scale mode", GetPersistentId());
         return WMError::WM_DO_NOTHING;
     }
-    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
-    compatScaleX_ = transform.scaleX_;
-    compatScaleY_ = transform.scaleY_;
-    AAFwk::Want want;
-    want.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, IsAdaptToSimulationScale());
-    want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, IsAdaptToProportionalScale());
-    want.SetParam(Extension::COMPAT_SCALE_X_FIELD, compatScaleX_);
-    want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, compatScaleY_);
-    NotifyTitleChange(true, 0);
-    if (auto uiContent = GetUIContentSharedPtr()) {
-        uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::SYNC_COMPAT_INFO),
-            want, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
+    {
+        std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
+        compatScaleX_ = transform.scaleX_;
+        compatScaleY_ = transform.scaleY_;
+        AAFwk::Want want;
+        want.SetParam(Extension::COMPAT_IS_SIMULATION_SCALE_FIELD, IsAdaptToSimulationScale());
+        want.SetParam(Extension::COMPAT_IS_PROPORTION_SCALE_FIELD, IsAdaptToProportionalScale());
+        want.SetParam(Extension::COMPAT_SCALE_X_FIELD, compatScaleX_);
+        want.SetParam(Extension::COMPAT_SCALE_Y_FIELD, compatScaleY_);
+        if (auto uiContent = GetUIContentSharedPtr()) {
+            uiContent->SendUIExtProprty(static_cast<uint32_t>(Extension::Businesscode::SYNC_COMPAT_INFO),
+                want, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
+        }
     }
+    NotifyTitleChange(true, 0);
     return WMError::WM_OK;
 }
 

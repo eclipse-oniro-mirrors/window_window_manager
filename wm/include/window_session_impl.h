@@ -1148,6 +1148,7 @@ protected:
     void NotifyTitleChange(bool isShow, int32_t height);
     bool isDecorHiddenByApp_ = false;
     bool isMaximizeInvoked_ = false;
+    bool isTitleShowInFullScreen_ = false;
 
     /*
      * RS Client Multi Instance

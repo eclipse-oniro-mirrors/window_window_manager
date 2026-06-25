@@ -4366,6 +4366,7 @@ WMError WindowSceneSessionImpl::RecoverForCompatibleMode()
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "recover fail, not main");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
+    isTitleShowInFullScreen_ = false;
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     hostSession->OnSessionEvent(SessionEvent::EVENT_COMPATIBLE_TO_RECOVER);
@@ -6823,6 +6824,7 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
         TLOGI(WmsLogTag::WMS_DECOR, "dock auto hide skip updateTitleInTargetPos");
         return WSError::WS_OK;
     }
+    isTitleShowInFullScreen_ = isShow && height >= 0 && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
     NotifyTitleChange(isShow, height);
     uiContent->UpdateTitleInTargetPos(isShow, height);
     return WSError::WS_OK;
@@ -9322,6 +9324,7 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
 	
 {
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
+    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
     if (!IsPcOrPadFreeMultiWindowMode()) {
         return false;
     }
@@ -9331,7 +9334,25 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
     }
     Rect windowRect = property_->GetWindowRect();
     MMI::PointerEvent::PointerItem pointerItem;
+    int32_t foldCreaseRegionHeight = 0;
+    int32_t displayHeight = 0;
     bool isValidPointItem = pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
+    auto foldCreaseRegion = DisplayManager::GetInstance().GetCurrentFoldCreaseRegion();
+    if (foldCreaseRegion != nullptr) {
+        const auto& creaseRects = foldCreaseRegion->GetCreaseRects();
+        if (!creaseRects.empty()) {
+            foldCreaseRegionHeight = creaseRects.front().height_;
+        }
+    }
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display != nullptr) {
+        displayHeight = display->GetHeight();
+    }
+    int32_t displayX = pointerItem.GetDisplayX();
+    int32_t displayY = pointerItem.GetDisplayY();
+    if (property_->GetDisplayId() == DISPLAY_ID_C) {
+        displayY -= (displayHeight + foldCreaseRegionHeight);
+    }
     
     int32_t width = static_cast<int32_t>(windowRect.width_);
     int32_t height = static_cast<int32_t>(windowRect.height_);
@@ -9340,30 +9361,42 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
     float vpr = WindowSessionImpl::GetVirtualPixelRatio();
     float scaleX = compatScaleX_;
     float scaleY = compatScaleY_;
-    float outsideArea = HOTZONE_TOUCH * vpr * scaleX;
-    float insideArea = WINDOW_FRAME_WIDTH * vpr * scaleX;
+    float outsideArea = HOTZONE_TOUCH * vpr;
+    float insideArea = WINDOW_FRAME_WIDTH * vpr;
+    float cornerArea = WINDOW_FRAME_CORNER_TOUCH_WIDTH * vpr;
  
-    bool isHitTopHotArea = pointerItem.GetDisplayX() > posX - outsideArea * scaleX &&
-        pointerItem.GetDisplayX() < posX + (width + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY - outsideArea * scaleY &&
-        pointerItem.GetDisplayY() < posY + (insideArea + outsideArea) * scaleY;
+        bool isHitTopHotArea = displayX > posX - outsideArea * scaleX &&
+        displayX < posX + (width + outsideArea) * scaleX &&
+        displayY > posY - outsideArea * scaleY &&
+        displayY < posY + (insideArea + outsideArea) * scaleY;
  
-    bool isHitLeftHotArea = pointerItem.GetDisplayX() > posX - outsideArea * scaleX &&
-        pointerItem.GetDisplayX() < posX + (insideArea + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY - outsideArea * scaleY &&
-        pointerItem.GetDisplayY() < posY + (height + outsideArea) * scaleY;
+    bool isHitLeftHotArea = displayX > posX - outsideArea * scaleX &&
+        displayX < posX + (insideArea + outsideArea) * scaleX &&
+        displayY > posY - outsideArea * scaleY &&
+        displayY < posY + (height + outsideArea) * scaleY;
  
-    bool isHitRightHotArea = pointerItem.GetDisplayX() > posX + (width - insideArea) * scaleX &&
-        pointerItem.GetDisplayX() < posX + (width + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY - outsideArea * scaleY &&
-        pointerItem.GetDisplayY() < posY + (height + outsideArea) * scaleY;
+    bool isHitRightHotArea = displayX > posX + (width - insideArea) * scaleX &&
+        displayX < posX + (width + outsideArea) * scaleX &&
+        displayY > posY - outsideArea * scaleY &&
+        displayY < posY + (height + outsideArea) * scaleY;
     
-    bool isHitBottomHotArea = pointerItem.GetDisplayX() > posX - outsideArea * scaleX &&
-        pointerItem.GetDisplayX() < posX + (width + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY + (height - insideArea) * scaleY &&
-        pointerItem.GetDisplayY() < posY + (height + outsideArea) * scaleY;
+    bool isHitBottomHotArea = displayX > posX - outsideArea * scaleX &&
+        displayX < posX + (width + outsideArea) * scaleX &&
+        displayY > posY + (height - insideArea) * scaleY &&
+        displayY < posY + (height + outsideArea) * scaleY;
  
-    bool isHitHotAreas = isHitTopHotArea || isHitLeftHotArea || isHitRightHotArea || isHitBottomHotArea;
+    bool isHitLeftBottomHotArea = displayX > posX &&
+        displayX < posX + cornerArea * scaleX &&
+        displayY > posY + (height - cornerArea) * scaleY &&
+        displayY < posY + height * scaleY;
+
+    bool isHitRightBottomHotArea = displayX > posX + (width - cornerArea) * scaleX &&
+        displayX < posX + width * scaleX &&
+        displayY > posY + (height - cornerArea) * scaleY &&
+        displayY < posY + height * scaleY;
+ 
+    bool isHitHotAreas = isHitTopHotArea || isHitLeftHotArea || isHitRightHotArea || isHitBottomHotArea ||
+      isHitLeftBottomHotArea || isHitRightBottomHotArea;
     if (isValidPointItem && isHitHotAreas) {
         TLOGI(WmsLogTag::WMS_DECOR, "hitHotAreas success");
         return true;
