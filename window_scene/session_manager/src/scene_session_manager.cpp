@@ -1041,6 +1041,11 @@ void SceneSessionManager::LoadFreeMultiWindowConfig(bool enable)
         item = config["windowEffect"];
         if (item.IsMap()) {
             ConfigWindowEffect(item, appWindowSceneConfig_);
+        } else {
+            appWindowSceneConfig_.focusedShadow_ = WindowShadowConfig();
+            appWindowSceneConfig_.unfocusedShadow_ = WindowShadowConfig();
+            appWindowSceneConfig_.focusedShadowDark_ = WindowShadowConfig();
+            appWindowSceneConfig_.unfocusedShadowDark_ = WindowShadowConfig();
         }
     }
     systemConfig_.freeMultiWindowEnable_ = enable;
@@ -1246,12 +1251,16 @@ void SceneSessionManager::ConfigWindowEffect(const WindowSceneConfig::ConfigItem
         if (ConfigAppWindowShadow(item, config.focusedShadow_)) {
             appWindowSceneConfig.focusedShadow_ = config.focusedShadow_;
         }
+    } else {
+        appWindowSceneConfig.focusedShadow_ = WindowShadowConfig();
     }
     item = effectConfig["appWindows"]["shadow"]["unfocused"];
     if (item.IsMap()) {
         if (ConfigAppWindowShadow(item, config.unfocusedShadow_)) {
             appWindowSceneConfig.unfocusedShadow_ = config.unfocusedShadow_;
         }
+    } else {
+        appWindowSceneConfig.unfocusedShadow_ = WindowShadowConfig();
     }
     AddAlphaToColor(appWindowSceneConfig.focusedShadow_.alpha_, appWindowSceneConfig.focusedShadow_.color_);
     AddAlphaToColor(appWindowSceneConfig.unfocusedShadow_.alpha_, appWindowSceneConfig.unfocusedShadow_.color_);
@@ -1262,12 +1271,16 @@ void SceneSessionManager::ConfigWindowEffect(const WindowSceneConfig::ConfigItem
         if (ConfigAppWindowShadow(item, config.focusedShadowDark_)) {
             appWindowSceneConfig.focusedShadowDark_ = config.focusedShadowDark_;
         }
+    } else {
+        appWindowSceneConfig.focusedShadowDark_ = WindowShadowConfig();
     }
     item = effectConfig["appWindows"]["shadowDark"]["unfocused"];
     if (item.IsMap()) {
         if (ConfigAppWindowShadow(item, config.unfocusedShadowDark_)) {
             appWindowSceneConfig.unfocusedShadowDark_ = config.unfocusedShadowDark_;
         }
+    } else {
+        appWindowSceneConfig.unfocusedShadowDark_ = WindowShadowConfig();
     }
     AddAlphaToColor(appWindowSceneConfig.focusedShadowDark_.alpha_, appWindowSceneConfig.focusedShadowDark_.color_);
     AddAlphaToColor(appWindowSceneConfig.unfocusedShadowDark_.alpha_,

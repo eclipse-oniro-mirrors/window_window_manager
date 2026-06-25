@@ -1799,10 +1799,15 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     property->SetPcAppInpadSpecificSystemBarInvisible(GetSessionProperty()->GetPcAppInpadSpecificSystemBarInvisible());
     property->SetPcAppInpadOrientationLandscape(GetSessionProperty()->GetPcAppInpadOrientationLandscape());
     property->SetMobileAppInPadLayoutFullScreen(GetSessionProperty()->GetMobileAppInPadLayoutFullScreen());
-    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-    const bool isShow = !(isScreenLockedCallback_ && isScreenLockedCallback_() &&
-        systemConfig_.freeMultiWindowSupport_ && !isPcMode && !IsPcWindow());
-    property->SetIsShowDecorInFreeMultiWindow(isShow);
+    if (!property_->GetIsNeedUpdateShowDecor()) {
+        const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+        const bool isShow = !(isScreenLockedCallback_ && isScreenLockedCallback_() &&
+            systemConfig_.freeMultiWindowSupport_ && !isPcMode);
+        property->SetIsShowDecorInFreeMultiWindow(isShow);
+    } else {
+        property->SetIsShowDecorInFreeMultiWindow(property_->GetIsShowDecorInFreeMultiWindow());
+        property_->SetIsNeedUpdateShowDecor(false);
+    }
     SetSessionProperty(property);
     GetSessionProperty()->SetIsNeedUpdateWindowMode(false);
 }
@@ -6347,6 +6352,8 @@ std::shared_ptr<RSUIContext> Session::GetRSLeashWinShadowContext()
 
 WSError Session::SetIsShowDecorInFreeMultiWindow(bool isShow)
 {
+    property_->SetIsNeedUpdateShowDecor(true);
+    property_->SetIsShowDecorInFreeMultiWindow(isShow);
     if (!IsSessionValid()) {
         TLOGE(WmsLogTag::WMS_DECOR, "Session is invalid, id: %{public}d state: %{public}u",
             GetPersistentId(), GetSessionState());

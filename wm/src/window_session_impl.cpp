@@ -522,6 +522,10 @@ bool WindowSessionImpl::IsAdaptToSubWindow() const
 
 void WindowSessionImpl::MakeSubOrDialogWindowDragableAndMoveble()
 {
+    if (windowSystemConfig_.freeMultiWindowSupport_ && windowOption_ != nullptr &&
+        WindowHelper::IsSubWindow(property_->GetWindowType())) {
+        subWindowTitle_ = windowOption_->GetSubWindowTitle();
+    }
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && windowOption_ != nullptr) {
         TLOGI(WmsLogTag::WMS_PC, "Called %{public}d.", GetPersistentId());
         // The context of the UEC child window is not the context of the main window
@@ -538,7 +542,6 @@ void WindowSessionImpl::MakeSubOrDialogWindowDragableAndMoveble()
             property_->SetDecorEnable(windowOption_->GetSubWindowDecorEnable());
             property_->SetDragEnabled(windowOption_->GetSubWindowDecorEnable());
             UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
-            subWindowTitle_ = windowOption_->GetSubWindowTitle();
         }
         bool isDialog = WindowHelper::IsDialogWindow(property_->GetWindowType());
         if (isDialog) {

@@ -3130,6 +3130,16 @@ bool WindowSessionProperty::GetIsShowDecorInFreeMultiWindow() const
     return isShowDecorInFreeMultiWindow_;
 }
 
+void WindowSessionProperty::SetIsNeedUpdateShowDecor(bool isNeed)
+{
+    isNeedUpdateShowDecor_ = isNeed;
+}
+
+bool WindowSessionProperty::GetIsNeedUpdateShowDecor() const
+{
+    return isNeedUpdateShowDecor_;
+}
+
 void WindowSessionProperty::SetAspectRatio(float ratio)
 {
     aspectRatio_ = ratio;

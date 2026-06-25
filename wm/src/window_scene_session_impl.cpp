@@ -6994,25 +6994,38 @@ void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScree
 
 void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable)
 {
-    if (freeMultiWindowEnable && enableImmersiveMode_) {
-        maximizeLayoutFullScreen_.store(false);
-        cacheEnableImmersiveMode_.store(true);
-        enableImmersiveMode_.store(false);
-        property_->SetIsLayoutFullScreen(enableImmersiveMode_);
-        if (auto hostSession = GetHostSession()) {
-            hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
-        } else {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
+    uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
+    if (freeMultiWindowEnable) {
+        cacheEnableImmersiveMode_.store(enableImmersiveMode_);
+        if (enableImmersiveMode_ &&
+            WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING) &&
+            !(IsAnco() && windowSystemConfig_.IsPhoneWindow())) {
+            maximizeLayoutFullScreen_.store(false);
+            enableImmersiveMode_.store(false);
+            property_->SetIsLayoutFullScreen(enableImmersiveMode_);
+            if (auto hostSession = GetHostSession()) {
+                hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
+            } else {
+                    TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
+            }
         }
     }
     if (!freeMultiWindowEnable) {
-        if (maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_) {
-            SetLayoutFullScreenByApiVersion(false);
+        // remove immersive mode if non-immersive in pad mode and enter immersive using the maximize in freeMultiWindow
+        bool isNeedRemoveMaximizeLayout = maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_;
+        // recover immersive mode if immersive in pad mode
+        bool isNeedRecoverLayout = cacheEnableImmersiveMode_ &&
+            WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING) &&
+            !(IsAnco() && windowSystemConfig_.IsPhoneWindow());
+        if (isNeedRemoveMaximizeLayout) {
             maximizeLayoutFullScreen_.store(false);
+            enableImmersiveMode_.store(false);
         }
-        if (cacheEnableImmersiveMode_) {
+        if (isNeedRecoverLayout) {
             enableImmersiveMode_.store(true);
             cacheEnableImmersiveMode_.store(false);
+        }
+        if (isNeedRemoveMaximizeLayout || isNeedRecoverLayout) {
             property_->SetIsLayoutFullScreen(enableImmersiveMode_);
             SetLayoutFullScreenByApiVersion(enableImmersiveMode_);
             if (auto hostSession = GetHostSession()) {
