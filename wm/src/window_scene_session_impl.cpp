@@ -4286,9 +4286,6 @@ bool WindowSceneSessionImpl::IsDecorEnable() const
     if ((isSubWindow || isDialogWindow) && property_->GetIsPcAppInPad() && property_->IsDecorEnable()) {
         enable = true;
     }
-    if (IsSubWindowMaximizeSupported() && property_->IsDecorEnable()) {
-        enable = true;
-    }
     TLOGD(WmsLogTag::WMS_DECOR, "get decor enable %{public}d", enable);
     return enable;
 }
