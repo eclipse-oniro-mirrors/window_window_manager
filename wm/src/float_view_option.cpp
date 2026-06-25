@@ -72,6 +72,11 @@ void FvOption::ClearAniReference(ani_env* env)
     }
 }
 
+void FvOption::SetCloseConfirm(bool closeConfirm)
+{
+    closeConfirm_ = closeConfirm;
+}
+
 // LCOV_EXCL_START
 uint32_t FvOption::GetTemplate() const
 {
@@ -132,6 +137,7 @@ void FvOption::GetFvTemplateInfo(FloatViewTemplateInfo& fvTemplateInfo) const
     fvTemplateInfo.visibleInApp_ = visibleInApp_;
     fvTemplateInfo.rect_ = rect_;
     fvTemplateInfo.showWhenCreate_ = showWhenCreate_;
+    fvTemplateInfo.closeConfirm_ = closeConfirm_;
 }
 
 // LCOV_EXCL_STOP

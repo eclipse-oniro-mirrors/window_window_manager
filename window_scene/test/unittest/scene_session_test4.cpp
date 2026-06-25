@@ -24,6 +24,7 @@
 #include "pointer_event.h"
 
 #include "session/host/include/main_session.h"
+#include "session/host/include/move_drag_bounds_applier.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/sub_session.h"
 #include "session/host/include/system_session.h"
@@ -77,6 +78,21 @@ void SceneSessionTest4::TearDown()
 }
 
 namespace {
+void ExpectNodeBoundsAndFrame(const std::shared_ptr<RSSurfaceNode>& node, const WSRect& rect)
+{
+    ASSERT_NE(nullptr, node);
+    auto bounds = node->GetStagingProperties().GetBounds();
+    auto frame = node->GetStagingProperties().GetFrame();
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.posX_), bounds[0]);   // 0: posX
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.posY_), bounds[1]);   // 1: posY
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.width_), bounds[2]);  // 2: width
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.height_), bounds[3]); // 3: height
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.posX_), frame[0]);    // 0: posX
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.posY_), frame[1]);    // 1: posY
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.width_), frame[2]);   // 2: width
+    EXPECT_FLOAT_EQ(static_cast<float>(rect.height_), frame[3]);  // 3: height
+}
+
 /**
  * @tc.name: HandleActionUpdateFlags
  * @tc.desc: normal function
@@ -358,17 +374,40 @@ HWTEST_F(SceneSessionTest4, SetSurfaceBounds, TestSize.Level1)
     SessionInfo info;
     info.abilityName_ = "SetSurfaceBounds";
     info.bundleName_ = "SetSurfaceBounds";
+    info.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_BASE);
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(nullptr, session);
-    WSRect rect;
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
+    std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode = RSSurfaceNode::Create(config);
+    ASSERT_NE(nullptr, surfaceNode);
+    ASSERT_NE(nullptr, leashWinSurfaceNode);
+
     session->SetSurfaceNode(surfaceNode);
+    WSRect rect = { 10, 20, 300, 400 };
     session->SetSurfaceBounds(rect, false, false);
-    session->SetSurfaceBounds(rect, false, true);
-    session->SetLeashWinSurfaceNode(surfaceNode);
-    session->SetSurfaceBounds(rect, false, false);
-    session->SetSurfaceBounds(rect, false, true);
+    ExpectNodeBoundsAndFrame(surfaceNode, rect);
+    EXPECT_FALSE(surfaceNode->GetGlobalPositionEnabled());
+
+    WSRect flushedRect = { 30, 40, 500, 600 };
+    session->SetSurfaceBounds(flushedRect, true, true);
+    ExpectNodeBoundsAndFrame(surfaceNode, flushedRect);
+    EXPECT_TRUE(surfaceNode->GetGlobalPositionEnabled());
+    EXPECT_NE(nullptr, session->moveDragBoundsApplier_->GetTargetShadowSurfaceNode());
+
+    session->SetLeashWinSurfaceNode(leashWinSurfaceNode);
+    WSRect leashRect = { 50, 60, 700, 800 };
+    session->SetSurfaceBounds(leashRect, false, false);
+    ExpectNodeBoundsAndFrame(surfaceNode, { 0, 0, leashRect.width_, leashRect.height_ });
+    ExpectNodeBoundsAndFrame(leashWinSurfaceNode, leashRect);
+    EXPECT_FALSE(leashWinSurfaceNode->GetGlobalPositionEnabled());
+
+    WSRect flushedLeashRect = { 70, 80, 900, 1000 };
+    session->SetSurfaceBounds(flushedLeashRect, true, true);
+    ExpectNodeBoundsAndFrame(surfaceNode, { 0, 0, flushedLeashRect.width_, flushedLeashRect.height_ });
+    ExpectNodeBoundsAndFrame(leashWinSurfaceNode, flushedLeashRect);
+    EXPECT_TRUE(leashWinSurfaceNode->GetGlobalPositionEnabled());
+    EXPECT_NE(nullptr, session->moveDragBoundsApplier_->GetTargetShadowSurfaceNode());
     EXPECT_NE(nullptr, session->GetLeashWinSurfaceNode());
 }
 
@@ -2229,6 +2268,6 @@ HWTEST_F(SceneSessionTest4, StartMoveEventKeepsAvoidRectUnsetWhenFocusIsRequired
     EXPECT_EQ(sceneSession->OnSessionEvent(SessionEvent::EVENT_START_MOVE, param), WSError::WS_OK);
     EXPECT_EQ(sceneSession->moveDragController_->movingAvoidRect_, WSRect::EMPTY_RECT);
 }
-}
-}
-}
+} // namespace
+} // namespace Rosen
+} // namespace OHOS

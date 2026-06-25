@@ -535,6 +535,41 @@ HWTEST_F(SubSessionTest, UpdateSessionRectInner02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateSessionRectInner04
+ * @tc.desc: UpdateSessionRectInner syncs display id when sub window follows parent during cross-display drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, UpdateSessionRectInner04, TestSize.Level1)
+{
+    constexpr DisplayId START_DISPLAY_ID = 0;
+    constexpr DisplayId TARGET_DISPLAY_ID = 1;
+    subSession_->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession_->GetSessionProperty()->SetDisplayId(START_DISPLAY_ID);
+    subSession_->NotifyFollowParentMultiScreenPolicy(true);
+    subSession_->SetSessionRequestRect({ 10, 20, 100, 100 });
+
+    SessionInfo info;
+    info.abilityName_ = "UpdateSessionRectInner04";
+    info.bundleName_ = "UpdateSessionRectInner04";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    parentSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(parentSession));
+    parentSession->moveDragController_->isStartMove_ = true;
+    subSession_->SetParentSession(parentSession);
+
+    MoveConfiguration config;
+    config.displayId = TARGET_DISPLAY_ID;
+    WSRect resizeRect = { 0, 0, 300, 200 };
+    subSession_->UpdateSessionRectInner(resizeRect, SizeChangeReason::RESIZE, config);
+
+    EXPECT_EQ(subSession_->GetSessionProperty()->GetDisplayId(), TARGET_DISPLAY_ID);
+    EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().posX_, 10);
+    EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().posY_, 20);
+    EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().width_, 300);
+    EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().height_, 200);
+}
+
+/**
  * @tc.name: UpdateSessionRectInner03
  * @tc.desc: UpdateSessionRectInner Test
  * @tc.type: FUNC

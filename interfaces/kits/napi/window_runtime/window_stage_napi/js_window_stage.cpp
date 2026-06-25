@@ -990,6 +990,12 @@ napi_value JsWindowStage::OnCreateSubWindowWithOptions(napi_env env, napi_callba
             "[window][createSubWindowWithOptions]msg: Failed to convert parameter to options."));
         return NapiGetUndefined(env);
     }
+    if (windowScene->GetMainWindow() == nullptr) {
+        TLOGE(WmsLogTag::WMS_SUB, "mainWindow is null");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][createSubWindowWithOptions]msg: mainWindow is nullptr."));
+        return NapiGetUndefined(env);
+    }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !windowScene->GetMainWindow()->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "device not support");

@@ -392,6 +392,8 @@ static napi_value CreateFvTemplateInfo(napi_env env, const FloatViewTemplateInfo
         CreateJsValue(env, fvTemplateInfo.showWhenCreate_));
     napi_set_named_property(env, fvTemplateInfoValue, "id",
         CreateJsValue(env, fvTemplateInfo.id_));
+    napi_set_named_property(env, fvTemplateInfoValue, "isConfirmOnClose",
+        CreateJsValue(env, fvTemplateInfo.closeConfirm_));
 
     napi_value jsRect = CreateJsSessionRect(env, fvTemplateInfo.rect_);
     if (jsRect == nullptr) {
@@ -9784,6 +9786,14 @@ void JsSceneSession::ProcessSplitRatioChangeRegister()
         }
         jsSceneSession->OnSplitRatioChange(newRatio);
     });
+    auto property = session->GetSessionProperty();
+    if (property != nullptr) {
+        auto ratio = property->GetHookWindowInfo().widthHookRatio;
+        TLOGI(WmsLogTag::WMS_COMPAT, "windowId: %{public}d, ratio: %{public}f", persistentId_, ratio);
+        if (!MathHelper::NearEqual(ratio, HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO)) {
+            session->NotifySplitRatioChanged(ratio);
+        }
+    }
 }
 
 void JsSceneSession::OnCompatibleModeChange(CompatibleStyleMode mode)

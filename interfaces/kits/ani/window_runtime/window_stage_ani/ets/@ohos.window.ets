@@ -3365,7 +3365,7 @@ export class WindowInternal implements Window {
     }
 
     public setWindowTitleButtonVisible(isMaximizeButtonVisible: boolean, isMinimizeButtonVisible: boolean,
-                                   isCloseButtonVisible?: boolean): void {
+      isCloseButtonVisible?: boolean): void {
       let visibleParam: window.WindowTitleButtonVisibleParam = {
         isMaximizeButtonVisible: isMaximizeButtonVisible,
         isMinimizeButtonVisible: isMinimizeButtonVisible,

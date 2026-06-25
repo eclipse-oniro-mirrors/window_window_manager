@@ -30,6 +30,7 @@ public:
     uint32_t bindWindowId_ {INVALID_WINDOW_ID};
     Rect rect_ {};
     bool showWhenCreate_ {true};
+    bool closeConfirm_ {false};
     std::string id_ {};
 
     // LCOV_EXCL_START
@@ -37,7 +38,8 @@ public:
     {
         if (!parcel.WriteUint32(template_) || !parcel.WriteBool(visibleInApp_) ||
             !parcel.WriteUint32(bindWindowId_) || !parcel.WriteBool(showWhenCreate_) ||
-            !parcel.WriteBool(isBind_) || !parcel.WriteString(id_)) {
+            !parcel.WriteBool(isBind_) || !parcel.WriteString(id_) ||
+            !parcel.WriteBool(closeConfirm_)) {
             return false;
         }
         if (!parcel.WriteInt32(rect_.posX_) || !parcel.WriteInt32(rect_.posY_) ||
@@ -53,7 +55,8 @@ public:
         std::unique_ptr<FloatViewTemplateInfo> fvTemplateInfo = std::make_unique<FloatViewTemplateInfo>();
         if (!parcel.ReadUint32(fvTemplateInfo->template_) || !parcel.ReadBool(fvTemplateInfo->visibleInApp_) ||
             !parcel.ReadUint32(fvTemplateInfo->bindWindowId_) || !parcel.ReadBool(fvTemplateInfo->showWhenCreate_) ||
-            !parcel.ReadBool(fvTemplateInfo->isBind_) || !parcel.ReadString(fvTemplateInfo->id_)) {
+            !parcel.ReadBool(fvTemplateInfo->isBind_) || !parcel.ReadString(fvTemplateInfo->id_) ||
+            !parcel.ReadBool(fvTemplateInfo->closeConfirm_)) {
             return nullptr;
         }
         if (!parcel.ReadInt32(fvTemplateInfo->rect_.posX_) || !parcel.ReadInt32(fvTemplateInfo->rect_.posY_) ||

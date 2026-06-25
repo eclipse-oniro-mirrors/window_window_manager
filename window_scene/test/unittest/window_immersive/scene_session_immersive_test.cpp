@@ -477,11 +477,11 @@ HWTEST_F(SceneSessionImmersiveTest, HandleLayoutAvoidAreaUpdate, TestSize.Level1
     session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     session->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     session->specificCallback_->onGetLSState_ = []() { return true; };
-    session->Session::SetRsScale(0, 0);
+    session->Session::SetIgnoreRotateScale(0, 0);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_PARAM, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-    session->Session::SetRsScale(1, 0);
+    session->Session::SetIgnoreRotateScale(1, 0);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_PARAM, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
-    session->Session::SetRsScale(1, 1);
+    session->Session::SetIgnoreRotateScale(1, 1);
     EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END));
     EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_SYSTEM));
     EXPECT_EQ(WSError::WS_OK, session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
@@ -557,11 +557,11 @@ HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreas, TestSize.Level1)
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
-    sceneSession->Session::SetRsScale(0, 0);
+    sceneSession->Session::SetIgnoreRotateScale(0, 0);
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_ERROR_INVALID_PARAM);
-    sceneSession->Session::SetRsScale(1, 0);
+    sceneSession->Session::SetIgnoreRotateScale(1, 0);
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_ERROR_INVALID_PARAM);
-    sceneSession->Session::SetRsScale(1, 1);
+    sceneSession->Session::SetIgnoreRotateScale(1, 1);
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
 }
 
@@ -739,6 +739,27 @@ HWTEST_F(SceneSessionImmersiveTest, SetFloatNavigationEnabled, TestSize.Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_EQ(session->SetFloatNavigationEnabled(true), WMError::WM_OK);
     EXPECT_EQ(session->SetFloatNavigationEnabled(false), WMError::WM_OK);
+}
+
+/*
+ * @tc.name: CheckGetAvoidAreaAvailable
+ * @tc.desc: CheckGetAvoidAreaAvailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CheckGetAvoidAreaAvailable, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckGetAvoidAreaAvailable";
+    info.bundleName_ = "CheckGetAvoidAreaAvailable";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_FLOAT_NAVIGATION), true);
+    session->rotation_ = Rotation::ROTATION_90;
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), true);
+    session->rotation_ = Rotation::ROTATION_0;
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), false);
 }
 }
 }

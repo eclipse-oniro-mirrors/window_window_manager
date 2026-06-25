@@ -15,8 +15,10 @@
 
 #include <gtest/gtest.h>
 
+#include "screen_session_manager_client/include/screen_session_manager_client.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/session.h"
+#include "session/screen/include/screen_session.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_info.h"
 #include "wm_common.h"
@@ -53,6 +55,14 @@ void LayoutControllerTest::TearDown()
 }
 
 namespace {
+sptr<ScreenSession> CreateScreenSession(ScreenId screenId, uint32_t startX, uint32_t startY)
+{
+    ScreenProperty property;
+    property.SetStartPosition(startX, startY);
+    property.SetBounds(RRect({ 0, 0, 1920, 1080 }, 0.0f, 0.0f));
+    return sptr<ScreenSession>::MakeSptr(screenId, property, 0);
+}
+
 /**
  * @tc.name: SetSessionGlobalRect
  * @tc.desc: SetSessionGlobalRect
@@ -133,6 +143,37 @@ HWTEST_F(LayoutControllerTest, ConvertRelativeRectToGlobal, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConvertRelativeRectToGlobalWithInvalidDisplayId
+ * @tc.desc: ConvertRelativeRectToGlobal uses property display id only when input display id is invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(LayoutControllerTest, ConvertRelativeRectToGlobalWithInvalidDisplayId, TestSize.Level1)
+{
+    constexpr DisplayId PROPERTY_DISPLAY_ID = 10;
+    constexpr DisplayId MISSING_DISPLAY_ID = 11;
+    WSRect relativeRect = { 50, 60, 800, 600 };
+    auto& client = ScreenSessionManagerClient::GetInstance();
+    auto oldScreenSessionMap = client.screenSessionMap_;
+    client.screenSessionMap_.clear();
+    client.screenSessionMap_[PROPERTY_DISPLAY_ID] = CreateScreenSession(PROPERTY_DISPLAY_ID, 100, 200);
+
+    SessionInfo info;
+    info.abilityName_ = "ConvertRelativeRectToGlobalWithInvalidDisplayId";
+    info.bundleName_ = "ConvertRelativeRectToGlobalWithInvalidDisplayId";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->GetSessionProperty()->SetDisplayId(PROPERTY_DISPLAY_ID);
+
+    WSRect retRect =
+        sceneSession->GetLayoutController()->ConvertRelativeRectToGlobal(relativeRect, DISPLAY_ID_INVALID);
+    WSRect expectedGlobalRect = { 150, 260, relativeRect.width_, relativeRect.height_ };
+    EXPECT_EQ(retRect, expectedGlobalRect);
+
+    retRect = sceneSession->GetLayoutController()->ConvertRelativeRectToGlobal(relativeRect, MISSING_DISPLAY_ID);
+    EXPECT_EQ(retRect, relativeRect);
+    client.screenSessionMap_ = oldScreenSessionMap;
+}
+
+/**
  * @tc.name: ConvertGlobalRectToRelative
  * @tc.desc: ConvertGlobalRectToRelative
  * @tc.type: FUNC
@@ -156,6 +197,37 @@ HWTEST_F(LayoutControllerTest, ConvertGlobalRectToRelative, TestSize.Level1)
     EXPECT_EQ(retRect, globalRect);
     retRect = sceneSession->GetLayoutController()->ConvertGlobalRectToRelative(globalRect, defaultDisplayId);
     EXPECT_EQ(retRect, globalRect);
+}
+
+/**
+ * @tc.name: ConvertGlobalRectToRelativeWithInvalidDisplayId
+ * @tc.desc: ConvertGlobalRectToRelative uses property display id only when input display id is invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(LayoutControllerTest, ConvertGlobalRectToRelativeWithInvalidDisplayId, TestSize.Level1)
+{
+    constexpr DisplayId PROPERTY_DISPLAY_ID = 20;
+    constexpr DisplayId MISSING_DISPLAY_ID = 21;
+    WSRect globalRect = { 150, 260, 800, 600 };
+    auto& client = ScreenSessionManagerClient::GetInstance();
+    auto oldScreenSessionMap = client.screenSessionMap_;
+    client.screenSessionMap_.clear();
+    client.screenSessionMap_[PROPERTY_DISPLAY_ID] = CreateScreenSession(PROPERTY_DISPLAY_ID, 100, 200);
+
+    SessionInfo info;
+    info.abilityName_ = "ConvertGlobalRectToRelativeWithInvalidDisplayId";
+    info.bundleName_ = "ConvertGlobalRectToRelativeWithInvalidDisplayId";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->GetSessionProperty()->SetDisplayId(PROPERTY_DISPLAY_ID);
+
+    WSRect retRect =
+        sceneSession->GetLayoutController()->ConvertGlobalRectToRelative(globalRect, DISPLAY_ID_INVALID);
+    WSRect expectedRelativeRect = { 50, 60, globalRect.width_, globalRect.height_ };
+    EXPECT_EQ(retRect, expectedRelativeRect);
+
+    retRect = sceneSession->GetLayoutController()->ConvertGlobalRectToRelative(globalRect, MISSING_DISPLAY_ID);
+    EXPECT_EQ(retRect, globalRect);
+    client.screenSessionMap_ = oldScreenSessionMap;
 }
 
 /**

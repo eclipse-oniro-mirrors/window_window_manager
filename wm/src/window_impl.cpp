@@ -4797,6 +4797,9 @@ WMError WindowImpl::SetShadowRadius(float radius)
     if (MathHelper::LessNotEqual(radius, 0.0)) {
         return WMError::WM_ERROR_INVALID_PARAM;
     }
+    if (MathHelper::Equal(radius, 0.0)) {
+        radius = -1.0f;
+    }
     surfaceNode_->SetShadowRadius(radius);
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
     return WMError::WM_OK;

@@ -483,16 +483,6 @@ bool WindowOption::IsFollowCreatorLifecycle() const
     return followCreatorLifecycle_;
 }
 
-void WindowOption::SetIsCrossProcessWindow(bool isCrossProcessWindow)
-{
-    isCrossProcessWindow_ = isCrossProcessWindow;
-}
- 	 
-bool WindowOption::IsCrossProcessWindow() const
-{
-    return isCrossProcessWindow_;
-}
-
 void WindowOption::SetIsBlockSubwindow(bool isBlockSubwindow)
 {
     isBlockSubwindow_ = isBlockSubwindow;
@@ -501,6 +491,16 @@ void WindowOption::SetIsBlockSubwindow(bool isBlockSubwindow)
 bool WindowOption::IsBlockSubwindow() const
 {
     return isBlockSubwindow_;
+}
+
+void WindowOption::SetIsCrossProcessWindow(bool isCrossProcessWindow)
+{
+    isCrossProcessWindow_ = isCrossProcessWindow;
+}
+ 	 
+bool WindowOption::IsCrossProcessWindow() const
+{
+    return isCrossProcessWindow_;
 }
 } // namespace Rosen
 } // namespace OHOS

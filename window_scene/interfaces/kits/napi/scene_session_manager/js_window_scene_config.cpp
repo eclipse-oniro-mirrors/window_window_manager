@@ -324,6 +324,7 @@ napi_value JsWindowSceneConfig::CreateSingleHandBackgroundTextConfig(
     napi_set_named_property(env, objValue, "minFontSize", CreateJsValue(env, config.minFontSize));
     napi_set_named_property(env, objValue, "maxLines", CreateJsValue(env, config.maxLines));
     napi_set_named_property(env, objValue, "textAlign", CreateJsValue(env, config.textAlign));
+    napi_set_named_property(env, objValue, "marginBottom", CreateJsValue(env, config.marginBottom));
     napi_set_named_property(env, objValue, "maxFontScale", CreateJsValue(env, config.maxFontScale));
     return objValue;
 }

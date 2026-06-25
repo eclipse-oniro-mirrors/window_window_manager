@@ -2186,7 +2186,6 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     RSSurfaceNodeType rsSurfaceNodeType = RSSurfaceNodeType::DEFAULT;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType);
     sceneSession->SetSurfaceNode(surfaceNode);
-    sceneSession->moveDragShadowSurfaceNode_ = surfaceNode;
     // set displayId to moveDrag map
     sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(0);
     sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(1001);
@@ -2631,6 +2630,269 @@ HWTEST_F(SceneSessionTest5, ThrowSlipDirectly, TestSize.Level1)
     mainSession->GetLayoutController()->SetSessionRect(rect);
     mainSession->ThrowSlipDirectly(ThrowSlipMode::THREE_FINGERS_SWIPE, WSRectF{ 0.0f, 0.0f, 0.0f, 0.0f });
     EXPECT_EQ(mainSession->GetSessionRect(), rect);
+}
+
+/**
+ * @tc.name: NotifyCompatibleFloatAfterThrowSlip
+ * @tc.desc: NotifyCompatibleFloatAfterThrowSlip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlip, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlip";
+    info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlip";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    WSRect rect = { 100, 100, 400, 400 };
+    mainSession->GetLayoutController()->SetSessionRect(rect);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    int32_t callbackEventId = -1;
+    SessionEventParam callbackParam = { 0, 0, 0, 0 };
+    mainSession->onSessionEvent_ = [&callbackEventId, &callbackParam](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+        callbackParam = param;
+    };
+    mainSession->NotifyCompatibleFloatAfterThrowSlip(rect);
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, static_cast<int32_t>(SessionEvent::EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP));
+    EXPECT_EQ(callbackParam.pointerX_, rect.posX_);
+    EXPECT_EQ(callbackParam.pointerY_, rect.posY_);
+    EXPECT_EQ(callbackParam.sessionWidth_, rect.width_);
+    EXPECT_EQ(callbackParam.sessionHeight_, rect.height_);
+}
+
+/**
+ * @tc.name: NotifyCompatibleFloatAfterThrowSlipBackground
+ * @tc.desc: NotifyCompatibleFloatAfterThrowSlip when session is in background
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlipBackground, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlipBackground";
+    info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlipBackground";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    WSRect rect = { 100, 100, 400, 400 };
+    mainSession->GetLayoutController()->SetSessionRect(rect);
+    mainSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    bool callbackCalled = false;
+    mainSession->onSessionEvent_ = [&callbackCalled](int32_t eventId, SessionEventParam param) {
+        callbackCalled = true;
+    };
+    mainSession->NotifyCompatibleFloatAfterThrowSlip(rect);
+    EXPECT_FALSE(callbackCalled);
+}
+
+/**
+ * @tc.name: NotifyCompatibleFloatAfterThrowSlipNullCallback
+ * @tc.desc: NotifyCompatibleFloatAfterThrowSlip when onSessionEvent_ is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlipNullCallback, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlipNullCallback";
+    info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlipNullCallback";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    WSRect rect = { 100, 100, 400, 400 };
+    mainSession->GetLayoutController()->SetSessionRect(rect);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    bool callbackShouldNotBeCalled = false;
+    mainSession->onSessionEvent_ = [&callbackShouldNotBeCalled](int32_t eventId, SessionEventParam param) {
+        callbackShouldNotBeCalled = true;
+    };
+    mainSession->onSessionEvent_ = nullptr;
+    mainSession->NotifyCompatibleFloatAfterThrowSlip(rect);
+    EXPECT_FALSE(callbackShouldNotBeCalled);
+}
+
+/**
+ * @tc.name: HandleFullScreenWindowInThrowSlip
+ * @tc.desc: test HandleFullScreenWindowInThrowSlip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFullScreenWindowInThrowSlip, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFullScreenWindowInThrowSlip";
+    info.bundleName_ = "HandleFullScreenWindowInThrowSlip";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->throwSlipToFullScreenAnimCount_.fetch_add(1);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    SessionEventParam callbackParam = { 0, 0, 0, 0 };
+    mainSession->onSessionEvent_ = [&callbackEventId, &callbackParam](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+        callbackParam = param;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFullScreenWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, static_cast<int32_t>(SessionEvent::EVENT_MAXIMIZE_WITHOUT_ANIMATION));
+}
+
+/**
+ * @tc.name: HandleFullScreenWindowInThrowSlipSessionNull
+ * @tc.desc: test HandleFullScreenWindowInThrowSlip when session is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFullScreenWindowInThrowSlipSessionNull, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFullScreenWindowInThrowSlipSessionNull";
+    info.bundleName_ = "HandleFullScreenWindowInThrowSlipSessionNull";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    WSRect rect = { 100, 100, 400, 400 };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFullScreenWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlip
+ * @tc.desc: test HandleFloatingWindowInThrowSlip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlip, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlip";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlip";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    ASSERT_NE(compatibleModeProperty, nullptr);
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    SessionEventParam callbackParam = { 0, 0, 0, 0 };
+    mainSession->onSessionEvent_ = [&callbackEventId, &callbackParam](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+        callbackParam = param;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, static_cast<int32_t>(SessionEvent::EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP));
+    EXPECT_EQ(callbackParam.pointerX_, rect.posX_);
+    EXPECT_EQ(callbackParam.pointerY_, rect.posY_);
+    EXPECT_EQ(callbackParam.sessionWidth_, rect.width_);
+    EXPECT_EQ(callbackParam.sessionHeight_, rect.height_);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlipNotFloatingMode
+ * @tc.desc: test HandleFloatingWindowInThrowSlip when window mode is not floating
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNotFloatingMode, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlipNotFloatingMode";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlipNotFloatingMode";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    ASSERT_NE(compatibleModeProperty, nullptr);
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    mainSession->onSessionEvent_ = [&callbackEventId](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, -1);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlipNotAdaptToDragScale
+ * @tc.desc: test HandleFloatingWindowInThrowSlip when not adapt to drag scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNotAdaptToDragScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlipNotAdaptToDragScale";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlipNotAdaptToDragScale";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    ASSERT_NE(compatibleModeProperty, nullptr);
+    compatibleModeProperty->SetIsAdaptToDragScale(false);
+    mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    mainSession->onSessionEvent_ = [&callbackEventId](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, -1);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlipNullSession
+ * @tc.desc: test HandleFloatingWindowInThrowSlip when session is null (weak pointer expired)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNullSession, TestSize.Level1)
+{
+    WSRect rect = { 100, 100, 400, 400 };
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlipNullSession";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlipNullSession";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    mainSession->onSessionEvent_ = [](int32_t eventId, SessionEventParam param) {
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    usleep(10000);
 }
 
 /**

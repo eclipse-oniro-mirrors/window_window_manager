@@ -434,6 +434,8 @@ public:
 
     void SetIsShowDecorInFreeMultiWindow(bool isShow);
     bool GetIsShowDecorInFreeMultiWindow() const;
+    void SetIsNeedUpdateShowDecor(bool isNeed);
+    bool GetIsNeedUpdateShowDecor() const;
 
     /*
      * Window Layout
@@ -749,6 +751,7 @@ private:
     std::unordered_map<WindowTransitionType, std::shared_ptr<TransitionAnimation>> transitionAnimationConfig_;
 
     bool isShowDecorInFreeMultiWindow_ { true };
+    bool isNeedUpdateShowDecor_ { false };
 
     /*
      * Window Layout

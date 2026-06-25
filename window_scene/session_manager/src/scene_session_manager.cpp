@@ -117,6 +117,7 @@
 #endif // IMF_ENABLE
 #include "dms_global_mutex.h"
 
+
 namespace OHOS::Rosen {
 namespace {
 const std::string SCENE_BOARD_BUNDLE_NAME = "com.ohos.sceneboard";
@@ -327,7 +328,7 @@ bool IsUIExtCanShowOnLockScreen(const AppExecFwk::ElementName& element, uint32_t
     // check uea list config from ccm
     static const std::vector<std::tuple<std::string, std::string, std::string>> ueaListConfigFromCcm = UeaListConfig::GetUeaConfigFromCcm();
     auto foundIt = std::find_if(ueaListConfigFromCcm.begin(), ueaListConfigFromCcm.end(), [&element](const auto& item) {
-        auto& [bundleName, abilityName, _] = item;
+        auto& [bundleName, abilityName, moduleName] = item;
         return (element.GetBundleName() == bundleName && element.GetAbilityName() == abilityName);
     });
     if (foundIt != ueaListConfigFromCcm.end()) {
@@ -478,7 +479,6 @@ void SceneSessionManager::Init()
     isKeyboardPanelEnabled_ = system::GetParameter("persist.sceneboard.keyboardPanel.enabled", "1")  == "1";
     isTrayAppForeground_ = system::GetParameter("persist.window.tray_foreground", "") == "true";
     isSupportPcAppInPhone_ = system::GetParameter("const.window.device_feature_support_type", "0") == "1";
-
     // window recover
     RegisterSessionRecoverStateChangeListener();
     RegisterRecoverStateChangeListener();
@@ -819,37 +819,57 @@ void SceneSessionManager::ConfigWindowSceneXml()
     }
 
     item = config["backgroundswitch"];
-    int32_t param = -1;
-    systemConfig_.backgroundswitch = GetSingleIntItem(item, param) && param == 1;
+    if (item.IsInts()) {
+        auto numbers = *item.intsValue_;
+        if (numbers.size() == 1 && numbers[0] == 1) {
+            systemConfig_.backgroundswitch = true;
+        }
+    }
     TLOGD(WmsLogTag::DEFAULT, "Load backgroundswitch %{public}d", systemConfig_.backgroundswitch);
+
     item = config["defaultWindowMode"];
-    if (GetSingleIntItem(item, param) &&
-        (param == static_cast<int32_t>(WindowMode::WINDOW_MODE_FULLSCREEN) ||
-        param == static_cast<int32_t>(WindowMode::WINDOW_MODE_FLOATING))) {
-        systemConfig_.defaultWindowMode_ = static_cast<WindowMode>(static_cast<uint32_t>(param));
+    if (item.IsInts()) {
+        auto numbers = *item.intsValue_;
+        if (numbers.size() == 1 &&
+            (numbers[0] == static_cast<int32_t>(WindowMode::WINDOW_MODE_FULLSCREEN) ||
+             numbers[0] == static_cast<int32_t>(WindowMode::WINDOW_MODE_FLOATING))) {
+            systemConfig_.defaultWindowMode_ = static_cast<WindowMode>(static_cast<uint32_t>(numbers[0]));
+        }
     }
+
     item = config["defaultMaximizeMode"];
-    if (GetSingleIntItem(item, param) &&
-        (param == static_cast<int32_t>(MaximizeMode::MODE_AVOID_SYSTEM_BAR) ||
-         param == static_cast<int32_t>(MaximizeMode::MODE_FULL_FILL))) {
-        SceneSession::maximizeMode_ = static_cast<MaximizeMode>(param);
+    if (item.IsInts()) {
+        auto numbers = *item.intsValue_;
+        if (numbers.size() == 1 &&
+            (numbers[0] == static_cast<int32_t>(MaximizeMode::MODE_AVOID_SYSTEM_BAR) ||
+            numbers[0] == static_cast<int32_t>(MaximizeMode::MODE_FULL_FILL))) {
+            SceneSession::maximizeMode_ = static_cast<MaximizeMode>(numbers[0]);
+        }
     }
+
     item = config["keyboardAnimation"];
     if (item.IsMap()) {
         ConfigKeyboardAnimation(item);
     }
+
     item = config["maxFloatingWindowSize"];
-    if (GetSingleIntItem(item, param)) {
-        systemConfig_.maxFloatingWindowSize_ = static_cast<uint32_t>(param);
+    if (item.IsInts()) {
+        auto numbers = *item.intsValue_;
+        if (numbers.size() == 1) {
+            systemConfig_.maxFloatingWindowSize_ = static_cast<uint32_t>(numbers[0]);
+        }
     }
+
     item = config["windowAnimation"];
     if (item.IsMap()) {
         ConfigWindowAnimation(item);
     }
+
     item = config["startWindowTransitionAnimation"];
     if (item.IsMap()) {
         ConfigStartingWindowAnimation(item);
     }
+
     item = config["maxMidSceneNum"];
     if (item.IsInts()) {
         auto numbers = *item.intsValue_;
@@ -871,6 +891,10 @@ void SceneSessionManager::ConfigWindowSceneXml(const WindowSceneConfig::ConfigIt
     WindowSceneConfig::ConfigItem item = config["systemUIStatusBar"];
     if (item.IsMap()) {
         ConfigSystemUIStatusBar(item);
+    }
+    item = config["uiType"];
+    if (item.IsString()) {
+        appWindowSceneConfig_.uiType_ = item.stringValue_;
     }
     item = config["backgroundScreenLock"].GetProp("enable");
     if (item.IsBool()) {
@@ -1017,6 +1041,11 @@ void SceneSessionManager::LoadFreeMultiWindowConfig(bool enable)
         item = config["windowEffect"];
         if (item.IsMap()) {
             ConfigWindowEffect(item, appWindowSceneConfig_);
+        } else {
+            appWindowSceneConfig_.focusedShadow_ = WindowShadowConfig();
+            appWindowSceneConfig_.unfocusedShadow_ = WindowShadowConfig();
+            appWindowSceneConfig_.focusedShadowDark_ = WindowShadowConfig();
+            appWindowSceneConfig_.unfocusedShadowDark_ = WindowShadowConfig();
         }
     }
     systemConfig_.freeMultiWindowEnable_ = enable;
@@ -1222,12 +1251,16 @@ void SceneSessionManager::ConfigWindowEffect(const WindowSceneConfig::ConfigItem
         if (ConfigAppWindowShadow(item, config.focusedShadow_)) {
             appWindowSceneConfig.focusedShadow_ = config.focusedShadow_;
         }
+    } else {
+        appWindowSceneConfig.focusedShadow_ = WindowShadowConfig();
     }
     item = effectConfig["appWindows"]["shadow"]["unfocused"];
     if (item.IsMap()) {
         if (ConfigAppWindowShadow(item, config.unfocusedShadow_)) {
             appWindowSceneConfig.unfocusedShadow_ = config.unfocusedShadow_;
         }
+    } else {
+        appWindowSceneConfig.unfocusedShadow_ = WindowShadowConfig();
     }
     AddAlphaToColor(appWindowSceneConfig.focusedShadow_.alpha_, appWindowSceneConfig.focusedShadow_.color_);
     AddAlphaToColor(appWindowSceneConfig.unfocusedShadow_.alpha_, appWindowSceneConfig.unfocusedShadow_.color_);
@@ -1238,12 +1271,16 @@ void SceneSessionManager::ConfigWindowEffect(const WindowSceneConfig::ConfigItem
         if (ConfigAppWindowShadow(item, config.focusedShadowDark_)) {
             appWindowSceneConfig.focusedShadowDark_ = config.focusedShadowDark_;
         }
+    } else {
+        appWindowSceneConfig.focusedShadowDark_ = WindowShadowConfig();
     }
     item = effectConfig["appWindows"]["shadowDark"]["unfocused"];
     if (item.IsMap()) {
         if (ConfigAppWindowShadow(item, config.unfocusedShadowDark_)) {
             appWindowSceneConfig.unfocusedShadowDark_ = config.unfocusedShadowDark_;
         }
+    } else {
+        appWindowSceneConfig.unfocusedShadowDark_ = WindowShadowConfig();
     }
     AddAlphaToColor(appWindowSceneConfig.focusedShadowDark_.alpha_, appWindowSceneConfig.focusedShadowDark_.color_);
     AddAlphaToColor(appWindowSceneConfig.unfocusedShadowDark_.alpha_,
@@ -1624,47 +1661,31 @@ void SceneSessionManager::ConfigSingleHandCompatibleMode(const WindowSceneConfig
         config.widthChangeRatio = (*item.floatsValue_)[0];
     }
 }
-
+void SceneSessionManager::ConfigIntValue(const WindowSceneConfig::ConfigItem& configItem,
+    const std::string& key, int& value) {
+    auto item = configItem[key];
+    if (item.IsInts() && item.intsValue_->size() == 1) {
+        value = (*item.intsValue_)[0];
+    }
+}
 void SceneSessionManager::ConfigSingleHandBackgroundText(const WindowSceneConfig::ConfigItem& configItem,
     SingleHandBackgroundTextConfig& textConfig)
 {
-    if (configItem.IsMap()) {
-        auto item = configItem["posX"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.posX = (*item.intsValue_)[0];
-        }
-        item = configItem["posY"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.posY = (*item.intsValue_)[0];
-        }
-        item = configItem["width"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.width = (*item.intsValue_)[0];
-        }
-        item = configItem["height"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.height = (*item.intsValue_)[0];
-        }
-        item = configItem["fontSize"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.fontSize = (*item.intsValue_)[0];
-        }
-        item = configItem["minFontSize"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.minFontSize = (*item.intsValue_)[0];
-        }
-        item = configItem["maxLines"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.maxLines = (*item.intsValue_)[0];
-        }
-        item = configItem["textAlign"];
-        if (item.IsInts() && item.intsValue_->size() == 1) {
-            textConfig.textAlign = (*item.intsValue_)[0];
-        }
-        item = configItem["maxFontScale"];
-        if (item.IsString()) {
-            textConfig.maxFontScale = item.stringValue_;
-        }
+    if (!configItem.IsMap()) {
+        return;
+    }
+    ConfigIntValue(configItem, "posX", textConfig.posX);
+    ConfigIntValue(configItem, "posY", textConfig.posY);
+    ConfigIntValue(configItem, "width", textConfig.width);
+    ConfigIntValue(configItem, "height", textConfig.height);
+    ConfigIntValue(configItem, "fontSize", textConfig.fontSize);
+    ConfigIntValue(configItem, "minFontSize", textConfig.minFontSize);
+    ConfigIntValue(configItem, "maxLines", textConfig.maxLines);
+    ConfigIntValue(configItem, "textAlign", textConfig.textAlign);
+    ConfigIntValue(configItem, "marginBottom", textConfig.marginBottom);
+    auto item = configItem["maxFontScale"];
+    if (item.IsString()) {
+        textConfig.maxFontScale = item.stringValue_;
     }
 }
 
@@ -1677,31 +1698,16 @@ void SceneSessionManager::ConfigSingleHandBackgroundLayout(const WindowSceneConf
     }
     item = configItem["singleHandBackgroundSettingButton"];
     if (item.IsMap()) {
-        auto itemPosX = item["posX"];
-        if (itemPosX.IsInts() && itemPosX.intsValue_->size() == 1) {
-            config.settingButtonRect.posX_ = (*itemPosX.intsValue_)[0];
-        }
-        auto itemPosY = item["posY"];
-        if (itemPosY.IsInts() && itemPosY.intsValue_->size() == 1) {
-            config.settingButtonRect.posY_ = (*itemPosY.intsValue_)[0];
-        }
-        auto itemWidth = item["width"];
-        if (itemWidth.IsInts() && itemWidth.intsValue_->size() == 1) {
-            config.settingButtonRect.width_ = (*itemWidth.intsValue_)[0];
-        }
-        auto itemHeight = item["height"];
-        if (itemHeight.IsInts() && itemHeight.intsValue_->size() == 1) {
-            config.settingButtonRect.height_ = (*itemHeight.intsValue_)[0];
-        }
+        ConfigIntValue(item, "posX", config.settingButtonRect.posX_);
+        ConfigIntValue(item, "posY", config.settingButtonRect.posY_);
+        ConfigIntValue(item, "width", config.settingButtonRect.width_);
+        ConfigIntValue(item, "height", config.settingButtonRect.height_);
     }
     item = configItem["isSettingButtonMirror"].GetProp("enable");
     if (item.IsBool()) {
         config.isSettingButtonMirror = item.boolValue_;
     }
-    item = configItem["textContainerWidth"];
-    if (item.IsInts() && item.intsValue_->size() == 1) {
-        config.textContainerWidth = (*item.intsValue_)[0];
-    }
+    ConfigIntValue(configItem, "textContainerWidth", config.textContainerWidth);
     ConfigSingleHandBackgroundText(configItem["singleHandBackgroundTitle"], config.title);
     ConfigSingleHandBackgroundText(configItem["singleHandBackgroundContent"], config.content);
     ConfigSingleHandBackgroundText(configItem["singleHandBackgroundIssueText"], config.issueText);
@@ -8175,7 +8181,7 @@ void SceneSessionManager::NotifySessionForCallback(const sptr<SceneSession>& sce
     LifeCycleChangeReason reason)
 {
     if (sceneSession == nullptr) {
-        TLOGW(WmsLogTag::DEFAULT, "session is null");
+        TLOGW(WmsLogTag::DEFAULT, "session is nullptr");
         return;
     }
     if (sceneSession->GetSessionInfo().isSystem_) {
@@ -8185,7 +8191,7 @@ void SceneSessionManager::NotifySessionForCallback(const sptr<SceneSession>& sce
     TLOGI(WmsLogTag::DEFAULT, "id: %{public}d, needRemoveSession: %{public}u", sceneSession->GetPersistentId(),
         static_cast<uint32_t>(needRemoveSession));
     if (sceneSession->GetSessionInfo().appIndex_ != 0) {
-        TLOGI(WmsLogTag::DEFAULT, "NotifyDestroy, appIndex: %{public}d, id: %{public}d",
+        TLOGI(WmsLogTag::DEFAULT, "NotifyDestroy, appIndex_: %{public}d, id: %{public}d",
             sceneSession->GetSessionInfo().appIndex_, sceneSession->GetPersistentId());
         listenerController_->NotifySessionLifecycleEvent(
             ISessionLifecycleListener::SessionLifecycleEvent::DESTROYED, sceneSession->GetSessionInfo(), reason);
@@ -10031,7 +10037,7 @@ void SceneSessionManager::NotifySingleHandInfoChange(SingleHandScreenInfo single
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: get display size failed", funcName);
             return;
         }
-        TLOGNI(WmsLogTag::WMS_LAYOUT, "NotifySingleHandInfoChange singleHandScreenInfo: scaleRatio %{public}d,scalePivotX %{public}d,"
+        TLOGNI(WmsLogTag::WMS_LAYOUT, "NotifySingleHandInfoChange singleHandScreenInfo: scaleRatio %{public}f,scalePivotX %{public}d,"
                                       "scalePivotY %{public}d,mode %{public}d; originRect: posX %{public}d,posY %{public}d,width %{public}d,"
                                       "height %{public}d; singleHandRect: posX %{public}d,posY %{public}d,width %{public}d,height %{public}d",
                                       singleHandScreenInfo.scaleRatio, singleHandScreenInfo.scalePivotX, singleHandScreenInfo.scalePivotY,
@@ -11104,7 +11110,6 @@ void SceneSessionManager::ProcessSubSessionBackground(sptr<SceneSession>& sceneS
         }
         const auto& state = toastSession->GetSessionState();
         if (state != SessionState::STATE_FOREGROUND && state != SessionState::STATE_ACTIVE) {
-            TLOGD(WmsLogTag::WMS_TOAST, "toast session is not active");
             continue;
         }
         NotifyWindowInfoChange(toastSession->GetPersistentId(), WindowUpdateType::WINDOW_UPDATE_REMOVED);
@@ -13662,10 +13667,10 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
 }
 
 void SceneSessionManager::DealwithDrawingContentChange(const std::vector<std::pair<uint64_t, bool>>&
-    drawingChangeInfos)
+    drawingContentChangeInfo)
 {
     std::vector<sptr<WindowDrawingContentInfo>> windowDrawingContenInfos;
-    for (const auto& [surfaceId, drawingState] : drawingChangeInfos) {
+    for (const auto& [surfaceId, drawingState] : drawingContentChangeInfo) {
         int32_t windowId = 0;
         int32_t pid = 0;
         int32_t uid = 0;
@@ -15940,7 +15945,7 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
                     continue;
                 }
                 if (auto iter = uiParams.find(sceneSession->GetPersistentId()); iter != uiParams.end()) {
-                    if (sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID) {
+                    if (sceneSession->GetSessionInfo().screenId_ == SCREEN_ID_INVALID) {
                         sceneSession->SetScreenIdOnServer(screenId);
                     }
                     if ((systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) &&
@@ -16385,6 +16390,11 @@ WSError SceneSessionManager::MoveMainWindowToTargetDisplay(DisplayId displayId, 
 /** @note @window.hierarchy */
 WSError SceneSessionManager::ResetSpecificWindowZIndex(int32_t pid)
 {
+    bool isFoundationCall = SessionPermission::IsFoundationCall();
+    if (!isFoundationCall) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "permission denied");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
     const char* const where = __func__;
     return taskScheduler_->PostSyncTask([this, pid, where] {
         TLOGNI(WmsLogTag::WMS_FOCUS, "id: %{public}d", pid);
@@ -19110,6 +19120,11 @@ WMError SceneSessionManager::SetProcessWatermark(int32_t pid, const std::string&
 
 WMError SceneSessionManager::RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
 {
+    if (!SessionPermission::IsSACalling() && !SessionPermission::IsShellCall()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied: pid=%{public}d, watermarkName=%{public}s",
+            pid, watermarkName.c_str());
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
     taskScheduler_->PostTask([this, pid, watermarkName, where = __func__] {
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: pid=%{public}d, watermarkName=%{public}s",
             where, pid, watermarkName.c_str());
@@ -19210,6 +19225,11 @@ WMError SceneSessionManager::CleanScreenWatermarkImage(const std::shared_ptr<Med
 
 WMError SceneSessionManager::RecoverScreenWatermarkImage(const std::string& bundleName, uint32_t priority)
 {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied: bundleName=%{public}s, priority=%{public}u",
+            bundleName.c_str(), priority);
+        return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     taskScheduler_->PostAsyncTask([this, pid, bundleName, priority, where = __func__]() {
         if (screenWatermarkBundleName_.empty() && !bundleName.empty()) {

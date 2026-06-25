@@ -14,6 +14,7 @@
  */
 
 #include "window_manager_hilog.h"
+#include <chrono>
 
 namespace OHOS {
 namespace Rosen {
@@ -50,5 +51,38 @@ const char* g_domainContents[static_cast<uint32_t>(WmsLogTag::END)] = {
     "WMSRotation",
     "WMSAnimation",
 };
+
+TLogInfo GetTLogInfo(WmsLogTag tag)
+{
+    uint32_t domain = HILOG_DOMAIN_WINDOW + static_cast<uint32_t>(tag);
+    const char* content = (tag >= WmsLogTag::DEFAULT && tag < WmsLogTag::END) ?
+        g_domainContents[static_cast<uint32_t>(tag)] : "";
+    return {domain, content};
+}
+
+bool WinPrintLimit(const WinPrintLimitConfig& config, WinPrintLimitState& state)
+{
+    auto info = GetTLogInfo(config.logTag);
+    auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now());
+    auto duration = now - state.last;
+    if (duration.count() >= config.timeIntervals) {
+        state.last = now;
+        uint32_t supressedCnt = state.supressed;
+        state.supressed = 0;
+        state.printCount = 1;
+        if (supressedCnt != 0) {
+            HiLogPrint(LOG_CORE, config.logLevel, info.domain, info.content,
+                "%{public}s log suppressed cnt %{public}u", config.functionName, supressedCnt);
+        }
+        return true;
+    } else {
+        if (state.printCount++ < config.printFrequency) {
+            return true;
+        } else {
+            state.supressed++;
+            return false;
+        }
+    }
+}
 } // namespace OHOS
 }

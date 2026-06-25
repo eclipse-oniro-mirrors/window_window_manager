@@ -641,9 +641,9 @@ int32_t OH_WindowManager_GetWindowAvoidArea(
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowAvoidArea",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         AvoidArea allAvoidArea;
@@ -672,9 +672,9 @@ int32_t OH_WindowManager_SetWindowStatusBarEnabled(int32_t windowId, bool enable
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowStatusBarEnabled",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         auto property = window->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
@@ -742,10 +742,10 @@ int32_t OH_WindowManager_SetWindowNavigationBarEnabled(int32_t windowId, bool en
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
                 "ArkUI.window.OH_WindowManager_SetWindowNavigationBarEnabled",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         auto property = window->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_NAVIGATION_BAR);
@@ -785,9 +785,9 @@ int32_t OH_WindowManager_Snapshot(int32_t windowId, OH_PixelmapNative* pixelMap)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_Snapshot",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         *pixelMap = OH_PixelmapNative(window->Snapshot());
@@ -819,9 +819,9 @@ int32_t OH_WindowManager_SetWindowBackgroundColor(int32_t windowId, const char* 
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBackgroundColor",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetBackgroundColor(std::string(color)));
@@ -847,9 +847,9 @@ int32_t OH_WindowManager_SetWindowBrightness(int32_t windowId, float brightness)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowBrightness",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetBrightness(brightness));
@@ -875,9 +875,9 @@ int32_t OH_WindowManager_SetWindowKeepScreenOn(int32_t windowId, bool isKeepScre
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowKeepScreenOn",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetKeepScreenOn(isKeepScreenOn));
@@ -903,9 +903,9 @@ int32_t OH_WindowManager_SetWindowPrivacyMode(int32_t windowId, bool isPrivacy)
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowPrivacyMode",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetPrivacyMode(isPrivacy));
@@ -938,9 +938,9 @@ int32_t OH_WindowManager_GetWindowProperties(
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
         if (OH_WINDOW_TO_WINDOW_TYPE_MAP.count(window->GetType()) != 0) {
@@ -963,9 +963,9 @@ int32_t OH_WindowManager_GetWindowProperties(
         auto uicontent = window->GetUIContent();
         if (uicontent == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s uicontent is null, windowId:%{public}d", where, windowId);
+            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_GetWindowProperties",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
-            errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
             return;
         }
         uicontent->GetAppPaintSize(drawableRect);
@@ -1159,18 +1159,18 @@ int32_t OH_WindowManager_GetAllWindowLayoutInfoList(
             SingletonContainer::Get<WindowManager>().GetAllWindowLayoutInfo(static_cast<uint64_t>(displayId), infos);
         if (OH_WINDOW_TO_ERROR_CODE_MAP.find(ret) == OH_WINDOW_TO_ERROR_CODE_MAP.end()) {
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
-            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
                 "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL);
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             return;
         } else if (OH_WINDOW_TO_ERROR_CODE_MAP.at(ret) != WindowManager_ErrorCode::OK) {
             errCode = (ret == WMError::WM_ERROR_DEVICE_NOT_SUPPORT) ? OH_WINDOW_TO_ERROR_CODE_MAP.at(ret) :
                 WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
-            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE(
                 "ArkUI.window.OH_WindowManager_GetAllWindowLayoutInfoList",
                 errCode);
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s get failed, errCode: %{public}d", where, errCode);
             return;
         }
         WindowManager_Rect* infosInner = (WindowManager_Rect*)malloc(sizeof(WindowManager_Rect) * infos.size());

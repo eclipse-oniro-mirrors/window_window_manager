@@ -49,6 +49,7 @@ constexpr const char* const PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missio
 constexpr const char* const PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
 constexpr const char* const PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
 }
+class MoveDragBoundsApplier;
 class SceneSession;
 class ScreenSession;
 
@@ -1186,7 +1187,8 @@ protected:
     bool PipelineNeedNotifyClientToUpdateRect() const;
     bool UpdateRectInner(const SessionUIParam& uiParam, SizeChangeReason reason);
     bool NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeChangeReason reason);
-    bool UpdateScaleInner(float scaleX, float scaleY, float rsScaleX, float rsScaleY, float pivotX, float pivotY);
+    bool UpdateScaleInner(float scaleX, float scaleY,
+        float ignoreRotateScaleX, float ignoreRotateScaleY, float pivotX, float pivotY);
     bool UpdateZOrderInner(uint32_t zOrder);
 
     /*
@@ -1264,6 +1266,7 @@ protected:
 
     friend class MoveDragController;
     sptr<MoveDragController> moveDragController_ = nullptr;
+    std::shared_ptr<MoveDragBoundsApplier> moveDragBoundsApplier_;
 
     std::mutex displayIdSetDuringMoveToMutex_;
     std::set<uint64_t> displayIdSetDuringMoveTo_;
@@ -1417,8 +1420,11 @@ private:
     bool IsCompatibilityModeScale(float scaleX, float scaleY);
     void CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isScale);
     void ThrowSlipToFullScreen(WSRect& endRect, WSRect& rect, int32_t statusBarHeight, int32_t dockHeight);
+    void HandleFullScreenWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
+    void HandleFloatingWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
     bool MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeReason reason);
     void NotifyFullScreenAfterThrowSlip(const WSRect& rect);
+    void NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect);
     void SetDragResizeTypeDuringDrag(DragResizeType dragResizeType) { dragResizeTypeDuringDrag_ = dragResizeType; }
     DragResizeType GetDragResizeTypeDuringDrag() const { return dragResizeTypeDuringDrag_; }
     void HandleSessionDragEvent(SessionEvent event);
@@ -1619,27 +1625,6 @@ private:
     bool ShouldSkipUpdateRectNotify(const WSRect& rect);
     bool ShouldProcessAttachStateChange(bool wasAttached, bool isAttached,
         bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit, bool& isDetaching);
-
-    /**
-     * @brief Set surface bounds via the original surface node.
-     *
-     * This method is used for normal transaction commit together with ArkUI relayout.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
-     */
-    void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
-
-    /**
-     * @brief Set surface bounds via the shadow surface node.
-     *
-     * This method is used for immediate RS commit to avoid flushing other pending
-     * SurfaceNode updates in the current transaction.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
-     */
-    void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
 
     /**
      * @brief Request the next vsync-driven move resampling iteration.

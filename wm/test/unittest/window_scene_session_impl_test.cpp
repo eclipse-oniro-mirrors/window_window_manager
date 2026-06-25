@@ -1010,6 +1010,40 @@ HWTEST_F(WindowSceneSessionImplTest, Minimize04, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyWindowStageCreateFinished01
+ * @tc.desc: NotifyWindowStageCreateFinished with windowsession invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, NotifyWindowStageCreateFinished01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyWindowStageCreateFinished01");
+    sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    windowSceneSession->property_->SetPersistentId(0);
+    windowSceneSession->NotifyWindowStageCreateFinished();
+    ASSERT_NE(nullptr, windowSceneSession);
+}
+
+/**
+ * @tc.name: NotifyWindowStageCreateFinished02
+ * @tc.desc: NotifyWindowStageCreateFinished
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, NotifyWindowStageCreateFinished02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyWindowStageCreateFinished02");
+    sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    windowSceneSession->property_->SetPersistentId(1);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSession->hostSession_ = session;
+    windowSceneSession->NotifyWindowStageCreateFinished();
+    ASSERT_NE(nullptr, session);
+}
+
+/**
  * @tc.name: StartMove01
  * @tc.desc: StartMove
  * @tc.type: FUNC

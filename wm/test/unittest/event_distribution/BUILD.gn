@@ -22,7 +22,10 @@ ohos_unittest("wm_oh_window_event_test") {
 
   include_dirs = [ "${window_base_path}/interfaces/kits/ndk/wm/" ]
 
-  sources = [ "oh_window_event_test.cpp" ]
+  sources = [
+    "oh_window_event_filter_test.cpp",
+    "oh_window_event_test.cpp",
+  ]
 
   deps = [
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
@@ -89,6 +92,19 @@ ohos_unittest("wm_window_event_test") {
   module_out_path = module_out_path
 
   sources = [ "window_event_test.cpp" ]
+
+  deps = [
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+    wm_unittest_common,
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_scene_session_impl_event_filter_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_scene_session_impl_event_filter_test.cpp" ]
 
   deps = [
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",

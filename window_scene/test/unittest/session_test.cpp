@@ -1639,6 +1639,24 @@ HWTEST_F(WindowSessionTest, SwitchFreeMultiWindow, TestSize.Level1)
  }
 
 /**
+ * @tc.name: InitSessionPropertyWhenConnect2
+ * @tc.desc: InitSessionPropertyWhenConnect test 2
+ * @tc.type: FUNC
+ */
+ HWTEST_F(WindowSessionTest, InitSessionPropertyWhenConnect2, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    session_->InitSessionPropertyWhenConnect(property);
+    EXPECT_EQ(true, property->GetIsShowDecorInFreeMultiWindow());
+
+    session_->SetIsShowDecorInFreeMultiWindow(false);
+    session_->InitSessionPropertyWhenConnect(property);
+    EXPECT_EQ(false, property->GetIsShowDecorInFreeMultiWindow());
+}
+
+/**
  * @tc.name: SetTouchHotAreas
  * @tc.desc: SetTouchHotAreas test
  * @tc.type: FUNC

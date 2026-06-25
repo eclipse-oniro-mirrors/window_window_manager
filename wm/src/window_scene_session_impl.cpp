@@ -162,6 +162,7 @@ constexpr uint32_t FORCE_LIMIT_MIN_FLOATING_HEIGHT = 40;
 constexpr int32_t API_VERSION_18 = 18;
 constexpr uint32_t REASON_MAXIMIZE_MODE_CHANGE = 1;
 constexpr int32_t SIDEBAR_BLUR_ANIMATION_DURATION = 150;
+constexpr float NAG_NUM = -1.0f;
 
 bool IsValueInRange(double value, double lowerBound, double upperBound)
 {
@@ -4808,6 +4809,7 @@ WMError WindowSceneSessionImpl::Recover(uint32_t reason, const SnapshotAnimation
 
 WMError WindowSceneSessionImpl::SetWindowRectAutoSave(bool enabled, bool isSaveBySpecifiedFlag)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowSceneSessionImpl::SetWindowRectAutoSave");
     TLOGI(WmsLogTag::WMS_MAIN, "id: %{public}d", GetPersistentId());
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_MAIN, "session is invalid");
@@ -5041,6 +5043,19 @@ WMError WindowSceneSessionImpl::RemoveImageForRecent()
         TLOGE(WmsLogTag::WMS_PATTERN, "remove imageForRecent failed, ret=%{public}d", ret);
     }
     return ret;
+}
+
+void WindowSceneSessionImpl::NotifyWindowStageCreateFinished()
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is invalid");
+        return;
+    }
+    auto hostSession = GetHostSession();
+    if (hostSession) {
+        hostSession->OnSessionEvent(SessionEvent::EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED);
+    }
 }
 
 /** @note @window.drag */
@@ -5994,7 +6009,7 @@ WMError WindowSceneSessionImpl::SetShadowRadius(float radius)
         return WMError::WM_ERROR_INVALID_PARAM;
     }
 
-    surfaceNode_->SetShadowRadius(ConvertRadiusToSigma(radius));
+    surfaceNode_->SetShadowRadius(MathHelper::Equal(radius, 0.0) ? NAG_NUM : ConvertRadiusToSigma(radius));
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
     return WMError::WM_OK;
 }
@@ -6045,7 +6060,7 @@ WMError WindowSceneSessionImpl::SetWindowShadowRadius(float radius)
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "RSSurface node is nullptr.");
         return WMError::WM_ERROR_NULLPTR;
     }
-    surfaceNode_->SetShadowRadius(ConvertRadiusToSigma(radius));
+    surfaceNode_->SetShadowRadius(MathHelper::Equal(radius, 0.0) ? NAG_NUM : ConvertRadiusToSigma(radius));
     RSTransactionAdapter::FlushImplicitTransaction(surfaceNode_);
     return WMError::WM_OK;
 }
@@ -6979,25 +6994,38 @@ void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScree
 
 void WindowSceneSessionImpl::UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable)
 {
-    if (freeMultiWindowEnable && enableImmersiveMode_) {
-        maximizeLayoutFullScreen_.store(false);
-        cacheEnableImmersiveMode_.store(true);
-        enableImmersiveMode_.store(false);
-        property_->SetIsLayoutFullScreen(enableImmersiveMode_);
-        if (auto hostSession = GetHostSession()) {
-            hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
-        } else {
-            TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
+    uint32_t windowModeSupportType = property_->GetWindowModeSupportType();
+    if (freeMultiWindowEnable) {
+        cacheEnableImmersiveMode_.store(enableImmersiveMode_);
+        if (enableImmersiveMode_ &&
+            WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING) &&
+            !(IsAnco() && windowSystemConfig_.IsPhoneWindow())) {
+            maximizeLayoutFullScreen_.store(false);
+            enableImmersiveMode_.store(false);
+            property_->SetIsLayoutFullScreen(enableImmersiveMode_);
+            if (auto hostSession = GetHostSession()) {
+                hostSession->OnLayoutFullScreenChange(enableImmersiveMode_);
+            } else {
+                    TLOGE(WmsLogTag::WMS_LAYOUT, "host session is nullptr, id: %{public}d", GetPersistentId());
+            }
         }
     }
     if (!freeMultiWindowEnable) {
-        if (maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_) {
-            SetLayoutFullScreenByApiVersion(false);
+        // remove immersive mode if non-immersive in pad mode and enter immersive using the maximize in freeMultiWindow
+        bool isNeedRemoveMaximizeLayout = maximizeLayoutFullScreen_.load() && !cacheEnableImmersiveMode_;
+        // recover immersive mode if immersive in pad mode
+        bool isNeedRecoverLayout = cacheEnableImmersiveMode_ &&
+            WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING) &&
+            !(IsAnco() && windowSystemConfig_.IsPhoneWindow());
+        if (isNeedRemoveMaximizeLayout) {
             maximizeLayoutFullScreen_.store(false);
+            enableImmersiveMode_.store(false);
         }
-        if (cacheEnableImmersiveMode_) {
+        if (isNeedRecoverLayout) {
             enableImmersiveMode_.store(true);
             cacheEnableImmersiveMode_.store(false);
+        }
+        if (isNeedRemoveMaximizeLayout || isNeedRecoverLayout) {
             property_->SetIsLayoutFullScreen(enableImmersiveMode_);
             SetLayoutFullScreenByApiVersion(enableImmersiveMode_);
             if (auto hostSession = GetHostSession()) {
@@ -9526,6 +9554,66 @@ WSError WindowSceneSessionImpl::DestroySubWindowZLevelAboveParentLoosened()
         window->Close();
     }, __func__);
     return WSError::WS_OK;
+}
+
+WMError WindowSceneSessionImpl::SaveNativeKeyEventFilter(NativeKeyEventFilter nativeFilter)
+{
+    std::unique_lock<std::shared_mutex> lock(nativeKeyEventFilterMutex_);
+    nativeKeyEventFilter_ = nativeFilter;
+    return WMError::WM_OK;
+}
+
+NativeKeyEventFilter WindowSceneSessionImpl::GetNativeKeyEventFilter() const
+{
+    std::shared_lock<std::shared_mutex> lock(nativeKeyEventFilterMutex_);
+    return nativeKeyEventFilter_;
+}
+
+WMError WindowSceneSessionImpl::ClearNativeKeyEventFilter()
+{
+    std::unique_lock<std::shared_mutex> lock(nativeKeyEventFilterMutex_);
+    nativeKeyEventFilter_ = nullptr;
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::SaveNativeMouseEventFilter(NativeMouseEventFilter nativeFilter)
+{
+    std::unique_lock<std::shared_mutex> lock(nativeMouseEventFilterMutex_);
+    nativeMouseEventFilter_ = nativeFilter;
+    return WMError::WM_OK;
+}
+
+NativeMouseEventFilter WindowSceneSessionImpl::GetNativeMouseEventFilter() const
+{
+    std::shared_lock<std::shared_mutex> lock(nativeMouseEventFilterMutex_);
+    return nativeMouseEventFilter_;
+}
+
+WMError WindowSceneSessionImpl::ClearNativeMouseEventFilter()
+{
+    std::unique_lock<std::shared_mutex> lock(nativeMouseEventFilterMutex_);
+    nativeMouseEventFilter_ = nullptr;
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter)
+{
+    std::unique_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
+    nativeTouchEventFilter_ = nativeFilter;
+    return WMError::WM_OK;
+}
+
+NativeTouchEventFilter WindowSceneSessionImpl::GetNativeTouchEventFilter() const
+{
+    std::shared_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
+    return nativeTouchEventFilter_;
+}
+
+WMError WindowSceneSessionImpl::ClearNativeTouchEventFilter()
+{
+    std::unique_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
+    nativeTouchEventFilter_ = nullptr;
+    return WMError::WM_OK;
 }
 } // namespace Rosen
 } // namespace OHOS

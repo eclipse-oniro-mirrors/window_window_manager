@@ -38,6 +38,16 @@ typedef struct __ani_env ani_env;
 typedef const struct __ani_interaction_api *ani_env;
 #endif
 
+/**
+ * For save C API native filter callback.
+ */
+struct Input_KeyEvent;
+struct Input_MouseEvent;
+struct Input_TouchEvent;
+using NativeKeyEventFilter = bool(*)(Input_KeyEvent* keyEvent);
+using NativeMouseEventFilter = bool(*)(Input_MouseEvent* mouseEvent);
+using NativeTouchEventFilter = bool(*)(Input_TouchEvent* touchEvent);
+
 namespace OHOS::MMI {
 class PointerEvent;
 class KeyEvent;
@@ -92,6 +102,7 @@ using NotifyTransferComponentDataForResultFunc = std::function<AAFwk::WantParams
 using KeyEventFilterFunc = std::function<bool(const MMI::KeyEvent&)>;
 using MouseEventFilterFunc = std::function<bool(const MMI::PointerEvent&)>;
 using TouchEventFilterFunc = std::function<bool(const MMI::PointerEvent&)>;
+
 class RSSurfaceNode;
 class RSTransaction;
 class RSUIContext;
@@ -2995,6 +3006,12 @@ public:
     virtual void NotifyRotationChangeResult(RotationChangeResult rotationChangeResult) {}
 
     /**
+     * @brief notify windowStage create finished.
+     * It is called by Ability Manager Service when onWindowStageCreate finished.
+     */
+    virtual void NotifyWindowStageCreateFinished() {}
+
+    /**
      * @brief start move main window. It is called by ACE when title is moved.
      *
      */
@@ -4221,7 +4238,7 @@ public:
     /**
      * @brief Clear the window mask of window.
      *
-     * @return WM_OK means set success, others means failed.
+     * @return WM_OK means clear success, others means failed.
      */
     virtual WMError ClearWindowMask()
     {
@@ -4332,6 +4349,90 @@ public:
      * @return WMError
      */
     virtual WMError ClearTouchEventFilter() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Save native key event filter pointer.
+     *
+     * @param nativeFilter Native key event filter pointer.
+     * @return WMError
+     */
+    virtual WMError SaveNativeKeyEventFilter(NativeKeyEventFilter nativeFilter)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get native key event filter pointer.
+     *
+     * @return NativeKeyEventFilter Native key event filter pointer, nullptr if not set.
+     */
+    virtual NativeKeyEventFilter GetNativeKeyEventFilter() const { return nullptr; }
+
+    /**
+     * @brief Clear native key event filter pointer.
+     *
+     * @return WMError
+     */
+    virtual WMError ClearNativeKeyEventFilter()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Save native mouse event filter pointer.
+     *
+     * @param nativeFilter Native mouse event filter pointer.
+     * @return WMError
+     */
+    virtual WMError SaveNativeMouseEventFilter(NativeMouseEventFilter nativeFilter)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get native mouse event filter pointer.
+     *
+     * @return NativeMouseEventFilter Native mouse event filter pointer, nullptr if not set.
+     */
+    virtual NativeMouseEventFilter GetNativeMouseEventFilter() const { return nullptr; }
+
+    /**
+     * @brief Clear native mouse event filter pointer.
+     *
+     * @return WMError
+     */
+    virtual WMError ClearNativeMouseEventFilter()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Save native touch event filter pointer.
+     *
+     * @param nativeFilter Native touch event filter pointer.
+     * @return WMError
+     */
+    virtual WMError SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get native touch event filter pointer.
+     *
+     * @return NativeTouchEventFilter Native touch event filter pointer, nullptr if not set.
+     */
+    virtual NativeTouchEventFilter GetNativeTouchEventFilter() const { return nullptr; }
+
+    /**
+     * @brief Clear native touch event filter pointer.
+     *
+     * @return WMError
+     */
+    virtual WMError ClearNativeTouchEventFilter()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Register window rect change listener.

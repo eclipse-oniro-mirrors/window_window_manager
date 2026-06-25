@@ -1342,6 +1342,7 @@ WmErrorCode ParseTouchableAreas(napi_env env, napi_callback_info info,
             touchableAreas.emplace_back(touchableArea);
         } else {
             errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+            TLOGE(WmsLogTag::WMS_EVENT, "Failed to check the window rect");
             break;
         }
     }
@@ -1929,8 +1930,6 @@ napi_value WindowTransitionTypeInit(napi_env env)
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
     napi_set_named_property(env, objValue, "DESTROY",
         CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::DESTROY)));
-    napi_set_named_property(env, objValue, "START",
-        CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::START)));
     return objValue;
 }
 

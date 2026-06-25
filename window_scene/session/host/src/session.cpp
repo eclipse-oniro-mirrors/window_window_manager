@@ -15,10 +15,11 @@
 
 #include "session/host/include/session.h"
 
-#include <application_context.h>
+#include <cmath>
 #include <regex>
 #include <string>
 
+#include <application_context.h>
 #include "ability_info.h"
 #include "input_manager.h"
 #include "key_event.h"
@@ -45,14 +46,6 @@
 #include "perform_reporter.h"
 #include "session/host/include/scene_persistent_storage.h"
 #include "screen_manager.h"
-
-#define RETURN_IF_NULL(param, ...)                                       \
-    do {                                                                 \
-        if (!param) {                                                    \
-            TLOGE(WmsLogTag::DEFAULT, "The %{public}s is null", #param); \
-            return __VA_ARGS__;                                          \
-        }                                                                \
-    } while (0)
 
 namespace OHOS::Rosen {
 namespace {
@@ -232,9 +225,6 @@ void Session::SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
         }
         shadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && surfaceNode_ ?
             surfaceNode_->CreateShadowSurfaceNode() : nullptr;
-
-        // Reset move drag shadow surface node when surface node changes.
-        moveDragShadowSurfaceNode_ = nullptr;
     }
     OnSurfaceNodeChanged();
 }
@@ -276,36 +266,6 @@ std::shared_ptr<RSSurfaceNode> Session::GetShadowSurfaceNode() const
     return RSAdapterUtil::IsClientMultiInstanceEnabled() ? shadowSurfaceNode_ : surfaceNode_;
 }
 
-std::shared_ptr<RSSurfaceNode> Session::EnsureMoveDragShadowSurfaceNode()
-{
-    std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
-    if (moveDragShadowSurfaceNode_) {
-        return moveDragShadowSurfaceNode_;
-    }
-
-    RETURN_IF_NULL(surfaceNode_, nullptr);
-
-    // When RS client multi-instance mode is disabled, directly return the
-    // original surface node without creating a shadow node.
-    RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(surfaceNode_);
-
-    // Move-drag operations update the surface node's bounds and frame.
-    // The shadow node must copy RSBoundsModifier and RSFrameModifier
-    // from the original node so that subsequent drag updates can take effect.
-    //
-    // Note: If the original node has never had bounds or frame set, or the
-    // corresponding modifiers are not present, the synchronization may fail,
-    // which can lead to shadow node creation failure.
-    moveDragShadowSurfaceNode_ = surfaceNode_->CreateShadowSurfaceNode(
-        { ShadowPropertyType::BOUNDS, ShadowPropertyType::FRAME });
-    if (!moveDragShadowSurfaceNode_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT,
-            "Failed to create shadow surface node, fallback to surfaceNode");
-        return surfaceNode_;
-    }
-    return moveDragShadowSurfaceNode_;
-}
-
 void Session::SetLeashWinSurfaceNode(std::shared_ptr<RSSurfaceNode> leashWinSurfaceNode)
 {
     auto rsUIContext = GetRSUIContext();
@@ -320,9 +280,6 @@ void Session::SetLeashWinSurfaceNode(std::shared_ptr<RSSurfaceNode> leashWinSurf
     leashWinSurfaceNode_ = leashWinSurfaceNode;
     leashWinShadowSurfaceNode_ = RSAdapterUtil::IsClientMultiInstanceEnabled() && leashWinSurfaceNode_ ?
         leashWinSurfaceNode_->CreateShadowSurfaceNode() : nullptr;
-
-    // Reset move drag shadow surface node when leash win surface node changes.
-    moveDragLeashWinShadowSurfaceNode_ = nullptr;
 }
 
 std::shared_ptr<RSSurfaceNode> Session::GetLeashWinSurfaceNode() const
@@ -337,50 +294,12 @@ std::shared_ptr<RSSurfaceNode> Session::GetLeashWinShadowSurfaceNode() const
     return RSAdapterUtil::IsClientMultiInstanceEnabled() ? leashWinShadowSurfaceNode_ : leashWinSurfaceNode_;
 }
 
-std::shared_ptr<RSSurfaceNode> Session::EnsureMoveDragLeashWinShadowSurfaceNode()
-{
-    std::lock_guard<std::mutex> lock(leashWinSurfaceNodeMutex_);
-    if (moveDragLeashWinShadowSurfaceNode_) {
-        return moveDragLeashWinShadowSurfaceNode_;
-    }
-
-    RETURN_IF_NULL(leashWinSurfaceNode_, nullptr);
-
-    // When RS client multi-instance mode is disabled, directly return the
-    // original leash window surface node without creating a shadow node.
-    RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(leashWinSurfaceNode_);
-
-    // Move-drag operations update the surface node's bounds and frame.
-    // The shadow node must copy RSBoundsModifier and RSFrameModifier
-    // from the original node so that subsequent drag updates can take effect.
-    //
-    // Note: If the original node has never had bounds or frame set, or the
-    // corresponding modifiers are not present, the synchronization may fail,
-    // which can lead to shadow node creation failure.
-    moveDragLeashWinShadowSurfaceNode_ = leashWinSurfaceNode_->CreateShadowSurfaceNode(
-        { ShadowPropertyType::BOUNDS, ShadowPropertyType::FRAME });
-    if (!moveDragLeashWinShadowSurfaceNode_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT,
-            "Failed to create shadow surface node, fallback to leashWinSurfaceNode");
-        return leashWinSurfaceNode_;
-    }
-    return moveDragLeashWinShadowSurfaceNode_;
-}
-
 std::shared_ptr<RSSurfaceNode> Session::GetMoveDragTargetSurfaceNode() const
 {
     if (auto leashWinSurfaceNode = GetLeashWinSurfaceNode()) {
         return leashWinSurfaceNode;
     }
     return GetSurfaceNode();
-}
-
-std::shared_ptr<RSSurfaceNode> Session::GetMoveDragTargetShadowSurfaceNode()
-{
-    if (auto leashWinShadowSurfaceNode = EnsureMoveDragLeashWinShadowSurfaceNode()) {
-        return leashWinShadowSurfaceNode;
-    }
-    return EnsureMoveDragShadowSurfaceNode();
 }
 
 void Session::SetFrameLayoutFinishListener(const NotifyFrameLayoutFinishFunc& func)
@@ -1649,7 +1568,7 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     if (sessionStage_ != nullptr) {
         UpdateClientRectPosYAndDisplayId(updateRect);
         UpdateClientRectInfo(updateRect, reason, avoidAreas, rsTransaction);
-        SetClientRect(rect);
+        SetClientRect(updateRect);
         NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(reason);
         RectCheckProcess();
     } else {
@@ -1880,10 +1799,15 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     property->SetPcAppInpadSpecificSystemBarInvisible(GetSessionProperty()->GetPcAppInpadSpecificSystemBarInvisible());
     property->SetPcAppInpadOrientationLandscape(GetSessionProperty()->GetPcAppInpadOrientationLandscape());
     property->SetMobileAppInPadLayoutFullScreen(GetSessionProperty()->GetMobileAppInPadLayoutFullScreen());
-    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-    const bool isShow = !(isScreenLockedCallback_ && isScreenLockedCallback_() &&
-        systemConfig_.freeMultiWindowSupport_ && !isPcMode && !IsPcWindow());
-    property->SetIsShowDecorInFreeMultiWindow(isShow);
+    if (!property_->GetIsNeedUpdateShowDecor()) {
+        const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+        const bool isShow = !(isScreenLockedCallback_ && isScreenLockedCallback_() &&
+            systemConfig_.freeMultiWindowSupport_ && !isPcMode);
+        property->SetIsShowDecorInFreeMultiWindow(isShow);
+    } else {
+        property->SetIsShowDecorInFreeMultiWindow(property_->GetIsShowDecorInFreeMultiWindow());
+        property_->SetIsNeedUpdateShowDecor(false);
+    }
     SetSessionProperty(property);
     GetSessionProperty()->SetIsNeedUpdateWindowMode(false);
 }
@@ -5623,9 +5547,9 @@ void Session::SetScale(float scaleX, float scaleY, float pivotX, float pivotY)
     layoutController_->SetScale(scaleX, scaleY, pivotX, pivotY);
 }
 
-void Session::SetRsScale(float rsScaleX, float rsScaleY)
+void Session::SetIgnoreRotateScale(float ignoreRotateScaleX, float ignoreRotateScaleY)
 {
-    layoutController_->SetRsScale(rsScaleX, rsScaleY);
+    layoutController_->SetIgnoreRotateScale(ignoreRotateScaleX, ignoreRotateScaleY);
 }
 
 void Session::SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY)
@@ -5643,14 +5567,14 @@ float Session::GetScaleY() const
     return layoutController_->GetScaleY();
 }
 
-float Session::GetRsScaleX() const
+float Session::GetIgnoreRotateScaleX() const
 {
-    return layoutController_->GetRsScaleX();
+    return layoutController_->GetIgnoreRotateScaleX();
 }
 
-float Session::GetRsScaleY() const
+float Session::GetIgnoreRotateScaleY() const
 {
-    return layoutController_->GetRsScaleY();
+    return layoutController_->GetIgnoreRotateScaleY();
 }
 
 float Session::GetPivotX() const
@@ -6428,6 +6352,8 @@ std::shared_ptr<RSUIContext> Session::GetRSLeashWinShadowContext()
 
 WSError Session::SetIsShowDecorInFreeMultiWindow(bool isShow)
 {
+    property_->SetIsNeedUpdateShowDecor(true);
+    property_->SetIsShowDecorInFreeMultiWindow(isShow);
     if (!IsSessionValid()) {
         TLOGE(WmsLogTag::WMS_DECOR, "Session is invalid, id: %{public}d state: %{public}u",
             GetPersistentId(), GetSessionState());

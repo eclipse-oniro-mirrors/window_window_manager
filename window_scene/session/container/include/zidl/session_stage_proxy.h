@@ -144,13 +144,13 @@ public:
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
     WSError AddSidebarBlur() override;
     WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
-    WSError UpdateWindowUIType(WindowUIType windowUIType) override;
-    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError NotifyParentLifecycleEvent(ParentLifeCycleEvent eventType) override;
 
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
+    WSError UpdateWindowUIType(WindowUIType windowUIType) override;
+    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError SetIsStartMoving(bool isStartMoving) override;
 
 private:

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -901,6 +901,7 @@ protected:
     WMError ClearKeyEventFilter() override;
     WMError SetMouseEventFilter(MouseEventFilterFunc filter) override;
     WMError ClearMouseEventFilter() override;
+
     WMError SetTouchEventFilter(TouchEventFilterFunc filter) override;
     WMError ClearTouchEventFilter() override;
 

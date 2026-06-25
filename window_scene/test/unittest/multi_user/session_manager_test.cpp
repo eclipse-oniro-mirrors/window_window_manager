@@ -15,9 +15,10 @@
 
 #include <gtest/gtest.h>
 
+#include "iremote_object_mocker.h"
+#include "parameters.h"
 #include "session_manager.h"
 #include "session_manager_lite.h"
-#include "iremote_object_mocker.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -32,10 +33,12 @@ public:
 
 void SessionManagerTest::SetUp()
 {
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "true");
 }
 
 void SessionManagerTest::TearDown()
 {
+    OHOS::system::SetParameter("persist.dms.concurrentuser", "false");
 }
 
 /**
@@ -75,7 +78,7 @@ HWTEST_F(SessionManagerTest, OnWMSConnectionChanged1, Function | SmallTest | Lev
     sm->isWMSConnected_ = true;
     sm->OnWMSConnectionChanged(100, DEFAULT_SCREEN_ID, false,
         INVALID_PID, INVALID_USER_ID, INVALID_PID, sessionManagerService);
-    ASSERT_EQ(sm->isWMSConnected_, true);
+    ASSERT_EQ(sm->isWMSConnected_, false);
 }
 
 /**
