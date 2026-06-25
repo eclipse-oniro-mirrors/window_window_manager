@@ -19107,6 +19107,11 @@ WMError SceneSessionManager::SetProcessWatermark(int32_t pid, const std::string&
 
 WMError SceneSessionManager::RecoverProcessWatermark(int32_t pid, const std::string& watermarkName)
 {
+    if (!SessionPermission::IsSACalling() && !SessionPermission::IsShellCall()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied: pid=%{public}d, watermarkName=%{public}s",
+            pid, watermarkName.c_str());
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
     taskScheduler_->PostTask([this, pid, watermarkName, where = __func__] {
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: pid=%{public}d, watermarkName=%{public}s",
             where, pid, watermarkName.c_str());
@@ -19207,6 +19212,11 @@ WMError SceneSessionManager::CleanScreenWatermarkImage(const std::shared_ptr<Med
 
 WMError SceneSessionManager::RecoverScreenWatermarkImage(const std::string& bundleName, uint32_t priority)
 {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied: bundleName=%{public}s, priority=%{public}u",
+            bundleName.c_str(), priority);
+        return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
     int32_t pid = IPCSkeleton::GetCallingRealPid();
     taskScheduler_->PostAsyncTask([this, pid, bundleName, priority, where = __func__]() {
         if (screenWatermarkBundleName_.empty() && !bundleName.empty()) {
