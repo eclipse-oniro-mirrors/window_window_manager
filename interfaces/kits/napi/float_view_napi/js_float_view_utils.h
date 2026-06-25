@@ -21,13 +21,11 @@
 
 #include "wm_common.h"
 #include "window.h"
-#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
 napi_value NapiGetUndefined(napi_env env);
-napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg, const char* enumerationName,
-    const char* boolName);
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, std::string_view reportField, const std::string& errMsg);
 bool NapiIsCallable(napi_env env, napi_value value);
 napi_status InitFvEnums(napi_env env, napi_value exports);
 napi_value GetRectAndConvertToJsValue(napi_env env, const Rect& rect);
@@ -35,6 +33,7 @@ napi_value ConvertAvoidAreaToJsValue(napi_env env, const AvoidArea& avoidArea);
 napi_value CreateJsFloatViewPropertiesObject(napi_env env, uint32_t templateType,
     const sptr<Window>& window, const FloatViewWindowInfo &windowInfo, const FvWindowState &state);
 napi_value CreateJsFloatViewLimitsObject(napi_env env, const FloatViewLimits& limits);
+void ResultReport(std::string_view field, WmErrorCode errCode);
 
 std::shared_ptr<TemplateProperty> ConvertJsValueToTemplateProperty(napi_env env, napi_value jsObject,
     std::string& errorMsg, WmErrorCode& errorCode);

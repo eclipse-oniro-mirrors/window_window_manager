@@ -47,8 +47,8 @@ ohos_shared_library("floatingball_kit") {
   cflags_cc= [
     "-fdata-sections",
     "-ffunction-sections",
-    "-fno-asynchronous-inlines-hidden",
-    "fvisibility-inlines-hidden",
+    "-fno-asynchronous-unwind-tables",
+    "-fvisibility-inlines-hidden",
     "-fno-unwind-tables",
     "-fno-exceptions",
     "-Os",

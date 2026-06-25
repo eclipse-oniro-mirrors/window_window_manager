@@ -14,6 +14,7 @@
  */
 
 #include <refbase.h>
+#include <string_view>
 
 #include "js_fb_window_manager.h"
 #include "js_fb_utils.h"
@@ -28,8 +29,8 @@ namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
 namespace {
-const std::string ARKUI_WINDOW_FB_CREATE = "ArkUI.window.fb.create";
-const std::string ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED = "ArkUI.window.fb.isFloatingBallEnabled";
+constexpr std::string_view ARKUI_WINDOW_FB_CREATE = "ArkUI.window.fb.create";
+constexpr std::string_view ARKUI_WINDOW_FB_ISFLOATINGBALLENABLED = "ArkUI.window.fb.isFloatingBallEnabled";
 }
 
 JsFbWindowManager::JsFbWindowManager()
@@ -55,26 +56,26 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     // 解析应用传参FloatingBallConfiguration对象
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "Missing args when creating fbController",
-            ARKUI_WINDOW_FB_CREATE);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, ARKUI_WINDOW_FB_CREATE,
+            "Missing args when creating fbController");
     }
 
     napi_value config = argv[0];
     if (config == nullptr) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID,
-            "Failed to convert object to fbConfiguration or fbConfiguration is null", ARKUI_WINDOW_FB_CREATE);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, ARKUI_WINDOW_FB_CREATE,
+            "Failed to convert object to fbConfiguration or fbConfiguration is null");
     }
 
     napi_value contextPtrValue = nullptr;
     if (napi_get_named_property(env, config, "context", &contextPtrValue) != napi_ok) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID,
-            "[FBWindow][create]msg: Failed to get context", ARKUI_WINDOW_FB_CREATE);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, ARKUI_WINDOW_FB_CREATE,
+            "[FBWindow][create]msg: Failed to get context");
     }
     void* contextPtr = nullptr;
     napi_unwrap(env, contextPtrValue, &contextPtr);
     if (contextPtr == nullptr) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID,
-            "[FBWindow][create]msg: The context parameter is null.", ARKUI_WINDOW_FB_CREATE);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, ARKUI_WINDOW_FB_CREATE,
+            "[FBWindow][create]msg: The context parameter is null.");
     }
     return NapiSendTask(env, contextPtr);
 }

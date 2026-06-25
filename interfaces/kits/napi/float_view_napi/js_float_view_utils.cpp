@@ -14,13 +14,23 @@
  */
 #include "js_float_view_utils.h"
 
+#include <string_view>
+
 #include "js_err_utils.h"
 #include "wm_common.h"
 #include "window_manager_hilog.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
+namespace {
+// HISTOGRAM_BOOLEAN sample values: must be 0 or 1;
+// 0 = false/failure/disabled/no, 1 = true/success/enabled/yes
+constexpr int32_t HISTOGRAM_BOOLEAN_TRUE = 1;
+constexpr int32_t HISTOGRAM_BOOLEAN_FALSE = 0;
+}
+
 napi_value NapiGetUndefined(napi_env env)
 {
     napi_value result = nullptr;
@@ -28,13 +38,26 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg, const char* enumerationName,
-    const char* boolName)
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, std::string_view reportField, const std::string& errMsg)
 {
-    HISTOGRAM_ENUMERATION_ERROR_CODE(enumerationName, errCode);
-    HISTOGRAM_BOOLEAN(boolName, 0);
-    napi_throw(env, JsErrUtils::CreateJsError(env, errCode, msg));
+    ResultReport(reportField, errCode);
+    napi_throw(env, JsErrUtils::CreateJsError(env, errCode, errMsg));
     return NapiGetUndefined(env);
+}
+
+void ResultReport(std::string_view field, WmErrorCode errCode)
+{
+    if (field.empty()) {
+        return;
+    }
+    const std::string fieldStr(field);
+    const std::string boolField = fieldStr + ".bool";
+    if (errCode == WmErrorCode::WM_OK) {
+        HISTOGRAM_BOOLEAN(boolField.c_str(), HISTOGRAM_BOOLEAN_TRUE);
+    } else {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(fieldStr.c_str(), errCode);
+        HISTOGRAM_BOOLEAN(boolField.c_str(), HISTOGRAM_BOOLEAN_FALSE);
+    }
 }
 
 static napi_status SetEnumProperty(napi_env env, napi_value& obj, const std::string& enumName, int32_t enumValue)

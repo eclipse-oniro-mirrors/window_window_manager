@@ -16,6 +16,7 @@
 #include "js_fb_utils.h"
 
 #include <string>
+#include <string_view>
 #include "window.h"
 #include "wm_common.h"
 #include "window_manager_hilog.h"
@@ -38,24 +39,24 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowError(napi_env env, const WmErrorCode& errCode, const std::string& errMsg,
-    const std::string& reportField)
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, std::string_view reportField, const std::string& errMsg)
 {
     ResultReport(reportField, errCode);
     napi_throw(env, AbilityRuntime::CreateJsError(env, static_cast<int32_t>(errCode), errMsg));
     return NapiGetUndefined(env);
 }
 
-void ResultReport(const std::string& field, const WmErrorCode& errCode)
+void ResultReport(std::string_view field, WmErrorCode errCode)
 {
-    if (field == "") {
+    if (field.empty()) {
         return;
     }
-    auto boolField = field + ".bool";
+    const std::string fieldStr(field);
+    const std::string boolField = fieldStr + ".bool";
     if (errCode == WmErrorCode::WM_OK) {
         HISTOGRAM_BOOLEAN(boolField.c_str(), HISTOGRAM_BOOLEAN_TRUE);
     } else {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(field.c_str(), errCode);
+        HISTOGRAM_ENUMERATION_ERROR_CODE(fieldStr.c_str(), errCode);
         HISTOGRAM_BOOLEAN(boolField.c_str(), HISTOGRAM_BOOLEAN_FALSE);
     }
 }
