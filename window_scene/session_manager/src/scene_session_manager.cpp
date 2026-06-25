@@ -621,6 +621,8 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
                 }
             } else {
                 sceneSession->NotifyFollowParentMultiScreenPolicy(sessionInfo.isFollowParentMultiScreenPolicy);
+                sceneSession->SetFollowParentWindowLayoutEnabled(property->IsFollowParentLayout());
+                sceneSession->SetRecovered(true);
                 NotifyCreateSpecificSession(sceneSession, property, property->GetWindowType());
                 CacheSpecificSessionForRecovering(sceneSession, property);
                 sceneSession->SetWindowAnchorInfo(property->GetWindowAnchorInfo());

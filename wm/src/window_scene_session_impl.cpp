@@ -1590,7 +1590,9 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
                 onlySupportFullScreen, property_->GetFullScreenStart());
             Maximize(MaximizePresentation::ENTER_IMMERSIVE);
         }
-        if (!onlySupportFullScreen && IsAnco() && IsAncoSupportFreeWindow()) {
+        const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+        if (!onlySupportFullScreen && IsAnco() && IsFreeMultiWindowMode() &&
+            (!windowSystemConfig_.IsPcWindow() || isPcMode) && IsAncoSupportFreeWindow()) {
             MaximizeForCompatibleMode();
         }
     }
@@ -4331,6 +4333,9 @@ WMError WindowSceneSessionImpl::Minimize()
         WLOGFE("session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    if (IsPcOrPadFreeMultiWindowMode() && IsZLevelAboveParentLoosened()) {
+        return Hide(0, true, true);
+    }
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
     if (WindowHelper::IsMainWindow(GetType())) {
@@ -6910,6 +6915,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     }
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
+    NotifySwitchFreeMultiWindow(enable);
     NotifyFreeWindowModeChange(enable);
     if (IsAnco() && windowSystemConfig_.IsPadWindow()) {
         if (!IsAncoSupportFreeWindow()) {
