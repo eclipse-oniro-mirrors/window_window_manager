@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1491,6 +1491,8 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
         const std::shared_ptr<RSTransaction>& rsTransaction = config.rsTransaction_;
         window->BeginRSTransaction(rsTransaction);
         window->rotationAnimationCount_++;
+        window->rotationAnimationCallBackExecuted_.store(false);
+ 	    auto handler = window->handler_;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(config.animationDuration_);
         // animation curve: cubic [0.2, 0.0, 0.2, 1.0]
@@ -1500,11 +1502,14 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
             if (!window) {
                 return;
             }
+            window->rotationAnimationCallBackExecuted_.store(true);
             window->rotationAnimationCount_--;
             if (window->rotationAnimationCount_ == 0) {
                 window->NotifyRotationAnimationEnd();
             }
         });
+        // Delayed task to compensate if callback fails
+ 	    window->StartRotationAnimationTimeoutTask(handler);
         if (wmReason == WindowSizeChangeReason::SNAPSHOT_ROTATION) {
             wmReason = WindowSizeChangeReason::ROTATION;
         }
@@ -1523,6 +1528,26 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
     }, "WMS_WindowSessionImpl_UpdateRectForRotation");
 }
 
+void WindowSessionImpl::StartRotationAnimationTimeoutTask(
+	const std::shared_ptr<AppExecFwk::EventHandler>& handler)
+{
+	if(!handler) {
+	    return;
+	}
+	auto delayTask = [weak = wptr(this)]() {
+	    auto window = weak.promote();
+	    if (!window->rotationAnimationCallBackExecuted_.load()) {
+	        TLOGW(WmsLogTag::WMS_ROTATION, "rotation animation callback timeout, "
+	            "current count: %{public}d", window->rotationAnimationCount_.load());
+	        window->rotationAnimationCount_--;
+	        if (window->rotationAnimationCount_ == 0) {
+	            window->NotifyRotationAnimationEnd();
+	        }
+	    }
+	};
+	constexpr int64_t DELAY_TIME_MS = 3000; //3 seconds
+	handler->PostTask(delayTask, "WMS_WindowSessionImpl_RotationAnimationDelay", DELAY_TIME_MS);
+}
 
 void WindowSessionImpl::UpdateRectForPageRotation(const Rect& wmRect, const Rect& preRect,
     WindowSizeChangeReason wmReason, const SceneAnimationConfig& config,

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1131,9 +1131,11 @@ protected:
     /*
      * Window Rotation
      */
-    int16_t rotationAnimationCount_ { 0 };
+    std::atomic<int16_t> rotationAnimationCount_ { 0 };
+ 	std::atomic_bool rotationAnimationCallBackExecuted_ { false };
     int16_t sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
+    void StartRotationAnimationTimeoutTask(const std::shared_ptr<AppExecFwk::EventHandler>& handler);
     mutable std::mutex virtualPixelRatioMutex_;
 
     /*

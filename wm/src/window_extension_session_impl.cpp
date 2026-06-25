@@ -1059,6 +1059,8 @@ void WindowExtensionSessionImpl::UpdateRectForRotation(const Rect& wmRect, const
             rsTransaction->Begin();
         }
         window->rotationAnimationCount_++;
+        window->rotationAnimationCallBackExecuted_.store(false);
+ 	    auto handler = window->handler_;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(duration);
         // animation curve: cubic [0.2, 0.0, 0.2, 1.0]
@@ -1068,11 +1070,14 @@ void WindowExtensionSessionImpl::UpdateRectForRotation(const Rect& wmRect, const
             if (!window) {
                 return;
             }
+            window->rotationAnimationCallBackExecuted_.store(true);
             window->rotationAnimationCount_--;
             if (window->rotationAnimationCount_ == 0) {
                 window->NotifyRotationAnimationEnd();
             }
         });
+        // Delayed task to compensate if callback fails
+ 	    window->StartRotationAnimationTimeoutTask(handler);
         if (wmRect != preRect) {
             window->NotifySizeChange(wmRect, wmReason);
         }
