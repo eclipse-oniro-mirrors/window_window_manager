@@ -13646,7 +13646,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     if (memMgrWindowInfos.size() != 0) {
         TLOGD(WmsLogTag::WMS_LIFE, "memMgrWindowInfos: %{public}s", memLogInfo.c_str());
         taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
             Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
         }, "notifyMemMgr");
     }
@@ -16938,7 +16938,7 @@ WMError SceneSessionManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisi
                 displayId = session->GetClientDisplayId();
             }
             windowVisibilityInfo->SetDisplayId(displayId);
-            TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE,
                 "%{public}s: wid=%{public}d, visibilityInfo displayId=%{public}" PRIu64,
                 where, session->GetWindowId(), displayId);
             infos.emplace_back(windowVisibilityInfo);
