@@ -1629,7 +1629,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             RSAdapterUtil::SetRSTransactionHandler(rsTransaction, window->GetRSUIContext());
             rsTransaction->Begin();
         }
-        if (wmReason == WindowSizeChangeReason::DRAG || wmReason == windowSizeChangeReason::SPLIT_DRAG) {
+        if (wmReason == WindowSizeChangeReason::DRAG || wmReason == WindowSizeChangeReason::SPLIT_DRAG) {
             window->UpdateRectForOtherReasonTask(window->GetRect(), preRect, wmReason, rsTransaction, avoidAreas);
             window->isDragTaskPostDone_.store(true);
         } else {
@@ -1639,7 +1639,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             rsTransaction->Commit();
         }
     };
-    if (wmReason == WindowSizeChangeReason::DRAG || wmReason == windowSizeChangeReason::SPLIT_DRAG) {
+    if (wmReason == WindowSizeChangeReason::DRAG || wmReason == WindowSizeChangeReason::SPLIT_DRAG) {
         bool isDragTaskPostDone = true;
         if (isDragTaskPostDone_.compare_exchange_strong(isDragTaskPostDone, false)) {
             handler_->PostTask(task, "WMS_WindowSessionImpl_UpdateRectForOtherReason");
