@@ -674,6 +674,7 @@ enum class SizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SPLIT_ENABLE_CHANGE,
     SWITCH_WINDOW_DISPLAY,
     END,
 };

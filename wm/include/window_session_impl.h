@@ -250,8 +250,7 @@ public:
     bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY) override;
     WMError SetIntentParam(const std::string& intentParam, const std::function<void()>& loadPageCallback,
         bool isColdStart) override;
-    virtual void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
-        SelectMode selectMode = SelectMode::INVALID_MODE) {};
+    virtual void SetForceSplitConfigEnable(bool needUpdateViewport = false) {};
     void SetForceSplitConfig(const AppForceLandscapeConfig& config);
 
     /*
@@ -1073,6 +1072,7 @@ protected:
     void HookWindowSizeByHookWindowInfo(Rect& rect) const;
     void SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
+    virtual WMError GetForceSplitEnable(bool& enable) { return WMError::WM_OK; }
 
     /*
      * Window Immersive

@@ -153,6 +153,20 @@ Ace::ViewportConfig FillViewportConfig(
     return config;
 }
 
+void FillForceSplitConfig(Ace::ViewportConfig& config, SelectMode selectMode, bool forceSplitEnable)
+{
+    ForceSplitMode splitMode = ForceSplitMode::NOT_SPLIT;
+    if (forceSplitEnable) {
+        if (selectMode == SelectMode::WIDE_MODE) {
+            splitMode = ForceSplitMode::WIDE_SPLIT;
+        } else if (selectMode == SelectMode::SQUARE_MODE) {
+            splitMode = ForceSplitMode::SQUARE_SPLIT;
+        }
+    }
+    config.SetForceSplitEnable(forceSplitEnable);
+    config.SetForceSplitMode(splitMode);
+}
+
 const std::map<Orientation, const char*> ORIENTATION_NAME_MAP {
     {Orientation::UNSPECIFIED, "UNSPECIFIED"},
     {Orientation::VERTICAL, "VERTICAL"},
@@ -2244,7 +2258,18 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     if (viewportUseHookedSize_.load()) {
         viewportRect = hookedViewportRect;
     }
+    SelectMode selectMode = SelectMode::INVALID_MODE;
+    bool forceSplitEnable = false;
+    const auto& property = GetProperty();
+    if (property) {
+        selectMode = property->GetSelectMode();
+        forceSplitEnable = property->GetForceSplitEnable();
+        if (selectMode == SelectMode::INVALID_MODE && GetSelectMode(selectMode) != WMError::WM_OK) {
+ 	         TLOGE(WmsLogTag::WMS_COMPAT, "get selectMode failed, windowId: %{public}d", GetPersistentId());
+ 	     }
+    }
     auto config = FillViewportConfig(viewportRect, density, orientation, transformHint, GetDisplayId());
+    FillForceSplitConfig(config, selectMode, forceSplitEnable);
     if (reason == WindowSizeChangeReason::DRAG_END && keyFramePolicy_.stopping_) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "key frame stop");
         keyFramePolicy_.stopping_ = false;
@@ -2842,16 +2867,28 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
     if (WindowHelper::IsMainWindow(winType) && GetAppForceLandscapeConfig(config) == WMError::WM_OK &&
         config.containsConfig_) {
         SetForceSplitConfig(config);
-        // try to fetch selectMode
-        SelectMode finalSelectMode = SelectMode::INVALID_MODE;
-        if (GetSelectMode(finalSelectMode) != WMError::WM_OK) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "get selectMode fail, id: %{public}d", GetPersistentId());
-            finalSelectMode = SelectMode::INVALID_MODE;
+        const auto& property = GetProperty();
+        if (property == nullptr) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "property is null, id: %{public}d", GetPersistentId());
         } else {
-            TLOGI(WmsLogTag::WMS_COMPAT, "get selectMode success, id: %{public}d, selectMode: %{public}u",
-                GetPersistentId(), static_cast<uint32_t>(finalSelectMode));
+            // fetch selectMode
+            SelectMode finalSelectMode = SelectMode::INVALID_MODE;
+            auto selectModeRet = GetSelectMode(finalSelectMode);
+            TLOGI(WmsLogTag::WMS_COMPAT, "get selectMode, id: %{public}d, ret: %{public}d, selectMode: %{public}u",
+                GetPersistentId(), static_cast<int32_t>(selectModeRet), static_cast<uint32_t>(finalSelectMode));
+            if (selectModeRet == WMError::WM_OK) {
+                property->SetSelectMode(finalSelectMode);
+            }
+            // fetch enableForceSplit
+            bool enableForceSplit = false;
+            auto forceSplitRet = GetForceSplitEnable(enableForceSplit);
+            TLOGI(WmsLogTag::WMS_COMPAT, "get forceSplitEnable, id: %{public}d, ret: %{public}d, forceSplitEnable: "
+                "%{public}u", GetPersistentId(), static_cast<int32_t>(forceSplitRet),
+                static_cast<uint32_t>(enableForceSplit));
+            if (forceSplitRet == WMError::WM_OK) {
+                property->SetForceSplitEnable(enableForceSplit);
+            }
         }
-        SetForceSplitConfigEnable(property_->GetForceSplitEnable(), false, finalSelectMode);
     }
 
     uint32_t version = 0;

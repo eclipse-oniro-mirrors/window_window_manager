@@ -9000,6 +9000,17 @@ WMError SceneSession::GetAppForceLandscapeConfig(AppForceLandscapeConfig& config
     return WMError::WM_OK;
 }
 
+WMError SceneSession::GetForceSplitEnable(bool& enable)
+{
+    auto property = GetSessionProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "persistentId: %{public}d property is null", persistentId_);
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    enable = property->GetForceSplitEnable();
+    return WMError::WM_OK;
+}
+
 WMError SceneSession::GetSelectMode(SelectMode& selectMode)
 {
     return PostSyncTask([weakThis = wptr(this), &selectMode, where = __func__]() -> WMError {

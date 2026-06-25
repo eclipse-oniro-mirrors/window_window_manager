@@ -285,6 +285,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleGetAppForceLandscapeConfig(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_SELECT_MODE):
             return HandleGetSelectMode(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_FORCE_SPLIT_ENABLE):
+            return HandleGetForceSplitEnable(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_WINDOW_STATUS_AFTER_SHOW_WINDOW):
             return HandleNotifyWindowStatusDidChangeAfterShowWindow(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_SET_DIALOG_SESSION_BACKGESTURE_ENABLE):
@@ -2176,6 +2178,22 @@ int SessionStub::HandleGetSelectMode(MessageParcel& data, MessageParcel& reply)
     WMError ret = GetSelectMode(selectMode);
     if (!reply.WriteUint32(static_cast<uint32_t>(selectMode))) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "write selectMode failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "write ret failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleGetForceSplitEnable(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    bool enable = false;
+    WMError ret = GetForceSplitEnable(enable);
+    if (!reply.WriteBool(enable)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "write enable failed");
         return ERR_INVALID_DATA;
     }
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
