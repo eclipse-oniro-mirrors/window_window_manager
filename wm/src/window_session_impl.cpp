@@ -1629,7 +1629,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             RSAdapterUtil::SetRSTransactionHandler(rsTransaction, window->GetRSUIContext());
             rsTransaction->Begin();
         }
-        if (wmReason == WindowSizeChangeReason::DRAG) {
+        if (wmReason == WindowSizeChangeReason::DRAG || wmReason == windowSizeChangeReason::SPLIT_DRAG) {
             window->UpdateRectForOtherReasonTask(window->GetRect(), preRect, wmReason, rsTransaction, avoidAreas);
             window->isDragTaskPostDone_.store(true);
         } else {
@@ -1639,7 +1639,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             rsTransaction->Commit();
         }
     };
-    if (wmReason == WindowSizeChangeReason::DRAG) {
+    if (wmReason == WindowSizeChangeReason::DRAG || wmReason == windowSizeChangeReason::SPLIT_DRAG) {
         bool isDragTaskPostDone = true;
         if (isDragTaskPostDone_.compare_exchange_strong(isDragTaskPostDone, false)) {
             handler_->PostTask(task, "WMS_WindowSessionImpl_UpdateRectForOtherReason");
@@ -2306,7 +2306,8 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
     bool onlySupportFullScreen = WindowHelper::IsOnlySupportFullScreen(windowModeSupportType);
-    if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
+    if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow) &&
+        !IsZLevelAboveParentLoosened()) {
         uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
         return;
     }
@@ -5803,7 +5804,7 @@ WMError WindowSessionImpl::SetTitleButtonVisible(bool isMaximizeVisible, bool is
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (!WindowHelper::IsMainWindow(GetType())) {
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsZLevelAboveParentLoosened()) {
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (property_->GetPcAppInpadCompatibleMode() && !IsDecorEnable()) {
@@ -10305,7 +10306,7 @@ void WindowSessionImpl::SwitchSystemWindow(bool freeMultiWindowEnable, int32_t p
 {
     std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     if (windowSessionMap_.empty()) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty.");
+        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty");
         return;
     }
     for (const auto& winPair : windowSessionMap_) {

@@ -742,7 +742,11 @@ private:
      */
     bool isExecuteDelayRaise_ = false;
     bool IsFullScreenEnable() const;
-    //todo
+    // if anco not support free window, delete floating and save last support window mode.
+    // // when switch free window mode, recover support window mode by lastWindowModeSupportType_
+    uint32_t lastWindowModeSupportType_ = 0;
+    uint32_t SetSupportedWindowModesForAncoInFreeWindow(uint32_t windowModeSupportType);
+    bool IsAncoSupportFreeWindow() const;
 
     /*
      * PC Window UE report

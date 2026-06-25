@@ -129,6 +129,7 @@ const std::string MOUSE_HOVER = "mouseHover";
 const std::string TOUCH_HOVER = "touchHover";
 const std::string EXIT_HOVER = "exitHover";
 const std::string IS_ANCO_SUPPORT_FREE_WINDOW = "hmos_fusion.container.pc.freemode.captionbar";
+const std::string IS_ANCO_SUPPORT_FREE_WINDOW = "hmos_fusion.container.pc.freemode.captionbar";
 constexpr char SCENE_BOARD_UE_DOMAIN[] = "SCENE_BOARD_UE";
 constexpr char HOVER_MAXIMIZE_MENU[] = "PC_HOVER_MAXIMIZE_MENU";
 constexpr char CLICK_TITLE_MINIMIZE[] = "PC_CLICK_TITLE_MINIMIZE";
@@ -1570,14 +1571,10 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
         // get support modes configuration
         uint32_t windowModeSupportType = GetSupportedWindowModesConfiguration(abilityInfo);
+        windowModeSupportType = SetSupportedWindowModesForAncoInFreeWindow(windowModeSupportType);
         property_->SetWindowModeSupportType(windowModeSupportType);
-        // anco support multiWindow config
-        const bool isAncoSupportMultiWindow =
-            system::GetIntParameter("hmos_fusion.container.pc.freemode.captionbar", 0) == 1;
-        bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
         TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, windowModeSupportType: %{public}u, "
-            "isAncoSupportMultiWindow: %{public}d, isAncoInPcOrPcMode:%{public}d",
-            GetWindowId(), windowModeSupportType, isAncoSupportMultiWindow, isAncoInPcOrPcMode);
+            "isAncoSupportFreeWindow: %{public}d", GetWindowId(), windowModeSupportType, IsAncoSupportFreeWindow());
         // update windowModeSupportType to server
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
         bool isWindowModeSupportFullscreen = GetTargetAPIVersion() < 15 ? // 15: isolated version
@@ -1586,13 +1583,16 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
             !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING));
         bool isAncoInPhoneFreeMultiWindowMode = IsAnco() && IsFreeMultiWindowMode() &&
             windowSystemConfig_.IsPhoneWindow();
-        bool onlySupportFullScreen = (isWindowModeSupportFullscreen ||
-            (isAncoInPcOrPcMode && !isAncoSupportMultiWindow)) || isAncoInPhoneFreeMultiWindowMode;
+        bool onlySupportFullScreen = isWindowModeSupportFullscreen || isAncoInPhoneFreeMultiWindowMode ||
+            (IsAnco() && !IsAncoSupportFreeWindow());
         bool compatibleDisableFullScreen = property_->IsFullScreenDisabled();
         if ((onlySupportFullScreen || property_->GetFullScreenStart()) && !compatibleDisableFullScreen) {
             TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d fullScreenStart:%{public}d",
                 onlySupportFullScreen, property_->GetFullScreenStart());
             Maximize(MaximizePresentation::ENTER_IMMERSIVE);
+        }
+        if (!onlySupportFullScreen && IsAnco() && IsAncoSupportFreeWindow()) {
+            MaximizeForCompatibleMode();
         }
     }
 }
@@ -6912,11 +6912,17 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
         return WSError::WS_ERROR_REPEAT_OPERATION;
     }
-    NotifySwitchFreeMultiWindow(enable);
-    NotifyFreeWindowModeChange(enable);
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
-    if (!(IsAnco() && windowSystemConfig_.IsPadWindow())) {
+    NotifyFreeWindowModeChange(enable);
+    if (IsAnco() && windowSystemConfig_.IsPadWindow()) {
+        if (!IsAncoSupportFreeWindow()) {
+            uint32_t tempWindowModeSupportType = property_->GetWindowModeSupportType();
+            property_->SetWindowModeSupportType(lastWindowModeSupportType_);
+            lastWindowModeSupportType_ = tempWindowModeSupportType;
+            UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
+        }
+    } else {
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     }
     if (enable) {
@@ -6931,8 +6937,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
         UpdateDecorEnable(true);
     }
-    if (WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
-        !(IsAnco() && windowSystemConfig_.IsPhoneWindow())) {
+    if (!IsAnco()) {
         UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());
@@ -9521,6 +9526,36 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
 bool WindowSceneSessionImpl::IsInFreeWindowMode() const
 {
     return IsPcOrPadFreeMultiWindowMode();
+}
+
+bool WindowSceneSessionImpl::IsAncoSupportFreeWindow() const
+{
+    static const bool isAncoSupportFreeWindow = system::GetIntParameter(IS_ANCO_SUPPORT_FREE_WINDOW, 0) == 1;
+    return isAncoSupportFreeWindow && (windowSystemConfig_.IsPcWindow() || windowSystemConfig_.IsPadWindow());
+}
+
+uint32_t WindowSceneSessionImpl::SetSupportedWindowModesForAncoInFreeWindow(uint32_t windowModeSupportType)
+{
+    if (!IsAnco() || !(windowSystemConfig_.IsPcWindow() || windowSystemConfig_.IsPadWindow())) {
+        TLOGI(WmsLogTag::WMS_MAIN, "is not anco app, need not update support window mode.");
+        return windowModeSupportType;
+    }
+
+    if (IsAncoSupportFreeWindow()) {
+        TLOGI(WmsLogTag::WMS_MAIN, "anco app support free window, need not update support window mode.");
+        return windowModeSupportType;
+    }
+    
+    // if anco not support free window, delete floating and save last support window mode.
+    // // when switch free window mode, recover support window mode by lastWindowModeSupportType_
+    if (windowSystemConfig_.IsPcOrPcMode()) {
+        lastWindowModeSupportType_ = windowModeSupportType;
+        windowModeSupportType = windowModeSupportType & (~WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+        return windowModeSupportType;
+    }
+    
+    lastWindowModeSupportType_ = windowModeSupportType & (~WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    return windowModeSupportType;
 }
 
 WSError WindowSceneSessionImpl::HideSubWindowZLevelAboveParentLoosened()
