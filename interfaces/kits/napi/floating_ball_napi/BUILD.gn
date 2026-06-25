@@ -44,6 +44,16 @@ ohos_shared_library("floatingball_kit") {
     "../../../../resources/config/build:coverage_flags",
   ]
 
+  cflags_cc= [
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-fno-asynchronous-inlines-hidden",
+    "fvisibility-inlines-hidden",
+    "-fno-unwind-tables",
+    "-fno-exceptions",
+    "-Os",
+  ]
+
   deps = [
     "${window_base_path}/utils:libwmutil",
     "${window_base_path}/utils:libwmutil_base",

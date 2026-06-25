@@ -17,16 +17,17 @@
 #define OHOS_JS_FB_UTILS_H
 
 #include "js_runtime_utils.h"
-#include "window_histogram_management.h"
+#include "wm_common.h"
 
 namespace OHOS {
 namespace Rosen {
 napi_value NapiGetUndefined(napi_env env);
-napi_value NapiThrowInvalidParam(napi_env env, const std::string& msg, const char* enumerationName = "",
-    const char* boolName = "");
+napi_value NapiThrowError(napi_env env, const WmErrorCode& errCode, const std::string& errMsg,
+    const std::string& reportField);
 napi_valuetype GetType(napi_env env, napi_value value);
 bool NapiIsCallable(napi_env env, napi_value value);
 napi_status InitFbEnums(napi_env env, napi_value exports);
+void ResultReport(const std::string& field, const WmErrorCode& errCode);
 }
 }
 #endif //OHOS_JS_FB_UTILS_H

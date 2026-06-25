@@ -19,10 +19,18 @@
 #include "window.h"
 #include "wm_common.h"
 #include "window_manager_hilog.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
+namespace {
+// HISTOGRAM_BOOLEAN sample values: must be 0 or 1;
+// 0 = false/failure/disabled/no, 1 = true/success/enabled/yes
+constexpr int32_t HISTOGRAM_BOOLEAN_TRUE = 1;
+constexpr int32_t HISTOGRAM_BOOLEAN_FALSE = 0;
+}
+
 napi_value NapiGetUndefined(napi_env env)
 {
     napi_value result = nullptr;
@@ -30,18 +38,26 @@ napi_value NapiGetUndefined(napi_env env)
     return result;
 }
 
-napi_value NapiThrowInvalidParam(napi_env env, const std::string& msg, const char* enumerationName,
-    const char* boolName)
+napi_value NapiThrowError(napi_env env, const WmErrorCode& errCode, const std::string& errMsg,
+    const std::string& reportField)
 {
-    if (enumerationName != nullptr &&  *enumerationName != '\0') {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(enumerationName, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-    }
-    if (boolName != nullptr &&  *boolName != '\0') {
-        HISTOGRAM_BOOLEAN(boolName, 0);
-    }
-    napi_throw(env, AbilityRuntime::CreateJsError(env,
-        static_cast<int32_t>(WmErrorCode::WM_ERROR_FB_PARAM_INVALID), msg));
+    ResultReport(reportField, errCode);
+    napi_throw(env, AbilityRuntime::CreateJsError(env, static_cast<int32_t>(errCode), errMsg));
     return NapiGetUndefined(env);
+}
+
+void ResultReport(const std::string& field, const WmErrorCode& errCode)
+{
+    if (field == "") {
+        return;
+    }
+    auto boolField = field + ".bool";
+    if (errCode == WmErrorCode::WM_OK) {
+        HISTOGRAM_BOOLEAN(boolField.c_str(), HISTOGRAM_BOOLEAN_TRUE);
+    } else {
+        HISTOGRAM_ENUMERATION_ERROR_CODE(field.c_str(), errCode);
+        HISTOGRAM_BOOLEAN(boolField.c_str(), HISTOGRAM_BOOLEAN_FALSE);
+    }
 }
 
 napi_valuetype GetType(napi_env env, napi_value value)
