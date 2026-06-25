@@ -679,8 +679,8 @@ HWTEST_F(sceneSessionManagerProxyTest, RegisterWindowManagerAgent01, TestSize.Le
     sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
     auto sceneSessionManagerProxy = sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
 
-    ASSERT_EQ(WMError::WM_OK, sceneSessionManagerProxy->RegisterWindowManagerAgent(type, windowManagerAgent));
-    ASSERT_EQ(WMError::WM_OK, sceneSessionManagerProxy->UnregisterWindowManagerAgent(type, windowManagerAgent));
+    ASSERT_EQ(WMError::WM_OK, sceneSessionManagerProxy->RegisterWindowManagerAgent(type, windowManagerAgent, 100));
+    ASSERT_EQ(WMError::WM_OK, sceneSessionManagerProxy->UnregisterWindowManagerAgent(type, windowManagerAgent, 100));
 }
 
 /**
@@ -697,9 +697,11 @@ HWTEST_F(sceneSessionManagerProxyTest, RegisterWindowPropertyChangeAgent01, Test
     auto sceneSessionManagerProxy = sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
 
     EXPECT_EQ(WMError::WM_OK,
-        sceneSessionManagerProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent));
+              sceneSessionManagerProxy->RegisterWindowPropertyChangeAgent(
+                  windowInfoKey, interestInfo, windowManagerAgent, 100));
     EXPECT_EQ(WMError::WM_OK,
-        sceneSessionManagerProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent));
+              sceneSessionManagerProxy->UnregisterWindowPropertyChangeAgent(
+                  windowInfoKey, interestInfo, windowManagerAgent, 100));
 }
 
 /**

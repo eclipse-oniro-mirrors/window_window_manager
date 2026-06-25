@@ -164,12 +164,12 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
         return WSError::WS_OK;
     }
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
-                                       const sptr<IWindowManagerAgent>& windowManagerAgent) override
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId) override
     {
         return WMError::WM_OK;
     }
     WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
-                                         const sptr<IWindowManagerAgent>& windowManagerAgent) override
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId) override
     {
         return WMError::WM_OK;
     }

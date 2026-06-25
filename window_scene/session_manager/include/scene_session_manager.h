@@ -318,9 +318,9 @@ public:
     WSError BindDialogSessionTarget(uint64_t persistentId, sptr<IRemoteObject> targetToken) override;
     WMError SetGestureNavigationEnabled(bool enable) override;
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
-        const sptr<IWindowManagerAgent>& windowManagerAgent) override;
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
     WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
-        const sptr<IWindowManagerAgent>& windowManagerAgent) override;
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
 
     /*
      * Dump
@@ -685,10 +685,10 @@ public:
     WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease) override;
     void DealwithDrawingContentChange(const std::vector<std::pair<uint64_t, bool>>& drawingChangeInfos);
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) override;
-    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-        uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override;
-    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-        uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent) override;
+    WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
+    WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
     WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags) override;
     WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
         const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true) override;

@@ -146,13 +146,14 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
                 return ERR_INVALID_DATA;
             }
             auto type = static_cast<WindowManagerAgentType>(windowType);
+            int32_t instanceUserId = data.ReadInt32();
             sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
             if (windowManagerAgentObject == nullptr) {
                 return ERR_INVALID_DATA;
             }
             sptr<IWindowManagerAgent> windowManagerAgentProxy =
                 iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-            WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy);
+            WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
             reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
         }
@@ -163,13 +164,14 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
                 return ERR_INVALID_DATA;
             }
             auto type = static_cast<WindowManagerAgentType>(windowType);
+            int32_t instanceUserId = data.ReadInt32();
             sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
             if (windowManagerAgentObject == nullptr) {
                 return ERR_INVALID_DATA;
             }
             sptr<IWindowManagerAgent> windowManagerAgentProxy =
                 iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-            WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy);
+            WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
             reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
         }

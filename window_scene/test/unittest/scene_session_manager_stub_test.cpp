@@ -1068,6 +1068,7 @@ HWTEST_F(SceneSessionManagerStubTest, OnRemoteRequest01, TestSize.Level1)
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
     data.WriteUint32(static_cast<uint32_t>(type));
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     uint32_t code =
@@ -1092,6 +1093,7 @@ HWTEST_F(SceneSessionManagerStubTest, OnRemoteRequest02, TestSize.Level1)
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
     data.WriteUint32(static_cast<uint32_t>(type));
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     uint32_t code = static_cast<uint32_t>(
@@ -1118,6 +1120,7 @@ HWTEST_F(SceneSessionManagerStubTest, OnRemoteRequest03, TestSize.Level1)
     uint32_t interestInfo = 0;
     data.WriteUint32(interestInfo);
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     uint32_t code = static_cast<uint32_t>(
@@ -1144,6 +1147,7 @@ HWTEST_F(SceneSessionManagerStubTest, OnRemoteRequest04, TestSize.Level1)
     uint32_t interestInfo = 0;
     data.WriteUint32(interestInfo);
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     uint32_t code = static_cast<uint32_t>(
@@ -1331,6 +1335,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleRegisterWindowManagerAgent, TestSize
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
     data.WriteUint32(static_cast<uint32_t>(type));
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     int res = stub_->HandleRegisterWindowManagerAgent(data, reply);
@@ -1350,6 +1355,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleUnregisterWindowManagerAgent, TestSi
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
     data.WriteUint32(static_cast<uint32_t>(type));
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     int res = stub_->HandleUnregisterWindowManagerAgent(data, reply);
@@ -1371,6 +1377,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleRegisterWindowPropertyChangeAgent01,
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
     data.WriteInt32(static_cast<int32_t>(windowInfoKey));
     data.WriteUint32(interestInfo);
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     int res = stub_->HandleRegisterWindowPropertyChangeAgent(data, reply);
@@ -1392,6 +1399,7 @@ HWTEST_F(SceneSessionManagerStubTest, HandleUnregisterWindowPropertyChangeAgent0
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
     data.WriteInt32(static_cast<int32_t>(windowInfoKey));
     data.WriteUint32(interestInfo);
+    data.WriteInt32(0);
     data.WriteRemoteObject(windowManagerAgent->AsObject());
 
     int res = stub_->HandleUnregisterWindowPropertyChangeAgent(data, reply);

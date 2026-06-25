@@ -126,13 +126,19 @@ public:
         bool isAsyncTask = false) = 0;
     virtual WMError SetWindowGravity(uint32_t windowId, WindowGravity gravity, uint32_t percent) = 0;
     virtual WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
-        const sptr<IWindowManagerAgent>& windowManagerAgent) = 0;
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) = 0;
     virtual WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
-        const sptr<IWindowManagerAgent>& windowManagerAgent) = 0;
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) = 0;
     virtual WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
-        const sptr<IWindowManagerAgent>& windowManagerAgent) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
-        const sptr<IWindowManagerAgent>& windowManagerAgent) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
