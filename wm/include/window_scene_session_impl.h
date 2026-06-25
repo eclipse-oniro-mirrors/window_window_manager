@@ -425,6 +425,10 @@ public:
     WMError SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter) override;
     NativeTouchEventFilter GetNativeTouchEventFilter() const override;
     WMError ClearNativeTouchEventFilter() override;
+    /*
+     * window hover state
+     */
+    bool CheckWindowCanInHoverState(const Rect& windowRect) override;
 
 protected:
     WMError CreateAndConnectSpecificSession();

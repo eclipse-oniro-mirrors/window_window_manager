@@ -1153,6 +1153,8 @@ public:
         const TransitionAnimation& animation) override;
     void SetTransitionAnimationCallback(UpdateTransitionAnimationFunc&& func);
 
+    WSError NotifyClientToUpdateLSState(bool isLSState);
+
 protected:
     void NotifyIsCustomAnimationPlaying(bool isPlaying);
     std::string GetRatioPreferenceKey();

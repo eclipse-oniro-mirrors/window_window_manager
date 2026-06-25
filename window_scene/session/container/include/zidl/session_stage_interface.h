@@ -518,6 +518,14 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed.
      */
     virtual WSError SetIsStartMoving(bool isStartMoving) { return WSError::WS_OK; }
+
+    /**
+     * @brief Update luoshu state to client.
+     *
+     * @param isLSState Indicates whether in luoshu state.
+     * @return Returns WSError::WS_OK if called success, otherwise failed.
+     */
+    virtual WSError UpdateLSState(bool isLSState) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_INTERFACE_H

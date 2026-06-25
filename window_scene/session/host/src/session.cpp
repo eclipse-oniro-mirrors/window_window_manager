@@ -6440,4 +6440,12 @@ void Session::HandleHookDisplay(const PrelayoutContext& ctx)
         return;
     }
 }
+
+WSError Session::UpdateLSStateInfo(bool isLSState)
+{
+    if (!sessionStage_) {
+        return WSError::WS_DO_NOTHING;
+    }
+    return sessionStage_->UpdateLSState(isLSState);
+}
 } // namespace OHOS::Rosen
