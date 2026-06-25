@@ -5420,10 +5420,10 @@ bool WindowSessionImpl::IsHitTitleBar(std::shared_ptr<MMI::PointerEvent>& pointe
     if (property_->GetDisplayId() == DISPLAY_ID_C) {
         displayY -= (displayHeight + foldCreaseRegionHeight);
     }
-    bool isHitTitleBarX = displayX > windowRect.posX_
-        && displayX < windowRect.posX_ + static_cast<int32_t>(windowRect.width_);
-    bool isHitTitleBarY = displayY > windowRect.posY_ + statusBarHeight
-        && displayY < windowRect.posY_ + decorHeight + statusBarHeight;
+    bool isHitTitleBarX = displayX > windowRect.posX_&&
+        displayX < windowRect.posX_ + static_cast<int32_t>(windowRect.width_);
+    bool isHitTitleBarY = displayY > windowRect.posY_ + statusBarHeight &&
+        displayY < windowRect.posY_ + decorHeight + statusBarHeight;
     bool isHitTitleBar = isValidPointItem && isHitTitleBarX && isHitTitleBarY;
     if (isHitTitleBar) {
         TLOGI(WmsLogTag::WMS_DECOR, "hitTitleBar success");
