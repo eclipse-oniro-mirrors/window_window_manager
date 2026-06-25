@@ -19,8 +19,8 @@
 #include <iremote_object.h>
 #include <memory>
 #include <mutex>
-#include <refbase.h>
 #include <shared_mutex>
+#include <refbase.h>
 
 #include "dm_common.h"
 #include "focus_change_info.h"
