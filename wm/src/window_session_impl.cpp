@@ -3525,13 +3525,11 @@ WMError WindowSessionImpl::SetRaiseByClickEnabled(bool raiseEnabled)
               GetPersistentId());
         return WMError::WM_ERROR_INVALID_PARENT;
     }
-
     if (!WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "Window id: %{public}d Must be app sub window!",
               GetPersistentId());
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-
     if (state_ != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "Window id: %{public}d The sub window must be shown!",
               GetPersistentId());
@@ -3766,7 +3764,6 @@ WMError WindowSessionImpl::HandleSetOrientationCommon(Orientation orientation, b
         property_->SetRequestedOrientation(requestedOrientation, needAnimation);
     } else {
         property_->SetRequestedOrientation(orientation, needAnimation);
-        property_->SetIsSpecificSessionRequestOrientation(true);
     }
     return WMError::WM_OK;
 }

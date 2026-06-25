@@ -3251,10 +3251,7 @@ public:
      * @param targetId Indicates the id of the target main window.
      * @return WM_OK means raise success, others means raise failed.
      */
-    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Hide non-system floating windows.
