@@ -2914,6 +2914,10 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
     if (auto uiContent = GetUIContentSharedPtr()) {
         WindowMode mode = GetWindowMode();
         bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
+        bool isInPcMainScreen = windowSystemConfig_.IsPcWindow() && !(windowSystemConfig_.freeMultiWindowSupport_ &&
+            !windowSystemConfig_.freeMultiWindowEnable_);
+        bool isCompatibleFullScreen = mode == WindowMode::WINDOW_MODE_FULLSCREEN &&
+            property_->IsSupportRotateFullScreen() && !IsAnco() && isInPcMainScreen;
         bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
             WindowHelper::IsSplitWindowMode(mode) ||
             (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !isAncoInPcOrPcMode);
@@ -2926,6 +2930,12 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
         }
         if (mode == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
             decorVisible = false;
+        } else if (isCompatibleFullScreen) {
+            SystemBarProperty statusBarProperty = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
+            TLOGI(WmsLogTag::WMS_COMPAT, "compat fullscreen statusBar: %{public}d, immersiveTitle: %{public}d, "
+                "isInPcMainScreen: %{public}d", statusBarProperty.enable_, property_->IsAdaptToImmersive(),
+                isInPcMainScreen);
+ 	        decorVisible = isInPcMainScreen && (statusBarProperty.enable_ || property_->IsAdaptToImmersive());
         }
         decorVisible = updateDecorWhenDockAutoHide(decorVisible);
         TLOGD(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d, isDockAutoHide:%{public}d, "

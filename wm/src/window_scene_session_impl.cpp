@@ -3849,6 +3849,11 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
         if (property_->IsAdaptToImmersive() && isIgnoreSafeArea_) {
             HookDecorButtonStyleInCompatibleMode(property.contentColor_);
         }
+        bool isCompatibleFullScreen = GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN &&
+            property_->IsSupportRotateFullScreen() && !IsAnco() && windowSystemConfig_.IsPcWindow();
+        if (isCompatibleFullScreen) {
+            UpdateDecorEnable(true);
+        }
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_PROPS);
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {

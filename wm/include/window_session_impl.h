@@ -1130,7 +1130,7 @@ protected:
      * Window Rotation
      */
     int16_t rotationAnimationCount_ { 0 };
-    int16_t sceneAnimationCount_ { 0 };
+    std::atomic<int16_t> sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
     mutable std::mutex virtualPixelRatioMutex_;
 
