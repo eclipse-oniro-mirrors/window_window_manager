@@ -2947,14 +2947,14 @@ WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo
     EventPositionInfo& originalEventPositionInfo) const
 {
     if (IsWindowSessionInvalid()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
+        TLOGE(WmsLogTag::WMS_EVENT, "Session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     originalEventPositionInfo = eventPositionInfo;
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
         property_->GetDisplayId() == DISPLAY_ID_C &&
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
-        superFoldOffsetY_ != -1) {
+        superFoldOffsetY_ != -1 && !IsWindowDelayRaiseEnabled()) {
         if (originalEventPositionInfo.displayY != EventPositionInfo::INVALID_INT32) {
             originalEventPositionInfo.displayY += superFoldOffsetY_;
         }
