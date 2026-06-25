@@ -2654,6 +2654,7 @@ export class WindowStageInternal implements WindowStage {
 
     public native getSubWindowSync(nativeObj: long): Array<Window>;
     public native createSubWindowWithOptionsSync(nativeObj: long, name: string, options: SubWindowOptions): Window;
+
     native onSync(nativeObj: long, eventType: string, callback: Object): void;
     native offSync(nativeObj: long, eventType: string, callback?: Object): void;
 
@@ -6345,19 +6346,19 @@ function runAvoidAreaChangeCallback(cb: object, area: object, type: int): void {
   func({type: AvoidAreaType.fromValue(type), area: area as AvoidArea});
 }
 
-function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
-    const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
-    func(WindowStageLifecycleEventType.fromValue(cbArg));
-}
-
 function runOrientationResultCallback(promiseId: int, result: int): void {
   hilog.info(DOMAIN, TAG, `runOrientationResultCallback promiseId=${promiseId} result=${result}`);
   WindowInternal.handleOrientationResult(promiseId, OrientationExecutionResult.fromValue(result));
 }
 
 function runWindowEventCallback(cb: object, cbArg: int): void {
-    const func = cb as (cbArg: WindowEventType) => void;
-    func(WindowEventType.fromValue(cbArg));
+  const func = cb as (cbArg: WindowEventType) => void;
+  func(WindowEventType.fromValue(cbArg));
+}
+
+function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
+  const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
+  func(WindowStageLifecycleEventType.fromValue(cbArg));
 }
 
 function runWindowSizeCallback(cb: object, cbArg: object): void {

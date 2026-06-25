@@ -2451,6 +2451,7 @@ WMError WindowSessionImpl::NapiSetUIContentByName(const std::string& contentName
     return SetUIContentInner(contentName, env, storage, WindowSetUIContentType::BY_NAME,
         BackupAndRestoreType::NONE, ability);
 }
+
 WMError WindowSessionImpl::AniSetUIContentByName(const std::string& contentName, ani_env* env, ani_object storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
@@ -8577,7 +8578,7 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         }
         if (rsTransaction) {
             RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
-            if(auto rsUIContext = window->GetRSUIContext()){
+            if (auto rsUIContext = window->GetRSUIContext()) {
                 rsTransaction->SetTransactionHandler(rsUIContext->GetRSTransaction());
             }
             rsTransaction->Begin();

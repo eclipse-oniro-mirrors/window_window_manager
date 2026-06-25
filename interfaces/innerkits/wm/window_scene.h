@@ -67,7 +67,7 @@ public:
      * @param identityToken identity token of sceneSession
      * @return the error code of window
      */
-    WMError Init(DisplayId displayId, 
+    WMError Init(DisplayId displayId,
                  const std::shared_ptr<AbilityRuntime::Context>& context,
                  sptr<IWindowLifeCycle>& listener,
                  sptr<WindowOption> option,
