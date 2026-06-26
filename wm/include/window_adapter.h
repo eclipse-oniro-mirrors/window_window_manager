@@ -313,6 +313,7 @@ private:
     sptr<IWindowManager> windowManagerServiceProxy_ = nullptr;
     sptr<WMSDeathRecipient> wmsDeath_ = nullptr;
     bool isProxyValid_ = false;
+    bool isRegisteredUserSwitchListener_ = false;
     bool recoverInitialized_ = false;
     // above guarded by wmsProxyMutex_
 
