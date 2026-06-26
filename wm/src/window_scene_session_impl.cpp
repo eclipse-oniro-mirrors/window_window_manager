@@ -9554,7 +9554,7 @@ uint32_t WindowSceneSessionImpl::SetSupportedWindowModesForAncoInFreeWindow(uint
     }
     
     // if anco not support free window, delete floating and save last support window mode.
-    // // when switch free window mode, recover support window mode by lastWindowModeSupportType_
+    // when switch free window mode, recover support window mode by lastWindowModeSupportType_
     if (windowSystemConfig_.IsPcOrPcMode()) {
         lastWindowModeSupportType_ = windowModeSupportType;
         windowModeSupportType = windowModeSupportType & (~WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
