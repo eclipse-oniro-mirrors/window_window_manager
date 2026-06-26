@@ -16,6 +16,10 @@
 #ifndef OHOS_PICTURE_IN_PICTURE_MANAGER_H
 #define OHOS_PICTURE_IN_PICTURE_MANAGER_H
 
+#include <map>
+#include <mutex>
+#include <vector>
+
 #include "picture_in_picture_controller.h"
 #include "picture_in_picture_option_ani.h"
 #include "window.h"
@@ -24,58 +28,58 @@
 namespace OHOS {
 namespace Rosen {
 class PictureInPictureManager {
+    friend class PictureInPictureManagerTest;
 public:
     PictureInPictureManager();
     ~PictureInPictureManager();
     static bool ShouldAbortPipStart();
     static bool IsSupportPiP();
-    static void PutPipControllerInfo(int32_t windowId, sptr<PictureInPictureControllerBase> pipController);
-    static void RemovePipControllerInfo(int32_t windowId);
-    static void AttachActivePipController(sptr<PictureInPictureControllerBase> pipController);
-    static void DetachActivePipController(sptr<PictureInPictureControllerBase> pipController);
-    static sptr<PictureInPictureControllerBase> GetPipControllerInfo(int32_t windowId);
+    static void PutPipControllerInfo(uint32_t windowId, sptr<PictureInPictureControllerBase> pipController);
+    static void RemovePipControllerInfo(uint32_t windowId);
+    static sptr<PictureInPictureControllerBase> GetPipControllerInfo(uint32_t windowId);
 
     static bool HasActiveController();
     static bool IsActiveController(wptr<PictureInPictureControllerBase> pipController);
-    static void SetActiveController(sptr<PictureInPictureControllerBase> pipController);
-    static void RemoveActiveController(wptr<PictureInPictureControllerBase> pipController);
-
-    // actual impl controller
     static void AttachAutoStartController(int32_t handleId, wptr<PictureInPictureControllerBase> pipController);
     static void DetachAutoStartController(int32_t handleId, wptr<PictureInPictureControllerBase> pipController);
 
     static bool IsAttachedToSameWindow(uint32_t windowId);
+    static sptr<Window> GetCurrentWindowByMainWindowId(uint32_t windowId);
+    static sptr<Window> GetSameGroupWindowByMainWindowId(uint32_t windowId, PiPTemplateType templateType);
     static sptr<Window> GetCurrentWindow();
-    
-    static void DoPreRestore();
-    static void DoRestore();
-    static void DoClose(bool destroyWindow, bool needAnim);
-    static void DoCloseWithReason(bool destroyWindow, bool needAnim, PiPStateChangeReason reason);
-    static void DoActionCloseByRequest();
-    static void DoActionCloseByPanel();
-    static void DoActionCloseByDumpster();
-    static void DoActionClose();
-    static void DoPrepareSource();
-    static void DoLocateSource();
-    static void DoActionEvent(const std::string& actionName, int32_t status);
-    static void DoControlEvent(PiPControlType controlType, PiPControlStatus status);
-    static void PipSizeChange(double width, double height, double scale);
-    static void DoActiveStatusChangeEvent(bool status);
-    static void AutoStartPipWindow();
-    static void DoDestroy();
+
+    static void DoPreRestore(uint32_t windowId);
+    static void DoRestore(uint32_t windowId);
+    static void DoClose(uint32_t windowId, bool destroyWindow, bool byPriority);
+    static void DoCloseWithReason(uint32_t windowId, bool destroyWindow, bool byPriority, PiPStateChangeReason reason);
+    static void DoActionCloseByRequest(uint32_t windowId);
+    static void DoActionCloseByPanel(uint32_t windowId);
+    static void DoActionCloseByDumpster(uint32_t windowId);
+    static void DoActionClose(uint32_t windowId);
+    static void DoPrepareSource(uint32_t windowId);
+    static void DoLocateSource(uint32_t windowId);
+    static void DoActionEvent(uint32_t windowId, const std::string& actionName, int32_t status);
+    static void DoControlEvent(uint32_t windowId, PiPControlType controlType, PiPControlStatus status);
+    static void PipSizeChange(uint32_t windowId, double width, double height, double scale);
+    static void DoActiveStatusChangeEvent(uint32_t windowId, bool status);
+    static void AutoStartPipWindow(uint32_t windowId);
+    static void DoDestroy(uint32_t windowId);
     static bool GetPipEnabled();
+    static void SetMultiPipConfig(const PiPMultiConfig& config);
+    static const PiPMultiConfig& GetMultiPipConfig();
+    static bool IsTemplateTypeSupported(PiPTemplateType type);
+    static bool IsPipGroupLimitReached(PiPTemplateType type);
     static std::shared_ptr<NativeReference> innerCallbackRef_;
 
 private:
-    static sptr<PictureInPictureControllerBase> GetActiveController() { return activeController_; }
+    static std::map<int32_t, wptr<PictureInPictureControllerBase>> autoStartControllerMap_;
+    static std::map<uint32_t, std::vector<wptr<PictureInPictureControllerBase>>> mainWindowToAutoStartControllersMap_;
+    static std::map<uint32_t, sptr<PictureInPictureControllerBase>> windowToControllerMap_;
+    static std::mutex controllerMapMutex_;
+    static void UpdatePipGroupCountLocked(const sptr<PictureInPictureControllerBase>& controller, bool increase);
+    static bool IsControllerStateActive(PiPWindowState state);
 
-    // controller in use
-    static sptr<PictureInPictureControllerBase> activeController_;
-    static wptr<PictureInPictureControllerBase> autoStartController_;  // actual impl controller
-    
-    // controllers enable auto start
-    static std::map<int32_t, wptr<PictureInPictureControllerBase>> autoStartControllerMap_;  // actual impl controller
-    static std::map<int32_t, sptr<PictureInPictureControllerBase>> windowToControllerMap_;
+    static PiPMultiConfig pipMultiConfig_;
 };
 } // namespace Rosen
 } // namespace OHOS

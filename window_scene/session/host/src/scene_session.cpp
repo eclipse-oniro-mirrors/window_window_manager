@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <app_mgr_client.h>
 #include <atomic>
+#include <chrono>
 #include <climits>
 #include "configuration.h"
 #include <hitrace_meter.h>
@@ -185,6 +186,8 @@ SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCa
     GeneratePersistentId(false, info.persistentId_);
     specificCallback_ = specificCallback;
     SetCollaboratorType(info.collaboratorType_);
+    createTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
     TLOGI(WmsLogTag::WMS_LIFE, "Create session, id: %{public}d", GetPersistentId());
     WindowHelper::SplitStringByDelimiter(
         system::GetParameter("const.window.containerColorLists", ""), ",", containerColorList_);
@@ -6244,6 +6247,11 @@ std::vector<Rect> SceneSession::GetTouchHotAreas() const
 PiPTemplateInfo SceneSession::GetPiPTemplateInfo() const
 {
     return pipTemplateInfo_;
+}
+
+int64_t SceneSession::GetSessionCreateTimestamp() const
+{
+    return createTimestamp_;
 }
 
 void SceneSession::DumpSessionElementInfo(const std::vector<std::string>& params)

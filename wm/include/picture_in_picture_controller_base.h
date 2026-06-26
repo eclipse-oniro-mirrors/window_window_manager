@@ -19,6 +19,7 @@
 #define PIP_WINDOW_NAME "pip_window"
 
 #include <ability_context.h>
+#include <string>
 #include <refbase.h>
 #include "navigation_controller.h"
 #include "picture_in_picture_interface.h"
@@ -53,6 +54,11 @@ namespace PipConst {
     constexpr int32_t PIP_SUCCESS = 1;
     constexpr int32_t FAILED = 0;
     const int DEFAULT_ASPECT_RATIOS[] = {16, 9};
+}
+
+inline std::string MakePipWindowName(int64_t createTimestamp)
+{
+    return std::string(PIP_WINDOW_NAME) + "_" + std::to_string(createTimestamp);
 }
 
 using namespace Ace;
@@ -114,6 +120,9 @@ public:
     bool isWeb_ = false;
     void SetStateChangeReason(PiPStateChangeReason reason);
     PiPStateChangeReason GetStateChangeReason() const;
+    int64_t GetCreateTimestamp() const;
+    int64_t GetStartTimestamp() const;
+    uint32_t GetPipTemplate() const;
     virtual std::string GetPiPNavigationId() const { return ""; };
     inline sptr<PipOption> GetPipOption() const { return pipOption_; }
     inline sptr<IWindowLifeCycle> GetMainWindowLifeCycleListener() const { return mainWindowLifeCycleListener_; }
@@ -208,6 +217,8 @@ protected:
     int32_t handleId_ = -1;
     uint64_t surfaceId_ = 0;
     PiPStateChangeReason stateChangeReason_ = PiPStateChangeReason::OTHER;
+    int64_t createTimestamp_ = 0;
+    int64_t startTimestamp_ = 0;
 
     // diffrent between normal and web
     virtual WMError CreatePictureInPictureWindow(StartPipType startType) = 0;

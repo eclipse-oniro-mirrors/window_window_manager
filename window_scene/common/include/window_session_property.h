@@ -1007,9 +1007,11 @@ struct SystemSessionConfig : public Parcelable {
     bool supportCreateFloatView_ = false;
     bool supportCreateFloatingBall_ = false;
     bool statusBarHeightMode_ = false;  // true: display height, false: component height
+    PiPMultiConfig pipMultiConfig_ = GetDefaultPiPMultiConfig();
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
+    void ConvertPipMultiConfig(const std::string& itemValue);
     void ConvertSupportCreateFloatingBall(const std::string& itemValue);
 
     virtual bool Marshalling(Parcel& parcel) const override
@@ -1081,6 +1083,9 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteFloat(defaultCornerRadius_)) {
             return false;
         }
+        if (!parcel.WriteParcelable(&pipMultiConfig_)) {
+            return false;
+        }
         if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
@@ -1148,6 +1153,12 @@ struct SystemSessionConfig : public Parcelable {
             return nullptr;
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
+        sptr<PiPMultiConfig> pipConfig = parcel.ReadParcelable<PiPMultiConfig>();
+        if (pipConfig != nullptr) {
+            config->pipMultiConfig_ = *pipConfig;
+        } else {
+            config->pipMultiConfig_ = GetDefaultPiPMultiConfig();
+        }
         config->supportCreateFloatingBall_ = parcel.ReadBool();
         config->statusBarHeightMode_ = parcel.ReadBool();
         return config;
