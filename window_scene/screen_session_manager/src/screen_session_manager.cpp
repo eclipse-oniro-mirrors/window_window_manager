@@ -237,6 +237,7 @@ const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_w
 const ScreenId SCREEN_GROUP_ID_DEFAULT = 1;
 const std::string SCREEN_NAME_EXTEND = "ExtendedDisplay";
 const std::string SCREEN_NAME_CAST = "CastEngine";
+const std::string SCREEN_NAME_BULIT_IN_OUTER_SCREEN = "SubScreen";
 const std::set<std::string> INDIVIDUAL_SCREEN_GROUP_SET = {"CeliaView", "DevEcoViewer", "Cooperation-multi", "HwCast_AppModeDisplay"};
 
 const int32_t MAIN_STATUS_WIDTH = 0;
@@ -5883,6 +5884,9 @@ void ScreenSessionManager::GetInternalAndExternalSession(sptr<ScreenSession>& in
         }
         if (!screenSession->GetIsCurrentInUse()) {
             TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
+            continue;
+        }
+        if (screenSession->GetName() == SCREEN_NAME_BULIT_IN_OUTER_SCREEN) {
             continue;
         }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL && screenSession->isInternal_) {
