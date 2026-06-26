@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -614,8 +614,8 @@ RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string&
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(type);
-    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig,
-        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext());
+    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType,
+        true, property_->IsConstrainedModal(), GetRSUIContext());
     RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
     SetSurfaceNodeAlphaChangedCallback(surfaceNode);
     TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
@@ -880,7 +880,7 @@ WMError WindowSessionImpl::Connect()
         "oriDisplayId:%{public}" PRIu64 ", curDisplayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
         GetPersistentId(), property_->GetWindowType(), ret, originDisplayId, property_->GetDisplayId());
     if (surfaceNode_ == nullptr) {
-        TLOGI(WmsLogTag::WMS_LIFE, "connect failed, surfaceNode is nullptr, name: %{public}s",
+        TLOGE(WmsLogTag::WMS_LIFE, "connect failed, surfaceNode is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
@@ -2476,6 +2476,7 @@ WMError WindowSessionImpl::NapiSetUIContentByName(const std::string& contentName
     return SetUIContentInner(contentName, env, storage, WindowSetUIContentType::BY_NAME,
         BackupAndRestoreType::NONE, ability);
 }
+
 WMError WindowSessionImpl::AniSetUIContentByName(const std::string& contentName, ani_env* env, ani_object storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
@@ -2618,7 +2619,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
                 uiContent->SetIntentParam(intentParam_, std::move(loadPageCallback_), isIntentColdStart_);
                 intentParam_ = "";
             }
-            // adapter navDestinationInfo_
+            // adapted navDestinationInfo_
             if (!navDestinationInfo_.empty()) {
                 uiContent->RestoreNavDestinationInfo(navDestinationInfo_, true);
             }
@@ -8613,7 +8614,7 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         }
         if (rsTransaction) {
             RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
-            if(auto rsUIContext = window->GetRSUIContext()){
+            if (auto rsUIContext = window->GetRSUIContext()) {
                 rsTransaction->SetTransactionHandler(rsUIContext->GetRSTransaction());
             }
             rsTransaction->Begin();

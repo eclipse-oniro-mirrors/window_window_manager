@@ -3418,7 +3418,7 @@ sptr<SceneSession> SceneSessionManager::GetSceneSessionBySessionInfo(const Sessi
         bool isSingleStart = sceneSession && sceneSession->GetAbilityInfo() &&
             sceneSession->GetAbilityInfo()->launchMode == AppExecFwk::LaunchMode::SINGLETON;
         if (sceneSession && sceneSession->GetSessionInfo().reuseSessionInGamePreLaunch_) {
-            TLOGI(WmsLogTag::WMS_LIFE, "request new session with persistentId: %{public}d",
+            TLOGI(WmsLogTag::WMS_LIFE, "[gameprelaunch]request new session with persistentId: %{public}d",
                 sessionInfo.persistentId_);
             return nullptr;
         }
@@ -4445,7 +4445,7 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
         }
 
         if (sceneSession->GetSessionInfo().isGamePrelaunch_) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "Reset scene session isGamePrelaunch_ to false, id: %{public}d",
+            TLOGNI(WmsLogTag::WMS_LIFE, "[gameprelaunch]Reset scene session isGamePrelaunch_ to false, id: %{public}d",
                 sceneSession->GetPersistentId());
             sceneSession->EditSessionInfo().isGamePrelaunch_ = false;
         }
