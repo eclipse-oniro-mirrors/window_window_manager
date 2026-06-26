@@ -734,7 +734,7 @@ public:
     WMError RegisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
     WMError UnregisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
     WSError UpdateLSState(bool isLSState) override;
-    bool GetLSState() const { return isLSState_; }
+    bool GetLSState() const;
 
 protected:
     RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
@@ -1544,6 +1544,10 @@ private:
     void NotifyWindowHoverStateChange(bool hoverState);
     void RegisterFoldStatusListener();
     void UnregisterFoldStatusListener();
+    bool GetHoverState();
+    void SetHoverState(bool hoverState);
+    mutable std::mutex hoverStateMutex_;
+    mutable std::mutex isLSStateMutex_;
     bool hoverState_ = false;
     sptr<DisplayManager::IFoldStatusListener> foldStatusListener_ = nullptr;
     bool isLSState_ = false;

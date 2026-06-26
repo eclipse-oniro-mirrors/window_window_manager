@@ -5757,7 +5757,7 @@ public:
     virtual WMError RegisterWindowHoverStateChangeListener(
         const sptr<IWindowHoverStateChangeListener>& listener)
     {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+        return WMError::WM_OK;
     }
 
     /**
@@ -5769,7 +5769,7 @@ public:
     virtual WMError UnregisterWindowHoverStateChangeListener(
         const sptr<IWindowHoverStateChangeListener>& listener)
     {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+        return WMError::WM_OK;
     }
 };
 }

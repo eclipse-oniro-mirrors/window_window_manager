@@ -11532,7 +11532,7 @@ WSError SceneSession::NotifyClientToUpdateLSState(bool isLSState)
     PostTask([weakThis = wptr(this), isLSState, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "%{public}s: session is null", where);
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
             return;
         }
         session->UpdateLSStateInfo(isLSState);

@@ -10617,9 +10617,18 @@ bool WindowSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
 
 WSError WindowSessionImpl::UpdateLSState(bool isLSState)
 {
-    isLSState_ = isLSState;
+    {
+        std::lock_guard<std::mutex> lock(isLSStateMutex_);
+        isLSState_ = isLSState;
+    }
     UpdateHoverState(property_->GetWindowRect(), DisplayManager::GetInstance().GetFoldStatus());
     return WSError::WS_OK;
+}
+
+bool WindowSessionImpl::GetLSState() const
+{
+    std::lock_guard<std::mutex> lock(isLSStateMutex_);
+    return isLSState_;
 }
 
 void WindowSessionImpl::UpdateHoverState(const Rect& windowRect, FoldStatus foldStatus)
@@ -10629,13 +10638,35 @@ void WindowSessionImpl::UpdateHoverState(const Rect& windowRect, FoldStatus fold
         newHoverState = true;
     }
 
-    if (hoverState_ != newHoverState) {
-        hoverState_ = newHoverState;
-        TLOGD(WmsLogTag::DEFAULT, "WindowHoverStateChange, hoverState is: %{public}d", hoverState_);
-        NotifyWindowHoverStateChange(hoverState_);
+    bool currentHoverState = GetHoverState();
+    if (newHoverState == currentHoverState) {
+        return;
+    }
+    SetHoverState(newHoverState);
+
+    if (handler_ != nullptr) {
+        handler_->PostTask([weakThis = wptr(this), newHoverState, where = __func__] {
+            auto window = weakThis.promote();
+            if (window == nullptr) {
+                TLOGNE(WmsLogTag::DEFAULT, "%{public}s window is null", where);
+                return;
+            }
+            window->NotifyWindowHoverStateChange(newHoverState);
+        }, __func__);
     }
 }
 
+bool WindowSessionImpl::GetHoverState()
+{
+    std::lock_guard<std::mutex> lock(hoverStateMutex_);
+    return hoverState_;
+}
+
+void WindowSessionImpl::SetHoverState(bool hoverState)
+{
+    std::lock_guard<std::mutex> lock(hoverStateMutex_);
+    hoverState_ = hoverState;
+}
 
 void WindowSessionImpl::RegisterFoldStatusListener()
 {

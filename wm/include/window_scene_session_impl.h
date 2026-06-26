@@ -822,6 +822,8 @@ private:
     void AddRSNodeModifier(bool isDark, const std::shared_ptr<RSBaseNode>& rsNode);
     void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type);
     void UpdateSidebarBlurStyleWhenColorModeChange();
+
+    bool CheckCreaseRegionCanInHoverState(const Rect& windowRect);
 };
 } // namespace Rosen
 } // namespace OHOS

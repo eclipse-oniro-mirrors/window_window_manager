@@ -9642,6 +9642,17 @@ bool WindowSceneSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
         return false;
     }
 
+    return CheckCreaseRegionCanInHoverState(windowRect);
+}
+
+bool WindowSceneSessionImpl::CheckCreaseRegionCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
     FoldCreaseRegion foldCreaseRegion;
     DMError res = display->GetLiveCreaseRegion(foldCreaseRegion);
     if (res != DMError::DM_OK) {
@@ -9665,7 +9676,6 @@ bool WindowSceneSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
         creaseRect.posY_ + creaseRect.height_ > windowRect.posY_ + windowRect.height_)) {
         return false;
     }
-
     return true;
 }
 } // namespace Rosen
