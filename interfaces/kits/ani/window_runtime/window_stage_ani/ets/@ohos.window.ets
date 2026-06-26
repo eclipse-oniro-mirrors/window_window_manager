@@ -2798,50 +2798,6 @@ export class WindowStageInternal implements WindowStage {
         });
     }
 
-    public setWindowRectAutoSave(enabled: boolean): Promise<void> {
-        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): void => {
-                this.setWindowRectAutoSave(this.nativeObj, enabled, false);
-            }).then((ret: Any) => {
-                resolve(undefined);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public setWindowRectAutoSave(enabled: boolean, isSaveBySpecifiedFlag: boolean): Promise<void> {
-        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): void => {
-                this.setWindowRectAutoSave(this.nativeObj, enabled, isSaveBySpecifiedFlag);
-            }).then((ret: Any) => {
-                resolve(undefined);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public isWindowRectAutoSave(): Promise<boolean> {
-        return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): boolean => {
-                return this.isWindowRectAutoSave(this.nativeObj);
-            }).then((ret: Any) => {
-                resolve(ret as boolean);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public onWindowStageClose(callback: WindowStageCloseCallback<void, boolean>): void {
-        this.onSync(this.nativeObj, 'windowStageClose', callback);
-    }
-
-    public offWindowStageClose(callback?: WindowStageCloseCallback<void, boolean>): void {
-        this.offSync(this.nativeObj, 'windowStageClose', callback);
-    }
-
     public getSubWindow(): Promise<Array<Window>> {
       return new Promise<Array<Window>>((resolve: (value: Array<Window>) => void,
         reject: (error: BusinessError) => void) => {
@@ -2883,6 +2839,50 @@ export class WindowStageInternal implements WindowStage {
 
     public off<T>(eventType: string, callback?: Callback<T>): void {
       this.offSync(this.nativeObj, eventType, callback);
+    }
+
+    public setWindowRectAutoSave(enabled: boolean): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+          taskpool.execute((): void => {
+              this.setWindowRectAutoSave(this.nativeObj, enabled, false);
+          }).then((ret: Any) => {
+              resolve(undefined);
+          }).catch((err: Any) => {
+              reject(err as BusinessError);
+          });
+      });
+    }
+
+    public setWindowRectAutoSave(enabled: boolean, isSaveBySpecifiedFlag: boolean): Promise<void> {
+        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+            taskpool.execute((): void => {
+                this.setWindowRectAutoSave(this.nativeObj, enabled, isSaveBySpecifiedFlag);
+            }).then((ret: Any) => {
+                resolve(undefined);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public isWindowRectAutoSave(): Promise<boolean> {
+        return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
+            taskpool.execute((): boolean => {
+                return this.isWindowRectAutoSave(this.nativeObj);
+            }).then((ret: Any) => {
+                resolve(ret as boolean);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public onWindowStageClose(callback: WindowStageCloseCallback<void, boolean>): void {
+        this.onSync(this.nativeObj, 'windowStageClose', callback);
+    }
+
+    public offWindowStageClose(callback?: WindowStageCloseCallback<void, boolean>): void {
+        this.offSync(this.nativeObj, 'windowStageClose', callback);
     }
 
     public static transferStatic(input: Any): Object {
