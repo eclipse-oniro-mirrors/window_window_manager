@@ -1061,7 +1061,12 @@ int SessionStageStub::HandleSendFbActionEvent(MessageParcel& data, MessageParcel
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         return ERR_INVALID_VALUE;
     }
-    std::string reason = "";
+    std::string reason;
+    if (!data.ReadString(reason)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Read reason failed.");
+        reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+        return ERR_INVALID_VALUE;
+    }
     auto error = SendFbActionEvent(action, reason);
     if (!reply.WriteInt32(static_cast<int32_t>(error))) {
         return ERR_INVALID_VALUE;

@@ -20,7 +20,6 @@ group("unittest") {
   testonly = true
 
   deps = [
-    ":wm_floating_ball_manager_new_test",
     ":wm_floating_ball_manager_test",
     ":wm_gtx_input_event_sender_test",
     ":wm_load_intention_event_test",
@@ -691,7 +690,6 @@ ohos_unittest("wm_floating_ball_new_test") {
   module_out_path = module_out_path
 
   sources = [
-    "floating_ball_controller_new_test.cpp",
     "floating_ball_option_new_test.cpp",
   ]
 
@@ -704,16 +702,6 @@ ohos_unittest("wm_floating_ball_manager_test") {
   module_out_path = module_out_path
 
   sources = [ "floating_ball_manager_test.cpp" ]
-
-  deps = [ ":wm_unittest_common" ]
-
-  external_deps = test_external_deps
-}
-
-ohos_unittest("wm_floating_ball_manager_new_test") {
-  module_out_path = module_out_path
-
-  sources = [ "floating_ball_manager_new_test.cpp" ]
 
   deps = [ ":wm_unittest_common" ]
 
