@@ -148,6 +148,7 @@ public:
     void SetDefaultDensity(float defaultDensity);
     void UpdateVirtualPixelRatio(const RRect& bounds);
     void SetScreenType(ScreenType type);
+    void SetScreenTypeInfo(ScreenTypeInfo typeInfo);
 
     void SetScreenSceneDestroyListener(const DestroyScreenSceneFunc& func);
     void DestroyScreenScene();

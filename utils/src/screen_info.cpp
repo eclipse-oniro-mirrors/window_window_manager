@@ -24,6 +24,7 @@ bool ScreenInfo::Marshalling(Parcel &parcel) const
         parcel.WriteBool(isScreenGroup_) && parcel.WriteUint32(static_cast<uint32_t>(rotation_)) &&
         parcel.WriteUint32(static_cast<uint32_t>(orientation_)) &&
         parcel.WriteUint32(static_cast<uint32_t>(sourceMode_)) &&
+        parcel.WriteUint32(static_cast<uint32_t>(screenTypeInfo_)) &&
         parcel.WriteUint32(static_cast<uint32_t>(type_)) &&
         parcel.WriteUint32(modeId_) && parcel.WriteUint32(static_cast<uint32_t>(modes_.size())) &&
         parcel.WriteBool(isExtend_) && parcel.WriteString(serialNumber_) && parcel.WriteUint64(rsId_) &&
@@ -66,13 +67,15 @@ bool ScreenInfo::InnerUnmarshalling(Parcel& parcel)
     uint32_t rotation;
     uint32_t orientation;
     uint32_t sourceMode;
+    uint32_t screenTypeInfo;
     uint32_t type;
     name_ = parcel.ReadString();
     bool res1 = parcel.ReadUint64(id_) &&
         parcel.ReadUint32(virtualWidth_) && parcel.ReadUint32(virtualHeight_) &&
         parcel.ReadFloat(virtualPixelRatio_) && parcel.ReadUint64(lastParent_) && parcel.ReadUint64(parent_) &&
         parcel.ReadBool(isScreenGroup_) && parcel.ReadUint32(rotation) &&
-        parcel.ReadUint32(orientation) && parcel.ReadUint32(sourceMode) && parcel.ReadUint32(type) &&
+        parcel.ReadUint32(orientation) && parcel.ReadUint32(sourceMode) && 
+        parcel.ReadUint32(screenTypeInfo) && parcel.ReadUint32(type) &&
         parcel.ReadUint32(modeId_) && parcel.ReadUint32(size) &&
         parcel.ReadBool(isExtend_) && parcel.ReadString(serialNumber_) && parcel.ReadUint64(rsId_) &&
         parcel.ReadUint32(mirrorWidth_) && parcel.ReadUint32(mirrorHeight_);
@@ -100,6 +103,7 @@ bool ScreenInfo::InnerUnmarshalling(Parcel& parcel)
     rotation_ = static_cast<Rotation>(rotation);
     orientation_ = static_cast<Orientation>(orientation);
     sourceMode_ = static_cast<ScreenSourceMode>(sourceMode);
+    screenTypeInfo_ = static_cast<ScreenTypeInfo>(screenTypeInfo);
     type_ = static_cast<ScreenType>(type);
     return true;
 }

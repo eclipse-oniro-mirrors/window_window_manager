@@ -99,6 +99,7 @@ public:
     ScreenId groupDmsId_ { SCREEN_ID_INVALID };
     ScreenId lastGroupDmsId_ { SCREEN_ID_INVALID };
     ScreenType type_ { ScreenType::REAL };
+    ScreenTypeInfo typeInfo_ { ScreenTypeInfo::BUILT_IN };
     int32_t activeIdx_ { 0 };
     std::vector<sptr<SupportedScreenModes>> modes_ = {};
     float virtualPixelRatio_ = { 1.0 };

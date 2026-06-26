@@ -178,6 +178,9 @@ public:
 
     void SetStartPosition(uint32_t startX, uint32_t startY);
 
+    void SetScreenTypeInfo(ScreenTypeInfo typeInfo);
+    ScreenTypeInfo GetScreenTypeInfo() const;
+
     void SetScreenType(ScreenType type);
     ScreenType GetScreenType() const;
 
@@ -396,6 +399,7 @@ private:
     SuperFoldStatus foldStatus_ { SuperFoldStatus::UNKNOWN };
 
     ScreenType type_ { ScreenType::REAL };
+    ScreenTypeInfo typeInfo_ { ScreenTypeInfo::BUILT_IN };
 
     void UpdateXDpi();
     void UpdateYDpi();

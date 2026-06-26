@@ -593,6 +593,16 @@ ScreenType ScreenProperty::GetScreenType() const
     return type_;
 }
 
+void ScreenProperty::SetScreenTypeInfo(ScreenTypeInfo typeInfo)
+{
+    typeInfo_ = typeInfo;
+}
+
+ScreenTypeInfo ScreenProperty::GetScreenTypeInfo() const
+{
+    return typeInfo_;
+}
+
 void ScreenProperty::SetScreenRequestedOrientation(Orientation orientation)
 {
     screenRequestedOrientation_ = orientation;

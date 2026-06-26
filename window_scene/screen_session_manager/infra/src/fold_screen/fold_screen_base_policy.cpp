@@ -834,6 +834,7 @@ void FoldScreenBasePolicy::SendPropertyChangeResult(sptr<ScreenSession> screenSe
 {
     screenProperty_ =screenProperty;
     screenSession->SetPhyScreenId(screenId);
+    screenProperty_.SetRsId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         screenSession->UpdatePropertyByFoldControl(screenProperty_);
 

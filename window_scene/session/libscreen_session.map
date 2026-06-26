@@ -44,6 +44,7 @@
             OHOS::Rosen::ScreenProperty::GetRefreshRate*;
             OHOS::Rosen::ScreenProperty::GetRotation*;
             OHOS::Rosen::ScreenProperty::GetRsId*;
+            OHOS::Rosen::ScreenProperty::SetRsId*;
             OHOS::Rosen::ScreenProperty::GetScaleX*;
             OHOS::Rosen::ScreenProperty::GetScaleY*;
             OHOS::Rosen::ScreenProperty::GetScreenComponentRotation*;

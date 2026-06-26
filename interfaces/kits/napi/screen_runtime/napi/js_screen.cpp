@@ -350,6 +350,8 @@ napi_value CreateJsScreenObject(napi_env env, sptr<Screen>& screen)
     napi_set_named_property(env, objValue, "orientation", CreateJsValue(env, info->GetOrientation()));
     napi_set_named_property(env, objValue, "serialNumber", CreateJsValue(env, info->GetSerialNumber()));
     napi_set_named_property(env, objValue, "sourceMode", CreateJsValue(env, info->GetSourceMode()));
+    napi_set_named_property(env, objValue, "screenType",
+        CreateJsValue(env, static_cast<uint32_t>(info->GetScreenTypeInfo())));
     napi_set_named_property(env, objValue, "activeModeIndex", CreateJsValue(env, info->GetModeId()));
     napi_set_named_property(env, objValue, "supportedModeInfo", CreateJsScreenModeArrayObject(env, info->GetModes()));
     napi_set_named_property(env, objValue, "densityDpi", CreateJsValue(env,
