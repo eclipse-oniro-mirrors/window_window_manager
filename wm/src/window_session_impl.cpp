@@ -1491,25 +1491,25 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
         const std::shared_ptr<RSTransaction>& rsTransaction = config.rsTransaction_;
         window->BeginRSTransaction(rsTransaction);
         window->rotationAnimationCount_++;
-        window->rotationAnimationCallBackExecuted_.store(false);
+        auto rotationAnimationCallBackExecuted = std::make_shared<std::atomic_bool>(false);
  	    auto handler = window->handler_;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(config.animationDuration_);
         // animation curve: cubic [0.2, 0.0, 0.2, 1.0]
         auto curve = RSAnimationTimingCurve::CreateCubicCurve(0.2, 0.0, 0.2, 1.0);
-        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak]() {
+        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak, rotationAnimationCallBackExecuted]() {
             auto window = weak.promote();
             if (!window) {
                 return;
             }
-            window->rotationAnimationCallBackExecuted_.store(true);
+            rotationAnimationCallBackExecuted->store(true);
             window->rotationAnimationCount_--;
             if (window->rotationAnimationCount_ == 0) {
                 window->NotifyRotationAnimationEnd();
             }
         });
         // Delayed task to compensate if callback fails
- 	    window->StartRotationAnimationTimeoutTask(handler);
+ 	    window->StartRotationAnimationTimeoutTask(handler, rotationAnimationCallBackExecuted);
         if (wmReason == WindowSizeChangeReason::SNAPSHOT_ROTATION) {
             wmReason = WindowSizeChangeReason::ROTATION;
         }
@@ -1528,15 +1528,16 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
     }, "WMS_WindowSessionImpl_UpdateRectForRotation");
 }
 
-void WindowSessionImpl::StartRotationAnimationTimeoutTask(
-	const std::shared_ptr<AppExecFwk::EventHandler>& handler)
+void WindowSessionImpl::StartRotationAnimationTimeoutTask(	const std::shared_ptr<AppExecFwk::EventHandler>& handler,
+    std::shared_ptr<std::atomic_bool> rotationAnimationCallBackExecuted)
 {
 	if(!handler) {
 	    return;
 	}
-	auto delayTask = [weak = wptr(this)]() {
+	auto delayTask = [weak = wptr(this), rotationAnimationCallBackExecuted]() {
 	    auto window = weak.promote();
-	    if (!window->rotationAnimationCallBackExecuted_.load()) {
+	    if (!rotationAnimationCallBackExecuted->load()) {
+            rotationAnimationCallBackExecuted->store(true);
 	        TLOGW(WmsLogTag::WMS_ROTATION, "rotation animation callback timeout, "
 	            "current count: %{public}d", window->rotationAnimationCount_.load());
 	        window->rotationAnimationCount_--;

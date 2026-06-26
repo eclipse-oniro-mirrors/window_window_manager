@@ -1132,10 +1132,10 @@ protected:
      * Window Rotation
      */
     std::atomic<int16_t> rotationAnimationCount_ { 0 };
-    std::atomic_bool rotationAnimationCallBackExecuted_ { false };
     int16_t sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
-    void StartRotationAnimationTimeoutTask(const std::shared_ptr<AppExecFwk::EventHandler>& handler);
+    void StartRotationAnimationTimeoutTask(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
+        std::shared_ptr<std::atomic_bool> rotationAnimationCallBackExecuted);
     mutable std::mutex virtualPixelRatioMutex_;
 
     /*
