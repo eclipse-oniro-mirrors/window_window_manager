@@ -8347,7 +8347,7 @@ void ScreenSessionManager::ApplyVirtualScreenScale(const sptr<ScreenSession>& sc
     }
 }
 
-ScreenId ScreenSessionManager::GetAssociatedScreenId(VirtualScreenOption& option)
+ScreenId ScreenSessionManager::GetAssociatedScreenId(const VirtualScreenOption& option)
 {
     if (!IsConcurrentUser()) {
         TLOGNFI(WmsLogTag::DMS, "not support mulyi-screen nulti-user");
