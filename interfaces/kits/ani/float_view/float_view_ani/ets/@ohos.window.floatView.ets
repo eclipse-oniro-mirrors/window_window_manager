@@ -50,9 +50,8 @@ export default namespace floatView {
   }
 
   export interface FloatViewConfiguration {
-    context: common.BaseContext;
-    templateType: FloatViewTemplateType;
-    isConfirmOnClose?: boolean;
+      context: common.BaseContext;
+      templateType: FloatViewTemplateType;
   }
 
   export interface RatioLimit {

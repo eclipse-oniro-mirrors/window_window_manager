@@ -57,14 +57,15 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     // 解析应用传参FloatingBallConfiguration对象
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
-        return NapiThrowInvalidParam(env, "[fbWindow][create]msg: Missing args when creating fbController",
+        return NapiThrowInvalidParam(env, "[FBWindow][create]msg: Missing args when creating fbController",
             ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
 
     napi_value config = argv[0];
     if (config == nullptr) {
+
         return NapiThrowInvalidParam(env,
-            "[fbWindow][create]msg: Failed to convert object to fbConfiguration or fbConfiguration is null",
+            "[FBWindow][create]msg: Failed to convert object to fbConfiguration or fbConfiguration is null",
             ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
 
@@ -73,7 +74,7 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     void* contextPtr = nullptr;
     napi_unwrap(env, contextPtrValue, &contextPtr);
     if (contextPtr == nullptr) {
-        return NapiThrowInvalidParam(env, "[fbWindow][create]msg: Context is null.",
+        return NapiThrowInvalidParam(env, "[FBWindow][create]msg: Context is null.",
             ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
     return NapiSendTask(env, contextPtr);

@@ -40,7 +40,6 @@ public:
     void SetContext(void* contextPtr);
     void SetShowWhenCreate(bool showWhenCreate);
     void ClearAniReference(ani_env* env);
-    void SetCloseConfirm(bool closeConfirm);
 
     uint32_t GetTemplate() const;
     const std::string& GetUIPath() const;
@@ -65,7 +64,6 @@ private:
     bool visibleInApp_ {true};
     void* contextPtr_ = nullptr;
     bool showWhenCreate_ {true};
-    bool closeConfirm_ = false;
 };
 }
 }

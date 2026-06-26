@@ -110,7 +110,7 @@ static napi_value ExportFbTextUpdateAnimationType(napi_env env, napi_callback_in
         TLOGE(WmsLogTag::DEFAULT, "Failed to get object");
         return nullptr;
     }
-    (void)SetEnumProperty(env, result, "ANIMATION_NONE",
+    (void)SetEnumProperty(env, result, "ANIMATION_NONE", 
         static_cast<int32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_NONE));
     (void)SetEnumProperty(env, result, "ANIMATION_OPACITY",
         static_cast<int32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_OPACITY));

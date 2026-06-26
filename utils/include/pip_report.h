@@ -34,6 +34,7 @@ public:
     void ReportPiPRestore();
     void ReportPiPUpdateContent(int32_t originType, int32_t templateType, int32_t isSuccess,
         const std::string &errorReason);
+    void ReportWindowException(const std::string& funName, uint32_t errCode, const std::string& errorReason) const;
 private:
     std::string GetPackageName() const;
     std::string packageName_ = "";

@@ -47,7 +47,7 @@ bool PipController::GetPipDeviceCollaborationPolicy(int32_t screenId)
     std::shared_lock<std::shared_mutex> lock(screenPipEnabledMapLock_);
     auto iter = screenPipEnabledMap_.find(screenId);
     if (iter == screenPipEnabledMap_.end()) {
-        return true;
+        return true; // 默认支持
     }
     return iter->second;
 }
@@ -71,20 +71,20 @@ void PipController::OnPipChangeListenerDied(const wptr<IRemoteObject>& remote)
 {
     TLOGI(WmsLogTag::WMS_PIP, "in");
     taskScheduler_->PostAsyncTask([weakThis = weak_from_this(), remote, where = __func__] {
-            auto controller = weakThis.lock();
-            if (controller == nullptr) {
-                TLOGNE(WmsLogTag::WMS_PIP, "controller is null");
-                return;
-            }
-            auto remoteObj = remote.promote();
-            if (!remoteObj) {
-                TLOGND(WmsLogTag::WMS_PIP, "invalid remote object");
-                return;
-            }
-            remoteObj->RemoveDeathRecipient(controller->pipListenerDeathRecipient_);
-            TLOGI(WmsLogTag::WMS_PIP, "SessionLifecycleListener removed on died");
-            controller->RemoveListenerAndEnabledFlag(remoteObj);
-        }, __func__);
+        auto controller = weakThis.lock();
+        if (controller == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PIP, "controller is null");
+            return;
+        }
+        auto remoteObj = remote.promote();
+        if (!remoteObj) {
+            TLOGND(WmsLogTag::WMS_PIP, "invalid remote object");
+            return;
+        }
+        remoteObj->RemoveDeathRecipient(controller->pipListenerDeathRecipient_);
+        TLOGI(WmsLogTag::WMS_PIP, "SessionLifecycleListener removed on died");
+        controller->RemoveListenerAndEnabledFlag(remoteObj);
+    }, __func__);
 }
 
 WMError PipController::RegisterPipChgListenerByScreenId(int32_t screenId,

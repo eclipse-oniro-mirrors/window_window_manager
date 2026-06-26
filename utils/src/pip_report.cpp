@@ -17,6 +17,8 @@
 #include <hisysevent.h>
 #include "pip_report.h"
 #include "window_manager_hilog.h"
+#include "perform_reporter.h"
+#include "singleton_container.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -47,10 +49,11 @@ static std::map<std::string, int32_t> CONTROL_ACTION_MAP = {
 constexpr char EVENT_KEY_SOURCE[] = "SOURCE";
 constexpr char EVENT_KEY_TEMPLATE_TYPE[] = "TEMPLATE_TYPE";
 constexpr char EVENT_KEY_PNAMEID[] = "PNAMEID";
-constexpr char EVENT_KEY_PVERSION[] = "PVERSION";
+constexpr char EVENT_KEY_PVERSION[] = "PVERSIONID";
 constexpr char EVENT_KEY_START_PACKAGE_NAME[] = "START_PACKAGE_NAME";
 constexpr char EVENT_KEY_STOP_PACKAGE_NAME[] = "STOP_PACKAGE_NAME";
 constexpr char EVENT_KEY_OPERATION_PACKAGE_NAME[] = "OPERATION_PACKAGE_NAME";
+constexpr char EVENT_KEY_APP_PACKAGE_NAME[] = "APP_PACKAGE_NAME";
 constexpr char EVENT_KEY_OPERATION_CODE[] = "OPERATION_CODE";
 constexpr char EVENT_KEY_OPERATION_ERROR_REASON[] = "OPERATION_ERROR_REASON";
 constexpr char EVENT_KEY_ACTION_EVENT[] = "ACTION_EVENT";
@@ -181,7 +184,7 @@ void PiPReporter::ReportPiPUpdateContent(int32_t originType, int32_t templateTyp
     int32_t isSuccess, const std::string &errorReason)
 {
     TLOGI(WmsLogTag::WMS_PIP, "Report pip widow update typeNode");
-    std::string eventName = "updateContent_PIP";
+    std::string eventName = "UPDATE_CONTENT_NODE";
     int32_t ret = HiSysEventWrite(
         OHOS::HiviewDFX::HiSysEvent::Domain::MULTIWINDOW_UE, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
@@ -191,8 +194,19 @@ void PiPReporter::ReportPiPUpdateContent(int32_t originType, int32_t templateTyp
         TEMPLATE_TYPE, templateType,
         EVENT_KEY_OPERATION_CODE, isSuccess,
         EVENT_KEY_OPERATION_ERROR_REASON, errorReason,
-        EVENT_KEY_OPERATION_PACKAGE_NAME, GetPackageName());
+        EVENT_KEY_APP_PACKAGE_NAME, GetPackageName());
     LOG_WHEN_ERROR(ret);
+}
+
+void PiPReporter::ReportWindowException(const std::string& funName, uint32_t errCode,
+    const std::string& errorReason) const
+{
+    std::ostringstream oss;
+    TLOGI(WmsLogTag::WMS_PIP, "Report pip widow exception");
+    oss << "ModuleName: PIP" << ", FunName: " << funName << ", ErrCode: " <<
+        errCode << ", ErrorReason: " << errorReason;
+    auto type = WindowDFXHelperType::WINDOW_PIP_CHECK;
+    WindowInfoReporter::GetInstance().ReportWindowException(static_cast<int32_t>(type), getpid(), oss.str());
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -68,13 +68,14 @@ export namespace PiPWindow {
   export type ControlPanelActionEventCallback = (event: PiPActionEventType, status?: int) => void;
 
 
-  export type PiPControlGroup = VideoPlayControlGroup | VideoCallControlGroup | VideoMeetingControlGroup | VideoLiveControlGroup;
+  export type PiPControlGroup = VideoPlayControlGroup | VideoCallControlGroup | VideoMeetingControlGroup | VideoLiveControlGroup | VideoDriveControlGroup;
 
   export enum PiPTemplateType {
     VIDEO_PLAY,
     VIDEO_CALL,
     VIDEO_MEETING,
     VIDEO_LIVE,
+    VIDEO_DRIVE,
   }
 
   export enum VideoPlayControlGroup {
@@ -100,6 +101,8 @@ export namespace PiPWindow {
     VIDEO_PLAY_PAUSE = 401,
     MUTE_SWITCH = 402,
   }
+
+  export enum VideoDriveControlGroup {}
 
   export interface PiPWindowSize {
     width: int;
@@ -216,7 +219,7 @@ export namespace PiPWindow {
 
   export function runOnStateChangeEvent(cb: Object, state: int, reason: string): void {
     const func = cb as (state: PiPState, reason: string) => void;
-    func(PiPState.fromValue(state), reason as string);
+    func(state as PiPState, reason as string);
   }
 
   export function runOnControlPanelActionEvent(cb: Object, action: string, status: int): void {
@@ -225,8 +228,8 @@ export namespace PiPWindow {
 
   export function runOnControlEvent(cb: Object, controlType: int, status: int): void {
     const param: ControlEventParam = {
-      controlType: PiPControlType.fromValue(controlType),
- 	    status: PiPControlStatus.fromValue(status),
+      controlType: controlType as PiPControlType,
+      status: status as PiPControlStatus,
     };
     (cb as Callback<ControlEventParam>)(param);
   }
@@ -296,7 +299,7 @@ export namespace PiPWindow {
     
     native updatePiPControlStatusNative(nativeObj: long, controlType: int, status: int): void;
     public updatePiPControlStatus(controlType: PiPControlType, status: PiPControlStatus): void {
-       this.updatePiPControlStatusNative(this.nativeObj, controlType, status);
+      this.updatePiPControlStatusNative(this.nativeObj, controlType as int, status as int);
     }
 
     native updateContentNodeNative(nativeObj: long, contentNode: typeNode.XComponent): void;
@@ -314,7 +317,7 @@ export namespace PiPWindow {
 
      native setPiPControlEnabledNative(nativeObj: long, controlType: int, enabled: boolean): void;
      public setPiPControlEnabled(controlType: PiPControlType, enabled: boolean): void {
-       this.setPiPControlEnabledNative(this.nativeObj, controlType, enabled);
+       this.setPiPControlEnabledNative(this.nativeObj, controlType as int, enabled);
      }
 
      native getPiPWindowInfoNative(nativeObj: long): PiPWindowInfo;
@@ -472,40 +475,40 @@ export namespace PiPManager {
     nativeObj = nativeObject;
   }
 
-  export native function InitXComponentController(nativeObj: long, xComponentController: XComponentController): void;
-  export native function GetCustomUIController(nativeObj: long): NodeController;
-  export native function GetTypeNode(nativeObj: long): typeNode.XComponent;
-  export native function RegisterCallback(nativeObj: long, type: string, callback: OnCallback): void;
-  export native function UnregisterCallback(nativeObj: long, type: string): void;
-  export native function SetTypeNodeEnabled(nativeObj: long): void;
+  export native function InitXComponentController(nativeObj: long, windowId: int, xComponentController: XComponentController): void;
+  export native function GetCustomUIController(nativeObj: long, windowId: int): NodeController;
+  export native function GetTypeNode(nativeObj: long, windowId: int): typeNode.XComponent;
+  export native function RegisterCallback(nativeObj: long, windowId: int, type: string, callback: OnCallback): void;
+  export native function UnregisterCallback(nativeObj: long, windowId: int, type: string): void;
+  export native function SetTypeNodeEnabled(nativeObj: long, windowId: int): void;
   export native function SetPipNodeType(nativeObj: long, typeNode: typeNode.XComponent, markPip: boolean): void;
 
-  export function initXComponentController(xComponentController: XComponentController): void {
-    return InitXComponentController(nativeObj, xComponentController);
+  export function initXComponentController(windowId: int, xComponentController: XComponentController): void {
+    return InitXComponentController(nativeObj, windowId, xComponentController);
   }
 
-  export function getCustomUIController(): NodeController {
-    return GetCustomUIController(nativeObj);
+  export function getCustomUIController(windowId: int): NodeController {
+    return GetCustomUIController(nativeObj, windowId);
   }
 
-  export function getTypeNode(): typeNode.XComponent {
-    return GetTypeNode(nativeObj);
+  export function getTypeNode(windowId: int): typeNode.XComponent {
+    return GetTypeNode(nativeObj, windowId);
   }
 
-  export function setTypeNodeEnabled(): void {
-    return SetTypeNodeEnabled(nativeObj);
+  export function setTypeNodeEnabled(windowId: int): void {
+    return SetTypeNodeEnabled(nativeObj, windowId);
   }
 
   export function setPipNodeType(typeNode: typeNode.XComponent, markPip: boolean): void {
     return SetPipNodeType(nativeObj, typeNode, markPip);
   }
 
-  export function on(type: string, callback: OnCallback): void {
-    return RegisterCallback(nativeObj, type, callback);
+  export function on(windowId: int, type: string, callback: OnCallback): void {
+    return RegisterCallback(nativeObj, windowId, type, callback);
   }
 
-  export function off(type: string): void {
-    return UnregisterCallback(nativeObj, type);
+  export function off(windowId: int, type: string): void {
+    return UnregisterCallback(nativeObj, windowId, type);
   }
 
   export function runUpdateNodeCallback(fn: object, fnArg: object): void {

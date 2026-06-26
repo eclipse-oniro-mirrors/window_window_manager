@@ -152,10 +152,11 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         }
         task->Resolve(env, NapiGetUndefined(env));
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STARTPIP_BOOL, 1);
+
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStartPictureInPicture") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env,
-            static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), "[PiPWindow][startPiP]msg: Send event failed"));
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), 
+            "[PiPWindow][startPiP]msg: Send event failed"));
     }
     return result;
 }
@@ -176,7 +177,7 @@ napi_value JsPipController::OnStopPictureInPicture(napi_env env, napi_callback_i
         auto pipController = weak.promote();
         if (pipController == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
-                "[PiPWindow][stopPiP]msg: The window is not created or destroyed."));
+                "[PiPWindow][stopPiP]msg: JsPipController::OnStopPictureInPicture failed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_STOPPIP, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
@@ -190,10 +191,11 @@ napi_value JsPipController::OnStopPictureInPicture(napi_env env, napi_callback_i
         }
         task->Resolve(env, NapiGetUndefined(env));
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STOPPIP_BOOL, 1);
+
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStopPictureInPicture") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env,
-            static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), "[PiPWindow][stopPiP]msg: Send event failed"));
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), 
+            "[PiPWindow][stopPiP]msg: Send event failed"));
     }
     return result;
 }
@@ -279,10 +281,10 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnUpdateContentNode") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), 
             "[PiPWindow][updateContentNode]msg: Send event failed"));
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
-            WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+                                         WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     return result;
 }
@@ -434,7 +436,7 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         weak = wptr<PictureInPictureController>(pipController_)]() {
         if (!PictureInPictureManager::IsSupportPiP()) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][getPiPWindowInfo]msg: Failed to call the API due to limited device capabilities."));
+                "[PiPWindow][getPiPWindowInfo]msg:Failed to call the API due to limited device capabilities."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
@@ -442,7 +444,7 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         auto pipController = weak.promote();
         if (pipController == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                "[PiPWindow][getPiPWindowInfo]msg: The window is not created or destroyed."));
+                "[PiPWindow][getPiPWindowInfo]msg:PiP internal error."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
@@ -451,7 +453,7 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         if (pipWindow == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "Failed to get pip window");
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                "[PiPWindow][getPiPWindowInfo]msg: The window is not created or destroyed."));
+                "[PiPWindow][getPiPWindowInfo]msg:PiP internal error."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
@@ -460,8 +462,8 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetPiPWindowInfo") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][getPiPWindowInfo]msg: Send event failed"));
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), 
+            "[PiPWindow][getPiPWindowInfo]msg:Send event failed"));
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                          WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
@@ -500,7 +502,7 @@ napi_value JsPipController::OnGetPiPSettingSwitch(napi_env env, napi_callback_in
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetPiPSettingSwitch") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), 
             "[PiPWindow][getPiPSettingSwitch]msg: Send event failed"));
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
                                          WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);

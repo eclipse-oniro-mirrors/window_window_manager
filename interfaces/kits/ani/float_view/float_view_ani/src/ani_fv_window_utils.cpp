@@ -263,26 +263,6 @@ ani_status AniFvUtils::GetTemplateType(ani_env* env, ani_object floatViewConfigu
     return ANI_OK;
 }
 
-ani_status AniFvUtils::GetIsConfirmOnClose(ani_env* env, ani_object floatViewConfigurations, bool& isConfirm)
-{
-    ani_ref isConfirmValue;
-    env->Object_GetPropertyByName_Ref(floatViewConfigurations, "isConfirmOnClose", &isConfirmValue);
-    ani_boolean isTypeUndefined = false;
-    env->Reference_IsUndefined(isConfirmValue, &isTypeUndefined);
-    if (!isConfirmValue || isTypeUndefined) {
-        return ANI_OK;
-    }
-    ani_boolean isConfirmOnClose;
-    auto ret = env->Object_CallMethodByName_Boolean(static_cast<ani_object>(isConfirmValue), "toBoolean", ":z",
-        &isConfirmOnClose);
-    if (ret != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Object_CallMethodByName_Boolean failed");
-        return ANI_ERROR;
-    }
-    isConfirm = static_cast<bool>(isConfirmOnClose);
-    return ANI_OK;
-}
-
 ani_status AniFvUtils::CallAniFunctionVoid(ani_env* env, const char* ns, const char* fn, const char* signature, ...)
 {
     RETURN_IF_NULL(env, ANI_ERROR);

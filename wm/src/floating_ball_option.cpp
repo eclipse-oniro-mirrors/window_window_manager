@@ -54,7 +54,7 @@ void FbOption::SetTitleColor(const std::string& color)
 {
     titleColor_ = color;
 }
-
+ 
 void FbOption::SetContentColor(const std::string& color)
 {
     contentColor_ = color;
@@ -75,6 +75,7 @@ void FbOption::SetShowWhenCreate(bool showWhenCreate)
     showWhenCreate_ = showWhenCreate;
 }
 
+// LCOV_EXCL_START
 uint32_t FbOption::GetTemplate() const
 {
     return template_;
@@ -99,7 +100,7 @@ std::string FbOption::GetTitleColor() const
 {
     return titleColor_;
 }
-
+ 
 std::string FbOption::GetContentColor() const
 {
     return contentColor_;
@@ -133,7 +134,7 @@ void FbOption::GetFbTemplateBaseInfo(FloatingBallTemplateBaseInfo& fbTemplateBas
     fbTemplateBaseInfo.showWhenCreate_ = showWhenCreate_;
 }
 
-bool FbOption::IsValid(std::string& errMsg) const
+bool FbOption::IsValid(std::string &errMsg) const
 {
     if (template_ < static_cast<uint32_t>(FloatingBallTemplate::STATIC) ||
         template_ >= static_cast<uint32_t>(FloatingBallTemplate::END)) {
@@ -162,29 +163,28 @@ bool FbOption::IsValid(std::string& errMsg) const
         return false;
     }
     if (textUpdateAnimationType_ >= static_cast<uint32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_END)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]animationType %{public}u is invalid", textUpdateAnimationType_);
+        TLOGE(WmsLogTag::WMS_SYSTEM, "animationType %{public}u is invalid", textUpdateAnimationType_);
         errMsg = "TextUpdateAnimationType is invalid";
         return false;
     }
-    
     return VerifyColor(errMsg);
 }
- 
-bool FbOption::VerifyColor(std::string& errMsg) const
+
+bool FbOption::VerifyColor(std::string &errMsg) const
 {
     if (!backgroundColor_.empty() && !ColorParser::IsValidColorNoAlpha(backgroundColor_)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "BackgroundColor is invalid");
         errMsg = "BackgroundColor is invalid";
         return false;
-    }
- 
+    } 
+
     bool hasTextColor = !titleColor_.empty() || !contentColor_.empty();
     if (hasTextColor && backgroundColor_.empty()) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "When setting the text color, the background color must be set");
         errMsg = "When setting the text color, the background color must be set";
         return false;
     }
- 
+
     if (!titleColor_.empty() && !ColorParser::IsValidColorNoAlpha(titleColor_)) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "TitleColor is invalid");
         errMsg = "TitleColor is invalid";
@@ -195,7 +195,7 @@ bool FbOption::VerifyColor(std::string& errMsg) const
         errMsg = "ContentColor is invalid";
         return false;
     }
- 
+
     return true;
 }
 
