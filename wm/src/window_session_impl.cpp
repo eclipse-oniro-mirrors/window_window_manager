@@ -1672,7 +1672,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             RSAdapterUtil::SetRSTransactionHandler(rsTransaction, window->GetRSUIContext());
             rsTransaction->Begin();
         }
-        if (wmReason == WindowSizeChangeReason::DRAG) {
+        if (wmReason == WindowSizeChangeReason::DRAG || wmReason == WindowSizeChangeReason::SPLIT_DRAG) {
             window->UpdateRectForOtherReasonTask(window->GetRect(), preRect, wmReason, rsTransaction, avoidAreas);
             window->isDragTaskPostDone_.store(true);
         } else {
@@ -1682,7 +1682,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             rsTransaction->Commit();
         }
     };
-    if (wmReason == WindowSizeChangeReason::DRAG) {
+    if (wmReason == WindowSizeChangeReason::DRAG || wmReason == WindowSizeChangeReason::SPLIT_DRAG) {
         bool isDragTaskPostDone = true;
         if (isDragTaskPostDone_.compare_exchange_strong(isDragTaskPostDone, false)) {
             handler_->PostTask(task, "WMS_WindowSessionImpl_UpdateRectForOtherReason");
@@ -2360,7 +2360,8 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
     bool onlySupportFullScreen = WindowHelper::IsOnlySupportFullScreen(windowModeSupportType);
-    if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
+    if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow) &&
+        !IsZLevelAboveParentLoosened()) {
         uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
         return;
     }
@@ -2980,6 +2981,10 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
     if (auto uiContent = GetUIContentSharedPtr()) {
         WindowMode mode = GetWindowMode();
         bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
+        bool isInPcMainScreen = windowSystemConfig_.IsPcWindow() && !(windowSystemConfig_.freeMultiWindowSupport_ &&
+            !windowSystemConfig_.freeMultiWindowEnable_);
+        bool isCompatibleFullScreen = mode == WindowMode::WINDOW_MODE_FULLSCREEN &&
+            property_->IsSupportRotateFullScreen() && !IsAnco() && isInPcMainScreen;
         bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
             WindowHelper::IsSplitWindowMode(mode) ||
             (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !isAncoInPcOrPcMode);
@@ -2992,6 +2997,12 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
         }
         if (mode == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
             decorVisible = false;
+        } else if (isCompatibleFullScreen) {
+            SystemBarProperty statusBarProperty = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
+            TLOGI(WmsLogTag::WMS_COMPAT, "compat fullscreen statusBar: %{public}d, immersiveTitle: %{public}d, "
+                "isInPcMainScreen: %{public}d", statusBarProperty.enable_, property_->IsAdaptToImmersive(),
+                isInPcMainScreen);
+ 	        decorVisible = isInPcMainScreen && (statusBarProperty.enable_ || property_->IsAdaptToImmersive());
         }
         decorVisible = updateDecorWhenDockAutoHide(decorVisible);
         TLOGD(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d, isDockAutoHide:%{public}d, "
@@ -5870,7 +5881,7 @@ WMError WindowSessionImpl::SetTitleButtonVisible(bool isMaximizeVisible, bool is
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (!WindowHelper::IsMainWindow(GetType())) {
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsZLevelAboveParentLoosened()) {
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (property_->GetPcAppInpadCompatibleMode() && !IsDecorEnable()) {
@@ -10371,7 +10382,7 @@ void WindowSessionImpl::SwitchSystemWindow(bool freeMultiWindowEnable, int32_t p
 {
     std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     if (windowSessionMap_.empty()) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty.");
+        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty");
         return;
     }
     for (const auto& winPair : windowSessionMap_) {
