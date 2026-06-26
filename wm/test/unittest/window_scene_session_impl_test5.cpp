@@ -3393,6 +3393,47 @@ HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitConfigEnable02, TestSize.Leve
 }
 
 /**
+ * @tc.name: SetForceSplitEnable01
+ * @tc.desc: Test SetForceSplitEnable when window type is not main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitEnable01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetForceSplitEnable01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    auto ret = window->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
+    ASSERT_EQ(ret, WSError::WS_DO_NOTHING);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable02
+ * @tc.desc: Test SetForceSplitEnable with main window and valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitEnable02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetForceSplitEnable02");
+    option->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    auto ret = window->SetForceSplitEnable(true, true, SelectMode::SQUARE_MODE);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(window->GetProperty()->GetForceSplitEnable(), true);
+    ASSERT_EQ(window->GetProperty()->GetSelectMode(), SelectMode::SQUARE_MODE);
+
+    ret = window->SetForceSplitEnable(false, false, SelectMode::WIDE_MODE);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(window->GetProperty()->GetForceSplitEnable(), false);
+    ASSERT_EQ(window->GetProperty()->GetSelectMode(), SelectMode::WIDE_MODE);
+}
+
+/**
  * @tc.name: SendCombinedCompatibleConfigToArkUI
  * @tc.desc: Test SendCombinedCompatibleConfigToArkUI
  * @tc.type: FUNC

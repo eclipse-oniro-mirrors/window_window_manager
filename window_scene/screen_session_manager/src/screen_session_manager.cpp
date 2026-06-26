@@ -237,6 +237,7 @@ const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_w
 const ScreenId SCREEN_GROUP_ID_DEFAULT = 1;
 const std::string SCREEN_NAME_EXTEND = "ExtendedDisplay";
 const std::string SCREEN_NAME_CAST = "CastEngine";
+const std::string SCREEN_NAME_BULIT_IN_OUTER_SCREEN = "SubScreen";
 const std::set<std::string> INDIVIDUAL_SCREEN_GROUP_SET = {"CeliaView", "DevEcoViewer", "Cooperation-multi", "HwCast_AppModeDisplay"};
 
 const int32_t MAIN_STATUS_WIDTH = 0;
@@ -670,12 +671,15 @@ void ScreenSessionManager::WaitForDefaultDisplayReady()
         return;
     }
     TLOGNFI(WmsLogTag::DMS, "waiting for physical screen to be detected");
-    
     auto task = [this] {
+        std::lock_guard<std::mutex> lock(onScreenChangeMutex_);
+        if (HasRealScreenConnect()) {
+            TLOGNFW(WmsLogTag::DMS, "has hotpluged screen");
+            return;
+        }
         TLOGNFW(WmsLogTag::DMS, "timeout waiting for default display");
         OnScreenChange(INVALID_SCREEN_ID, ScreenEvent::CONNECTED);
     };
-    
     taskScheduler_->RemoveTask("WaitForDefaultDisplayReady");
     taskScheduler_->PostAsyncTask(task, "WaitForDefaultDisplayReady", WAIT_FOR_DEFAULT_DISPLAY_TIMEOUT_MS);
 }
@@ -1325,6 +1329,7 @@ void ScreenSessionManager::RegisterScreenChangeListener()
     auto res = rsInterface_.SetScreenChangeCallback(
         DmUtils::wrap_callback([this](ScreenId screenId, ScreenEvent screenEvent, ScreenChangeReason reason, 
             sptr<IRemoteObject> connectToRenderToken) {
+            std::lock_guard<std::mutex> lock(onScreenChangeMutex_);
             OnScreenChange(screenId, screenEvent, reason, connectToRenderToken);
         })
     );
@@ -1722,6 +1727,9 @@ void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenE
             ClearAllVirtualScreens();
             g_isVirtualScreenBoot = false;
             CreateScreenForBoot();
+            return;
+        }
+        if (g_isVirtualScreenBoot && reason == ScreenChangeReason::DEFAULT){
             return;
         }
     } 
@@ -5883,6 +5891,9 @@ void ScreenSessionManager::GetInternalAndExternalSession(sptr<ScreenSession>& in
         }
         if (!screenSession->GetIsCurrentInUse()) {
             TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
+            continue;
+        }
+        if (screenSession->GetName() == SCREEN_NAME_BULIT_IN_OUTER_SCREEN) {
             continue;
         }
         if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL && screenSession->isInternal_) {

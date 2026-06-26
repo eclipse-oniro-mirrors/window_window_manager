@@ -524,8 +524,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
         }
         PreProcessCreate();
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
-            property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
+        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+            nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
     }
     property_->SetPersistentId(persistentId);
     if (session == nullptr) {
@@ -536,12 +536,12 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         return WMError::WM_ERROR_NULLPTR;
     }
     if (surfaceNode_ == nullptr) {
-        TLOGI(WmsLogTag::WMS_LIFE, "create specific failed, surfaceNode is nullptr, name: %{public}s",
+        TLOGE(WmsLogTag::WMS_LIFE, "create specific failed, surfaceNode is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
-            return WMError::WM_ERROR_NULLPTR;
+        return WMError::WM_ERROR_NULLPTR;
     }
     if (renderSession == nullptr) {
-        TLOGI(WmsLogTag::WMS_LIFE, "create specific failed, renderSession is nullptr, name: %{public}s",
+        TLOGE(WmsLogTag::WMS_LIFE, "create specific failed, renderSession is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
@@ -1562,14 +1562,10 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
         // get support modes configuration
         uint32_t windowModeSupportType = GetSupportedWindowModesConfiguration(abilityInfo);
+        windowModeSupportType = SetSupportedWindowModesForAncoInFreeWindow(windowModeSupportType);
         property_->SetWindowModeSupportType(windowModeSupportType);
-        // anco support multiWindow config
-        const bool isAncoSupportMultiWindow =
-            system::GetIntParameter("hmos_fusion.container.pc.freemode.captionbar", 0) == 1;
-        bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
         TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}u, windowModeSupportType: %{public}u, "
-            "isAncoSupportMultiWindow: %{public}d, isAncoInPcOrPcMode:%{public}d",
-            GetWindowId(), windowModeSupportType, isAncoSupportMultiWindow, isAncoInPcOrPcMode);
+            "isAncoSupportFreeWindow: %{public}d", GetWindowId(), windowModeSupportType, IsAncoSupportFreeWindow());
         // update windowModeSupportType to server
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
         bool isWindowModeSupportFullscreen = GetTargetAPIVersion() < 15 ? // 15: isolated version
@@ -1578,13 +1574,18 @@ void WindowSceneSessionImpl::GetConfigurationFromAbilityInfo()
             !WindowHelper::IsWindowModeSupported(windowModeSupportType, WindowMode::WINDOW_MODE_FLOATING));
         bool isAncoInPhoneFreeMultiWindowMode = IsAnco() && IsFreeMultiWindowMode() &&
             windowSystemConfig_.IsPhoneWindow();
-        bool onlySupportFullScreen = (isWindowModeSupportFullscreen ||
-            (isAncoInPcOrPcMode && !isAncoSupportMultiWindow)) || isAncoInPhoneFreeMultiWindowMode;
+        bool onlySupportFullScreen = isWindowModeSupportFullscreen || isAncoInPhoneFreeMultiWindowMode ||
+            (IsAnco() && !IsAncoSupportFreeWindow());
         bool compatibleDisableFullScreen = property_->IsFullScreenDisabled();
         if ((onlySupportFullScreen || property_->GetFullScreenStart()) && !compatibleDisableFullScreen) {
             TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d fullScreenStart:%{public}d",
                 onlySupportFullScreen, property_->GetFullScreenStart());
             Maximize(MaximizePresentation::ENTER_IMMERSIVE);
+        }
+        const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+        if (!onlySupportFullScreen && IsAnco() && IsFreeMultiWindowMode() &&
+            (!windowSystemConfig_.IsPcWindow() || isPcMode) && IsAncoSupportFreeWindow()) {
+            MaximizeForCompatibleMode();
         }
     }
 }
@@ -2947,14 +2948,14 @@ WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo
     EventPositionInfo& originalEventPositionInfo) const
 {
     if (IsWindowSessionInvalid()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
+        TLOGE(WmsLogTag::WMS_EVENT, "Session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     originalEventPositionInfo = eventPositionInfo;
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
         property_->GetDisplayId() == DISPLAY_ID_C &&
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
-        superFoldOffsetY_ != -1) {
+        superFoldOffsetY_ != -1 && !IsWindowDelayRaiseEnabled()) {
         if (originalEventPositionInfo.displayY != EventPositionInfo::INVALID_INT32) {
             originalEventPositionInfo.displayY += superFoldOffsetY_;
         }
@@ -3840,6 +3841,11 @@ WMError WindowSceneSessionImpl::NotifySpecificWindowSessionProperty(WindowType t
         if (property_->IsAdaptToImmersive() && isIgnoreSafeArea_) {
             HookDecorButtonStyleInCompatibleMode(property.contentColor_);
         }
+        bool isCompatibleFullScreen = GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN &&
+            property_->IsSupportRotateFullScreen() && !IsAnco() && windowSystemConfig_.IsPcWindow();
+        if (isCompatibleFullScreen) {
+            UpdateDecorEnable(true);
+        }
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_NAVIGATION_PROPS);
     } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
@@ -4278,9 +4284,6 @@ bool WindowSceneSessionImpl::IsDecorEnable() const
     if ((isSubWindow || isDialogWindow) && property_->GetIsPcAppInPad() && property_->IsDecorEnable()) {
         enable = true;
     }
-    if (IsSubWindowMaximizeSupported() && property_->IsDecorEnable()) {
-        enable = true;
-    }
     TLOGD(WmsLogTag::WMS_DECOR, "get decor enable %{public}d", enable);
     return enable;
 }
@@ -4326,6 +4329,9 @@ WMError WindowSceneSessionImpl::Minimize()
     if (IsWindowSessionInvalid()) {
         WLOGFE("session is invalid");
         return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (IsPcOrPadFreeMultiWindowMode() && IsZLevelAboveParentLoosened()) {
+        return Hide(0, true, true);
     }
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
@@ -6904,11 +6910,18 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
         return WSError::WS_ERROR_REPEAT_OPERATION;
     }
-    NotifySwitchFreeMultiWindow(enable);
-    NotifyFreeWindowModeChange(enable);
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
-    if (!(IsAnco() && windowSystemConfig_.IsPadWindow())) {
+    NotifySwitchFreeMultiWindow(enable);
+    NotifyFreeWindowModeChange(enable);
+    if (IsAnco() && windowSystemConfig_.IsPadWindow()) {
+        if (!IsAncoSupportFreeWindow()) {
+            uint32_t tempWindowModeSupportType = property_->GetWindowModeSupportType();
+            property_->SetWindowModeSupportType(lastWindowModeSupportType_);
+            lastWindowModeSupportType_ = tempWindowModeSupportType;
+            UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
+        }
+    } else {
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     }
     if (enable) {
@@ -6923,8 +6936,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
         UpdateDecorEnable(true);
     }
-    if (WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(), WindowMode::WINDOW_MODE_FLOATING) &&
-        !(IsAnco() && windowSystemConfig_.IsPhoneWindow())) {
+    if (!IsAnco()) {
         UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());
@@ -9086,8 +9098,7 @@ WSError WindowSceneSessionImpl::NotifyAppForceLandscapeConfigUpdated()
     return WSError::WS_DO_NOTHING;
 }
 
-void WindowSceneSessionImpl::SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport,
-    SelectMode selectMode)
+void WindowSceneSessionImpl::SetForceSplitConfigEnable(bool needUpdateViewport)
 {
     WindowType winType = GetType();
     if (!WindowHelper::IsMainWindow(winType)) {
@@ -9098,18 +9109,19 @@ void WindowSceneSessionImpl::SetForceSplitConfigEnable(bool enableForceSplit, bo
         TLOGE(WmsLogTag::WMS_COMPAT, "uiContent is null!");
         return;
     }
-    ForceSplitMode splitMode = ForceSplitMode::NOT_SPLIT;
-    if (enableForceSplit) {
-        if (selectMode == SelectMode::WIDE_MODE) {
-            splitMode = ForceSplitMode::WIDE_SPLIT;
-        } else if (selectMode == SelectMode::SQUARE_MODE) {
-            splitMode = ForceSplitMode::SQUARE_SPLIT;
-        }
+    const auto& property = GetProperty();
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "property is null!");
+        return;
     }
-    TLOGI(WmsLogTag::WMS_COMPAT, "SetForceSplitEnable, enableForceSplit: %{public}u, needUpdateViewport: %{public}u, "
-        "selectMode: %{public}u, splitMode: %{public}u", enableForceSplit, needUpdateViewport,
-        static_cast<uint32_t>(selectMode), static_cast<uint32_t>(splitMode));
-    uiContent->SetForceSplitEnable(enableForceSplit, splitMode, needUpdateViewport);
+    TLOGI(WmsLogTag::WMS_COMPAT, "enableForceSplit: %{public}u, needUpdateViewport: %{public}u, "
+        "selectMode: %{public}u", property->GetForceSplitEnable(), needUpdateViewport,
+        static_cast<uint32_t>(property->GetSelectMode()));
+    // needUpdateViewport indicates whether an UpdateViewportConfig will be triggered shortly after
+    // this call. If so, skip here to avoid redundant work and let the upcoming call handle it.
+    if (!needUpdateViewport) {
+        UpdateViewportConfig(GetRect(), WindowSizeChangeReason::SPLIT_ENABLE_CHANGE);
+    }
 }
 
 void WindowSceneSessionImpl::SendCombinedCompatibleConfigToArkUI()
@@ -9148,7 +9160,18 @@ WMError WindowSceneSessionImpl::GetSelectMode(SelectMode& selectMode)
 {
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
-    return hostSession->GetSelectMode(selectMode);
+    WMError ret = hostSession->GetSelectMode(selectMode);
+    if (ret == WMError::WM_OK) {
+        property_->SetSelectMode(selectMode);
+    }
+    return ret;
+}
+
+WMError WindowSceneSessionImpl::GetForceSplitEnable(bool& enable)
+{
+    auto hostSession = GetHostSession();
+    CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
+    return hostSession->GetForceSplitEnable(enable);
 }
 
 WSError WindowSceneSessionImpl::UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo)
@@ -9170,8 +9193,12 @@ WSError WindowSceneSessionImpl::SetForceSplitEnable(bool isForceSplitEnabled, bo
     if (!WindowHelper::IsMainWindow(windowType)) {
         return WSError::WS_DO_NOTHING;
     }
-    property_->SetForceSplitEnable(isForceSplitEnabled);
-    SetForceSplitConfigEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
+    const auto& property = GetProperty();
+    if (property) {
+        property->SetForceSplitEnable(isForceSplitEnabled);
+        property->SetSelectMode(selectMode);
+    }
+    SetForceSplitConfigEnable(needUpdateViewport);
     return WSError::WS_OK;
 }
 
@@ -9526,6 +9553,36 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
 bool WindowSceneSessionImpl::IsInFreeWindowMode() const
 {
     return IsPcOrPadFreeMultiWindowMode();
+}
+
+bool WindowSceneSessionImpl::IsAncoSupportFreeWindow() const
+{
+    static const bool isAncoSupportFreeWindow = system::GetIntParameter(IS_ANCO_SUPPORT_FREE_WINDOW, 0) == 1;
+    return isAncoSupportFreeWindow && (windowSystemConfig_.IsPcWindow() || windowSystemConfig_.IsPadWindow());
+}
+
+uint32_t WindowSceneSessionImpl::SetSupportedWindowModesForAncoInFreeWindow(uint32_t windowModeSupportType)
+{
+    if (!IsAnco() || !(windowSystemConfig_.IsPcWindow() || windowSystemConfig_.IsPadWindow())) {
+        TLOGI(WmsLogTag::WMS_MAIN, "is not anco app, need not update support window mode.");
+        return windowModeSupportType;
+    }
+
+    if (IsAncoSupportFreeWindow()) {
+        TLOGI(WmsLogTag::WMS_MAIN, "anco app support free window, need not update support window mode.");
+        return windowModeSupportType;
+    }
+    
+    // if anco not support free window, delete floating and save last support window mode.
+    // when switch free window mode, recover support window mode by lastWindowModeSupportType_
+    if (windowSystemConfig_.IsPcOrPcMode()) {
+        lastWindowModeSupportType_ = windowModeSupportType;
+        windowModeSupportType = windowModeSupportType & (~WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+        return windowModeSupportType;
+    }
+    
+    lastWindowModeSupportType_ = windowModeSupportType & (~WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    return windowModeSupportType;
 }
 
 WSError WindowSceneSessionImpl::HideSubWindowZLevelAboveParentLoosened()

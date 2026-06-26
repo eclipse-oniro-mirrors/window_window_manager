@@ -34,21 +34,24 @@ public:
     virtual ~FloatingBallController();
     WMError StartFloatingBall(sptr<FbOption>& option);
     WMError StartFloatingBallSingle(const sptr<FbOption>& option, bool showWhenCreate = true);
-    WMError StopFloatingBall();
+    WMError StopFloatingBall(const std::string& reason);
     WMError UpdateFloatingBall(sptr<FbOption>& option);
     WMError SetInApplicationVisible(bool isVisible);
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::Want>& want);
-    WMError DestroyFloatingBallWindow();
+    WMError DestroyFloatingBallWindow(const std::string& reason);
     sptr<Window> GetFbWindow() const;
     WMError StopFloatingBallFromClient();
     WMError StopFloatingBallFromClientSingle();
 
     WMError RegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
     WMError RegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
+    WMError RegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener);
     WMError UnRegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
     WMError UnRegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
+    WMError UnRegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener);
  
     void OnFloatingBallClick();
+    void OnFloatingBallDestroy(const std::string& reason);
  
     WMError GetFloatingBallWindowInfo(uint32_t& windowId);
 
@@ -88,6 +91,7 @@ private:
 
     std::vector<sptr<IFbLifeCycle>> fbLifeCycleListeners_;
     std::vector<sptr<IFbClickObserver>> fbClickObservers_;
+    std::vector<sptr<IFbDestroyObserver>> fbDestroyObservers_;
 
     std::mutex controllerMutex_;
 

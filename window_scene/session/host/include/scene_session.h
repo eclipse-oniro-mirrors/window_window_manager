@@ -895,7 +895,7 @@ public:
         return systemConfig_.IsFreeMultiWindowMode();
     }
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-
+    WMError GetForceSplitEnable(bool& enable) override;
     bool IsPcOrPadEnableActivation() const;
     void UnregisterSessionChangeListeners() override;
 

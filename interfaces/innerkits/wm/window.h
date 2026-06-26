@@ -2596,6 +2596,7 @@ public:
     {
         return WMError::WM_OK;
     }
+    
     virtual WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
         BackupAndRestoreType type = BackupAndRestoreType::NONE, sptr<IRemoteObject> token = nullptr,
         AppExecFwk::Ability* ability = nullptr)
@@ -5327,7 +5328,7 @@ public:
     /**
      * @brief update the floating ball window instance.
      *
-     * @param fbTemplateInfo the template info of the floating-ball.
+     * @param fbTemplateBaseInfo the template info of the floating-ball.
      * @param icon the icon of the floating-ball.
      */
     virtual WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,

@@ -230,6 +230,11 @@ void MultiScreenChangeUtils::ScreenRSIdChange(sptr<ScreenSession>& innerScreen,
     innerScreen->SetRSScreenId(externalScreenId);
     externalScreen->SetRSScreenId(innerScreenId);
 
+    ScreenId innerPhyScreenId = innerScreen->GetPhyScreenId();
+    ScreenId externalPhyScreenId = externalScreen->GetPhyScreenId();
+    innerScreen->SetPhyScreenId(externalPhyScreenId);
+    externalScreen->SetPhyScreenId(innerPhyScreenId);
+
     bool isInnerScreenInternal = innerScreen->GetIsInternal();
     bool isexternalScreenInternal = externalScreen->GetIsInternal();
     innerScreen->SetIsInternal(isexternalScreenInternal);

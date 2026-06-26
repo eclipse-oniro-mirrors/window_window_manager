@@ -267,11 +267,11 @@ public:
     void HookDecorButtonStyleInCompatibleMode(uint32_t contentColor);
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
-    void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
-        SelectMode selectMode = SelectMode::INVALID_MODE) override;
+    void SetForceSplitConfigEnable(bool needUpdateViewport = false) override;
     void SendCombinedCompatibleConfigToArkUI();
     WMError NotifyPageEnable(const std::string& action, const std::string& message) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    WMError GetForceSplitEnable(bool& enable) override;
 
     /*
      * Free Multi Window
@@ -741,6 +741,11 @@ private:
      */
     bool isExecuteDelayRaise_ = false;
     bool IsFullScreenEnable() const;
+    // if anco not support free window, delete floating and save last support window mode.
+    // when switch free window mode, recover support window mode by lastWindowModeSupportType_
+    uint32_t lastWindowModeSupportType_ = 0;
+    uint32_t SetSupportedWindowModesForAncoInFreeWindow(uint32_t windowModeSupportType);
+    bool IsAncoSupportFreeWindow() const;
 
     /*
      * PC Window UE report

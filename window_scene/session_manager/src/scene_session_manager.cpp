@@ -621,6 +621,8 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
                 }
             } else {
                 sceneSession->NotifyFollowParentMultiScreenPolicy(sessionInfo.isFollowParentMultiScreenPolicy);
+                sceneSession->SetFollowParentWindowLayoutEnabled(property->IsFollowParentLayout());
+                sceneSession->SetRecovered(true);
                 NotifyCreateSpecificSession(sceneSession, property, property->GetWindowType());
                 CacheSpecificSessionForRecovering(sceneSession, property);
                 sceneSession->SetWindowAnchorInfo(property->GetWindowAnchorInfo());
@@ -3419,7 +3421,7 @@ sptr<SceneSession> SceneSessionManager::GetSceneSessionBySessionInfo(const Sessi
         bool isSingleStart = sceneSession && sceneSession->GetAbilityInfo() &&
             sceneSession->GetAbilityInfo()->launchMode == AppExecFwk::LaunchMode::SINGLETON;
         if (sceneSession && sceneSession->GetSessionInfo().reuseSessionInGamePreLaunch_) {
-            TLOGI(WmsLogTag::WMS_LIFE, "request new session with persistentId: %{public}d",
+            TLOGI(WmsLogTag::WMS_LIFE, "[gameprelaunch]request new session with persistentId: %{public}d",
                 sessionInfo.persistentId_);
             return nullptr;
         }
@@ -4446,7 +4448,7 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
         }
 
         if (sceneSession->GetSessionInfo().isGamePrelaunch_) {
-            TLOGNI(WmsLogTag::WMS_LIFE, "Reset scene session isGamePrelaunch_ to false, id: %{public}d",
+            TLOGNI(WmsLogTag::WMS_LIFE, "[gameprelaunch]Reset scene session isGamePrelaunch_ to false, id: %{public}d",
                 sceneSession->GetPersistentId());
             sceneSession->EditSessionInfo().isGamePrelaunch_ = false;
         }
@@ -13657,7 +13659,7 @@ void SceneSessionManager::DealwithVisibilityChange(const std::vector<std::pair<u
     if (memMgrWindowInfos.size() != 0) {
         TLOGD(WmsLogTag::WMS_LIFE, "memMgrWindowInfos: %{public}s", memLogInfo.c_str());
         taskScheduler_->PostAsyncTaskToExportHandler([memMgrWindowInfos = std::move(memMgrWindowInfos)]() {
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE, "memMgrWindowInfos size: %{public}zu", memMgrWindowInfos.size());
             Memory::MemMgrClient::GetInstance().OnWindowVisibilityChanged(memMgrWindowInfos);
         }, "notifyMemMgr");
     }
@@ -14816,6 +14818,35 @@ void SceneSessionManager::SetVirtualPixelRatioChangeListener(const ProcessVirtua
     TLOGI(WmsLogTag::DEFAULT, "end");
 }
 
+bool SceneSessionManager::ShouldProcessVirtualPixelRatioChange(
+    DisplayStateChangeType type, sptr<DisplayInfo> displayInfo)
+{
+    if (displayInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "displayInfo is nullptr");
+        return false;
+    }
+    auto rootSceneSession = GetRootSceneSession();
+    if (rootSceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rootSceneSession is nullptr");
+        return false;
+    }
+    bool isInternal = system::GetIntParameter("const.product.has_buildin_screen", 1);
+    auto result = processVirtualPixelRatioChangeFunc_ != nullptr &&
+                  ((type == DisplayStateChangeType::RESOLUTION_CHANGE &&
+                    displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
+                   (type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE && !isInternal &&
+                    displayInfo->GetDisplayId() == rootSceneSession->GetDisplayId()));
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE,
+          "result=%{public}d isInternal=%{public}d type=%{public}u rootDisplayId=%{public}" PRIu64
+          " inputDisplayId=%{public}" PRIu64,
+          result,
+          isInternal,
+          type,
+          rootSceneSession->GetDisplayId(),
+          displayInfo->GetDisplayId());
+    return result;
+}
+
 void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
     const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type)
 {
@@ -14824,10 +14855,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
         return;
     }
     taskScheduler_->PostSyncTask([this, displayInfo, type, where = __func__]() {
-        if (processVirtualPixelRatioChangeFunc_ != nullptr &&
-            ((type == DisplayStateChangeType::RESOLUTION_CHANGE &&
-            displayInfo->GetVirtualPixelRatio() == displayInfo->GetDensityInCurResolution()) ||
-                type == DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE)){
+        if (ShouldProcessVirtualPixelRatioChange(type, displayInfo)) {
             Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
                           displayInfo->GetWidth(), displayInfo->GetHeight() };
             processVirtualPixelRatioChangeFunc_(displayInfo->GetVirtualPixelRatio(), rect);
@@ -16949,7 +16977,7 @@ WMError SceneSessionManager::GetVisibilityWindowInfo(std::vector<sptr<WindowVisi
                 displayId = session->GetClientDisplayId();
             }
             windowVisibilityInfo->SetDisplayId(displayId);
-            TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE,
                 "%{public}s: wid=%{public}d, visibilityInfo displayId=%{public}" PRIu64,
                 where, session->GetWindowId(), displayId);
             infos.emplace_back(windowVisibilityInfo);

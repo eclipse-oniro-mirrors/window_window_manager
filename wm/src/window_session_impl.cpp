@@ -153,6 +153,20 @@ Ace::ViewportConfig FillViewportConfig(
     return config;
 }
 
+void FillForceSplitConfig(Ace::ViewportConfig& config, SelectMode selectMode, bool forceSplitEnable)
+{
+    ForceSplitMode splitMode = ForceSplitMode::NOT_SPLIT;
+    if (forceSplitEnable) {
+        if (selectMode == SelectMode::WIDE_MODE) {
+            splitMode = ForceSplitMode::WIDE_SPLIT;
+        } else if (selectMode == SelectMode::SQUARE_MODE) {
+            splitMode = ForceSplitMode::SQUARE_SPLIT;
+        }
+    }
+    config.SetForceSplitEnable(forceSplitEnable);
+    config.SetForceSplitMode(splitMode);
+}
+
 const std::map<Orientation, const char*> ORIENTATION_NAME_MAP {
     {Orientation::UNSPECIFIED, "UNSPECIFIED"},
     {Orientation::VERTICAL, "VERTICAL"},
@@ -600,8 +614,8 @@ RSSurfaceNode::SharedPtr WindowSessionImpl::CreateSurfaceNode(const std::string&
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
     rsSurfaceNodeConfig.SurfaceNodeName = name;
     RSSurfaceNodeType rsSurfaceNodeType = GetRSSurfaceNodeType(type);
-    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig,
-        rsSurfaceNodeType, true, property_->IsConstrainedModal(), GetRSUIContext());
+    auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType,
+        true, property_->IsConstrainedModal(), GetRSUIContext());
     RSAdapterUtil::SetSkipCheckInMultiInstance(surfaceNode, true);
     SetSurfaceNodeAlphaChangedCallback(surfaceNode);
     TLOGI(WmsLogTag::WMS_SCB, "Create RSSurfaceNode: %{public}s, name: %{public}s",
@@ -866,7 +880,7 @@ WMError WindowSessionImpl::Connect()
         "oriDisplayId:%{public}" PRIu64 ", curDisplayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
         GetPersistentId(), property_->GetWindowType(), ret, originDisplayId, property_->GetDisplayId());
     if (surfaceNode_ == nullptr) {
-        TLOGI(WmsLogTag::WMS_LIFE, "connect failed, surfaceNode is nullptr, name: %{public}s",
+        TLOGE(WmsLogTag::WMS_LIFE, "connect failed, surfaceNode is nullptr, name: %{public}s",
             property_->GetWindowName().c_str());
         return WMError::WM_ERROR_NULLPTR;
     }
@@ -1684,7 +1698,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             RSAdapterUtil::SetRSTransactionHandler(rsTransaction, window->GetRSUIContext());
             rsTransaction->Begin();
         }
-        if (wmReason == WindowSizeChangeReason::DRAG) {
+        if (wmReason == WindowSizeChangeReason::DRAG || wmReason == WindowSizeChangeReason::SPLIT_DRAG) {
             window->UpdateRectForOtherReasonTask(window->GetRect(), preRect, wmReason, rsTransaction, avoidAreas);
             window->isDragTaskPostDone_.store(true);
         } else {
@@ -1694,7 +1708,7 @@ void WindowSessionImpl::UpdateRectForOtherReason(const Rect& wmRect, const Rect&
             rsTransaction->Commit();
         }
     };
-    if (wmReason == WindowSizeChangeReason::DRAG) {
+    if (wmReason == WindowSizeChangeReason::DRAG || wmReason == WindowSizeChangeReason::SPLIT_DRAG) {
         bool isDragTaskPostDone = true;
         if (isDragTaskPostDone_.compare_exchange_strong(isDragTaskPostDone, false)) {
             handler_->PostTask(task, "WMS_WindowSessionImpl_UpdateRectForOtherReason");
@@ -2270,7 +2284,18 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     if (viewportUseHookedSize_.load()) {
         viewportRect = hookedViewportRect;
     }
+    SelectMode selectMode = SelectMode::INVALID_MODE;
+    bool forceSplitEnable = false;
+    const auto& property = GetProperty();
+    if (property) {
+        selectMode = property->GetSelectMode();
+        forceSplitEnable = property->GetForceSplitEnable();
+        if (selectMode == SelectMode::INVALID_MODE && GetSelectMode(selectMode) != WMError::WM_OK) {
+ 	         TLOGE(WmsLogTag::WMS_COMPAT, "get selectMode failed, windowId: %{public}d", GetPersistentId());
+ 	     }
+    }
     auto config = FillViewportConfig(viewportRect, density, orientation, transformHint, GetDisplayId());
+    FillForceSplitConfig(config, selectMode, forceSplitEnable);
     if (reason == WindowSizeChangeReason::DRAG_END && keyFramePolicy_.stopping_) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "key frame stop");
         keyFramePolicy_.stopping_ = false;
@@ -2361,7 +2386,8 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     bool isSubWindow = WindowHelper::IsSubWindow(windowType);
     bool isDialogWindow = WindowHelper::IsDialogWindow(windowType);
     bool onlySupportFullScreen = WindowHelper::IsOnlySupportFullScreen(windowModeSupportType);
-    if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow)) {
+    if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow) &&
+        !IsZLevelAboveParentLoosened()) {
         uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
         return;
     }
@@ -2477,6 +2503,7 @@ WMError WindowSessionImpl::NapiSetUIContentByName(const std::string& contentName
     return SetUIContentInner(contentName, env, storage, WindowSetUIContentType::BY_NAME,
         BackupAndRestoreType::NONE, ability);
 }
+
 WMError WindowSessionImpl::AniSetUIContentByName(const std::string& contentName, ani_env* env, ani_object storage,
     BackupAndRestoreType type, sptr<IRemoteObject> token, AppExecFwk::Ability* ability)
 {
@@ -2619,7 +2646,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
                 uiContent->SetIntentParam(intentParam_, std::move(loadPageCallback_), isIntentColdStart_);
                 intentParam_ = "";
             }
-            // adapter navDestinationInfo_
+            // adapted navDestinationInfo_
             if (!navDestinationInfo_.empty()) {
                 uiContent->RestoreNavDestinationInfo(navDestinationInfo_, true);
             }
@@ -2868,16 +2895,28 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
     if (WindowHelper::IsMainWindow(winType) && GetAppForceLandscapeConfig(config) == WMError::WM_OK &&
         config.containsConfig_) {
         SetForceSplitConfig(config);
-        // try to fetch selectMode
-        SelectMode finalSelectMode = SelectMode::INVALID_MODE;
-        if (GetSelectMode(finalSelectMode) != WMError::WM_OK) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "get selectMode fail, id: %{public}d", GetPersistentId());
-            finalSelectMode = SelectMode::INVALID_MODE;
+        const auto& property = GetProperty();
+        if (property == nullptr) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "property is null, id: %{public}d", GetPersistentId());
         } else {
-            TLOGI(WmsLogTag::WMS_COMPAT, "get selectMode success, id: %{public}d, selectMode: %{public}u",
-                GetPersistentId(), static_cast<uint32_t>(finalSelectMode));
+            // fetch selectMode
+            SelectMode finalSelectMode = SelectMode::INVALID_MODE;
+            auto selectModeRet = GetSelectMode(finalSelectMode);
+            TLOGI(WmsLogTag::WMS_COMPAT, "get selectMode, id: %{public}d, ret: %{public}d, selectMode: %{public}u",
+                GetPersistentId(), static_cast<int32_t>(selectModeRet), static_cast<uint32_t>(finalSelectMode));
+            if (selectModeRet == WMError::WM_OK) {
+                property->SetSelectMode(finalSelectMode);
+            }
+            // fetch enableForceSplit
+            bool enableForceSplit = false;
+            auto forceSplitRet = GetForceSplitEnable(enableForceSplit);
+            TLOGI(WmsLogTag::WMS_COMPAT, "get forceSplitEnable, id: %{public}d, ret: %{public}d, forceSplitEnable: "
+                "%{public}u", GetPersistentId(), static_cast<int32_t>(forceSplitRet),
+                static_cast<uint32_t>(enableForceSplit));
+            if (forceSplitRet == WMError::WM_OK) {
+                property->SetForceSplitEnable(enableForceSplit);
+            }
         }
-        SetForceSplitConfigEnable(property_->GetForceSplitEnable(), false, finalSelectMode);
     }
 
     uint32_t version = 0;
@@ -2968,6 +3007,10 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
     if (auto uiContent = GetUIContentSharedPtr()) {
         WindowMode mode = GetWindowMode();
         bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
+        bool isInPcMainScreen = windowSystemConfig_.IsPcWindow() && !(windowSystemConfig_.freeMultiWindowSupport_ &&
+            !windowSystemConfig_.freeMultiWindowEnable_);
+        bool isCompatibleFullScreen = mode == WindowMode::WINDOW_MODE_FULLSCREEN &&
+            property_->IsSupportRotateFullScreen() && !IsAnco() && isInPcMainScreen;
         bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
             WindowHelper::IsSplitWindowMode(mode) ||
             (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() && !isAncoInPcOrPcMode);
@@ -2980,6 +3023,12 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
         }
         if (mode == WindowMode::WINDOW_MODE_FULLSCREEN && property_->IsDecorFullscreenDisabled()) {
             decorVisible = false;
+        } else if (isCompatibleFullScreen) {
+            SystemBarProperty statusBarProperty = GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR);
+            TLOGI(WmsLogTag::WMS_COMPAT, "compat fullscreen statusBar: %{public}d, immersiveTitle: %{public}d, "
+                "isInPcMainScreen: %{public}d", statusBarProperty.enable_, property_->IsAdaptToImmersive(),
+                isInPcMainScreen);
+ 	        decorVisible = isInPcMainScreen && (statusBarProperty.enable_ || property_->IsAdaptToImmersive());
         }
         decorVisible = updateDecorWhenDockAutoHide(decorVisible);
         TLOGD(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d, isDockAutoHide:%{public}d, "
@@ -5855,7 +5904,7 @@ WMError WindowSessionImpl::SetTitleButtonVisible(bool isMaximizeVisible, bool is
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    if (!WindowHelper::IsMainWindow(GetType())) {
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsZLevelAboveParentLoosened()) {
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (property_->GetPcAppInpadCompatibleMode() && !IsDecorEnable()) {
@@ -6640,7 +6689,6 @@ EnableIfSame<T, IScreenshotAppEventListener, std::vector<IScreenshotAppEventList
     return screenshotAppEventListeners_[GetPersistentId()];
 }
 
-
 WSError WindowSessionImpl::NotifyDestroy()
 {
     if (WindowHelper::IsDialogWindow(property_->GetWindowType())) {
@@ -7178,8 +7226,8 @@ WSError WindowSessionImpl::NotifyPiPActiveStatusChange(bool status)
 WSError WindowSessionImpl::SendFbActionEvent(const std::string& action, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s, reason: %{public}s", action.c_str(), reason.c_str());
-    auto task = [action]() {
-        FloatingBallManager::DoFbActionEvent(action);
+    auto task = [action, reason]() {
+        FloatingBallManager::DoFbActionEvent(action, reason);
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_SendFbActionEvent");
     return WSError::WS_OK;
@@ -8600,7 +8648,7 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         }
         if (rsTransaction) {
             RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
-            if(auto rsUIContext = window->GetRSUIContext()){
+            if (auto rsUIContext = window->GetRSUIContext()) {
                 rsTransaction->SetTransactionHandler(rsUIContext->GetRSTransaction());
             }
             rsTransaction->Begin();
@@ -10357,7 +10405,7 @@ void WindowSessionImpl::SwitchSystemWindow(bool freeMultiWindowEnable, int32_t p
 {
     std::shared_lock<std::shared_mutex> lock(windowSessionMutex_);
     if (windowSessionMap_.empty()) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty.");
+        TLOGD(WmsLogTag::WMS_LAYOUT, "windowSessionMap_ is empty");
         return;
     }
     for (const auto& winPair : windowSessionMap_) {

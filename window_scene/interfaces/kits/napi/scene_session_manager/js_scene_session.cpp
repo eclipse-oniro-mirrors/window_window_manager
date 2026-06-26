@@ -6741,8 +6741,8 @@ napi_value JsSceneSession::OnRequestHideKeyboard(napi_env env, napi_callback_inf
 
 napi_value JsSceneSession::OnSendFbActionEvent(napi_env env, napi_callback_info info)
 {
-    size_t argc = 1;
-    napi_value argv[1] = {nullptr};
+    size_t argc = ARG_COUNT_2;
+    napi_value argv[ARG_COUNT_2] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Argc count is invalid: %{public}zu", argc);
@@ -6752,12 +6752,20 @@ napi_value JsSceneSession::OnSendFbActionEvent(napi_env env, napi_callback_info 
     }
     std::string action;
     if (!ConvertFromJsValue(env, argv[0], action)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to string");
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert action parameter to string");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     std::string reason = "";
+    if (argc == ARG_COUNT_2) {
+        if (!ConvertFromJsValue(env, argv[1], reason)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert reason parameter to string");
+            napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                        "Input parameter is missing or invalid"));
+            return NapiGetUndefined(env);
+        }
+    }
     auto session = weakSession_.promote();
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "session is nullptr, id:%{public}d", persistentId_);

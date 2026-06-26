@@ -1541,7 +1541,14 @@ HWTEST_F(SessionStageStubTest, HandleSendFbActionEvent, TestSize.Level1)
     data1.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     data1.WriteString(action);
     code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_FB_ACTION_EVENT);
-    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data1, reply, option));
+    ASSERT_EQ(ERR_INVALID_VALUE, sessionStageStub_->OnRemoteRequest(code, data1, reply, option));
+
+    MessageParcel data2;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data2.WriteString(action);
+    data2.WriteString("");
+    code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_FB_ACTION_EVENT);
+    ASSERT_EQ(ERR_NONE, sessionStageStub_->OnRemoteRequest(code, data2, reply, option));
 }
 
 /**
@@ -2016,10 +2023,11 @@ HWTEST_F(SessionStageStubTest, HandleSetForceSplitEnable02, TestSize.Level1)
     MessageParcel reply;
     MessageOption option;
 
-    // Case 1: Failed to read isForceSplitEnabled
-    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE);
     ASSERT_TRUE(sessionStageStub_ != nullptr);
+
+    // Case 1: Failed to read isForceSplitEnabled
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
     ASSERT_EQ(ERR_INVALID_DATA, sessionStageStub_->OnRemoteRequest(code, data, reply, option));
 
     // Case 2: Failed to read needUpdateViewport

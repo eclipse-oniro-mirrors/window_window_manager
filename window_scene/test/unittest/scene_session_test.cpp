@@ -2008,6 +2008,57 @@ HWTEST_F(SceneSessionTest, GetAppForceLandscapeConfig, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetForceSplitEnable01
+ * @tc.desc: GetForceSplitEnable when property is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetForceSplitEnable01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetForceSplitEnable01";
+    info.bundleName_ = "GetForceSplitEnable01";
+    // SetUp is not required; this test intentionally creates a fresh SceneSession to test null-property path
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    // No public API to set property_ to nullptr; direct access is intentional for testing null-property path
+    sceneSession->property_ = nullptr;
+
+    bool enable = false;
+    auto result = sceneSession->GetForceSplitEnable(enable);
+    ASSERT_EQ(result, WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable02
+ * @tc.desc: GetForceSplitEnable when property is valid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetForceSplitEnable02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetForceSplitEnable02";
+    info.bundleName_ = "GetForceSplitEnable02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->SetSessionProperty(property);
+
+    sceneSession->GetSessionProperty()->SetForceSplitEnable(true);
+    bool enable = false;
+    auto result = sceneSession->GetForceSplitEnable(enable);
+    ASSERT_EQ(result, WMError::WM_OK);
+    ASSERT_EQ(enable, true);
+
+    sceneSession->GetSessionProperty()->SetForceSplitEnable(false);
+    enable = true;
+    result = sceneSession->GetForceSplitEnable(enable);
+    ASSERT_EQ(result, WMError::WM_OK);
+    ASSERT_EQ(enable, false);
+}
+
+/**
  * @tc.name: SetDefaultDisplayIdIfNeed
  * @tc.desc: SetDefaultDisplayIdIfNeed
  * @tc.type: FUNC
