@@ -1529,16 +1529,16 @@ private:
     /*
      * window hover state
      */
-class FoldStatusListener : public DisplayManager::IFoldStatusListener {
-public:
-    explicit FoldStatusListener(const sptr<WindowSessionImpl> windowSessionimpl)
-        : windowSessionimpl_(windowSessionimpl) {}
-    ~FoldStatusListener() { windowSessionimpl_ = nullptr; }
+    class FoldStatusListener : public DisplayManager::IFoldStatusListener {
+    public:
+        explicit FoldStatusListener(const sptr<WindowSessionImpl> windowSessionimpl)
+            : windowSessionimpl_(windowSessionimpl) {}
+        ~FoldStatusListener() { windowSessionimpl_ = nullptr; }
 
-    void OnFoldStatusChanged(FoldStatus foldStatus) override;
-private:
-    sptr<WindowSessionImpl> windowSessionimpl_ = nullptr;
-};
+        void OnFoldStatusChanged(FoldStatus foldStatus) override;
+    private:
+        sptr<WindowSessionImpl> windowSessionimpl_ = nullptr;
+    };
     virtual bool CheckWindowCanInHoverState(const Rect& windowRect);
     void UpdateHoverState(const Rect& windowRect, FoldStatus foldStatus);
     void NotifyWindowHoverStateChange(bool hoverState);
