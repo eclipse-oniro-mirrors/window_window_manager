@@ -4758,11 +4758,11 @@ public:
     virtual WMError OnContainerModalEvent(const std::string& eventName,
         const std::string& value) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /**
+    /*
      * @brief Determine whether the window spans multiple screens and displays in full screen mode.
      *
      * @param isAcrossDisplays the value true means to span multiple screens, and false means the opposite.
-     * @return WM_OK means success, others means failed.
+     * @return WM_OK means window show success, others means failed.
      */
     virtual WMError IsMainWindowFullScreenAcrossDisplays(
         bool& isAcrossDisplays) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
