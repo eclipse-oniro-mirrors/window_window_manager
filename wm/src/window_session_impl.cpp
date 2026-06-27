@@ -10678,7 +10678,6 @@ void WindowSessionImpl::RegisterFoldStatusListener()
     auto ret = DisplayManager::GetInstance().RegisterFoldStatusListener(foldStatusListener_);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "register fold status listener failed!");
-        delete foldStatusListener_;
         foldStatusListener_ = nullptr;
     }
 }
@@ -10693,8 +10692,6 @@ void WindowSessionImpl::UnregisterFoldStatusListener()
     auto ret = DisplayManager::GetInstance().UnregisterFoldStatusListener(foldStatusListener_);
     if (ret != DMError::DM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "unregister fold status listener failed!");
-    } else {
-        delete foldStatusListener_;
     }
     foldStatusListener_ = nullptr;
 }
