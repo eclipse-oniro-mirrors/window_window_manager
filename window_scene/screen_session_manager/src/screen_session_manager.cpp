@@ -705,6 +705,9 @@ void ScreenSessionManager::CreateScreenForBoot()
 
     if (GetClientProxy() == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "boot client proxy is nullptr");
+        if (isBoot_) {
+            DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UpdateScreenPowerState(true);
+        }
     } else {
         TLOGNFI(WmsLogTag::DMS, "boot screen connect");
         HandleScreenConnectEvent(defaultScreenSession, defaultScreenSession->GetScreenId(), ScreenEvent::CONNECTED);
@@ -2425,6 +2428,9 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
+    if (isBoot_) {
+        DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UpdateScreenPowerState(true);
+    }
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
 
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
@@ -7456,8 +7462,12 @@ ScreenPowerState ScreenSessionManager::GetScreenPower()
     ScreenPowerState state = ScreenPowerState::INVALID_STATE;
 #ifdef FOLD_ABILITY_ENABLE
     if (!g_foldScreenFlag || FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        state = static_cast<ScreenPowerState>(RSInterfaces::GetInstance()
-            .GetScreenPowerStatus(GetDefaultScreenId()));
+        if (!HasInternalScreen() && g_isPcDevice) {
+            state = GetScreenPower(GetDefaultScreenId());
+        } else {
+            state = static_cast<ScreenPowerState>(RSInterfaces::GetInstance()
+                .GetScreenPowerStatus(GetDefaultScreenId()));
+        }
     } else {
         state = static_cast<ScreenPowerState>(RSInterfaces::GetInstance()
             .GetScreenPowerStatus(foldScreenController_->GetCurrentScreenId()));
