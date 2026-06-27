@@ -1329,7 +1329,7 @@ void AniWindowManager::OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long di
             "[window][moveMainWindowToTargetDisplay]msg: parameter verfication failed");
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>(userId).
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(WindowManager::GetInstance(userId).
         MoveMainWindowToTargetDisplay(displayId, windowId));
     if (ret != WmErrorCode::WM_OK) {
         AniWindowUtils::AniThrowError(env, ret, "[window][moveMainWindowToTargetDisplay]msg:set failed");
