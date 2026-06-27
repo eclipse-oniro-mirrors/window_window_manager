@@ -32,10 +32,6 @@ group("unittest") {
     ":dmserver_display_power_controller_test",
     ":dmserver_screen_rotation_controller_test",
   ]
-
-  if (window_manager_use_sceneboard) {
-    deps += [ ":dmserver_abstract_screen_controller_test" ]
-  }
 }
 
 ohos_unittest("dmserver_abstract_screen_controller_test") {

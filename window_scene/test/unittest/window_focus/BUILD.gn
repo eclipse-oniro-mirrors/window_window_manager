@@ -19,7 +19,6 @@ ws_unittest_common = "../:ws_unittest_common"
 
 group("unittest") {
   testonly = true
-  deps = [ ":window_focus_scene_session_test" ]
 }
 
 ohos_unittest("window_focus_scene_session_test") {
