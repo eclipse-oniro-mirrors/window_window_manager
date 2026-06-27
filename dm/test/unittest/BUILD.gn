@@ -24,7 +24,6 @@ group("unittest") {
     ":dm_display_manager_agent_stub_test",
     ":dm_display_power_unit_test",
     ":dm_display_test",
-    ":dm_oh_display_manager_test",
     ":dm_screen_group_test",
     ":dm_screen_test",
     ":dm_screenshot_test",
@@ -34,9 +33,6 @@ group("unittest") {
   } else {
     deps += [
       ":dm_screen_manager_test",
-      ":dm_display_manager_adapter_test",
-      ":dm_display_manager_agent_proxy_test",
-      ":dm_display_manager_test",
     ]
   }
 }

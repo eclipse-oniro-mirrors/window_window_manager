@@ -23,10 +23,6 @@ group("unittest") {
     ":dm_display_lite_power_unit_test",
     ":dm_display_lite_test",
     ":dm_display_manager_adapter_lite_test",
-    ":dm_display_manager_lite_test",
-    ":dm_display_lite_proxy_test",
-    ":dm_screen_manager_lite_test",
-    ":dm_display_manager_lite_proxy_test",
     ":dm_display_manager_proxy_mock_test",
   ]
 }

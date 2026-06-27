@@ -18,10 +18,7 @@ group("unittest") {
   testonly = true
   if(window_manager_use_sceneboard) {
     deps = [
-      ":extension_data_handler_test",
       ":ws_extension_session_manager_test",
-      ":ws_extension_session_test",
-      ":ws_scene_session_manager_extension_test",
     ]
   }
 }

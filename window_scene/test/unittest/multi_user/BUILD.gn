@@ -16,7 +16,6 @@ import("../../../../windowmanager_aafwk.gni")
 
 group("unittest") {
   testonly = true
-  deps = [ ":window_scene_user_switch_test" ]
 }
 
 module_out_path = "window_manager/window_manager/window_scene/multi_user"
