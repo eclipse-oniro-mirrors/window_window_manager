@@ -156,6 +156,7 @@ constexpr uint32_t SLEEP_TIME_US = 10000;
 constexpr int32_t RES_FAILURE_FOR_PRIVACY_WINDOW = -2;
 constexpr int32_t IRREGULAR_REFRESH_RATE_SKIP_THRETHOLD = 10;
 constexpr float EXTEND_SCREEN_DPI_DEFAULT_PARAMETER = 1.0f;
+constexpr float EXTEND_SCREEN_DPI_FOR_PHONE_GAP = 0.4f;
 static const int32_t AUTO_ROTATE_OFF = 0;
 static const int NOTIFY_EVENT_FOR_DUAL_FAILED = 0;
 static const int NOTIFY_EVENT_FOR_DUAL_SUCESS = 1;
@@ -15650,6 +15651,10 @@ void ScreenSessionManager::SetExtendScreenDpi()
         g_extendScreenDpiCoef = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
     } else {
         g_extendScreenDpiCoef = extendScreenDpiCoef;
+    }
+    if (FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        TLOGNFI(WmsLogTag::DMS, "in phone extend coef");
+        g_extendScreenDpiCoef -= EXTEND_SCREEN_DPI_FOR_PHONE_GAP;
     }
     float dpi = static_cast<float>(cachedSettingDpi_) / BASELINE_DENSITY;
     SetExtendPixelRatio(dpi * g_extendScreenDpiCoef);
