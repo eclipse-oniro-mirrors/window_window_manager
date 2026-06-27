@@ -9515,6 +9515,7 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
     TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(),
         isDark, static_cast<uint32_t>(type));
     auto rsUIContext = GetRSUIContext();
+    AutoRSTransaction trans(rsUIContext);
     if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
         Rosen::RSAnimationTimingProtocol timingProtocol;
         timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
