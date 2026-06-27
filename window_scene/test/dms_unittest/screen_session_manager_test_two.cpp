@@ -3228,6 +3228,24 @@ HWTEST_F(ScreenSessionManagerTest, GetBrightnessInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetBrightnessInfo02
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetBrightnessInfo02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetBrightnessInfo02 start";
+    sptr<ScreenSession> screenSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession);
+    ssm_->screenSessionMap_[51] = screenSession;
+    screenSession->SetScreenAvailableStatus(false);
+    ScreenBrightnessInfo brightnessInfo;
+    auto ret = ssm_->GetBrightnessInfo(51, brightnessInfo);
+    EXPECT_EQ(ret, DMError::DM_ERROR_ILLEGAL_PARAM);
+    GTEST_LOG_(INFO) << "GetBrightnessInfo02 end";
+}
+
+/**
  * @tc.name: GetSupportsInput
  * @tc.desc: normal function
  * @tc.type: FUNC

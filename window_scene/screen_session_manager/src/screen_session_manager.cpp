@@ -5516,6 +5516,10 @@ DMError ScreenSessionManager::GetBrightnessInfo(DisplayId displayId, ScreenBrigh
         TLOGNFE(WmsLogTag::DMS, "GetScreenSession failed");
         return DMError::DM_ERROR_ILLEGAL_PARAM;
     }
+    if (!screenSession->IsScreenAvailable()) {
+        TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
+        return DMError::DM_ERROR_ILLEGAL_PARAM;
+    }
     BrightnessInfo rsBrightnessInfo;
     auto rsUIContext = screenSession->GetRSUIContext();
     if (rsUIContext == nullptr) {
