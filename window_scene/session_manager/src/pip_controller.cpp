@@ -84,7 +84,7 @@ void PipController::OnPipChangeListenerDied(const wptr<IRemoteObject>& remote)
         remoteObj->RemoveDeathRecipient(controller->pipListenerDeathRecipient_);
         TLOGI(WmsLogTag::WMS_PIP, "SessionLifecycleListener removed on died");
         controller->RemoveListenerAndEnabledFlag(remoteObj);
-    }, __func__);
+        }, __func__);
 }
 
 WMError PipController::RegisterPipChgListenerByScreenId(int32_t screenId,
