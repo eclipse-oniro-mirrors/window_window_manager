@@ -1042,6 +1042,21 @@ public:
     virtual void OnUIContentCreate(std::weak_ptr<Ace::UIContent> uiContent) {}
 };
 
+/**
+ * @class IWindowHoverStateChangeListener
+ *
+ * @brief IWindowHoverStateChangeListener is used to observe the window hover state.
+ */
+class IWindowHoverStateChangeListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when window hover state change.
+     *
+     * @param hoverState The current window hover state.
+     */
+    virtual void OnWindowHoverStateChange(bool hoverState) {}
+};
+
 static WMError DefaultCreateErrCode = WMError::WM_OK;
 class Window : virtual public RefBase {
 public:
@@ -5727,6 +5742,30 @@ public:
      * @param showWhenCreate show when create for float view or floating ball.
      */
     virtual WMError UpdateFloatShowWhenCreate(const bool showWhenCreate)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Register window hover state change listener
+     *
+     * @param listener IWindowHoverStateChangeListener.
+     * @return WM_OK means register success, others means register failed
+     */
+    virtual WMError RegisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister window hover state change listener
+     *
+     * @param listener IWindowHoverStateChangeListener.
+     * @return WM_OK means register success, others means unregister failed
+     */
+    virtual WMError UnregisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
     {
         return WMError::WM_OK;
     }

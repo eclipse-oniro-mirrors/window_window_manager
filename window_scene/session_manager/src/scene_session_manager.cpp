@@ -14494,6 +14494,7 @@ void SceneSessionManager::UpdateAvoidAreaForLSStateChange(int32_t curState, int3
                 continue;
             }
             session->HandleLayoutAvoidAreaUpdate(AvoidAreaType::TYPE_END);
+            session->NotifyClientToUpdateLSState(isLSState_);
         }
     }, __func__);
 }

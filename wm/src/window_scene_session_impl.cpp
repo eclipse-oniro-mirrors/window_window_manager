@@ -9679,5 +9679,68 @@ WMError WindowSceneSessionImpl::ClearNativeTouchEventFilter()
     nativeTouchEventFilter_ = nullptr;
     return WMError::WM_OK;
 }
+
+bool WindowSceneSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
+    bool isFullScreen = false;
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        auto displayInfo = display->GetDisplayInfo();
+        if (displayInfo &&
+            windowRect.width_ == static_cast<uint32_t>(displayInfo->GetWidth()) &&
+            windowRect.height_ >= static_cast<uint32_t>(displayInfo->GetHeight())) {
+            isFullScreen = true;
+        }
+    } else {
+        isFullScreen = IsFullScreenSizeWindow(windowRect.width_, windowRect.height_);
+    }
+
+    Transform transform = property_->GetTransform();
+    if (!isFullScreen || GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN ||
+        (transform.scaleX_ != 1 || transform.scaleY_ != 1) || WindowSessionImpl::GetLSState()) {
+        return false;
+    }
+
+    return CheckCreaseRegionCanInHoverState(windowRect);
+}
+
+bool WindowSceneSessionImpl::CheckCreaseRegionCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
+    FoldCreaseRegion foldCreaseRegion;
+    DMError res = display->GetLiveCreaseRegion(foldCreaseRegion);
+    if (res != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "foldCreaseRegion is null!");
+        return false;
+    }
+
+    const auto& creaseRects = foldCreaseRegion.GetCreaseRects();
+    if (creaseRects.empty()) {
+        TLOGE(WmsLogTag::DEFAULT, "creaseRects is empty!");
+        return false;
+    }
+
+    const DMRect& creaseRect = creaseRects.front();
+    if (creaseRect.width_ < creaseRect.height_) {
+        return false;
+    }
+
+    if ((creaseRect.posX_ < windowRect.posX_ || creaseRect.posY_ < windowRect.posY_) ||
+        (creaseRect.posX_ + creaseRect.width_ > windowRect.posX_ + windowRect.width_ ||
+        creaseRect.posY_ + creaseRect.height_ > windowRect.posY_ + windowRect.height_)) {
+        return false;
+    }
+    return true;
+}
 } // namespace Rosen
 } // namespace OHOS

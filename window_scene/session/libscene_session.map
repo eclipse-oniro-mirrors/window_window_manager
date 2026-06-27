@@ -372,6 +372,7 @@
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
             OHOS::Rosen::Session::*;
             OHOS::Rosen::ExtensionSession::*;
+            OHOS::Rosen::SceneSession::NotifyClientToUpdateLSState*;
             
             virtual?thunk?to?OHOS::Rosen::Session::~Session*;
             non-virtual?thunk?to?OHOS::Rosen::Session::*;

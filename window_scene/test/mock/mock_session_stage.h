@@ -123,6 +123,7 @@ public:
     MOCK_METHOD2(SendFvActionEvent, WSError(const std::string& action, const std::string& reason));
     MOCK_METHOD2(SyncFvWindowInfo, WSError(const FloatViewWindowInfo& windowInfo, const std::string& reason));
     MOCK_METHOD1(SyncFvLimits, WSError(const std::map<uint32_t, FloatViewLimits>& limits));
+    MOCK_METHOD1(UpdateLSState, WSError(bool isLSState));
 };
 } // namespace Rosen
 } // namespace OHOS

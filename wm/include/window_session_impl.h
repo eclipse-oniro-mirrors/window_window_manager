@@ -726,6 +726,15 @@ public:
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
 
+    /*
+     * window hover state
+     */
+    bool GetWindowHoverState();
+    WMError RegisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
+    WMError UnregisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
+    WSError UpdateLSState(bool isLSState) override;
+    bool GetLSState() const;
+
 protected:
     RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
     WMError Connect();
@@ -1247,6 +1256,8 @@ private:
     EnableIfSame<T, IFreeWindowModeChangeListener, std::vector<sptr<IFreeWindowModeChangeListener>>> GetListeners();
     template<typename T>
  	EnableIfSame<T, IParentLifecycleEventListener, std::vector<sptr<IParentLifecycleEventListener>>> GetListeners();
+    template<typename T>
+ 	EnableIfSame<T, IWindowHoverStateChangeListener, std::vector<sptr<IWindowHoverStateChangeListener>>> GetListeners();
     void NotifyAfterFocused();
     void NotifyUIContentFocusStatus();
     void NotifyAfterUnfocused(bool needNotifyUiContent = true);
@@ -1346,6 +1357,7 @@ private:
     static std::recursive_mutex windowStatusDidChangeListenerMutex_;
     static std::recursive_mutex parentWindowSizeChangeListenerMutex_;
     static std::recursive_mutex parentWindowStatusChangeListenerMutex_;
+    static std::recursive_mutex windowHoverStateChangeListenerMutex_;
     static std::mutex displayMoveListenerMutex_;
     static std::mutex windowRectChangeListenerMutex_;
     static std::mutex windowTitleChangeListenerMutex_;
@@ -1408,6 +1420,7 @@ private:
     static std::map<int32_t, std::vector<sptr<IWindowRotationChangeListener>>> windowRotationChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IFreeWindowModeChangeListener>>> freeWindowModeChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IParentLifecycleEventListener>>> parentLifecycleEventListeners_;
+    static std::map<int32_t, std::vector<sptr<IWindowHoverStateChangeListener>>> windowHoverStateChangeListeners_;
 
     // FA only
     sptr<IAceAbilityHandler> aceAbilityHandler_;
@@ -1514,6 +1527,32 @@ private:
     void NotifyRotationChangeResult(RotationChangeResult rotationChangeResult) override;
     void NotifyRotationChangeResultInner(const RotationChangeInfo& rotationChangeInfo);
     DisplayOrientation windowOrientation_ = DisplayOrientation::UNKNOWN;
+
+    /*
+     * window hover state
+     */
+    class FoldStatusListener : public DisplayManager::IFoldStatusListener {
+    public:
+        explicit FoldStatusListener(const sptr<WindowSessionImpl> windowSessionimpl)
+            : windowSessionimpl_(windowSessionimpl) {}
+        ~FoldStatusListener() { windowSessionimpl_ = nullptr; }
+
+        void OnFoldStatusChanged(FoldStatus foldStatus) override;
+    private:
+        sptr<WindowSessionImpl> windowSessionimpl_ = nullptr;
+    };
+    virtual bool CheckWindowCanInHoverState(const Rect& windowRect);
+    void UpdateHoverState(const Rect& windowRect, FoldStatus foldStatus);
+    void NotifyWindowHoverStateChange(bool hoverState);
+    void RegisterFoldStatusListener();
+    void UnregisterFoldStatusListener();
+    bool GetHoverState();
+    void SetHoverState(bool hoverState);
+    mutable std::mutex hoverStateMutex_;
+    mutable std::mutex isLSStateMutex_;
+    bool hoverState_ = false;
+    sptr<DisplayManager::IFoldStatusListener> foldStatusListener_ = nullptr;
+    bool isLSState_ = false;
 };
 } // namespace Rosen
 } // namespace OHOS

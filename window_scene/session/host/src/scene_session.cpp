@@ -11537,6 +11537,19 @@ bool SceneSession::GetIsShowOnDock() const
 {
     return isShowOnDock_;
 }
+
+WSError SceneSession::NotifyClientToUpdateLSState(bool isLSState)
+{
+    PostTask([weakThis = wptr(this), isLSState, where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
+            return;
+        }
+        session->UpdateLSStateInfo(isLSState);
+    }, __func__);
+    return WSError::WS_OK;
+}
 /*
  * Window Event end
  */

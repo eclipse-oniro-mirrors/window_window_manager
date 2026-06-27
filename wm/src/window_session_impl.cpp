@@ -313,6 +313,9 @@ std::map<int32_t, std::vector<sptr<IParentWindowSizeChangeListener>>>
     WindowSessionImpl::parentWindowSizeChangeListeners_;
 std::map<int32_t, std::vector<sptr<IParentWindowStatusChangeListener>>>
     WindowSessionImpl::parentWindowStatusChangeListeners_;
+std::recursive_mutex WindowSessionImpl::windowHoverStateChangeListenerMutex_;
+std::map<int32_t, std::vector<sptr<IWindowHoverStateChangeListener>>>
+    WindowSessionImpl::windowHoverStateChangeListeners_;
 bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
 
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners, isGamePreLaunch)  \
@@ -1310,6 +1313,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     }
     ClearVsyncStation();
     ReleaseSurfaceNode();
+    UnregisterFoldStatusListener();
     return WMError::WM_OK;
 }
 
@@ -1383,6 +1387,7 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
         layoutCallback_->OnUpdateSessionRect(wmRect, wmReason, GetPersistentId());
     }
     NotifyFirstValidLayoutUpdate(preRect, wmRect);
+    UpdateHoverState(wmRect, DisplayManager::GetInstance().GetFoldStatus());
     return WSError::WS_OK;
 }
 
@@ -5855,6 +5860,10 @@ void WindowSessionImpl::ClearListenersById(int32_t persistentId)
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowStageLifeCycleListenerMutex_);
         ClearUselessListeners(windowStageLifecycleListeners_, persistentId);
+    }
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+        ClearUselessListeners(windowHoverStateChangeListeners_, persistentId);
     }
     ClearSwitchFreeMultiWindowListenersById(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Clear success, id: %{public}d.", GetPersistentId());
@@ -10616,6 +10625,155 @@ void WindowSessionImpl::RecordWindowLifecycleChange(const std::string& windowEve
         TLOGE(WmsLogTag::WMS_MAIN, "failed, ret: %{public}d, event: %{public}s",
             ret, windowEvent.c_str());
     }
+}
+
+bool WindowSessionImpl::GetWindowHoverState()
+{
+    if (DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
+        CheckWindowCanInHoverState(property_->GetWindowRect())) {
+        return true;
+    }
+    return false;
+}
+
+WMError WindowSessionImpl::RegisterWindowHoverStateChangeListener(
+    const sptr<IWindowHoverStateChangeListener>& listener)
+{
+    TLOGD(WmsLogTag::DEFAULT, "in");
+    std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+    RegisterFoldStatusListener();
+    return RegisterListener(windowHoverStateChangeListeners_[GetPersistentId()], listener);
+}
+
+WMError WindowSessionImpl::UnregisterWindowHoverStateChangeListener(
+    const sptr<IWindowHoverStateChangeListener>& listener)
+{
+    TLOGD(WmsLogTag::DEFAULT, "in");
+    std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+    UnregisterFoldStatusListener();
+    return UnregisterListenerInMap(windowHoverStateChangeListeners_, GetPersistentId(), listener);
+}
+
+template<typename T>
+EnableIfSame<T, IWindowHoverStateChangeListener,
+    std::vector<sptr<IWindowHoverStateChangeListener>>> WindowSessionImpl::GetListeners()
+{
+    std::vector<sptr<IWindowHoverStateChangeListener>> windowHoverStateChangeListeners;
+    for (const auto& listener : windowHoverStateChangeListeners_[GetPersistentId()]) {
+        windowHoverStateChangeListeners.push_back(listener);
+    }
+    return windowHoverStateChangeListeners;
+}
+
+void WindowSessionImpl::NotifyWindowHoverStateChange(bool hoverState)
+{
+    TLOGD(WmsLogTag::DEFAULT, "NotifyWindowHoverStateChange begin, id:%{public}d, hoverState:%{public}d",
+        GetPersistentId(), hoverState);
+    std::vector<sptr<IWindowHoverStateChangeListener>> windowHoverStateChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+        windowHoverStateChangeListeners = GetListeners<IWindowHoverStateChangeListener>();
+    }
+    for (auto& listener : windowHoverStateChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnWindowHoverStateChange(hoverState);
+        }
+    }
+}
+
+bool WindowSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
+{
+    return false;
+}
+
+WSError WindowSessionImpl::UpdateLSState(bool isLSState)
+{
+    {
+        std::lock_guard<std::mutex> lock(isLSStateMutex_);
+        isLSState_ = isLSState;
+    }
+    UpdateHoverState(property_->GetWindowRect(), DisplayManager::GetInstance().GetFoldStatus());
+    return WSError::WS_OK;
+}
+
+bool WindowSessionImpl::GetLSState() const
+{
+    std::lock_guard<std::mutex> lock(isLSStateMutex_);
+    return isLSState_;
+}
+
+void WindowSessionImpl::UpdateHoverState(const Rect& windowRect, FoldStatus foldStatus)
+{
+    bool newHoverState = false;
+    if (foldStatus == FoldStatus::HALF_FOLD && CheckWindowCanInHoverState(windowRect)) {
+        newHoverState = true;
+    }
+
+    bool currentHoverState = GetHoverState();
+    if (newHoverState == currentHoverState) {
+        return;
+    }
+    SetHoverState(newHoverState);
+
+    if (handler_ != nullptr) {
+        handler_->PostTask([weakThis = wptr(this), newHoverState, where = __func__] {
+            auto window = weakThis.promote();
+            if (window == nullptr) {
+                TLOGNE(WmsLogTag::DEFAULT, "%{public}s window is null", where);
+                return;
+            }
+            window->NotifyWindowHoverStateChange(newHoverState);
+        }, __func__);
+    }
+}
+
+bool WindowSessionImpl::GetHoverState()
+{
+    std::lock_guard<std::mutex> lock(hoverStateMutex_);
+    return hoverState_;
+}
+
+void WindowSessionImpl::SetHoverState(bool hoverState)
+{
+    std::lock_guard<std::mutex> lock(hoverStateMutex_);
+    hoverState_ = hoverState;
+}
+
+void WindowSessionImpl::RegisterFoldStatusListener()
+{
+    if (foldStatusListener_ != nullptr) {
+        TLOGW(WmsLogTag::DEFAULT, "fold status listener is exist!");
+        return;
+    }
+    foldStatusListener_ = new FoldStatusListener(this);
+    auto ret = DisplayManager::GetInstance().RegisterFoldStatusListener(foldStatusListener_);
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "register fold status listener failed!");
+        foldStatusListener_ = nullptr;
+    }
+}
+
+void WindowSessionImpl::UnregisterFoldStatusListener()
+{
+    if (foldStatusListener_ == nullptr) {
+        TLOGW(WmsLogTag::DEFAULT, "fold status listener is null!");
+        return;
+    }
+
+    auto ret = DisplayManager::GetInstance().UnregisterFoldStatusListener(foldStatusListener_);
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "unregister fold status listener failed!");
+    }
+    foldStatusListener_ = nullptr;
+}
+
+void WindowSessionImpl::FoldStatusListener::OnFoldStatusChanged(FoldStatus foldStatus)
+{
+    if (windowSessionimpl_ == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "windowSessionimpl is null!");
+        return;
+    }
+    windowSessionimpl_->UpdateHoverState(windowSessionimpl_->property_->GetWindowRect(), foldStatus);
 }
 } // namespace Rosen
 } // namespace OHOS
