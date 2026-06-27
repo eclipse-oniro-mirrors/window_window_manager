@@ -2436,6 +2436,11 @@ void ScreenSessionManager::UpdateScreenTypeInfo(sptr<ScreenSession> screenSessio
         }
     }
     screenSession->SetScreenTypeInfo(typeInfo);
+    auto phyScreenSession = GetOrCreatePhysicalScreenSession(screenSession->GetRSScreenId());
+    if (phyScreenSession == nullptr) {
+        return;
+    }
+    phyScreenSession->SetScreenTypeInfo(typeInfo);
 }
 
 void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSession,
