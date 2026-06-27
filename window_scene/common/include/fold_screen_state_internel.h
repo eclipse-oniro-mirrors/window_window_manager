@@ -262,7 +262,8 @@ public:
     static bool IsLoadDmsExt()
     {
         return FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() ||
-            FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice();
+            FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice() ||
+            FoldScreenStateInternel::IsSingleDisplayFoldDevice();
     }
 };
 } // Rosen
