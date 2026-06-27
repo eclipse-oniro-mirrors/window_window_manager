@@ -2692,12 +2692,12 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
         WLOGFW("Destroy window failed, id: %{public}d", GetPersistentId());
         return ret;
     }
+    RecordWindowLifecycleChange("destroy");
     WindowLifeCycleInfo windowLifeCycleInfo = GetWindowLifecycleInfo();
     SingletonContainer::Get<WindowManager>().NotifyWMSWindowDestroyed(windowLifeCycleInfo);
 
     // delete after replace WSError with WMError
     NotifyBeforeDestroy(GetWindowName());
-    RecordWindowLifecycleChange("destroy");
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         state_ = WindowState::STATE_DESTROYED;

@@ -1059,20 +1059,25 @@ void WindowExtensionSessionImpl::UpdateRectForRotation(const Rect& wmRect, const
             rsTransaction->Begin();
         }
         window->rotationAnimationCount_++;
+        auto rotationAnimationCallBackExecuted = std::make_shared<std::atomic_bool>(false);
+        auto handler = window->handler_;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(duration);
         // animation curve: cubic [0.2, 0.0, 0.2, 1.0]
         auto curve = RSAnimationTimingCurve::CreateCubicCurve(0.2, 0.0, 0.2, 1.0);
-        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak]() {
+        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak, rotationAnimationCallBackExecuted]() {
             auto window = weak.promote();
             if (!window) {
                 return;
             }
+            rotationAnimationCallBackExecuted->store(true);
             window->rotationAnimationCount_--;
             if (window->rotationAnimationCount_ == 0) {
                 window->NotifyRotationAnimationEnd();
             }
         });
+        // Delayed task to compensate if callback fails
+        window->StartRotationAnimationTimeoutTask(handler, rotationAnimationCallBackExecuted);
         if (wmRect != preRect) {
             window->NotifySizeChange(wmRect, wmReason);
         }
