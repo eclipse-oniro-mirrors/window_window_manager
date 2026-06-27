@@ -29,10 +29,11 @@ public:
     SessionStubMocker() {};
     ~SessionStubMocker() {};
 
-    MOCK_METHOD7(Connect, WSError(const sptr<ISessionStage>& sessionStage,
-        const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
-        SystemSessionConfig& systemConfig, sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
-        const std::string& identityToken));
+    MOCK_METHOD9(Connect, WSError(const sptr<ISessionStage>& sessionStage,
+        const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
+        SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+        std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<WindowSessionProperty> property,
+        sptr<IRemoteObject> token, const std::string& identityToken));
 
     MOCK_METHOD3(
         Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));
@@ -85,7 +86,7 @@ public:
     MOCK_METHOD1(GetWaterfallMode, WSError(bool& isWaterfallMode));
     MOCK_METHOD1(IsMainWindowFullScreenAcrossDisplays, WMError(bool& isAcrossDisplays));
     MOCK_METHOD1(GetFloatingBallWindowId, WMError(uint32_t& windowId));
-    MOCK_METHOD1(SendFbActionEvent, WSError(const std::string& action));
+    MOCK_METHOD2(SendFbActionEvent, WSError(const std::string& action, const std::string& reason));
     MOCK_METHOD1(RestoreFbMainWindow, WMError(const std::shared_ptr<AAFwk::Want>& want));
     MOCK_METHOD0(NotifyFloatViewPrepareClose, void(void));
     MOCK_METHOD1(UpdateFloatView, WMError(const FloatViewTemplateInfo& fvTemplateInfo));

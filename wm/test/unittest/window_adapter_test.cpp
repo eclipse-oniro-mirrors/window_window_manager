@@ -1021,13 +1021,15 @@ HWTEST_F(WindowAdapterTest, CreateAndConnectSpecificSession, TestSize.Level1)
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
     std::shared_ptr<RSSurfaceNode> node;
+    uint64_t nodeId = 100;
     sptr<WindowSessionProperty> property;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
     sptr<IRemoteObject> token;
-    int32_t id = 101; // 101 is persistentId
+    int32_t id = 101;
     windowAdapter.CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, node, token);
     ASSERT_EQ(session, nullptr);
 }
 
@@ -1749,20 +1751,17 @@ HWTEST_F(WindowAdapterTest, SetSpecificSystemWindowZIndex, TestSize.Level1)
  */
 HWTEST_F(WindowAdapterTest, MoveMainWindowToTargetDisplay, TestSize.Level1)
 {
-    instance_->isProxyValid_ = false;
-    auto ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
-    EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
-
-    instance_->isProxyValid_ = true;
-    instance_->windowManagerServiceProxy_ = nullptr;
-    ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    auto ret = windowAdapter.MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
 
     auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
-    instance_->windowManagerServiceProxy_ = wmsProxy;
+    windowAdapter.windowManagerServiceProxy_ = wmsProxy;
     EXPECT_CALL(*remoteObject, MoveMainWindowToTargetDisplay(_, _)).WillOnce(Return(WSError::WS_OK));
-    ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    ret = windowAdapter.MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 

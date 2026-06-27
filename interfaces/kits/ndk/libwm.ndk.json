@@ -24,6 +24,18 @@
         "name":"OH_NativeWindowManager_UnregisterTouchEventFilter"
     },
     {
+        "first_instroduced":"26.0.0",
+        "name":"OH_NativeWindowManager_GetKeyEventFilter"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_NativeWindowManager_GetMouseEventFilter"
+    },
+    {
+        "first_instroduced":"26.0.0",
+        "name":"OH_NativeWindowManager_GetTouchEventFilter"
+    },
+    {
         "first_instroduced":"15",
         "name":"OH_WindowManager_ShowWindow"
     },

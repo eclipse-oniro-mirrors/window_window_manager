@@ -251,6 +251,153 @@ HWTEST_F(WindowFocusControllerTest, GetDisplayGroupId, TestSize.Level1)
     GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetDisplayGroupId end";
 }
 
+/**
+ * @tc.name: GetShouldCheckBlocking01
+ * @tc.desc: Test basic behavior: result equals byForeground for most reasons
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowFocusControllerTest, GetShouldCheckBlocking01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking01 start";
+    sptr<WindowFocusController> wfc = sptr<WindowFocusController>::MakeSptr();
+
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::DEFAULT));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, nullptr, false, FocusChangeReason::DEFAULT));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::FOREGROUND));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, nullptr, false, FocusChangeReason::SCB_START_APP));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::CLICK));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::MOVE_UP));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::RECENT));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::SPLIT_SCREEN));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, nullptr, false, FocusChangeReason::FLOATING_SCENE));
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking01 end";
+}
+
+/**
+ * @tc.name: GetShouldCheckBlocking02
+ * @tc.desc: FORCE_FOCUSED reason always returns false regardless of byForeground or sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowFocusControllerTest, GetShouldCheckBlocking02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking02 start";
+    sptr<WindowFocusController> wfc = sptr<WindowFocusController>::MakeSptr();
+
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::FORCE_FOCUSED));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, nullptr, false, FocusChangeReason::FORCE_FOCUSED));
+
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(session, session, true, FocusChangeReason::FORCE_FOCUSED));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(session, nullptr, true, FocusChangeReason::FORCE_FOCUSED));
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking02 end";
+}
+
+/**
+ * @tc.name: GetShouldCheckBlocking03
+ * @tc.desc: CLIENT_REQUEST with null sessions returns byForeground
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowFocusControllerTest, GetShouldCheckBlocking03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking03 start";
+    sptr<WindowFocusController> wfc = sptr<WindowFocusController>::MakeSptr();
+
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, nullptr, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, nullptr, false, FocusChangeReason::CLIENT_REQUEST));
+
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, session, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(session, nullptr, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(nullptr, session, false, FocusChangeReason::CLIENT_REQUEST));
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking03 end";
+}
+
+/**
+ * @tc.name: GetShouldCheckBlocking04
+ * @tc.desc: CLIENT_REQUEST with same MissionId app sessions skips blocking check (returns false)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowFocusControllerTest, GetShouldCheckBlocking04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking04 start";
+    sptr<WindowFocusController> wfc = sptr<WindowFocusController>::MakeSptr();
+
+    SessionInfo info;
+    info.bundleName_ = "TestApp";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> focusedSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->persistentId_ = 100;
+    focusedSession->persistentId_ = 100;
+
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(sceneSession, focusedSession, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(sceneSession, focusedSession, false, FocusChangeReason::CLIENT_REQUEST));
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking04 end";
+}
+
+/**
+ * @tc.name: GetShouldCheckBlocking05
+ * @tc.desc: CLIENT_REQUEST with different MissionId or non-app session returns byForeground
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowFocusControllerTest, GetShouldCheckBlocking05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking05 start";
+    sptr<WindowFocusController> wfc = sptr<WindowFocusController>::MakeSptr();
+
+    SessionInfo appInfo;
+    appInfo.bundleName_ = "TestApp";
+    appInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    SessionInfo systemInfo;
+    systemInfo.bundleName_ = "TestSystem";
+    systemInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
+    systemInfo.isSystem_ = true;
+
+    sptr<SceneSession> appSession1 = sptr<SceneSession>::MakeSptr(appInfo, nullptr);
+    sptr<SceneSession> appSession2 = sptr<SceneSession>::MakeSptr(appInfo, nullptr);
+    appSession1->persistentId_ = 100;
+    appSession2->persistentId_ = 200;
+
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(appSession1, appSession2, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(appSession1, appSession2, false, FocusChangeReason::CLIENT_REQUEST));
+
+    sptr<SceneSession> systemSession = sptr<SceneSession>::MakeSptr(systemInfo, nullptr);
+    systemSession->persistentId_ = 100;
+
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(systemSession, appSession1, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(appSession1, systemSession, true, FocusChangeReason::CLIENT_REQUEST));
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking05 end";
+}
+
+/**
+ * @tc.name: GetShouldCheckBlocking06
+ * @tc.desc: Verify all branches with mixed inputs
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowFocusControllerTest, GetShouldCheckBlocking06, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking06 start";
+    sptr<WindowFocusController> wfc = sptr<WindowFocusController>::MakeSptr();
+
+    SessionInfo appInfo;
+    appInfo.bundleName_ = "TestApp";
+    appInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    sptr<SceneSession> appSession = sptr<SceneSession>::MakeSptr(appInfo, nullptr);
+    appSession->persistentId_ = 100;
+
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(appSession, appSession, true, FocusChangeReason::FORCE_FOCUSED));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(appSession, appSession, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(appSession, nullptr, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(nullptr, appSession, true, FocusChangeReason::CLIENT_REQUEST));
+    EXPECT_TRUE(wfc->GetShouldCheckBlocking(appSession, nullptr, true, FocusChangeReason::DEFAULT));
+    EXPECT_FALSE(wfc->GetShouldCheckBlocking(appSession, nullptr, false, FocusChangeReason::DEFAULT));
+    GTEST_LOG_(INFO) << "WindowFocusControllerTest::GetShouldCheckBlocking06 end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

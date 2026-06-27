@@ -36,7 +36,8 @@ public:
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") override;
     WSError DrawingCompleted() override;
@@ -141,6 +142,7 @@ public:
     WMError UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
+    WMError GetForceSplitEnable(bool& enable) override;
     WSError NotifyFrameLayoutFinishFromApp(bool notifyListener, const WSRect& rect) override;
     WMError NotifySnapshotUpdate() override;
     WMError NotifyRemovePrelaunchStartingWindow() override;

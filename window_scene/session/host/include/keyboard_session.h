@@ -116,6 +116,8 @@ private:
     bool RaiseCallingSession(const sptr<SceneSession>& callingSession, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
     bool CalculateOccupiedArea(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect,
         const WSRect& panelRect, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
+    bool GetCallingSessionGlobalScaledRect(const sptr<SceneSession>& callingSession,
+        WSRect& callingSessionGlobalScaledRect) const;
     void CloseRSTransaction();
     bool GetSkipFlagForCallingSession(const sptr<SceneSession>& callingSession) const;
     bool stateChanged_ = false;
@@ -123,9 +125,6 @@ private:
         const KeyboardLayoutParams& lastParams, const KeyboardLayoutParams& params);
     void SetSessionBlackListWhenShow(bool isCallingSessionSkip, const sptr<SceneSession>& panelSession);
     void CalculateOccupiedAreaAfterUIRefresh() override;
-    WSRect CalculateCenterScaledRect(const WSRect& sessionRect, float scaleX, float scaleY);
-    WSRect CalculateLeftTopScaledRect(const WSRect& sessionRect, float scaleX, float scaleY);
-    WSRect CalculateSafeRectForAIWindow(const WSRect& callingSessionRect, const WSRect& keyboardPanelRect);
     WMError HandleActionUpdateKeyboardTouchHotArea(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action) override;
 

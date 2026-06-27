@@ -860,7 +860,11 @@ HWTEST_F(SceneSessionLifecycleTest, Connect, TestSize.Level0)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sptr<IRemoteObject> token;
-    WSError res = sceneSession->Connect(sessionStage, eventChannel, surfaceNode, systemConfig, property, token);
+    uint64_t nodeId = 0;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
+    WSError res = sceneSession->Connect(sessionStage, eventChannel, nodeId, systemConfig, renderSession,
+        outputSurfaceNode, property, token);
     EXPECT_EQ(res, WSError::WS_ERROR_NULLPTR);
 }
 
@@ -882,17 +886,21 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner01, TestSize.Level0)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
     sceneSession->clientIdentityToken_ = "session1";
     sceneSession->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
-    auto result = sceneSession->ConnectInner(
-        mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr, -1, -1, "session2");
+    auto result = sceneSession->ConnectInner(mockSessionStage, nullptr, 0, systemConfig, renderSession,
+        surfaceNode, property, token, -1, -1, "session2");
     EXPECT_EQ(result, WSError::WS_OK);
 
-    result = sceneSession->ConnectInner(
-        mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr, -1, -1, "session1");
+    result = sceneSession->ConnectInner(mockSessionStage, nullptr, 0, systemConfig, renderSession,
+        surfaceNode, property, token, -1, -1, "session1");
     EXPECT_EQ(result, WSError::WS_OK);
 
-    result = sceneSession->ConnectInner(mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr, -1, -1);
+    result = sceneSession->ConnectInner(mockSessionStage, nullptr, 0, systemConfig, renderSession,
+        surfaceNode, property, token, -1, -1);
     ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
     EXPECT_EQ(property->GetAncoRealBundleName(), "ConnectInner01");
 }
@@ -915,15 +923,20 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner02, TestSize.Level0)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
     sceneSession->SetSessionState(SessionState::STATE_CONNECT);
     sceneSession->Session::isTerminating_ = false;
-    auto result = sceneSession->ConnectInner(mockSessionStage, nullptr, nullptr, systemConfig, property, nullptr);
+    auto result = sceneSession->ConnectInner(mockSessionStage, nullptr, 0, systemConfig, renderSession,
+        surfaceNode, property, token);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_SESSION);
 
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
     ASSERT_NE(eventChannel, nullptr);
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
-    result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    result = sceneSession->ConnectInner(mockSessionStage, eventChannel, 0, systemConfig, renderSession,
+        surfaceNode, property, token);
     ASSERT_EQ(result, WSError::WS_OK);
 }
 
@@ -949,11 +962,15 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
 
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
     ASSERT_NE(eventChannel, nullptr);
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
-    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, 0, systemConfig, renderSession,
+        surfaceNode, property, token);
     ASSERT_EQ(result, WSError::WS_OK);
 }
 
@@ -962,7 +979,7 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
  * @tc.desc: ConnectInner04
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
+HWTEST_F(SceneSessionLifecycleTest, ConnectInner04, TestSize.Level0)
 {
     SessionInfo info;
     info.bundleName_ = "ConnectInner04";
@@ -975,6 +992,9 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     SystemSessionConfig systemConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
     WindowType windowType = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     property->SetWindowType(windowType);
     EXPECT_EQ(property->GetWindowType(), windowType);
@@ -982,7 +1002,8 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
     ASSERT_NE(eventChannel, nullptr);
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
-    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, 0, systemConfig, renderSession,
+        surfaceNode, property, token);
     EXPECT_EQ(result, WSError::WS_OK);
 
     sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
@@ -998,7 +1019,8 @@ HWTEST_F(SceneSessionLifecycleTest, ConnectInner03, TestSize.Level0)
     eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
     ASSERT_NE(eventChannel, nullptr);
     sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
-    result = sceneSession->ConnectInner(mockSessionStage, eventChannel, nullptr, systemConfig, property, nullptr);
+    result = sceneSession->ConnectInner(mockSessionStage, eventChannel, 0, systemConfig, renderSession,
+        surfaceNode, property, token);
     EXPECT_EQ(result, WSError::WS_OK);
 }
 

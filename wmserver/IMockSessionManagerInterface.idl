@@ -28,4 +28,5 @@ interface OHOS.Rosen.IMockSessionManagerInterface {
     void GetSceneSessionManagerLiteByClient([in] int userId, [out] IRemoteObject sceneSessionManagerLite);
     void GetSceneSessionManagerByClient([in] int userId, [out] IRemoteObject sceneSessionManager);
     void NotifySetSpecificWindowZIndex();
+    void GetActiveUserIds([out] int[] activeUserIds);
 }

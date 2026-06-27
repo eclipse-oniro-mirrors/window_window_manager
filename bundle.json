@@ -73,6 +73,7 @@
           "dsoftbus",
           "hicollie",
           "eventhandler",
+          "icu",
           "c_utils",
           "soc_perf",
           "relational_store",

@@ -49,6 +49,7 @@ constexpr const char* const PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missio
 constexpr const char* const PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
 constexpr const char* const PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
 }
+class MoveDragBoundsApplier;
 class SceneSession;
 class ScreenSession;
 
@@ -175,6 +176,7 @@ using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RS
     uint32_t targetZOrder)>;
 using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool isFullScreen)>;
 using CompatibleModeChangeCallback = std::function<void(CompatibleStyleMode mode)>;
+using SplitRatioChangeCallback = std::function<void(float newRatio)>;
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
 using GetIsRecentStateFunc = std::function<bool()>;
@@ -248,11 +250,13 @@ public:
         return SessionType::SceneSession;
     }
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") override;
     WSError ConnectInner(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
@@ -431,7 +435,7 @@ public:
     WSError StopFloatingBall() override { return WSError::WS_OK; };
     WMError GetFloatingBallWindowId(uint32_t& windowId) override { return WMError::WM_OK; };
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override { return WMError::WM_OK; };
-    virtual WSError SendFbActionEvent(const std::string& action) { return WSError::WS_OK; };
+    virtual WSError SendFbActionEvent(const std::string& action, const std::string& reason) { return WSError::WS_OK; };
     virtual FloatingBallTemplateInfo GetFbTemplateInfo() const { return fbTemplateInfo_; };
     virtual void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) {};
     virtual uint32_t GetFbWindowId() const { return 0; };
@@ -452,6 +456,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
+    virtual void SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func) {};
     virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
@@ -523,6 +528,7 @@ public:
     virtual void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) {}
     virtual void RegisterPageEnableCallback(PageEnableCallback&& callback) {}
     virtual void RegisterSetSelectModeCallback(SetSelectModeCallback&& callback) {}
+    virtual void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) {}
 
     /*
      * PC Window
@@ -577,6 +583,7 @@ public:
      */
     virtual WSError HideSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
     virtual WSError ShowSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
+    virtual WSError DestroySubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
 
     /*
      * Window Event
@@ -888,7 +895,7 @@ public:
         return systemConfig_.IsFreeMultiWindowMode();
     }
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-
+    WMError GetForceSplitEnable(bool& enable) override;
     bool IsPcOrPadEnableActivation() const;
     void UnregisterSessionChangeListeners() override;
 
@@ -1180,7 +1187,8 @@ protected:
     bool PipelineNeedNotifyClientToUpdateRect() const;
     bool UpdateRectInner(const SessionUIParam& uiParam, SizeChangeReason reason);
     bool NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeChangeReason reason);
-    bool UpdateScaleInner(float scaleX, float scaleY, float rsScaleX, float rsScaleY, float pivotX, float pivotY);
+    bool UpdateScaleInner(float scaleX, float scaleY,
+        float ignoreRotateScaleX, float ignoreRotateScaleY, float pivotX, float pivotY);
     bool UpdateZOrderInner(uint32_t zOrder);
 
     /*
@@ -1258,6 +1266,7 @@ protected:
 
     friend class MoveDragController;
     sptr<MoveDragController> moveDragController_ = nullptr;
+    std::shared_ptr<MoveDragBoundsApplier> moveDragBoundsApplier_;
 
     std::mutex displayIdSetDuringMoveToMutex_;
     std::set<uint64_t> displayIdSetDuringMoveTo_;
@@ -1302,6 +1311,7 @@ protected:
      */
     virtual void NotifyStopFloatView() {};
     virtual void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) {};
+    virtual void NotifyClickFloatView() {};
     FloatViewTemplateInfo fvTemplateInfo_ = {};
     mutable std::mutex fvTemplateMutex_;
 
@@ -1410,8 +1420,11 @@ private:
     bool IsCompatibilityModeScale(float scaleX, float scaleY);
     void CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isScale);
     void ThrowSlipToFullScreen(WSRect& endRect, WSRect& rect, int32_t statusBarHeight, int32_t dockHeight);
+    void HandleFullScreenWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
+    void HandleFloatingWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
     bool MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeReason reason);
     void NotifyFullScreenAfterThrowSlip(const WSRect& rect);
+    void NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect);
     void SetDragResizeTypeDuringDrag(DragResizeType dragResizeType) { dragResizeTypeDuringDrag_ = dragResizeType; }
     DragResizeType GetDragResizeTypeDuringDrag() const { return dragResizeTypeDuringDrag_; }
     void HandleSessionDragEvent(SessionEvent event);
@@ -1612,27 +1625,6 @@ private:
     bool ShouldSkipUpdateRectNotify(const WSRect& rect);
     bool ShouldProcessAttachStateChange(bool wasAttached, bool isAttached,
         bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit, bool& isDetaching);
-
-    /**
-     * @brief Set surface bounds via the original surface node.
-     *
-     * This method is used for normal transaction commit together with ArkUI relayout.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
-     */
-    void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
-
-    /**
-     * @brief Set surface bounds via the shadow surface node.
-     *
-     * This method is used for immediate RS commit to avoid flushing other pending
-     * SurfaceNode updates in the current transaction.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
-     */
-    void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
 
     /**
      * @brief Request the next vsync-driven move resampling iteration.

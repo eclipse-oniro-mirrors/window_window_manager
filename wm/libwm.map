@@ -35,11 +35,13 @@
             OHOS::Rosen::FloatingBallController::GetFloatingBallWindowInfo*;
             OHOS::Rosen::FloatingBallController::RegisterFbClickObserver*;
             OHOS::Rosen::FloatingBallController::RegisterFbLifecycle*;
+            OHOS::Rosen::FloatingBallController::RegisterFbDestroyObserver*;
             OHOS::Rosen::FloatingBallController::RestoreMainWindow*;
             OHOS::Rosen::FloatingBallController::StartFloatingBall*;
             OHOS::Rosen::FloatingBallController::StopFloatingBallFromClient*;
             OHOS::Rosen::FloatingBallController::UnRegisterFbClickObserver*;
             OHOS::Rosen::FloatingBallController::UnRegisterFbLifecycle*;
+            OHOS::Rosen::FloatingBallController::UnRegisterFbDestroyObserver*;
             OHOS::Rosen::FloatingBallController::UpdateFloatingBall*;
             OHOS::Rosen::FloatingBallController::UpdateMainWindow*;
             OHOS::Rosen::FloatingBallManager::IsActiveController*;
@@ -83,6 +85,7 @@
             OHOS::Rosen::FvOption::FvOption*;
             OHOS::Rosen::FvOption::SetContext*;
             OHOS::Rosen::FvOption::SetTemplate*;
+            OHOS::Rosen::FvOption::SetCloseConfirm*;
             OHOS::Rosen::FvOption::GetContext*;
             OHOS::Rosen::FvOption::GetTemplate*;
             OHOS::Rosen::FvOption::SetUIPath*;
@@ -292,6 +295,7 @@
             OHOS::Rosen::WindowManager::NotifyApplicationFocusChangedResult*;
             OHOS::Rosen::WindowManager::NotifyDisplayInfoChange*;
             OHOS::Rosen::WindowManager::NotifyScreenshotEvent*;
+            OHOS::Rosen::WindowManager::NotifySessionSaveSnapShotComplete*;
             OHOS::Rosen::WindowManager::NotifySupportRotationChange*;
             OHOS::Rosen::WindowManager::NotifyWindowExtensionVisibilityChange*;
             OHOS::Rosen::WindowManager::NotifyWindowPropertyChange*;
@@ -305,6 +309,7 @@
             OHOS::Rosen::WindowManager::RegisterFocusChangedListener*;
             OHOS::Rosen::WindowManager::RegisterGestureNavigationEnabledChangedListener*;
             OHOS::Rosen::WindowManager::RegisterGetJSWindowCallback*;
+            OHOS::Rosen::WindowManager::RegisterSessionSaveSnapShotCompleteListener*;
             OHOS::Rosen::WindowManager::RegisterSystemBarChangedListener*;
             OHOS::Rosen::WindowManager::RegisterVisibilityChangedListener*;
             OHOS::Rosen::WindowManager::RegisterVisibleWindowNumChangedListener*;
@@ -346,6 +351,7 @@
             OHOS::Rosen::WindowManager::UnregisterDrawingContentChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterFocusChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterGestureNavigationEnabledChangedListener*;
+            OHOS::Rosen::WindowManager::UnregisterSessionSaveSnapShotCompleteListener*;
             OHOS::Rosen::WindowManager::UnregisterSystemBarChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterVisibilityChangedListener*;
             OHOS::Rosen::WindowManager::UnregisterVisibleWindowNumChangedListener*;

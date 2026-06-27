@@ -33,7 +33,7 @@ class WindowSceneSessionImpl : public WindowSessionImpl {
 public:
     using WindowSessionImpl::GetVirtualPixelRatio;
     explicit WindowSceneSessionImpl(const sptr<WindowOption>& option,
-        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr, sptr<IRemoteObject> renderSession = nullptr);
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
     ~WindowSceneSessionImpl();
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
@@ -54,6 +54,7 @@ public:
     void PreProcessCreate();
     void SetDefaultProperty();
     WMError Minimize() override;
+    void NotifyWindowStageCreateFinished() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;
@@ -213,6 +214,7 @@ public:
      */
     WSError HideSubWindowZLevelAboveParentLoosened() override;
     WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
     /*
      * PC Window
@@ -265,11 +267,11 @@ public:
     void HookDecorButtonStyleInCompatibleMode(uint32_t contentColor);
     WSError PcAppInPadNormalClose() override;
     void NotifyIsFullScreenInForceSplitMode(bool isFullScreen) override;
-    void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
-        SelectMode selectMode = SelectMode::INVALID_MODE) override;
+    void SetForceSplitConfigEnable(bool needUpdateViewport = false) override;
     void SendCombinedCompatibleConfigToArkUI();
     WMError NotifyPageEnable(const std::string& action, const std::string& message) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    WMError GetForceSplitEnable(bool& enable) override;
 
     /*
      * Free Multi Window
@@ -409,9 +411,23 @@ public:
     WMError SetSeparationTouchEnabled(bool enabled) override;
     bool IsSeparationTouchEnabled() override;
 
+    /**
+     * For C API native event filter.
+     */
+    WMError SaveNativeKeyEventFilter(NativeKeyEventFilter nativeFilter) override;
+    NativeKeyEventFilter GetNativeKeyEventFilter() const override;
+    WMError ClearNativeKeyEventFilter() override;
+
+    WMError SaveNativeMouseEventFilter(NativeMouseEventFilter nativeFilter) override;
+    NativeMouseEventFilter GetNativeMouseEventFilter() const override;
+    WMError ClearNativeMouseEventFilter() override;
+
+    WMError SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter) override;
+    NativeTouchEventFilter GetNativeTouchEventFilter() const override;
+    WMError ClearNativeTouchEventFilter() override;
+
 protected:
     WMError CreateAndConnectSpecificSession();
-    void PostInitSurfaceNode(sptr<IRemoteObject> renderSession);
     WMError CreateSystemWindow(WindowType type);
     sptr<WindowSessionImpl> FindParentSessionByParentId(uint32_t parentId);
     bool IsSessionMainWindow(uint32_t parentId);
@@ -725,6 +741,11 @@ private:
      */
     bool isExecuteDelayRaise_ = false;
     bool IsFullScreenEnable() const;
+    // if anco not support free window, delete floating and save last support window mode.
+    // when switch free window mode, recover support window mode by lastWindowModeSupportType_
+    uint32_t lastWindowModeSupportType_ = 0;
+    uint32_t SetSupportedWindowModesForAncoInFreeWindow(uint32_t windowModeSupportType);
+    bool IsAncoSupportFreeWindow() const;
 
     /*
      * PC Window UE report
@@ -776,6 +797,16 @@ private:
     bool isSeparationTouchEnabled_ = true;
     std::bitset<ADVANCED_FEATURE_BIT_MAX> advancedFeatureFlag_ = 0;
     void UpdateStartRecoverEventFlag();
+
+    /*
+     * For C API native event filter.
+     */
+    NativeKeyEventFilter nativeKeyEventFilter_ = nullptr;
+    mutable std::shared_mutex nativeKeyEventFilterMutex_;
+    NativeMouseEventFilter nativeMouseEventFilter_ = nullptr;
+    mutable std::shared_mutex nativeMouseEventFilterMutex_;
+    NativeTouchEventFilter nativeTouchEventFilter_ = nullptr;
+    mutable std::shared_mutex nativeTouchEventFilterMutex_;
 
     /*
      * Window Decor

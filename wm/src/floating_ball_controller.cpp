@@ -334,11 +334,12 @@ WMError FloatingBallController::StopFloatingBallFromClientSingle()
     return WMError::WM_OK;
 }
 
-WMError FloatingBallController::StopFloatingBall()
+WMError FloatingBallController::StopFloatingBall(const std::string& reason)
 {
     {
         std::lock_guard<std::mutex> lock(controllerMutex_);
-        TLOGI(WmsLogTag::WMS_SYSTEM, "StopFloatingBall in, id: %{public}s", id_.c_str());
+        TLOGI(WmsLogTag::WMS_SYSTEM, "StopFloatingBall in, id: %{public}s, reason: %{public}s",
+            id_.c_str(), reason.c_str());
         if ((!stopFromClient_ && curState_ == FbWindowState::STATE_STOPPING) ||
             curState_ == FbWindowState::STATE_STOPPED) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Repeat stop request, curState: %{public}u", curState_);
@@ -352,13 +353,13 @@ WMError FloatingBallController::StopFloatingBall()
         }
         curState_ = FbWindowState::STATE_STOPPING;
     }
-    return DestroyFloatingBallWindow();
+    return DestroyFloatingBallWindow(reason);
 }
 // LCOV_EXCL_STOP
 
-WMError FloatingBallController::DestroyFloatingBallWindow()
+WMError FloatingBallController::DestroyFloatingBallWindow(const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "called, id: %{public}s", id_.c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "called, id: %{public}s, reason: %{public}s", id_.c_str(), reason.c_str());
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "window is nullptr when destroy fb");
         return WMError::WM_ERROR_FB_INTERNAL_ERROR;
@@ -372,6 +373,7 @@ WMError FloatingBallController::DestroyFloatingBallWindow()
     }
     curState_ = FbWindowState::STATE_STOPPED;
     OnFloatingBallStop();
+    OnFloatingBallDestroy(reason);
     FloatingBallManager::RemoveActiveController(weakRef_);
     if (mainWindow_ != nullptr) {
         mainWindow_->UnregisterLifeCycleListener(mainWindowLifeCycleListener_);
@@ -444,6 +446,19 @@ void FloatingBallController::OnFloatingBallStop()
         listener->OnFloatingBallStop();
     }
 }
+
+void FloatingBallController::OnFloatingBallDestroy(const std::string& reason)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnFloatingBallDestroy called, reason: %{public}s", reason.c_str());
+    auto fbDestroyObservers = fbDestroyObservers_;
+    for (auto& listener : fbDestroyObservers) {
+        if (listener == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "one destroy observer is nullptr");
+            continue;
+        }
+        listener->OnDestroyEvent(reason);
+    }
+}
 // LCOV_EXCL_STOP
 
 WMError FloatingBallController::RegisterFbLifecycle(const sptr<IFbLifeCycle>& listener)
@@ -456,6 +471,11 @@ WMError FloatingBallController::RegisterFbClickObserver(const sptr<IFbClickObser
     return RegisterListener(fbClickObservers_, listener);
 }
 
+WMError FloatingBallController::RegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener)
+{
+    return RegisterListener(fbDestroyObservers_, listener);
+}
+
 WMError FloatingBallController::UnRegisterFbLifecycle(const sptr<IFbLifeCycle>& listener)
 {
     return UnRegisterListener(fbLifeCycleListeners_, listener);
@@ -464,6 +484,11 @@ WMError FloatingBallController::UnRegisterFbLifecycle(const sptr<IFbLifeCycle>& 
 WMError FloatingBallController::UnRegisterFbClickObserver(const sptr<IFbClickObserver>& listener)
 {
     return UnRegisterListener(fbClickObservers_, listener);
+}
+
+WMError FloatingBallController::UnRegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener)
+{
+    return UnRegisterListener(fbDestroyObservers_, listener);
 }
 
 template<typename T>

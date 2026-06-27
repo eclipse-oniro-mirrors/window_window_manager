@@ -62,8 +62,10 @@ public:
     static void RestoreMainWindowAni(ani_env *env, ani_object, ani_long nativeObj, ani_object want);
     static void RegisterFbOnClickCallback(ani_env *env, ani_object, ani_long nativeObj, ani_ref callback);
     static void RegisterFbOnStateChangeCallback(ani_env *env, ani_object, ani_long nativeObj, ani_ref callback);
+    static void RegisterFbOnDestroyCallback(ani_env *env, ani_object, ani_long nativeObj, ani_ref callback);
     static void UnRegisterFbOnClickCallback(ani_env *env, ani_object obj, ani_long nativeObj, ani_ref callback);
     static void UnRegisterFbOnStateChangeCallback(ani_env *env, ani_object obj, ani_long nativeObj, ani_ref callback);
+    static void UnRegisterFbOnDestroyCallback(ani_env *env, ani_object obj, ani_long nativeObj, ani_ref callback);
 
     static bool GetFbOption(ani_env* env, ani_object paramsInterface, FbOption& option);
 private:
@@ -72,6 +74,7 @@ private:
     enum class FbListenerType : uint32_t {
         CLICK_CB = 0,
         STATE_CHANGE_CB = 1,
+        DESTROY_CB = 2,
     };
     static inline std::unordered_map<FbListenerType, std::unordered_map<ani_ref, sptr<AniFbWindowListener>>>
         typeCallbackListenerMap_;
@@ -92,6 +95,9 @@ private:
     void OnRegisterFbOnStateChangeCallback(ani_env *env, ani_ref callback, AniFbController *&aniFbController);
     WmErrorCode RegisterListenerOnStateChange(ani_env *env, ani_ref callback);
     WmErrorCode ProcessOnStateChangeListener(sptr<AniFbWindowListener> &listener);
+    void OnRegisterFbOnDestroyCallback(ani_env *env, ani_ref callback, AniFbController *&aniFbController);
+    WmErrorCode RegisterListenerOnDestroy(ani_env *env, ani_ref callback);
+    WmErrorCode ProcessOnDestroyListener(sptr<AniFbWindowListener> &listener);
     void OnUnRegisterCallback(ani_env *env, FbListenerType fbListenerType, ani_ref callback,
                               AniFbController *&aniFbController);
     WMError UnRegisterListener(FbListenerType fbListenerType, sptr<AniFbWindowListener> &listener);

@@ -1135,6 +1135,16 @@ HWTEST_F(WindowSceneSessionImplTest5, MobileAppInPadLayoutFullScreenChange, Test
     statusBarEnable = true;
     navigationEnable = false;
     window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    statusBarEnable = false;
+    navigationEnable = false;
+    window->enableImmersiveMode_ = true;
+    window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    EXPECT_EQ(true, window->enableImmersiveMode_);
+    window->enableImmersiveMode_ = false;
+    statusBarEnable = true;
+    navigationEnable = true;
+    window->MobileAppInPadLayoutFullScreenChange(statusBarEnable, navigationEnable);
+    EXPECT_EQ(false, window->enableImmersiveMode_);
 }
 
 /**
@@ -2459,6 +2469,120 @@ HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo02, TestSiz
 }
 
 /**
+ * @tc.name: GetConfigurationFromAbilityInfo03
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with !windowSystemConfig_.IsPcWindow() condition
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+    window->GetConfigurationFromAbilityInfo();
+    EXPECT_EQ(window->enableImmersiveMode_, false);
+}
+ 
+/**
+ * @tc.name: GetConfigurationFromAbilityInfo04
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with IsAncoSupportFreeWindow condition on PAD
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo04");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+    
+    window->GetConfigurationFromAbilityInfo();
+    bool isAncoSupportFreeWindow = window->IsAncoSupportFreeWindow();
+    EXPECT_FALSE(isAncoSupportFreeWindow);
+}
+ 
+/**
+ * @tc.name: GetConfigurationFromAbilityInfo05
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with IsAncoSupportFreeWindow condition on PC window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo05");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+ 
+    window->GetConfigurationFromAbilityInfo();
+    bool isAncoSupportFreeWindow = window->IsAncoSupportFreeWindow();
+    EXPECT_FALSE(isAncoSupportFreeWindow);
+}
+ 
+/**
+ * @tc.name: GetConfigurationFromAbilityInfo06
+ * @tc.desc: Test GetConfigurationFromAbilityInfo with IsAncoSupportFreeWindow condition on PHONE window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, GetConfigurationFromAbilityInfo06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetConfigurationFromAbilityInfo06");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    std::shared_ptr<AbilityRuntime::AbilityContextImpl> context =
+        std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    std::shared_ptr<AppExecFwk::AbilityInfo> info = std::make_shared<AppExecFwk::AbilityInfo>();
+    context->SetAbilityInfo(info);
+    window->context_ = context;
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+ 
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->property_->SetCollaboratorType(static_cast<int32_t>(CollaboratorType::RESERVE_TYPE));
+ 
+    window->GetConfigurationFromAbilityInfo();
+    bool isAncoSupportFreeWindow = window->IsAncoSupportFreeWindow();
+    EXPECT_FALSE(isAncoSupportFreeWindow);
+}
+
+/**
  * @tc.name: UpdateDecorEnable
  * @tc.desc: UpdateDecorEnable test
  * @tc.type: FUNC
@@ -3266,6 +3390,47 @@ HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitConfigEnable02, TestSize.Leve
     // uiContent should be null by default
     window->SetForceSplitConfigEnable(true);
     // No crash means the function handled null uiContent correctly
+}
+
+/**
+ * @tc.name: SetForceSplitEnable01
+ * @tc.desc: Test SetForceSplitEnable when window type is not main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitEnable01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetForceSplitEnable01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    auto ret = window->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
+    ASSERT_EQ(ret, WSError::WS_DO_NOTHING);
+}
+
+/**
+ * @tc.name: SetForceSplitEnable02
+ * @tc.desc: Test SetForceSplitEnable with main window and valid property
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, SetForceSplitEnable02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetForceSplitEnable02");
+    option->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+
+    auto ret = window->SetForceSplitEnable(true, true, SelectMode::SQUARE_MODE);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(window->GetProperty()->GetForceSplitEnable(), true);
+    ASSERT_EQ(window->GetProperty()->GetSelectMode(), SelectMode::SQUARE_MODE);
+
+    ret = window->SetForceSplitEnable(false, false, SelectMode::WIDE_MODE);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(window->GetProperty()->GetForceSplitEnable(), false);
+    ASSERT_EQ(window->GetProperty()->GetSelectMode(), SelectMode::WIDE_MODE);
 }
 
 /**

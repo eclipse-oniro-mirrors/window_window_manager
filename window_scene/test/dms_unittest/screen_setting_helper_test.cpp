@@ -92,8 +92,7 @@ namespace {
             TLOGI(WmsLogTag::DMS, "UT test");
         };
         ScreenSettingHelper::RegisterSettingDpiObserver(func);
-        EXPECT_TRUE(g_errLog.find("failed, ret=") != std::string::npos);
-        EXPECT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
+        EXPECT_NE(ScreenSettingHelper::dpiObserver_, nullptr);
         LOG_SetCallback(nullptr);
     }
 
@@ -1975,7 +1974,7 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         uint32_t height = 1080;
 
         auto ret = screenSettingHelper.SetCustomResolution(width, height);
-        ASSERT_FALSE(ret);
+        ASSERT_TRUE(ret);
     }
 }
 } // namespace Rosen

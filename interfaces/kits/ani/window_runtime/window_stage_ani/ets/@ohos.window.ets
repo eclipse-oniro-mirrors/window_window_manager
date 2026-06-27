@@ -942,10 +942,10 @@ export enum WindowEventType {
 }
 
 export enum WindowStageLifecycleEventType {
-    SHOWN = 1,
-    RESUMED = 2,
-    PAUSED = 3,
-    HIDDEN = 4,
+  SHOWN = 1,
+  RESUMED = 2,
+  PAUSED = 3,
+  HIDDEN = 4,
 }
 
 export enum WindowMode {
@@ -2654,6 +2654,7 @@ export class WindowStageInternal implements WindowStage {
 
     public native getSubWindowSync(nativeObj: long): Array<Window>;
     public native createSubWindowWithOptionsSync(nativeObj: long, name: string, options: SubWindowOptions): Window;
+
     native onSync(nativeObj: long, eventType: string, callback: Object): void;
     native offSync(nativeObj: long, eventType: string, callback?: Object): void;
 
@@ -2798,50 +2799,6 @@ export class WindowStageInternal implements WindowStage {
         });
     }
 
-    public setWindowRectAutoSave(enabled: boolean): Promise<void> {
-        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): void => {
-                this.setWindowRectAutoSave(this.nativeObj, enabled, false);
-            }).then((ret: Any) => {
-                resolve(undefined);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public setWindowRectAutoSave(enabled: boolean, isSaveBySpecifiedFlag: boolean): Promise<void> {
-        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): void => {
-                this.setWindowRectAutoSave(this.nativeObj, enabled, isSaveBySpecifiedFlag);
-            }).then((ret: Any) => {
-                resolve(undefined);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public isWindowRectAutoSave(): Promise<boolean> {
-        return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): boolean => {
-                return this.isWindowRectAutoSave(this.nativeObj);
-            }).then((ret: Any) => {
-                resolve(ret as boolean);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public onWindowStageClose(callback: WindowStageCloseCallback<void, boolean>): void {
-        this.onSync(this.nativeObj, 'windowStageClose', callback);
-    }
-
-    public offWindowStageClose(callback?: WindowStageCloseCallback<void, boolean>): void {
-        this.offSync(this.nativeObj, 'windowStageClose', callback);
-    }
-
     public getSubWindow(): Promise<Array<Window>> {
       return new Promise<Array<Window>>((resolve: (value: Array<Window>) => void,
         reject: (error: BusinessError) => void) => {
@@ -2883,6 +2840,50 @@ export class WindowStageInternal implements WindowStage {
 
     public off<T>(eventType: string, callback?: Callback<T>): void {
       this.offSync(this.nativeObj, eventType, callback);
+    }
+
+    public setWindowRectAutoSave(enabled: boolean): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+          taskpool.execute((): void => {
+              this.setWindowRectAutoSave(this.nativeObj, enabled, false);
+          }).then((ret: Any) => {
+              resolve(undefined);
+          }).catch((err: Any) => {
+              reject(err as BusinessError);
+          });
+      });
+    }
+
+    public setWindowRectAutoSave(enabled: boolean, isSaveBySpecifiedFlag: boolean): Promise<void> {
+        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+            taskpool.execute((): void => {
+                this.setWindowRectAutoSave(this.nativeObj, enabled, isSaveBySpecifiedFlag);
+            }).then((ret: Any) => {
+                resolve(undefined);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public isWindowRectAutoSave(): Promise<boolean> {
+        return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
+            taskpool.execute((): boolean => {
+                return this.isWindowRectAutoSave(this.nativeObj);
+            }).then((ret: Any) => {
+                resolve(ret as boolean);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public onWindowStageClose(callback: WindowStageCloseCallback<void, boolean>): void {
+        this.onSync(this.nativeObj, 'windowStageClose', callback);
+    }
+
+    public offWindowStageClose(callback?: WindowStageCloseCallback<void, boolean>): void {
+        this.offSync(this.nativeObj, 'windowStageClose', callback);
     }
 
     public static transferStatic(input: Any): Object {
@@ -3365,7 +3366,7 @@ export class WindowInternal implements Window {
     }
 
     public setWindowTitleButtonVisible(isMaximizeButtonVisible: boolean, isMinimizeButtonVisible: boolean,
-                                   isCloseButtonVisible?: boolean): void {
+      isCloseButtonVisible?: boolean): void {
       let visibleParam: window.WindowTitleButtonVisibleParam = {
         isMaximizeButtonVisible: isMaximizeButtonVisible,
         isMinimizeButtonVisible: isMinimizeButtonVisible,
@@ -6345,19 +6346,19 @@ function runAvoidAreaChangeCallback(cb: object, area: object, type: int): void {
   func({type: AvoidAreaType.fromValue(type), area: area as AvoidArea});
 }
 
-function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
-    const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
-    func(WindowStageLifecycleEventType.fromValue(cbArg));
-}
-
 function runOrientationResultCallback(promiseId: int, result: int): void {
   hilog.info(DOMAIN, TAG, `runOrientationResultCallback promiseId=${promiseId} result=${result}`);
   WindowInternal.handleOrientationResult(promiseId, OrientationExecutionResult.fromValue(result));
 }
 
 function runWindowEventCallback(cb: object, cbArg: int): void {
-    const func = cb as (cbArg: WindowEventType) => void;
-    func(WindowEventType.fromValue(cbArg));
+  const func = cb as (cbArg: WindowEventType) => void;
+  func(WindowEventType.fromValue(cbArg));
+}
+
+function runWindowStageLifecycleEventCallback(cb: object, cbArg: int): void {
+  const func = cb as (cbArg: WindowStageLifecycleEventType) => void;
+  func(WindowStageLifecycleEventType.fromValue(cbArg));
 }
 
 function runWindowSizeCallback(cb: object, cbArg: object): void {

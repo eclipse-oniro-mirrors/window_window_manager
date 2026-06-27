@@ -50,6 +50,11 @@ inline bool LessNotEqual(double left, double right)
     return (left - right) < eps;
 }
 
+inline bool Equal(double left, double right)
+{
+    return (left - right) < POS_ZERO && (left - right) > NAG_ZERO;
+}
+
 inline bool GreatNotEqual(double left, double right)
 {
     static constexpr double eps = 0.001f;

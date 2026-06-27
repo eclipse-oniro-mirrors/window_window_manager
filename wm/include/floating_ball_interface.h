@@ -41,6 +41,16 @@ public:
     virtual void OnClickEvent() = 0;
 };
 
+/**
+ * @class IFbDestroyObserver
+ *
+ * @brief fb destroy observer.
+ */
+class IFbDestroyObserver : virtual public RefBase {
+public:
+    virtual void OnDestroyEvent(const std::string& reason) = 0;
+};
+
 } // namespace Rosen
 } // namespace OHOS
 #endif //OHOS_FLOATING_BALL_INTERFACE_H

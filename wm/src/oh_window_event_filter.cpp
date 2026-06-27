@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,16 +13,16 @@
  * limitations under the License.
  */
 
+#include "oh_window_event_filter.h"
 #include "cstdint"
 #include "functional"
-#include "oh_window_comm.h"
-#include "oh_window_event_filter.h"
 #include "key_event.h"
+#include "oh_window_comm.h"
 #include "pointer_event.h"
 #include "window.h"
+#include "window_histogram_management.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "window_histogram_management.h"
 
 using namespace OHOS::Rosen;
 
@@ -55,7 +55,7 @@ static const std::unordered_map<int32_t, Input_MouseEventButton> mouseEventButto
     {OHOS::MMI::PointerEvent::MOUSE_BUTTON_BACK,       Input_MouseEventButton::MOUSE_BUTTON_BACK    },
 };
 
-KeyEventFilterFunc convert2Func(OH_NativeWindowManager_KeyEventFilter filter)
+KeyEventFilterFunc convert2KeyEventFilterFunc(OH_NativeWindowManager_KeyEventFilter filter)
 {
     return [filter](const OHOS::MMI::KeyEvent& keyEvent) {
         Input_KeyEvent* input = OH_Input_CreateKeyEvent();
@@ -73,42 +73,54 @@ KeyEventFilterFunc convert2Func(OH_NativeWindowManager_KeyEventFilter filter)
 }
 
 WindowManager_ErrorCode OH_NativeWindowManager_RegisterKeyEventFilter(int32_t windowId,
-    OH_NativeWindowManager_KeyEventFilter filter)
+    OH_NativeWindowManager_KeyEventFilter keyEventFilter)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "register keyEventCallback, wid:%{public}d", windowId);
-    auto mainWindow = OHOS::Rosen::Window::GetWindowWithId(windowId);
-    if (mainWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window is null, wid:%{public}d", windowId);
-        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerKeyEventFilter",
-            WindowManager_ErrorCode::INVAILD_WINDOW_ID);
-        return WindowManager_ErrorCode::INVAILD_WINDOW_ID;
+    WindowManager_ErrorCode err;
+    auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        err = WindowManager_ErrorCode::INVALID_WINDOW_ID;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerKeyEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return err;
     }
-    auto res = mainWindow->SetKeyEventFilter(convert2Func(filter));
-    if (res == WMError::WM_OK) {
-        return WindowManager_ErrorCode::OK;
+    if (keyEventFilter == nullptr) {
+        err = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerKeyEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "keyEventFilter is null");
+        return err;
     }
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::SERVICE_ERROR;
-    HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerKeyEventFilter", ret);
-    return ret;
+    auto ret = window->SetKeyEventFilter(convert2KeyEventFilterFunc(keyEventFilter));
+    if (ret != WMError::WM_OK) {
+        err = WindowManager_ErrorCode::SERVICE_ERROR;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerKeyEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "Set filter failed, the device is not supported");
+        return err;
+    }
+    window->SaveNativeKeyEventFilter(keyEventFilter);
+    TLOGD(WmsLogTag::WMS_EVENT, "register success, windowId=%{public}d", windowId);
+    return WindowManager_ErrorCode::OK;
 }
 
 WindowManager_ErrorCode OH_NativeWindowManager_UnregisterKeyEventFilter(int32_t windowId)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "clear keyEventCallback, wid:%{public}d", windowId);
-    auto mainWindow = OHOS::Rosen::Window::GetWindowWithId(windowId);
-    if (mainWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window is null, wid:%{public}d", windowId);
-        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterKeyEventFilter",
-            WindowManager_ErrorCode::INVAILD_WINDOW_ID);
-        return WindowManager_ErrorCode::INVAILD_WINDOW_ID;
+    WindowManager_ErrorCode err;
+    auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        err = WindowManager_ErrorCode::INVALID_WINDOW_ID;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterKeyEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return err;
     }
-    auto res = mainWindow->ClearKeyEventFilter();
-    if (res == WMError::WM_OK) {
-        return WindowManager_ErrorCode::OK;
+    auto ret = window->ClearKeyEventFilter();
+    if (ret != WMError::WM_OK) {
+        err = WindowManager_ErrorCode::SERVICE_ERROR;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterKeyEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "Clear filter failed, device is not supported");
+        return err;
     }
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::SERVICE_ERROR;
-    HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterKeyEventFilter", ret);
-    return ret;
+    window->ClearNativeKeyEventFilter();
+    TLOGD(WmsLogTag::WMS_EVENT, "clear success, windowId=%{public}d", windowId);
+    return WindowManager_ErrorCode::OK;
 }
 
 MouseEventFilterFunc convert2MouseEventFilterFunc(OH_NativeWindowManager_MouseEventFilter filter)
@@ -155,40 +167,52 @@ MouseEventFilterFunc convert2MouseEventFilterFunc(OH_NativeWindowManager_MouseEv
 WindowManager_ErrorCode OH_NativeWindowManager_RegisterMouseEventFilter(int32_t windowId,
     OH_NativeWindowManager_MouseEventFilter mouseEventFilter)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "register mouseEventCallback, wid:%{public}d", windowId);
+    WindowManager_ErrorCode err;
     auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
     if (window == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window is null, wid:%{public}d", windowId);
-        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerMouseEventFilter",
-            WindowManager_ErrorCode::INVAILD_WINDOW_ID);
-        return WindowManager_ErrorCode::INVAILD_WINDOW_ID;
+        err = WindowManager_ErrorCode::INVALID_WINDOW_ID;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerMouseEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return err;
     }
-    auto res = window->SetMouseEventFilter(convert2MouseEventFilterFunc(mouseEventFilter));
-    if (res == WMError::WM_OK) {
-        return WindowManager_ErrorCode::OK;
+    if (mouseEventFilter == nullptr) {
+        err = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerMouseEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "mouseEventFilter is null");
+        return err;
     }
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::SERVICE_ERROR;
-    HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerMouseEventFilter", ret);
-    return ret;
+    auto ret = window->SetMouseEventFilter(convert2MouseEventFilterFunc(mouseEventFilter));
+    if (ret != WMError::WM_OK) {
+        err = WindowManager_ErrorCode::SERVICE_ERROR;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerMouseEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "Set filter failed, the device is not supported");
+        return err;
+    }
+    window->SaveNativeMouseEventFilter(mouseEventFilter);
+    TLOGD(WmsLogTag::WMS_EVENT, "register success, windowId=%{public}d", windowId);
+    return WindowManager_ErrorCode::OK;
 }
 
 WindowManager_ErrorCode OH_NativeWindowManager_UnregisterMouseEventFilter(int32_t windowId)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "clear mouseEventCallback, wid:%{public}d", windowId);
+    WindowManager_ErrorCode err;
     auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
     if (window == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window is null, wid:%{public}d", windowId);
-        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterMouseEventFilter",
-            WindowManager_ErrorCode::INVAILD_WINDOW_ID);
-        return WindowManager_ErrorCode::INVAILD_WINDOW_ID;
+        err = WindowManager_ErrorCode::INVALID_WINDOW_ID;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterMouseEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return err;
     }
-    auto res = window->ClearMouseEventFilter();
-    if (res == WMError::WM_OK) {
-        return WindowManager_ErrorCode::OK;
+    auto ret = window->ClearMouseEventFilter();
+    if (ret != WMError::WM_OK) {
+        err = WindowManager_ErrorCode::SERVICE_ERROR;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterMouseEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "Clear filter failed, device is not supported");
+        return err;
     }
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::SERVICE_ERROR;
-    HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterMouseEventFilter", ret);
-    return ret;
+    window->ClearNativeMouseEventFilter();
+    TLOGD(WmsLogTag::WMS_EVENT, "clear success, windowId=%{public}d", windowId);
+    return WindowManager_ErrorCode::OK;
 }
 
 TouchEventFilterFunc convert2TouchEventFilterFunc(OH_NativeWindowManager_TouchEventFilter filter)
@@ -234,38 +258,119 @@ TouchEventFilterFunc convert2TouchEventFilterFunc(OH_NativeWindowManager_TouchEv
 WindowManager_ErrorCode OH_NativeWindowManager_RegisterTouchEventFilter(int32_t windowId,
     OH_NativeWindowManager_TouchEventFilter touchEventFilter)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "register touchEventCallback, wid:%{public}d", windowId);
+    WindowManager_ErrorCode err;
     auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
     if (window == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window is null, wid:%{public}d", windowId);
-        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerTouchEventFilter",
-            WindowManager_ErrorCode::INVAILD_WINDOW_ID);
-        return WindowManager_ErrorCode::INVAILD_WINDOW_ID;
+        err = WindowManager_ErrorCode::INVALID_WINDOW_ID;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerTouchEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return err;
     }
-    auto res = window->SetTouchEventFilter(convert2TouchEventFilterFunc(touchEventFilter));
-    if (res == WMError::WM_OK) {
-        return WindowManager_ErrorCode::OK;
+    if (touchEventFilter == nullptr) {
+        err = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerTouchEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "touchEventFilter is null");
+        return err;
     }
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::SERVICE_ERROR;
-    HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerTouchEventFilter", ret);
-    return ret;
+    auto ret = window->SetTouchEventFilter(convert2TouchEventFilterFunc(touchEventFilter));
+    if (ret != WMError::WM_OK) {
+        err = WindowManager_ErrorCode::SERVICE_ERROR;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.registerTouchEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "Set filter failed, the device is not supported");
+        return err;
+    }
+    window->SaveNativeTouchEventFilter(touchEventFilter);
+    TLOGD(WmsLogTag::WMS_EVENT, "register success, windowId=%{public}d", windowId);
+    return WindowManager_ErrorCode::OK;
 }
 
 WindowManager_ErrorCode OH_NativeWindowManager_UnregisterTouchEventFilter(int32_t windowId)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "clear touchEventCallback, wid:%{public}d", windowId);
+    WindowManager_ErrorCode err;
     auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
     if (window == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window is null, wid:%{public}d", windowId);
-        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterTouchEventFilter",
-            WindowManager_ErrorCode::INVAILD_WINDOW_ID);
-        return WindowManager_ErrorCode::INVAILD_WINDOW_ID;
+        err = WindowManager_ErrorCode::INVALID_WINDOW_ID;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterTouchEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return err;
     }
-    auto res = window->ClearTouchEventFilter();
-    if (res == WMError::WM_OK) {
-        return WindowManager_ErrorCode::OK;
+    auto ret = window->ClearTouchEventFilter();
+    if (ret != WMError::WM_OK) {
+        err = WindowManager_ErrorCode::SERVICE_ERROR;
+        HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterTouchEventFilter", err);
+        TLOGE(WmsLogTag::WMS_EVENT, "Clear filter failed, device is not supported");
+        return err;
     }
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::SERVICE_ERROR;
-    HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.unregisterTouchEventFilter", ret);
-    return ret;
+    window->ClearNativeTouchEventFilter();
+    TLOGD(WmsLogTag::WMS_EVENT, "clear success, windowId=%{public}d", windowId);
+    return WindowManager_ErrorCode::OK;
+}
+
+WindowManager_ErrorCode OH_NativeWindowManager_GetKeyEventFilter(int32_t windowId,
+    OH_NativeWindowManager_KeyEventFilter* outKeyEventFilter)
+{
+    auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return WindowManager_ErrorCode::INVALID_WINDOW_ID;
+    }
+    if (outKeyEventFilter == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "outKeyEventFilter is null");
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+    }
+    NativeKeyEventFilter nativeFilter = window->GetNativeKeyEventFilter();
+    if (nativeFilter == nullptr) {
+        *outKeyEventFilter = nullptr;
+        TLOGW(WmsLogTag::WMS_EVENT, "The filter is not found, windowId=%{public}d", windowId);
+    } else {
+        *outKeyEventFilter = nativeFilter;
+        TLOGI(WmsLogTag::WMS_EVENT, "Get filter success, windowId=%{public}d", windowId);
+    }
+    return WindowManager_ErrorCode::OK;
+}
+
+WindowManager_ErrorCode OH_NativeWindowManager_GetMouseEventFilter(int32_t windowId,
+    OH_NativeWindowManager_MouseEventFilter* outMouseEventFilter)
+{
+    auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return WindowManager_ErrorCode::INVALID_WINDOW_ID;
+    }
+    if (outMouseEventFilter == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "outMouseEventFilter is null");
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+    }
+    NativeMouseEventFilter nativeFilter = window->GetNativeMouseEventFilter();
+    if (nativeFilter == nullptr) {
+        *outMouseEventFilter = nullptr;
+        TLOGW(WmsLogTag::WMS_EVENT, "The filter is not found, windowId=%{public}d", windowId);
+    } else {
+        *outMouseEventFilter = nativeFilter;
+        TLOGI(WmsLogTag::WMS_EVENT, "Get filter success, windowId=%{public}d", windowId);
+    }
+    return WindowManager_ErrorCode::OK;
+}
+
+WindowManager_ErrorCode OH_NativeWindowManager_GetTouchEventFilter(int32_t windowId,
+    OH_NativeWindowManager_TouchEventFilter* outTouchEventFilter)
+{
+    auto window = OHOS::Rosen::Window::GetWindowWithId(windowId);
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "window is null, windowId=%{public}d", windowId);
+        return WindowManager_ErrorCode::INVALID_WINDOW_ID;
+    }
+    if (outTouchEventFilter == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "outTouchEventFilter is null");
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+    }
+    NativeTouchEventFilter nativeFilter = window->GetNativeTouchEventFilter();
+    if (nativeFilter == nullptr) {
+        *outTouchEventFilter = nullptr;
+        TLOGW(WmsLogTag::WMS_EVENT, "The filter is not found, windowId=%{public}d", windowId);
+    } else {
+        *outTouchEventFilter = nativeFilter;
+        TLOGI(WmsLogTag::WMS_EVENT, "Get filter success, windowId=%{public}d", windowId);
+    }
+    return WindowManager_ErrorCode::OK;
 }

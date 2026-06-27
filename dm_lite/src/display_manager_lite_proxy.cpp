@@ -120,6 +120,82 @@ DMError DisplayManagerLiteProxy::UnregisterDisplayManagerAgent(
 #endif
 }
 
+DMError DisplayManagerLiteProxy::RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is null");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    TLOGD(WmsLogTag::DMS, "enter");
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (displayManagerAgent == nullptr) {
+        TLOGE(WmsLogTag::DMS, "IDisplayManagerAgent is null");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    if (!data.WriteRemoteObject(displayManagerAgent->AsObject())) {
+        TLOGE(WmsLogTag::DMS, "Write IDisplayManagerAgent failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteStringVector(attributes)) {
+        TLOGE(WmsLogTag::DMS, "Write attributes failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_REGISTER_DISPLAY_ATTRIBUTE_AGENT),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadInt32());
+}
+
+DMError DisplayManagerLiteProxy::UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    TLOGD(WmsLogTag::DMS, "enter");
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+
+    if (displayManagerAgent == nullptr) {
+        TLOGE(WmsLogTag::DMS, "IDisplayManagerAgent is null");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+
+    if (!data.WriteRemoteObject(displayManagerAgent->AsObject())) {
+        TLOGE(WmsLogTag::DMS, "Write IDisplayManagerAgent failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteStringVector(attributes)) {
+        TLOGE(WmsLogTag::DMS, "Write attributes failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNREGISTER_DISPLAY_ATTRIBUTE),
+        data, reply, option) !=ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(reply.ReadInt32());
+}
+
 FoldDisplayMode DisplayManagerLiteProxy::GetFoldDisplayMode()
 {
 #ifdef SCENE_BOARD_ENABLED

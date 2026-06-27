@@ -67,6 +67,7 @@ FloatViewController::FloatViewController(const FvOption &option, ani_env* env)
 FloatViewController::~FloatViewController()
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "FloatViewController release, id: %{public}s", id_.c_str());
+    option_.ClearAniReference(GetEnv());
 }
 
 void FloatViewController::UpdateMainWindow(const sptr<Window>& mainWindow)
@@ -392,7 +393,7 @@ WMError FloatViewController::SetUIContext(const std::string &contextUrl,
 }
 
 WMError FloatViewController::SetUIContext(const std::string &contextUrl,
-    const ani_object& contentStorage, bool isLoadByName)
+    const ani_ref& contentStorage, bool isLoadByName)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "ani SetUIContext called");
     if (type_ != APIType::ANI) {
@@ -401,7 +402,7 @@ WMError FloatViewController::SetUIContext(const std::string &contextUrl,
     }
     std::lock_guard<std::mutex> lock(controllerMutex_);
     option_.SetUIPath(contextUrl);
-    option_.SetStorage(contentStorage);
+    option_.SetStorage(GetEnv(), contentStorage);
     option_.isLoadUIByName = isLoadByName;
     return SetUIContextInner(isLoadByName);
 }
@@ -436,7 +437,7 @@ WMError FloatViewController::SetUIContextInner(bool isLoadByName)
         }
     } else if (type_ == APIType::ANI) {
         auto contentUrl = option_.GetUIPath();
-        ani_object storage = option_.GetAniStorage();
+        ani_ref storage = option_.GetAniStorage();
         ani_env* env = GetEnv();
         if (env == nullptr) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "get env failed");
@@ -444,9 +445,10 @@ WMError FloatViewController::SetUIContextInner(bool isLoadByName)
         }
         WMError errCode;
         if (isLoadByName) {
-            errCode = window_->AniSetUIContentByName(contentUrl, env, storage);
+            errCode = window_->AniSetUIContentByName(contentUrl, env, static_cast<ani_object>(storage));
         } else {
-            errCode = window_->AniSetUIContent(contentUrl, env, storage, BackupAndRestoreType::NONE);
+            errCode = window_->AniSetUIContent(contentUrl, env, static_cast<ani_object>(storage),
+                BackupAndRestoreType::NONE);
         }
         if (errCode != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "Set fv window content failed, err: %{public}u", errCode);

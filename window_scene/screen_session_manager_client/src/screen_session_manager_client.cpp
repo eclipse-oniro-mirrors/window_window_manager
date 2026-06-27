@@ -119,7 +119,8 @@ bool ScreenSessionManagerClient::CheckIfNeedConnectScreen(SessionOption option)
     if (screenSessionManager_->GetScreenProperty(option.screenId_).GetScreenType() == ScreenType::VIRTUAL) {
         if (option.name_ == "HiCar" || option.name_ == "SuperLauncher" || option.name_ == "CastEngine" ||
             option.name_ == "DevEcoViewer" || option.innerName_ == "CustomScbScreen" || option.name_ == "CeliaView" ||
-            option.name_ == "PadWithCar" || option.name_ == "CooperationExtend" || option.name_ == "PCVirtualScreen") {
+            option.name_ == "PadWithCar" || option.name_ == "CooperationExtend" || option.name_ == "PCVirtualScreen" ||
+            option.name_ == "MultiScreenInteract") {
             TLOGI(WmsLogTag::DMS, "HiCar or SuperLauncher or CastEngine or DevEcoViewer or CeliaView, "
                 "need to connect the screen");
             return true;
@@ -825,25 +826,30 @@ void ScreenSessionManagerClient::SwitchingCurrentUser()
 void ScreenSessionManagerClient::DisconnectAllExternalScreen()
 {
     ScreenId setScreenId = SCREEN_ID_INVALID;
+    std::map<ScreenId, sptr<ScreenSession>> screenSessionMapCopy;
     {
         std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
-        for (auto sessionIt = screenSessionMap_.rbegin(); sessionIt != screenSessionMap_.rend(); ++sessionIt) {
-            auto screenSession = sessionIt->second;
-            if (screenSession == nullptr) {
-                TLOGE(WmsLogTag::DMS, "screenSession is nullptr!");
-                continue;
-            }
-            if (screenSession->GetScreenProperty().GetScreenType() ==
-                ScreenType::REAL && screenSession->GetIsExtend()) {
-                TLOGI(WmsLogTag::DMS, "disconnect extend screen, screenId = %{public}" PRIu64, sessionIt->first);
-                screenSession->DestroyScreenScene();
-                NotifyScreenDisconnect(screenSession);
-                ScreenId screenId = sessionIt->first;
+        screenSessionMapCopy = screenSessionMap_;
+    }
+    for (auto sessionIt = screenSessionMapCopy.rbegin(); sessionIt != screenSessionMapCopy.rend(); ++sessionIt) {
+        auto screenSession = sessionIt->second;
+        if (screenSession == nullptr) {
+            TLOGE(WmsLogTag::DMS, "screenSession is nullptr!");
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() ==
+            ScreenType::REAL && screenSession->GetIsExtend()) {
+            TLOGI(WmsLogTag::DMS, "disconnect extend screen, screenId = %{public}" PRIu64, sessionIt->first);
+            screenSession->DestroyScreenScene();
+            NotifyScreenDisconnect(screenSession);
+            ScreenId screenId = sessionIt->first;
+            {
+                std::lock_guard<std::mutex> lock(screenSessionMapMutex_);
                 screenSessionMap_.erase(screenId);
-                setScreenId = screenId;
-                screenSession->Disconnect();
-                break;
             }
+            setScreenId = screenId;
+            screenSession->Disconnect();
+            break;
         }
     }
     if (setScreenId != SCREEN_ID_INVALID) {

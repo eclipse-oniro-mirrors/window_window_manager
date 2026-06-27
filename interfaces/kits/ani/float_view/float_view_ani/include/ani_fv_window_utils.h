@@ -30,6 +30,7 @@ public:
     static ani_object AniThrowError(ani_env* env, WMError wmError, const std::string& message = "");
     static ani_object AniThrowError(ani_env* env, WmErrorCode wmErrorCode, const std::string& message = "");
     static ani_status GetTemplateType(ani_env* env, ani_object floatViewConfigurations, uint32_t& templateType);
+    static ani_status GetIsConfirmOnClose(ani_env* env, ani_object floatViewConfigurations, bool& isConfirm);
     static ani_status GetContextPtr(ani_env* env, ani_object floatViewConfigurations, void*& contextPtr);
     static ani_ref AniGetUndefined(ani_env* env);
     static std::string GetErrorMsg(WMError error);

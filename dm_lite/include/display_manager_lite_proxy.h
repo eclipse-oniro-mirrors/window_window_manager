@@ -44,6 +44,10 @@ public:
         DisplayManagerAgentType type);
     DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type);
+    DMError RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent);
+    DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent);
 
     FoldDisplayMode GetFoldDisplayMode();
     void SetFoldDisplayMode(const FoldDisplayMode displayMode);

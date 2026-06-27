@@ -312,9 +312,7 @@ public:
     virtual WMError SetShadowOffsetX(float offsetX) = 0;
     virtual WMError SetShadowOffsetY(float offsetY) = 0;
     virtual WMError SyncShadowsToComponent(const ShadowsInfo& shadowsInfo)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+        { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetBlur(float radius) = 0;
     virtual WMError SetBackdropBlur(float radius) = 0;
     virtual WMError SetBackdropBlurStyle(WindowBlurStyle blurStyle) = 0;
@@ -469,6 +467,7 @@ public:
         std::shared_ptr<Media::PixelMap>& pixelMap) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap>& pixelMap) = 0;
     virtual WMError NotifyMemoryLevel(int32_t level) = 0;
+    virtual void NotifyWindowStageCreateFinished() {}
     virtual bool IsAllowHaveSystemSubWindow() = 0;
     virtual WMError SetAspectRatio(float ratio) = 0;
 
@@ -692,7 +691,7 @@ public:
     /**
      * @brief Clear the window mask of window.
      *
-     * @return WM_OK means set success, others means failed.
+     * @return WM_OK means clear success, others means failed.
      */
     virtual WMError ClearWindowMask()
     {

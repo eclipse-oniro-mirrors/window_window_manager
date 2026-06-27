@@ -126,6 +126,15 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
             newRequestRect.width_ = rect.width_;
             newRequestRect.height_ = rect.height_;
         }
+
+        // When a subwindow follows its parent window, updates to the subwindow's
+        // rect and displayId bypass the TS/JS layer. As a result, the displayId
+        // stored in SessionProperty is not updated automatically. Update it here
+        // to ensure subsequent logic can retrieve the correct displayId.
+        if (moveConfiguration.displayId != DISPLAY_ID_INVALID) {
+            GetSessionProperty()->SetDisplayId(moveConfiguration.displayId);
+        }
+
         SetSessionRequestRect(newRequestRect);
         SetRequestRectWhenFollowParent(newRequestRect);
         WSRect globaleRect =
@@ -671,6 +680,23 @@ WSError SubSession::ShowSubWindowZLevelAboveParentLoosened()
             return;
         }
         session->sessionStage_->ShowSubWindowZLevelAboveParentLoosened();
+        }, __func__);
+    return WSError::WS_OK;
+}
+
+WSError SubSession::DestroySubWindowZLevelAboveParentLoosened()
+{
+    PostTask([weakThis = wptr(this), funcName = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: session is null", funcName);
+            return;
+        }
+        if (session->sessionStage_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s: sessionStage_ is nullptr", funcName);
+            return;
+        }
+        session->sessionStage_->DestroySubWindowZLevelAboveParentLoosened();
         }, __func__);
     return WSError::WS_OK;
 }

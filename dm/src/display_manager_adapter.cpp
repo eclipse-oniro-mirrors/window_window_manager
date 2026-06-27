@@ -26,7 +26,7 @@
 #include "window_manager_hilog.h"
 #include "zidl/screen_session_manager_interface.h"
 #include "dms_global_mutex.h"
-
+#include "ffrt.h"
 namespace OHOS::Rosen {
 WM_IMPLEMENT_SINGLE_INSTANCE(DisplayManagerAdapter)
 WM_IMPLEMENT_SINGLE_INSTANCE(ScreenManagerAdapter)
@@ -443,6 +443,38 @@ DMError ScreenManagerAdapter::SetVirtualScreenSurface(ScreenId screenId, sptr<Su
     return ConvertToDMError(errCode, dmError);
 }
 
+DMError ScreenManagerAdapter::AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface,
+    const DMRect& surfaceRegion)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Surface is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::DMS, "enter AddVirtualScreenSurface");
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->AddVirtualScreenSurface(screenId, surface->GetProducer(),
+            surfaceRegion);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError ScreenManagerAdapter::RemoveVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+
+    if (surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Surface is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::DMS, "enter RemoveVirtualScreenSurface");
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RemoveVirtualScreenSurface(screenId, surface->GetProducer());
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError ScreenManagerAdapter::AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
@@ -839,10 +871,16 @@ bool DisplayManagerAdapter::SetFreeze(std::vector<DisplayId> displayIds, bool is
     displayManagerServiceProxy_->SetFreeze(displayIds, isFreeze, isSucc);
     return isSucc;
 }
+class BaseAdapter::Impl {
+public:
+    ffrt::recursive_mutex mutex_;
+};
+
+BaseAdapter::BaseAdapter() : pImpl_(std::make_unique<Impl>()) {}
 
 bool BaseAdapter::InitDMSProxy()
 {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mutex_);
     if (isProxyValid_) {
         return true;
     }
@@ -918,7 +956,7 @@ void DMSDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& wptrDeath)
 BaseAdapter::~BaseAdapter()
 {
     TLOGI(WmsLogTag::DMS, "destroy!");
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mutex_);
     Clear();
     screenSessionManagerServiceProxy_ = nullptr;
     displayManagerServiceProxy_ = nullptr;
@@ -927,7 +965,7 @@ BaseAdapter::~BaseAdapter()
 void BaseAdapter::Clear()
 {
     TLOGD(WmsLogTag::DMS, "Clear!");
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mutex_);
     if ((screenSessionManagerServiceProxy_ != nullptr) && (screenSessionManagerServiceProxy_->AsObject() != nullptr)) {
         screenSessionManagerServiceProxy_->AsObject()->RemoveDeathRecipient(dmsDeath_);
     }

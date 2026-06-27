@@ -51,6 +51,7 @@ group("unittest") {
       ":ws_screen_session_manager_test_six",
       ":ws_screen_session_manager_test_seven",
       ":ws_screen_session_manager_test_eight",
+      ":ws_screen_session_manager_virtual_surface_test",
       ":ws_screen_aod_plugin_test",
       ":ws_screen_scene_config_test",
       ":ws_setting_provider_test",
@@ -1081,6 +1082,46 @@ ohos_unittest("ws_screen_session_manager_test_eight") {
 
   if (window_manager_feature_multi_usr) {
     defines += [ "WM_MULTI_USR_ABILITY_ENABLE" ]
+  }
+}
+
+ohos_unittest("ws_screen_session_manager_virtual_surface_test") {
+  module_out_path = module_out_path
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  sources = [
+    "../mock/mock_message_parcel.cpp",
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "screen_session_manager_virtual_surface_test.cpp"
+  ]
+
+  include_dirs = [ "../mock" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_runtime:ability_context_native",
+    "ability_runtime:runtime",
+    "init:libbegetutil",
+  ]
+
+  defines = []
+
+  if (window_manager_fold_ability) {
+    defines += [ "FOLD_ABILITY_ENABLE" ]
+  }
+
+  if (window_manager_feature_multi_screen) {
+    defines += [ "WM_MULTI_SCREEN_ENABLE" ]
   }
 }
 

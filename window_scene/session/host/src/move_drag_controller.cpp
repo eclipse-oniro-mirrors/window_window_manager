@@ -509,13 +509,6 @@ void MoveDragController::InitCrossDisplayProperty(DisplayId displayId)
         std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
         displayIdSetDuringMoveDrag_.insert(displayId);
     }
-    moveDragStartDisplayId_ = displayId;
-    auto offset = GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_);
-    RETURN_IF_NULL(offset);
-    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) = *offset;
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-          "moveDragStartDisplayId: %{public}" PRIu64 ", originalDisplayOffset: [%{public}d, %{public}d]",
-          moveDragStartDisplayId_, originalDisplayOffsetX_, originalDisplayOffsetY_);
 }
 
 /** @note @window.drag */
@@ -1871,19 +1864,21 @@ void MoveDragController::CalcFirstMoveTargetRect(const WSRect& windowRect, bool 
     int32_t offsetY = moveTempProperty_.lastMovePointerPosY_ - moveTempProperty_.lastDownPointerPosY_;
     WSRect targetRect = originalRect.WithOffset(offsetX, offsetY);
     bool isSpecifyMoveStart = false;
+    DisplayId specifyMoveStartDisplayId = DISPLAY_ID_INVALID;
     {
         std::lock_guard<std::mutex> lock(specifyMoveStartMutex_);
         isSpecifyMoveStart = isSpecifyMoveStart_;
+        specifyMoveStartDisplayId = specifyMoveStartDisplayId_;
     }
     if (isSpecifyMoveStart) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "specify start display:%{public}" PRIu64, specifyMoveStartDisplayId_);
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "specify start display:%{public}" PRIu64, specifyMoveStartDisplayId);
         moveDragProperty_.originalRect_.posX_ = moveTempProperty_.lastDownPointerPosX_ -
             moveTempProperty_.lastDownPointerWindowX_ - parentRect_.posX_;
         moveDragProperty_.originalRect_.posY_ = moveTempProperty_.lastDownPointerPosY_ -
             moveTempProperty_.lastDownPointerWindowY_ - parentRect_.posY_;
         targetRect.posX_ = moveDragProperty_.originalRect_.posX_ + offsetX;
         targetRect.posY_ = moveDragProperty_.originalRect_.posY_ + offsetY;
-        targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId_);
+        targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId);
     }
     UpdateTargetRect(SizeChangeReason::DRAG_MOVE, targetRect);
     isAdaptToProportionalScale_ = useWindowRect;
@@ -2096,13 +2091,19 @@ bool MoveDragController::SyncPropertiesFromSceneSession()
     limits_ = session->GetWindowLimits();
     decoration_ = session->GetWindowDecoration();
     supportCrossDisplay_ = session->IsCrossDisplayDragSupported();
+
+    auto property = session->GetSessionProperty();
+    moveDragStartDisplayId_ = property->GetDisplayId();
+    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) =
+        GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_).value_or(std::pair { 0, 0 });
+
     TLOGD(WmsLogTag::WMS_LAYOUT,
-          "windowId: %{public}d, aspectRatio: %{public}f, "
-          "limits: %{public}s, decoration: %{public}s, "
-          "supportCrossDisplay: %{public}d",
-          persistentId_, aspectRatio_,
-          limits_.ToString().c_str(), decoration_.ToString().c_str(),
-          supportCrossDisplay_);
+        "windowId: %{public}d, aspectRatio: %{public}f, limits: %{public}s, decoration: %{public}s, "
+        "supportCrossDisplay: %{public}d, startDisplayId: %{public}" PRIu64
+        ", originalDisplayOffset: [%{public}d, %{public}d]",
+        persistentId_, aspectRatio_, limits_.ToString().c_str(), decoration_.ToString().c_str(),
+        supportCrossDisplay_, moveDragStartDisplayId_,
+        originalDisplayOffsetX_, originalDisplayOffsetY_);
     return true;
 }
 

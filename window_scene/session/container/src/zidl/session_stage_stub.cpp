@@ -300,6 +300,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleHideSubWindowZLevelAboveParentLoosened(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SHOW_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED):
             return HandleShowSubWindowZLevelAboveParentLoosened(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_DESTROY_SUBWINDOW_ZLEVEL_ABOVE_PARENT_LOOSENED):
+            return HandleDestroySubWindowZLevelAboveParentLoosened(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_IS_START_MOVING):
             return HandleSetIsStartMoving(data, reply);
         default:
@@ -1059,7 +1061,13 @@ int SessionStageStub::HandleSendFbActionEvent(MessageParcel& data, MessageParcel
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         return ERR_INVALID_VALUE;
     }
-    auto error = SendFbActionEvent(action);
+    std::string reason;
+    if (!data.ReadString(reason)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Read reason failed.");
+        reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+        return ERR_INVALID_VALUE;
+    }
+    auto error = SendFbActionEvent(action, reason);
     if (!reply.WriteInt32(static_cast<int32_t>(error))) {
         return ERR_INVALID_VALUE;
     }
@@ -1871,6 +1879,13 @@ int SessionStageStub::HandleShowSubWindowZLevelAboveParentLoosened(MessageParcel
 {
     TLOGD(WmsLogTag::WMS_SUB, "in");
     ShowSubWindowZLevelAboveParentLoosened();
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleDestroySubWindowZLevelAboveParentLoosened(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_SUB, "in");
+    DestroySubWindowZLevelAboveParentLoosened();
     return ERR_NONE;
 }
 

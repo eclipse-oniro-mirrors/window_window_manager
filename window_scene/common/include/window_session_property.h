@@ -28,6 +28,7 @@
 #include "pixel_map.h"
 #include "floating_ball_template_info.h"
 #include "float_view_template_info.h"
+#include <shared_mutex>
 
 namespace OHOS {
 namespace Rosen {
@@ -68,7 +69,6 @@ public:
     void SetRequestedOrientation(Orientation orientation, bool needAnimation = true);
     void SetDefaultRequestedOrientation(Orientation orientation);
     void SetUserRequestedOrientation(Orientation orientation);
-    void SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation);
     void SetPrivacyMode(bool isPrivate);
     void SetSystemPrivacyMode(bool isSystemPrivate);
     void SetSnapshotSkip(bool isSkip);
@@ -149,7 +149,6 @@ public:
     bool GetRequestedAnimation() const;
     Orientation GetDefaultRequestedOrientation() const;
     Orientation GetUserRequestedOrientation() const;
-    bool GetIsSpecificSessionRequestOrientation() const;
     bool GetPrivacyMode() const;
     bool GetSystemPrivacyMode() const;
     bool GetSnapshotSkip() const;
@@ -318,6 +317,7 @@ public:
     bool GetForceSplitEnable() const;
     void SetHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     HookWindowInfo GetHookWindowInfo() const;
+    void SetWidthHookRatio(float ratio);
     void SetRotationLocked(bool locked);
     bool GetRotationLocked() const;
     void SetDragDisabledAreas(const std::vector<Rect>& areas);
@@ -409,6 +409,8 @@ public:
     CompatibleStyleMode GetPageCompatibleMode() const;
     void SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig);
     std::vector<std::string> GetCombinedCompatibleConfig() const;
+    void SetSelectMode(SelectMode selectMode);
+    SelectMode GetSelectMode() const;
 
     /*
      * Keyboard
@@ -432,6 +434,8 @@ public:
 
     void SetIsShowDecorInFreeMultiWindow(bool isShow);
     bool GetIsShowDecorInFreeMultiWindow() const;
+    void SetIsNeedUpdateShowDecor(bool isNeed);
+    bool GetIsNeedUpdateShowDecor() const;
 
     /*
      * Window Layout
@@ -550,7 +554,6 @@ private:
     bool needRotateAnimation_ = true;
     Orientation defaultRequestedOrientation_ = Orientation::UNSPECIFIED; // only accessed on SSM thread
     Orientation userRequestedOrientation_ = Orientation::UNSPECIFIED;
-    bool isSpecificSessionRequestOrientation_ = false;
     bool isPrivacyMode_ { false };
     bool isSystemPrivacyMode_ { false };
     bool isSnapshotSkip_ { false };
@@ -619,6 +622,7 @@ private:
     bool isPcAppInPad_ = false;
     sptr<CompatibleModeProperty> compatibleModeProperty_ = nullptr;
     mutable std::mutex compatibleModeMutex_;
+    mutable std::shared_mutex compatibleModePropertyMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
     std::vector<std::string> combinedCompatibleConfig_;
@@ -723,6 +727,8 @@ private:
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
     mutable std::mutex hookWindowInfoMutex_;
     HookWindowInfo hookWindowInfo_;
+    mutable std::mutex selectModeMutex_;
+    SelectMode selectMode_ = SelectMode::INVALID_MODE;
     bool isPcAppInpadCompatibleMode_ = false;
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
@@ -746,6 +752,7 @@ private:
     std::unordered_map<WindowTransitionType, std::shared_ptr<TransitionAnimation>> transitionAnimationConfig_;
 
     bool isShowDecorInFreeMultiWindow_ { true };
+    bool isNeedUpdateShowDecor_ { false };
 
     /*
      * Window Layout

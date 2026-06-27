@@ -31,6 +31,7 @@ using namespace AbilityRuntime;
 namespace {
 const std::string STATE_CHANGE_CB = "stateChange";
 const std::string CLICK_EVENT = "click";
+const std::string DESTROY_EVENT = "destroy";
 const std::string FLOATING_BALL_PERMISSION = "ohos.permission.USE_FLOAT_BALL";
 constexpr int32_t NUMBER_TWO = 2;
 const char* ARKUI_WINDOW_FB_STARTFLOATINGBALL = "ArkUI.window.fb.startFloatingBall";
@@ -42,6 +43,8 @@ const char* ARKUI_WINDOW_FB_OFFSTATECHANGE = "ArkUI.window.fb.offStateChange";
 const char* ARKUI_WINDOW_FB_ONCLICK = "ArkUI.window.fb.onClick";
 const char* ARKUI_WINDOW_FB_OFFCLICK = "ArkUI.window.fb.offClick";
 const char* ARKUI_WINDOW_FB_GETFLOATINGBALLWINDOWINFO = "ArkUI.window.fb.getFloatingBallWindowInfo";
+const char* ARKUI_WINDOW_FB_ONDESTROY = "ArkUI.window.fb.onDestroy";
+const char* ARKUI_WINDOW_FB_OFFDESTROY = "ArkUI.window.fb.offDestroy";
 const char* ARKUI_WINDOW_FB_SETFLOATINGBALLVISIBILITYINAPP = "ArkUI.window.fb.setFloatingBallVisibilityInApp";
 
 const char* ARKUI_WINDOW_FB_STARTFLOATINGBALL_BOOL = "ArkUI.window.fb.startFloatingBall.bool";
@@ -52,8 +55,17 @@ const char* ARKUI_WINDOW_FB_ONSTATECHANGE_BOOL = "ArkUI.window.fb.onStateChange.
 const char* ARKUI_WINDOW_FB_OFFSTATECHANGE_BOOL = "ArkUI.window.fb.offStateChange.bool";
 const char* ARKUI_WINDOW_FB_ONCLICK_BOOL = "ArkUI.window.fb.onClick.bool";
 const char* ARKUI_WINDOW_FB_OFFCLICK_BOOL = "ArkUI.window.fb.offClick.bool";
+const char* ARKUI_WINDOW_FB_ONDESTROY_BOOL = "ArkUI.window.fb.onDestroy.bool";
+const char* ARKUI_WINDOW_FB_OFFDESTROY_BOOL = "ArkUI.window.fb.offDestroy.bool";
 const char* ARKUI_WINDOW_FB_GETFLOATINGBALLWINDOWINFO_BOOL = "ArkUI.window.fb.getFloatingBallWindowInfo.bool";
 const char* ARKUI_WINDOW_FB_SETFLOATINGBALLVISIBILITYINAPP_BOOL = "ArkUI.window.fb.setFloatingBallVisibilityInApp.bool";
+
+// histogram
+struct EventConfig {
+    WMError(JsFbController::*processFunc)(const sptr<JsFbWindowListener>&);
+    const char* histogramType;
+    const char* histogramBoolType;
+};
 }
 
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
@@ -64,6 +76,8 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "restoreMainWindow", moduleName, JsFbController::RestoreMainWindow);
     BindNativeFunction(env, object, "on", moduleName, JsFbController::RegisterCallback);
     BindNativeFunction(env, object, "off", moduleName, JsFbController::UnregisterCallback);
+    BindNativeFunction(env, object, "onDestroy", moduleName, JsFbController::OnDestroy);
+    BindNativeFunction(env, object, "offDestroy", moduleName, JsFbController::OffDestroy);
     BindNativeFunction(env, object, "getFloatingBallWindowInfo", moduleName, JsFbController::GetFloatingBallWindowInfo);
     BindNativeFunction(env, object, "setFloatingBallVisibilityInApp", moduleName,
         JsFbController::SetInApplicationVisible);
@@ -548,21 +562,24 @@ napi_value JsFbController::RegisterListenerWithType(napi_env env, const std::str
             static_cast<int32_t>(WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR), "New JsFbWindowListener failed"));
         return NapiGetUndefined(env);
     }
+
+    static const std::unordered_map<std::string, EventConfig> FB_REG_FUN_MAP = {
+        {STATE_CHANGE_CB,   {&JsFbController::ProcessStateChangeRegister,
+                             ARKUI_WINDOW_FB_ONSTATECHANGE, ARKUI_WINDOW_FB_ONSTATECHANGE_BOOL}},
+        {CLICK_EVENT,       {&JsFbController::ProcessClickEventRegister,
+                             ARKUI_WINDOW_FB_ONCLICK, ARKUI_WINDOW_FB_ONCLICK_BOOL}},
+        {DESTROY_EVENT,     {&JsFbController::ProcessDestroyEventRegister,
+                             ARKUI_WINDOW_FB_ONDESTROY, ARKUI_WINDOW_FB_ONDESTROY_BOOL}}
+    };
+
     WMError ret = WMError::WM_OK;
-    if (type == STATE_CHANGE_CB) {
-        ret = ProcessStateChangeRegister(fbWindowListener);
-        auto it = WM_JS_TO_ERROR_CODE_MAP.find(ret);
-        if (it != WM_JS_TO_ERROR_CODE_MAP.end()) {
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONSTATECHANGE, it->second);
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_ONSTATECHANGE_BOOL, 0);
-        }
-    }
-    if (type == CLICK_EVENT) {
-        ret = ProcessClickEventRegister(fbWindowListener);
-        auto it = WM_JS_TO_ERROR_CODE_MAP.find(ret);
-        if (it != WM_JS_TO_ERROR_CODE_MAP.end()) {
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_ONCLICK, it->second);
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_ONCLICK_BOOL, 0);
+    auto it = FB_REG_FUN_MAP.find(type);
+    if (it != FB_REG_FUN_MAP.end()) {
+        ret = (this->*it->second.processFunc)(fbWindowListener);
+        auto errorIt = WM_JS_TO_ERROR_CODE_MAP.find(ret);
+        if (errorIt != WM_JS_TO_ERROR_CODE_MAP.end()) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE(it->second.histogramType, errorIt->second);
+            HISTOGRAM_BOOLEAN(it->second.histogramBoolType, 0);
         }
     }
     if (ret != WMError::WM_OK) {
@@ -619,6 +636,15 @@ WMError JsFbController::ProcessClickEventRegister(const sptr<JsFbWindowListener>
         return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
     }
     return fbController_->RegisterFbClickObserver(listener);
+}
+
+WMError JsFbController::ProcessDestroyEventRegister(const sptr<JsFbWindowListener>& listener)
+{
+    if (fbController_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "controller is nullptr");
+        return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
+    }
+    return fbController_->RegisterFbDestroyObserver(listener);
 }
 
 napi_value JsFbController::UnregisterCallback(napi_env env, napi_callback_info info)
@@ -705,21 +731,22 @@ napi_value JsFbController::UnRegisterListenerWithType(napi_env env, const std::s
 WmErrorCode JsFbController::UnRegisterListener(const std::string& type,
     const sptr<JsFbWindowListener>& fbWindowListener)
 {
+    static const std::unordered_map<std::string, EventConfig> FB_UNREG_FUN_MAP = {
+        {STATE_CHANGE_CB,   {&JsFbController::ProcessStateChangeUnRegister,
+                             ARKUI_WINDOW_FB_OFFSTATECHANGE, ARKUI_WINDOW_FB_OFFSTATECHANGE_BOOL}},
+        {CLICK_EVENT,       {&JsFbController::ProcessClickEventUnRegister,
+                             ARKUI_WINDOW_FB_OFFCLICK, ARKUI_WINDOW_FB_OFFCLICK_BOOL}},
+        {DESTROY_EVENT,     {&JsFbController::ProcessDestroyEventUnRegister,
+                             ARKUI_WINDOW_FB_OFFDESTROY, ARKUI_WINDOW_FB_OFFDESTROY_BOOL}}
+    };
     WMError ret = WMError::WM_OK;
-    if (type == STATE_CHANGE_CB) {
-        ret = ProcessStateChangeUnRegister(fbWindowListener);
-        auto it = WM_JS_TO_ERROR_CODE_MAP.find(ret);
-        if (it != WM_JS_TO_ERROR_CODE_MAP.end()) {
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_OFFSTATECHANGE, it->second);
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_OFFSTATECHANGE_BOOL, 0);
-        }
-    }
-    if (type == CLICK_EVENT) {
-        ret = ProcessClickEventUnRegister(fbWindowListener);
-        auto it = WM_JS_TO_ERROR_CODE_MAP.find(ret);
-        if (it != WM_JS_TO_ERROR_CODE_MAP.end()) {
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_OFFCLICK, it->second);
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_OFFCLICK_BOOL, 0);
+    auto it = FB_UNREG_FUN_MAP.find(type);
+    if (it != FB_UNREG_FUN_MAP.end()) {
+        ret = (this->*it->second.processFunc)(fbWindowListener);
+        auto errorIt = WM_JS_TO_ERROR_CODE_MAP.find(ret);
+        if (errorIt != WM_JS_TO_ERROR_CODE_MAP.end()) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE(it->second.histogramType, errorIt->second);
+            HISTOGRAM_BOOLEAN(it->second.histogramBoolType, 0);
         }
     }
     return ConvertErrorToCode(ret);
@@ -741,6 +768,15 @@ WMError JsFbController::ProcessClickEventUnRegister(const sptr<JsFbWindowListene
         return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
     }
     return fbController_->UnRegisterFbClickObserver(listener);
+}
+
+WMError JsFbController::ProcessDestroyEventUnRegister(const sptr<JsFbWindowListener>& listener)
+{
+    if (fbController_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "controller is nullptr");
+        return WMError::WM_ERROR_FB_STATE_ABNORMALLY;
+    }
+    return fbController_->UnRegisterFbDestroyObserver(listener);
 }
 
 napi_value JsFbController::GetFloatingBallWindowInfo(napi_env env, napi_callback_info info)
@@ -809,6 +845,51 @@ napi_value JsFbController::OnGetFloatingBallWindowInfo(napi_env env, napi_callba
 sptr<FloatingBallController> JsFbController::GetController() const
 {
     return fbController_;
+}
+
+napi_value JsFbController::OnDestroy(napi_env env, napi_callback_info info)
+{
+    JsFbController* me = CheckParamsAndGetThis<JsFbController>(env, info);
+    return (me != nullptr) ? me->OnDestroyRegister(env, info) : nullptr;
+}
+
+napi_value JsFbController::OnDestroyRegister(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnDestroyRegister is called");
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < 1) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "OnDestroyRegister Params not match: %{public}zu", argc);
+        return NapiThrowInvalidParam(env, "OnDestroyRegister Params not match");
+    }
+    napi_value value = argv[0];
+    if (value == nullptr || !NapiIsCallable(env, value)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Callback is nullptr or not callable");
+        return NapiThrowInvalidParam(env, "Callback is nullptr or not callable");
+    }
+    return RegisterListenerWithType(env, DESTROY_EVENT, value);
+}
+
+napi_value JsFbController::OffDestroy(napi_env env, napi_callback_info info)
+{
+    JsFbController* me = CheckParamsAndGetThis<JsFbController>(env, info);
+    return (me != nullptr) ? me->OnDestroyUnRegister(env, info) : nullptr;
+}
+
+napi_value JsFbController::OnDestroyUnRegister(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc == 0) {
+        return UnRegisterListenerWithType(env, DESTROY_EVENT, nullptr);
+    }
+    napi_value value = argv[0];
+    if (value == nullptr || !NapiIsCallable(env, value)) {
+        return NapiThrowInvalidParam(env, "Callback is invalid");
+    }
+    return UnRegisterListenerWithType(env, DESTROY_EVENT, value);
 }
 } // namespace Rosen
 } // namespace OHOS

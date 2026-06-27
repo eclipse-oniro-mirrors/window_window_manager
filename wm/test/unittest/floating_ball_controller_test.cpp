@@ -84,6 +84,12 @@ public:
     }
 };
 
+class MockDestroyListener : public IFbDestroyObserver {
+public:
+
+    void OnDestroyEvent(const std::string& reason) override {}
+};
+
 class FloatingBallControllerTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -232,6 +238,34 @@ HWTEST_F(FloatingBallControllerTest, ClickTest01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: DestroyTest
+ * @tc.desc: DestroyTest
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatingBallControllerTest, DestroyTest, TestSize.Level1)
+{
+    uint32_t listenerNum = 0;
+    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, fbController_->RegisterFbDestroyObserver(nullptr));
+    auto destroyListener = sptr<MockDestroyListener>::MakeSptr();
+    EXPECT_EQ(WMError::WM_OK, fbController_->RegisterFbDestroyObserver(destroyListener));
+    // repeat register
+    EXPECT_EQ(WMError::WM_OK, fbController_->RegisterFbDestroyObserver(destroyListener));
+    listenerNum++;
+    fbController_->fbDestroyObservers_.emplace_back(nullptr);
+    listenerNum++;
+    fbController_->OnFloatingBallDestroy("");
+    EXPECT_EQ(listenerNum, fbController_->fbDestroyObservers_.size());
+
+    // unregister
+    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, fbController_->UnRegisterFbDestroyObserver(nullptr));
+    EXPECT_EQ(listenerNum, fbController_->fbDestroyObservers_.size());
+    EXPECT_EQ(WMError::WM_OK, fbController_->UnRegisterFbDestroyObserver(destroyListener));
+    listenerNum--;
+    EXPECT_EQ(listenerNum, fbController_->fbDestroyObservers_.size());
+    fbController_->fbDestroyObservers_.clear();
+}
+
+/**
  * @tc.name: UpdateFloatingBall
  * @tc.desc: UpdateFloatingBall
  * @tc.type: FUNC
@@ -296,21 +330,24 @@ HWTEST_F(FloatingBallControllerTest, StopFloatingBall03, TestSize.Level1)
 {
     fbController_->stopFromClient_ = false;
     fbController_->curState_ = FbWindowState::STATE_STOPPING;
-    EXPECT_EQ(WMError::WM_ERROR_FB_REPEAT_OPERATION, fbController_->StopFloatingBall());
+    EXPECT_EQ(WMError::WM_ERROR_FB_REPEAT_OPERATION, fbController_->StopFloatingBall("test"));
     fbController_->curState_ = FbWindowState::STATE_STOPPED;
-    EXPECT_EQ(WMError::WM_ERROR_FB_REPEAT_OPERATION, fbController_->StopFloatingBall());
+    EXPECT_EQ(WMError::WM_ERROR_FB_REPEAT_OPERATION, fbController_->StopFloatingBall("test"));
 
     fbController_->curState_ = FbWindowState::STATE_STARTED;
-    EXPECT_CALL(*(mw_), Destroy(_, _)).Times(1);
     fbController_->window_ = mw_;
-    EXPECT_EQ(WMError::WM_OK, fbController_->StopFloatingBall());
+    EXPECT_EQ(WMError::WM_OK, fbController_->StopFloatingBall("test"));
     EXPECT_EQ(FbWindowState::STATE_STOPPED, fbController_->GetCurState());
 
     fbController_->window_ = nullptr;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, fbController_->StopFloatingBall());
-    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, fbController_->DestroyFloatingBallWindow());
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, fbController_->StopFloatingBall("test"));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, fbController_->DestroyFloatingBallWindow("test"));
     EXPECT_EQ(nullptr, fbController_->GetFbWindow());
+
+    fbController_->window_ = mw_;
+    EXPECT_CALL(*(mw_), Destroy()).Times(1).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, fbController->DestroyFloatingBallWindow(""));
 }
 
 /**

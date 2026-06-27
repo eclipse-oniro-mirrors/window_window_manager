@@ -2501,10 +2501,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
 
 napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_callback_info info)
 {
-    size_t argc = ARGC_TWO;
-    napi_value argv[ARGC_TWO] = {nullptr};
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARGC_THREE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != ARGC_TWO) {
+    if (argc < ARGC_TWO || argc > ARGC_THREE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
@@ -2525,10 +2525,18 @@ napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_c
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][moveMainWindowToTargetDisplay]msg: failed to convert parameter to windowId");
     }
+    int32_t userId = -1;
+    if (argc == ARGC_THREE && argv[INDEX_TWO] != nullptr) {
+        if (!ConvertFromJsValue(env, argv[INDEX_TWO], userId)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to userId");
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                "[window][moveMainWindowToTargetDisplay]msg: failed to convert parameter to userId");
+        }
+    }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
-    auto asyncTask = [displayId, windowId, env, task = napiAsyncTask] {
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
+    auto asyncTask = [displayId, windowId, userId, env, task = napiAsyncTask] {
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(WindowManager::GetInstance(userId).
             MoveMainWindowToTargetDisplay(static_cast<DisplayId>(displayId), windowId));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));

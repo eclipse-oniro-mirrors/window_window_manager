@@ -89,6 +89,7 @@ ohos_static_library("libdm_static") {
     "runtime_core:ani",
     "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
+    "ffrt:libffrt",
   ]
 
   part_name = "window_manager"
@@ -150,6 +151,7 @@ ohos_shared_library("libdm") {
     "runtime_core:ani",
     "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
+    "ffrt:libffrt",
   ]
 
   innerapi_tags = [ "platformsdk" ]

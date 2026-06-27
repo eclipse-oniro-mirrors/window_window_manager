@@ -301,7 +301,8 @@ WSError ReadCombinedCompatibleConfig(MessageParcel& reply, sptr<WindowSessionPro
 }
 
 WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+    uint64_t nodeId, SystemSessionConfig& systemConfig,
+    sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
     sptr<WindowSessionProperty> property, sptr<IRemoteObject> token,
     const std::string& identityToken)
 {
@@ -320,8 +321,8 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
         TLOGE(WmsLogTag::WMS_LIFE, "Write IWindowEventChannel failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!surfaceNode || !surfaceNode->Marshalling(data)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write surfaceNode failed");
+    if (!data.WriteUint64(nodeId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write nodeId failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (property) {
@@ -359,6 +360,12 @@ WSError SessionProxy::Connect(const sptr<ISessionStage>& sessionStage, const spt
     sptr<SystemSessionConfig> config = reply.ReadParcelable<SystemSessionConfig>();
     if (config) {
         systemConfig = *config;
+    }
+    renderSession = reply.ReadRemoteObject();
+    surfaceNode = RSSurfaceNode::Unmarshalling(reply, false);
+    if (!surfaceNode) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read surfaceNode failed");
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     if (property) {
         property->SetPersistentId(reply.ReadInt32());
@@ -2942,6 +2949,38 @@ WMError SessionProxy::GetAppForceLandscapeConfig(AppForceLandscapeConfig& config
         config = *replyConfig;
     }
     int32_t ret = reply.ReadInt32();
+    return static_cast<WMError>(ret);
+}
+
+WMError SessionProxy::GetForceSplitEnable(bool& enable)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "WriteInterfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (!remote) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    uint32_t requestCode = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_GET_FORCE_SPLIT_ENABLE);
+    if (remote->SendRequest(requestCode, data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!reply.ReadBool(enable)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read enable failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    // ret is written by the stub side which only writes valid WMError values; no range check needed
     return static_cast<WMError>(ret);
 }
 

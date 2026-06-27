@@ -33,7 +33,8 @@ namespace OHOS {
 namespace Rosen {
 
 class AniFbWindowListener : public IFbLifeCycle,
-                        public IFbClickObserver {
+                         public IFbClickObserver,
+                         public IFbDestroyObserver {
 public:
     AniFbWindowListener(ani_env *env, ani_vm *vm, ani_ref callback)
         : env_(env), vm_(vm), aniCallback_(callback),
@@ -44,6 +45,7 @@ public:
     void SetAniCallback(ani_ref aniCallback) {aniCallback_ = aniCallback;}
     void SetMainEventHandler();
     void OnClickEvent() override;
+    void OnDestroyEvent(const std::string& reason) override;
     void OnFloatingBallStart() override;
     void OnFloatingBallStop() override;
 private:
@@ -54,6 +56,7 @@ private:
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;
     
     void OnFbListenerCallback(const FloatingBallState &state);
+    void OnDestroyCallback(const std::string &reason);
 };  // class AniFbWindowListener
 }  // namespace Rosen
 }  // namespace OHOS

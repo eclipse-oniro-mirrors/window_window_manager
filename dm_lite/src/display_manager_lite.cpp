@@ -48,6 +48,10 @@ public:
     DMError UnregisterDisplayModeListener(sptr<IDisplayModeListener> listener);
     DMError RegisterScreenMagneticStateListener(sptr<IScreenMagneticStateListener> listener);
     DMError UnregisterScreenMagneticStateListener(sptr<IScreenMagneticStateListener> listener);
+    DMError RegisterDisplayAttributeListener(const std::vector<std::string>& attributes,
+        sptr<IDisplayAttributeListener> listener);
+    DMError UnregisterDisplayAttributeListener(sptr<IDisplayAttributeListener> listener);
+    DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributesNotListened);
     void DlcloseClearResource();
     void OnRemoteDied();
     sptr<DisplayLite> GetDisplayById(DisplayId displayId);
@@ -83,6 +87,7 @@ private:
     sptr<DisplayManagerFoldStatusAgent> foldStatusListenerAgent_;
     class DisplayManagerDisplayModeAgent;
     sptr<DisplayManagerDisplayModeAgent> displayModeListenerAgent_;
+    std::set<sptr<IDisplayAttributeListener>> displayAttributeListeners_;
     /*
      * used by powermgr
      */
@@ -92,6 +97,8 @@ private:
     std::set<sptr<IScreenMagneticStateListener>> screenMagneticStateListeners_;
     class DisplayManagerScreenMagneticStateAgent;
     sptr<DisplayManagerScreenMagneticStateAgent> screenMagneticStateListenerAgent_;
+    class DisplayManagerAttributeAgent;
+    sptr<DisplayManagerAttributeAgent> displayManagerAttributeAgent_;
 };
 
 class DisplayManagerLite::Impl::DisplayManagerListener : public DisplayManagerAgentDefault {
@@ -212,6 +219,40 @@ private:
     sptr<Impl> pImpl_;
 };
 
+class DisplayManagerLite::Impl::DisplayManagerAttributeAgent : public DisplayManagerAgentDefault {
+public:
+    explicit DisplayManagerAttributeAgent(sptr<Impl> impl) : pImpl_(impl) {}
+
+    void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes) override
+    {
+        if (displayInfo == nullptr || displayInfo->GetDisplayId() == DISPLAY_ID_INVALID) {
+            TLOGE(WmsLogTag::DMS, "DisplayInfo is invalid.");
+            return;
+        }
+        if (attributes.empty()) {
+            TLOGE(WmsLogTag::DMS, "attributes is empty");
+            return;
+        }
+        if (pImpl_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "Impl is nullptr.");
+            return;
+        }
+        TLOGD(WmsLogTag::DMS, "Display %{public}" PRIu64, displayInfo->GetDisplayId());
+        pImpl_->NotifyDisplayChange(displayInfo);
+        std::set<sptr<IDisplayAttributeListener>> displayAttributeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+            displayAttributeListeners = pImpl_->displayAttributeListeners_;
+        }
+        for (auto listener : displayAttributeListeners) {
+            listener->OnAttributeChange(displayInfo->GetDisplayId(), attributes);
+        }
+    }
+
+private:
+    sptr<Impl> pImpl_;
+};
+
 /*
  * used by powermgr
  */
@@ -316,6 +357,84 @@ DMError DisplayManagerLite::UnregisterDisplayListener(sptr<IDisplayListener> lis
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterDisplayListener(listener);
+}
+
+DMError DisplayManagerLite::RegisterDisplayAttributeListener(const std::vector<std::string>& attributes,
+    sptr<IDisplayAttributeListener> listener)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Display attribute listener is nullptr.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return pImpl_->RegisterDisplayAttributeListener(attributes, listener);
+}
+
+DMError DisplayManagerLite::Impl::RegisterDisplayAttributeListener(const std::vector<std::string>& attributes,
+    sptr<IDisplayAttributeListener> listener)
+{
+    TLOGI(WmsLogTag::DMS, "called");
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    DMError ret = DMError::DM_OK;
+    if (displayManagerAttributeAgent_ == nullptr) {
+        displayManagerAttributeAgent_ = new DisplayManagerAttributeAgent(this);
+    }
+
+    if (attributes.size() > 0) {
+        ret = SingletonContainer::Get<DisplayManagerAdapterLite>().RegisterDisplayAttributeAgent(
+            attributes, displayManagerAttributeAgent_);
+    }
+    if (ret != DMError::DM_OK) {
+        TLOGW(WmsLogTag::DMS, "Register display attribute agent failed !");
+        displayManagerAttributeAgent_ = nullptr;
+    } else {
+        displayAttributeListeners_.insert(listener);
+    }
+    return ret;
+}
+
+DMError DisplayManagerLite::Impl::UnregisterDisplayAttributeListener(sptr<IDisplayAttributeListener> listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto iter = std::find(displayAttributeListeners_.begin(), displayAttributeListeners_.end(), listener);
+    if (iter == displayAttributeListeners_.end()) {
+        TLOGE(WmsLogTag::DMS, "could not find this listener");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    displayAttributeListeners_.erase(iter);
+    DMError ret = DMError::DM_OK;
+    if (displayAttributeListeners_.empty() && displayManagerAttributeAgent_ != nullptr) {
+        ret = SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayManagerAgent(
+            displayManagerAttributeAgent_, DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER);
+        displayManagerAttributeAgent_ = nullptr;
+    }
+    return ret;
+}
+
+DMError DisplayManagerLite::UnregisterDisplayAttributeListener(sptr<IDisplayAttributeListener> listener)
+{
+    if (listener == nullptr) {
+        TLOGW(WmsLogTag::DMS, "Listener is nullptr.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    return pImpl_->UnregisterDisplayAttributeListener(listener);
+}
+
+DMError DisplayManagerLite::Impl::UnregisterDisplayAttribute(const std::vector<std::string>& attributesNotListened)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (displayManagerAttributeAgent_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Agent has been unregistered");
+        return DMError::DM_OK;
+    }
+
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayAttribute(
+        attributesNotListened, displayManagerAttributeAgent_);
+}
+
+DMError DisplayManagerLite::UnregisterDisplayAttribute(const std::vector<std::string>& attributesNotListened)
+{
+    return pImpl_->UnregisterDisplayAttribute(attributesNotListened);
 }
 
 void DisplayManagerLite::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)

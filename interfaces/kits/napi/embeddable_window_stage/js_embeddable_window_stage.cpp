@@ -328,7 +328,11 @@ napi_value JsEmbeddableWindowStage::OnLoadContent(napi_env env, napi_callback_in
         napi_create_reference(env, storage, 1, &result);
         contentStorage = std::shared_ptr<NativeReference>(reinterpret_cast<NativeReference*>(result));
     }
-
+    if (sessionInfo_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "sessionInfo_ is null");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
     sptr<IRemoteObject> parentToken = sessionInfo_->parentToken;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callBack, &result);
@@ -376,6 +380,13 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
+    if (option->IsSubWindowZLevelAboveParentLoosened()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Get invalid options param zLevelAboveParentLoosened");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_FORBID_SUBWINDOW)));
+        return NapiGetUndefined(env);
+    }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !windowExtensionSessionImpl_->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "device not support");
@@ -390,6 +401,13 @@ napi_value JsEmbeddableWindowStage::OnCreateSubWindowWithOptions(napi_env env, n
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
             WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_NOT_SYSTEM_APP)));
+        return NapiGetUndefined(env);
+    }
+    if (sessionInfo_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SUB, "sessionInfo_ is null");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY)));
         return NapiGetUndefined(env);
     }
     option->SetParentId(sessionInfo_->hostWindowId);

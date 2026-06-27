@@ -91,6 +91,7 @@ public:
     WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) override;
 
     /*
      * Window Pattern
@@ -173,6 +174,7 @@ private:
     CompatibleModeChangeCallback compatibleModeChangeCallback_;
     PageEnableCallback pageEnableCallback_;
     SetSelectModeCallback setSelectModeCallback_;
+    SplitRatioChangeCallback splitRatioChangeCallback_;
 
     /*
      * Prelaunch check

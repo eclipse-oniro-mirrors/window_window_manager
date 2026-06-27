@@ -102,6 +102,7 @@ public:
     RotationChangeResult NotifyRotationChange(const RotationChangeInfo& rotationChangeInfo) override;
     WSError HideSubWindowZLevelAboveParentLoosened() override;
     WSError ShowSubWindowZLevelAboveParentLoosened() override;
+    WSError DestroySubWindowZLevelAboveParentLoosened() override;
 
     // UIExtension
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
@@ -135,7 +136,7 @@ public:
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;
     WMError GetRouterStackInfo(std::string& routerStackInfo) override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     WSError SendFvActionEvent(const std::string& action, const std::string& reason) override;
     WSError SyncFvWindowInfo(const FloatViewWindowInfo& windowInfo, const std::string& reason) override;
     WSError SyncFvLimits(const std::map<uint32_t, FloatViewLimits>& limits) override;
@@ -143,13 +144,13 @@ public:
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
     WSError AddSidebarBlur() override;
     WSError SetSidebarBlurStyleWithType(SidebarBlurType type) override;
-    WSError UpdateWindowUIType(WindowUIType windowUIType) override;
-    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError NotifyParentLifecycleEvent(ParentLifeCycleEvent eventType) override;
 
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
+    WSError UpdateWindowUIType(WindowUIType windowUIType) override;
+    WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError SetIsStartMoving(bool isStartMoving) override;
 
 private:

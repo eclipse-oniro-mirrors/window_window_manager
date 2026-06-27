@@ -232,7 +232,7 @@ WMError WindowAdapter::UnregisterWindowManagerAgent(WindowManagerAgentType type,
         auto it = windowManagerAgentFaultMap_.find(type);
         if (it != windowManagerAgentFaultMap_.end()) {
             it->second.erase(windowManagerAgent);
-            TLOGD(WmsLogTag::DEFAULT, "earse fault agent,  type=%{public}d", type);
+            TLOGD(WmsLogTag::DEFAULT, "erase fault agent,  type=%{public}d", type);
             if (it->second.empty()) {
                 windowManagerAgentFaultMap_.erase(it);
             }
@@ -860,8 +860,10 @@ bool WindowAdapter::InitSSMProxy()
         windowManagerServiceProxy_ = nullptr;
         return false;
     }
+    // U0 system user needs to register user switch listener and just register onece.
     int32_t clientUserId = GetUserIdByUid(getuid());
-    if (clientUserId == SYSTEM_USERID) {
+    if (clientUserId == SYSTEM_USERID && !isRegisteredUserSwitchListener_) {
+        TLOGI(WmsLogTag::WMS_MULTI_USER, "Registered user switch listener");
         SessionManager::GetInstance(userId_).RegisterUserSwitchListener([weakThis = wptr(this)] {
             auto instance = weakThis.promote();
             if (!instance) {
@@ -870,6 +872,7 @@ bool WindowAdapter::InitSSMProxy()
             }
             instance->OnUserSwitch();
         });
+        isRegisteredUserSwitchListener_ = true;
     }
     isProxyValid_ = true;
     return true;
@@ -1271,16 +1274,17 @@ WMError WindowAdapter::MoveMainWindowToTargetDisplay(DisplayId displayId, int32_
 }
 
 void WindowAdapter::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
-    const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
+    const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
-    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession, sptr<IRemoteObject> token)
+    SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
+    std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token)
 {
     INIT_PROXY_CHECK_RETURN();
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
-    wmsProxy->CreateAndConnectSpecificSession(sessionStage, eventChannel,
-        surfaceNode, property, persistentId, session, systemConfig, renderSession, token);
+    wmsProxy->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId,
+        property, persistentId, session, systemConfig, renderSession, surfaceNode, token);
 }
 
 void WindowAdapter::RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,

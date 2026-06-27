@@ -177,12 +177,14 @@ std::string JsFloatViewManager::CheckAndGetParam(napi_env env, napi_callback_inf
 
     napi_value config = argv[0];
     if (config == nullptr) {
-        return "Failed to convert object to fvConfiguration or fvConfiguration is null";
+        return "Failed to convert object to FloatViewConfiguration or input is null";
     }
     bool hasContext = false;
     bool hasTemplate = false;
+    bool hasCloseConfirm = false;
     napi_has_named_property(env, config, "context", &hasContext);
     napi_has_named_property(env, config, "templateType", &hasTemplate);
+    napi_has_named_property(env, config, "isConfirmOnClose", &hasCloseConfirm);
     if (!hasContext || !hasTemplate) {
         return "Missing context or templateType in configuration.";
     }
@@ -203,6 +205,17 @@ std::string JsFloatViewManager::CheckAndGetParam(napi_env env, napi_callback_inf
     uint32_t templateType = 0;
     ConvertFromJsValue(env, templateTypeValue, templateType);
     option.SetTemplate(templateType);
+
+    if (hasCloseConfirm) {
+        napi_value closeConfirmValue = nullptr;
+        napi_get_named_property(env, config, "isConfirmOnClose", &closeConfirmValue);
+        if (closeConfirmValue == nullptr) {
+            return "Failed to convert object to isConfirmOnClose";
+        }
+        bool closeConfirm = false;
+        ConvertFromJsValue(env, closeConfirmValue, closeConfirm);
+        option.SetCloseConfirm(closeConfirm);
+    }
     return "";
 }
 

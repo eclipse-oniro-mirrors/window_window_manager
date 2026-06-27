@@ -235,6 +235,243 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateAppHookWindowInfo, TestSize.
     EXPECT_EQ(res, WSError::WS_DO_NOTHING);
     GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: UpdateAppHookWindowInfo end";
 }
+
+/**
+ * @tc.name: NotifySplitRatioChanged01
+ * @tc.desc: NotifySplitRatioChanged with hookWindow disabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged01 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = false;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    auto ret = window->NotifySplitRatioChanged(1.0f / 3.0f);
+    EXPECT_EQ(ret, WMError::WM_DO_NOTHING);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged01 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged02
+ * @tc.desc: NotifySplitRatioChanged with non-main window type
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged02 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(2);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    auto ret = window->NotifySplitRatioChanged(1.0f / 3.0f);
+    EXPECT_EQ(ret, WMError::WM_DO_NOTHING);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged02 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged03
+ * @tc.desc: NotifySplitRatioChanged with invalid ratio
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged03 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged03");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(3);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    auto ret = window->NotifySplitRatioChanged(0.1f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+
+    ret = window->NotifySplitRatioChanged(0.25f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+
+    ret = window->NotifySplitRatioChanged(0.4f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+
+    ret = window->NotifySplitRatioChanged(0.75f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+
+    ret = window->NotifySplitRatioChanged(0.9f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged03 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged04
+ * @tc.desc: NotifySplitRatioChanged with null hostSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged04 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged04");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(4);
+    window->hostSession_ = nullptr;
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    auto ret = window->NotifySplitRatioChanged(1.0f / 3.0f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged04 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged05
+ * @tc.desc: NotifySplitRatioChanged with valid params and SMALL_SPLIT_RATIO
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged05 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged05");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(5);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, NotifySplitRatioChanged(1.0f / 3.0f)).WillOnce(Return(WMError::WM_OK));
+    auto ret = window->NotifySplitRatioChanged(1.0f / 3.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    auto updatedHookInfo = window->property_->GetHookWindowInfo();
+    EXPECT_FLOAT_EQ(updatedHookInfo.widthHookRatio, 1.0f / 3.0f);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged05 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged06
+ * @tc.desc: NotifySplitRatioChanged with valid params and MIDDLE_SPLIT_RATIO
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged06, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged06 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged06");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(6);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, NotifySplitRatioChanged(1.0f / 2.0f)).WillOnce(Return(WMError::WM_OK));
+    auto ret = window->NotifySplitRatioChanged(1.0f / 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    auto updatedHookInfo = window->property_->GetHookWindowInfo();
+    EXPECT_FLOAT_EQ(updatedHookInfo.widthHookRatio, 1.0f / 2.0f);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged06 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged07
+ * @tc.desc: NotifySplitRatioChanged with valid params and LARGE_SPLIT_RATIO
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged07, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged07 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged07");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(7);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, NotifySplitRatioChanged(2.0f / 3.0f)).WillOnce(Return(WMError::WM_OK));
+    auto ret = window->NotifySplitRatioChanged(2.0f / 3.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+
+    auto updatedHookInfo = window->property_->GetHookWindowInfo();
+    EXPECT_FLOAT_EQ(updatedHookInfo.widthHookRatio, 2.0f / 3.0f);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged07 end";
+}
+
+/**
+ * @tc.name: NotifySplitRatioChanged08
+ * @tc.desc: NotifySplitRatioChanged when hostSession returns error
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged08, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged08 start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifySplitRatioChanged08");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(8);
+
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 1.0f;
+    window->property_->SetHookWindowInfo(hookWindowInfo);
+
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    EXPECT_CALL(*session, NotifySplitRatioChanged(1.0f / 2.0f)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
+    auto ret = window->NotifySplitRatioChanged(1.0f / 2.0f);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION);
+
+    auto hookInfo = window->property_->GetHookWindowInfo();
+    EXPECT_FLOAT_EQ(hookInfo.widthHookRatio, 1.0f);
+    GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged08 end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
