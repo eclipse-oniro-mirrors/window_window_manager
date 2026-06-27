@@ -3079,6 +3079,14 @@ sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
     } else {
         screenId = GetUserDisplayId(userId);
     }
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        auto currentScreenId = SuperFoldPolicy::GetInstance().GetCurrentScreenId();
+        if (currentScreenId != SCREEN_ID_INVALID) {
+            screenId = currentScreenId;
+        }
+    }
+#endif
     TLOGD(WmsLogTag::DMS, "get screenId %{public}" PRIu64" with userId %{public}u", screenId, userId);
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
@@ -12965,22 +12973,18 @@ bool ScreenSessionManager::ActiveUser(int32_t newUserId, int32_t& oldUserId, int
     
     std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
     oldUserId = INVALID_USER_ID;
-    displayConcurrentUserMap_[displayId][newUserId] = { true, newScbPid };
     TLOGNFI(WmsLogTag::DMS, "Get user display success, add or update user info in displayConcurrentUserMap,"
           "newUsrId: %{public}d, displayId: %{public}" PRIu64 ", newScbPid: %{public}d",
           newUserId, displayId, newScbPid);
     for (auto& [userId, UserInfo] : displayConcurrentUserMap_[displayId]) {
-        if (userId == newUserId) {
-            continue;
-        } else {
-            if (UserInfo.isForeground) {
-                oldUserId = userId;
-                UserInfo.isForeground = false;
-                TLOGNFI(WmsLogTag::DMS, "deactivate user, userId: %{public}d, displayId: %{public}" PRIu64,
-                    userId, displayId);
-            }
+        if (UserInfo.isForeground) {
+            oldUserId = userId;
+            UserInfo.isForeground = false;
+            TLOGNFI(WmsLogTag::DMS, "deactivate user, userId: %{public}d, displayId: %{public}" PRIu64,
+                userId, displayId);
         }
     }
+    displayConcurrentUserMap_[displayId][newUserId] = { true, newScbPid };
     return true;
 }
 
