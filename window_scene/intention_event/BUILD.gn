@@ -60,7 +60,6 @@ ohos_shared_library("libintention_event") {
     "libxml2:libxml2",
     "egl:libEGL",
     "opengles:libGLES",
-    "jsoncpp:jsoncpp",
   ]
 
   defines = []
