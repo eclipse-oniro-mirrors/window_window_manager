@@ -163,7 +163,6 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
             return err;
         }
     }
-
     WMError errCode = StartPictureInPictureInner(startType);
     if (errCode != WMError::WM_OK) {
         DeletePIPMode();
