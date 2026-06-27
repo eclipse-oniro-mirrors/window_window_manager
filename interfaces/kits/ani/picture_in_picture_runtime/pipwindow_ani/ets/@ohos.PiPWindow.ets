@@ -229,7 +229,7 @@ export namespace PiPWindow {
   export function runOnControlEvent(cb: Object, controlType: int, status: int): void {
     const param: ControlEventParam = {
       controlType: PiPControlType.fromValue(controlType),
-      status: PiPControlType.fromValue(controlType),
+      status: PiPControlType.fromValue(status),
     };
     (cb as Callback<ControlEventParam>)(param);
   }
