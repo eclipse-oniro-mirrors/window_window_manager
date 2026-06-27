@@ -176,7 +176,7 @@ bool FbOption::VerifyColor(std::string &errMsg) const
         TLOGE(WmsLogTag::WMS_SYSTEM, "BackgroundColor is invalid");
         errMsg = "BackgroundColor is invalid";
         return false;
-    } 
+    }
 
     bool hasTextColor = !titleColor_.empty() || !contentColor_.empty();
     if (hasTextColor && backgroundColor_.empty()) {

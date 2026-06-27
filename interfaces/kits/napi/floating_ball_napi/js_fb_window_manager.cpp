@@ -63,7 +63,6 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
 
     napi_value config = argv[0];
     if (config == nullptr) {
-
         return NapiThrowInvalidParam(env,
             "[FBWindow][create]msg: Failed to convert object to fbConfiguration or fbConfiguration is null",
             ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);

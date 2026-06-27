@@ -384,7 +384,7 @@ void AniPipUtils::TransferToPipControllerAni(sptr<PictureInPictureController>& p
 }
 
 void AniPipUtils::TransferToPipControllerNapi(sptr<PictureInPictureControllerAni>& pipControllerAni,
-                                             sptr<PictureInPictureController>& pipController)
+    sptr<PictureInPictureController>& pipController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipControllerAni == nullptr || pipController == nullptr) {
