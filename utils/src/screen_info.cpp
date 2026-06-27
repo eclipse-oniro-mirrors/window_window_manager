@@ -74,7 +74,7 @@ bool ScreenInfo::InnerUnmarshalling(Parcel& parcel)
         parcel.ReadUint32(virtualWidth_) && parcel.ReadUint32(virtualHeight_) &&
         parcel.ReadFloat(virtualPixelRatio_) && parcel.ReadUint64(lastParent_) && parcel.ReadUint64(parent_) &&
         parcel.ReadBool(isScreenGroup_) && parcel.ReadUint32(rotation) &&
-        parcel.ReadUint32(orientation) && parcel.ReadUint32(sourceMode) && 
+        parcel.ReadUint32(orientation) && parcel.ReadUint32(sourceMode) &&
         parcel.ReadUint32(screenTypeInfo) && parcel.ReadUint32(type) &&
         parcel.ReadUint32(modeId_) && parcel.ReadUint32(size) &&
         parcel.ReadBool(isExtend_) && parcel.ReadString(serialNumber_) && parcel.ReadUint64(rsId_) &&
