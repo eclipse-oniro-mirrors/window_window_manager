@@ -266,6 +266,10 @@ DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<I
     TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64, screenId);
     bool isCallingByThirdParty = Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION);
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
+    if (surface == nullptr) {
+        TLOGE(WmsLogTag::DMS, "surface is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
     if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
         Permission::IsStartByHdcd() || isCallingByThirdParty) {
         sptr<Surface> pPurface = Surface::CreateSurfaceAsProducer(surface);
