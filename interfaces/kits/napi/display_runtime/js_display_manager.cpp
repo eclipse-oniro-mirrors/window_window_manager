@@ -1538,6 +1538,11 @@ bool ParseSurfaceRegion(napi_env env, napi_value obj, DMRect& rect)
         ConvertFromJsValue(env, yValue, rect.posY_);
         ConvertFromJsValue(env, widthValue, rect.width_);
         ConvertFromJsValue(env, heightValue, rect.height_);
+        if(rect.width_ <= 0 || rect.height_ <= 0||
+            (rect.posX_ +  rect.width_) < 0 || 
+            ((rect.posY_ +  rect.width_) < 0 )){
+            return false;
+        }
         return true;
     }
     return false;
@@ -1587,7 +1592,7 @@ napi_value OnAddVirtualScreenSurface(napi_env env, napi_callback_info info)
     VirtualScreenSurfaceParams params;
     std::string errMsg;
     if (!ParseVirtualScreenSurfaceArgs(env, argc, argv, params, errMsg)) {
-        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg, "addVirtualScreenSurface");
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, errMsg, "addVirtualScreenSurface");
     }
     
     napi_value result = nullptr;
@@ -1598,6 +1603,7 @@ napi_value OnAddVirtualScreenSurface(napi_env env, napi_callback_info info)
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
             SingletonContainer::Get<ScreenManager>().AddVirtualScreenSurface(
                 params.screenId, params.surface, region));
+        res = (res == DmErrorCode::DM_ERROR_INVALID_PARAM) ? DmErrorCode::DM_ERROR_ILLEGAL_PARAM : res;
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][addVirtualScreenSurface]"));
             TLOGNE(WmsLogTag::DMS, "JsDisplayManager::AddVirtualScreenSurface failed.");
@@ -1623,19 +1629,19 @@ napi_value OnRemoveVirtualScreenSurface(napi_env env, napi_callback_info info)
     if (argc < ARGC_TWO) {
         TLOGE(WmsLogTag::DMS, "[NAPI]Argc is invalid: %{public}zu", argc);
         errMsg = "Invalid args count, need 2 args at least!";
-        errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+        errCode = DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
     } else {
         if (!ConvertFromJsValue(env, argv[0], screenId)) {
             errMsg = "Failed to convert parameter to screen id.";
-            errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+            errCode = DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
         }
         if (!GetSurfaceFromJs(env, argv[1], surface)) {
             errMsg = "Failed to convert parameter.";
-            errCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
+            errCode = DmErrorCode::DM_ERROR_ILLEGAL_PARAM;
         }
     }
-    if (errCode == DmErrorCode::DM_ERROR_INVALID_PARAM || surface == nullptr) {
-        return NapiThrowError(env, DmErrorCode::DM_ERROR_INVALID_PARAM, errMsg, "removeVirtualScreenSurface");
+    if (errCode == DmErrorCode::DM_ERROR_ILLEGAL_PARAM || surface == nullptr) {
+        return NapiThrowError(env, DmErrorCode::DM_ERROR_ILLEGAL_PARAM, errMsg, "removeVirtualScreenSurface");
     }
     napi_value lastParam = nullptr;
     if (argc >= ARGC_THREE && argv[ARGC_THREE - 1] != nullptr &&
@@ -1648,6 +1654,7 @@ napi_value OnRemoveVirtualScreenSurface(napi_env env, napi_callback_info info)
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsDisplayManager::OnRemoveVirtualScreenSurface");
         auto res = DM_JS_TO_ERROR_CODE_MAP.at(
             SingletonContainer::Get<ScreenManager>().RemoveVirtualScreenSurface(screenId, surface));
+        res = (res == DmErrorCode::DM_ERROR_INVALID_PARAM) ? DmErrorCode::DM_ERROR_ILLEGAL_PARAM : res;
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, JsErrUtils::CreateJsError(env, res, "[display][removeVirtualScreenSurface]"));
             TLOGNE(WmsLogTag::DMS, "JsDisplayManager::RemoveVirtualScreenSurface failed.");
