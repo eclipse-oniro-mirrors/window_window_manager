@@ -608,6 +608,35 @@ HWTEST_F(SceneSessionTest3, SetIsMidScene, TestSize.Level1)
     sceneSession->SetIsMidScene(true);
     bool res = sceneSession->GetIsMidScene();
     EXPECT_EQ(res, true);
+
+    sceneSession->SetIsMidsScene(false);
+    res = sceneSession->GetIsMidScene();
+    EXPECT_EQ(res, false);
+}
+
+/**
+ * @tc.name: SetIsNeedRemoveSnapShot
+ * @tc.desc: SetIsNeedRemoveSnapShot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, SetIsNeedRemoveSnapShot, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetIsNeedRemoveSnapShot";
+    info.bundleName_ = "SetIsNeedRemoveSnapShot";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->isNeedRemoveSnapShot_ = true;
+    sceneSession->SetIsNeedRemoveSnapShot(true);
+    bool res = sceneSession->GetIsNeedRemoveSnapShot();
+    EXPECT_EQ(res, true);
+
+    sceneSession->isNeedRemoveSnapShot_ = false;
+    sceneSession->GetIsNeedRemoveSnapShot(true);
+    res = sceneSession->GetIsNeedRemoveSnapShot();
+    EXPECT_EQ(res, true);
 }
 
 /**

@@ -7472,23 +7472,19 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
 
     bool useFfrt = false;
-    if (argc >= ARGC_ONE && GetType(env, argv[0]) == napi_boolean) {
-        if (!ConvertFromJsValue(env, argv[0], useFfrt)) {
-            TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to useFfrt");
-            napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-                "Input parameter is missing or invalid"));
-            return NapiGetUndefined(env);
-        }
+    if (argc >= ARGC_ONE && GetType(env, argv[0]) == napi_boolean && !ConvertFromJsValue(env, argv[0], useFfrt)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to useFfrt");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
     }
 
     bool needPersist = false;
-    if (argc >= ARGC_TWO && GetType(env, argv[1]) == napi_boolean) {
-        if (!ConvertFromJsValue(env, argv[1], needPersist)) {
-            TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to needPersist");
-            napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-                "Input parameter is missing or invalid"));
-            return NapiGetUndefined(env);
-        }
+    if (argc >= ARGC_TWO && GetType(env, argv[1]) == napi_boolean && !ConvertFromJsValue(env, argv[1], needPersist)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to needPersist");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
     }
 
     std::shared_ptr<NativeReference> jsCallBack = nullptr;
@@ -7507,6 +7503,15 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
             return NapiGetUndefined(env);
         }
     }
+
+    bool isForAnco = false;
+    if (argc >= ARGC_FOUR && GetType(env, argv[3]) == napi_boolean && !ConvertFromJsValue(env, argv[3], isForAnco)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to isForAnco");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
     auto callback = [weakThis = wptr(this), persistentId = persistentId_, jsCallBack, env = env_, where = __func__] {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
@@ -7530,7 +7535,9 @@ napi_value JsSceneSession::OnAddSnapshot(napi_env env, napi_callback_info info)
         return NapiGetUndefined(env);
     }
     session->NotifyAddSnapshot(useFfrt, needPersist, true, std::move(callback));
-    session->SetIsNeedRemoveSnapShot(false);
+    if (isForAnco) {
+        session->SetIsNeedRemoveSnapShot(false);
+    }
     return NapiGetUndefined(env);
 }
 
@@ -7541,8 +7548,20 @@ napi_value JsSceneSession::OnRemoveSnapshot(napi_env env, napi_callback_info inf
         TLOGE(WmsLogTag::WMS_PATTERN, "session is nullptr, id:%{public}d", persistentId_);
         return NapiGetUndefined(env);
     }
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    bool isForAnco = false;
+    if (argc >= ARGC_ONE && GetType(env, argv[0]) == napi_boolean && !ConvertFromJsValue(env, argv[0], isForAnco)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Failed to convert parameter to isForAnco");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
     session->NotifyRemoveSnapshot();
-    session->SetIsNeedRemoveSnapShot(true);
+    if (isForAnco) {
+        session->SetIsNeedRemoveSnapShot(true);
+    }
     return NapiGetUndefined(env);
 }
 

@@ -5862,10 +5862,10 @@ void Session::SetIsNeedRemoveSnapShot(bool isNeedRemoveSnapShot)
             TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "session is null");
             return;
         }
-        if (session->isNeedRemoveSnapShot_.load() != isNeedRemoveSnapShot) {
+        if (session->isNeedRemoveSnapShot_ != isNeedRemoveSnapShot) {
             TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "persistentId:%{public}d, isNeedRemoveSnapShot:%{public}d",
                 session->GetPersistentId(), isNeedRemoveSnapShot);
-            session->isNeedRemoveSnapShot_.store(isNeedRemoveSnapShot);
+            session->isNeedRemoveSnapShot_ = isNeedRemoveSnapShot;
         }
     }, __func__);
 }
@@ -5883,7 +5883,7 @@ bool Session::GetIsMidScene() const
 
 bool Session::GetIsNeedRemoveSnapShot() const
 {
-    return isNeedRemoveSnapShot_.load();
+    return isNeedRemoveSnapShot_;
 }
 
 void Session::SetTouchHotAreas(const std::vector<Rect>& touchHotAreas)
