@@ -170,6 +170,8 @@ napi_value JsScreenSessionManager::Init(napi_env env, napi_value exportObj)
         JsScreenSessionManager::NotifySwitchUserAnimationFinish);
     BindNativeFunction(env, exportObj, "registerSwitchUserAnimationNotification", moduleName,
         JsScreenSessionManager::RegisterSwitchUserAnimationNotification);
+    BindNativeFunction(env, exportObj, "unRegisterSwitchUserAnimationNotification", moduleName,
+        JsScreenSessionManager::UnRegisterSwitchUserAnimationNotification);
     return NapiGetUndefined(env);
 }
 
@@ -460,6 +462,13 @@ napi_value JsScreenSessionManager::RegisterSwitchUserAnimationNotification(napi_
     TLOGD(WmsLogTag::DMS, "[NAPI]RegisterSwitchUserAnimationNotification");
     JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
     return (me != nullptr) ? me->OnRegisterSwitchUserAnimationNotification(env, info) : nullptr;
+}
+
+napi_value JsScreenSessionManager::UnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "[NAPI]UnRegisterSwitchUserAnimationNotification");
+    JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
+    return (me != nullptr) ? me->OnUnRegisterSwitchUserAnimationNotification(env, info) : nullptr;
 }
 
 void JsScreenSessionManager::OnScreenConnected(const sptr<ScreenSession>& screenSession)
@@ -1856,6 +1865,29 @@ napi_value JsScreenSessionManager::OnRegisterSwitchUserAnimationNotification(nap
         return NapiGetUndefined(env);
     }
     ScreenSessionManagerClient::GetInstance().RegisterSwitchUserAnimationNotification(description);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsScreenSessionManager::OnUnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "[NAPI]unregister animate need notify");
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    std::string description;
+    if (!ConvertFromJsValue(env, argv[0], description)) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to description");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                                      "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    ScreenSessionManagerClient::GetInstance().UnRegisterSwitchUserAnimationNotification(description);
     return NapiGetUndefined(env);
 }
 } // namespace OHOS::Rosen

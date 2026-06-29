@@ -1693,6 +1693,18 @@ void ScreenSessionManagerClient::RegisterSwitchUserAnimationNotification(const s
     animateFinishDescriptionSet_.insert(description);
 }
 
+void ScreenSessionManagerClient::UnRegisterSwitchUserAnimationNotification(const std::string& description)
+{
+    std::unique_lock<std::shared_mutex> lock(animateFinishDescriptionSetMutex_);
+    auto it = animateFinishDescriptionSet_.find(description);
+    if (it == animateFinishDescriptionSet_.end()) {
+        TLOGE(WmsLogTag::DMS, "description: %{public}s not find", description.c_str());
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "description: %{public}s erase success", description.c_str());
+    animateFinishDescriptionSet_.erase(it);
+}
+
 void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
 {
     {
