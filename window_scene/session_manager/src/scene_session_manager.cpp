@@ -2245,25 +2245,21 @@ void SceneSessionManager::GetSceneSessionsByAppInstance(const std::string& bundl
         if (sceneSession->GetSessionInfo().bundleName_ != bundleName) {
             continue;
         }
-        if (SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
-            if (sceneSession->GetSessionInfo().appIndex_ != appIndex) {
-                continue;
-            }
-            if (!appInstanceKey.empty()) {
-                if (sceneSession->GetSessionInfo().appInstanceKey != appInstanceKey) {
-                    continue;
-                }
-            }
-        } else {
+        int32_t effectiveAppIndex = sceneSession->GetSessionInfo().appIndex_;
+        std::string effectiveAppInstanceKey = sceneSession->GetSessionInfo().appInstanceKey_;
+        if (!SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
             auto mainSession = sceneSession->GetMainSession();
-            if (!mainSession || mainSession->GetSessionInfo().appIndex_ != appIndex_) {
+            if (!mainSession) {
                 continue;
             }
-            if (!appInstanceKey.empty()) {
-                if (mainSession->GetSessionInfo().appInstanceKey != appInstanceKey) {
-                    continue;
-                }
-            }
+            effectiveAppIndex = mainSession->GetSessionInfo().appIndex_;
+            effectiveAppInstanceKey = mainSession->GetSessionInfo().appInstanceKey_;
+        }
+        if (effectiveAppIndex != appIndex) {
+            continue;
+        }
+        if (!appInstanceKey.empty() && effectiveAppInstanceKey != appInstanceKey) {
+            continue;
         }
         sceneSessions.push_back(sceneSession);
     }
