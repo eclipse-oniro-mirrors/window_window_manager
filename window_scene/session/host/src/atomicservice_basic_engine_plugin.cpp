@@ -173,7 +173,7 @@ AtomicServiceBasicEnginePlugin& AtomicServiceBasicEnginePlugin::GetInstance()
     return instance;
 }
 
-AtomicserviceIconInfo* AtomicServiceBasicEnginePlugin::GetParamsFromAtomicServiceBasicEngine(
+__attribute__((no_sanitize("cfi"))) AtomicserviceIconInfo* AtomicServiceBasicEnginePlugin::GetParamsFromAtomicServiceBasicEngine(
     const std::string& bundleName)
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -189,7 +189,7 @@ AtomicserviceIconInfo* AtomicServiceBasicEnginePlugin::GetParamsFromAtomicServic
     return atomicserviceIconInfo_;
 }
 
-int32_t AtomicServiceBasicEnginePlugin::ReleaseData()
+__attribute__((no_sanitize("cfi"))) int32_t AtomicServiceBasicEnginePlugin::ReleaseData()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     // free data
