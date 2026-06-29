@@ -2639,7 +2639,7 @@ struct WindowDisplayInfo : public Parcelable {
     DisplayId displayId = DISPLAY_ID_INVALID;
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteUnit64(displayId);
+        return parcel.WriteUint64(displayId);
     }
 
     static WindowDisplayInfo* Unmarshalling(Parcel& parcel)
