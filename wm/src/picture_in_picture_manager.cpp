@@ -108,7 +108,7 @@ bool PictureInPictureManager::ShouldAbortPipStart()
     return false;
 }
 
-void PictureInPictureManager::PutPipControllerInfo(uint32_t windowId, 
+void PictureInPictureManager::PutPipControllerInfo(uint32_t windowId,
     sptr<PictureInPictureControllerBase> pipController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "windowId %{public}u", windowId);
@@ -279,7 +279,7 @@ sptr<Window> PictureInPictureManager::GetCurrentWindowByMainWindowId(uint32_t wi
     return nullptr;
 }
 
-sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t windowId, 
+sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t windowId,
     PiPTemplateType PipType)
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
