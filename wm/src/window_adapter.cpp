@@ -860,8 +860,10 @@ bool WindowAdapter::InitSSMProxy()
         windowManagerServiceProxy_ = nullptr;
         return false;
     }
+    // U0 system user needs to register user switch listener and just register onece.
     int32_t clientUserId = GetUserIdByUid(getuid());
-    if (clientUserId == SYSTEM_USERID) {
+    if (clientUserId == SYSTEM_USERID && !isRegisteredUserSwitchListener_) {
+        TLOGI(WmsLogTag::WMS_MULTI_USER, "Registered user switch listener");
         SessionManager::GetInstance(userId_).RegisterUserSwitchListener([weakThis = wptr(this)] {
             auto instance = weakThis.promote();
             if (!instance) {
@@ -870,6 +872,7 @@ bool WindowAdapter::InitSSMProxy()
             }
             instance->OnUserSwitch();
         });
+        isRegisteredUserSwitchListener_ = true;
     }
     isProxyValid_ = true;
     return true;

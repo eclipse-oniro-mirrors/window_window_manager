@@ -111,7 +111,15 @@ HWTEST_F(WebPictureInPictureControllerTest, CreatePictureInPictureWindow, TestSi
     EXPECT_CALL(*(mw), GetWindowState()).Times(AtLeast(1)).WillRepeatedly(Return(WindowState::STATE_CREATED));
     EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType));
 
+    StartPipType autoStartType = StartPipType::AUTO_START;
+    EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(nullptr));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(autoStartType));
+    auto contextPtr = std::make_shared<MockAbilityContextImpl>();
+    EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(contextPtr));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(autoStartType));
+
     EXPECT_CALL(*(mw), GetWindowState()).Times(AtLeast(1)).WillRepeatedly(Return(WindowState::STATE_SHOWN));
+    EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(contextPtr));
     EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType));
 }
 
@@ -287,6 +295,32 @@ HWTEST_F(WebPictureInPictureControllerTest, SetPipParentWindowId, TestSize.Level
     ASSERT_NE(nullptr, mw);
     webPipControl->mainWindow_ = mw;
     EXPECT_EQ(webPipControl->SetPipParentWindowId(windowId), WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: SetAutoStartEnabled
+ * @tc.desc: SetAutoStartEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WebPictureInPictureControllerTest, SetAutoStartEnabled, TestSize.Level1)
+{
+    bool enable = true;
+    auto webPipControl = sptr<WebPictureInPictureController>::MakeSptr(config);
+
+    sptr<MockWindow> mw = new MockWindow();
+    auto option = webPipControl->pipOption_;
+    webPipControl->mainWindow_ = nullptr;
+    webPipControl->SetAutoStartEnabled(enable);
+    webPipControl->mainWindow_ = mw;
+    webPipControl->pipOption_ = nullptr;
+    webPipControl->SetAutoStartEnabled(enable);
+    webPipControl->pipOption_ = option;
+
+    webPipControl->SetAutoStartEnabled(enable);
+    ASSERT_EQ(true, webPipControl->isAutoStartEnabled_);
+    enable = false;
+    webPipControl->SetAutoStartEnabled(enable);
+    ASSERT_EQ(false, webPipControl->isAutoStartEnabled_);
 }
 }
 }

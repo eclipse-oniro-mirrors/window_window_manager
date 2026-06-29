@@ -2692,12 +2692,12 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
         WLOGFW("Destroy window failed, id: %{public}d", GetPersistentId());
         return ret;
     }
+    RecordWindowLifecycleChange("destroy");
     WindowLifeCycleInfo windowLifeCycleInfo = GetWindowLifecycleInfo();
     SingletonContainer::Get<WindowManager>().NotifyWMSWindowDestroyed(windowLifeCycleInfo);
 
     // delete after replace WSError with WMError
     NotifyBeforeDestroy(GetWindowName());
-    RecordWindowLifecycleChange("destroy");
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         state_ = WindowState::STATE_DESTROYED;
@@ -7862,6 +7862,12 @@ WMError WindowSceneSessionImpl::UnregisterWindowAttachStateChangeListener()
 WSError WindowSceneSessionImpl::NotifyWindowAttachStateChange(bool isAttach)
 {
     TLOGI(WmsLogTag::WMS_SUB, "id: %{public}d, isAttach:%{public}u.", GetPersistentId(), isAttach);
+    {
+        std::unique_lock<std::shared_mutex> lock(uiContentMutex_);
+        if (uiContent_ != nullptr) {
+            uiContent_->NotifyWindowAttachStateChange(isAttach);
+        }
+    }
     if (handler_) {
         handler_->PostTask(
             [weakThis = wptr(this), isAttach] {
@@ -9509,6 +9515,7 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
     TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(),
         isDark, static_cast<uint32_t>(type));
     auto rsUIContext = GetRSUIContext();
+    AutoRSTransaction trans(rsUIContext);
     if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
         Rosen::RSAnimationTimingProtocol timingProtocol;
         timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
@@ -9671,6 +9678,69 @@ WMError WindowSceneSessionImpl::ClearNativeTouchEventFilter()
     std::unique_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
     nativeTouchEventFilter_ = nullptr;
     return WMError::WM_OK;
+}
+
+bool WindowSceneSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
+    bool isFullScreen = false;
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        auto displayInfo = display->GetDisplayInfo();
+        if (displayInfo &&
+            windowRect.width_ == static_cast<uint32_t>(displayInfo->GetWidth()) &&
+            windowRect.height_ >= static_cast<uint32_t>(displayInfo->GetHeight())) {
+            isFullScreen = true;
+        }
+    } else {
+        isFullScreen = IsFullScreenSizeWindow(windowRect.width_, windowRect.height_);
+    }
+
+    Transform transform = property_->GetTransform();
+    if (!isFullScreen || GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN ||
+        (transform.scaleX_ != 1 || transform.scaleY_ != 1) || WindowSessionImpl::GetLSState()) {
+        return false;
+    }
+
+    return CheckCreaseRegionCanInHoverState(windowRect);
+}
+
+bool WindowSceneSessionImpl::CheckCreaseRegionCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
+    FoldCreaseRegion foldCreaseRegion;
+    DMError res = display->GetLiveCreaseRegion(foldCreaseRegion);
+    if (res != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "foldCreaseRegion is null!");
+        return false;
+    }
+
+    const auto& creaseRects = foldCreaseRegion.GetCreaseRects();
+    if (creaseRects.empty()) {
+        TLOGE(WmsLogTag::DEFAULT, "creaseRects is empty!");
+        return false;
+    }
+
+    const DMRect& creaseRect = creaseRects.front();
+    if (creaseRect.width_ < creaseRect.height_) {
+        return false;
+    }
+
+    if ((creaseRect.posX_ < windowRect.posX_ || creaseRect.posY_ < windowRect.posY_) ||
+        (creaseRect.posX_ + creaseRect.width_ > windowRect.posX_ + windowRect.width_ ||
+        creaseRect.posY_ + creaseRect.height_ > windowRect.posY_ + windowRect.height_)) {
+        return false;
+    }
+    return true;
 }
 } // namespace Rosen
 } // namespace OHOS

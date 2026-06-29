@@ -1019,6 +1019,11 @@ public:
     virtual void SetPrelaunch() {};
     virtual bool IsPrelaunch() const { return false; }
 
+    /*
+     * update luoshu state
+     */
+    WSError UpdateLSStateInfo(bool isLSState);
+
 protected:
     void GeneratePersistentId(bool isExtension, int32_t persistentId);
     virtual void UpdateSessionState(SessionState state);

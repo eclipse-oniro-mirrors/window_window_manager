@@ -283,11 +283,6 @@ void WindowSessionProperty::SetUserRequestedOrientation(Orientation orientation)
     userRequestedOrientation_ = orientation;
 }
 
-void WindowSessionProperty::SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation)
-{
-    isSpecificSessionRequestOrientation_ = isSpecificSessionRequestOrientation;
-}
-
 void WindowSessionProperty::SetPrivacyMode(bool isPrivate)
 {
     isPrivacyMode_ = isPrivate;
@@ -441,11 +436,6 @@ Orientation WindowSessionProperty::GetDefaultRequestedOrientation() const
 Orientation WindowSessionProperty::GetUserRequestedOrientation() const
 {
     return userRequestedOrientation_;
-}
-
-bool WindowSessionProperty::GetIsSpecificSessionRequestOrientation() const
-{
-    return isSpecificSessionRequestOrientation_;
 }
 
 bool WindowSessionProperty::GetPrivacyMode() const
@@ -1615,7 +1605,6 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(static_cast<uint32_t>(requestedOrientation_)) &&
         parcel.WriteBool(needRotateAnimation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(userRequestedOrientation_)) &&
-        parcel.WriteBool(isSpecificSessionRequestOrientation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(windowMode_)) &&
         parcel.WriteUint32(flags_) && parcel.WriteBool(raiseEnabled_) &&
         parcel.WriteBool(topmost_) && parcel.WriteBool(mainWindowTopmost_) &&
@@ -1719,7 +1708,6 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetMaximizeMode(static_cast<MaximizeMode>(parcel.ReadUint32()));
     property->SetRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()), parcel.ReadBool());
     property->SetUserRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()));
-    property->SetIsSpecificSessionRequestOrientation(parcel.ReadBool());
     property->SetWindowMode(static_cast<WindowMode>(parcel.ReadUint32()));
     property->SetWindowFlags(parcel.ReadUint32());
     property->SetRaiseEnabled(parcel.ReadBool());

@@ -313,6 +313,9 @@ std::map<int32_t, std::vector<sptr<IParentWindowSizeChangeListener>>>
     WindowSessionImpl::parentWindowSizeChangeListeners_;
 std::map<int32_t, std::vector<sptr<IParentWindowStatusChangeListener>>>
     WindowSessionImpl::parentWindowStatusChangeListeners_;
+std::recursive_mutex WindowSessionImpl::windowHoverStateChangeListenerMutex_;
+std::map<int32_t, std::vector<sptr<IWindowHoverStateChangeListener>>>
+    WindowSessionImpl::windowHoverStateChangeListeners_;
 bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
 
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners, isGamePreLaunch)  \
@@ -1310,6 +1313,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     }
     ClearVsyncStation();
     ReleaseSurfaceNode();
+    UnregisterFoldStatusListener();
     return WMError::WM_OK;
 }
 
@@ -1383,6 +1387,7 @@ WSError WindowSessionImpl::UpdateRect(const WSRect& rect, SizeChangeReason reaso
         layoutCallback_->OnUpdateSessionRect(wmRect, wmReason, GetPersistentId());
     }
     NotifyFirstValidLayoutUpdate(preRect, wmRect);
+    UpdateHoverState(wmRect, DisplayManager::GetInstance().GetFoldStatus());
     return WSError::WS_OK;
 }
 
@@ -1505,20 +1510,25 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
         const std::shared_ptr<RSTransaction>& rsTransaction = config.rsTransaction_;
         window->BeginRSTransaction(rsTransaction);
         window->rotationAnimationCount_++;
+        auto rotationAnimationCallBackExecuted = std::make_shared<std::atomic_bool>(false);
+ 	    auto handler = window->handler_;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(config.animationDuration_);
         // animation curve: cubic [0.2, 0.0, 0.2, 1.0]
         auto curve = RSAnimationTimingCurve::CreateCubicCurve(0.2, 0.0, 0.2, 1.0);
-        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak]() {
+        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak, rotationAnimationCallBackExecuted]() {
             auto window = weak.promote();
             if (!window) {
                 return;
             }
+            rotationAnimationCallBackExecuted->store(true);
             window->rotationAnimationCount_--;
             if (window->rotationAnimationCount_ == 0) {
                 window->NotifyRotationAnimationEnd();
             }
         });
+        // Delayed task to compensate if callback fails
+ 	    window->StartRotationAnimationTimeoutTask(handler, rotationAnimationCallBackExecuted);
         if (wmReason == WindowSizeChangeReason::SNAPSHOT_ROTATION) {
             wmReason = WindowSizeChangeReason::ROTATION;
         }
@@ -1537,6 +1547,27 @@ void WindowSessionImpl::UpdateRectForRotation(const Rect& wmRect, const Rect& pr
     }, "WMS_WindowSessionImpl_UpdateRectForRotation");
 }
 
+void WindowSessionImpl::StartRotationAnimationTimeoutTask(	const std::shared_ptr<AppExecFwk::EventHandler>& handler,
+    std::shared_ptr<std::atomic_bool> rotationAnimationCallBackExecuted)
+{
+	if(!handler) {
+	    return;
+	}
+	auto delayTask = [weak = wptr(this), rotationAnimationCallBackExecuted]() {
+	    auto window = weak.promote();
+	    if (!rotationAnimationCallBackExecuted->load()) {
+            rotationAnimationCallBackExecuted->store(true);
+	        TLOGW(WmsLogTag::WMS_ROTATION, "rotation animation callback timeout, "
+	            "current count: %{public}d", window->rotationAnimationCount_.load());
+	        window->rotationAnimationCount_--;
+	        if (window->rotationAnimationCount_ == 0) {
+	            window->NotifyRotationAnimationEnd();
+	        }
+	    }
+	};
+	constexpr int64_t DELAY_TIME_MS = 3000; //3 seconds
+	handler->PostTask(delayTask, "WMS_WindowSessionImpl_RotationAnimationDelay", DELAY_TIME_MS);
+}
 
 void WindowSessionImpl::UpdateRectForPageRotation(const Rect& wmRect, const Rect& preRect,
     WindowSizeChangeReason wmReason, const SceneAnimationConfig& config,
@@ -3549,13 +3580,11 @@ WMError WindowSessionImpl::SetRaiseByClickEnabled(bool raiseEnabled)
               GetPersistentId());
         return WMError::WM_ERROR_INVALID_PARENT;
     }
-
     if (!WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "Window id: %{public}d Must be app sub window!",
               GetPersistentId());
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-
     if (state_ != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "Window id: %{public}d The sub window must be shown!",
               GetPersistentId());
@@ -3790,7 +3819,6 @@ WMError WindowSessionImpl::HandleSetOrientationCommon(Orientation orientation, b
         property_->SetRequestedOrientation(requestedOrientation, needAnimation);
     } else {
         property_->SetRequestedOrientation(orientation, needAnimation);
-        property_->SetIsSpecificSessionRequestOrientation(true);
     }
     return WMError::WM_OK;
 }
@@ -5832,6 +5860,10 @@ void WindowSessionImpl::ClearListenersById(int32_t persistentId)
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowStageLifeCycleListenerMutex_);
         ClearUselessListeners(windowStageLifecycleListeners_, persistentId);
+    }
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+        ClearUselessListeners(windowHoverStateChangeListeners_, persistentId);
     }
     ClearSwitchFreeMultiWindowListenersById(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Clear success, id: %{public}d.", GetPersistentId());
@@ -10593,6 +10625,155 @@ void WindowSessionImpl::RecordWindowLifecycleChange(const std::string& windowEve
         TLOGE(WmsLogTag::WMS_MAIN, "failed, ret: %{public}d, event: %{public}s",
             ret, windowEvent.c_str());
     }
+}
+
+bool WindowSessionImpl::GetWindowHoverState()
+{
+    if (DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
+        CheckWindowCanInHoverState(property_->GetWindowRect())) {
+        return true;
+    }
+    return false;
+}
+
+WMError WindowSessionImpl::RegisterWindowHoverStateChangeListener(
+    const sptr<IWindowHoverStateChangeListener>& listener)
+{
+    TLOGD(WmsLogTag::DEFAULT, "in");
+    std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+    RegisterFoldStatusListener();
+    return RegisterListener(windowHoverStateChangeListeners_[GetPersistentId()], listener);
+}
+
+WMError WindowSessionImpl::UnregisterWindowHoverStateChangeListener(
+    const sptr<IWindowHoverStateChangeListener>& listener)
+{
+    TLOGD(WmsLogTag::DEFAULT, "in");
+    std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+    UnregisterFoldStatusListener();
+    return UnregisterListenerInMap(windowHoverStateChangeListeners_, GetPersistentId(), listener);
+}
+
+template<typename T>
+EnableIfSame<T, IWindowHoverStateChangeListener,
+    std::vector<sptr<IWindowHoverStateChangeListener>>> WindowSessionImpl::GetListeners()
+{
+    std::vector<sptr<IWindowHoverStateChangeListener>> windowHoverStateChangeListeners;
+    for (const auto& listener : windowHoverStateChangeListeners_[GetPersistentId()]) {
+        windowHoverStateChangeListeners.push_back(listener);
+    }
+    return windowHoverStateChangeListeners;
+}
+
+void WindowSessionImpl::NotifyWindowHoverStateChange(bool hoverState)
+{
+    TLOGD(WmsLogTag::DEFAULT, "NotifyWindowHoverStateChange begin, id:%{public}d, hoverState:%{public}d",
+        GetPersistentId(), hoverState);
+    std::vector<sptr<IWindowHoverStateChangeListener>> windowHoverStateChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+        windowHoverStateChangeListeners = GetListeners<IWindowHoverStateChangeListener>();
+    }
+    for (auto& listener : windowHoverStateChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnWindowHoverStateChange(hoverState);
+        }
+    }
+}
+
+bool WindowSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
+{
+    return false;
+}
+
+WSError WindowSessionImpl::UpdateLSState(bool isLSState)
+{
+    {
+        std::lock_guard<std::mutex> lock(isLSStateMutex_);
+        isLSState_ = isLSState;
+    }
+    UpdateHoverState(property_->GetWindowRect(), DisplayManager::GetInstance().GetFoldStatus());
+    return WSError::WS_OK;
+}
+
+bool WindowSessionImpl::GetLSState() const
+{
+    std::lock_guard<std::mutex> lock(isLSStateMutex_);
+    return isLSState_;
+}
+
+void WindowSessionImpl::UpdateHoverState(const Rect& windowRect, FoldStatus foldStatus)
+{
+    bool newHoverState = false;
+    if (foldStatus == FoldStatus::HALF_FOLD && CheckWindowCanInHoverState(windowRect)) {
+        newHoverState = true;
+    }
+
+    bool currentHoverState = GetHoverState();
+    if (newHoverState == currentHoverState) {
+        return;
+    }
+    SetHoverState(newHoverState);
+
+    if (handler_ != nullptr) {
+        handler_->PostTask([weakThis = wptr(this), newHoverState, where = __func__] {
+            auto window = weakThis.promote();
+            if (window == nullptr) {
+                TLOGNE(WmsLogTag::DEFAULT, "%{public}s window is null", where);
+                return;
+            }
+            window->NotifyWindowHoverStateChange(newHoverState);
+        }, __func__);
+    }
+}
+
+bool WindowSessionImpl::GetHoverState()
+{
+    std::lock_guard<std::mutex> lock(hoverStateMutex_);
+    return hoverState_;
+}
+
+void WindowSessionImpl::SetHoverState(bool hoverState)
+{
+    std::lock_guard<std::mutex> lock(hoverStateMutex_);
+    hoverState_ = hoverState;
+}
+
+void WindowSessionImpl::RegisterFoldStatusListener()
+{
+    if (foldStatusListener_ != nullptr) {
+        TLOGW(WmsLogTag::DEFAULT, "fold status listener is exist!");
+        return;
+    }
+    foldStatusListener_ = new FoldStatusListener(this);
+    auto ret = DisplayManager::GetInstance().RegisterFoldStatusListener(foldStatusListener_);
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "register fold status listener failed!");
+        foldStatusListener_ = nullptr;
+    }
+}
+
+void WindowSessionImpl::UnregisterFoldStatusListener()
+{
+    if (foldStatusListener_ == nullptr) {
+        TLOGW(WmsLogTag::DEFAULT, "fold status listener is null!");
+        return;
+    }
+
+    auto ret = DisplayManager::GetInstance().UnregisterFoldStatusListener(foldStatusListener_);
+    if (ret != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "unregister fold status listener failed!");
+    }
+    foldStatusListener_ = nullptr;
+}
+
+void WindowSessionImpl::FoldStatusListener::OnFoldStatusChanged(FoldStatus foldStatus)
+{
+    if (windowSessionimpl_ == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "windowSessionimpl is null!");
+        return;
+    }
+    windowSessionimpl_->UpdateHoverState(windowSessionimpl_->property_->GetWindowRect(), foldStatus);
 }
 } // namespace Rosen
 } // namespace OHOS

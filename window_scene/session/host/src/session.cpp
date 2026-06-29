@@ -6440,4 +6440,14 @@ void Session::HandleHookDisplay(const PrelayoutContext& ctx)
         return;
     }
 }
+
+WSError Session::UpdateLSStateInfo(bool isLSState)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, isLSState: %{public}d", GetPersistentId(), isLSState);
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "session stage is nullptr");
+        return WSError::WS_DO_NOTHING;
+    }
+    return sessionStage_->UpdateLSState(isLSState);
+}
 } // namespace OHOS::Rosen

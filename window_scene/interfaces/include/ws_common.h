@@ -487,7 +487,6 @@ struct SessionInfo {
     int32_t collaboratorType_ = CollaboratorType::DEFAULT_TYPE;
     SessionState sessionState_ = SessionState::STATE_DISCONNECT;
     uint32_t requestOrientation_ = 0;
-    int32_t specificSessionRequestOrientation_ = -1;
     bool isRotable_ = false;
     bool isSetPointerAreas_ = false;
     bool isCastSession_ = false;

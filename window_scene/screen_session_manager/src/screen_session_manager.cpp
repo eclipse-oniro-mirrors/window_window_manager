@@ -156,6 +156,7 @@ constexpr uint32_t SLEEP_TIME_US = 10000;
 constexpr int32_t RES_FAILURE_FOR_PRIVACY_WINDOW = -2;
 constexpr int32_t IRREGULAR_REFRESH_RATE_SKIP_THRETHOLD = 10;
 constexpr float EXTEND_SCREEN_DPI_DEFAULT_PARAMETER = 1.0f;
+constexpr float EXTEND_SCREEN_DPI_FOR_PHONE_GAP = 0.4f;
 static const int32_t AUTO_ROTATE_OFF = 0;
 static const int NOTIFY_EVENT_FOR_DUAL_FAILED = 0;
 static const int NOTIFY_EVENT_FOR_DUAL_SUCESS = 1;
@@ -3079,6 +3080,14 @@ sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
     } else {
         screenId = GetUserDisplayId(userId);
     }
+#ifdef FOLD_ABILITY_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        auto currentScreenId = SuperFoldPolicy::GetInstance().GetCurrentScreenId();
+        if (currentScreenId != SCREEN_ID_INVALID) {
+            screenId = currentScreenId;
+        }
+    }
+#endif
     TLOGD(WmsLogTag::DMS, "get screenId %{public}" PRIu64" with userId %{public}u", screenId, userId);
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
@@ -5508,6 +5517,10 @@ DMError ScreenSessionManager::GetBrightnessInfo(DisplayId displayId, ScreenBrigh
         TLOGNFE(WmsLogTag::DMS, "GetScreenSession failed");
         return DMError::DM_ERROR_ILLEGAL_PARAM;
     }
+    if (!screenSession->IsScreenAvailable()) {
+        TLOGNFE(WmsLogTag::DMS, "screenSession not in use!");
+        return DMError::DM_ERROR_ILLEGAL_PARAM;
+    }
     BrightnessInfo rsBrightnessInfo;
     auto rsUIContext = screenSession->GetRSUIContext();
     if (rsUIContext == nullptr) {
@@ -7751,6 +7764,143 @@ void ScreenSessionManager::CheckAttributeChangeWithUid(sptr<DisplayInfo> display
     lastDisplayInfoHookMap_[uid][displayId] = displayInfo;
 }
  
+namespace {
+bool IsDisplayIdChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetDisplayId() != d2->GetDisplayId();
+}
+
+bool IsDisplayNameChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetName() != d2->GetName();
+}
+
+bool IsAliveStatusChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetAliveStatus() != d2->GetAliveStatus();
+}
+
+bool IsDisplayStateChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetDisplayState() != d2->GetDisplayState();
+}
+
+bool IsRefreshRateChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetRefreshRate() != d2->GetRefreshRate();
+}
+
+bool IsRotationChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetRotation() != d2->GetRotation();
+}
+
+bool IsWidthChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetWidth() != d2->GetWidth();
+}
+
+bool IsHeightChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetHeight() != d2->GetHeight();
+}
+
+bool IsDisplayOrientationChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetDisplayOrientation() != d2->GetDisplayOrientation();
+}
+
+bool IsXDpiChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetXDpi() != d2->GetXDpi();
+}
+
+bool IsYDpiChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetYDpi() != d2->GetYDpi();
+}
+
+bool IsColorSpacesChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetColorSpaces() != d2->GetColorSpaces();
+}
+
+bool IsHdrFormatsChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetHdrFormats() != d2->GetHdrFormats();
+}
+
+bool IsAvailableWidthChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetAvailableWidth() != d2->GetAvailableWidth();
+}
+
+bool IsAvailableHeightChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetAvailableHeight() != d2->GetAvailableHeight();
+}
+
+bool IsScreenShapeChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetScreenShape() != d2->GetScreenShape();
+}
+
+bool IsXChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetX() != d2->GetX();
+}
+
+bool IsYChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetY() != d2->GetY();
+}
+
+bool IsDisplaySourceModeChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetDisplaySourceMode() != d2->GetDisplaySourceMode();
+}
+
+bool IsSupportedRefreshRateChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetSupportedRefreshRate() != d2->GetSupportedRefreshRate();
+}
+
+bool IsVirtualPixelRatioChanged(const sptr<DisplayInfo>& d1, const sptr<DisplayInfo>& d2)
+{
+    return d1->GetVirtualPixelRatio() != d2->GetVirtualPixelRatio();
+}
+
+using DisplayAttrCompareFunc = bool(*)(const sptr<DisplayInfo>&, const sptr<DisplayInfo>&);
+struct DisplayAttributeCompareEntry {
+    DisplayAttrCompareFunc compare;
+    std::initializer_list<const char*> names;
+};
+
+constexpr DisplayAttributeCompareEntry DISPLAY_ATTRIBUTE_COMPARE_ENTRIES[] = {
+    {IsDisplayIdChanged, {"id"}},
+    {IsDisplayNameChanged, {"name"}},
+    {IsAliveStatusChanged, {"alive"}},
+    {IsDisplayStateChanged, {"state"}},
+    {IsRefreshRateChanged, {"refreshRate"}},
+    {IsRotationChanged, {"rotation"}},
+    {IsWidthChanged, {"width"}},
+    {IsHeightChanged, {"height"}},
+    {IsDisplayOrientationChanged, {"orientation"}},
+    {IsXDpiChanged, {"xDPI"}},
+    {IsYDpiChanged, {"yDPI"}},
+    {IsColorSpacesChanged, {"colorSpaces"}},
+    {IsHdrFormatsChanged, {"hdrFormats"}},
+    {IsAvailableWidthChanged, {"availableWidth"}},
+    {IsAvailableHeightChanged, {"availableHeight"}},
+    {IsScreenShapeChanged, {"screenShape"}},
+    {IsXChanged, {"x"}},
+    {IsYChanged, {"y"}},
+    {IsDisplaySourceModeChanged, {"sourceMode"}},
+    {IsSupportedRefreshRateChanged, {"supportedRefreshRates"}},
+    {IsVirtualPixelRatioChanged, {"densityDPI", "densityPixels", "scaledDensity"}},
+};
+}
+
 void ScreenSessionManager::GetChangedListenableAttribute(sptr<DisplayInfo> displayInfo1, sptr<DisplayInfo> displayInfo2,
     std::vector<std::string>& attributes)
 {
@@ -7758,42 +7908,11 @@ void ScreenSessionManager::GetChangedListenableAttribute(sptr<DisplayInfo> displ
         return;
     }
 
-    struct AttributeCheck {
-        std::function<bool()> comparator;
-        std::vector<std::string> attributeNames;
-    };
-
-    std::vector<AttributeCheck> checks = {
-        {[&]() { return displayInfo1->GetDisplayId() != displayInfo2->GetDisplayId(); }, {"id"}},
-        {[&]() { return displayInfo1->GetName() != displayInfo2->GetName(); }, {"name"}},
-        {[&]() { return displayInfo1->GetAliveStatus() != displayInfo2->GetAliveStatus(); }, {"alive"}},
-        {[&]() { return displayInfo1->GetDisplayState() != displayInfo2->GetDisplayState(); }, {"state"}},
-        {[&]() { return displayInfo1->GetRefreshRate() != displayInfo2->GetRefreshRate(); }, {"refreshRate"}},
-        {[&]() { return displayInfo1->GetRotation() != displayInfo2->GetRotation(); }, {"rotation"}},
-        {[&]() { return displayInfo1->GetWidth() != displayInfo2->GetWidth(); }, {"width"}},
-        {[&]() { return displayInfo1->GetHeight() != displayInfo2->GetHeight(); }, {"height"}},
-        {[&]() { return displayInfo1->GetVirtualPixelRatio() != displayInfo2->GetVirtualPixelRatio(); }, 
-            {"densityDPI", "densityPixels", "scaledDensity"}},
-        {[&]() { return displayInfo1->GetDisplayOrientation() != displayInfo2->GetDisplayOrientation(); }, {"orientation"}},
-        {[&]() { return displayInfo1->GetXDpi() != displayInfo2->GetXDpi(); }, {"xDPI"}},
-        {[&]() { return displayInfo1->GetYDpi() != displayInfo2->GetYDpi(); }, {"yDPI"}},
-        {[&]() { return displayInfo1->GetColorSpaces() != displayInfo2->GetColorSpaces(); }, {"colorSpaces"}},
-        {[&]() { return displayInfo1->GetHdrFormats() != displayInfo2->GetHdrFormats(); }, {"hdrFormats"}},
-        {[&]() { return displayInfo1->GetAvailableWidth() != displayInfo2->GetAvailableWidth(); }, {"availableWidth"}},
-        {[&]() { return displayInfo1->GetAvailableHeight() != displayInfo2->GetAvailableHeight(); }, {"availableHeight"}},
-        {[&]() { return displayInfo1->GetScreenShape() != displayInfo2->GetScreenShape(); }, {"screenShape"}},
-        {[&]() { return displayInfo1->GetX() != displayInfo2->GetX(); }, {"x"}},
-        {[&]() { return displayInfo1->GetY() != displayInfo2->GetY(); }, {"y"}},
-        {[&]() { return displayInfo1->GetDisplaySourceMode() != displayInfo2->GetDisplaySourceMode(); }, {"sourceMode"}},
-        {[&]() { return displayInfo1->GetSupportedRefreshRate() != displayInfo2->GetSupportedRefreshRate(); }, 
-            {"supportedRefreshRates"}},
-    };
-
-    for (const auto& check : checks) {
-        if (check.comparator()) {
-            attributes.insert(attributes.end(), 
-                            check.attributeNames.begin(), 
-                            check.attributeNames.end());
+    for (const auto& entry : DISPLAY_ATTRIBUTE_COMPARE_ENTRIES) {
+        if (entry.compare(displayInfo1, displayInfo2)) {
+            for (const char* name : entry.names) {
+                attributes.emplace_back(name);
+            }
         }
     }
 }
@@ -12965,22 +13084,18 @@ bool ScreenSessionManager::ActiveUser(int32_t newUserId, int32_t& oldUserId, int
     
     std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
     oldUserId = INVALID_USER_ID;
-    displayConcurrentUserMap_[displayId][newUserId] = { true, newScbPid };
     TLOGNFI(WmsLogTag::DMS, "Get user display success, add or update user info in displayConcurrentUserMap,"
           "newUsrId: %{public}d, displayId: %{public}" PRIu64 ", newScbPid: %{public}d",
           newUserId, displayId, newScbPid);
     for (auto& [userId, UserInfo] : displayConcurrentUserMap_[displayId]) {
-        if (userId == newUserId) {
-            continue;
-        } else {
-            if (UserInfo.isForeground) {
-                oldUserId = userId;
-                UserInfo.isForeground = false;
-                TLOGNFI(WmsLogTag::DMS, "deactivate user, userId: %{public}d, displayId: %{public}" PRIu64,
-                    userId, displayId);
-            }
+        if (UserInfo.isForeground) {
+            oldUserId = userId;
+            UserInfo.isForeground = false;
+            TLOGNFI(WmsLogTag::DMS, "deactivate user, userId: %{public}d, displayId: %{public}" PRIu64,
+                userId, displayId);
         }
     }
+    displayConcurrentUserMap_[displayId][newUserId] = { true, newScbPid };
     return true;
 }
 
@@ -15646,6 +15761,10 @@ void ScreenSessionManager::SetExtendScreenDpi()
         g_extendScreenDpiCoef = EXTEND_SCREEN_DPI_DEFAULT_PARAMETER;
     } else {
         g_extendScreenDpiCoef = extendScreenDpiCoef;
+    }
+    if (FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        TLOGNFI(WmsLogTag::DMS, "in phone extend coef");
+        g_extendScreenDpiCoef -= EXTEND_SCREEN_DPI_FOR_PHONE_GAP;
     }
     float dpi = static_cast<float>(cachedSettingDpi_) / BASELINE_DENSITY;
     SetExtendPixelRatio(dpi * g_extendScreenDpiCoef);

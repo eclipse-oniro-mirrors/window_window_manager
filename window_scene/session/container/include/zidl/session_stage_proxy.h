@@ -152,6 +152,7 @@ public:
     WSError UpdateWindowUIType(WindowUIType windowUIType) override;
     WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError SetIsStartMoving(bool isStartMoving) override;
+    WSError UpdateLSState(bool isLSState) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;
