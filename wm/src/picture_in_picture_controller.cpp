@@ -66,7 +66,7 @@ WMError PictureInPictureController::ValidatePiPCreateParams(StartPipType startTy
     return WMError::WM_OK;
 }
 
-WMError PictureInPictureController::PreparePipWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
+WMError PictureInPictureController::PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
     std::shared_ptr<AbilityRuntime::Context>& abilityContext)
 {
     UpdateWinRectByComponent();
@@ -102,7 +102,7 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
     }
     PiPTemplateInfo pipTemplateInfo;
     std::shared_ptr<AbilityRuntime::Context> abilityContext;
-    return PreparePipWindowCreation(startType, pipTemplateInfo, abilityContext);
+    return PreparePiPWindowCreation(startType, pipTemplateInfo, abilityContext);
 }
 
 WMError PictureInPictureController::StartPictureInPicture(StartPipType startType)

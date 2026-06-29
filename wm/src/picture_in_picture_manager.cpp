@@ -73,7 +73,6 @@ NavigationController* GetNavControllerForAutoStart(const sptr<WindowSessionImpl>
 
 }
 
-wptr<PictureInPictureControllerBase> PictureInPictureManager::autoStartController_ = nullptr;
 std::map<int32_t, wptr<PictureInPictureControllerBase>> PictureInPictureManager::autoStartControllerMap_ = {};
 std::map<uint32_t, std::vector<wptr<PictureInPictureControllerBase>>>
     PictureInPictureManager::mainWindowToAutoStartControllersMap_ = {};
@@ -150,7 +149,7 @@ bool PictureInPictureManager::HasActiveController()
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     for (auto& pair : windowToControllerMap_) {
-        if (isControllerStateActive(pair.second->GetControllerState())) {
+        if (IsControllerStateActive(pair.second->GetControllerState())) {
             return true;
         }
     }
@@ -166,17 +165,17 @@ bool PictureInPictureManager::IsActiveController(wptr<PictureInPictureController
     }
     for (auto& pair : windowToControllerMap_) {
         if (pair.second == promoted) {
-            return isControllerStateActive(pair.second->GetControllerState());
+            return IsControllerStateActive(pair.second->GetControllerState());
         }
     }
     return false;
 }
 
-bool PictureInPictureManager::isControllerStateActive(PiPWindowState state)
+bool PictureInPictureManager::IsControllerStateActive(PiPWindowState state)
 {
-    return state == PiPWindowState::STARTED ||
-           state == PiPWindowState::STARTING ||
-           state == PiPWindowState::RESTORING;
+    return state == PiPWindowState::STATE_STARTED ||
+           state == PiPWindowState::STATE_STARTING ||
+           state == PiPWindowState::STATE_RESTORING;
 }
 
 void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
@@ -204,14 +203,15 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
                 continue;
             }
             PiPGroupConfig existingGroup;
-        auto existingType = static_cast<PiPTemplateType>(existing->GetPipTemplate());
-        if (!pipMultiConfig_.FindGroupConfig(existingType, existingGroup) ||
-            existingGroup.groupId != group.groupId) {
-            continue;
-        }
-        ++countInGroup;
-        if (oldest == nullptr || existing->GetCreateTimestamp() < oldest->GetCreateTimestamp()) {
-            oldest = existing;
+            auto existingType = static_cast<PiPTemplateType>(existing->GetPipTemplate());
+            if (!pipMultiConfig_.FindGroupConfig(existingType, existingGroup) ||
+                existingGroup.groupId != group.groupId) {
+                continue;
+            }
+            ++countInGroup;
+            if (oldest == nullptr || existing->GetCreateTimestamp() < oldest->GetCreateTimestamp()) {
+                oldest = existing;
+            }
         }
     }
     if (group.maxCount > 0 && countInGroup >= group.maxCount && oldest != nullptr) {

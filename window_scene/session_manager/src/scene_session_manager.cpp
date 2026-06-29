@@ -4980,9 +4980,14 @@ WSError SceneSessionManager::CreateAndConnectSpecificSession(const sptr<ISession
         }
         const auto type = property->GetWindowType();
         if (type == WindowType::WINDOW_TYPE_PIP) {
-            auto checkResult = CheckPiPCreateAndLog(property, type);
-            if (checkResult.errorCode != WSError::WS_OK) {
-                return checkResult.errorCode;
+            auto checkResult = CheckPiPCreate(property, type);
+            if (checkResult == WSError::WS_ERROR_INVALID_PERMISSION) {
+                TLOGNE(WmsLogTag::WMS_PIP, "forbid pip window creation.");
+            } else if (checkResult == WSError::WS_DO_NOTHING) {
+                TLOGNE(WmsLogTag::WMS_PIP, "pip window is not enabled to create.");
+            }
+            if (checkResult != WSError::WS_OK) {
+                return checkResult;
             }
         }
         // create specific session
@@ -5299,21 +5304,6 @@ WSError SceneSessionManager::CheckPiPCreate(const sptr<WindowSessionProperty>& p
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
     return WSError::WS_OK;
-}
-
-WSErrorResult SceneSessionManager::CheckPiPCreateAndLog(const sptr<WindowSessionProperty>& property, const WindowType& type)
-{
-    WSError checkResult = CheckPiPCreate(property, type);
-    if (checkResult != WSError::WS_OK) {
-        if (checkResult == WSError::WS_ERROR_INVALID_PERMISSION) {
-            TLOGNE(WmsLogTag::WMS_PIP, "forbid pip window creation.");
-            return WSErrorResult{checkResult, "forbid pip"};
-        } else if (checkResult == WSError::WS_DO_NOTHING) {
-            TLOGNE(WmsLogTag::WMS_PIP, "pip window is not enabled to create.");
-            return WSErrorResult{checkResult, "pip window is not created"};
-        } 
-    }
-    return {WSError::WS_OK, ""};
 }
 
 void SceneSessionManager::UpdatePipGroupCount(const PiPTemplateInfo& pipTemplateInfo, bool increase)
@@ -6170,7 +6160,7 @@ void SceneSessionManager::ClearSpecificSessionRemoteObjectMap(int32_t persistent
     }
 }
 
-WSErrorResult SceneSessionManager::CleanupSessionByType(const sptr<SceneSession>& sceneSession)
+WSError SceneSessionManager::CleanupSessionByType(const sptr<SceneSession>& sceneSession)
 {
     auto ret = sceneSession->UpdateActiveStatus(false);
     RemoveSessionFromBlackList(sceneSession);
@@ -6198,16 +6188,17 @@ WSErrorResult SceneSessionManager::CleanupSessionByType(const sptr<SceneSession>
     } else if (windowType == WindowType::WINDOW_TYPE_FLOAT) {
         DestroySubSession(sceneSession);
     }
-    return WSErrorResult(ret, "cleanup session by type success");
+    return ret;
 }
 
-WSErrorResult SceneSessionManager::FinalizeSessionDestruction(const int32_t persistentId)
+WSError SceneSessionManager::FinalizeSessionDestruction(const int32_t persistentId)
 {
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
-        return WSErrorResult(WSError::WS_ERROR_NULLPTR, "scene session is nullptr");
+        TLOGNE(WmsLogTag::WMS_LIFE, "session is nullptr, persistentId:%{public}d", persistentId);
+        return WSError::WS_ERROR_NULLPTR;
     }
-    ret = sceneSession->Disconnect();
+    auto ret = sceneSession->Disconnect();
     sceneSession->ClearSpecificSessionCbMap();
     if (SessionHelper::IsSubWindow(sceneSession->GetWindowType())) {
         DestroySubSession(sceneSession);
@@ -6230,7 +6221,7 @@ WSErrorResult SceneSessionManager::FinalizeSessionDestruction(const int32_t pers
     }
     ClearSpecificSessionRemoteObjectMap(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy specific session end, id: %{public}d", persistentId);
-    return WSErrorResult(WSError::WS_OK, "finalize session destruction success");
+    return WSError::WS_OK;
 }
 
 WSError SceneSessionManager::DestroyAndDisconnectSpecificSessionInner(const int32_t persistentId)
@@ -6240,10 +6231,10 @@ WSError SceneSessionManager::DestroyAndDisconnectSpecificSessionInner(const int3
         return WSError::WS_ERROR_NULLPTR;
     }
     auto ret = CleanupSessionByType(sceneSession);
-    if (ret.errCode != WSError::WS_OK) {
-        return ret.errCode;
+    if (ret != WSError::WS_OK) {
+        return ret;
     }
-    return FinalizeSessionDestruction(persistentId).errCode;
+    return FinalizeSessionDestruction(persistentId);
 }
 
 WSError SceneSessionManager::DestroyAndDisconnectSpecificSession(const int32_t persistentId)
@@ -13303,7 +13294,7 @@ void SceneSessionManager::ApplyFeatureConfig(const std::unordered_map<std::strin
                 {"supportCreateFloatView", std::bind(&SystemSessionConfig::ConvertSupportCreateFloatView,
                     &systemConfig_, std::placeholders::_1)},
                 {"pipMultiConfig", std::bind(&SystemSessionConfig::ConvertPipMultiConfig,
-                    &systemConfig_, std::placeholders::_1)}
+                    &systemConfig_, std::placeholders::_1)},
                 {"supportCreateFloatingBall", std::bind(&SystemSessionConfig::ConvertSupportCreateFloatingBall,
                     &systemConfig_, std::placeholders::_1)}
             };
