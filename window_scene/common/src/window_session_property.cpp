@@ -820,6 +820,10 @@ void WindowSessionProperty::SetSupportedWindowModes(
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes)
 {
     std::lock_guard<std::mutex> lock(supportWindowModesMutex_);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, old:%{public}u, new:%{public}u",
+        persistentId_,
+        WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes_),
+        WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes));
     supportedWindowModes_ = supportedWindowModes;
 }
 

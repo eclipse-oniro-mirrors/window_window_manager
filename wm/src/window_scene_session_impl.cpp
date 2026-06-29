@@ -5003,15 +5003,15 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
     hostSession->NotifySupportWindowModesChange(supportedWindowModes);
+    property_->SetSupportedWindowModes(supportedWindowModes);
+    haveSetSupportedWindowModes_ = true;
     if (!IsPcOrPadFreeMultiWindowMode()) {
-        pendingWindowModeSupportType_ = windowModeSupportType;
         TLOGI(WmsLogTag::WMS_LAYOUT,
-            "[WindowSupportModes:SetInner] pending (not free multi window), id:%{public}u, type:%{public}u",
+            "[WindowSupportModes:SetInner] not free multi window, cached for later, id:%{public}u, type:%{public}u",
             GetWindowId(), windowModeSupportType);
         return WMError::WM_OK;
     }
 
-    haveSetSupportedWindowModes_ = true;
     property_->SetWindowModeSupportType(windowModeSupportType);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
     UpdateTitleButtonVisibility();
@@ -6825,10 +6825,6 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
 
 void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
 {
-    if (haveSetSupportedWindowModes_) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "SupportedWindowMode is already set, id: %{public}d", GetPersistentId());
-        return;
-    }
     auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context_);
     if (abilityContext == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "abilityContext is nullptr");
@@ -6845,15 +6841,20 @@ void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
     auto size = supportedWindowModes.size();
     if (windowSystemConfig_.freeMultiWindowEnable_ && size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
         windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
-        if (auto hostSession = GetHostSession()) {
-            hostSession->NotifySupportWindowModesChange(supportedWindowModes);
-        }
     } else {
         std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
             ExtractSupportWindowModeFromMetaData(abilityInfo);
         windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
     }
     property_->SetWindowModeSupportType(windowModeSupportType);
+    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
+
+    if (windowSystemConfig_.freeMultiWindowEnable_) {
+        if (haveSetSupportedWindowModes_) {
+            UpdateTitleButtonVisibility();
+        }
+        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
+    }
 }
 
 void WindowSceneSessionImpl::UpdateEnableDragWhenSwitchMultiWindow(bool enable)
@@ -6906,9 +6907,6 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     if (!(IsAnco() && windowSystemConfig_.IsPadWindow())) {
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     }
-    if (enable) {
-        PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
-    }
     if (enable && IsAnco() && windowSystemConfig_.IsPadWindow()) {
         uiContent_->SetContainerModalTitleVisible(false, true);
         uiContent_->EnableContainerModalCustomGesture(true);
@@ -6940,30 +6938,6 @@ WSError WindowSceneSessionImpl::ConfigDockAutoHide(bool isDockAutoHide)
         }
     }
     return WSError::WS_OK;
-}
-
-void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindow()
-{
-    if (pendingWindowModeSupportType_ == WindowModeSupport::WINDOW_MODE_SUPPORT_ALL) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "pending data has not set, id: %{public}d", GetPersistentId());
-        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
-        return;
-    }
-
-    uint32_t windowModeSupportType = pendingWindowModeSupportType_;
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "id: %{public}d, windowModeSupportType: %{public}u",
-        GetPersistentId(), windowModeSupportType);
-    
-    pendingWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
-    property_->SetWindowModeSupportType(windowModeSupportType);
-
-    // update windowModeSupportType to server
-    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
-    haveSetSupportedWindowModes_ = true;
-    UpdateTitleButtonVisibility();
-
-    // update window mode immediately when pending window support type take effect
-    maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
 }
 
 void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen()
