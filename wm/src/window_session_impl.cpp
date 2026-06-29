@@ -2427,8 +2427,7 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
                 TLOGND(WmsLogTag::WMS_LAYOUT_PC, "%{public}s uiContent unavailable", where);
                 return;
             }
-            uiContent->OnContainerModalEvent(WINDOW_WATERFALL_VISIBILITY_EVENT,
-                window->supportEnterWaterfallMode_ ? "true" : "false");
+            uiContent->OnContainerModalEvent(WINDOW_WATERFALL_VISIBILITY_EVENT, window->supportEnterWaterfallMode_ ? "true" : "false");
         }, "UIContentOnContainerModalEvent");
     }
 }
