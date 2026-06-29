@@ -3039,9 +3039,6 @@ export interface WindowStage {
     offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifecycleEventType>): void;
 }
 
-export native function windowDestroyCallBack(nativeObj: long): void;
-let windowDestroyRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(windowDestroyCallBack);
-
 export class WindowInternal implements Window {
     static readonly DEFAULT_RET_VAL: int = 1;
     static { loadLibrary('windowstageani_module.z') }
@@ -3050,11 +3047,8 @@ export class WindowInternal implements Window {
     private static orientationPromiseMap_: Map<number, (value: OrientationResult) => void> =
       new Map<number, (value: OrientationResult) => void>();
 
-    public setNativeObj(nativeObject: long): void {
-      if (!this.nativeObj) {
-        windowDestroyRegister.register(this, nativeObject);
-      }
-      this.nativeObj = nativeObject;
+    public setNativeObj(nativeObj: long): void {
+        this.nativeObj = nativeObj;
     }
 
     private native hideSync(nativeObj: long): void;
