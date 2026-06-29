@@ -2242,14 +2242,27 @@ void SceneSessionManager::GetSceneSessionsByAppInstance(const std::string& bundl
         if (!sceneSession) {
             continue;
         }
-        if (sceneSession->GetSessionInfo().bundleName_ != bundleName ||
-            sceneSession->GetSessionInfo().appIndex_ != appIndex) {
+        if (sceneSession->GetSessionInfo().bundleName_ != bundleName) {
             continue;
         }
-        if (!appInstanceKey.empty()) {
-            auto mainSession = sceneSession->GetMainSession();
-            if (!mainSession || mainSession->GetSessionInfo().appInstanceKey_ != appInstanceKey) {
+        if (SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
+            if (sceneSession->GetSessionInfo().appIndex_ != appIndex) {
                 continue;
+            }
+            if (!appInstanceKey.empty()) {
+                if (sceneSession->GetSessionInfo().appInstanceKey != appInstanceKey) {
+                    continue;
+                }
+            }
+        } else {
+            auto mainSession = sceneSession->GetMainSession();
+            if (!mainSession || mainSession->GetSessionInfo().appIndex_ != appIndex_) {
+                continue;
+            }
+            if (!appInstanceKey.empty()) {
+                if (mainSession->GetSessionInfo().appInstanceKey != appInstanceKey) {
+                    continue;
+                }
             }
         }
         sceneSessions.push_back(sceneSession);
