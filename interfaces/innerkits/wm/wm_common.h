@@ -2637,15 +2637,17 @@ struct WindowUIInfo : public Parcelable {
  */
 struct WindowDisplayInfo : public Parcelable {
     DisplayId displayId = DISPLAY_ID_INVALID;
+    std::string displayName;
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteUint64(displayId);
+        return parcel.WriteUint64(displayId) && parcel.WriteString(displayName);
     }
 
     static WindowDisplayInfo* Unmarshalling(Parcel& parcel)
     {
         WindowDisplayInfo* windowDisplayInfo = new WindowDisplayInfo();
-        if (!parcel.ReadUint64(windowDisplayInfo->displayId)) {
+        if (!parcel.ReadUint64(windowDisplayInfo->displayId) ||
+            !parcel.ReadString(windowDisplayInfo->displayName)) {
             delete windowDisplayInfo;
             return nullptr;
         }

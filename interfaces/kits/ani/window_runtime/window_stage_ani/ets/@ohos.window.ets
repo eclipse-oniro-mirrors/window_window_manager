@@ -6470,7 +6470,7 @@ function runWindowStatusDidChangeCallback(cb: object, windowStatus: int): void {
 
 function runParentLifecycleEventCallback(cb: object, windowId: int, event: int): void {
   const func = cb as (windowId: int, event: WindowEventType) => void;
-  func(windowId, event as WindowEventType);
+  func(windowId, WindowEventType.fromValue(event));
 }
 function runParentWindowSizeChangeCallback(cb: object, cbArg: object): void {
   const func = cb as (cbArg: Size) => void;
@@ -6479,7 +6479,7 @@ function runParentWindowSizeChangeCallback(cb: object, cbArg: object): void {
 
 function runParentWindowStatusChangeCallback(cb: object, windowStatus: int): void {
   const func = cb as (windowStatus: WindowStatusType) => void;
-  func(windowStatus as WindowStatusType);
+  func(WindowStatusType.fromValue(windowStatus));
 }
 
 }

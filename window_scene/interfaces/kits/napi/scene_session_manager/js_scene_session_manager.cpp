@@ -6739,7 +6739,7 @@ napi_value JsSceneSessionManager::OnGetConfigByApp(napi_env env, napi_callback_i
     if (!ConvertFromJsValue(env, argv[0], bundleName)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to bundleName");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));)
+            "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_COMPAT, "Get config by app: %{public}s", bundleName.c_str());
@@ -6776,7 +6776,7 @@ napi_value JsSceneSessionManager::OnGetConfigByKeys(napi_env env, napi_callback_
     std::vector<std::string> keys;
     if (!ParseArrayStringValue(env, argv[0], keys)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to keys");
-        napi_throw(env, CreateJSError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
