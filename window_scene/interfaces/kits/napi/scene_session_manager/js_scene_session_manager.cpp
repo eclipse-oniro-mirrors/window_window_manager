@@ -6645,7 +6645,7 @@ void JsSceneSessionManager::OnGetFloatViewLimitCallback()
         }, __func__);
 }
 
-#ifdef COMPATIBILITY_CONFIG_CENTER_ENBALE
+#ifdef COMPATIBILITY_CONFIG_CENTER_ENABLE
 napi_value CreateCompConfigPropertyValueMap(napi_env env,
     const std::pair<int, CompConfigClient::PropertyValueMap>& propertyValuePair)
 {
@@ -6706,7 +6706,7 @@ napi_value CreateCompConfigAppPropertyValueMap(napi_env env,
         }
         for (const auto& [subKey, subValue] : appValue) {
             napi_value jsVal = nullptr;
-            napi_create_string_utf8(env, value.c_str(), NAPI_AUTO_LENGTH, &jsVal);
+            napi_create_string_utf8(env, subValue.c_str(), NAPI_AUTO_LENGTH, &jsVal);
             napi_set_named_property(env, propertyValue, subKey.c_str(), jsVal);
         }
             napi_set_named_property(env, appPropertyValue, appKey.c_str(), propertyValue);
@@ -6738,18 +6738,18 @@ napi_value JsSceneSessionManager::OnGetConfigByApp(napi_env env, napi_callback_i
     std::string bundleName;
     if (!ConvertFromJsValue(env, argv[0], bundleName)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to bundleName");
-        napi_throw(env, CreateJSError(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
-            "Input parameter is missing or invalid"));))
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));)
         return NapiGetUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_COMPAT, "Get config by app: %{public}s", bundleName.c_str());
 
     const auto& compConfig = CompConfigClient::CompConfigReadUtil::GetConfigByApp(bundleName);
-    napi_value jsCompConfig = CraeteCompConfigPropertyValueMap(env, comConfig);
+    napi_value jsCompConfig = CreateCompConfigPropertyValueMap(env, compConfig);
 
-    return jsComConfig;
+    return jsCompConfig;
 #else
-    TLOGE(WmsLogTag::WMS_COMPAT, "OngetConfigByApp not supported");
+    TLOGE(WmsLogTag::WMS_COMPAT, "OnGetConfigByApp not supported");
     return NapiGetUndefined(env);
 #endif
 }
@@ -6782,9 +6782,9 @@ napi_value JsSceneSessionManager::OnGetConfigByKeys(napi_env env, napi_callback_
     }
 
     const auto& compConfig = CompConfigClient::CompConfigReadUtil::GetConfigByKeys(keys);
-    napi_value jsCompConfig = CraeteCompConfigPropertyValueMap(env, comConfig);
+    napi_value jsCompConfig = CreateCompConfigPropertyValueMap(env, compConfig);
 
-    return jsComConfig;
+    return jsCompConfig;
 #else
     TLOGE(WmsLogTag::WMS_COMPAT, "OnGetConfigByKeys not supported");
     return NapiGetUndefined(env);

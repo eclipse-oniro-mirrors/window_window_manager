@@ -2922,7 +2922,7 @@ export class WindowStageInternal implements WindowStage {
         });
       });
     }
- 
+
     public removeImageForRecent(): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         try {
@@ -3039,6 +3039,9 @@ export interface WindowStage {
     offWindowStageLifecycleEvent(callback?: Callback<WindowStageLifecycleEventType>): void;
 }
 
+export native function windowDestroyCallBack(nativeObj: long): void;
+let windowDestroyRegister: FinalizationRegistry<long> = new FinalizationRegistry<long>(windowDestroyCallBack);
+
 export class WindowInternal implements Window {
     static readonly DEFAULT_RET_VAL: int = 1;
     static { loadLibrary('windowstageani_module.z') }
@@ -3047,8 +3050,11 @@ export class WindowInternal implements Window {
     private static orientationPromiseMap_: Map<number, (value: OrientationResult) => void> =
       new Map<number, (value: OrientationResult) => void>();
 
-    public setNativeObj(nativeObj: long): void {
-        this.nativeObj = nativeObj;
+    public setNativeObj(nativeObject: long): void {
+      if (!this.nativeObj) {
+        windowDestroyRegister.register(this, nativeObject);
+      }
+      this.nativeObj = nativeObject;
     }
 
     private native hideSync(nativeObj: long): void;
@@ -4712,8 +4718,9 @@ export class WindowInternal implements Window {
     }
 
     public setWindowShadowEnabled(enable: boolean): Promise<void> {
-      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-        taskpool.execute((): void => {
+      return new Promise<void>(
+        (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+          taskpool.execute((): void => {
           this.setWindowShadowEnabledSync(this.nativeObj, enable);
         }).then((ret: Any) => {
           resolve(undefined);
@@ -6461,6 +6468,10 @@ function runWindowStatusDidChangeCallback(cb: object, windowStatus: int): void {
   func(WindowStatusType.fromValue(windowStatus));
 }
 
+function runParentLifecycleEventCallback(cb: object, windowId: int, event: int): void {
+  const func = cb as (windowId: int, event: WindowEventType) => void;
+  func(windowId, event as WindowEventType);
+}
 function runParentWindowSizeChangeCallback(cb: object, cbArg: object): void {
   const func = cb as (cbArg: Size) => void;
   func(cbArg as Size);
@@ -6468,13 +6479,9 @@ function runParentWindowSizeChangeCallback(cb: object, cbArg: object): void {
 
 function runParentWindowStatusChangeCallback(cb: object, windowStatus: int): void {
   const func = cb as (windowStatus: WindowStatusType) => void;
-  func(WindowStatusType.fromValue(windowStatus));
+  func(windowStatus as WindowStatusType);
 }
 
-function runParentLifecycleEventCallback(cb: object, windowId: int, event: int): void {
-  const func = cb as (windowId: int, event: WindowEventType) => void;
-  func(windowId, WindowEventType.fromValue(event));
-}
 }
 
 export default window;

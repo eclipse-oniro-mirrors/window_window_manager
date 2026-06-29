@@ -1598,7 +1598,7 @@ enum class WindowAnchor : uint32_t {
 struct WindowAnchorInfo : public Parcelable {
     bool isAnchorEnabled_ = false;
     bool isAnchoredByAttach_ = false; // Distinguish between binding and unbinding
-    bool isFromAttachOrDetach_ = false; // Distinguish addatchAndDetach or setRelative interfaces
+    bool isFromAttachOrDetach_ = false; // Distinguishing addatchAndDetach or setRelative interfaces
     WindowAnchor windowAnchor_ = WindowAnchor::TOP_START;
     int32_t offsetX_ = 0;
     int32_t offsetY_ = 0;
@@ -2637,17 +2637,15 @@ struct WindowUIInfo : public Parcelable {
  */
 struct WindowDisplayInfo : public Parcelable {
     DisplayId displayId = DISPLAY_ID_INVALID;
-    std::string displayName;
     bool Marshalling(Parcel& parcel) const override
     {
-        return parcel.WriteUint64(displayId) && parcel.WriteString(displayName);
+        return parcel.WriteUnit64(displayId);
     }
 
     static WindowDisplayInfo* Unmarshalling(Parcel& parcel)
     {
         WindowDisplayInfo* windowDisplayInfo = new WindowDisplayInfo();
-        if (!parcel.ReadUint64(windowDisplayInfo->displayId) ||
-            !parcel.ReadString(windowDisplayInfo->displayName)) {
+        if (!parcel.ReadUint64(windowDisplayInfo->displayId)) {
             delete windowDisplayInfo;
             return nullptr;
         }

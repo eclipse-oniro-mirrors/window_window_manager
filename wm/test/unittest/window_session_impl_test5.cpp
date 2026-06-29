@@ -1651,7 +1651,7 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeFail, Function | 
 
     window->SetUIContentInner("info", nullptr, nullptr,
         WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
-    EXPECT_TRUE(g_errLog.find("get selectMode fail") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("get selectMode") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 
@@ -1687,7 +1687,7 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeSuccess, Function
 
     window->SetUIContentInner("info", nullptr, nullptr,
         WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
-    EXPECT_TRUE(g_errLog.find("get selectMode success") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("get selectMode") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 

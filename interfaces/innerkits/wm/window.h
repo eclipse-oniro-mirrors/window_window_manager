@@ -1712,6 +1712,7 @@ public:
     /**
      * @brief destroy window
      *
+     * @param reason Reason for window state change.
      * @return WMError
      */
     virtual WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) { return WMError::WM_OK; }
