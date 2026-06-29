@@ -264,6 +264,26 @@ HWTEST_F(DisplayManagerServiceTest, GetDisplayInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: VirtualScreen
+ * @tc.desc: DMS virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerServiceTest, VirtualScreen, TestSize.Level1)
+{
+    VirtualScreenOption option{};
+    ASSERT_EQ(-1, dms_->CreateVirtualScreen(option, nullptr));
+
+    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, dms_->SetVirtualScreenSurface(-1, nullptr));
+    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, dms_->SetVirtualScreenSurface(0, nullptr));
+
+    std::vector<ScreenId> screens;
+    dms_->RemoveVirtualScreenFromGroup(screens);
+
+    DMError result = dms_->DestroyVirtualScreen(10086);
+    EXPECT_EQ(result, DMError::DM_ERROR_INVALID_CALLING);
+}
+
+/**
  * @tc.name: OrientationAndRotation
  * @tc.desc: DMS set orientation and rotation
  * @tc.type: FUNC

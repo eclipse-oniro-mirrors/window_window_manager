@@ -268,7 +268,7 @@ DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<I
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
     if (surface == nullptr) {
         TLOGE(WmsLogTag::DMS, "surface is nullptr");
-        return DMError::DM_ERROR_NULLPTR;
+        return DMError::DM_ERROR_INVALID_PARAM;
     }
     if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
         Permission::IsStartByHdcd() || isCallingByThirdParty) {
