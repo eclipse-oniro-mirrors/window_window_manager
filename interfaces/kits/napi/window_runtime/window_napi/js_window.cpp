@@ -1534,9 +1534,8 @@ napi_value JsWindow::OnShowWindow(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             return;
         }
-        if (focusOnShow == false &&
-            (WindowHelper::IsModalSubWindow(weakWindow->GetType(), weakWindow->GetWindowFlags()) ||
-             WindowHelper::IsDialogWindow(weakWindow->GetType()))) {
+        if (isShowWithOptions && (WindowHelper::IsModalSubWindow(weakWindow->GetType(), weakWindow->GetWindowFlags()) ||
+            WindowHelper::IsDialogWindow(weakWindow->GetType()))) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
                 "[window][showWindow]msg: Modal subWindow and dialog can not set focusOnShow."));
             TLOGNE(WmsLogTag::WMS_FOCUS, "Modal subWindow and dialog can not set focusOnShow.");
