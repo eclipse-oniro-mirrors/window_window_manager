@@ -484,7 +484,9 @@ int SessionStageStub::HandleUpdateFocus(MessageParcel& data, MessageParcel& repl
         TLOGE(WmsLogTag::WMS_FOCUS, "Failed to read isFocused");
         return ERR_INVALID_DATA;
     }
+    TLOGI(WmsLogTag::WMS_FOCUS, "UpdateFocustest stub before");
     WSError errCode = UpdateFocus(focusNotifyInfo, isFocused);
+    TLOGI(WmsLogTag::WMS_FOCUS, "UpdateFocustest stub after");
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }

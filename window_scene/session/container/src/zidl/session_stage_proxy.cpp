@@ -566,12 +566,14 @@ WSError SessionStageProxy::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyI
         WLOGFE("remote is null");
         return WSError::WS_ERROR_IPC_FAILED;
     }
+    TLOGI(WmsLogTag::WMS_FOCUS, "UpdateFocustest proxy before sendrequest");
 
     if (remote->SendRequest(static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_FOCUS_CHANGE),
         data, reply, option) != ERR_NONE) {
         WLOGFW("SendRequest failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
+    TLOGI(WmsLogTag::WMS_FOCUS, "UpdateFocustest proxy after sendrequest");
     int32_t ret = reply.ReadInt32();
     return static_cast<WSError>(ret);
 }

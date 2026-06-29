@@ -2000,28 +2000,28 @@ WSError WindowSessionImpl::UpdateDisplayId(uint64_t displayId)
 
 WSError WindowSessionImpl::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyInfo, bool isFocused)
 {
-    if (focusNotifyInfo != nullptr && !focusNotifyInfo->isSameCallingPid_) {
-        WindowManager::GetInstance().NotifyApplicationFocusChangedResult(isFocused);
-    }
-    if (focusNotifyInfo == nullptr || !focusNotifyInfo->isSyncNotify_) {
-        UpdateFocusState(isFocused);
-        return WSError::WS_OK;
+    if (focusNotifyInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is null");
+        return WSError::WS_ERROR_NULLPTR;
     }
     auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count());
+    auto timeStamp = focusNotifyInfo->timeStamp_;
     TLOGI(WmsLogTag::WMS_FOCUS, "unfocusId:%{public}d, focusId:%{public}d, isFocused:%{public}d,"
         "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 "current:%{public}" PRId64,
         focusNotifyInfo->unfocusWindowId_, focusNotifyInfo->focusWindowId_, isFocused, focusNotifyInfo->isSyncNotify_,
-        updateFocusTimeStamp_.load(), focusNotifyInfo->timeStamp_, currentTimeStamp);
-    auto timeStamp = focusNotifyInfo->timeStamp_;
+        updateFocusTimeStamp_.load(), timeStamp, currentTimeStamp);
     if (updateFocusTimeStamp_.load() <= currentTimeStamp && timeStamp <= updateFocusTimeStamp_.load()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "check time fail");
         return WSError::WS_OK;
     }
     updateFocusTimeStamp_.store(timeStamp);
     auto otherWindowId = isFocused ? focusNotifyInfo->unfocusWindowId_ : focusNotifyInfo->focusWindowId_;
-    if (otherWindowId == INVALID_SESSION_ID) {
+    if (!focusNotifyInfo->isSyncNotify_ || otherWindowId == INVALID_SESSION_ID) {
         UpdateFocusState(isFocused);
+        if (!focusNotifyInfo->isSameCallingPid_) {
+            WindowManager::GetInstance().NotifyApplicationFocusChangedResult(isFocused);
+        }
         return WSError::WS_OK;
     }
     auto otherWindow = GetWindowWithId(otherWindowId);
@@ -2035,6 +2035,9 @@ WSError WindowSessionImpl::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyI
         if (otherWindow != nullptr) {
             otherWindow->UpdateFocusState(!isFocused);
         }
+    }
+    if (!focusNotifyInfo->isSameCallingPid_) {
+        WindowManager::GetInstance().NotifyApplicationFocusChangedResult(isFocused);
     }
     return WSError::WS_OK;
 }
