@@ -206,15 +206,15 @@ std::string JsFloatViewManager::CheckAndGetParam(napi_env env, napi_callback_inf
     ConvertFromJsValue(env, templateTypeValue, templateType);
     option.SetTemplate(templateType);
  
-    if (hasCloseConfirm) { 
-        napi_value closeConfirmValue = nullptr; 
-        napi_get_named_property(env, config, "isConfirmOnClose", &closeConfirmValue); 
-        if (closeConfirmValue == nullptr) { 
-            return "Failed to convert object to isConfirmOnClose"; 
-        } 
-        bool closeConfirm = false; 
-        ConvertFromJsValue(env, closeConfirmValue, closeConfirm); 
-        option.SetCloseConfirm(closeConfirm); 
+    if (hasCloseConfirm) {
+        napi_value closeConfirmValue = nullptr;
+        napi_get_named_property(env, config, "isConfirmOnClose", &closeConfirmValue);
+        if (closeConfirmValue == nullptr) {
+            return "Failed to convert object to isConfirmOnClose";
+        }
+        bool closeConfirm = false;
+        ConvertFromJsValue(env, closeConfirmValue, closeConfirm);
+        option.SetCloseConfirm(closeConfirm);
     }
     return "";
 }
