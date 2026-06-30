@@ -1540,8 +1540,7 @@ bool ParseSurfaceRegion(napi_env env, napi_value obj, DMRect& rect)
         ConvertFromJsValue(env, heightValue, rect.height_);
         if (rect.width_ <= 0 || rect.height_ <= 0||
             (rect.posX_ +  rect.width_) < 0 ||
-            (rect.posY_ +  rect.width_) < 0)
-        {
+            (rect.posY_ +  rect.width_) < 0) {
             return false;
         }
         return true;
