@@ -42,6 +42,7 @@ public:
     bool IsNeedSyncScenePanelGlobalPosition() override { return isNeedSyncGlobalPos_; }
     bool IsVisibleForeground() const override;
     bool IsVisibleNotBackground() const override;
+    void NotifyWindowSceneDetach() override;
 
     /*
      * App Use Control

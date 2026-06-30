@@ -1996,7 +1996,9 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken,
     isStarting_ = false;
     bufferAvailable_ = false;
     isNeedSyncSessionRect_ = true;
-    if (mainHandler_) {
+    isAlreadyDisconnect_ = true;
+    // SCBSystemSession release surfaceNode when it detach
+    if (mainHandler_ && !IsSystemSession()) {
         std::shared_ptr<RSSurfaceNode> surfaceNode;
         std::shared_ptr<RSSurfaceNode> shadowSurfaceNode;
         {
