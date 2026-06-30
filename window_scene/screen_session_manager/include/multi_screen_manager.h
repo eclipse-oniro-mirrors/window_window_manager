@@ -64,7 +64,6 @@ private:
 
     DMError PhysicalScreenUniqueSwitch(const std::vector<ScreenId>& screenIds);
 
-
     void BlockScreenConnect(sptr<ScreenSession>& screenSession, ScreenId screenId);
     std::mutex uniqueScreenMutex_;
     std::condition_variable uniqueScreenCV_;

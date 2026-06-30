@@ -37,14 +37,6 @@ public:
     ffrt::recursive_mutex mStateMutex_;
 };
 
-// SensorFoldStateManager::SensorFoldStateManager() : pImpl_(std::make_unique<Impl>())
-// {
-//     taskProcess_ = new TaskSequenceProcess(
-//         MAX_QUEUE_SIZE,
-//         MAX_TIME_INTERVAL_MS
-//     );
-// }
-
 SensorFoldStateManager::SensorFoldStateManager() = default;
 SensorFoldStateManager::~SensorFoldStateManager() = default;
 
