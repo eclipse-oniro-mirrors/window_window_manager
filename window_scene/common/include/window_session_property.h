@@ -1005,6 +1005,7 @@ struct SystemSessionConfig : public Parcelable {
     bool supportCreateFloatingBall_ = false;
     bool statusBarHeightMode_ = false;  // true: display height, false: component height
     PiPMultiConfig pipMultiConfig_ = GetDefaultPiPMultiConfig();
+    std::set<ScreenId> supportMultiWindowScreenSet_;
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
@@ -1092,6 +1093,14 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(statusBarHeightMode_)) {
             return false;
         }
+        if (!parcel.WriteUint32(supportMultiWindowScreenSet_.size())) {
+            return false;
+        }
+        for (const auto& screenId : supportMultiWindowScreenSet_) {
+            if (!parcel.WriteUint64(screenId)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -1158,6 +1167,10 @@ struct SystemSessionConfig : public Parcelable {
         }
         config->supportCreateFloatingBall_ = parcel.ReadBool();
         config->statusBarHeightMode_ = parcel.ReadBool();
+        uint32_t screenSetSize = parcel.ReadUint32();
+        for (uint32_t i = 0; i < screenSetSize; ++i) {
+            config->supportMultiWindowScreenSet_.insert(static_cast<ScreenId>(parcel.ReadUint64()));
+        }
         return config;
     }
         
@@ -1189,6 +1202,11 @@ struct SystemSessionConfig : public Parcelable {
     bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
+    }
+
+    bool IsDisplayInFreeMultiWindow(const uint64_t screenId) const
+    {
+        return supportMultiWindowScreenSet_.find(screenId) != supportMultiWindowScreenSet_.end();
     }
 };
 } // namespace Rosen
