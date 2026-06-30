@@ -16,6 +16,7 @@
 #ifndef FOUNDATION_DM_DISPLAY_MANAGER_ADAPTER_H
 #define FOUNDATION_DM_DISPLAY_MANAGER_ADAPTER_H
 
+#include <memory>
 #include <mutex>
 #include <surface.h>
 
@@ -59,7 +60,8 @@ public:
 protected:
     virtual bool InitDMSProxy();
     virtual bool RegisterClientDeathListener();
-    std::recursive_mutex mutex_;
+    class Impl;
+    std::unique_ptr<Impl> pImpl_;
     sptr<IScreenSessionManager> screenSessionManagerServiceProxy_ = nullptr;
     sptr<IDisplayManager> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;
