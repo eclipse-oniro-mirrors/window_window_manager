@@ -191,6 +191,7 @@ struct UIExtensionTokenInfo {
     uint32_t callingTokenId { 0 };
     sptr<IRemoteObject> abilityToken;
     int32_t pid;
+    int32_t persistentId;
 };
 
 struct FullInfoForMMI {
@@ -833,6 +834,7 @@ public:
     ExtensionWindowFlags GetCombinedExtWindowFlags();
     void RemoveExtWindowFlags(int32_t extPersistentId);
     void ClearExtWindowFlags();
+    std::vector<UIExtensionTokenInfo> GetExtInfoWithHideNonSecureWindowFlag();
     void NotifyDisplayMove(DisplayId from, DisplayId to);
     void NotifySessionFullScreen(bool fullScreen);
     void SetDefaultDisplayIdIfNeed();

@@ -36,7 +36,7 @@ constexpr int32_t CYCLE_LIMIT = 1000;
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "SceneSessionManagerProxy"};
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
 }
-WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
+WSErrorResult SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
     SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
@@ -47,45 +47,48 @@ WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISe
     MessageParcel reply;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write InterfaceToken failed!");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write InterfaceToken failed!"};
     }
     if (!data.WriteRemoteObject(sessionStage->AsObject())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write ISessionStage failed!");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write ISessionStage failed!"};
     }
     if (!data.WriteRemoteObject(eventChannel->AsObject())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write IWindowEventChannel failed!");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write IWindowEventChannel failed!"};
     }
     if (!data.WriteUint64(nodeId)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write nodeId failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write nodeId failed"};
     }
     if (!property || !data.WriteStrongParcelable(property)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write property failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write property failed"};
     }
     if (token != nullptr) {
         if (!data.WriteRemoteObject(token)) {
-            return WSError::WS_ERROR_IPC_FAILED;
+            return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write token failed"};
         }
     }
 
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "remote is null");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "remote is null"};
     }
+    int32_t errCode = ERR_NONE;
+    std:string errMsg = "";
     if (remote->SendRequest(static_cast<uint32_t>(
-        SceneSessionManagerMessage::TRANS_ID_CREATE_AND_CONNECT_SPECIFIC_SESSION), data, reply, option) != ERR_NONE) {
+        SceneSessionManagerMessage::TRANS_ID_CREATE_AND_CONNECT_SPECIFIC_SESSION), data, reply, option) != ERR_NONE ||
+        !reply.ReadInt32(errCode) || !reply.ReadString(errMsg)) {
         TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "SendRequest failed"};
     }
     persistentId = reply.ReadInt32();
     sptr<IRemoteObject> sessionObject = reply.ReadRemoteObject();
     if (sessionObject == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "ReadRemoteObject failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "ReadRemoteObject failed"};
     }
     session = iface_cast<ISession>(sessionObject);
     sptr<SystemSessionConfig> config = reply.ReadParcelable<SystemSessionConfig>();
@@ -95,26 +98,26 @@ WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISe
     sptr<IRemoteObject> renderSessionObject = reply.ReadRemoteObject();
     if (renderSessionObject == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "ReadRemoteObject failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Read renderSessionObject failed"};
     }
     renderSession = renderSessionObject;
 
     surfaceNode = RSSurfaceNode::Unmarshalling(reply, false);
     if (!surfaceNode) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read surfaceNode failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Read surfaceNode failed"};
     }
 
     uint32_t level = 0;
     if (!reply.ReadUint32(level)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read level failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Read level failed"};
     }
     property->SetSubWindowLevel(level);
     uint64_t displayId = 0;
     if (!reply.ReadUint64(displayId)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read displayId failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Read displayId failed"};
     }
     if (property->GetDisplayId() != VIRTUAL_DISPLAY_ID) {
         property->SetDisplayId(displayId);
@@ -122,17 +125,16 @@ WSError SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISe
     uint32_t windowType = 0;
     if (!reply.ReadUint32(windowType)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read windowType failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Read windowType failed"};
     }
     property->SetWindowType(static_cast<WindowType>(windowType));
     bool isSystemCalling = false;
     if (!reply.ReadBool(isSystemCalling)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Read isSystemCalling failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Read isSystemCalling failed"};
     }
     property->SetSystemCalling(isSystemCalling);
-    int32_t ret = reply.ReadInt32();
-    return static_cast<WSError>(ret);
+    return WSErrorResult{static_cast<WSError>(errCode), errMsg};
 }
 
 WSError SceneSessionManagerProxy::RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
@@ -329,35 +331,34 @@ WMError SceneSessionManagerProxy::GetSnapshotByWindowId(int32_t persistentId,
     return ret;
 }
 
-WSError SceneSessionManagerProxy::DestroyAndDisconnectSpecificSession(const int32_t persistentId)
+WSErrorResult SceneSessionManagerProxy::DestroyAndDisconnectSpecificSession(const int32_t persistentId)
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_LIFE, "WriteInterfaceToken failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "WriteInterfaceToken failed"};
     }
     if (!data.WriteInt32(persistentId)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write persistentId failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write persistentId failed"};
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "remote is null");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "remote is null"};
     }
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_DESTROY_AND_DISCONNECT_SPECIFIC_SESSION),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "SendRequest failed"};
     }
-    int32_t ret = reply.ReadInt32();
-    return static_cast<WSError>(ret);
+    return WSErrorResult{static_cast<WSError>(reply.ReadInt32()), reply.ReadString()};
 }
 
-WSError SceneSessionManagerProxy::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+WSErrorResult SceneSessionManagerProxy::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
     const sptr<IRemoteObject>& callback)
 {
     MessageParcel data;
@@ -365,29 +366,28 @@ WSError SceneSessionManagerProxy::DestroyAndDisconnectSpecificSessionWithDetachC
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_LIFE, "WriteInterfaceToken failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "WriteInterfaceToken failed"};
     }
     if (!data.WriteInt32(persistentId)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write persistentId failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write persistentId failed"};
     }
     if (callback == nullptr || !data.WriteRemoteObject(callback)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write callback failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Write callback failed"};
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "remote is null");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "remote is null"};
     }
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_DESTROY_AND_DISCONNECT_SPECIFIC_SESSION_WITH_DETACH_CALLBACK),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "SendRequest failed"};
     }
-    int32_t ret = reply.ReadInt32();
-    return static_cast<WSError>(ret);
+    WSErrorResult{static_cast<WSError>(reply.ReadInt32()), reply.ReadString()};
 }
 
 WMError SceneSessionManagerProxy::RequestFocusStatus(int32_t persistentId, bool isFocused, bool byForeground,

@@ -8530,6 +8530,18 @@ ExtensionWindowFlags SceneSession::GetCombinedExtWindowFlags()
     return combinedExtWindowFlags;
 }
 
+std::vector<UIExtensionTokenInfo> SceneSession::GetExtInfoWithHideNonSecureWindowFlag()
+{
+    std::vector<UIExtensionTokenInfo> filteredInfo;
+    std::copy_if(extensionTokenInfos_.begin(), extensionTokenInfos_.end(), std::back_inserter(filteredInfo),
+        [this](auto& info) {
+            auto iter = this->extWindowFlagsMap_.find(info.persistentId);
+            return iter != this->extWindowFlagsMap_.end() && iter->second.hideNonSecureWindowsFlag;    
+        });
+
+    return filteredInfo;
+}
+
 void SceneSession::NotifyDisplayMove(DisplayId from, DisplayId to)
 {
     if (sessionStage_) {

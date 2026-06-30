@@ -76,6 +76,7 @@
             OHOS::Rosen::SceneSession::UpdateExtWindowFlags*;
             OHOS::Rosen::SceneSession::UpdateSubWindowLevel*;
             OHOS::Rosen::SceneSession::AddExtensionTokenInfo*;
+            OHOS::Rosen::SceneSession::GetExtInfoWithHideNonSecureWindowFlag*;
             OHOS::Rosen::SceneSession::AddUIExtSurfaceNodeId*;
             OHOS::Rosen::SceneSession::GetGestureBackEnabled*;
             OHOS::Rosen::SceneSession::NotifyForceHideChange*;

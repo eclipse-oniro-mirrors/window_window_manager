@@ -334,11 +334,15 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     uint64_t surfaceNodeId = data.ReadUint64();
     if (sessionStage == nullptr || eventChannel == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
+        reply.Writeint32(static_cast<uint32_t>(WSError::WS_ERROR_IPC_FAILED));
+        reply.WriteString("Failed to read scene session stage object or event channel object!");
         return ERR_INVALID_DATA;
     }
     sptr<WindowSessionProperty> property = data.ReadStrongParcelable<WindowSessionProperty>();
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");
+        reply.Writeint32(static_cast<uint32_t>(WSError::WS_ERROR_IPC_FAILED));
+        reply.WriteString("property is nullptr");
         return ERR_INVALID_DATA;
     }
 
@@ -354,11 +358,15 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
     std::shared_ptr<RSSurfaceNode> surfaceNode;
-    CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNodeId,
+    WSErrorResult result = CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNodeId,
         property, persistentId, sceneSession, systemConfig, renderSession, surfaceNode, token);
     if (sceneSession== nullptr) {
+        reply.Writeint32(static_cast<uint32_t>(result.errCode));
+        reply.WriteString(result.errMsg);
         return ERR_INVALID_STATE;
     }
+    reply.Writeint32(static_cast<uint32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     reply.WriteInt32(persistentId);
     reply.WriteRemoteObject(sceneSession->AsObject());
     reply.WriteParcelable(&systemConfig);
@@ -371,7 +379,6 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
     reply.WriteBool(property->GetSystemCalling());
-    reply.WriteUint32(static_cast<uint32_t>(WSError::WS_OK));
     return ERR_NONE;
 }
 
@@ -465,8 +472,9 @@ int SceneSessionManagerStub::HandleDestroyAndDisconnectSpcificSession(MessagePar
         return ERR_TRANSACTION_FAILED;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d", persistentId);
-    WSError ret = DestroyAndDisconnectSpecificSession(persistentId);
-    reply.WriteUint32(static_cast<uint32_t>(ret));
+    WSErrorResult ret = DestroyAndDisconnectSpecificSession(persistentId);
+    reply.Writeint32(static_cast<uint32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     return ERR_NONE;
 }
 
@@ -481,7 +489,8 @@ int SceneSessionManagerStub::HandleDestroyAndDisconnectSpcificSessionWithDetachC
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d", persistentId);
     sptr<IRemoteObject> callback = data.ReadRemoteObject();
     const WSError ret = DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
-    reply.WriteUint32(static_cast<uint32_t>(ret));
+    reply.Writeint32(static_cast<uint32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     return ERR_NONE;
 }
 

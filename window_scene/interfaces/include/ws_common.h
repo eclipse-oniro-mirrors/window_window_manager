@@ -118,6 +118,14 @@ enum class WSError : int32_t {
     WS_ERROR_EDM_CONTROLLED = 2097215, // enterprise limit
 };
 
+/**
+ * @brief Error result structure for window scene operations.
+ */
+struct WSErrorResult {
+    WSError errCode = WSError::WS_OK;
+    std::string errMsg = "";
+}
+
 enum class WSErrorCode : int32_t {
     WS_OK = 0,
     WS_ERROR_NO_PERMISSION = 201,

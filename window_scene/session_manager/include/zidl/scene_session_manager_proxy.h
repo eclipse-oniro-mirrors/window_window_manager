@@ -27,7 +27,7 @@ public:
         : IRemoteProxy<ISceneSessionManager>(impl) {}
     virtual ~SceneSessionManagerProxy() = default;
 
-    WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
+    WSErrorResult CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
         SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
@@ -39,8 +39,8 @@ public:
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<ISession>& session, sptr<WindowSessionProperty> property = nullptr,
         sptr<IRemoteObject> token = nullptr) override;
-    WSError DestroyAndDisconnectSpecificSession(const int32_t persistentId) override;
-    WSError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+    WSErrorResult DestroyAndDisconnectSpecificSession(const int32_t persistentId) override;
+    WSErrorResult DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
         const sptr<IRemoteObject>& callback) override;
     WSError BindDialogSessionTarget(uint64_t persistentId, sptr<IRemoteObject> targetToken) override;
     WMError RequestFocusStatus(int32_t persistentId, bool isFocused, bool byForeground = true,
