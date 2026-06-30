@@ -779,6 +779,10 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist,
     if (needSaveSnapshot) {
         SaveSnapshot(useFfrt, needPersist);
     }
+    if (GetSurfaceNode() == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "surfaceNode invalid %{public}d", persistentId_);
+        return;
+    }
     auto task = [weakThis = wptr(this), where = __func__, callback = std::move(callback)]() mutable {
         auto session = weakThis.promote();
         if (session == nullptr) {
@@ -5095,6 +5099,7 @@ void Session::LoadSnapshotToMem()
         }
         std::lock_guard<std::mutex> lock(session->snapshotMutex_);
         session->snapshot_ = pixelMap;
+        session->scenePersistence_->SetIsSavingSnapshot(true);
         session->saveSnapshotCallback_();
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s done, id: %{public}d", where, session->GetPersistentId());
     };

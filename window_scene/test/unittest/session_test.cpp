@@ -920,6 +920,20 @@ HWTEST_F(WindowSessionTest, NotifyAddSnapshot, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyAddSnapshot02
+ * @tc.desc: NotifyAddSnapshot Test with nullptr surfaceNode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, NotifyAddSnapshot02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->surfaceNode_ = nullptr;
+    session_->state_ = SessionState::STATE_ACTIVE;
+    session_->NotifyAddSnapshot();
+    ASSERT_EQ(session_->GetSnapshot(), nullptr);
+}
+
+/**
  * @tc.name: NotifyRemoveSnapshot
  * @tc.desc: NotifyRemoveSnapshot Test
  * @tc.type: FUNC
