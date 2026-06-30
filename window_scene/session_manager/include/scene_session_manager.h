@@ -1022,8 +1022,8 @@ private:
     void ConfigDecor(const WindowSceneConfig::ConfigItem& decorConfig, bool mainConfig = true);
     void ConfigWindowAnimation(const WindowSceneConfig::ConfigItem& windowAnimationConfig);
     void ConfigStartingWindowAnimation(const WindowSceneConfig::ConfigItem& startingWindowConfig);
-    WSError CleanupSessionByType(const sptr<SceneSession>& sceneSession);
-    WSError FinalizeSessionDestruction(const int32_t persistentId);
+    WSErrorResult CleanupSessionByType(const sptr<SceneSession>& sceneSession);
+    WSErrorResult FinalizeSessionDestruction(const int32_t persistentId);
     /**
      * @brief Configure window layout related settings.
      *
