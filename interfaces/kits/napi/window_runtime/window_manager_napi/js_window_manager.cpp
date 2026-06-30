@@ -2504,7 +2504,7 @@ napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_c
     size_t argc = ARGC_THREE;
     napi_value argv[ARGC_THREE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_TWO || argc > ARGC_THREE) {
+    if (argc != ARGC_TWO && argc != ARGC_THREE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
