@@ -3191,18 +3191,15 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSystemUIStatusBar02, TestSize.Level1)
 }
 
 /**
- * @tc.name: ClosePipWindowIfExist
- * @tc.desc: ClosePipWindowIfExist
+ * @tc.name: IsEnablePiPCreatePipWindowMode
+ * @tc.desc: IsEnablePiPCreate when window mode is PiP
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest2, ClosePipWindowIfExist, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest2, IsEnablePiPCreatePipWindowMode, TestSize.Level1)
 {
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
-    ssm_->ClosePipWindowIfExist(WindowType::WINDOW_TYPE_PIP);
 
-    SessionInfo info;
-    info.sessionState_ = { 1 };
     Rect reqRect = { 0, 0, 10, 10 };
     property->SetRequestRect(reqRect);
     property->SetWindowMode(WindowMode::WINDOW_MODE_PIP);

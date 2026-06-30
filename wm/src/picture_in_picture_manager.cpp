@@ -222,8 +222,6 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
     if (it != mainWindowToAutoStartControllersMap_.end()) {
         for (const auto& wptr : it->second) {
             if (wptr.GetRefPtr() == pipController.GetRefPtr()) {
-                TLOGI(WmsLogTag::WMS_PIP, "controller already registered for mainWindow: %{public}u",
-                    controller->GetMainWindowId());
                 return;
             }
         }
@@ -280,11 +278,11 @@ sptr<Window> PictureInPictureManager::GetCurrentWindowByMainWindowId(uint32_t wi
 }
 
 sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t windowId,
-    PiPTemplateType PipType)
+    PiPTemplateType type)
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     PiPGroupConfig group;
-    if (!pipMultiConfig_.FindGroupConfig(PipType, group)) {
+    if (!pipMultiConfig_.FindGroupConfig(type, group)) {
         return nullptr;
     }
     auto firstController = static_cast<sptr<PictureInPictureControllerBase>>(nullptr);

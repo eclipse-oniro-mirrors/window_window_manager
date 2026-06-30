@@ -16,6 +16,7 @@
 #include "web_picture_in_picture_controller_interface.h"
 
 #include "native_pip_window_listener.h"
+#include "picture_in_picture_manager.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS {
@@ -47,11 +48,13 @@ namespace {
         PiPControlGroup::VIDEO_PLAY_PAUSE,
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
+    const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
     };
 }
 

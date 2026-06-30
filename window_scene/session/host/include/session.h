@@ -812,6 +812,7 @@ public:
     std::string GetWindowDetectTaskName() const;
     void RemoveWindowDetectTask();
     WSError SwitchFreeMultiWindow(const SystemSessionConfig& config);
+    bool haveSetSupportedWindowModes_ = false;
 
     virtual bool CheckGetAvoidAreaAvailable(AvoidAreaType type) { return true; }
 
@@ -828,6 +829,7 @@ public:
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
+    virtual void NotifyWindowSceneDetach() {};
     bool GetNeedBackgroundAfterConnect() const;
     void SetNeedBackgroundAfterConnect(bool isNeed);
     void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
@@ -1151,6 +1153,7 @@ protected:
     NotifySessionGetTargetOrientationConfigInfoFunc sessionGetTargetOrientationConfigInfoFunc_;
     NotifyClearSubSessionFunc clearSubSessionFunc_;
     NotifyRestartAppFunc restartAppFunc_;
+    bool isAlreadyDisconnect_ = false;
 
     /*
      * Window Rotate Animation

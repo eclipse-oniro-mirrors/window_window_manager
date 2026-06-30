@@ -11198,8 +11198,10 @@ void ScreenSessionManager::UpdateCameraBackSelfie(bool isCameraBackSelfie)
     screenSession->HandleCameraBackSelfieChange(isCameraBackSelfie);
 
     if (isCameraBackSelfie) {
-        TLOGNFI(WmsLogTag::DMS, "isBackSelfie, SetScreenCorrection MAIN to 270");
-        rsInterface_.SetScreenCorrection(SCREEN_ID_MAIN, static_cast<ScreenRotation>(ROTATION_270));
+        if (!FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+            TLOGNFI(WmsLogTag::DMS, "isBackSelfie, SetScreenCorrection MAIN to 270");
+            rsInterface_.SetScreenCorrection(SCREEN_ID_MAIN, static_cast<ScreenRotation>(ROTATION_270));
+        }
     } else {
         TLOGNFI(WmsLogTag::DMS, "exit BackSelfie, SetScreenCorrection MAIN to 90");
         SetScreenCorrection();

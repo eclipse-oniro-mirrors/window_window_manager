@@ -629,7 +629,7 @@ WMError WindowSceneSessionImpl::RecoverAndConnectSpecificSession()
     }
     if (WindowHelper::IsPipWindow(type)) {
         TLOGI(WmsLogTag::WMS_RECOVER, "pipWindow");
-        PictureInPictureManager::DoClose(true, true);
+        PictureInPictureManager::DoClose(GetWindowId(), true, true);
         return WMError::WM_OK;
     }
     windowRecoverStateChangeFunc_(true, WindowRecoverState::WINDOW_START_RECONNECT);
@@ -3117,16 +3117,6 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height)
     const auto& windowRect = GetRect();
     const auto& requestRect = GetRequestRect();
 
-    if (WindowHelper::IsSubWindow(GetType())) {
-        auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
-            if (width == requestRect.width_ && height == requestRect.height_) {
-                TLOGW(WmsLogTag::WMS_LAYOUT, "Request same size in multiWindow will not update, return");
-                return WMError::WM_OK;
-            }
-        }
-    }
-
     Rect newRect = { requestRect.posX_, requestRect.posY_, width, height }; // must keep w/h
     TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, state: %{public}d, type: %{public}d, mode: %{public}d, requestRect: "
         "%{public}s, windowRect: %{public}s, newRect: %{public}s",
@@ -5001,15 +4991,15 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
     hostSession->NotifySupportWindowModesChange(supportedWindowModes);
+    property_->SetSupportedWindowModes(supportedWindowModes);
+    haveSetSupportedWindowModes_ = true;
     if (!IsPcOrPadFreeMultiWindowMode()) {
-        pendingWindowModeSupportType_ = windowModeSupportType;
         TLOGI(WmsLogTag::WMS_LAYOUT,
-            "[WindowSupportModes:SetInner] pending (not free multi window), id:%{public}u, type:%{public}u",
+            "[WindowSupportModes:SetInner] not free multi window, cached for later, id:%{public}u, type:%{public}u",
             GetWindowId(), windowModeSupportType);
         return WMError::WM_OK;
     }
 
-    haveSetSupportedWindowModes_ = true;
     property_->SetWindowModeSupportType(windowModeSupportType);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
     UpdateTitleButtonVisibility();
@@ -6836,10 +6826,6 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
 
 void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
 {
-    if (haveSetSupportedWindowModes_) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "SupportedWindowMode is already set, id: %{public}d", GetPersistentId());
-        return;
-    }
     auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context_);
     if (abilityContext == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "abilityContext is nullptr");
@@ -6856,15 +6842,20 @@ void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
     auto size = supportedWindowModes.size();
     if (windowSystemConfig_.freeMultiWindowEnable_ && size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
         windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
-        if (auto hostSession = GetHostSession()) {
-            hostSession->NotifySupportWindowModesChange(supportedWindowModes);
-        }
     } else {
         std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
             ExtractSupportWindowModeFromMetaData(abilityInfo);
         windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
     }
     property_->SetWindowModeSupportType(windowModeSupportType);
+    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
+
+    if (windowSystemConfig_.freeMultiWindowEnable_) {
+        if (haveSetSupportedWindowModes_) {
+            UpdateTitleButtonVisibility();
+        }
+        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
+    }
 }
 
 void WindowSceneSessionImpl::UpdateEnableDragWhenSwitchMultiWindow(bool enable)
@@ -6924,9 +6915,6 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     } else {
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     }
-    if (enable) {
-        PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
-    }
     if (enable && IsAnco() && windowSystemConfig_.IsPadWindow()) {
         uiContent_->SetContainerModalTitleVisible(false, true);
         uiContent_->EnableContainerModalCustomGesture(true);
@@ -6957,30 +6945,6 @@ WSError WindowSceneSessionImpl::ConfigDockAutoHide(bool isDockAutoHide)
         }
     }
     return WSError::WS_OK;
-}
-
-void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindow()
-{
-    if (pendingWindowModeSupportType_ == WindowModeSupport::WINDOW_MODE_SUPPORT_ALL) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "pending data has not set, id: %{public}d", GetPersistentId());
-        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
-        return;
-    }
-
-    uint32_t windowModeSupportType = pendingWindowModeSupportType_;
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "id: %{public}d, windowModeSupportType: %{public}u",
-        GetPersistentId(), windowModeSupportType);
-    
-    pendingWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
-    property_->SetWindowModeSupportType(windowModeSupportType);
-
-    // update windowModeSupportType to server
-    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
-    haveSetSupportedWindowModes_ = true;
-    UpdateTitleButtonVisibility();
-
-    // update window mode immediately when pending window support type take effect
-    maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
 }
 
 void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen()

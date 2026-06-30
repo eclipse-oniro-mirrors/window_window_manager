@@ -867,6 +867,9 @@ WMError WindowSessionImpl::Connect()
             iSessionStage, iWindowEventChannel, nodeId_, windowSystemConfig_, renderSession, surfaceNode, property_,
             token, identityToken_);
     }
+
+    PictureInPictureManager::SetMultiPipConfig(windowSystemConfig_.pipMultiConfig_);
+
     if (SysCapUtil::GetBundleName() != AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         WindowHelper::IsMainWindow(GetType()) && !property_->GetMissionInfo().startupInvisibility_) {
         auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -6753,8 +6756,9 @@ void WindowSessionImpl::NotifyDmsDisplayMove(DisplayId to)
 WSError WindowSessionImpl::NotifyCloseExistPipWindow()
 {
     TLOGI(WmsLogTag::WMS_PIP, "in");
-    auto task = []() {
-        PictureInPictureManager::DoClose(true, true);
+    auto windowId = GetWindowId();
+    auto task = [windowId]() {
+        PictureInPictureManager::DoClose(windowId, true, true);
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_NotifyCloseExistPipWindow");
     return WSError::WS_OK;
@@ -7194,8 +7198,9 @@ WMError WindowSessionImpl::GetFloatNavigationAvoidAreaEnabled(bool& enable) cons
 WSError WindowSessionImpl::SetPipActionEvent(const std::string& action, int32_t status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "action: %{public}s, status: %{public}d", action.c_str(), status);
-    auto task = [action, status]() {
-        PictureInPictureManager::DoActionEvent(action, status);
+    auto windowId = GetWindowId();
+    auto task = [windowId, action, status]() {
+        PictureInPictureManager::DoActionEvent(windowId, action, status);
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_SetPipActionEvent");
     return WSError::WS_OK;
@@ -7204,8 +7209,9 @@ WSError WindowSessionImpl::SetPipActionEvent(const std::string& action, int32_t 
 WSError WindowSessionImpl::SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "controlType:%{public}u, enabled:%{public}d", controlType, status);
-    auto task = [controlType, status]() {
-        PictureInPictureManager::DoControlEvent(static_cast<PiPControlType>(controlType),
+    auto windowId = GetWindowId();
+    auto task = [windowId, controlType, status]() {
+        PictureInPictureManager::DoControlEvent(windowId, static_cast<PiPControlType>(controlType),
             static_cast<PiPControlStatus>(status));
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_SetPiPControlEvent");
@@ -7215,8 +7221,9 @@ WSError WindowSessionImpl::SetPiPControlEvent(WsPiPControlType controlType, WsPi
 WSError WindowSessionImpl::NotifyPipWindowSizeChange(double width, double height, double scale)
 {
     TLOGI(WmsLogTag::WMS_PIP, "width: %{public}f, height: %{public}f scale: %{public}f", width, height, scale);
-    auto task = [width, height, scale]() {
-        PictureInPictureManager::PipSizeChange(width, height, scale);
+    auto windowId = GetWindowId();
+    auto task = [windowId, width, height, scale]() {
+        PictureInPictureManager::PipSizeChange(windowId, width, height, scale);
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_NotifyPipWindowSizeChange");
     return WSError::WS_OK;
@@ -7225,8 +7232,9 @@ WSError WindowSessionImpl::NotifyPipWindowSizeChange(double width, double height
 WSError WindowSessionImpl::NotifyPiPActiveStatusChange(bool status)
 {
     TLOGI(WmsLogTag::WMS_PIP, "status=%{public}u", status);
-    auto task = [status]() {
-        PictureInPictureManager::DoActiveStatusChangeEvent(status);
+    auto windowId = GetWindowId();
+    auto task = [windowId, status]() {
+        PictureInPictureManager::DoActiveStatusChangeEvent(windowId, status);
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_NotifyPiPActiveStatusChange");
     return WSError::WS_OK;
@@ -10390,9 +10398,7 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
         if (subWindowSession &&
             subWindowSession->windowSystemConfig_.freeMultiWindowEnable_ != freeMultiWindowEnable) {
             subWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
-            if (freeMultiWindowEnable) {
-                subWindowSession->PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
-            }
+            subWindowSession->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
             subWindowSession->UpdateTitleButtonVisibility();
             subWindowSession->UpdateDecorEnable(true);
             subWindowSession->UpdateSubWindowDragEnabledByDecorVisible();

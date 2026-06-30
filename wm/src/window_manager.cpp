@@ -26,6 +26,7 @@
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "ws_common.h"
+#include "hitrace_meter.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -1063,6 +1064,8 @@ WMError WindowManager::UnregisterWindowUpdateListener(const sptr<IWindowUpdateLi
 
 WMError WindowManager::RegisterVisibilityChangedListener(const sptr<IVisibilityChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::RegisterVisibilityChangedListener");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_SCB, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1092,6 +1095,8 @@ WMError WindowManager::RegisterVisibilityChangedListener(const sptr<IVisibilityC
 
 WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilityChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::UnregisterVisibilityChangedListener");
     if (listener == nullptr) {
         WLOGFE("listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1114,6 +1119,7 @@ WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilit
 
 WMError WindowManager::RegisterDisplayIdChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::RegisterDisplayIdChangedListener");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1153,6 +1159,8 @@ WMError WindowManager::RegisterDisplayIdChangedListener(const sptr<IWindowInfoCh
 
 WMError WindowManager::UnregisterDisplayIdChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::UnregisterDisplayIdChangedListener");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1322,6 +1330,8 @@ WMError WindowManager::UnregisterGlobalRectChangedListener(const sptr<IWindowInf
 WMError WindowManager::RegisterWindowModeChangedListenerForPropertyChange(
     const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::RegisterWindowModeChangedListenerForPropertyChange");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1362,6 +1372,8 @@ WMError WindowManager::RegisterWindowModeChangedListenerForPropertyChange(
 WMError WindowManager::UnregisterWindowModeChangedListenerForPropertyChange(
     const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::UnregisterWindowModeChangedListenerForPropertyChange");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1603,6 +1615,8 @@ WMError WindowManager::UnregisterMidSceneChangedListener(const sptr<IWindowInfoC
 
 WMError WindowManager::RegisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::RegisterVisibilityStateChangedListener");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1635,6 +1649,8 @@ WMError WindowManager::RegisterVisibilityStateChangedListener(const sptr<IWindow
 
 WMError WindowManager::UnregisterVisibilityStateChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::UnregisterVisibilityStateChangedListener");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -2077,6 +2093,7 @@ void WindowManager::UpdateWindowDrawingContentInfo(
 
 WMError WindowManager::GetAccessibilityWindowInfo(std::vector<sptr<AccessibilityWindowInfo>>& infos) const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::GetAccessibilityWindowInfo");
     WMError ret = WindowAdapter::GetInstance(userId_).GetAccessibilityWindowInfo(infos);
     if (ret != WMError::WM_OK) {
         WLOGFE("get window info failed");
@@ -2106,6 +2123,7 @@ WMError WindowManager::GetUnreliableWindowInfo(int32_t windowId,
 WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos) const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::ListWindowInfo");
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
         static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
@@ -2148,6 +2166,7 @@ WMError WindowManager::GetMainWindowSnapshot(const std::vector<int32_t>& windowI
 
 WMError WindowManager::SetWindowSnapshotSkip(int32_t windowId, bool isSkip)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::SetWindowSnapshotSkip");
     WMError ret = WindowAdapter::GetInstance(userId_).SetWindowSnapshotSkip(windowId, isSkip);
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "userId=%{public}d, winId=%{public}d, isSkip=%{public}d, retCode=%{public}d",
         userId_, windowId, isSkip, static_cast<int32_t>(ret));
@@ -2797,6 +2816,7 @@ WMError WindowManager::ProcessUnregisterWindowInfoChangeCallback(WindowInfoKey o
 WMError WindowManager::RegisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
     const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::RegisterWindowInfoChangeCallback");
     std::ostringstream observedInfoForLog;
     observedInfoForLog << "ObservedInfo: ";
     auto ret = WMError::WM_OK;
@@ -2826,6 +2846,8 @@ WMError WindowManager::RegisterWindowInfoChangeCallback(const std::unordered_set
 WMError WindowManager::UnregisterWindowInfoChangeCallback(const std::unordered_set<WindowInfoKey>& observedInfo,
     const sptr<IWindowInfoChangedListener>& listener)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::UnregisterWindowInfoChangeCallback");
     std::ostringstream observedInfoForLog;
     observedInfoForLog << "ObservedInfo: ";
     auto ret = WMError::WM_OK;
@@ -3100,6 +3122,7 @@ void WindowManager::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycl
 WMError WindowManager::AddSessionBlackList(
     const std::unordered_set<std::string>& bundleNames, const std::unordered_set<std::string>& privacyWindowTags)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::AddSessionBlackList");
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size: [%{public}zu, %{public}zu]", bundleNames.size(), privacyWindowTags.size());
     auto ret = WindowAdapter::GetInstance(userId_).AddSessionBlackList(bundleNames, privacyWindowTags);
     return ret;
@@ -3108,6 +3131,7 @@ WMError WindowManager::AddSessionBlackList(
 WMError WindowManager::RemoveSessionBlackList(
     const std::unordered_set<std::string>& bundleNames, const std::unordered_set<std::string>& privacyWindowTags)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::RemoveSessionBlackList");
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size: [%{public}zu, %{public}zu]", bundleNames.size(), privacyWindowTags.size());
     auto ret = WindowAdapter::GetInstance(userId_).RemoveSessionBlackList(bundleNames, privacyWindowTags);
     return ret;

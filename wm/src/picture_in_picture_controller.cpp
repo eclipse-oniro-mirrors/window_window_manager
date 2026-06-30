@@ -137,7 +137,7 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    startTimestamp_ =  std::chrono::duration_cast<std::chrono::milliseconds>(
+    startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
         static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
@@ -147,8 +147,6 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
         if (window_ != nullptr) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
-            SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
-                pipOption_->GetPipTemplate(), PipConst::FAILED, "Reuse pipWindow failed");
             PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);
             mainWindowXComponentController_ = IsTypeNodeEnabled() ? nullptr : pipOption_->GetXComponentController();
             UpdateWinRectByComponent();

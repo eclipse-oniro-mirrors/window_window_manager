@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <chrono>
+
 #include "singleton_container.h"
 #include "parameters.h"
 #include "picture_in_picture_manager.h"
@@ -39,6 +41,9 @@ WebPictureInPictureController::WebPictureInPictureController(const PiPConfig& co
     curState_ = PiPWindowState::STATE_UNDEFINED;
     isWeb_ = true;
     weakRef_ = this;
+    createTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    pipOption_->SetCreateTimestamp(createTimestamp_);
 }
 
 WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
@@ -55,7 +60,7 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     }
     UpdateWinRectByComponent();
     auto windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName(PIP_WINDOW_NAME);
+    windowOption->SetWindowName(MakePipWindowName(createTimestamp_));
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
     windowOption->SetWindowRect(windowRect_);
@@ -64,6 +69,7 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     WMError errCode = WMError::WM_OK;
     PiPTemplateInfo pipTemplateInfo;
     pipOption_->GetPiPTemplateInfo(pipTemplateInfo);
+    pipTemplateInfo.createTimestamp = createTimestamp_;
     pipTemplateInfo.isWeb = true;
     auto context = mainWindow_->GetContext();
     if (context == nullptr) {
@@ -96,7 +102,7 @@ WMError WebPictureInPictureController::StartPictureInPicture(StartPipType startT
         return WMError::WM_ERROR_PIP_REPEAT_OPERATION;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    PictureInPictureManager::DoClose(true, true);
+    PictureInPictureManager::DoClose(window_ == nullptr ? INVALID_WINDOW_ID : window_->GetWindowId(), true, true);
     return StartPictureInPictureInner(startType);
 }
 

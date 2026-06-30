@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <app_mgr_client.h>
 #include <atomic>
+#include <chrono>
 #include <climits>
 #include "configuration.h"
 #include <hitrace_meter.h>
@@ -185,6 +186,8 @@ SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCa
     GeneratePersistentId(false, info.persistentId_);
     specificCallback_ = specificCallback;
     SetCollaboratorType(info.collaboratorType_);
+    createTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
     TLOGI(WmsLogTag::WMS_LIFE, "Create session, id: %{public}d", GetPersistentId());
     WindowHelper::SplitStringByDelimiter(
         system::GetParameter("const.window.containerColorLists", ""), ",", containerColorList_);
@@ -6246,6 +6249,11 @@ PiPTemplateInfo SceneSession::GetPiPTemplateInfo() const
     return pipTemplateInfo_;
 }
 
+int64_t SceneSession::GetSessionCreateTimestamp() const
+{
+    return createTimestamp_;
+}
+
 void SceneSession::DumpSessionElementInfo(const std::vector<std::string>& params)
 {
     if (!sessionStage_) {
@@ -10210,6 +10218,8 @@ WSError SceneSession::NotifySupportWindowModesChange(
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is null", where);
             return;
         }
+        session->GetSessionProperty()->SetSupportedWindowModes(supportedWindowModes);
+        session->haveSetSupportedWindowModes_ = true;
         if (session->onSetSupportedWindowModesFunc_) {
             session->onSetSupportedWindowModesFunc_(std::move(supportedWindowModes));
         }

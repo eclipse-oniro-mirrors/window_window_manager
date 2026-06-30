@@ -215,7 +215,7 @@ HWTEST_F(DisplayManagerIpcServiceTest, VirtualScreen, TestSize.Level1)
     ASSERT_EQ(ERR_OK, dms_->SetVirtualScreenSurface(-1, nullptr, dmError));
     EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
     ASSERT_EQ(ERR_OK, dms_->SetVirtualScreenSurface(0, nullptr, dmError));
-    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_RENDER_SERVICE_FAILED), dmError);
+    EXPECT_EQ(static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM), dmError);
 
     std::vector<ScreenId> screens;
     ASSERT_EQ(ERR_OK, dms_->RemoveVirtualScreenFromGroup(screens));
