@@ -3334,23 +3334,26 @@ bool WindowSessionImpl::GetExclusivelyHighlighted() const
 /** @note @window.focus */
 WSError WindowSessionImpl::NotifyHighlightChange(const sptr<HighlightNotifyInfo>& highlightNotifyInfo, bool isHighlight)
 {
-    if (highlightNotifyInfo == nullptr || !highlightNotifyInfo->isSyncNotify_) {
-        NotifyHighlightChange(isHighlight);
-        return WSError::WS_OK;
+    if (highlightNotifyInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "highlight notify info is null");
+        return WSError::WS_ERROR_NULLPTR;
     }
     auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
+    auto timeStamp = highlightNotifyInfo->timeStamp_;
     TLOGI(WmsLogTag::WMS_FOCUS, "timeStamp:%{public}" PRId64 ", highlightId:%{public}d, isHighlight:%{public}d,"
         "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 "current:%{public}" PRId64,
         highlightNotifyInfo->timeStamp_, highlightNotifyInfo->highlightId_, isHighlight,
-        highlightNotifyInfo->isSyncNotify_, updateHighlightTimeStamp_.load(), highlightNotifyInfo->timeStamp_,
-        currentTimeStamp);
-    if (updateHighlightTimeStamp_.load() <= currentTimeStamp &&
-        highlightNotifyInfo->timeStamp_ <= updateHighlightTimeStamp_.load()) {
+        highlightNotifyInfo->isSyncNotify_, updateHighlightTimeStamp_.load(), timeStamp, currentTimeStamp);
+    if (updateHighlightTimeStamp_.load() <= currentTimeStamp && timeStamp <= updateHighlightTimeStamp_.load()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "check time fail");
         return WSError::WS_OK;
     }
-    updateHighlightTimeStamp_.store(highlightNotifyInfo->timeStamp_);
+    updateHighlightTimeStamp_.store(timeStamp);
+    if (!highlightNotifyInfo->isSyncNotify_) {
+        NotifyHighlightChange(isHighlight);
+        return WSError::WS_OK;
+    }
     for (auto unHighlightWindowId : highlightNotifyInfo->notHighlightIds_) {
         if (!isHighlight && static_cast<uint32_t>(unHighlightWindowId) == GetWindowId()) {
             NotifyHighlightChange(isHighlight);

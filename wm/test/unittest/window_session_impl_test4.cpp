@@ -2946,6 +2946,113 @@ HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange05, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyHighlightChange06
+ * @tc.desc: NotifyHighlightChange with highlightWindow exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange06");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    sptr<WindowSessionImpl> highlightWindow = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    highlightWindow->property_->SetPersistentId(2);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp);
+    bool highlight = false;
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr(currentTimeStamp + 1000, std::vector<int32_t>(), 2, true);
+    WSError res = window->NotifyHighlightChange(info, highlight);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange07
+ * @tc.desc: NotifyHighlightChange with highlightWindow nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange07");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp);
+    bool highlight = false;
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr(currentTimeStamp + 1000, std::vector<int32_t>(), 999, true);
+    WSError res = window->NotifyHighlightChange(info, highlight);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange08
+ * @tc.desc: NotifyHighlightChange with unHighlightWindow nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange08, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange08");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp);
+    bool highlight = true;
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr(currentTimeStamp + 1000, std::vector<int32_t>(999), 2, true);
+    WSError res = window->NotifyHighlightChange(info, highlight);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange09
+ * @tc.desc: NotifyHighlightChange with UIContentSharedPtr nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange09, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange09");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->uiContent_ = nullptr;
+    EXPECT_FALSE(window->shouldReNotifyHighlight_);
+    window->NotifyHighlightChange(true);
+    EXPECT_EQ(window->isHighlighted_, true);
+    EXPECT_TRUE(window->shouldReNotifyHighlight_);
+    window->NotifyHighlightChange(false);
+    EXPECT_EQ(window->isHighlighted_, false);
+}
+
+/**
+ * @tc.name: NotifyHighlightChange10
+ * @tc.desc: NotifyHighlightChange without listener
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange10, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyHighlightChange10");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->isHighlighted_ = false;
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateHighlightTimeStamp_.store(currentTimeStamp);
+    bool highlight = true;
+    auto info = sptr<HighlightNotifyInfo>::MakeSptr(currentTimeStamp + 1000, std::vector<int32_t>(), 2, true);
+    WSError res = window->NotifyHighlightChange(info, highlight);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->isHighlighted_, true);
+}
+
+/**
  * @tc.name: IsWindowHighlighted
  * @tc.desc: IsWindowHighlighted
  * @tc.type: FUNC
