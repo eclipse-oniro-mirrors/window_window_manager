@@ -2149,7 +2149,7 @@ struct PiPTemplateInfo : public Parcelable {
     uint32_t defaultWindowSizeType{0};
     bool cornerAdsorptionEnabled{true};
     bool isWeb{false};
-    int64_t createTimeStamp{0};
+    int64_t createTimestamp{0};
 
     PiPTemplateInfo() {}
 
