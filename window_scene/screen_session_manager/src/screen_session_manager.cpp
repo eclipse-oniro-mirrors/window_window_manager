@@ -705,9 +705,11 @@ void ScreenSessionManager::CreateScreenForBoot()
 
     if (GetClientProxy() == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "boot client proxy is nullptr");
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         if (isBoot_) {
             DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UpdateScreenPowerState(true);
         }
+#endif
     } else {
         TLOGNFI(WmsLogTag::DMS, "boot screen connect");
         HandleScreenConnectEvent(defaultScreenSession, defaultScreenSession->GetScreenId(), ScreenEvent::CONNECTED);
@@ -2428,9 +2430,11 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
     if (isBoot_) {
         DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UpdateScreenPowerState(true);
     }
+#endif
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
 
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
