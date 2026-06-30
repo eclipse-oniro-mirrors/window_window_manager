@@ -173,8 +173,8 @@ AtomicServiceBasicEnginePlugin& AtomicServiceBasicEnginePlugin::GetInstance()
     return instance;
 }
 
-__attribute__((no_sanitize("cfi"))) AtomicserviceIconInfo* AtomicServiceBasicEnginePlugin::GetParamsFromAtomicServiceBasicEngine(
-    const std::string& bundleName)
+AtomicserviceIconInfo* AtomicServiceBasicEnginePlugin::GetParamsFromAtomicServiceBasicEngine(
+    const std::string& bundleName) __attribute__((no_sanitize("cfi")))
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (getAtomicserviceIconInfoPlugin_ == nullptr) {
