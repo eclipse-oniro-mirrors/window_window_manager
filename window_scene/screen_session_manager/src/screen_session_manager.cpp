@@ -14556,17 +14556,21 @@ DMError ScreenSessionManager::SetMultiScreenMode(ScreenId mainScreenId, ScreenId
     CreateExtendVirtualScreen(secondaryScreenId);
     {
         std::lock_guard<std::recursive_mutex> lock(screenModeChangeMutex_);
+        auto combination = screenMode == MultiScreenMode::SCREEN_MIRROR ?
+            ScreenCombination::SCREEN_MIRROR : ScreenCombination::SCREEN_EXTEND;
         if (mainScreenId == secondaryScreenId && mainScreenId == SCREEN_ID_OUTER_ONLY) {
             TLOGNFW(WmsLogTag::DMS, "set to outer only mode.");
             RecoveryResolutionEffect();
             SetIsOuterOnlyMode(true);
             MultiScreenModeChange(mainScreenId, mainScreenId, "off");
+            SetScreenCastInfo(secondaryScreenId, mainScreenId, combination);
             return DMError::DM_OK;
         }
         if (GetIsOuterOnlyMode()) {
             SetIsOuterOnlyMode(false);
             TLOGNFI(WmsLogTag::DMS, "exit outer only mode.");
             ExitOuterOnlyMode(mainScreenId, secondaryScreenId, screenMode);
+            SetScreenCastInfo(secondaryScreenId, mainScreenId, combination);
             return DMError::DM_OK;
         }
         SetMultiScreenModeInner(mainScreenId, secondaryScreenId, screenMode);
