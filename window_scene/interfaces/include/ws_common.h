@@ -124,7 +124,7 @@ enum class WSError : int32_t {
 struct WSErrorResult {
     WSError errCode = WSError::WS_OK;
     std::string errMsg = "";
-}
+};
 
 enum class WSErrorCode : int32_t {
     WS_OK = 0,

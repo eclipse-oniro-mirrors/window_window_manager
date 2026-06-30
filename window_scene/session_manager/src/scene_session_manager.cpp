@@ -6250,7 +6250,7 @@ WSErrorResult SceneSessionManager::FinalizeSessionDestruction(const int32_t pers
     return WSErrorResult{WSError::WS_OK, "Destroy specific session end"};
 }
 
-WSError SceneSessionManager::DestroyAndDisconnectSpecificSessionInner(const int32_t persistentId)
+WSErrorResult SceneSessionManager::DestroyAndDisconnectSpecificSessionInner(const int32_t persistentId)
 {
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {

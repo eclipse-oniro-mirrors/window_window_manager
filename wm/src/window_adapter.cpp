@@ -1315,7 +1315,7 @@ WMErrorResult WindowAdapter::DestroyAndDisconnectSpecificSession(const int32_t p
     return WMErrorResult{static_cast<WMError>(wsResult.errCode), wsResult.errMsg};
 }
 
-WMError WindowAdapter::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+WMErrorResult WindowAdapter::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
     const sptr<IRemoteObject>& callback)
 {
     WMErrorResult result{WMError::WM_DO_NOTHING, "init proxy failed"};

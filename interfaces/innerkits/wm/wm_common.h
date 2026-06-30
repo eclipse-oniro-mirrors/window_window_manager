@@ -464,7 +464,7 @@ enum class WMErrorReason : int32_t {
 struct WMErrorResult {
     WMError errCode = WMError::WM_OK;
     std::string errMsg = "";
-}
+};
 
 /**
  * @brief Enumerates error code of window only used for js api.

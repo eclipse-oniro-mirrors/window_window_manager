@@ -77,7 +77,7 @@ WSErrorResult SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sp
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "remote is null"};
     }
     int32_t errCode = ERR_NONE;
-    std:string errMsg = "";
+    std::string errMsg = "";
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_CREATE_AND_CONNECT_SPECIFIC_SESSION), data, reply, option) != ERR_NONE ||
         !reply.ReadInt32(errCode) || !reply.ReadString(errMsg)) {
@@ -387,7 +387,7 @@ WSErrorResult SceneSessionManagerProxy::DestroyAndDisconnectSpecificSessionWithD
         TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "SendRequest failed"};
     }
-    WSErrorResult{static_cast<WSError>(reply.ReadInt32()), reply.ReadString()};
+    return WSErrorResult{static_cast<WSError>(reply.ReadInt32()), reply.ReadString()};
 }
 
 WMError SceneSessionManagerProxy::RequestFocusStatus(int32_t persistentId, bool isFocused, bool byForeground,
