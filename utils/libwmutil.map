@@ -38,6 +38,13 @@
             OHOS::Rosen::FloatingBallReporter::GetInstance*;
             OHOS::Rosen::FloatingBallReporter::ReportFbEvent*;
             OHOS::Rosen::FloatingBallReporter::SetCurrentPackageName*;
+            OHOS::Rosen::FloatingViewReporter::GetInstance*;
+            OHOS::Rosen::FloatingViewReporter::ReportStartEvent*;
+            OHOS::Rosen::FloatingViewReporter::ReportRestoreEvent*;
+            OHOS::Rosen::FloatingViewReporter::ReportSetUIContentEvent*;
+            OHOS::Rosen::FloatingViewReporter::ReportSetSizeEvent*;
+            OHOS::Rosen::FloatingViewReporter::ReportSetVisibilityEvent*;
+            OHOS::Rosen::FloatingViewReporter::SetCurrentPackageName*;
             OHOS::Rosen::JsErrUtils::CreateJsError*;
             OHOS::Rosen::PerformReporter::end*;
             OHOS::Rosen::PerformReporter::PerformReporter*;
