@@ -4930,7 +4930,7 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
         if (parentProperty->GetSubWindowLevel() >= MAX_SUB_WINDOW_LEVEL &&
             !WindowHelper::IsToastSubWindow(property->GetWindowType(), property->GetWindowFlags())) {
             TLOGE(WmsLogTag::WMS_SUB, "sub window level exceeds limit");
-            return WWSErrorResult{SError::WS_ERROR_INVALID_WINDOW, "sub window level exceeds limit"};
+            return WSErrorResult{WSError::WS_ERROR_INVALID_WINDOW, "sub window level exceeds limit"};
         }
         property->SetSubWindowLevel(parentProperty->GetSubWindowLevel() + 1);
         if (parentSession->GetSessionInfo().isSystem_ && property->GetIsUIExtFirstSubWindow() &&

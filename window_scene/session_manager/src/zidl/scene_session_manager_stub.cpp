@@ -473,8 +473,8 @@ int SceneSessionManagerStub::HandleDestroyAndDisconnectSpcificSession(MessagePar
     }
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d", persistentId);
     WSErrorResult ret = DestroyAndDisconnectSpecificSession(persistentId);
-    reply.Writeint32(static_cast<uint32_t>(result.errCode));
-    reply.WriteString(result.errMsg);
+    reply.Writeint32(static_cast<uint32_t>(ret.errCode));
+    reply.WriteString(ret.errMsg);
     return ERR_NONE;
 }
 
@@ -488,9 +488,9 @@ int SceneSessionManagerStub::HandleDestroyAndDisconnectSpcificSessionWithDetachC
     }
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d", persistentId);
     sptr<IRemoteObject> callback = data.ReadRemoteObject();
-    const WSError ret = DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
-    reply.Writeint32(static_cast<uint32_t>(result.errCode));
-    reply.WriteString(result.errMsg);
+    WSErrorResult ret = DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
+    reply.Writeint32(static_cast<uint32_t>(ret.errCode));
+    reply.WriteString(ret.errMsg);
     return ERR_NONE;
 }
 
