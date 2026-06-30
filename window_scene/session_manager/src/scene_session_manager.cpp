@@ -4779,7 +4779,7 @@ void SceneSessionManager::MoveStartLifeCycleTask(const sptr<SceneSession>& scene
         return;
     }
     auto lastTask = sceneSession->GetLastLifeCycleTask();
-    if (lastTask != nullptr && lastTask->type == LifeCycleTaskType::START) {
+    if (lastTask != nullptr && lastTask->type == LifeCycleTaskType::START && !lastTask->running) {
         TLOGW(WmsLogTag::WMS_LIFE, "id:%{public}d is removing", sceneSession->GetPersistentId());
         SessionInfo newSessionInfo = sceneSession->GetSessionInfo();
         newSessionInfo.persistentId_ = INVALID_SESSION_ID;
