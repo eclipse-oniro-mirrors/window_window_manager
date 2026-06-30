@@ -8574,7 +8574,8 @@ WMError WindowSceneSessionImpl::SetWindowAnchorInfo(const WindowAnchorInfo& wind
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
     if (wsRet == WSError::WS_OK) {
-        GetProperty()->SetWindowAnchorInfo(windowAnchorInfo);
+        const auto& property = GetProperty();
+        property->SetWindowAnchorInfo(windowAnchorInfo);
     }
     return wsRet != WSError::WS_OK ? WMError::WM_ERROR_SYSTEM_ABNORMALLY : WMError::WM_OK;
 }
