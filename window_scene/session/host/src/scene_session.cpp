@@ -689,7 +689,7 @@ WSError SceneSession::BackgroundTask(const bool isSaveSnapshot, LifeCycleChangeR
         if (WindowHelper::IsMainWindow(session->GetWindowType()) && isSaveSnapshot && needSaveSnapshot &&
             reason != LifeCycleChangeReason::GAME_PRELAUNCH_BACKGROUND) {
             session->SetFreeMultiWindow();
-            session->SaveSnapshot(true, true, nullptr, false, reason);
+            session->SaveSnapshot(true, true, nullptr, false, reason, true);
         }
         if (session->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::VISIBLE);
