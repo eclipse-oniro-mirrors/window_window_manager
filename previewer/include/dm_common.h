@@ -37,7 +37,7 @@ constexpr DisplayId DISPLAY_ID_INVALID = -1ULL;
 constexpr ScreenId SCREEN_ID_INVALID = -1ULL;
 constexpr int DOT_PER_INCH = 160;
 const static std::string DEFAULT_SCREEN_NAME = "buildIn";
-constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
+constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 640;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr uint32_t BASELINE_DENSITY = 160;
 constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
@@ -371,15 +371,6 @@ struct RotationCorrectionWhiteConfig {
     }
 };
 // LCOV_EXCL_STOP
-
-/**
- * @brief Enumerates TentMode.
- */
-enum class TentMode : uint32_t {
-    UNKNOWN,
-    TENT_MODE,
-    HOVER,
-};
 
 /**
  * @brief displayRect

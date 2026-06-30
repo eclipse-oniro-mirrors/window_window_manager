@@ -51,11 +51,11 @@ struct VirtualScreenOption {
     VirtualScreenFlag virtualScreenFlag_ {VirtualScreenFlag::DEFAULT};
     bool supportsFocus_ {true};
     bool supportsInput_ {true};
-    std::string bundleName_;
     std::string serialNumber_;
+    std::string bundleName_;
     uint32_t phyWidth_ { 0 };
     uint32_t phyHeight_ { 0 };
-    int32_t userId_ {INVALID_USERID};
+    int32_t userId_ {INVALID_UID};
     int32_t screenId_ {-1};
     uint32_t renderWidth_ { 0 };
     uint32_t renderHeight_ { 0 };

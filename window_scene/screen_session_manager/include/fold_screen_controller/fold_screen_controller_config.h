@@ -20,21 +20,22 @@
 
 namespace OHOS::Rosen {
 namespace {
-const float ANGLE_MIN_VAL = static_cast<float>(system::GetIntParameter<int32_t>("const.dms.min_fold_angle", 0));
+static inline const float ANGLE_MIN_VAL =
+    static_cast<float>(system::GetIntParameter<int32_t>("const.dms.min_fold_angle", 0));
 
-const float HALF_FOLDED_MAX_THRESHOLD =
+static inline const float HALF_FOLDED_MAX_THRESHOLD =
     static_cast<float>(ScreenSceneConfig::GetNumberConfigValue("halfFoldMaxThreshold", 140));
-const float CLOSE_HALF_FOLDED_MIN_THRESHOLD =
+static inline const float CLOSE_HALF_FOLDED_MIN_THRESHOLD =
     static_cast<float>(ScreenSceneConfig::GetNumberConfigValue("closeHalfFoldedMinThreshold", 70));
-const float OPEN_HALF_FOLDED_MIN_THRESHOLD =
+static inline const float OPEN_HALF_FOLDED_MIN_THRESHOLD =
     static_cast<float>(ScreenSceneConfig::GetNumberConfigValue("openHalfFoldedMinThreshold", 25));
-const float HALF_FOLDED_BUFFER =
+static inline const float HALF_FOLDED_BUFFER =
     static_cast<float>(ScreenSceneConfig::GetNumberConfigValue("halfFoldedBuffer", 10));
-const float LARGER_BOUNDARY_FOR_THRESHOLD =
+static inline const float LARGER_BOUNDARY_FOR_THRESHOLD =
     static_cast<float>(ScreenSceneConfig::GetNumberConfigValue("largerBoundaryForThreshold", 90));
 
-const size_t POSTURE_SIZE = ScreenSceneConfig::GetNumberConfigValue("postureSize", 3);
-const size_t HALL_SIZE = ScreenSceneConfig::GetNumberConfigValue("hallSize", 2);
+static inline const size_t POSTURE_SIZE = ScreenSceneConfig::GetNumberConfigValue("postureSize", 3);
+static inline const size_t HALL_SIZE = ScreenSceneConfig::GetNumberConfigValue("hallSize", 2);
 }
 }
 #endif // OHOS_ROSEN_FOLD_SCREEN_CONTROLLER_CONFIG_H

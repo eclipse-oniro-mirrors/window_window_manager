@@ -37,7 +37,6 @@ public:
     FoldDisplayMode GetFoldDisplayMode();
     FoldDisplayMode GetFoldDisplayModeForExternal();
     void SetFoldDisplayMode(const FoldDisplayMode);
-    void SetFoldDisplayModeAsync(const FoldDisplayMode);
     bool IsFoldable();
 
     DMError RegisterDisplayListener(sptr<IDisplayListener> listener);
@@ -325,7 +324,7 @@ DMError DisplayManagerLite::Impl::RegisterDisplayListener(sptr<IDisplayListener>
 DMError DisplayManagerLite::RegisterDisplayListener(sptr<IDisplayListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr");
+        TLOGE(WmsLogTag::DMS, "RegisterDisplayListener listener is nullptr");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->RegisterDisplayListener(listener);
@@ -353,7 +352,7 @@ DMError DisplayManagerLite::Impl::UnregisterDisplayListener(sptr<IDisplayListene
 DMError DisplayManagerLite::UnregisterDisplayListener(sptr<IDisplayListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr");
+        TLOGE(WmsLogTag::DMS, "UnregisterDisplayListener listener is nullptr");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterDisplayListener(listener);
@@ -440,7 +439,7 @@ DMError DisplayManagerLite::UnregisterDisplayAttribute(const std::vector<std::st
 void DisplayManagerLite::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    static_cast<void>(UpdateDisplayInfoLocked(info));
+    UpdateDisplayInfoLocked(info);
 }
 
 void DisplayManagerLite::Impl::NotifyDisplayDestroy(DisplayId displayId)
@@ -453,7 +452,7 @@ void DisplayManagerLite::Impl::NotifyDisplayDestroy(DisplayId displayId)
 void DisplayManagerLite::Impl::NotifyDisplayChange(sptr<DisplayInfo> displayInfo)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    static_cast<void>(UpdateDisplayInfoLocked(displayInfo));
+    UpdateDisplayInfoLocked(displayInfo);
 }
 
 bool DisplayManagerLite::Impl::UpdateDisplayInfoLocked(sptr<DisplayInfo> displayInfo)
@@ -499,7 +498,7 @@ DMError DisplayManagerLite::Impl::RegisterFoldStatusListener(sptr<IFoldStatusLis
             DisplayManagerAgentType::FOLD_STATUS_CHANGED_LISTENER);
     }
     if (ret != DMError::DM_OK) {
-        TLOGW(WmsLogTag::DMS, "failed !");
+        TLOGW(WmsLogTag::DMS, "RegisterFoldStatusListener failed !");
         foldStatusListenerAgent_ = nullptr;
     } else {
         TLOGI(WmsLogTag::DMS, "IFoldStatusListener register success");
@@ -511,7 +510,7 @@ DMError DisplayManagerLite::Impl::RegisterFoldStatusListener(sptr<IFoldStatusLis
 DMError DisplayManagerLite::UnregisterFoldStatusListener(sptr<IFoldStatusListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterFoldStatusListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterFoldStatusListener(listener);
@@ -580,7 +579,7 @@ DMError DisplayManagerLite::Impl::RegisterDisplayModeListener(sptr<IDisplayModeL
 DMError DisplayManagerLite::UnregisterDisplayModeListener(sptr<IDisplayModeListener> listener)
 {
     if (listener == nullptr) {
-        TLOGE(WmsLogTag::DMS, "listener is nullptr.");
+        TLOGE(WmsLogTag::DMS, "UnregisterDisplayModeListener listener is nullptr.");
         return DMError::DM_ERROR_NULLPTR;
     }
     return pImpl_->UnregisterDisplayModeListener(listener);
@@ -686,19 +685,9 @@ void DisplayManagerLite::SetFoldDisplayMode(const FoldDisplayMode mode)
     return pImpl_->SetFoldDisplayMode(mode);
 }
 
-void DisplayManagerLite::SetFoldDisplayModeAsync(const FoldDisplayMode mode)
-{
-    return pImpl_->SetFoldDisplayModeAsync(mode);
-}
-
 void DisplayManagerLite::Impl::SetFoldDisplayMode(const FoldDisplayMode mode)
 {
     return SingletonContainer::Get<DisplayManagerAdapterLite>().SetFoldDisplayMode(mode);
-}
-
-void DisplayManagerLite::Impl::SetFoldDisplayModeAsync(const FoldDisplayMode mode)
-{
-    return SingletonContainer::Get<DisplayManagerAdapterLite>().SetFoldDisplayModeAsync(mode);
 }
 
 void DisplayManagerLite::Impl::OnRemoteDied()

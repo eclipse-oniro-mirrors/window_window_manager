@@ -40,7 +40,7 @@ bool DisplayManagerAgentController::NotifyDisplayPowerEvent(DisplayPowerEvent ev
     if (agents.empty()) {
         return false;
     }
-    TLOGI(WmsLogTag::DMS, "NotifyDisplayPowerEvent");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->NotifyDisplayPowerEvent(event, status);
     }
@@ -53,7 +53,7 @@ bool DisplayManagerAgentController::NotifyDisplayStateChanged(DisplayId id, Disp
     if (agents.empty()) {
         return false;
     }
-    TLOGI(WmsLogTag::DMS, "NotifyDisplayStateChanged");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->NotifyDisplayStateChanged(id, state);
     }
@@ -69,7 +69,7 @@ void DisplayManagerAgentController::OnScreenConnect(sptr<ScreenInfo> screenInfo)
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "OnScreenConnect");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnScreenConnect(screenInfo);
     }
@@ -81,7 +81,7 @@ void DisplayManagerAgentController::OnScreenDisconnect(ScreenId screenId)
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "OnScreenDisconnect");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnScreenDisconnect(screenId);
     }
@@ -96,7 +96,7 @@ void DisplayManagerAgentController::OnScreenChange(sptr<ScreenInfo> screenInfo, 
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "OnScreenChange");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnScreenChange(screenInfo, screenChangeEvent);
     }
@@ -140,7 +140,7 @@ void DisplayManagerAgentController::OnDisplayCreate(sptr<DisplayInfo> displayInf
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "OnDisplayCreate");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnDisplayCreate(displayInfo);
     }
@@ -152,7 +152,7 @@ void DisplayManagerAgentController::OnDisplayDestroy(DisplayId displayId)
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "OnDisplayDestroy");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnDisplayDestroy(displayId);
     }
@@ -168,7 +168,7 @@ void DisplayManagerAgentController::OnDisplayChange(
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "OnDisplayChange");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnDisplayChange(displayInfo, displayChangeEvent);
     }
@@ -183,7 +183,7 @@ void DisplayManagerAgentController::OnScreenshot(sptr<ScreenshotInfo> info)
     if (agents.empty()) {
         return;
     }
-    TLOGI(WmsLogTag::DMS, "onScreenshot");
+    TLOGI(WmsLogTag::DMS, "enter");
     for (auto& agent : agents) {
         agent->OnScreenshot(info);
     }

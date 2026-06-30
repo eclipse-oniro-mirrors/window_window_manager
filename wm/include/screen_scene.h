@@ -47,9 +47,11 @@ public:
     void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback) override;
     int64_t GetVSyncPeriod() override;
     void FlushFrameRate(uint32_t rate, int32_t animatorExpectedFrameRate, uint32_t rateType = 0) override;
-
+    void UpdateConfigurationForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
+    void SetOnConfigurationUpdatedCallback(
+        const std::function<void(const std::shared_ptr<AppExecFwk::Configuration>&)>& callback);
     void OnBundleUpdated(const std::string& bundleName);
-    void SetFrameLayoutFinishCallback(std::function<void()> && callback);
+    void SetFrameLayoutFinishCallback(std::function<void()>&& callback);
 
     void SetDisplayDensity(float density);
 
@@ -86,10 +88,6 @@ public:
 
     std::string GetClassType() const override { return "ScreenScene"; }
 
-    void UpdateConfigurationForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
-    void SetOnConfigurationUpdatedCallback(
-        const std::function<void(const std::shared_ptr<AppExecFwk::Configuration>&)>& callback);
-
     /*
      * RS Client Multi Instance
      */
@@ -97,6 +95,7 @@ public:
     std::shared_ptr<RSUIContext> GetRSUIContext() const override;
 
 private:
+    void RegisterInputEventListener();
     mutable std::mutex mutex_;
     std::unique_ptr<Ace::UIContent> uiContent_;
     float density_ = 1.0f;
@@ -108,7 +107,6 @@ private:
     std::shared_ptr<VsyncStation> vsyncStation_ = nullptr;
     std::shared_ptr<AppExecFwk::EventHandler> handler_ = nullptr;
     std::function<void(const std::shared_ptr<AppExecFwk::Configuration>&)> configurationUpdateCallback_;
-    void RegisterInputEventListener();
 };
 } // namespace Rosen
 } // namespace OHOS
