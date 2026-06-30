@@ -3482,6 +3482,43 @@ HWTEST_F(WindowSceneSessionImplTest5, SendCombinedCompatibleConfigToArkUI, TestS
     window->SendCombinedCompatibleConfigToArkUI();
     EXPECT_TRUE(WindowSceneSessionImpl::hasSentCombinedCompatibleConfig_);
 }
+
+/**
+ * @tc.name: CheckWindowCanInHoverState
+ * @tc.desc: Test CheckWindowCanInHoverState
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, CheckWindowCanInHoverState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CheckWindowCanInHoverState");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->property_->SetDisplayId(DISPLAY_ID_INVALID);
+    Rect windowRect = { 0, 0, 100, 100 };
+    bool result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    window->property_->SetDisplayId(0);
+    result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    Transform transform;
+    transform.scaleX_ = 2.0f;
+    transform.scaleY_ = 2.0f;
+    window->property_->SetTransform(transform);
+    result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    result = window->CheckCreaseRegionCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

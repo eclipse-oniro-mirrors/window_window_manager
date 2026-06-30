@@ -1786,6 +1786,40 @@ HWTEST_F(SessionStageProxyTest, TestSetIsStartMoving, TestSize.Level1)
     // Case 6: Success (false)
     EXPECT_EQ(WSError::WS_OK, successProxy->SetIsStartMoving(false));
 }
+
+/**
+ * @tc.name: UpdateLSState
+ * @tc.desc: Test UpdateLSState in various IPC scenarios
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateLSState, TestSize.Level1)
+{
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->UpdateLSState(true));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: Failed to write bool
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->UpdateLSState(true));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // Case 3: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->UpdateLSState(true));
+
+    // Case 4: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->UpdateLSState(true));
+
+    // Case 5: Success
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->UpdateLSState(true));
+    EXPECT_EQ(WSError::WS_OK, successProxy->UpdateLSState(false));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

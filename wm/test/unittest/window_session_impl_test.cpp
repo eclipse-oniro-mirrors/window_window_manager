@@ -1086,6 +1086,12 @@ HWTEST_F(WindowSessionImplTest, RegisterListener01, TestSize.Level1)
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     res = window->UnregisterParentWindowStatusChangeListener(listener8);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+
+    sptr<IWindowHoverStateChangeListener> listener9 = nullptr;
+    res = window->RegisterWindowHoverStateChangeListener(listener9);
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+    res = window->UnregisterWindowHoverStateChangeListener(listener9);
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
     ASSERT_EQ(WMError::WM_OK, window->Destroy());
     GTEST_LOG_(INFO) << "WindowSessionImplTest: RegisterListener01 end";
 }
