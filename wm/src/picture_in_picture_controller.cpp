@@ -31,12 +31,8 @@ namespace {
 
 PictureInPictureController::PictureInPictureController(sptr<PipOption> pipOption, sptr<Window> mainWindow,
     uint32_t windowId, napi_env env)
+    : PictureInPictureControllerBase(pipOption, mainWindow, windowId, env)
 {
-    pipOption_ = pipOption;
-    mainWindow_ = mainWindow;
-    mainWindowId_ = windowId;
-    env_ = env;
-    curState_ = PiPWindowState::STATE_UNDEFINED;
     weakRef_ = this;
 }
 
@@ -48,7 +44,7 @@ PictureInPictureController::~PictureInPictureController()
     PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
 }
 
-WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
+WMError PictureInPictureController::ValidatePiPCreateParams(StartPipType startType)
 {
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Create pip failed, invalid pipOption");
@@ -67,19 +63,25 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
+    return WMError::WM_OK;
+}
+
+WMError PictureInPictureController::PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
+    std::shared_ptr<AbilityRuntime::Context>& abilityContext)
+{
     UpdateWinRectByComponent();
     auto windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName(PIP_WINDOW_NAME);
+    windowOption->SetWindowName(MakePipWindowName(createTimestamp_));
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
     windowOption->SetWindowRect(windowRect_);
     windowOption->SetKeepScreenOn(true);
     windowOption->SetTouchable(false);
     WMError errCode = WMError::WM_OK;
-    PiPTemplateInfo pipTemplateInfo;
     pipOption_->GetPiPTemplateInfo(pipTemplateInfo);
+    pipTemplateInfo.createTimestamp = createTimestamp_;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOption_->GetContext());
-    const std::shared_ptr<AbilityRuntime::Context>& abilityContext = context->lock();
+    abilityContext = context->lock();
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
@@ -90,6 +92,17 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
     window_->UpdatePiPRect(windowRect_, WindowSizeChangeReason::PIP_START);
     PictureInPictureManager::PutPipControllerInfo(window_->GetWindowId(), this);
     return WMError::WM_OK;
+}
+
+WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
+{
+    WMError errCode = ValidatePiPCreateParams(startType);
+    if (errCode != WMError::WM_OK) {
+        return errCode;
+    }
+    PiPTemplateInfo pipTemplateInfo;
+    std::shared_ptr<AbilityRuntime::Context> abilityContext;
+    return PreparePiPWindowCreation(startType, pipTemplateInfo, abilityContext);
 }
 
 WMError PictureInPictureController::StartPictureInPicture(StartPipType startType)
@@ -111,18 +124,17 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    if (PictureInPictureManager::HasActiveController() && !PictureInPictureManager::IsActiveController(weakRef_)) {
-        // if current controller is not the active one, but belongs to the same mainWindow, reserve pipWindow
-        if (PictureInPictureManager::IsAttachedToSameWindow(mainWindowId_)) {
-            window_ = PictureInPictureManager::GetCurrentWindow();
-            if (window_ == nullptr) {
-                TLOGE(WmsLogTag::WMS_PIP, "Reuse pipWindow failed");
-                curState_ = PiPWindowState::STATE_UNDEFINED;
-                return WMError::WM_ERROR_PIP_CREATE_FAILED;
-            }
+    startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
+        static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
+    if (reachLimit) {
+        window_ = PictureInPictureManager::GetSameGroupWindowByMainWindowId(mainWindowId_,
+            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
+        if (window_ != nullptr) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
-            PictureInPictureManager::DoClose(false, false);
+            PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);
             mainWindowXComponentController_ = IsTypeNodeEnabled() ? nullptr : pipOption_->GetXComponentController();
             UpdateWinRectByComponent();
             UpdateContentSize(windowRect_.width_, windowRect_.height_);
@@ -135,8 +147,6 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
             }
             return err;
         }
-        // otherwise, stop the previous one
-        PictureInPictureManager::DoClose(true, true);
     }
 
     WMError errCode = StartPictureInPictureInner(startType);

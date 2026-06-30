@@ -26,6 +26,7 @@ using namespace Ace;
 namespace {
     constexpr int32_t NUMBER_ONE = 1;
     constexpr int32_t NUMBER_TWO = 2;
+    constexpr int32_t NUMBER_THREE = 3;
     constexpr int32_t NUMBER_FOUR = 4;
     const std::unordered_set<std::string> PIP_CONTENT_CALLBACK {"stateChange", "nodeUpdate"};
 }
@@ -104,19 +105,18 @@ napi_value JsPipManager::OnInitXComponentController(napi_env env, napi_callback_
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < NUMBER_ONE) {
+    if (argc < NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid: %{public}zu", argc);
         return NapiThrowInvalidParam(env);
     }
-    napi_value xComponentController = argv[0];
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
+    napi_value xComponentController = argv[1];
     std::shared_ptr<XComponentController> xComponentControllerResult =
         XComponentController::GetXComponentControllerFromNapiValue(env, xComponentController);
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
-    }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pictureInPictureController");
@@ -142,19 +142,18 @@ napi_value JsPipManager::OnInitWebXComponentController(napi_env env, napi_callba
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != NUMBER_TWO) {
+    if (argc < NUMBER_THREE) {
         TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid: %{public}zu", argc);
         return NapiThrowInvalidParam(env);
     }
-    napi_value xComponentController = argv[0];
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
+    napi_value xComponentController = argv[1];
     std::shared_ptr<XComponentController> xComponentControllerResult =
         XComponentController::GetXComponentControllerFromNapiValue(env, xComponentController);
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
-    }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get webPictureInPictureController");
@@ -166,7 +165,7 @@ napi_value JsPipManager::OnInitWebXComponentController(napi_env env, napi_callba
         TLOGE(WmsLogTag::WMS_PIP, "Failed to set xComponentController");
         return NapiGetUndefined(env);
     }
-    napi_value surfaceIdNapiValue = argv[1];
+    napi_value surfaceIdNapiValue = argv[2];
     return GetSurfaceIdFromJs(env, surfaceIdNapiValue, pipController);
 }
 
@@ -179,12 +178,18 @@ napi_value JsPipManager::GetCustomUIController(napi_env env, napi_callback_info 
 napi_value JsPipManager::OnGetCustomUIController(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_PIP, "[NAPI]");
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
+    size_t argc = 4;
+    napi_value argv[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < NUMBER_ONE) {
+        TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid: %{public}zu", argc);
+        return NapiThrowInvalidParam(env);
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
     sptr<PictureInPictureControllerBase> pipController =
         PictureInPictureManager::GetPipControllerInfo(windowId);
@@ -210,12 +215,18 @@ napi_value JsPipManager::GetTypeNode(napi_env env, napi_callback_info info)
 napi_value JsPipManager::OnGetTypeNode(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_PIP, "[NAPI]");
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
+    size_t argc = 4;
+    napi_value argv[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < NUMBER_ONE) {
+        TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid: %{public}zu", argc);
+        return NapiThrowInvalidParam(env);
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
@@ -240,12 +251,18 @@ napi_value JsPipManager::SetTypeNodeEnabled(napi_env env, napi_callback_info inf
 napi_value JsPipManager::OnSetTypeNodeEnabled(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_PIP, "[NAPI]");
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
+    size_t argc = 4;
+    napi_value argv[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < NUMBER_ONE) {
+        TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid: %{public}zu", argc);
+        return NapiThrowInvalidParam(env);
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
@@ -307,12 +324,17 @@ napi_value JsPipManager::OnRegisterCallback(napi_env env, napi_callback_info inf
     size_t argc = NUMBER_FOUR;
     napi_value argv[NUMBER_FOUR] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < NUMBER_TWO) {
+    if (argc < NUMBER_THREE) {
         TLOGE(WmsLogTag::WMS_PIP, "Params count not match: %{public}zu", argc);
         return NapiThrowInvalidParam(env);
     }
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
     std::string cbType;
-    if (!ConvertFromJsValue(env, argv[0], cbType)) {
+    if (!ConvertFromJsValue(env, argv[1], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert param to cbType");
         return NapiThrowInvalidParam(env);
     }
@@ -320,7 +342,7 @@ napi_value JsPipManager::OnRegisterCallback(napi_env env, napi_callback_info inf
         TLOGE(WmsLogTag::WMS_PIP, "cbType is not in PIP_CONTENT_CALLBACK");
         return NapiThrowInvalidParam(env);
     }
-    napi_value value = argv[1];
+    napi_value value = argv[2];
     if (value == nullptr || !NapiIsCallable(env, value)) {
         TLOGE(WmsLogTag::WMS_PIP, "Callback is null or not callable");
         return NapiThrowInvalidParam(env);
@@ -329,12 +351,6 @@ napi_value JsPipManager::OnRegisterCallback(napi_env env, napi_callback_info inf
     napi_ref result = nullptr;
     napi_create_reference(env, value, 1, &result);
     callbackRef.reset(reinterpret_cast<NativeReference*>(result));
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
-    }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pictureInPictureController");
@@ -362,12 +378,17 @@ napi_value JsPipManager::OnUnregisterCallback(napi_env env, napi_callback_info i
     size_t argc = NUMBER_FOUR;
     napi_value argv[NUMBER_FOUR] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != NUMBER_ONE) {
+    if (argc < NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "Params count not match:%{public}zu", argc);
         return NapiThrowInvalidParam(env);
     }
+    uint32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[0], windowId)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to windowId. Invalidate params");
+        return NapiThrowInvalidParam(env);
+    }
     std::string cbType;
-    if (!ConvertFromJsValue(env, argv[0], cbType)) {
+    if (!ConvertFromJsValue(env, argv[1], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert param to cbType");
         return NapiThrowInvalidParam(env);
     }
@@ -375,12 +396,6 @@ napi_value JsPipManager::OnUnregisterCallback(napi_env env, napi_callback_info i
         TLOGE(WmsLogTag::WMS_PIP, "cbType is not in PIP_CONTENT_CALLBACK");
         return NapiThrowInvalidParam(env);
     }
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return NapiGetUndefined(env);
-    }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pictureInPictureController");
