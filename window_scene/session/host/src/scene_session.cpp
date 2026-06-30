@@ -10210,6 +10210,8 @@ WSError SceneSession::NotifySupportWindowModesChange(
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is null", where);
             return;
         }
+        session->GetSessionProperty()->SetSupportedWindowModes(supportedWindowModes);
+        session->haveSetSupportedWindowModes_ = true;
         if (session->onSetSupportedWindowModesFunc_) {
             session->onSetSupportedWindowModesFunc_(std::move(supportedWindowModes));
         }

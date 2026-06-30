@@ -10390,9 +10390,7 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
         if (subWindowSession &&
             subWindowSession->windowSystemConfig_.freeMultiWindowEnable_ != freeMultiWindowEnable) {
             subWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
-            if (freeMultiWindowEnable) {
-                subWindowSession->PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
-            }
+            subWindowSession->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
             subWindowSession->UpdateTitleButtonVisibility();
             subWindowSession->UpdateDecorEnable(true);
             subWindowSession->UpdateSubWindowDragEnabledByDecorVisible();

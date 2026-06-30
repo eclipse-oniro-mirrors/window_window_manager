@@ -5734,10 +5734,17 @@ WSError Session::SwitchFreeMultiWindow(const SystemSessionConfig& config)
         TLOGE(WmsLogTag::DEFAULT, "abilityInfo is nullptr!");
         return WSError::WS_ERROR_NULLPTR;
     }
-    std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
-        ExtractSupportWindowModeFromMetaData(sessionInfo_.abilityInfo);
-    auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
-    property->SetWindowModeSupportType(windowModeSupportType);
+    if (haveSetSupportedWindowModes_ && enable) {
+        std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+        property->GetSupportedWindowModes(supportedWindowModes);
+        auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
+        property->SetWindowModeSupportType(windowModeSupportType);
+    } else {
+        std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
+            ExtractSupportWindowModeFromMetaData(sessionInfo_.abilityInfo);
+        auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
+        property->SetWindowModeSupportType(windowModeSupportType);
+    }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}d enable: %{public}d defaultWindowMode: %{public}d",
         GetPersistentId(), enable, systemConfig_.defaultWindowMode_);
     bool isUiExtSubWindow = WindowHelper::IsSubWindow(property->GetWindowType()) &&

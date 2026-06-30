@@ -851,7 +851,6 @@ protected:
     void ClearSwitchFreeMultiWindowListenersById(int32_t persistentId);
     void NotifySwitchFreeMultiWindow(bool enable);
     virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
-    virtual void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() {}
 
     void ClearVsyncStation();
     void ReleaseSurfaceNode();

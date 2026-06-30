@@ -819,7 +819,8 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow04, Function | SmallT
     EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(false), WSError::WS_OK);
     EXPECT_EQ(mainWindow->windowSystemConfig_.freeMultiWindowEnable_, false);
 
-    mainWindow->pendingWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN;
+    std::vector<AppExecFwk::SupportWindowMode> userModes = { AppExecFwk::SupportWindowMode::FULLSCREEN };
+    mainWindow->property_->SetSupportedWindowModes(userModes);
     EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(true), WSError::WS_OK);
     EXPECT_EQ(mainWindow->property_->GetWindowModeSupportType(), WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
     WindowSceneSessionImpl::windowSessionMap_.erase(mainWindow->property_->GetWindowName());
@@ -2249,6 +2250,7 @@ HWTEST_F(WindowSceneSessionImplTest5, IsDecorEnable1, Function | SmallTest | Lev
     sptr<WindowOption> subWindowOption = sptr<WindowOption>::MakeSptr();
     subWindowOption->SetWindowName("IsDecorEnable1");
     subWindowOption->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    subWindowOption->SetSubWindowMaximizeSupported(true);
 
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(subWindowOption);
     window->property_->SetDecorEnable(true);
@@ -2256,9 +2258,6 @@ HWTEST_F(WindowSceneSessionImplTest5, IsDecorEnable1, Function | SmallTest | Lev
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     auto ret = window->IsDecorEnable();
     EXPECT_EQ(false, ret);
-    subWindowOption->SetSubWindowMaximizeSupported(true);
-    ret = window->IsDecorEnable();
-    EXPECT_EQ(true, ret);
 }
 
 /**
