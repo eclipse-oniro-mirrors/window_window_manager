@@ -121,28 +121,24 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
 {
     TLOGI(WmsLogTag::DMS,
         "[DPNODE]config screenId: %{public}" PRIu64", mirrorNodeId: %{public}" PRIu64", isMirrored: %{public}d",
-        config.screenId, config.mirrorNodeId, static_cast<int32_t>(config.isMirrored));
-    {
-        std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-        displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
-        TLOGD(WmsLogTag::WMS_SCB,
-              "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
-        if (displayNode_) {
-            RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
-            displayNode_->SetFrame(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-                property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
-            displayNode_->SetBounds(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-                property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
-            if (config.isMirrored) {
-                EnableMirrorScreenRegion();
-            }
-            if (property_.GetNeedCastScale()) {
-                displayNode_->SetPivot(0.0F, 0.0F);
-                displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
-            }
-        } else {
-            TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
-        }
+        config.screenId, config.mirrorNodeId, config.isMirrored);
+    std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
+    displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
+    TLOGD(WmsLogTag::WMS_SCB, "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
+    if (displayNode_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
+        return;
+    }
+    RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
+    const auto& rect = property_.GetBounds().rect_;
+    displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
+    displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
+    if (config.isMirrored) {
+        EnableMirrorScreenRegion();
+    }
+    if (property_.GetNeedCastScale()) {
+        displayNode_->SetPivot(0.0F, 0.0F);
+        displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
     }
     RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
 }
@@ -191,10 +187,9 @@ ScreenSession::ScreenSession(ScreenId screenId, const ScreenProperty& property, 
         TLOGI(WmsLogTag::DMS, "Success to create displayNode in constructor_1, screenid is %{public}" PRIu64"",
             screenId_);
         RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
-        displayNode_->SetFrame(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-            property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
-        displayNode_->SetBounds(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-            property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
+        const auto& rect = property_.GetBounds().rect_;
+        displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
+        displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
     } else {
         TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
     }
@@ -218,10 +213,9 @@ ScreenSession::ScreenSession(ScreenId screenId, const ScreenProperty& property,
         TLOGI(WmsLogTag::DMS, "Success to create displayNode in constructor_2, screenid is %{public}" PRIu64"",
             screenId_);
         RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
-        displayNode_->SetFrame(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-            property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
-        displayNode_->SetBounds(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-            property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
+        const auto& rect = property_.GetBounds().rect_;
+        displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
+        displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
     } else {
         TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
     }
@@ -243,10 +237,9 @@ ScreenSession::ScreenSession(const std::string& name, ScreenId smsId, ScreenId r
     if (displayNode_) {
         TLOGI(WmsLogTag::DMS, "Success to create displayNode in constructor_3, rs id is %{public}" PRIu64"", rsId_);
         RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
-        displayNode_->SetFrame(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-            property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
-        displayNode_->SetBounds(property_.GetBounds().rect_.left_, property_.GetBounds().rect_.top_,
-            property_.GetBounds().rect_.width_, property_.GetBounds().rect_.height_);
+        const auto& rect = property_.GetBounds().rect_;
+        displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
+        displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
     } else {
         TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
     }
@@ -1364,8 +1357,9 @@ void ScreenSession::UpdateTouchBoundsAndOffset(FoldDisplayMode foldDisplayMode)
 {
     property_.SetPhysicalTouchBounds(GetRotationCorrection(foldDisplayMode));
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-        property_.SetValidHeight(property_.GetBounds().rect_.GetHeight());
-        property_.SetValidWidth(property_.GetBounds().rect_.GetWidth());
+        const auto& boundsRect = property_.GetBounds().rect_;
+        property_.SetValidHeight(boundsRect.GetHeight());
+        property_.SetValidWidth(boundsRect.GetWidth());
     }
 }
 
@@ -1444,10 +1438,11 @@ void ScreenSession::UpdatePropertyAfterRotation(RRect bounds, int rotation, Fold
         }
     }
     UpdateDisplayNodeRotation(foldDisplayMode);
+    const auto& boundsRect = property_.GetBounds().rect_;
     TLOGI(WmsLogTag::DMS, "bounds:[%{public}f %{public}f %{public}f %{public}f],rotation:%{public}d,\
         displayOrientation:%{public}u, foldDisplayMode:%{public}u",
-        property_.GetBounds().rect_.GetLeft(), property_.GetBounds().rect_.GetTop(),
-        property_.GetBounds().rect_.GetWidth(), property_.GetBounds().rect_.GetHeight(),
+        boundsRect.GetLeft(), boundsRect.GetTop(),
+        boundsRect.GetWidth(), boundsRect.GetHeight(),
         rotation, displayOrientation, foldDisplayMode);
     ReportNotifyModeChange(displayOrientation);
 }
@@ -1477,10 +1472,11 @@ void ScreenSession::UpdatePropertyOnly(RRect bounds, int rotation, FoldDisplayMo
         property_.SetValidWidth(bounds.rect_.GetWidth());
     }
     UpdateTouchBoundsAndOffset(foldDisplayMode);
+    const auto& boundsRect = property_.GetBounds().rect_;
     TLOGI(WmsLogTag::DMS, "bounds:[%{public}f %{public}f %{public}f %{public}f],\
         rotation:%{public}d, displayOrientation:%{public}u",
-        property_.GetBounds().rect_.GetLeft(), property_.GetBounds().rect_.GetTop(),
-        property_.GetBounds().rect_.GetWidth(), property_.GetBounds().rect_.GetHeight(),
+        boundsRect.GetLeft(), boundsRect.GetTop(),
+        boundsRect.GetWidth(), boundsRect.GetHeight(),
         rotation, displayOrientation);
 }
 
@@ -2835,8 +2831,9 @@ bool ScreenSession::IsWidthHeightMatch(float width, float height, float targetWi
 void ScreenSession::SetScreenSnapshotRect(RSSurfaceCaptureConfig& config)
 {
     bool isChanged = false;
-    auto width = property_.GetBounds().rect_.width_;
-    auto height = property_.GetBounds().rect_.height_;
+    const auto& boundsRect = property_.GetBounds().rect_;
+    auto width = boundsRect.width_;
+    auto height = boundsRect.height_;
     Drawing::Rect snapshotRect = {0, 0, 0, 0};
     if (IsWidthHeightMatch(width, height, MAIN_STATUS_WIDTH, SCREEN_HEIGHT)) {
         snapshotRect = {0, 0, SCREEN_HEIGHT, MAIN_STATUS_WIDTH};
@@ -3194,8 +3191,9 @@ void ScreenSession::SetScreenOffScreenRendering()
         TLOGI(WmsLogTag::DMS, "rsId: %{public}" PRIu64" not support offScreen rendering", rsId_);
         return;
     }
-    uint32_t offWidth = GetScreenProperty().GetBounds().rect_.GetWidth();
-    uint32_t offHeight = GetScreenProperty().GetBounds().rect_.GetHeight();
+    const auto& boundsRect = GetScreenProperty().GetBounds().rect_;
+    uint32_t offWidth = boundsRect.GetWidth();
+    uint32_t offHeight = boundsRect.GetHeight();
     if (GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
         TLOGD(WmsLogTag::DMS, "screen mirror change.");
         offWidth = GetScreenProperty().GetScreenRealWidth();
@@ -3223,8 +3221,9 @@ void ScreenSession::SetExtendPhysicalScreenResolution(bool offScreenRenderValue)
     uint32_t offWidth = 0;
     uint32_t offHeight = 0;
     if (offScreenRenderValue) {
-        offWidth = property_.GetBounds().rect_.GetWidth();
-        offHeight = property_.GetBounds().rect_.GetHeight();
+        const auto& boundsRect = property_.GetBounds().rect_;
+        offWidth = boundsRect.GetWidth();
+        offHeight = boundsRect.GetHeight();
     } else {
         offWidth = property_.GetPhyBounds().rect_.GetWidth();
         offHeight = property_.GetPhyBounds().rect_.GetHeight();
@@ -3249,8 +3248,9 @@ void ScreenSession::SetExtendPhysicalScreenResolution(bool offScreenRenderValue)
 void ScreenSession::SetScreenOffScreenRenderingInner()
 {
     TLOGW(WmsLogTag::DMS, "screen off rendering inner come in.");
-    uint32_t offWidth = GetScreenProperty().GetBounds().rect_.GetWidth();
-    uint32_t offHeight = GetScreenProperty().GetBounds().rect_.GetHeight();
+    const auto& boundsRect = GetScreenProperty().GetBounds().rect_;
+    uint32_t offWidth = boundsRect.GetWidth();
+    uint32_t offHeight = boundsRect.GetHeight();
     int32_t res = RSInterfaces::GetInstance().SetPhysicalScreenResolution(rsId_, offWidth, offHeight);
     std::string offScreenResult = (res == StatusCode::SUCCESS) ? "success" : "failed";
     TLOGW(WmsLogTag::DMS, "rsId=%{public}" PRIu64" offScreen width = %{public}u height=%{public}u %{public}s",
@@ -3472,19 +3472,22 @@ void ScreenSession::ModifyScreenPropertyWithLock(float rotation, RRect bounds)
 
 void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const ScreenProperty& eventPara)
 {
+    const auto& screenBoundsRect = screenProperty.GetBounds().rect_;
+    const auto& eventBoundsRect = eventPara.GetBounds().rect_;
     TLOGI(WmsLogTag::DMS,
         "ProcPropertyChange Before: local width_= %{public}f, height_= %{public}f, input width_= %{public}f, "
         "height_= %{public}f",
-        screenProperty.GetBounds().rect_.width_, screenProperty.GetBounds().rect_.height_,
-        eventPara.GetBounds().rect_.width_, eventPara.GetBounds().rect_.height_);
+        screenBoundsRect.width_, screenBoundsRect.height_,
+        eventBoundsRect.width_, eventBoundsRect.height_);
 
     screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         ProcPropertyChangedForSuperFold(screenProperty, eventPara);
         
+        const auto& afterBoundsRect = screenProperty.GetBounds().rect_;
         TLOGI(WmsLogTag::DMS,
             "ProcPropertyChange After: width_= %{public}f, height_= %{public}f",
-            screenProperty.GetBounds().rect_.width_, screenProperty.GetBounds().rect_.height_);
+            afterBoundsRect.width_, afterBoundsRect.height_);
         return;
     }
 
@@ -3509,8 +3512,9 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
     screenProperty.SetDefaultDeviceRotationOffset(eventPara.GetDefaultDeviceRotationOffset());
     screenProperty.SetPhysicalTouchBounds(GetRotationCorrection(eventPara.GetDisplayMode()));
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() || FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
-        screenProperty.SetValidHeight(screenProperty.GetBounds().rect_.GetHeight());
-        screenProperty.SetValidWidth(screenProperty.GetBounds().rect_.GetWidth());
+        const auto& validBoundsRect = screenProperty.GetBounds().rect_;
+        screenProperty.SetValidHeight(validBoundsRect.GetHeight());
+        screenProperty.SetValidWidth(validBoundsRect.GetWidth());
     }
 
     TLOGI(WmsLogTag::DMS,
@@ -3552,10 +3556,11 @@ void ScreenSession::UpdateScbScreenPropertyToServer(const ScreenProperty& screen
 
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         UpdateScbScreenPropertyForSuperFlod(screenProperty);
+        const auto& screenBoundsRect = screenProperty.GetBounds().rect_;
         TLOGI(WmsLogTag::DMS,
               "ProcPropertyChange After: width_= %{public}f, height_= %{public}f",
-              screenProperty.GetBounds().rect_.width_,
-              screenProperty.GetBounds().rect_.height_);
+              screenBoundsRect.width_,
+              screenBoundsRect.height_);
         return;
     }
 
@@ -3577,14 +3582,16 @@ void ScreenSession::UpdateScbScreenPropertyToServer(const ScreenProperty& screen
     property_.SetPhysicalTouchBoundsDirectly(screenProperty.GetPhysicalTouchBounds());
     property_.SetInputOffset(screenProperty.GetInputOffsetX(), screenProperty.GetInputOffsetY());
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() || FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
-        property_.SetValidHeight(screenProperty.GetBounds().rect_.GetHeight());
-        property_.SetValidWidth(screenProperty.GetBounds().rect_.GetWidth());
+        const auto& validBoundsRect = screenProperty.GetBounds().rect_;
+        property_.SetValidHeight(validBoundsRect.GetHeight());
+        property_.SetValidWidth(validBoundsRect.GetWidth());
     }
 
+    const auto& propertyBoundsRect = property_.GetBounds().rect_;
     TLOGI(WmsLogTag::DMS,
           "ProcPropertyChange After: width_= %{public}f, height_= %{public}f",
-          property_.GetBounds().rect_.width_,
-          property_.GetBounds().rect_.height_);
+          propertyBoundsRect.width_,
+          propertyBoundsRect.height_);
 }
 
 ScreenId ScreenSession::GetPhyScreenId()
