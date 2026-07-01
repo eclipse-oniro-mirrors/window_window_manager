@@ -1284,7 +1284,7 @@ WMErrorResult WindowAdapter::CreateAndConnectSpecificSession(const sptr<ISession
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     result.errMsg = "window manager proxy is nullptr";
-    CHECK_PROXY_RETURN_IF_NULL(wmsProxy, result);
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, result);
     WSErrorResult wsResult = wmsProxy->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId,
         property, persistentId, session, systemConfig, renderSession, surfaceNode, token);
     return WMErrorResult{static_cast<WMError>(wsResult.errCode), wsResult.errMsg};
