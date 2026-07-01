@@ -18,6 +18,7 @@
 #include "common/rs_rect.h"
 #include "dm_common.h"
 #include "ws_common.h"
+#include "session_permission.h"
 #include <ipc_skeleton.h>
 #include "transaction/rs_marshalling_helper.h"
 #include "marshalling_helper.h"
