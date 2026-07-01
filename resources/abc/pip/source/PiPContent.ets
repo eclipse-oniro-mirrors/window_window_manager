@@ -63,7 +63,6 @@ struct PiPContent {
   private xComponent: typeNode.XComponent | null = null;
   xComponentId: string = 'pipContent';
   xComponentType: string = 'surface';
-  private windowId: number = 0;
 
   validateNode(node: typeNode.XComponent | null): boolean {
     if (node === null || node === undefined) {
@@ -79,7 +78,7 @@ struct PiPContent {
   }
 
   private registerUpdateNodeListener() {
-    pip.on(this.windowId, 'nodeUpdate', (newNode: typeNode.XComponent) => {
+    pip.on('nodeUpdate', (newNode: typeNode.XComponent) => {
       console.info(TAG, `nodeUpdate`);
       if (!this.validateNode(newNode)) {
         return;
@@ -110,7 +109,7 @@ struct PiPContent {
   }
 
   private registerStateChangeListener() {
-    pip.on(this.windowId, 'stateChange', (state: number) => {
+    pip.on('stateChange', (state: number) => {
       console.info(TAG, `stateChange state:${state}`);
       if (state === ABOUT_TO_STOP) {
         this.mXCNodeController?.removeNode();
@@ -120,10 +119,9 @@ struct PiPContent {
 
   aboutToAppear(): void {
     try {
-      this.windowId = this.getUIContext()?.getWindowId() ?? 0;
-      this.nodeController = pip.getCustomUIController(this.windowId);
+      this.nodeController = pip.getCustomUIController();
       this.registerUpdateNodeListener();
-      this.xComponent = pip.getTypeNode(this.windowId);
+      this.xComponent = pip.getTypeNode();
       if (!this.validateNode(this.xComponent)) {
         return;
       }
@@ -133,7 +131,7 @@ struct PiPContent {
       }
       this.useNode = true;
       this.updatePipNodeType(this.xComponent);
-      pip.setTypeNodeEnabled(this.windowId);
+      pip.setTypeNodeEnabled();
       this.mXCNodeController = new XCNodeController(this.xComponent);
       console.info(TAG, 'use Node Controller');
       this.registerStateChangeListener();
@@ -144,8 +142,8 @@ struct PiPContent {
 
   aboutToDisappear(): void {
     try {
-      pip.off(this.windowId, 'stateChange');
-      pip.off(this.windowId, 'nodeUpdate');
+      pip.off('stateChange');
+      pip.off('nodeUpdate');
     } catch (err) {
       console.log(`aboutToDisappear failed`);
     }
@@ -175,7 +173,7 @@ struct PiPContent {
   buildXComponent() {
     XComponent({ id: this.xComponentId, type: this.xComponentType, controller: this.xComponentController })
       .onLoad(() => {
-        pip.initXComponentController(this.windowId, this.xComponentController);
+        pip.initXComponentController(this.xComponentController);
         console.debug(TAG, 'XComponent onLoad done');
       })
       .size({ width: '100%', height: '100%' })

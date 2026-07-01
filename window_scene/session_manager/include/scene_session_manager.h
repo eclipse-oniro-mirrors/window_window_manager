@@ -1022,8 +1022,7 @@ private:
     void ConfigDecor(const WindowSceneConfig::ConfigItem& decorConfig, bool mainConfig = true);
     void ConfigWindowAnimation(const WindowSceneConfig::ConfigItem& windowAnimationConfig);
     void ConfigStartingWindowAnimation(const WindowSceneConfig::ConfigItem& startingWindowConfig);
-    WSError CleanupSessionByType(const sptr<SceneSession>& sceneSession);
-    WSError FinalizeSessionDestruction(const int32_t persistentId);
+
     /**
      * @brief Configure window layout related settings.
      *
@@ -1397,15 +1396,7 @@ private:
     bool GetNativeModuleStartMode(AppExecFwk::AbilityInfo& abilityInfo);
     void UpdatePrivateStateAndNotifyForAllScreens();
 
-    WSError CheckPiPCreate(const sptr<WindowSessionProperty>& property, const WindowType& type);
-    void UpdatePipGroupCount(const PiPTemplateInfo& pipTemplateInfo, bool increase);
-    std::vector<PiPGroupConfig> ParsePipMultiConfig();
-    bool FindTargetGroup(const std::vector<PiPGroupConfig>& groupConfigs, const PiPTemplateInfo& pipTemplateInfo,
-        PiPGroupConfig& targetGroup);
-    std::vector<sptr<SceneSession>> CollectSameGroupSessions(const PiPGroupConfig& targetGroup);
-    void SortSessionsByPriority(std::vector<sptr<SceneSession>>& sessions);
-    bool CheckAndEvictSessions(const PiPTemplateInfo& pipTemplateInfo, DisplayId displayId,
-        const PiPGroupConfig& targetGroup, std::vector<sptr<SceneSession>>& sameGroupSessions);
+    void ClosePipWindowIfExist(WindowType type);
     void NotifySessionNavigationBarChange(int32_t persistentId, AvoidAreaType type);
     void ReportWindowProfileInfos();
     std::string FillWindowProfileInfo(const OHOS::sptr<OHOS::Rosen::SceneSession>& currSession, int32_t focusWindowId);
@@ -1680,7 +1671,7 @@ private:
     bool CheckPiPPriority(const PiPTemplateInfo& pipTemplateInfo, DisplayId displayId = 0);
     std::string GetScreenName(int32_t persistentId);
     bool IsEnablePiPCreate(const sptr<WindowSessionProperty>& property);
-    bool IsPiPForbidden(const sptr<WindowSessionProperty>& property, const WindowType& type);
+    WSError CheckAndNotifyPiPForbidden(const WindowSessionProperty& property, const WindowType& type);
     bool IsLastPiPWindowVisible(uint64_t surfaceId, WindowVisibilityState lastVisibilityState);
     void NotifyPiPWindowVisibleChange(bool isScreenLocked);
     /*

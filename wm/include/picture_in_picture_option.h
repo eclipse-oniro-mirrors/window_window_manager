@@ -61,8 +61,6 @@ public:
     std::shared_ptr<NativeReference> GetStorageRef() const;
     void SetTypeNodeEnabled(bool enable);
     bool IsTypeNodeEnabled() const;
-    void SetCreateTimestamp(int64_t createTimestamp);
-    int64_t GetCreateTimestamp() const;
     uint32_t GetPipPriority(uint32_t pipTemplateType) const;
     void GetPiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo);
     void SetHandleId(const int32_t handleId);
@@ -82,7 +80,6 @@ protected:
     bool useTypeNode_ = false;
     int32_t handleId_ = -1;
     bool cornerAdsorptionEnabled_ = true;
-    int64_t createTimestamp_ = 0;
 
 private:
     std::map<std::string, std::shared_ptr<NativeReference>> pipContentlistenerMap_;

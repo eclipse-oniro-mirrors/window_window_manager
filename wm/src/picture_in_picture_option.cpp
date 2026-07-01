@@ -23,7 +23,6 @@ namespace OHOS {
 namespace Rosen {
 constexpr uint32_t PIP_LOW_PRIORITY = 0;
 constexpr uint32_t PIP_HIGH_PRIORITY = 1;
-constexpr uint32_t PIP_TOP_PRIORITY = 2;
 PipOption::PipOption()
 {
 }
@@ -218,29 +217,17 @@ bool PipOption::IsTypeNodeEnabled() const
     return useTypeNode_;
 }
 
-void PipOption::SetCreateTimestamp(int64_t createTimestamp)
-{
-    createTimestamp_ = createTimestamp;
-}
-
-int64_t PipOption::GetCreateTimestamp() const
-{
-    return createTimestamp_;
-}
-
 uint32_t PipOption::GetPipPriority(uint32_t pipTemplateType) const
 {
     if (pipTemplateType >= static_cast<uint32_t>(PiPTemplateType::END)) {
         TLOGE(WmsLogTag::WMS_PIP, "param invalid, pipTemplateType is %{public}d", pipTemplateType);
         return PIP_LOW_PRIORITY;
     }
-    if (pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE)) {
-        return PIP_TOP_PRIORITY;
-    } else if (pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_CALL) ||
-        pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_MEETING)) {
-        return PIP_HIGH_PRIORITY;
-    } else {
+    if (pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_PLAY) ||
+        pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_LIVE)) {
         return PIP_LOW_PRIORITY;
+    } else {
+        return PIP_HIGH_PRIORITY;
     }
 }
 
@@ -254,7 +241,6 @@ void PipOption::GetPiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo)
     pipTemplateInfo.pipControlStatusInfoList = pipControlStatusInfoList_;
     pipTemplateInfo.pipControlEnableInfoList = pipControlEnableInfoList_;
     pipTemplateInfo.cornerAdsorptionEnabled = cornerAdsorptionEnabled_;
-    pipTemplateInfo.createTimestamp = createTimestamp_;
 }
 // LCOV_EXCL_STOP
 } // namespace Rosen

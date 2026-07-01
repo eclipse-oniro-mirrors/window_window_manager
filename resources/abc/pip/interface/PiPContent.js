@@ -62,7 +62,6 @@ class PiPContent extends ViewPU {
         this.xComponent = null;
         this.xComponentId = 'pipContent';
         this.xComponentType = 'surface';
-        this.windowId = 0;
         this.setInitiallyProvidedValue(g2);
     }
     setInitiallyProvidedValue(e2) {
@@ -131,7 +130,7 @@ class PiPContent extends ViewPU {
         return true;
     }
     registerUpdateNodeListener() {
-        pip.on(this.windowId, 'nodeUpdate', (f) => {
+        pip.on('nodeUpdate', (f) => {
             console.info(TAG, `nodeUpdate`);
             if (!this.validateNode(f)) {
                 return;
@@ -162,7 +161,7 @@ class PiPContent extends ViewPU {
         }
     }
     registerStateChangeListener() {
-        pip.on(this.windowId, 'stateChange', (b) => {
+        pip.on('stateChange', (b) => {
             console.info(TAG, `stateChange state:${b}`);
             if (b === ABOUT_TO_STOP) {
                 this.mXCNodeController?.removeNode();
@@ -171,10 +170,9 @@ class PiPContent extends ViewPU {
     }
     aboutToAppear() {
         try {
-            this.windowId = this.getUIContext()?.getWindowId() ?? 0;
             this.nodeController = pip.getCustomUIController();
             this.registerUpdateNodeListener();
-            this.xComponent = pip.getTypeNode(this.windowId);
+            this.xComponent = pip.getTypeNode();
             if (!this.validateNode(this.xComponent)) {
                 return;
             }
@@ -184,7 +182,7 @@ class PiPContent extends ViewPU {
             }
             this.useNode = true;
             this.updatePipNodeType(this.xComponent);
-            pip.setTypeNodeEnabled(this.windowId);
+            pip.setTypeNodeEnabled();
             this.mXCNodeController = new XCNodeController(this.xComponent);
             console.info(TAG, 'use Node Controller');
             this.registerStateChangeListener();
@@ -206,8 +204,8 @@ class PiPContent extends ViewPU {
 
     aboutToDisappear() {
         try {
-            pip.off(this.windowId, 'stateChange');
-            pip.off(this.windowId, 'nodeUpdate');
+            pip.off('stateChange');
+            pip.off('nodeUpdate');
         } catch (b) {
             console.log(`aboutToDisappear failed`);
         }
@@ -261,7 +259,7 @@ class PiPContent extends ViewPU {
                 controller: this.xComponentController
             }, 'pipContent_XComponent');
             XComponent.onLoad((() => {
-                pip.initXComponentController(this.windowId, this.xComponentController);
+                pip.initXComponentController(this.xComponentController);
                 console.info(TAG, 'XComponent onLoad done');
             }));
             XComponent.size({ width: '100%', height: '100%' });

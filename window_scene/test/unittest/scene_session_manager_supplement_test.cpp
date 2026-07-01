@@ -787,8 +787,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_08, Func
 }
 
 /**
- * @tc.name: CheckPiPPriorityWithSceneSessionMap
- * @tc.desc: CheckPiPPriority when scene session map contains PiP-related sessions
  * @tc.name: TestCreateAndConnectSession_InheritFreeMultiWindowEnable_True
  * @tc.desc: Test CreateAndConnectSpecificSession inherits freeMultiWindowEnable=true from parent in PC mode
  * @tc.type: FUNC
@@ -1009,8 +1007,10 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_FreeMult
  * @tc.desc: ClosePipWindowIfExist
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerSupplementTest, CheckPiPPriorityWithSceneSessionMap, TestSize.Level1)
+HWTEST_F(SceneSessionManagerSupplementTest, ClosePipWindowIfExist, TestSize.Level1)
 {
+    ssm_->ClosePipWindowIfExist(WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW);
+    ssm_->ClosePipWindowIfExist(WindowType::WINDOW_TYPE_PIP);
     SessionInfo info;
     info.bundleName_ = "test1";
     info.abilityName_ = "test2";
@@ -1025,6 +1025,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, CheckPiPPriorityWithSceneSessionMap,
     auto res = ssm_->CheckPiPPriority(pipInfo);
     ASSERT_EQ(res, true);
     ssm_->sceneSessionMap_.insert({ 0, sceneSession });
+    ssm_->ClosePipWindowIfExist(WindowType::WINDOW_TYPE_PIP);
     res = ssm_->CheckPiPPriority(pipInfo);
     ASSERT_EQ(res, true);
     property->SetWindowType(WindowType::WINDOW_TYPE_PIP);

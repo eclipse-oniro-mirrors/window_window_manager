@@ -73,7 +73,6 @@ struct PiPContent {
   @State useNode: boolean = false;
   @State nodeChange: boolean = false;
   private xComponent: typeNode.XComponent | null | undefined = undefined;
-  private windowId: int = 0;
 
   validateNode(node: typeNode.XComponent | null | undefined): boolean {
     if (node === null || node === undefined) {
@@ -106,7 +105,7 @@ struct PiPContent {
   }
 
   private registerUpdateNodeListener() {
-    PiPManager.on(this.windowId, 'nodeUpdate', this.UpdateNodeCallback);
+    PiPManager.on('nodeUpdate', this.UpdateNodeCallback);
   }
 
   private updatePipNodeType(newNode: typeNode.XComponent) {
@@ -127,16 +126,15 @@ struct PiPContent {
   }
 
   private registerStateChangeListener() {
-    PiPManager.on(this.windowId, 'stateChange', this.stateChangeCallback);
+    PiPManager.on('stateChange', this.stateChangeCallback);
   }
 
   aboutToAppear(): void {
     try {
       hilog.info(DOMAIN, TAG, 'aboutToAppear start');
-      this.windowId = this.getUIContext()?.getWindowId() ?? 0;
-      this.nodeController = PiPManager.getCustomUIController(this.windowId);
+      this.nodeController = PiPManager.getCustomUIController();
       this.registerUpdateNodeListener();
-      this.xComponent = PiPManager.getTypeNode(this.windowId);
+      this.xComponent = PiPManager.getTypeNode();
       if (!this.validateNode(this.xComponent)) {
         return;
       }
@@ -145,7 +143,7 @@ struct PiPContent {
       }
       this.useNode = true;
       this.updatePipNodeType(this.xComponent!);
-      PiPManager.setTypeNodeEnabled(this.windowId);
+      PiPManager.setTypeNodeEnabled();
       this.mXCNodeController = new XCNodeController(this.xComponent!);
       this.registerStateChangeListener();
     } catch (err) {
@@ -155,8 +153,8 @@ struct PiPContent {
 
   aboutToDisappear(): void {
     try {
-      PiPManager.off(this.windowId, 'stateChange');
-      PiPManager.off(this.windowId, 'nodeUpdate');
+      PiPManager.off('stateChange');
+      PiPManager.off('nodeUpdate');
     } catch (err) {
       hilog.info(DOMAIN, TAG, 'aboutToDisappear failed');
     }
@@ -186,7 +184,7 @@ struct PiPContent {
   buildXComponent() {
     XComponent({ type: XComponentType.SURFACE, controller: this.xComponentController } as XComponentOptions)
       .onLoad(() => {
-        PiPManager.initXComponentController(this.windowId, this.xComponentController);
+        PiPManager.initXComponentController(this.xComponentController);
         hilog.info(DOMAIN, TAG, 'XComponent onLoad done');
 
       })

@@ -313,7 +313,6 @@
             OHOS::Rosen::SceneSession::GetForceHideState*;
             OHOS::Rosen::SceneSession::GetPiPTemplateInfo*;
             OHOS::Rosen::SceneSession::IsLayoutFullScreen*;
-            OHOS::Rosen::SceneSession::GetSessionCreateTimestamp*;
             OHOS::Rosen::SceneSession::IsViewKeepScreenOn*;
             OHOS::Rosen::SceneSession::GetAbilityColorMode*;
             OHOS::Rosen::SceneSession::GetCollaboratorType*;

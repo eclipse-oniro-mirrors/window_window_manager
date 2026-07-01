@@ -19,7 +19,6 @@
 #include "js_pip_utils.h"
 #include "js_runtime_utils.h"
 #include "window_manager_hilog.h"
-#include "picture_in_picture_manager.h"
 #include "window.h"
 #include "xcomponent_controller.h"
 
@@ -49,13 +48,11 @@ namespace {
         PiPControlGroup::VIDEO_PLAY_PAUSE,
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
-    const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
-        {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
     };
     const char* ARKUI_WINDOW_PIP_CREATE = "ArkUI.window.pip.create";
 
@@ -65,15 +62,7 @@ namespace {
 
 static int32_t checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups)
 {
-    if (!PictureInPictureManager::IsTemplateTypeSupported(static_cast<PiPTemplateType>(pipTemplateType))) {
-        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, unsupported pipTemplateType: %{public}u", pipTemplateType);
-        return -1;
-    }
     auto iter = TEMPLATE_CONTROL_MAP.find(static_cast<PiPTemplateType>(pipTemplateType));
-    if (iter == TEMPLATE_CONTROL_MAP.end()) {
-        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, pipTemplateType not exists.");
-        return -1;
-    }
     auto controls = iter->second;
     if (controlGroups.size() > MAX_CONTROL_GROUP_NUM) {
         return -1;
@@ -126,8 +115,9 @@ static int32_t checkOptionParams(PipOption& option)
         return -1;
     }
     uint32_t pipTemplateType = option.GetPipTemplate();
-    if (!PictureInPictureManager::IsTemplateTypeSupported(static_cast<PiPTemplateType>(pipTemplateType))) {
-        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, pipTemplateType not supported.");
+    if (TEMPLATE_CONTROL_MAP.find(static_cast<PiPTemplateType>(pipTemplateType)) ==
+        TEMPLATE_CONTROL_MAP.end()) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, pipTemplateType not exists.");
         return -1;
     }
     uint32_t defaultWindowSizeType = option.GetDefaultWindowSizeType();

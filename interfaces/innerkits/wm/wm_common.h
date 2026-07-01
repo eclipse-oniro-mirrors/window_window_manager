@@ -16,13 +16,11 @@
 #ifndef OHOS_ROSEN_WM_COMMON_H
 #define OHOS_ROSEN_WM_COMMON_H
 
-#include <algorithm>
 #include <iomanip>
 #include <limits>
 #include <map>
 #include <sstream>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -1923,129 +1921,8 @@ enum class PiPTemplateType : uint32_t {
     VIDEO_CALL = 1,
     VIDEO_MEETING = 2,
     VIDEO_LIVE = 3,
-    VIDEO_DRIVE = 4,
     END,
 };
-
-struct PiPGroupConfig {
-    uint32_t groupId = 0;
-    std::vector<PiPTemplateType> types;
-    uint32_t maxCount = 0;
-};
-
-struct PiPMultiConfig;
-inline PiPMultiConfig GetDefaultPiPMultiConfig();
-
-struct PiPMultiConfig : public Parcelable {
-    std::vector<PiPGroupConfig> groups = { { 1,
-        { PiPTemplateType::VIDEO_PLAY, PiPTemplateType::VIDEO_CALL, PiPTemplateType::VIDEO_MEETING,
-            PiPTemplateType::VIDEO_LIVE},
-        1 } };
-    std::unordered_map<uint32_t, uint32_t> groupCounts_;
-
-    bool Marshalling(Parcel& parcel) const override
-    {
-        if (!parcel.WriteUint32(static_cast<uint32_t>(groups.size()))) {
-            return false;
-        }
-        for (const auto& group : groups) {
-            if (!parcel.WriteUint32(group.groupId) || !parcel.WriteUint32(group.maxCount)) {
-                return false;
-            }
-            if (!parcel.WriteUint32(static_cast<uint32_t>(group.types.size()))) {
-                return false;
-            }
-            for (auto type : group.types) {
-                if (!parcel.WriteUint32(static_cast<uint32_t>(type))) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    static PiPMultiConfig* Unmarshalling(Parcel& parcel)
-    {
-        auto* config = new (std::nothrow) PiPMultiConfig();
-        if (config == nullptr) {
-            return nullptr;
-        }
-        uint32_t groupCount = 0;
-        if (!parcel.ReadUint32(groupCount)) {
-            delete config;
-            return nullptr;
-        }
-        std::vector<PiPGroupConfig> groups;
-        for (uint32_t i = 0; i < groupCount; ++i) {
-            PiPGroupConfig group;
-            if (!parcel.ReadUint32(group.groupId) || !parcel.ReadUint32(group.maxCount)) {
-                delete config;
-                return nullptr;
-            }
-            uint32_t typeCount = 0;
-            if (!parcel.ReadUint32(typeCount)) {
-                delete config;
-                return nullptr;
-            }
-            for (uint32_t j = 0; j < typeCount; ++j) {
-                uint32_t type = 0;
-                if (!parcel.ReadUint32(type)) {
-                    delete config;
-                    return nullptr;
-                }
-                group.types.push_back(static_cast<PiPTemplateType>(type));
-            }
-            groups.push_back(group);
-        }
-        if (!groups.empty()) {
-            config->groups = std::move(groups);
-        }
-        return config;
-    }
-
-    bool FindGroupConfig(PiPTemplateType type, PiPGroupConfig& group) const
-    {
-        for (const auto& item : groups) {
-            if (std::find(item.types.begin(), item.types.end(), type) != item.types.end()) {
-                group = item;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    void ResetGroupCounts()
-    {
-        groupCounts_.clear();
-    }
-
-    void IncreaseGroupCount(uint32_t groupId)
-    {
-        ++groupCounts_[groupId];
-    }
-
-    void DecreaseGroupCount(uint32_t groupId)
-    {
-        auto iter = groupCounts_.find(groupId);
-        if (iter == groupCounts_.end()) {
-            return;
-        }
-        if (iter->second > 0) {
-            --iter->second;
-        }
-    }
-
-    uint32_t GetGroupCount(uint32_t groupId) const
-    {
-        auto iter = groupCounts_.find(groupId);
-        return (iter == groupCounts_.end()) ? 0 : iter->second;
-    }
-};
-
-inline PiPMultiConfig GetDefaultPiPMultiConfig()
-{
-    return PiPMultiConfig {};
-}
 
 /**
  * @brief Enumerates picture in picture control group.
@@ -2149,7 +2026,6 @@ struct PiPTemplateInfo : public Parcelable {
     uint32_t defaultWindowSizeType{0};
     bool cornerAdsorptionEnabled{true};
     bool isWeb{false};
-    int64_t createTimestamp{0};
 
     PiPTemplateInfo() {}
 
@@ -2187,27 +2063,23 @@ struct PiPTemplateInfo : public Parcelable {
         if (!parcel.WriteBool(cornerAdsorptionEnabled) || !parcel.WriteBool(isWeb)) {
             return false;
         }
-        if (!parcel.WriteInt64(createTimestamp)) {
-            return false;
-        }
         return true;
     }
 
-    static bool ReadPiPTemplateBaseInfo(Parcel& parcel, PiPTemplateInfo* pipTemplateInfo, uint32_t& controlStatusSize)
+    static PiPTemplateInfo* Unmarshalling(Parcel& parcel)
     {
+        auto* pipTemplateInfo = new PiPTemplateInfo();
         if (!parcel.ReadUint32(pipTemplateInfo->pipTemplateType) || !parcel.ReadUint32(pipTemplateInfo->priority)) {
-            return false;
+            delete pipTemplateInfo;
+            return nullptr;
         }
+        uint32_t controlStatusSize = 0;
         if (!parcel.ReadUInt32Vector(&pipTemplateInfo->controlGroup) ||
             pipTemplateInfo->controlGroup.size() > MAX_SIZE_PIP_CONTROL_GROUP ||
             !parcel.ReadUint32(controlStatusSize) || controlStatusSize > MAX_SIZE_PIP_CONTROL) {
-            return false;
+            delete pipTemplateInfo;
+            return nullptr;
         }
-        return true;
-    }
-
-    static bool ReadPiPTemplateControlInfo(Parcel& parcel, PiPTemplateInfo* pipTemplateInfo, uint32_t controlStatusSize)
-    {
         for (uint32_t i = 0; i < controlStatusSize; i++) {
             uint32_t controlType;
             int32_t status;
@@ -2219,10 +2091,10 @@ struct PiPTemplateInfo : public Parcelable {
             info.status = static_cast<PiPControlStatus>(status);
             pipTemplateInfo->pipControlStatusInfoList.emplace_back(info);
         }
-        return true;
         uint32_t controlEnableSize = 0;
         if (!parcel.ReadUint32(controlEnableSize) || controlEnableSize > MAX_SIZE_PIP_CONTROL) {
-            return false;
+            delete pipTemplateInfo;
+            return nullptr;
         }
         for (uint32_t i = 0; i < controlEnableSize; i++) {
             uint32_t controlType;
@@ -2236,26 +2108,10 @@ struct PiPTemplateInfo : public Parcelable {
             pipTemplateInfo->pipControlEnableInfoList.emplace_back(info);
         }
         if (!parcel.ReadUint32(pipTemplateInfo->defaultWindowSizeType)) {
-            return false;
-        }
-        if (!parcel.ReadBool(pipTemplateInfo->cornerAdsorptionEnabled) || !parcel.ReadBool(pipTemplateInfo->isWeb)) {
-            return false;
-        }
-        if (!parcel.ReadInt64(pipTemplateInfo->createTimestamp)) {
-            return false;
-        }
-        return true;
-    }
-
-    static PiPTemplateInfo* Unmarshalling(Parcel& parcel)
-    {
-        auto* pipTemplateInfo = new PiPTemplateInfo();
-        uint32_t controlStatusSize = 0;
-        if (!ReadPiPTemplateBaseInfo(parcel, pipTemplateInfo, controlStatusSize)) {
             delete pipTemplateInfo;
             return nullptr;
         }
-        if (!ReadPiPTemplateControlInfo(parcel, pipTemplateInfo, controlStatusSize)) {
+        if (!parcel.ReadBool(pipTemplateInfo->cornerAdsorptionEnabled) || !parcel.ReadBool(pipTemplateInfo->isWeb)) {
             delete pipTemplateInfo;
             return nullptr;
         }
