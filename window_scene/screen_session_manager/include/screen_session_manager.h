@@ -1212,7 +1212,7 @@ private:
     void RegisterSettingWiredScreenGamutObserver();
     void SetWiredScreenGamut();
     void SetBorderingAreaPercent();
-    bool HandleSwitchPcMode();
+    bool HandleSwitchPcMode(bool isTargetPcMode);
     void ChangeWatchDogTimeInterval(const std::string& name, uint64_t interval);
     void SwitchModeHandleExternalScreen(bool isSwitchToPcMode);
     void SetScreenNameWhenSwitchMode(const sptr<ScreenSession>& screenSession, bool isSwitchToPcMode);
