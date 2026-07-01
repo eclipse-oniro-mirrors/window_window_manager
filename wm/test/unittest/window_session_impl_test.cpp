@@ -681,6 +681,60 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus03, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateFocus04
+ * @tc.desc: UpdateFocus with otherWindowId INVALID in sync mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFocus04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFocus04");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, INVALID_SESSION_ID,
+        window->GetWindowId(), true);
+    info->isSameCallingPid_ = false;
+    WSError res = window->UpdateFocus(info, true);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
+    info->timeStamp_ = currentTimeStamp + 2000;
+    res = window->UpdateFocus(info, false);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 2000);
+}
+
+/**
+ * @tc.name: UpdateFocus05
+ * @tc.desc: UpdateFocus with focusWindowId INVALID in sync mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFocus05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFocus05");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, window->GetWindowId(),
+        INVALID_SESSION_ID, true);
+    info->isSameCallingPid_ = false;
+    WSError res = window->UpdateFocus(info, true);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
+    info->timeStamp_ = currentTimeStamp + 2000;
+    res = window->UpdateFocus(info, false);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 2000);
+}
+
+/**
  * @tc.name: RequestFocusByClient
  * @tc.desc: RequestFocusByClient Test
  * @tc.type: FUNC
