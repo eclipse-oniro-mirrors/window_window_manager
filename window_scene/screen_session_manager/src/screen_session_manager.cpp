@@ -12728,7 +12728,8 @@ void ScreenSessionManager::HandleFoldStatusChangeWhenSwitchUser(
     auto foldStatus = GetFoldStatus();
     TLOGNFE(WmsLogTag::DMS, "old mode: %{public}u, cur mode: %{public}u", oldScbDisplayMode, GetFoldDisplayMode());
     
-    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() ||
+        FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
         screenSession->UpdatePropertyByFoldControl(screenSession->GetScreenProperty());
         OnVerticalChangeBoundsWhenSwitchUser(screenSession, oldScbDisplayMode);
         ScreenPropertyChangeReason reason = FoldDisplayMode::MAIN == GetFoldDisplayMode() ?

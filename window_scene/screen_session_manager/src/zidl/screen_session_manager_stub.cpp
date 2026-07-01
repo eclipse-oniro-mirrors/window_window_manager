@@ -17,6 +17,7 @@
 
 #include "common/rs_rect.h"
 #include "dm_common.h"
+#include "ws_common.h"
 #include <ipc_skeleton.h>
 #include "transaction/rs_marshalling_helper.h"
 #include "marshalling_helper.h"
@@ -1764,7 +1765,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
                 return ERR_INVALID_DATA;
             }
-            SubscribeMotionSensor(motionType);
+            WSError ret = SubscribeMotionSensor(motionType);
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR: {
@@ -1773,7 +1775,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
                 return ERR_INVALID_DATA;
             }
-            UnsubscribeMotionSensor(motionType);
+            WSError ret = UnsubscribeMotionSensor(motionType);
+            reply.WriteInt32(static_cast<int32_t>(ret));
             break;
         }
         default:

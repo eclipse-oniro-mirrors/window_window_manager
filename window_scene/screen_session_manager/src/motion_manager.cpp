@@ -17,6 +17,8 @@
 #include "screen_session_manager.h"
 #include <parameters.h>
 #include <securec.h>
+#include "session_permission.h"
+#include "ws_common.h"
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 #include "screen_sensor_plugin.h"
@@ -170,18 +172,28 @@ void MotionManager::UnsubscribeMotionSensorInternal(MotionType motionType)
 #endif
 }
 
-void MotionManager::SubscribeMotionSensor(MotionType motionType)
+WSError MotionManager::SubscribeMotionSensor(MotionType motionType)
 {
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!")
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
     needSubscribedMotionTypes_[motionType] = true;
     SubscribeMotionSensorInternal(motionType);
+    return WSError::WS_OK;
 }
 
-void MotionManager::UnsubscribeMotionSensor(MotionType motionType)
+WSError MotionManager::UnsubscribeMotionSensor(MotionType motionType)
 {
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!")
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
     needSubscribedMotionTypes_[motionType] = false;
     UnsubscribeMotionSensorInternal(motionType);
+    return WSError::WS_OK;
 }
 
 void MotionManager::OnScreenOn()
