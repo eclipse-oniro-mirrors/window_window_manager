@@ -48,6 +48,7 @@ ohos_shared_library("floatingball_kit") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
+    "../common:wm_napi_util",
   ]
 
   external_deps = [

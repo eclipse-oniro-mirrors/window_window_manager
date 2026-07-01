@@ -46,6 +46,7 @@ ohos_shared_library("floatview_kit") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
+    "../common:wm_napi_util",
     "../floating_ball_napi:floatingball_kit",
   ]
 
@@ -93,6 +94,7 @@ ohos_shared_library("floatview_napi") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
+    "../common:wm_napi_util",
     "../floating_ball_napi:floatingball_kit",
   ]
 
