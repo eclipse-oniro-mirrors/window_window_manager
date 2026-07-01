@@ -292,7 +292,7 @@ HWTEST_F(SceneSessionTest5, NotifyOutsideDownEvent, TestSize.Level1)
     sptr<SceneSession> session1 = sptr<SceneSession>::MakeSptr(info, nullptr);
     session1->NotifyOutsideDownEvent(pointerEvent);
 
-    info.bundleName_ = "SCBGestureBack";
+    info.bundleName_ = "NormalApp";
     info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::NORMAL);
     sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info, nullptr);
     session2->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
@@ -300,11 +300,15 @@ HWTEST_F(SceneSessionTest5, NotifyOutsideDownEvent, TestSize.Level1)
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     session2->NotifyOutsideDownEvent(pointerEvent);
 
-    info.bundleName_ = "SCBSystemSwipeDownArea";
-    sptr<SceneSession> session3 = sptr<SceneSession>::MakeSptr(info, nullptr);
-    session3->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    session3->specificCallback_->onSessionTouchOutside_ = [](int32_t id, DisplayId displayId) {};
-    session3->NotifyOutsideDownEvent(pointerEvent);
+    session2->sessionInfo_.bundleName_ = "SCBGestureBack";
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->sessionInfo_.bundleName_ = "SCBSystemSwipeDownArea";
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->sessionInfo_.bundleName_ = "SCBGestureBack";
+    session2->specificCallback_->onSessionTouchOutside_ = nullptr;
+    session2->NotifyOutsideDownEvent(pointerEvent);
 }
 
 /**

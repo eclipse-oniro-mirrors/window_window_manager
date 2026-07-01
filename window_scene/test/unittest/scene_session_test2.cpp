@@ -930,6 +930,13 @@ HWTEST_F(SceneSessionTest2, ProcessPointDownSession, TestSize.Level1)
     sceneSession->sessionInfo_.bundleName_ = "SCBSystemSwipeDownArea";
     EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
 
+    sceneSession->specificCallback_->onSessionTouchOutside_ = nullptr;
+    sceneSession->sessionInfo_.bundleName_ = "SCBGestureBack";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
+    sceneSession->sessionInfo_.bundleName_ = "NormalApp";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
     sceneSession->specificCallback_->onOutsideDownEvent_ = nullptr;
 
     info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::TRANSMIT_ALL);
