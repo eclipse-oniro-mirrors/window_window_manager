@@ -17,6 +17,7 @@
 
 #include "common/rs_rect.h"
 #include "dm_common.h"
+#include "ws_common.h"
 #include <ipc_skeleton.h>
 #include "transaction/rs_marshalling_helper.h"
 #include "marshalling_helper.h"
@@ -1764,6 +1765,12 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
                 return ERR_INVALID_DATA;
             }
+            if (!SessionPermission::IsSystemCalling()) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!")
+                WSError ret = WSError::WS_ERROR_INVALID_PERMISSION;
+                reply.WriteInt32(static_cast<int32_t>(ret));
+                break;
+            }
             SubscribeMotionSensor(motionType);
             break;
         }
@@ -1772,6 +1779,12 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             if (!data.ReadInt32(motionType)) {
                 TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
                 return ERR_INVALID_DATA;
+            }
+            if (!SessionPermission::IsSystemCalling()) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!")
+                WSError ret = WSError::WS_ERROR_INVALID_PERMISSION;
+                reply.WriteInt32(static_cast<int32_t>(ret));
+                break;
             }
             UnsubscribeMotionSensor(motionType);
             break;
