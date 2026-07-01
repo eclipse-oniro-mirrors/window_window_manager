@@ -3610,7 +3610,7 @@ void ScreenSession::UpdateScbScreenPropertyToServer(const ScreenProperty& screen
     std::lock_guard<std::mutex> lock(propertyMutex_);
 
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
-        UpdateScbScreenPropertyForSuperFlod(screenProperty);
+        UpdateScbScreenPropertyForSuperFold(screenProperty);
         const auto& screenBoundsRect = screenProperty.GetBounds().rect_;
         TLOGI(WmsLogTag::DMS,
               "ProcPropertyChange After: width_= %{public}f, height_= %{public}f",
