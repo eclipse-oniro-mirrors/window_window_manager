@@ -358,7 +358,8 @@ WSErrorResult SceneSessionManagerProxy::DestroyAndDisconnectSpecificSession(cons
     return WSErrorResult{static_cast<WSError>(reply.ReadInt32()), reply.ReadString()};
 }
 
-WSErrorResult SceneSessionManagerProxy::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+WSErrorResult SceneSessionManagerProxy::DestroyAndDisconnectSpecificSessionWithDetachCallback(
+    const int32_t persistentId,
     const sptr<IRemoteObject>& callback)
 {
     MessageParcel data;
