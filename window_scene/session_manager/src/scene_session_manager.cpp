@@ -2841,9 +2841,9 @@ WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<
             ExceptionInfo exceptionInfo;
             exceptionInfo.needRemoveSession = true;
             if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
-                abilitySessionInfo->errReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+                abilitySessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
             } else {
-                abilitySessionInfo->errReason = ERR_REASON_DEFAULT;
+                abilitySessionInfo->errorReason = ERR_REASON_DEFAULT;
             }
             sceneSession->NotifySessionExceptionInner(abilitySessionInfo, exceptionInfo, false, true);
             if (startUIAbilityErrorFunc_ && static_cast<WSError>(errCode) == WSError::WS_ERROR_EDM_CONTROLLED) {
@@ -4105,9 +4105,9 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         ExceptionInfo exceptionInfo;
         exceptionInfo.needRemoveSession = true;
         if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
-            sceneSessionInfo->errReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+            sceneSessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
         } else {
-            sceneSessionInfo->errReason = ERR_REASON_DEFAULT;
+            sceneSessionInfo->errorReason = ERR_REASON_DEFAULT;
         }
         sceneSession->NotifySessionExceptionInner(sceneSessionInfo, exceptionInfo, false, true);
         if (startUIAbilityErrorFunc_ && static_cast<WSError>(errCode) == WSError::WS_ERROR_EDM_CONTROLLED) {
@@ -5016,7 +5016,7 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
                 TLOGNE(WmsLogTag::WMS_PIP, "pip window is not enabled to create.");
             }
             if (checkResult != WSError::WS_OK) {
-                return checkResult;
+                return WSErrorResult{checkResult, "pip window check error"};
             }
         }
         // create specific session
@@ -6489,9 +6489,9 @@ WSError SceneSessionManager::StartOrMinimizeUIAbilityBySCB(const sptr<SceneSessi
             ExceptionInfo exceptionInfo;
             exceptionInfo.needRemoveSession = true;
             if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
-                abilitySessionInfo->errReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+                abilitySessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
             } else {
-                abilitySessionInfo->errReason = ERR_REASON_DEFAULT;
+                abilitySessionInfo->errorReason = ERR_REASON_DEFAULT;
             }
             sceneSession->NotifySessionExceptionInner(abilitySessionInfo, exceptionInfo, false, true);
             if (startUIAbilityErrorFunc_ && static_cast<WSError>(errCode) == WSError::WS_ERROR_EDM_CONTROLLED) {
