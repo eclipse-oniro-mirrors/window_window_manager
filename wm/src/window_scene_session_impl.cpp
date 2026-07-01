@@ -2613,7 +2613,7 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
         if (ret != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_LIFE,
                 "DestroyAndDisconnectSpecificSession failed, errCode: %{public}d, msg: %{public}s",
-                result.errCode, result.errMsg);
+                result.errCode, result.errMsg.c_str());
         }
         return ret;
     }
@@ -2625,7 +2625,7 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LIFE,
             "DestroyAndDisconnectSpecificSessionWithDetachCallback failed, errCode: %{public}d, msg: %{public}s",
-            result.errCode, result.errMsg);
+            result.errCode, result.errMsgresult.errMsg.c_str());
         return ret;
     }
     auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
