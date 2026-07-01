@@ -632,12 +632,6 @@ void ScreenSessionManager::Init()
         TLOGNFI(WmsLogTag::DMS, "Dms in rescue mode, not need watchdog.");
         screenEventTracker_.RecordEvent("Dms in rescue mode, not need watchdog.");
     }
-    auto stringConfig = ScreenSceneConfig::GetStringConfig();
-    if (stringConfig.count("defaultDisplayCutoutPath") != 0) {
-        std::string defaultDisplayCutoutPath = static_cast<std::string>(stringConfig["defaultDisplayCutoutPath"]);
-        TLOGD(WmsLogTag::DMS, "defaultDisplayCutoutPath = %{public}s.", defaultDisplayCutoutPath.c_str());
-        ScreenSceneConfig::SetCutoutSvgPath(GetDefaultScreenId(), defaultDisplayCutoutPath);
-    }
     if (!LoadMotionSensor()) {
         screenEventTracker_.RecordEvent("Dms load motion plugin failed.");
         TLOGNFW(WmsLogTag::DMS, "load motion plugin failed.");
@@ -1751,6 +1745,15 @@ void ScreenSessionManager::OnScreenChange(ScreenId screenId, ScreenEvent screenE
                 screenId, static_cast<int>(reason));
         }
         return;
+    }
+    if (!isCutoutLoad_ && screenEvent == ScreenEvent::CONNECTED) {
+        isCutoutLoad_ = true;
+        auto stringConfig = ScreenSceneConfig::GetStringConfig();
+        if (stringConfig.count("defaultDisplayCutoutPath") != 0) {
+            std::string defaultDisplayCutoutPath = static_cast<std::string>(stringConfig["defaultDisplayCutoutPath"]);
+            TLOGD(WmsLogTag::DMS, "defaultDisplayCutoutPath = %{public}s.", defaultDisplayCutoutPath.c_str());
+            ScreenSceneConfig::SetCutoutSvgPath(GetDefaultScreenId(), defaultDisplayCutoutPath);
+        }
     }
     if (g_isPcDevice) {
         OnScreenChangeForPC(screenId, screenEvent, reason, connectToRenderToken);
