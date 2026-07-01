@@ -17,6 +17,8 @@
 #include "screen_session_manager.h"
 #include <parameters.h>
 #include <securec.h>
+#include "session_permission.h"
+#include "ws_common.h"
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 #include "screen_sensor_plugin.h"
