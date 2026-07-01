@@ -3496,7 +3496,9 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
     screenProperty.SetDpiPhyBounds(eventPara.GetPhyWidth(), eventPara.GetPhyHeight());
     screenProperty.SetPhyBounds(eventPara.GetPhyBounds());
     screenProperty.SetBounds(eventPara.GetBounds());
-    screenProperty.SetAvailableArea(eventPara.GetAvailableArea());
+    DMRect calRect = DMRect{0, 0, eventPara.GetBounds().rect_.width_,
+                eventPara.GetBounds().rect_.height_};
+    screenProperty.SetAvailableArea(calRect);
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
         DisplayOrientation deviceOrientation =
             CalcDeviceOrientation(screenProperty.GetScreenRotation(), eventPara.GetDisplayMode());
