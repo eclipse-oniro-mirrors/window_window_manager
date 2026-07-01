@@ -6933,6 +6933,7 @@ std::vector<Rect> WindowSessionImpl::GetAncoWindowHotAreas()
     int32_t posY = property_->GetWindowRect().posY_;
     int32_t decorHeight = uiContent->GetContainerModalTitleHeight();
     int32_t statusBarHeight = property_->GetStatusBarHeightInImmersive();
+    bool isFullScreen = mode == WindowMode::WINDOW_MODE_FULLSCREEN;
     if (isFullScreen && !isTitleShowInFullScreen_) {
         return rectAreas;
     }
