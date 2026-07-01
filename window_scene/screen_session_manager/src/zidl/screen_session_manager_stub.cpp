@@ -1767,7 +1767,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 return ERR_INVALID_DATA;
             }
             if (!SessionPermission::IsSystemCalling()) {
-                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!")
+                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!");
                 WSError ret = WSError::WS_ERROR_INVALID_PERMISSION;
                 reply.WriteInt32(static_cast<int32_t>(ret));
                 break;
@@ -1782,7 +1782,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 return ERR_INVALID_DATA;
             }
             if (!SessionPermission::IsSystemCalling()) {
-                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!")
+                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!");
                 WSError ret = WSError::WS_ERROR_INVALID_PERMISSION;
                 reply.WriteInt32(static_cast<int32_t>(ret));
                 break;
