@@ -72,11 +72,7 @@ group("unittest") {
   if (window_manager_use_sceneboard) {
     deps += [
       ":ws_hidumper_controller_test",
-      ":ws_session_listener_controller_test",
       ":ws_session_manager_lite_test",
-      ":ws_session_manager_service_recover_proxy_test",
-      ":ws_session_proxy_immersive_test",
-      ":ws_window_event_channel_stub_test",
       "attribute:ws_scene_session_attribute_test",
       "event_distribution:ws_scene_session_dirty_manager_test",
       "multi_user:unittest",

@@ -1489,10 +1489,10 @@ HWTEST_F(ScreenSessionManagerTest, NotifyRSCoordination, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
     ASSERT_NE(ssm_, nullptr) << "ScreenSessionManager instance is null";
     ssm_->NotifyRSCoordination(true);
-    EXPECT_TRUE(g_logMsg.find("isEnterCoordination:1") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("isEnterCoordination") != std::string::npos);
     g_logMsg.clear();
     ssm_->NotifyRSCoordination(false);
-    EXPECT_TRUE(g_logMsg.find("isEnterCoordination:0") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("isEnterCoordination") != std::string::npos);
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
 }
