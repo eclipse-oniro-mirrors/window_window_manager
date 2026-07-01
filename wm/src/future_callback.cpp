@@ -120,11 +120,11 @@ void FutureCallback::ResetRotationResultLock()
     getRotationResultFuture_.ResetLock({});
 }
 
-int32_t FutureCallback::GetUpdateRectResult(long timeOut)
+int32_t FutureCallback::GetUpdateRectResult(long timeoutMs)
 {
-    return updateRectFuture_.GetResult(timeOut);
+    return updateRectFuture_.GetResult(timeoutMs);
 }
- 
+
 void FutureCallback::OnFirstValidRectUpdate(int32_t persistentId)
 {
     updateRectFuture_.SetValue(persistentId);

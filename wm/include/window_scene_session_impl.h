@@ -49,6 +49,7 @@ public:
         bool isFromInnerkits = false) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
+    WMError NotifyRemoveStartingWindow() override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
     void UpdateAnimationSpeedIfEnabled();
     void PreProcessCreate();
@@ -255,7 +256,6 @@ public:
     WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY) override;
     WmErrorCode StopMoveWindow() override;
-    WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
 
@@ -294,13 +294,6 @@ public:
      */
     WMError SetGestureBackEnabled(bool enable) override;
     WMError GetGestureBackEnabled(bool& enable) const override;
-
-    /*
-     * PC Fold Screen
-     */
-    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
-    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
-    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
 
     /*
      * Window Property
@@ -342,9 +335,15 @@ public:
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
 
     /*
-     * Starting Window
+     * PC Fold Screen
      */
-    WMError NotifyRemoveStartingWindow() override;
+    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
+    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
+
+    /*
+     * PC Screen Manager
+     */
+    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
 
     /*
      * Window Scene
@@ -631,8 +630,14 @@ private:
     /*
      * PC Window Layout
      */
+    WMError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
+
+    /*
+     * PC Window Layout
+     */
     bool CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const;
     void ApplyMaximizePresentation(MaximizePresentation presentation);
+    WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     WMError CheckMaximizePreConditions(AcrossDisplayPresentation state);
     WMError ExecuteMaximizeWithOptions(MaximizePresentation presentation,
         AcrossDisplayPresentation state, const SnapshotAnimationConfig& snapshotAnimationConfig);
@@ -708,7 +713,6 @@ private:
     static WMError VerifySubWindowLevel(bool isToast, const sptr<WindowSessionImpl>& parentSession);
     bool hasAncestorFloatSession(uint32_t parentId, const SessionMap& sessionMap);
     WMError SetParentWindowInner(int32_t oldParentWindowId, const sptr<WindowSessionImpl>& newParentWindow);
-    WMError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
 
     WMError RegisterKeyboardPanelInfoChangeListener(const sptr<IKeyboardPanelInfoChangeListener>& listener) override;
     WMError UnregisterKeyboardPanelInfoChangeListener(const sptr<IKeyboardPanelInfoChangeListener>& listener) override;

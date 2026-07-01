@@ -704,7 +704,6 @@ public:
      */
     std::shared_ptr<RSUIDirector> GetRSUIDirector() const override;
     std::shared_ptr<RSUIContext> GetRSUIContext() const override;
-
     /*
      * Window LifeCycle
      */
@@ -1432,7 +1431,6 @@ private:
     std::string subWindowTitle_ = { "" };
     std::string dialogTitle_ = { "" };
     WindowTitleVisibleFlags windowTitleVisibleFlags_;
-
     std::string restoredRouterStack_; // It was set and get in same thread, which is js thread.
 
     /*
