@@ -515,7 +515,7 @@
         GetGtxTouchEvent*;
         RegisterInputEventScale*;
         UnRegisterInputEventScale*;
-    }
+    };
     local:
     *;
 };
