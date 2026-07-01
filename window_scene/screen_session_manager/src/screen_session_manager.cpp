@@ -3069,6 +3069,7 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
 
 sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
 {
+    TLOGI(WmsLogTag::DMS, "get userId %{public}u", userId);
     if (IsConcurrentUser()) {
         if (userId == CONCURRENT_USER_ID_DEFAULT) {
             userId = GetUserIdByCallingUid();
@@ -3091,7 +3092,7 @@ sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
         }
     }
 #endif
-    TLOGD(WmsLogTag::DMS, "get screenId %{public}" PRIu64" with userId %{public}u", screenId, userId);
+    TLOGI(WmsLogTag::DMS, "get screenId %{public}" PRIu64" with userId %{public}u", screenId, userId);
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
     if (screenSession) {
