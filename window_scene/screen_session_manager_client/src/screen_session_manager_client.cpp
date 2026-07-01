@@ -668,6 +668,10 @@ void ScreenSessionManagerClient::UpdateSuperFoldAvailableArea(ScreenId screenId,
         TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return;
     }
+    auto screenSession = GetScreenSession(screenId);
+    if (screenSession != nullptr) {
+        screenSession->SetAvailableArea(bArea);
+    }
     screenSessionManager_->UpdateSuperFoldAvailableArea(screenId, bArea, cArea);
 }
 
