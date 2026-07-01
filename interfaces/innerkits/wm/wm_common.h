@@ -1600,7 +1600,7 @@ enum class WindowAnchor : uint32_t {
 struct WindowAnchorInfo : public Parcelable {
     bool isAnchorEnabled_ = false;
     bool isAnchoredByAttach_ = false; // Distinguish between binding and unbinding
-    bool isFromAttachOrDetach_ = false; // Distinguish addatchAndDetach or setRelative interfaces
+    bool isFromAttachOrDetach_ = false; // Distinguishing addatchAndDetach or setRelative interfaces
     WindowAnchor windowAnchor_ = WindowAnchor::TOP_START;
     int32_t offsetX_ = 0;
     int32_t offsetY_ = 0;

@@ -2397,6 +2397,7 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && (isSubWindow || isDialogWindow) &&
         !IsZLevelAboveParentLoosened()) {
         uiContent->HideWindowTitleButton(true, onlySupportFullScreen ? true : !IsSubWindowMaximizeSupported(), !onlySupportFullScreen, false);
+        TLOGI(WmsLogTag::WMS_LAYOUT, "HideWindowTitleButton");
         return;
     }
     bool hideSplitButton = !(windowModeSupportType & WindowModeSupport::WINDOW_MODE_SUPPORT_SPLIT_PRIMARY);
@@ -2429,8 +2430,7 @@ void WindowSessionImpl::UpdateTitleButtonVisibility()
                 TLOGND(WmsLogTag::WMS_LAYOUT_PC, "%{public}s uiContent unavailable", where);
                 return;
             }
-            uiContent->OnContainerModalEvent(WINDOW_WATERFALL_VISIBILITY_EVENT,
-                window->supportEnterWaterfallMode_ ? "true" : "false");
+            uiContent->OnContainerModalEvent(WINDOW_WATERFALL_VISIBILITY_EVENT, window->supportEnterWaterfallMode_ ? "true" : "false");
         }, "UIContentOnContainerModalEvent");
     }
 }
@@ -5698,7 +5698,8 @@ EnableIfSame<T, IWindowStatusDidChangeListener, std::vector<sptr<IWindowStatusDi
 }
 
 template<typename T>
-EnableIfSame<T, IParentWindowSizeChangeListener, std::vector<sptr<IParentWindowSizeChangeListener>>> WindowSessionImpl::GetListeners()
+EnableIfSame<T, IParentWindowSizeChangeListener, std::vector<sptr<IParentWindowSizeChangeListener>>> 
+    WindowSessionImpl::GetListeners()
 {
     std::vector<sptr<IParentWindowSizeChangeListener>> parentWindowSizeChangeListeners;
     for (auto& listener : parentWindowSizeChangeListeners_[GetPersistentId()]) {
@@ -5708,7 +5709,8 @@ EnableIfSame<T, IParentWindowSizeChangeListener, std::vector<sptr<IParentWindowS
 }
 
 template<typename T>
-EnableIfSame<T, IParentWindowStatusChangeListener, std::vector<sptr<IParentWindowStatusChangeListener>>> WindowSessionImpl::GetListeners()
+EnableIfSame<T, IParentWindowStatusChangeListener, std::vector<sptr<IParentWindowStatusChangeListener>>> 
+    WindowSessionImpl::GetListeners()
 {
     std::vector<sptr<IParentWindowStatusChangeListener>> parentWindowStatusChangeListeners;
     for (auto& listener : parentWindowStatusChangeListeners_[GetPersistentId()]) {
@@ -9284,7 +9286,7 @@ void WindowSessionImpl::NotifyParentWindowStatusChange(WindowMode mode, Maximize
         std::lock_guard<std::recursive_mutex> lockListener(parentWindowStatusChangeListenerMutex_);
         parentWindowStatusChangeListeners = GetListeners<IParentWindowStatusChangeListener>();
     }
-    TLOGI (WmsLogTag::WMS_LAYOUT, "NotifyParentWindowStatusChange listener count:%{public}zu",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "NotifyParentWindowStatusChange listener count:%{public}zu",
         parentWindowStatusChangeListeners.size());
 
     for (auto& listener : parentWindowStatusChangeListeners) {
