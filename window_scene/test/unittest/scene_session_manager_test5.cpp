@@ -1148,12 +1148,12 @@ HWTEST_F(SceneSessionManagerTest5, CreateAndConnectSpecificSession_forToastSubWi
 
     auto res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
-    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, res);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, res.errCode);
 
     property->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_TOAST);
     res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
-    EXPECT_EQ(WSError::WS_OK, res);
+    EXPECT_EQ(WSError::WS_OK, res.errCode);
 }
 
 /**
@@ -1179,7 +1179,7 @@ HWTEST_F(SceneSessionManagerTest5, CreateAndConnectSpecificSession02, TestSize.L
     ASSERT_NE(property, nullptr);
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     property->SetWindowFlags(123);
-    WSError res = ssm_->CreateAndConnectSpecificSession(
+    WSErrorResult res = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
     ASSERT_EQ(WSError::WS_ERROR_NULLPTR, res); // create main window, property must be nullptr
 

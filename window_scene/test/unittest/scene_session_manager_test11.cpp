@@ -704,7 +704,7 @@ HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.
     auto result = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
         surfaceNode, iRemoteObjectMocker);
-    ASSERT_EQ(result, WSError::WS_ERROR_NOT_SYSTEM_APP);
+    ASSERT_EQ(result.errCode, WSError::WS_ERROR_NOT_SYSTEM_APP);
 
     property->SetTopmost(false);
     property->SetWindowType(WindowType::WINDOW_TYPE_MEDIA);
@@ -716,7 +716,7 @@ HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.
     result = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
         surfaceNode, iRemoteObjectMocker);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_WINDOW);
+    ASSERT_EQ(result.errCode, WSError::WS_ERROR_INVALID_WINDOW);
 
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     parentSession->GetSessionProperty()->SetSubWindowLevel(1);
@@ -724,18 +724,18 @@ HWTEST_F(SceneSessionManagerTest11, CreateAndConnectSpecificSession01, TestSize.
     result = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
         surfaceNode, iRemoteObjectMocker);
-    ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, result);
+    ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, result.errCode);
     MockAccesstokenKit::MockAccessTokenKitRet(0);
     parentSession->SetSessionState(SessionState::STATE_DISCONNECT);
     result = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
         surfaceNode, iRemoteObjectMocker);
-    ASSERT_EQ(WSError::WS_ERROR_INVALID_PARENT, result);
+    ASSERT_EQ(WSError::WS_ERROR_INVALID_PARENT, result.errCode);
     parentSession->SetSessionState(SessionState::STATE_FOREGROUND);
     result = ssm_->CreateAndConnectSpecificSession(
         sessionStage, eventChannel, nodeId, property, persistentId, session, systemConfig, renderSession,
         surfaceNode, iRemoteObjectMocker);
-    ASSERT_EQ(WSError::WS_OK, result);
+    ASSERT_EQ(WSError::WS_OK, result.errCode);
 }
 
 /**
