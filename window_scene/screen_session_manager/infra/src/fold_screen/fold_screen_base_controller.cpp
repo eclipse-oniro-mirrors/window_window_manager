@@ -66,6 +66,12 @@ void FoldScreenBaseController::SetDisplayMode(const FoldDisplayMode displayMode)
     }
 }
 
+void FoldScreenBaseController::RecoverDisplayModeFromCacheMode(const FoldDisplayMode displayMode)
+{
+    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayMode(displayMode,
+        DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE);
+}
+
 void FoldScreenBaseController::RecoverDisplayMode()
 {
     FoldDisplayMode displayMode = FoldScreenBasePolicy::GetInstance().GetModeMatchStatus();

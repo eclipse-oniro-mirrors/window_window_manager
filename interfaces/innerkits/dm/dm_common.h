@@ -956,7 +956,8 @@ enum class DisplayModeChangeReason : uint32_t {
     RECOVER,
     INVALID,
     SETMODE,
-    FORCE_SET
+    FORCE_SET,
+    RECOVER_FROM_CACHE_MODE,
 };
 
 enum class ScreenClosedState : uint32_t {

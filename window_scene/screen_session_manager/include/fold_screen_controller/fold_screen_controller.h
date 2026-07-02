@@ -45,6 +45,7 @@ public:
 
     void BootAnimationFinishPowerInit() override;
     void SetDisplayMode(const FoldDisplayMode displayMode) override;
+    void RecoverDisplayModeFromCacheMode(const FoldDisplayMode displayMode) override;
     void RecoverDisplayMode() override;
     FoldDisplayMode GetDisplayMode() override;
     FoldDisplayMode GetCurrentDisplayMode() const override;

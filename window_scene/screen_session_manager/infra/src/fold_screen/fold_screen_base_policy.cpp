@@ -567,7 +567,12 @@ bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, b
         TLOGI(WmsLogTag::DMS, "clearing bootAnimation not change displayMode");
         return false;
     }
-    SetLastCacheDisplayMode(displayMode);
+    if (reason == DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE) {
+        TLOGI(WmsLogTag::DMS, "recover mode to %{public}d", GetLastCacheDisplayMode());
+        displayMode = GetLastCacheDisplayMode();
+    } else {
+        SetLastCacheDisplayMode(displayMode);
+    }
     if (GetModeChangeRunningStatus()) {
         TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
         return false;

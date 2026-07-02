@@ -6692,7 +6692,7 @@ void ScreenSessionManager::TriggerDisplayModeUpdate(FoldDisplayMode targetDispla
         }
 #endif
         TLOGNI(WmsLogTag::DMS, "start change displaymode to lastest mode");
-        foldScreenController_->SetDisplayMode(targetDisplayMode);
+        foldScreenController_->RecoverDisplayModeFromCacheMode(targetDisplayMode);
     };
     taskScheduler_->PostAsyncTask(updateDisplayModeTask, "updateDisplayModeTask");
 }
