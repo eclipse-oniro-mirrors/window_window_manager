@@ -7939,7 +7939,7 @@ void ScreenSessionManager::NotifyDisplayAttributeChanged(sptr<DisplayInfo> displ
 DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi)
 {
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
-    if (screemSession == nullptr) {
+    if (screenSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
         return DMError::DM_ERROR_NULLPTR;
     }
@@ -7960,7 +7960,7 @@ DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orie
     const OrientationOptions& options, bool isFromNapi)
 {
     sptr<ScreenSession> screenSession = GetScreenSession(screenId);
-    if (screemSession == nullptr) {
+    if (screenSession == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
         return DMError::DM_ERROR_NULLPTR;
     }
