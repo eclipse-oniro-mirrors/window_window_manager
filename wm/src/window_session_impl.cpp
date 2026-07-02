@@ -2165,7 +2165,7 @@ void WindowSessionImpl::NotifyAppUseControlStatus(bool isUseControl)
 
 void WindowSessionImpl::NotifyLifecyclePausedStatus()
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     if (IsWindowSessionInvalid() || state_ != WindowState::STATE_SHOWN) {
         return;
     }
@@ -6200,7 +6200,7 @@ void WindowSessionImpl::NotifyAfterForeground(bool needNotifyListeners, bool nee
 void WindowSessionImpl::GetAttachStateSyncResult(bool waitAttachState, bool afterForeground) const
 {
     if (!lifecycleCallback_) {
-        TLOGW(WmsLogTag::WMS_LIFE, "lifecycleCallback is null");
+        TLOGW(WmsLogTag::WMS_LIFE, "Callback is null");
         return;
     }
     if (waitAttachState && WindowHelper::IsNeedWaitAttachStateWindow(GetType()) &&
@@ -6226,10 +6226,10 @@ void WindowSessionImpl::GetAttachStateSyncResult(bool waitAttachState, bool afte
 
 void WindowSessionImpl::NotifyAfterDidForeground(uint32_t reason)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
+    TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
     if (reason != static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH) &&
         reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d no need notify did foreground", reason);
+        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
         return;
     }
     if (handler_ == nullptr) {
@@ -6243,7 +6243,7 @@ void WindowSessionImpl::NotifyAfterDidForeground(uint32_t reason)
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s window is nullptr", where);
             return;
         }
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s execute", where);
+        TLOGND(WmsLogTag::WMS_LIFE, "%{public}s execute", where);
         auto lifecycleListeners = window->GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterDidForeground, lifecycleListeners, window->isGamePreLaunch_);
     }, where, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
@@ -6281,10 +6281,10 @@ void WindowSessionImpl::NotifyAfterBackground(bool needNotifyListeners, bool nee
 
 void WindowSessionImpl::NotifyAfterDidBackground(uint32_t reason)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
+    TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
     if (reason != static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH) &&
         reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d no need notify did background", reason);
+        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
         return;
     }
     if (handler_ == nullptr) {
@@ -6298,7 +6298,7 @@ void WindowSessionImpl::NotifyAfterDidBackground(uint32_t reason)
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s window is nullptr", where);
             return;
         }
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s execute", where);
+        TLOGND(WmsLogTag::WMS_LIFE, "%{public}s execute", where);
         auto lifecycleListeners = window->GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterDidBackground, lifecycleListeners, false);
     }, where, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
@@ -6504,7 +6504,7 @@ void WindowSessionImpl::NotifyAfterLifecycleBackground()
 
 void WindowSessionImpl::NotifyAfterLifecycleResumed(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     std::lock_guard<std::recursive_mutex> lockListener(windowStageLifeCycleListenerMutex_);
     bool useControlState = property_->GetUseControlState();
     if (useControlState) {
@@ -6531,7 +6531,7 @@ void WindowSessionImpl::NotifyAfterLifecycleResumed(bool isGamePreLaunch)
 
 void WindowSessionImpl::NotifyAfterLifecyclePaused()
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     std::lock_guard<std::recursive_mutex> lockListener(windowStageLifeCycleListenerMutex_);
     if (!isInteractiveStateFlag_) {
         TLOGI(WmsLogTag::WMS_LIFE, "window has been in noninteractive status");
@@ -8099,7 +8099,7 @@ void WindowSessionImpl::NotifyPointerEvent(const std::shared_ptr<MMI::PointerEve
         }
     } else {
         if (pointerEvent->GetPointerAction() != MMI::PointerEvent::POINTER_ACTION_MOVE) {
-            TLOGW(WmsLogTag::WMS_INPUT_KEY_FLOW, "pointerEvent not consumed, windowId:%{public}u", GetWindowId());
+            TLOGW(WmsLogTag::WMS_INPUT_KEY_FLOW, "Not consumed, wId:%{public}u", GetWindowId());
         }
         pointerEvent->MarkProcessed();
     }
@@ -8123,7 +8123,7 @@ WMError WindowSessionImpl::InjectTouchEvent(const std::shared_ptr<MMI::PointerEv
         }
     } else {
         if (pointerEvent->GetPointerAction() != MMI::PointerEvent::POINTER_ACTION_MOVE) {
-            TLOGW(WmsLogTag::WMS_INPUT_KEY_FLOW, "pointerEvent not consumed, windowId:%{public}u", GetWindowId());
+            TLOGW(WmsLogTag::WMS_INPUT_KEY_FLOW, "Not consumed, wId:%{public}u", GetWindowId());
         }
         pointerEvent->MarkProcessed();
         return WMError::WM_ERROR_SYSTEM_ABNORMALLY;
@@ -8338,7 +8338,7 @@ void WindowSessionImpl::DispatchKeyEventCallback(const std::shared_ptr<MMI::KeyE
 
 WSError WindowSessionImpl::HandleBackEvent()
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "in");
+    TLOGD(WmsLogTag::WMS_EVENT, "in");
     bool isConsumed = false;
     std::shared_ptr<IInputEventConsumer> inputEventConsumer;
     {

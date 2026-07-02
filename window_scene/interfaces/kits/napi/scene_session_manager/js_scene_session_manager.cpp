@@ -1253,7 +1253,7 @@ napi_value JsSceneSessionManager::GetRootSceneUIContext(napi_env env, napi_callb
 
 napi_value JsSceneSessionManager::SendTouchEvent(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "in");
+    TLOGD(WmsLogTag::WMS_EVENT, "in");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnSendTouchEvent(env, info) : nullptr;
 }
@@ -2468,7 +2468,7 @@ napi_value JsSceneSessionManager::OnUpdateSceneSessionWant(napi_env env, napi_ca
 
 napi_value JsSceneSessionManager::OnRequestSceneSessionActivation(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -2513,7 +2513,7 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionActivation(napi_env env, 
 
 napi_value JsSceneSessionManager::OnRequestSceneSessionBackground(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     WSErrorCode errCode = WSErrorCode::WS_OK;
     size_t argc = 5;
     napi_value argv[5] = {nullptr};
@@ -2585,7 +2585,7 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionBackground(napi_env env, 
 napi_value JsSceneSessionManager::OnRequestSceneSessionDestruction(napi_env env,
     napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     WSErrorCode errCode = WSErrorCode::WS_OK;
     size_t argc = 6;
     napi_value argv[6] = {nullptr};
@@ -5676,7 +5676,7 @@ static napi_value CreateAppUseControlInfos(
 void JsSceneSessionManager::OnNotifyAppUseControlList(
     ControlAppType type, int32_t userId, const std::vector<AppUseControlInfo>& controlList)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     taskScheduler_->PostMainThreadTask([this, type, userId, controlList,
         jsCallBack = GetJSCallback(NOTIFY_APP_USE_CONTROL_LIST_CB), env = env_] {
         if (jsCallBack == nullptr) {

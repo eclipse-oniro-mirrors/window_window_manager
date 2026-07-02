@@ -4110,7 +4110,7 @@ void Session::NotifySessionStateChange(const SessionState& state)
         } else if (session->sessionStateChangeFunc_) {
             session->sessionStateChangeFunc_(state);
         } else {
-            TLOGNI(WmsLogTag::WMS_LIFE, "sessionStateChangeFunc is null");
+            TLOGND(WmsLogTag::WMS_LIFE, "sessionStateChangeFunc is null");
         }
         if (!session->sessionStateChangeFunc_ && state == SessionState::STATE_DISCONNECT) {
             auto parentSession = session->GetParentSession();
@@ -4124,7 +4124,7 @@ void Session::NotifySessionStateChange(const SessionState& state)
         if (session->sessionStateChangeNotifyManagerFunc_) {
             session->sessionStateChangeNotifyManagerFunc_(session->GetPersistentId(), state);
         } else {
-            TLOGNI(WmsLogTag::WMS_LIFE, "sessionStateChangeNotifyManagerFunc is null");
+            TLOGND(WmsLogTag::WMS_LIFE, "sessionStateChangeNotifyManagerFunc is null");
         }
     }, "NotifySessionStateChange");
 }
@@ -5912,7 +5912,6 @@ void Session::SetTouchHotAreas(const std::vector<Rect>& touchHotAreas)
     for (const auto& rect : touchHotAreas) {
         rectStr = rectStr + " " + rect.ToString();
     }
-    TLOGI(WmsLogTag::WMS_EVENT, "id:%{public}d hot:%{public}s", GetPersistentId(), rectStr.c_str());
     GetSessionProperty()->SetTouchHotAreas(touchHotAreas);
 }
 
