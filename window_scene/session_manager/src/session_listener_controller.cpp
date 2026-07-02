@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "session_helper.h"
 #include "session_listener_controller.h"
 #include "scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -251,14 +252,16 @@ SessionListenerController::AppInstanceFilterKey SessionListenerController::Resol
     const sptr<SceneSession>& session) const
 {
     const auto& sessionInfo = session->GetSessionInfo();
+    int32_t appIndex = sessionInfo.appIndex_;
     std::string appInstanceKey = sessionInfo.appInstanceKey_;
-    if (appInstanceKey.empty()) {
+    if (!SessionHelper::IsMainWindow(session->GetWindowType())) {
         auto mainSession = session->GetMainSession();
         if (mainSession) {
             appInstanceKey = mainSession->GetSessionInfo().appInstanceKey_;
+            appIndex = mainSession->GetSessionInfo().appIndex_;
         }
     }
-    return AppInstanceFilterKey{ sessionInfo.bundleName_, sessionInfo.appIndex_, appInstanceKey };
+    return AppInstanceFilterKey{ sessionInfo.bundleName_, appIndex, appInstanceKey };
 }
 
 ISessionLifecycleListener::LifecycleEventPayload SessionListenerController::ConstructAppInstancePayload(
