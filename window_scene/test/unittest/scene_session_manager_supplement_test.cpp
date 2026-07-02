@@ -598,7 +598,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_01, Test
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -623,7 +623,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_02, Test
 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_NOT_SYSTEM_APP);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_NOT_SYSTEM_APP);
 }
 
 /**
@@ -648,7 +648,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_03, Test
 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -677,7 +677,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_04, Test
     MockAccesstokenKit::MockIsSACalling(false);
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_NOT_SYSTEM_APP);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_NOT_SYSTEM_APP);
 }
 
 /**
@@ -704,7 +704,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_05, Test
 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -731,7 +731,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_06, Test
 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_INVALID_WINDOW);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_INVALID_WINDOW);
 }
 
 /**
@@ -758,7 +758,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_07, Test
 
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_DO_NOTHING);
+    ASSERT_EQ(res.errCode, WSError::WS_DO_NOTHING);
 }
 
 /**
@@ -783,7 +783,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_08, Func
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
         id, session, systemConfig, renderSession, surfaceNode, token);
-    ASSERT_EQ(res, WSError::WS_ERROR_INVALID_OPERATION);
+    ASSERT_EQ(res.errCode, WSError::WS_ERROR_INVALID_OPERATION);
 }
 
 /**
@@ -833,7 +833,6 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     ssm_->sceneSessionMap_.clear();
 }
 
- 
 /**
  * @tc.name: TestCreateAndConnectSession_InheritFreeMultiWindowEnable_False
  * @tc.desc: Test CreateAndConnectSpecificSession inherits freeMultiWindowEnable=false from parent in PC mode
@@ -879,7 +878,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_InheritF
     ASSERT_EQ(systemConfig.freeMultiWindowEnable_, false);
     ssm_->sceneSessionMap_.clear();
 }
- 
+
 /**
  * @tc.name: TestCreateAndConnectSession_NoParentSession
  * @tc.desc: Test CreateAndConnectSpecificSession when parentSession is nullptr
@@ -1695,7 +1694,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestDestroyAndDisconSpecSessionInner
     ssm_->sceneSessionMap_.clear();
     int invaildPersistentId = -1;
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(invaildPersistentId);
-    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -1715,7 +1714,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestDestroyAndDisconSpecSessionInner
     ssm_->sceneSessionMap_.insert({ 1, sceneSession });
     ssm_->GetTopWindowId(1, uid);
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -1740,7 +1739,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestDestroyAndDisconSpecSessionInner
     ASSERT_EQ(property->GetParentPersistentId(), 100);
     sceneSession->SetSessionProperty(property);
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -1765,7 +1764,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestDestroyAndDisconSpecSessionInner
     ASSERT_EQ(property->GetParentPersistentId(), 100);
     sceneSession->SetSessionProperty(property);
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
