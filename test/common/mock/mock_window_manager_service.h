@@ -85,13 +85,13 @@ public:
 
     // func mocked and will be tested
     MOCK_METHOD(WMError, RegisterWindowManagerAgent, (WindowManagerAgentType type,
-        const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId), (override));
     MOCK_METHOD(WMError, UnregisterWindowManagerAgent, (WindowManagerAgentType type,
-        const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId), (override));
     MOCK_METHOD(WMError, RegisterWindowPropertyChangeAgent, (WindowInfoKey windowInfoKey, uint32_t interestInfo,
-        const sptr<IWindowManagerAgent>& windowManagerAgent), (override));
+        const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId), (override));
     MOCK_METHOD(WMError, UnregisterWindowPropertyChangeAgent, (WindowInfoKey, uint32_t,
-        const sptr<IWindowManagerAgent>&), (override));
+        const sptr<IWindowManagerAgent>&, int32_t), (override));
     MOCK_METHOD(WSError, MoveMainWindowToTargetDisplay, (DisplayId displayId, int32_t windowId), (override));
 };
 
@@ -105,9 +105,9 @@ public:
 
     // Virtual function must be wrapped with MOCK_METHOD and placed below.
     MOCK_METHOD(WMError, RegisterWindowManagerAgent,
-        (WindowManagerAgentType, const sptr<IWindowManagerAgent>&), (override));
+        (WindowManagerAgentType, const sptr<IWindowManagerAgent>&, int32_t), (override));
     MOCK_METHOD(WMError, UnregisterWindowManagerAgent,
-        (WindowManagerAgentType, const sptr<IWindowManagerAgent>&), (override));
+        (WindowManagerAgentType, const sptr<IWindowManagerAgent>&, int32_t), (override));
     MOCK_METHOD(void, GetFocusWindowInfo, (FocusChangeInfo&, DisplayId), (override));
     MOCK_METHOD(WMError, CheckWindowId, (int32_t, int32_t&), (override));
     MOCK_METHOD(WMError, CheckUIExtensionCreation,

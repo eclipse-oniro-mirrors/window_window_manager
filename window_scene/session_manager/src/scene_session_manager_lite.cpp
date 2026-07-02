@@ -208,15 +208,15 @@ void SceneSessionManagerLite::GetAllGroupInfo(std::unordered_map<DisplayId, Disp
 }
 
 WMError SceneSessionManagerLite::RegisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
-    return SceneSessionManager::GetInstance().RegisterWindowManagerAgent(type, windowManagerAgent);
+    return SceneSessionManager::GetInstance().RegisterWindowManagerAgent(type, windowManagerAgent, instanceUserId);
 }
 
 WMError SceneSessionManagerLite::UnregisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
-    return SceneSessionManager::GetInstance().UnregisterWindowManagerAgent(type, windowManagerAgent);
+    return SceneSessionManager::GetInstance().UnregisterWindowManagerAgent(type, windowManagerAgent, instanceUserId);
 }
 
 WMError SceneSessionManagerLite::CheckWindowId(int32_t windowId, int32_t& pid)
@@ -379,17 +379,17 @@ WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowIn
 }
 
 WMError SceneSessionManagerLite::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     return SceneSessionManager::GetInstance().RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
-        windowManagerAgent);
+        windowManagerAgent, instanceUserId);
 }
 
 WMError SceneSessionManagerLite::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     return SceneSessionManager::GetInstance().UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
-        windowManagerAgent);
+        windowManagerAgent, instanceUserId);
 }
 
 WMError SceneSessionManagerLite::RecoverWindowPropertyChangeFlag(uint32_t observedFlags, uint32_t interestedFlags)

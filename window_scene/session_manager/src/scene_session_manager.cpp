@@ -13056,29 +13056,29 @@ WMError SceneSessionManager::RecoverWindowPropertyChangeFlag(uint32_t observedFl
 }
 
 WMError SceneSessionManager::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     observedFlags_ |= static_cast<uint32_t>(windowInfoKey);
     interestedFlags_ |= interestInfo;
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "observedFlags: %{public}u, interestedFlags: %{public}u",
         observedFlags_, interestedFlags_);
     return RegisterWindowManagerAgent(
-        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY, windowManagerAgent);
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY, windowManagerAgent, instanceUserId);
 }
 
 WMError SceneSessionManager::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     observedFlags_ &= ~(static_cast<uint32_t>(windowInfoKey));
     interestedFlags_ &= ~interestInfo;
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "observedFlags: %{public}u, interestedFlags: %{public}u",
         observedFlags_, interestedFlags_);
     return UnregisterWindowManagerAgent(
-        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY, windowManagerAgent);
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY, windowManagerAgent, instanceUserId);
 }
 
 WMError SceneSessionManager::RegisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR ||
         type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED ||
@@ -13112,15 +13112,15 @@ WMError SceneSessionManager::RegisterWindowManagerAgent(WindowManagerAgentType t
         return WMError::WM_ERROR_NULLPTR;
     }
     const auto callingPid = IPCSkeleton::GetCallingRealPid();
-    auto task = [this, windowManagerAgent, type, callingPid]() {
+    auto task = [this, windowManagerAgent, type, callingPid, instanceUserId]() {
         return SessionManagerAgentController::GetInstance()
-            .RegisterWindowManagerAgent(windowManagerAgent, type, callingPid);
+            .RegisterWindowManagerAgent(windowManagerAgent, type, callingPid, instanceUserId);
     };
     return taskScheduler_->PostSyncTask(task, "RegisterWindowManagerAgent");
 }
 
 WMError SceneSessionManager::UnregisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR ||
         type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GESTURE_NAVIGATION_ENABLED ||
@@ -13150,9 +13150,9 @@ WMError SceneSessionManager::UnregisterWindowManagerAgent(WindowManagerAgentType
         return WMError::WM_ERROR_NULLPTR;
     }
     const auto callingPid = IPCSkeleton::GetCallingRealPid();
-    auto task = [this, windowManagerAgent, type, callingPid]() {
+    auto task = [this, windowManagerAgent, type, callingPid, instanceUserId]() {
         return SessionManagerAgentController::GetInstance()
-            .UnregisterWindowManagerAgent(windowManagerAgent, type, callingPid);
+            .UnregisterWindowManagerAgent(windowManagerAgent, type, callingPid, instanceUserId);
     };
     return taskScheduler_->PostSyncTask(task, "UnregisterWindowManagerAgent");
 }
