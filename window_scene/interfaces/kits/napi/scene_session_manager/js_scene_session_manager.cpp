@@ -1357,7 +1357,7 @@ napi_value JsSceneSessionManager::UpdateSessionDisplayId(napi_env env, napi_call
 
 napi_value JsSceneSessionManager::UpdateScreenSupportMultiWindow(napi_env env, napi_callback_info info)
 {
-    WLOGFI("[NAPI]");
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnUpdateScreenSupportMultiWindow(env, info) : nullptr;
 }
