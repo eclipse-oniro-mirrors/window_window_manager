@@ -109,6 +109,7 @@ public:
     static napi_value UnregisterRssData(napi_env env, napi_callback_info info);
     static napi_value NotifySessionRecoverStatus(napi_env env, napi_callback_info info);
     static napi_value UpdateSessionDisplayId(napi_env env, napi_callback_info info);
+    static napi_value UpdateScreenSupportMultiWindow(napi_env env, napi_callback_info info);
     static napi_value NotifyStackEmpty(napi_env env, napi_callback_info info);
     static napi_value SetSystemAnimatedScenes(napi_env env, napi_callback_info info);
     static napi_value GetSessionSnapshotPixelMap(napi_env env, napi_callback_info info);
@@ -271,6 +272,7 @@ private:
     napi_value OnRegisterRssData(napi_env env, napi_callback_info info);
     napi_value OnUnregisterRssData(napi_env env, napi_callback_info info);
     napi_value OnUpdateSessionDisplayId(napi_env env, napi_callback_info info);
+    napi_value OnUpdateScreenSupportMultiWindow(napi_env env, napi_callback_info info);
     napi_value OnNotifyStackEmpty(napi_env env, napi_callback_info info);
     napi_value OnUpdateTitleInTargetPos(napi_env env, napi_callback_info info);
     napi_value OnSetSystemAnimatedScenes(napi_env env, napi_callback_info info);

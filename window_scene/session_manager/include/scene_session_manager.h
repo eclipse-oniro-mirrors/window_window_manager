@@ -510,6 +510,7 @@ public:
     void PreloadInLakeApp(const std::string& bundleName);
     WSError UpdateMaximizeMode(int32_t persistentId, bool isMaximize);
     WSError UpdateSessionDisplayId(int32_t persistentId, uint64_t screenId);
+    WSError UpdateScreenSupportMultiWindow(uint64_t screenId, ScreenSupportMultiWindowReason reason);
     void RegisterClientDisplayIdChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession);
     WSError NotifyStackEmpty(int32_t persistentId);
     void NotifySessionUpdate(const SessionInfo& sessionInfo, ActionType type,

@@ -686,6 +686,38 @@ HWTEST_F(SceneSessionManagerTest4, UpdateSessionDisplayId, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateScreenSupportMultiWindow
+ * @tc.desc: UpdateScreenSupportMultiWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateScreenSupportMultiWindow, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+ 
+    auto result = ssm_->UpdateScreenSupportMultiWindow(INVALID_SCREEN_ID, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 1);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.size(), 1);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::DELETE);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 0);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::DELETE);
+    EXPECT_EQ(result, WSError::WS_OK);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+
+/**
  * @tc.name: UpdateSessionWindowVisibilityListener02
  * @tc.desc: UpdateSessionWindowVisibilityListener
  * @tc.type: FUNC

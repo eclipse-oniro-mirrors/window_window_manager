@@ -218,6 +218,7 @@
             OHOS::Rosen::SceneSessionManager::UpdateSceneSessionWant*;
             OHOS::Rosen::SceneSessionManager::UpdateScreenLockState*;
             OHOS::Rosen::SceneSessionManager::UpdateSessionDisplayId*;
+            OHOS::Rosen::SceneSessionManager::UpdateScreenSupportMultiWindow*;
             OHOS::Rosen::SceneSessionManager::UpdateTitleInTargetPos*;
             OHOS::Rosen::SceneSessionManager::UpdateWindowMode*;
             OHOS::Rosen::SceneSessionManager::VisitSnapshotFromCache*;

@@ -15823,6 +15823,22 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
     return WSError::WS_OK;
 }
 
+WSError SceneSessionManager::UpdateScreenSupportMultiWindow(uint64_t screenId, ScreenSupportMultiWindowReason reason)
+{
+    if (screenId == INVALID_SCREEN_ID) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Invalid screenId: %{public}" PRIu64, screenId);
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "screenId: %{public}" PRIu64 ", reason: %{public}d",
+        screenId, static_cast<int32_t>(reason));
+    if (reason == ScreenSupportMultiWindowReason::ADD) {
+        systemConfig_.supportMultiWindowScreenSet_.insert(static_cast<ScreenId>(screenId));
+    } else if (reason == ScreenSupportMultiWindowReason::DELETE) {
+        systemConfig_.supportMultiWindowScreenSet_.erase(static_cast<ScreenId>(screenId));
+    }
+    return WSError::WS_OK;
+}
+
 void SceneSessionManager::RegisterClientDisplayIdChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
