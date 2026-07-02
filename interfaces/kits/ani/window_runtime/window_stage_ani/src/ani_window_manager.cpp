@@ -1329,8 +1329,15 @@ void AniWindowManager::OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long di
             "[window][moveMainWindowToTargetDisplay]msg: parameter verfication failed");
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(WindowManager::GetInstance(userId).
-        MoveMainWindowToTargetDisplay(displayId, windowId));
+    WMError err = WindowManager::GetInstance(userId).
+        MoveMainWindowToTargetDisplay(displayId, windowId);
+    if (err == WMError::WM_DO_NOTHING) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][moveMainWindowToTargetDisplay]msg: Parameter error. "
+            "Possible cause: 1. The userId is not exist.");
+        return;
+    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(err);
     if (ret != WmErrorCode::WM_OK) {
         AniWindowUtils::AniThrowError(env, ret, "[window][moveMainWindowToTargetDisplay]msg:set failed");
     }
