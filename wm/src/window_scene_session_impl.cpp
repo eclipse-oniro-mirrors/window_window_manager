@@ -4021,10 +4021,7 @@ WMError WindowSceneSessionImpl::Maximize(MaximizePresentation presentation, Wate
               GetWindowId(), static_cast<uint32_t>(state));
         return WMError::WM_ERROR_INVALID_CALLING;
     }
-    if (!WindowHelper::IsMainWindow(GetType())) {
-        if (IsSubWindowMaximizeSupported()) {
-            return MaximizeFloating();
-        }
+    if (!WindowHelper::IsMainWindow(GetType()) && !IsSubWindowMaximizeSupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "maximize fail, not main or sub window");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
