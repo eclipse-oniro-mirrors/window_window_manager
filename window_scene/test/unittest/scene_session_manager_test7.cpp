@@ -501,7 +501,7 @@ HWTEST_F(SceneSessionManagerTest7, DestroyAndDisconnectSpecificSessionWithDetach
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PERMISSION);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
 /**

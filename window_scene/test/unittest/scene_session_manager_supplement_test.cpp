@@ -1379,7 +1379,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestRecoverAndReconnectSceneSession_
     sptr<IRemoteObject> token;
 
     auto ret = ssm_->RecoverAndReconnectSceneSession(sessionStage, eventChannel, node, session, property, token);
-    ASSERT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -1422,7 +1422,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestRecoverAndReconnectSceneSession_
     ssm_->alivePersistentIds_.push_back(1);
     ssm_->recoveringFinished_ = false;
     auto ret = ssm_->RecoverAndReconnectSceneSession(sessionStage, eventChannel, node, session, property, token);
-    ASSERT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
     ssm_->alivePersistentIds_.clear();
 }
 
@@ -1445,7 +1445,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestRecoverAndReconnectSceneSession_
     ssm_->recoveringFinished_ = false;
     property->SetWindowType(WindowType::APP_SUB_WINDOW_END);
     auto ret = ssm_->RecoverAndReconnectSceneSession(sessionStage, eventChannel, node, session, property, token);
-    ASSERT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
     ssm_->alivePersistentIds_.clear();
 }
 
@@ -1791,29 +1791,29 @@ HWTEST_F(SceneSessionManagerSupplementTest, GetFocusWindowInfo, TestSize.Level1)
     ASSERT_NE(property, nullptr);
     property->SetBrightness(1.f);
     auto ret = ssm_->SetBrightness(sceneSession, 1.f);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
     ret = ssm_->SetBrightness(sceneSession, 2.f);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
     ssm_->displayBrightness_ = 2.f;
     ret = ssm_->SetBrightness(sceneSession, 2.f);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
     ssm_->displayBrightness_ = 3.f;
     ret = ssm_->SetBrightness(sceneSession, 2.f);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     ret = ssm_->UpdateBrightness(1);
-    ASSERT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
+    ASSERT_EQ(ret, WSError::WS_ERROR_NULLPTR);
     ssm_->sceneSessionMap_.insert({ 1, sceneSession });
     property->SetBrightness(-1.f);
     property->SetWindowType(WindowType::APP_WINDOW_BASE);
     sceneSession->SetSessionProperty(property);
     ret = ssm_->UpdateBrightness(1);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
     property->SetBrightness(3.f);
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sceneSession->SetSessionProperty(property);
     ret = ssm_->UpdateBrightness(1);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
     FocusChangeInfo changeInfo;
     ssm_->GetFocusWindowInfo(changeInfo);
 }
