@@ -639,6 +639,30 @@ private:
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
 
     /**
+     * @brief Handle targetRect updates during moving.
+     *
+     * Depending on whether move resampling is enabled, this method either updates
+     * targetRect immediately or queues the pointer event for later resampling.
+     *
+     * @param pointerEvent The current pointer event.
+     * @param reason       The reason for the size or position change.
+     * @return TargetRectUpdateMode The mode indicating how targetRect was (or will be) updated.
+     */
+    TargetRectUpdateMode UpdateTargetRectOnMoving(
+        const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
+
+    /**
+     * @brief Handle the final targetRect update when move ends.
+     *
+     * If a resampled event is available, its offset is used to avoid a visible
+     * jump at the end of moving. Otherwise, the raw pointer event is used.
+     *
+     * @param pointerEvent The current pointer event.
+     * @return TargetRectUpdateMode Always returns UPDATED_IMMEDIATELY.
+     */
+    TargetRectUpdateMode UpdateTargetRectOnMoveEnd(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+
+    /**
      * @brief Process a pointer event during window dragging and update targetRect accordingly.
      *
      * @param pointerEvent The current pointer event.
