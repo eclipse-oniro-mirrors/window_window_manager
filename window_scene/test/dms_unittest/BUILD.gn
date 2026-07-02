@@ -43,6 +43,7 @@ group("unittest") {
     deps += [
       ":ws_screen_session_manager_proxy_test",
       ":ws_screen_session_manager_client_test",
+      ":ws_screen_session_manager_client_available_area_test",
       ":ws_screen_session_manager_test",
       ":ws_screen_session_manager_test_two",
       ":ws_screen_session_manager_test_three",
@@ -478,6 +479,26 @@ ohos_unittest("ws_screen_session_manager_client_test") {
   module_out_path = module_out_path
 
   sources = [ "screen_session_manager_client_test.cpp" ]
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [ "init:libbegetutil" ]
+}
+
+ohos_unittest("ws_screen_session_manager_client_available_area_test") {
+  module_out_path = module_out_path
+
+  sources = [ "screen_session_manager_client_available_area_test.cpp" ]
 
   sanitize = {
     cfi = true
