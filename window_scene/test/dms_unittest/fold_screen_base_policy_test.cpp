@@ -309,6 +309,13 @@ HWTEST_F(FoldScreenBasePolicyTest, CheckDisplayModeChangeTest, TestSize.Level1)
     FoldScreenBasePolicy::GetInstance().startTimePoint_ = std::chrono::steady_clock::now();
     ret = FoldScreenBasePolicy::GetInstance().CheckDisplayModeChange(FoldDisplayMode::FULL, false);
     EXPECT_TRUE(!ret);
+
+    g_logMsg.clear();
+    FoldScreenBasePolicy::GetInstance().isClearingBootAnimation_ = false;
+    FoldScreenBasePolicy::GetInstance().CheckDisplayModeChange(FoldDisplayMode::FULL, false,
+        DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE);
+    EXPECT_TRUE(g_logMsg.find("recover mode to") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**
