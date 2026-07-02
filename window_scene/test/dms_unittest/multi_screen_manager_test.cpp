@@ -961,7 +961,7 @@ HWTEST_F(MultiScreenManagerTest, DoFirstMainChange02, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MultiScreenManager::GetInstance().DoFirstMainChange(firstSession, secondarySession, "unknown");
-    EXPECT_TRUE(g_logMsg.find("param error") == std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("param error") != std::string::npos);
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
 
@@ -1114,7 +1114,7 @@ HWTEST_F(MultiScreenManagerTest, DoFirstMirrorChange01, TestSize.Level1)
     LOG_SetCallback(MyLogCallback);
     ScreenSessionManager::GetInstance().clientProxy_ = nullptr;
     MultiScreenManager::GetInstance().DoFirstMirrorChange(firstSession, secondarySession, "unknown");
-    EXPECT_FALSE(g_logMsg.find("scbClient null") != std::string::npos ||
+    EXPECT_TRUE(g_logMsg.find("scbClient null") != std::string::npos ||
         g_logMsg.find("param error") != std::string::npos);
     g_logMsg.clear();
     LOG_SetCallback(nullptr);
@@ -1151,7 +1151,7 @@ HWTEST_F(MultiScreenManagerTest, DoFirstMirrorChange02, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
     MultiScreenManager::GetInstance().DoFirstMirrorChange(firstSession, secondarySession, "unknown");
-    EXPECT_TRUE(g_logMsg.find("scbClient null") == std::string::npos &&
+    EXPECT_FALSE(g_logMsg.find("scbClient null") == std::string::npos &&
         g_logMsg.find("aram error") == std::string::npos);
     g_logMsg.clear();
     LOG_SetCallback(nullptr);

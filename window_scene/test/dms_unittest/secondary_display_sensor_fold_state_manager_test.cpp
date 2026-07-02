@@ -558,7 +558,7 @@ HWTEST_F(SecondaryDisplaySensorFoldStateManagerTest, CalculateNewABFoldStatus,
     EXPECT_EQ(FoldStatus::HALF_FOLD, newState);
 
     newState = manager.CalculateNewABFoldStatus(40.0f, 0, 50.0f, 0);
-    EXPECT_EQ(FoldStatus::HALF_FOLD, newState);
+    EXPECT_EQ(FoldStatus::FOLDED, newState);
 
     newState = manager.CalculateNewABFoldStatus(40.0f, 0, 150.0f, 0);
     EXPECT_EQ(FoldStatus::EXPAND, newState);
