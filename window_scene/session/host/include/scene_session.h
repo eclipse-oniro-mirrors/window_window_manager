@@ -1364,6 +1364,7 @@ protected:
     bool keyboardAvoidAreaActive_ = true;
 
 private:
+    bool ShouldNotifyTouchOutside() const;
     void NotifyAccessibilityVisibilityChange();
     void CalculateCombinedExtWindowFlags();
     WSError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo,

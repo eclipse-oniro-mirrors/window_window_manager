@@ -129,6 +129,11 @@ constexpr int32_t GET_SCENE_NODE_COUNT_TIMEOUT = 50;
 constexpr const long PRE_CALC_WINDOW_PROPERTY_TIMEOUT = 1000;
 const std::string WANT_PARAM_GAME_PRELAUNCH = "ohos.params.gamePrelaunch";
 
+const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
+    "SCBGestureBack",
+    "SCBSystemSwipeDownArea"
+};
+
 bool CheckIfRectElementIsTooLarge(const WSRect& rect)
 {
     int32_t largeNumber = static_cast<int32_t>(SHRT_MAX);
@@ -4097,8 +4102,7 @@ WSError SceneSession::ProcessPointDownSession(int32_t posX, int32_t posY)
     }
 
     // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ &&
-        sessionInfo_.bundleName_.find("SCBGestureBack") == std::string::npos) {
+    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(id, GetDisplayId());
     }
 
@@ -4146,8 +4150,7 @@ void SceneSession::NotifyOutsideDownEvent(const std::shared_ptr<MMI::PointerEven
     }
 
     // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ &&
-        sessionInfo_.bundleName_.find("SCBGestureBack") == std::string::npos) {
+    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(GetPersistentId(), GetDisplayId());
     }
 
@@ -11559,6 +11562,16 @@ WSError SceneSession::NotifyClientToUpdateLSState(bool isLSState)
         session->UpdateLSStateInfo(isLSState);
     }, __func__);
     return WSError::WS_OK;
+}
+
+bool SceneSession::ShouldNotifyTouchOutside() const
+{
+    for (const auto& excludeName : TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES) {
+        if (sessionInfo_.bundleName_.find(excludeName) != std::string::npos) {
+            return false;
+        }
+    }
+    return true;
 }
 /*
  * Window Event end
