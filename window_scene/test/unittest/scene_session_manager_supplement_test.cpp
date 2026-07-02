@@ -1765,7 +1765,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestDestroyAndDisconSpecSessionInner
     ASSERT_EQ(property->GetParentPersistentId(), 100);
     sceneSession->SetSessionProperty(property);
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    ASSERT_EQ(ret.errCode, WSError::WS_OK);
+    ASSERT_EQ(ret, WSError::WS_OK);
 }
 
 /**
