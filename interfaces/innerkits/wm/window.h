@@ -5748,6 +5748,16 @@ public:
     }
 
     /**
+     * @brief Get window hover state
+     *
+     * @return True means window state hovered, false means window not int hovered.
+     */
+    virtual bool GetWindowHoverState()
+    {
+        return false;
+    }
+
+    /**
      * @brief Register window hover state change listener
      *
      * @param listener IWindowHoverStateChangeListener.

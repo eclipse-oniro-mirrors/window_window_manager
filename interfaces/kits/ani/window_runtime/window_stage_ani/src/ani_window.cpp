@@ -6121,6 +6121,104 @@ bool AniWindow::OnIsInFreeWindowMode(ani_env* env)
     return windowToken_->IsPcOrPadFreeMultiWindowMode();
 }
 
+ani_boolean AniWindow::IsInWindowPostureMode(ani_env* env, ani_object obj, ani_long nativeObj, ani_enum_item mode)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    return aniWindow != nullptr ? static_cast<ani_boolean>(aniWindow->OnIsInWindowPostureMode(env, mode)) :
+        static_cast<ani_boolean>(false);
+}
+
+bool AniWindow::OnIsInWindowPostureMode(ani_env* env, ani_enum_item mode)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window is null");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return false;
+    }
+    auto result = windowToken_->GetWindowHoverState();
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "GetWindowHoverState %{public}d", result);
+    return result;
+}
+
+void AniWindow::OnWindowPostureModeChange(ani_env* env, ani_object obj, ani_long nativeObj, ani_enum_item mode,
+    ani_ref callback)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (aniWindow != nullptr) {
+        aniWindow->OnRegisterWindowPostureModeChange(env, mode, callback);
+    } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+}
+
+void AniWindow::OffWindowPostureModeChange(ani_env* env, ani_object obj, ani_long nativeObj, ani_enum_item mode,
+    ani_ref callback)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
+    AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
+    if (aniWindow != nullptr) {
+        aniWindow->OnUnregisterWindowPostureModeChange(env, mode, callback);
+    } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] aniWindow is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+}
+
+void AniWindow::OnRegisterWindowPostureModeChange(ani_env* env, ani_enum_item mode, ani_ref callback)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
+    auto window = GetWindow();
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    uint32_t postureMode = static_cast<uint32_t>(WindowPostureMode::END);
+    AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    if (postureMode < static_cast<uint32_t>(WindowPostureMode::START) ||
+            postureMode >= static_cast<uint32_t>(WindowPostureMode::END)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] postureMode %{public}u failed", postureMode);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] mode:%{public}u", postureMode);
+    WmErrorCode ret = registerManager_->RegisterWindowPostureListener(window, postureMode, env, callback);
+    if (ret != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, ret);
+        return;
+    }
+}
+
+void AniWindow::OnUnregisterWindowPostureModeChange(ani_env* env, ani_enum_item mode, ani_ref callback)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
+    auto window = GetWindow();
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    uint32_t postureMode = static_cast<uint32_t>(WindowPostureMode::END);
+    AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    if (postureMode < static_cast<uint32_t>(WindowPostureMode::START) ||
+            postureMode >= static_cast<uint32_t>(WindowPostureMode::END)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] postureMode %{public}u failed", postureMode);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] mode:%{public}u", postureMode);
+    WmErrorCode ret = registerManager_->UnregisterWindowPostureListener(window, postureMode, env, callback);
+    if (ret != WmErrorCode::WM_OK) {
+        AniWindowUtils::AniThrowError(env, ret);
+        return;
+    }
+}
+
 ani_string AniWindow::GetWindowStateSnapshot(ani_env* env, ani_object obj, ani_long nativeObj)
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
@@ -8010,6 +8108,14 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::GetRotationLocked)},
         ani_native_function {"isInFreeWindowMode", "l:z",
             reinterpret_cast<void *>(AniWindow::IsInFreeWindowMode)},
+        ani_native_function {"isInWindowPostureMode", "lC{@ohos.window.window.WindowPostureMode}:z",
+            reinterpret_cast<void *>(AniWindow::IsInWindowPostureMode)},
+        ani_native_function {"onWindowPostureModeChange",
+            "lE{@ohos.window.window.WindowPostureMode}C{std.core.Function1}:",
+            reinterpret_cast<void *>(AniWindow::OnWindowPostureModeChange)},
+        ani_native_function {"offWindowPostureModeChange",
+            "lE{@ohos.window.window.WindowPostureMode}C{std.core.Function1}:",
+            reinterpret_cast<void *>(AniWindow::OffWindowPostureModeChange)},
         ani_native_function {"setWindowDelayRaiseOnDrag", "lz:",
             reinterpret_cast<void *>(AniWindow::SetWindowDelayRaiseOnDrag)},
         ani_native_function {"setRelativePositionToParentWindowEnabled",

@@ -689,6 +689,24 @@ bool AniWindowRegisterManager::IsCallbackRegistered(ani_env* env, std::string ty
     return false;
 }
 
+bool AniWindowRegisterManager::IsWindowPostureCallbackRegistered(ani_env* env, uint32_t mode, ani_ref callback)
+{
+    if (jsPostureModeCbMap_.empty() || jsPostureModeCbMap_.find(mode) == jsPostureModeCbMap_.end()) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Method has not been registerted, mode: %{public}u", mode);
+        return false;
+    }
+
+    for (auto iter = jsPostureModeCbMap_[mode].begin(); iter != jsPostureModeCbMap_[mode].end(); ++iter) {
+        ani_boolean isEquals = 0;
+        env->Reference_StrictEquals(callback, iter->first, &isEquals);
+        if (isEquals) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Method has already been registered, mode: %{public}u", mode);
+            return true;
+        }
+    }
+    return false;
+}
+
 WmErrorCode AniWindowRegisterManager::RegisterListener(sptr<Window> window, const std::string& type,
     CaseType caseType, ani_env* env, ani_ref callback, ani_long timeout)
 {
@@ -934,6 +952,96 @@ WmErrorCode AniWindowRegisterManager::UnregisterListener(sptr<Window> window, co
     // erase type when there is no callback in one type
     if (jsCbMap_[type].empty()) {
         jsCbMap_.erase(type);
+    }
+    return WmErrorCode::WM_OK;
+}
+
+WmErrorCode AniWindowRegisterManager::RegisterWindowPostureListener(sptr<Window> window, uint32_t postureMode,
+    ani_env* env, ani_ref callback)
+{
+    std::lock_guard<std::mutex> lock(postureModeMapMtx_);
+    if (IsWindowPostureCallbackRegistered(env, postureMode, callback)) {
+        return WmErrorCode::WM_OK;
+    }
+    ani_ref cbRef{};
+    if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]create global ref fail");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Get VM failed, ret: %{public}u", aniRet);
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    auto windowManagerListener = sptr<AniWindowListener>::MakeSptr(env, vm, cbRef, CaseType::CASE_WINDOW);
+    if (windowManagerListener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]New AniWindowListener failed");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    windowManagerListener->SetMainEventHandler();
+    WmErrorCode ret = ProcessWindowPostureModeChangeRegister(windowManagerListener, window, true, env, postureMode);
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Register posture mode change failed, mode: %{public}u", postureMode);
+        return ret;
+    }
+    jsPostureModeCbMap_[postureMode][cbRef] = windowManagerListener;
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Register posture mode change success, mode: %{public}u", postureMode);
+    return WmErrorCode::WM_OK;
+}
+
+WmErrorCode AniWindowRegisterManager::UnregisterWindowPostureListener(sptr<Window> window, uint32_t postureMode,
+    ani_env* env, ani_ref callback)
+{
+    std::lock_guard<std::mutex> lock(postureModeMapMtx_);
+    if (jsPostureModeCbMap_.empty() || jsPostureModeCbMap_.find(postureMode) == jsPostureModeCbMap_.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "[ANI]mode %{public}u was not registerted", postureMode);
+        return WmErrorCode::WM_OK;
+    }
+    ani_boolean isUndef = ANI_FALSE;
+    env->Reference_IsUndefined(callback, &isUndef);
+    if (!callback || isUndef == ANI_TRUE) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Unregister all callbck, mode:%{public}u", postureMode);
+        for (auto it = jsPostureModeCbMap_[postureMode].begin(); it != jsPostureModeCbMap_[postureMode].end();) {
+            WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, postureMode);
+            if (ret != WmErrorCode::WM_OK) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Unregister mode %{public}u failed, no value", postureMode);
+                return ret;
+            }
+            env->GlobalReference_Delete(it->second->GetAniCallback());
+            it->second->SetAniCallback(nullptr);
+            jsPostureModeCbMap_[postureMode].erase(it++);
+        }
+    } else {
+        bool findFlag = false;
+        for (auto it = jsPostureModeCbMap_[postureMode].begin(); it != jsPostureModeCbMap_[postureMode].end(); ++it) {
+            ani_boolean isEquals = 0;
+            env->Reference_StrictEquals(callback, it->first, &isEquals);
+            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]callback isEquals:%{public}d", static_cast<int32_t>(isEquals));
+            if (!isEquals) {
+                continue;
+            }
+            findFlag = true;
+            WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, postureMode);
+            if (ret != WmErrorCode::WM_OK) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Unregister mode %{public}u failed", postureMode);
+                return ret;
+            }
+            env->GlobalReference_Delete(it->second->GetAniCallback());
+            it->second->SetAniCallback(nullptr);
+            jsPostureModeCbMap_[postureMode].erase(it);
+            break;
+        }
+        if (!findFlag) {
+            TLOGW(WmsLogTag::WMS_ATTRIBUTE,
+                "[ANI]Unregister mode %{public}u failed because not found callback!", postureMode);
+            return WmErrorCode::WM_OK;
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Unregister type %{public}u success! callback map size: %{public}zu",
+        postureMode, jsPostureModeCbMap_[postureMode].size());
+    if (jsPostureModeCbMap_[postureMode].empty()) {
+        jsPostureModeCbMap_.erase(postureMode);
     }
     return WmErrorCode::WM_OK;
 }
@@ -1269,6 +1377,23 @@ WmErrorCode AniWindowRegisterManager::ProcessParentLifecycleEventRegister(const 
         ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterParentLifecycleEventListener(thisListener));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(isRegister ? "ArkUI.window.on" : "ArkUI.window.off", ret);
+    return ret;
+}
+
+WmErrorCode AniWindowRegisterManager::ProcessWindowPostureModeChangeRegister(const sptr<AniWindowListener>& listener,
+    const sptr<Window>& window, bool isRegister, ani_env* env, uint32_t mode)
+{
+    if (window == nullptr || listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window or listener is null");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<IWindowHoverStateChangeListener> thisListener(listener);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    if (isRegister) {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowHoverStateChangeListener(thisListener));
+    } else {
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowHoverStateChangeListener(thisListener));
+    }
     return ret;
 }
 } // namespace Rosen

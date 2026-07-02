@@ -1820,6 +1820,23 @@ napi_value ExtensionWindowAttributeInit(napi_env env)
     return objValue;
 }
 
+napi_value WindowPostureModeInit(napi_env env)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "env is nullptr");
+        return nullptr;
+    }
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to create object");
+        return nullptr;
+    }
+    napi_set_named_property(env, objValue, "DESKTOP_MODE",
+        CreateJsValue(env, static_cast<int32_t>(WindowPostureMode::DESKTOP_MODE)));
+    return objValue;
+}
+
 std::unique_ptr<NapiAsyncTask> CreateAsyncTask(napi_env env, napi_value lastParam,
     std::unique_ptr<NapiAsyncTask::ExecuteCallback>&& execute,
     std::unique_ptr<NapiAsyncTask::CompleteCallback>&& complete, napi_value* result)

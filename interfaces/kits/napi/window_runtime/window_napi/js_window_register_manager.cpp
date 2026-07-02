@@ -682,6 +682,25 @@ bool JsWindowRegisterManager::IsCallbackRegistered(napi_env env, std::string typ
     return false;
 }
 
+bool JsWindowRegisterManager::IsWindowPostureCallbackRegistered(napi_env env, WindowPostureMode mode,
+    napi_value callback)
+{
+    if (jsPostureModeCbMap_.empty() || jsPostureModeCbMap_.find(mode) == jsPostureModeCbMap_.end()) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "mode %{public}u has not been registerted", static_cast<uint32_t>(mode));
+        return false;
+    }
+    for (auto iter = jsPostureModeCbMap_[mode].begin(); iter != jsPostureModeCbMap_[mode].end(); ++iter) {
+        bool isEquals = false;
+        napi_strict_equals(env, callback, iter->first->GetNapiValue(), &isEquals);
+        if (isEquals) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "mode %{public}u has already been registered",
+                static_cast<uint32_t>(mode));
+            return true;
+        }
+    }
+    return false;
+}
+
 WmErrorCode JsWindowRegisterManager::RegisterListener(sptr<Window> window, std::string type,
     CaseType caseType, napi_env env, napi_value callback, napi_value parameter)
 {
@@ -905,6 +924,85 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
     // erase type when there is no callback in one type
     if (jsCbMap_[type].empty()) {
         jsCbMap_.erase(type);
+    }
+    return WmErrorCode::WM_OK;
+}
+
+WmErrorCode JsWindowRegisterManager::RegisterWindowPostureModeListener(napi_env env, sptr<Window> window,
+    napi_value callback, WindowPostureMode mode)
+{
+    std::lock_guard<std::mutex> lock(postureModeMapMtx_);
+    if (IsWindowPostureCallbackRegistered(env, mode, callback)) {
+        return WmErrorCode::WM_OK;
+    }
+    napi_ref result = nullptr;
+    napi_create_reference(env, callback, 1, &result);
+    std::shared_ptr<NativeReference> callbackRef(reinterpret_cast<NativeReference*>(result));
+    sptr<JsWindowListener> windowManagerListener = new(std::nothrow) JsWindowListener(env,
+        callbackRef, CaseType::CASE_WINDOW);
+    if (windowManagerListener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "New JsWindowListener failed");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    windowManagerListener->SetMainEventHandler();
+    WmErrorCode ret = ProcessWindowPostureModeChangeRegister(windowManagerListener, window, true, env, mode);
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Register mode %{public}u failed", static_cast<uint32_t>(mode));
+        return ret;
+    }
+    jsPostureModeCbMap_[mode][callbackRef] = windowManagerListener;
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[%{public}u, %{public}zu]", static_cast<uint32_t>(mode),
+        jsPostureModeCbMap_[mode].size());
+    return WmErrorCode::WM_OK;
+}
+
+WmErrorCode JsWindowRegisterManager::UnregisterWindowPostureModeListener(napi_env env, sptr<Window> window,
+    napi_value callback, WindowPostureMode mode)
+{
+    std::lock_guard<std::mutex> lock(postureModeMapMtx_);
+    if (jsPostureModeCbMap_.empty() || jsPostureModeCbMap_.find(mode) == jsPostureModeCbMap_.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "Type %{public}u was not registerted", static_cast<uint32_t>(mode));
+        return WmErrorCode::WM_OK;
+    }
+    if (callback == nullptr) {
+        for (auto it = jsPostureModeCbMap_[mode].begin(); it != jsPostureModeCbMap_[mode].end();) {
+            WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, mode);
+            if (ret != WmErrorCode::WM_OK) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Unregister mode %{public}u failed, no value",
+                    static_cast<uint32_t>(mode));
+                return ret;
+            }
+            jsPostureModeCbMap_[mode].erase(it++);
+        }
+    } else {
+        bool findFlag = false;
+        for (auto it = jsPostureModeCbMap_[mode].begin(); it != jsPostureModeCbMap_[mode].end(); ++it) {
+            bool isEquals = false;
+            napi_strict_equals(env, callback, it->first->GetNapiValue(), &isEquals);
+            if (!isEquals) {
+                continue;
+            }
+            findFlag = true;
+            WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, mode);
+            if (ret != WmErrorCode::WM_OK) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Unregister mode %{public}u failed, no value",
+                    static_cast<uint32_t>(mode));
+                return ret;
+            }
+            jsPostureModeCbMap_[mode].erase(it);
+            break;
+        }
+        if (!findFlag) {
+            TLOGW(WmsLogTag::WMS_ATTRIBUTE, "Unregister mode %{public}u failed because not found callback!",
+                static_cast<uint32_t>(mode));
+            return WmErrorCode::WM_OK;
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Unregister mode %{public}u success! callback map size: %{public}zu",
+        static_cast<uint32_t>(mode), jsPostureModeCbMap_[mode].size());
+    // erase type when there is no callback in one type
+    if (jsPostureModeCbMap_[mode].empty()) {
+        jsPostureModeCbMap_.erase(mode);
     }
     return WmErrorCode::WM_OK;
 }
@@ -1212,6 +1310,34 @@ WmErrorCode JsWindowRegisterManager::ProcessParentLifecycleEventRegister(const s
         ret = MappingWmErrorCodeSafely(window->UnregisterParentLifecycleEventListener(thisListener));
     }
     return ret;
+}
+
+WmErrorCode JsWindowRegisterManager::ProcessWindowPostureModeChangeRegister(const sptr<JsWindowListener>& listener,
+    const sptr<Window>& window, bool isRegister, napi_env env, WindowPostureMode mode)
+{
+    if (window == nullptr || listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "window or listener is null");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+
+    WMError retCode = WMError::WM_OK;
+    sptr<IWindowHoverStateChangeListener> thisListener(listener);
+    if (mode == WindowPostureMode::DESKTOP_MODE) {
+        if (isRegister) {
+            retCode = window->RegisterWindowHoverStateChangeListener(thisListener);
+        } else {
+            retCode = window->UnregisterWindowHoverStateChangeListener(thisListener);
+        }
+    } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid window posture mode: %{public}u", static_cast<uint32_t>(mode));
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "retCode=%{public}d", static_cast<int32_t>(retCode));
+    auto retErrCode = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+    if (WM_JS_TO_ERROR_CODE_MAP.count(retCode) > 0) {
+        retErrCode = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
+    }
+    return retErrCode;
 }
 } // namespace Rosen
 } // namespace OHOS

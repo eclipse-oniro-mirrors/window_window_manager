@@ -10665,11 +10665,10 @@ void WindowSessionImpl::RecordWindowLifecycleChange(const std::string& windowEve
 
 bool WindowSessionImpl::GetWindowHoverState()
 {
-    if (DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
-        CheckWindowCanInHoverState(property_->GetWindowRect())) {
-        return true;
-    }
-    return false;
+    bool halfFold = DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD;
+    bool hoverStateCheck = CheckWindowCanInHoverState(property_->GetWindowRect());
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in halfFold: %{public}d hoverStateCheck: %{public}d", halfFold, hoverStateCheck);
+    return halfFold && hoverStateCheck;
 }
 
 WMError WindowSessionImpl::RegisterWindowHoverStateChangeListener(
@@ -10685,9 +10684,24 @@ WMError WindowSessionImpl::UnregisterWindowHoverStateChangeListener(
     const sptr<IWindowHoverStateChangeListener>& listener)
 {
     TLOGD(WmsLogTag::DEFAULT, "in");
-    std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
-    UnregisterFoldStatusListener();
-    return UnregisterListenerInMap(windowHoverStateChangeListeners_, GetPersistentId(), listener);
+    bool unregisterFlag = false;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowHoverStateChangeListenerMutex_);
+        auto persistentId = GetPersistentId();
+        WMError err = UnregisterListenerInMap(windowHoverStateChangeListeners_, persistentId, listener);
+        if (err != WMError::WM_OK) {
+            return err;
+        }
+        auto it = windowHoverStateChangeListeners_.find(persistentId);
+        if (it != windowHoverStateChangeListeners_.end() && it->second.empty()) {
+            windowHoverStateChangeListeners_.erase(persistentId);
+        }
+        unregisterFlag = windowHoverStateChangeListeners_.empty();
+    }
+    if (unregisterFlag) {
+        UnregisterFoldStatusListener();
+    }
+    return WMError::WM_OK;
 }
 
 template<typename T>

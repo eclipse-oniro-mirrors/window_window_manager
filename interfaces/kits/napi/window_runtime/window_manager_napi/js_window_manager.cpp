@@ -2588,6 +2588,7 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "MaximizePresentation", MaximizePresentationInit(env));
     napi_set_named_property(env, exportObj, "AcrossDisplayPresentation", AcrossDisplayPresentationInit(env));
     napi_set_named_property(env, exportObj, "ExtensionWindowAttribute", ExtensionWindowAttributeInit(env));
+    napi_set_named_property(env, exportObj, "WindowPostureMode", WindowPostureModeInit(env));
     napi_set_named_property(env, exportObj, "ModalityType", ModalityTypeInit(env));
     napi_set_named_property(env, exportObj, "RotationChangeType", RotationChangeTypeInit(env));
     napi_set_named_property(env, exportObj, "RotationInfoType", RotationInfoTypeInit(env));

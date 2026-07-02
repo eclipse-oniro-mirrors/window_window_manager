@@ -123,6 +123,10 @@ class IWindowTitleButtonRectChangedListener : virtual public RefBase {
 };
 class IWindowVisibilityChangedListener : virtual public RefBase {
 };
+class IWindowHoverStateChangeListener : virtual public RefBase {
+public:
+    virtual void OnWindowHoverStateChange(bool hoverState) {}
+};
 
 using WindowVisibilityListenerSptr = sptr<IWindowVisibilityChangedListener>;
 
@@ -395,6 +399,20 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
+    virtual bool GetWindowHoverState()
+    {
+        return false;
+    }
+    virtual WMError RegisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+    virtual WMError UnregisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
     virtual WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,

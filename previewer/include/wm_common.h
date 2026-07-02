@@ -1642,6 +1642,17 @@ enum WindowVisibilityState : uint32_t {
 };
 
 /**
+ * @enum WindowPostureMode
+ *
+ * @brief Posture mode of a window
+ */
+enum class WindowPostureMode : uint32_t {
+    START = 0,
+    DESKTOP_MODE = START,
+    END,
+};
+
+/**
  * @struct WindowUIInfo
  *
  * @brief Window UI info
