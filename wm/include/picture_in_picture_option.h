@@ -51,7 +51,7 @@ public:
     std::vector<PiPControlEnableInfo> GetControlEnable();
     void GetContentSize(uint32_t& width, uint32_t& height);
     std::shared_ptr<XComponentController> GetXComponentController();
-    bool GetCornerAdsorptionEnabled();
+    bool GetCornerAdsorptionEnabled() const;
     std::shared_ptr<NativeReference> GetPipContentCallbackRef(const std::string&);
     void SetNodeControllerRef(std::shared_ptr<NativeReference> ref);
     std::shared_ptr<NativeReference> GetNodeControllerRef() const;

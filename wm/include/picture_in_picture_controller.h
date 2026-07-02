@@ -44,6 +44,7 @@ public:
     bool IsTypeNodeEnabled() const override;
     bool IsPullPiPAndHandleNavigation();
     std::string GetPiPNavigationId() const override;
+    
     inline std::shared_ptr<XComponentController> GetMainWindowXComponentController() const
     {
         return mainWindowXComponentController_;

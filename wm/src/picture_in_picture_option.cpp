@@ -104,7 +104,7 @@ void PipOption::SetCornerAdsorptionEnabled(bool cornerAdsorptionEnabled)
     cornerAdsorptionEnabled_ = cornerAdsorptionEnabled;
 }
 
-bool PipOption::GetCornerAdsorptionEnabled()
+bool PipOption::GetCornerAdsorptionEnabled() const
 {
     return cornerAdsorptionEnabled_;
 }

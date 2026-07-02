@@ -78,6 +78,7 @@ wmutil_sources = [
   "src/ffrt_queue_helper.cpp",
   "src/ffrt_serial_queue_helper.cpp",
   "src/floating_ball_report.cpp",
+  "src/floating_view_report.cpp",
   "src/perform_reporter.cpp",
   "src/permission.cpp",
   "src/persistent_storage.cpp",

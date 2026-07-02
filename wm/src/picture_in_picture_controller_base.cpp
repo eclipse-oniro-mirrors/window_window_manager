@@ -28,6 +28,7 @@
 
 namespace OHOS {
 namespace Rosen {
+
 static const std::map<std::string, PiPControlType> CONTROL_TYPE_MAP = {
     {"playbackStateChanged", PiPControlType::VIDEO_PLAY_PAUSE},
     {"nextVideo", PiPControlType::VIDEO_NEXT},
@@ -110,12 +111,14 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
     TLOGI(WmsLogTag::WMS_PIP, "startType:%{public}u", startType);
     if (pipOption_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Get PictureInPicture option failed");
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            0, PipConst::FAILED, "Get PictureInPicture option failed");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "window is null when show pip");
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
-            pipOption_->GetPipTemplate(), PipConst::FAILED, "window is nullptr");
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "window is nullptr when show pip");
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
     NotifyStateChangeInner(PiPState::ABOUT_TO_START);
@@ -187,21 +190,21 @@ WMError PictureInPictureControllerBase::StopPictureInPictureFromClient()
     if (!window_) {
         TLOGE(WmsLogTag::WMS_PIP, "window is null");
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(StopPipType::USER_STOP),
-            pipOption_->GetPipTemplate(), PipConst::FAILED, "window is null");
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "window is null when stop from client");
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
     if (curState_ == PiPWindowState::STATE_STOPPING || curState_ == PiPWindowState::STATE_STOPPED ||
         curState_ == PiPWindowState::STATE_RESTORING) {
         TLOGE(WmsLogTag::WMS_PIP, "Repeat stop request, curState: %{public}u", curState_);
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(StopPipType::USER_STOP),
-            pipOption_->GetPipTemplate(), PipConst::FAILED, "Repeat stop request");
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "Repeat stop request when stop from client");
         return WMError::WM_ERROR_PIP_REPEAT_OPERATION;
     }
     isStoppedFromClient_ = true;
     WMError res = window_->NotifyPrepareClosePiPWindow(isWeb_);
     if (res != WMError::WM_OK) {
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(StopPipType::USER_STOP),
-            pipOption_->GetPipTemplate(), PipConst::FAILED, "window destroy failed");
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "window destroy failed when stop from client");
         return WMError::WM_ERROR_PIP_DESTROY_FAILED;
     }
     curState_ = PiPWindowState::STATE_STOPPING;
@@ -221,7 +224,7 @@ WMError PictureInPictureControllerBase::StopPictureInPicture(bool destroyWindow,
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "window is nullptr when stop pip");
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(stopPipType),
-            pipOption_->GetPipTemplate(), PipConst::FAILED, "window_ is nullptr");
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "window is nullptr when stop pip");
         return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
     }
     curState_ = PiPWindowState::STATE_STOPPING;
@@ -261,7 +264,7 @@ WMError PictureInPictureControllerBase::StopPictureInPictureInner(StopPipType st
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "window is nullptr in stop pip inner");
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(stopType),
-            templateType, PipConst::FAILED, "pipController is null");
+            templateType, PipConst::FAILED, "window is nullptr in stop pip inner");
         return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
     }
     {
@@ -361,6 +364,8 @@ void PictureInPictureControllerBase::UpdatePiPControlStatus(PiPControlType contr
     }
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipWindow not exist");
+        SingletonContainer::Get<PiPReporter>().ReportWindowException("UpdatePiPControlStatus",
+            static_cast<uint32_t>(WMError::WM_ERROR_NULLPTR), "pipWindow not exist");
         return;
     }
     window_->UpdatePiPControlStatus(controlType, status);
@@ -659,6 +664,7 @@ void PictureInPictureControllerBase::GetPipPossible(bool& pipPossible)
 bool PictureInPictureControllerBase::GetPipEnabled()
 {
     bool isPipEnabled = PictureInPictureManager::GetPipEnabled();
+    TLOGD(WmsLogTag::WMS_PIP, "OnIsPipEnabled called, %{public}d", isPipEnabled);
     return isPipEnabled;
 }
 

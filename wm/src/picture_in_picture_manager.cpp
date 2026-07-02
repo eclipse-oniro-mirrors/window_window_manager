@@ -181,7 +181,7 @@ bool PictureInPictureManager::IsControllerStateActive(PiPWindowState state)
 void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
     wptr<PictureInPictureControllerBase> pipController)
 {
-    TLOGD(WmsLogTag::WMS_PIP, "handleId: %{public}d", handleId);
+    TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}d", handleId);
     if (pipController == nullptr) {
         return;
     }

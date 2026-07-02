@@ -133,7 +133,7 @@ struct PiPContent {
   aboutToAppear(): void {
     try {
       hilog.info(DOMAIN, TAG, 'aboutToAppear start');
-      this.windowId = this.getUIContext()?.getWindowId() ?? 0;
+      this.windowId = this.getUIContext()?.getWindowId()?? 0;
       this.nodeController = PiPManager.getCustomUIController(this.windowId);
       this.registerUpdateNodeListener();
       this.xComponent = PiPManager.getTypeNode(this.windowId);

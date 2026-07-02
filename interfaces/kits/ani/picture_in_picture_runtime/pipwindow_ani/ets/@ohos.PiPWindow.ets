@@ -217,7 +217,7 @@ export namespace PiPWindow {
   export function runOnControlEvent(cb: Object, controlType: int, status: int): void {
     const param: ControlEventParam = {
       controlType: PiPControlType.fromValue(controlType),
- 	    status: PiPControlStatus.fromValue(status),
+      status: PiPControlStatus.fromValue(status),
     };
     (cb as Callback<ControlEventParam>)(param);
   }
@@ -287,7 +287,7 @@ export namespace PiPWindow {
     
     native updatePiPControlStatusNative(nativeObj: long, controlType: int, status: int): void;
     public updatePiPControlStatus(controlType: PiPControlType, status: PiPControlStatus): void {
-       this.updatePiPControlStatusNative(this.nativeObj, controlType, status);
+      this.updatePiPControlStatusNative(this.nativeObj, controlType, status);
     }
 
     native updateContentNodeNative(nativeObj: long, contentNode: typeNode.XComponent): void;
