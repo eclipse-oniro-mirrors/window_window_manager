@@ -7938,12 +7938,42 @@ void ScreenSessionManager::NotifyDisplayAttributeChanged(sptr<DisplayInfo> displ
 
 DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation, bool isFromNapi)
 {
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    const ScreenProperty screenProperty = screenSession->GetScreenProperty();
+    if (screenProperty == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "Cannot find screenProperty");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    if (screenProperty.GetScreenTypeInfo() == ScreenTypeInfo.EXTERNAL) {
+        TLOGNFE(WmsLogTag::DMS, "screenTypeInfo is external");
+        // todo
+        return DMError::DM_ERROR_NULLPTR;
+    }
     return SetOrientationInternal(screenId, orientation, nullptr, isFromNapi);
 }
 
 DMError ScreenSessionManager::SetOrientation(ScreenId screenId, Orientation orientation,
     const OrientationOptions& options, bool isFromNapi)
 {
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    const ScreenProperty screenProperty = screenSession->GetScreenProperty();
+    if (screenProperty == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "Cannot find screenProperty");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    if (screenProperty.GetScreenTypeInfo() == ScreenTypeInfo.EXTERNAL) {
+        TLOGNFE(WmsLogTag::DMS, "screenTypeInfo is external");
+        // todo
+        return DMError::DM_ERROR_NULLPTR;
+    }
     return SetOrientationInternal(screenId, orientation, &options, isFromNapi);
 }
 
