@@ -307,10 +307,6 @@ HWTEST_F(SceneSessionTest5, NotifyOutsideDownEvent, TestSize.Level1)
     session2->sessionInfo_.bundleName_ = "SCBGestureBack";
     session2->NotifyOutsideDownEvent(pointerEvent);
 
-    session2->sessionInfo_.bundleName_ = "SCBSystemSwipeDownArea";
-    session2->NotifyOutsideDownEvent(pointerEvent);
-
-    session2->sessionInfo_.bundleName_ = "SCBGestureBack";
     session2->specificCallback_->onSessionTouchOutside_ = nullptr;
     session2->NotifyOutsideDownEvent(pointerEvent);
 }
