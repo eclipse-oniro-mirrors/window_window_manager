@@ -14575,7 +14575,7 @@ DMError ScreenSessionManager::SetMultiScreenMode(ScreenId mainScreenId, ScreenId
         }
         SetMultiScreenModeInner(mainScreenId, secondaryScreenId, screenMode);
         sptr<ScreenSession> secondaryScreenSession = GetScreenSessionByRsId(secondaryScreenId);
-        auto combination = screenMode == MultiScreenMode::SCREEN_MIRROR ?
+        combination = screenMode == MultiScreenMode::SCREEN_MIRROR ?
             ScreenCombination::SCREEN_MIRROR : ScreenCombination::SCREEN_EXPAND;
         SetScreenCastInfo(secondaryScreenId, mainScreenId, combination);
     }
