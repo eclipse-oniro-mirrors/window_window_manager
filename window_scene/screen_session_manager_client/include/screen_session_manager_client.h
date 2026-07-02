@@ -147,6 +147,7 @@ public:
     void SubscribeMotionSensor(int32_t motionType);
     void UnsubscribeMotionSensor(int32_t motionType);
     void RegisterSwitchUserAnimationNotification(const std::string& description);
+    void UnRegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
     void OnTentModeChange(TentMode tentMode) override;
     void SetInternalClipToBounds(ScreenId screenId, bool clipToBounds) override;

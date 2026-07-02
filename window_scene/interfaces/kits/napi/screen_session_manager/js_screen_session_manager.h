@@ -84,6 +84,7 @@ private:
     static napi_value GetScreenSnapshotWithAllWindows(napi_env env, napi_callback_info info);
     static napi_value NotifySwitchUserAnimationFinish(napi_env env, napi_callback_info info);
     static napi_value RegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
+    static napi_value UnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
 
     napi_value OnRegisterCallback(napi_env env, const napi_callback_info info);
     napi_value OnUnRegisterCallback(napi_env env, const napi_callback_info info);
@@ -133,6 +134,7 @@ private:
     napi_value OnNotifySwitchUserAnimationFinish(napi_env env, napi_callback_info info);
 
     napi_value OnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
+    napi_value OnUnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
     bool ObtainCallBackInfo(napi_env env, const napi_callback_info info,
         std::string& callbackType, napi_ref& callbackRef);
     bool CheckAndTransState(ScbScreenPowerState state, ScreenPowerState& screenState);
