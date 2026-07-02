@@ -4718,8 +4718,8 @@ void SceneSession::HandleMoveDragEnd(WSRect& rect, SizeChangeReason reason)
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set full screen after throw slip");
     }
 
-    uint64_t endDisplayId = moveDragController_->GetMoveDragEndDisplayId();
-    if (endDisplayId == moveDragController_->GetMoveDragStartDisplayId() ||
+    uint64_t endDisplayId = moveDragController_->GetEndDisplayId();
+    if (endDisplayId == moveDragController_->GetStartDisplayId() ||
         !IsCrossDisplayDragSupported()) {
         NotifySessionRectChange(rect, reason);
         HandleKeyboardMoveDragEnd(rect, reason);
@@ -5398,7 +5398,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     auto targetShadowSurfaceNode = moveDragBoundsApplier_->GetTargetShadowSurfaceNode();
     RETURN_IF_NULL(targetShadowSurfaceNode);
 
-    const auto startDisplayId = moveDragController_->GetMoveDragStartDisplayId();
+    const auto startDisplayId = moveDragController_->GetStartDisplayId();
     auto startScreenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(startDisplayId);
     if (startScreenSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "startScreenSession is null, startDisplayId: %{public}" PRIu64, startDisplayId);
@@ -5407,8 +5407,8 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     bool isStartScreenMainOrExtend = isMainOrExtendScreenMode(startScreenSession->GetSourceMode());
     if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
         WSRect globalRect = moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
-        for (const auto displayId : moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag()) {
-            if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
+        for (const auto displayId : moveDragController_->CollectNewOverlappedDisplayIds()) {
+            if (displayId == moveDragController_->GetStartDisplayId()) {
                 continue;
             }
             auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(displayId);
@@ -5458,8 +5458,8 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
                 displayId, GetPersistentId());
         }
     } else if (reason == SizeChangeReason::DRAG_END) {
-        for (const auto displayId : moveDragController_->GetDisplayIdsDuringMoveDrag()) {
-            if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
+        for (const auto displayId : moveDragController_->GetOverlappedDisplayIds()) {
+            if (displayId == moveDragController_->GetStartDisplayId()) {
                 continue;
             }
             auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
