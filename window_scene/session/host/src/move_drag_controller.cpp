@@ -284,11 +284,12 @@ MoveDragController::ScreenChangeListener::ScreenChangeListener(
 void MoveDragController::ScreenChangeListener::RegisterIfNeeded()
 {
     if (isRegistered_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "ScreenChangeListener is already registered.");
         return;
     }
     DMError error = ScreenManager::GetInstance().RegisterScreenListener(this);
     if (error != DMError::DM_OK) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Failed to register ScreenListener, error: %{public}d", error);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to register ScreenChangeListener, error: %{public}d", error);
         return;
     }
     isRegistered_ = true;
@@ -297,11 +298,12 @@ void MoveDragController::ScreenChangeListener::RegisterIfNeeded()
 void MoveDragController::ScreenChangeListener::UnregisterIfNeeded()
 {
     if (!isRegistered_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "ScreenChangeListener is not registered.");
         return;
     }
     DMError error = ScreenManager::GetInstance().UnregisterScreenListener(this);
     if (error != DMError::DM_OK) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "Failed to unregister ScreenListener, error: %{public}d", error);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to unregister ScreenChangeListener, error: %{public}d", error);
         return;
     }
     isRegistered_ = false;
