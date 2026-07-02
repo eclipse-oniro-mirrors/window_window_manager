@@ -4213,6 +4213,9 @@ WSError SceneSession::TransferPointerEventInner(const std::shared_ptr<MMI::Point
     bool isMovableSystemWindow = WindowHelper::IsSystemWindow(windowType) && !isDialog;
     TLOGD(WmsLogTag::WMS_EVENT, "%{public}s: %{public}d && %{public}d", property->GetWindowName().c_str(),
         WindowHelper::IsSystemWindow(windowType), IsDragAccessible());
+    if (isPointDown && WindowHelper::IsFvWindow(windowType)) {
+        NotifyClickFloatView();
+    }
     if (isMovableWindowType && !isMaxModeAvoidSysBar &&
         (isMainWindow || isSubWindow || isDialog || isDragAccessibleSystemWindow || isMovableSystemWindow)) {
         if (CheckDialogOnForeground() && isPointDown) {
