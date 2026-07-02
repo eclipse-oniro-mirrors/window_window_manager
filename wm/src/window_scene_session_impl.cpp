@@ -8778,7 +8778,7 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    windowPropertyInfo.windowRect = GetRect();
+    windowPropertyInfo.windowRect = property_->GetWindowRect();
     auto uicontent = GetUIContentSharedPtr();
     if (uicontent == nullptr) {
         TLOGD(WmsLogTag::WMS_ATTRIBUTE, "uicontent is nullptr");
@@ -8798,9 +8798,9 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
     windowPropertyInfo.isTransparent = IsTransparent();
     windowPropertyInfo.id = GetWindowId();
     windowPropertyInfo.displayId = GetDisplayId();
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}u, globalDisplayRect=%{public}s", GetWindowId(),
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}u, globalDisplayRect=%{public}s", windowPropertyInfo.id,
         windowPropertyInfo.globalDisplayRect.ToString().c_str());
-    {
+    if (WindowHelper::IsMainWindow(windowPropertyInfo.type) && useHookedSize) {
         Rect realWindowRect = windowPropertyInfo.windowRect;
         Rect realGlobalDisplayRect = windowPropertyInfo.globalDisplayRect;
         Rect realDrawableRect = windowPropertyInfo.drawableRect;
@@ -8822,11 +8822,9 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
             realWindowRect.ToString().c_str(), hookedWindowRect.ToString().c_str(),
             realGlobalDisplayRect.ToString().c_str(), hookedGlobalDisplayRect.ToString().c_str(),
             realDrawableRect.ToString().c_str(), hookedDrawableRect.ToString().c_str(), useHookedSize);
-        if (useHookedSize) {
-            windowPropertyInfo.windowRect = hookedWindowRect;
-            windowPropertyInfo.globalDisplayRect = hookedGlobalDisplayRect;
-            windowPropertyInfo.drawableRect = hookedDrawableRect;
-        }
+        windowPropertyInfo.windowRect = hookedWindowRect;
+        windowPropertyInfo.globalDisplayRect = hookedGlobalDisplayRect;
+        windowPropertyInfo.drawableRect = hookedDrawableRect;
     }
     return WMError::WM_OK;
 }
