@@ -9498,7 +9498,9 @@ sptr<SceneSession> SceneSessionManager::GetNextFocusableSession(DisplayId displa
         }
         if (session->CheckFocusable() && session->IsVisibleNotBackground() &&
             (session->IsLoosenedWithFreeMultiMode() || IsParentSessionVisible(session))) {
-            if (!systemConfig_.IsPcWindow() || session->GetWindowType() != WindowType::WINDOW_TYPE_DESKTOP ||
+            WindowType windowType = session->GetWindowType();
+            if (!systemConfig_.IsPcWindow() ||
+                (windowType != WindowType::WINDOW_TYPE_DESKTOP && windowType != WindowType::WINDOW_TYPE_WALLPAPER) ||
                 currentSessionDisplayId == displayId) {
                 nextFocusableSession = session;
                 return true;
@@ -9622,34 +9624,36 @@ sptr<SceneSession> SceneSessionManager::GetTopNearestBlockingFocusSession(Displa
 
 bool SceneSessionManager::CheckBlockingFocus(const sptr<SceneSession>& session, bool includingAppSession)
 {
+    if (session == nullptr) {
+        return false;
+    }
     if (session->GetSessionInfo().isSystem_ && session->GetBlockingFocus()) {
-        TLOGD(WmsLogTag::WMS_FOCUS, "system window blocked");
         return true;
     }
-
+    WindowType windowType = session->GetWindowType();
     bool isPhoneOrPad = systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow();
-    if (isPhoneOrPad && (session->GetWindowType() == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
-        session->GetWindowType() == WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD)) {
+    if (isPhoneOrPad && windowType == WindowType::WINDOW_TYPE_VOICE_INTERACTION) {
         return true;
     }
-    if (includingAppSession && session->IsAppSession()) {
-        TLOGD(WmsLogTag::WMS_FOCUS,
-              "id: %{public}d, isFloatType: %{public}d, isFloatMode: %{public}d", session->GetPersistentId(),
-              session->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT,
-              session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING);
-        bool isPcOrPcMode =
-            systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
-        if (isPcOrPcMode && session->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT) {
+    bool isPcOrPcMode = systemConfig_.IsPcWindow() || (isPhoneOrPad && systemConfig_.IsFreeMultiWindowMode());
+    if (isPcOrPcMode && windowType == WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW) {
+        auto ancestorSession = session->GetMainOrFloatSession();
+        if (ancestorSession != nullptr && ancestorSession->GetWindowType() == WindowType::WINDOW_TYPE_FLOAT) {
             return false;
         }
-        bool isPhoneOrPadWithoutPcMode = isPhoneOrPad && !systemConfig_.IsFreeMultiWindowMode();
-        if (isPhoneOrPadWithoutPcMode && session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING &&
-            SessionHelper::IsMainWindow(session->GetWindowType()) && !session->GetIsMidScene()) {
-            return false;
-        }
-        return true;
     }
-    return false;
+    if (!includingAppSession || !session->IsAppSession()) {
+        return false;
+    }
+    if (isPcOrPcMode && windowType == WindowType::WINDOW_TYPE_FLOAT) {
+        return false;
+    }
+    if (isPhoneOrPad && !systemConfig_.IsFreeMultiWindowMode() &&
+        session->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING &&
+        SessionHelper::IsMainWindow(windowType) && !session->GetIsMidScene()) {
+        return false;
+    }
+    return true;
 }
 
 sptr<SceneSession> SceneSessionManager::GetTopFocusableNonAppSession()
@@ -16240,7 +16244,7 @@ void SceneSessionManager::PostProcessFocus()
     std::vector<sptr<SceneSession>> processingSessions = CollectProcessingSessions();
     // only change focus one time
     std::unordered_set<DisplayId> focusChangedSet;
-    for (const auto& session : processingSessions) {
+    for (auto& session : processingSessions) {
         if (session == nullptr) {
             TLOGE(WmsLogTag::DEFAULT, "session is nullptr");
             continue;
@@ -16249,7 +16253,6 @@ void SceneSessionManager::PostProcessFocus()
         const auto displayGroupId = windowFocusController_->GetDisplayGroupId(displayId);
         const auto& processFocusState = session->GetPostProcessFocusState();
         const auto persistentId = session->GetPersistentId();
-
         TLOGD(WmsLogTag::WMS_PIPELINE,
             "id: %{public}d, isFocused: %{public}d, reason: %{public}d, focusableOnShow: %{public}d",
             persistentId, processFocusState.isFocused_, processFocusState.reason_, session->IsFocusableOnShow());
@@ -16278,6 +16281,11 @@ void SceneSessionManager::PostProcessFocus()
                 ret = RequestSessionFocus(persistentId, processFocusState.byForeground_, reason);
             } else {
                 ret = RequestSessionFocus(persistentId, true, reason);
+            }
+            if ((reason == FocusChangeReason::SCB_START_APP || reason == FocusChangeReason::FOREGROUND ||
+                 reason == FocusChangeReason::APP_FOREGROUND) &&
+                session->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+                ProcessSubSessionForeground(session);
             }
         } else {
             ret = RequestSessionUnfocus(persistentId, processFocusState.reason_);
