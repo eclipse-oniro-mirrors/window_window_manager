@@ -129,6 +129,11 @@ constexpr int32_t GET_SCENE_NODE_COUNT_TIMEOUT = 50;
 constexpr const long PRE_CALC_WINDOW_PROPERTY_TIMEOUT = 1000;
 const std::string WANT_PARAM_GAME_PRELAUNCH = "ohos.params.gamePrelaunch";
 
+const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
+    "SCBGestureBack",
+    "SCBSystemSwipeDownArea"
+};
+
 bool CheckIfRectElementIsTooLarge(const WSRect& rect)
 {
     int32_t largeNumber = static_cast<int32_t>(SHRT_MAX);

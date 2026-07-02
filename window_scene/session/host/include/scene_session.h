@@ -186,11 +186,6 @@ using NotifySessionBlackListFunc = std::function<WMError(int32_t persistentId,
     const std::unordered_set<std::string>& privacyWindowTags)>;
 using NotifyPreCalcWindowPropertyFunc = std::function<void()>;
 
-inline static const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
-    "SCBGestureBack",
-    "SCBSystemSwipeDownArea"
-};
-
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
     uint32_t callingTokenId { 0 };

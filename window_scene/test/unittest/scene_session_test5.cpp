@@ -300,6 +300,10 @@ HWTEST_F(SceneSessionTest5, NotifyOutsideDownEvent, TestSize.Level1)
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
     session2->NotifyOutsideDownEvent(pointerEvent);
 
+    session2->specificCallback_->onSessionTouchOutside_ = nullptr;
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = [](int32_t id, DisplayId displayId) {};
     session2->sessionInfo_.bundleName_ = "SCBGestureBack";
     session2->NotifyOutsideDownEvent(pointerEvent);
 
