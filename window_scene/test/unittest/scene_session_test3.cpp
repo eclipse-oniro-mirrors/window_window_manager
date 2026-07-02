@@ -1589,6 +1589,26 @@ HWTEST_F(SceneSessionTest3, NotifySupportWindowModesChange03, TestSize.Level1)
     supportedWindowModes = { AppExecFwk::SupportWindowMode::FULLSCREEN, AppExecFwk::SupportWindowMode::FLOATING };
     EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
 }
+
+/**
+ * @tc.name: NotifyClientToUpdateLSState
+ * @tc.desc: test function : NotifyClientToUpdateLSState
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifyClientToUpdateLSState, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyClientToUpdateLSState";
+    info.bundleName_ = "NotifyClientToUpdateLSState";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    WSError res = sceneSession->NotifyClientToUpdateLSState(true);
+    EXPECT_EQ(WSError::WS_OK, res);
+
+    res = sceneSession->NotifyClientToUpdateLSState(false);
+    EXPECT_EQ(WSError::WS_OK, res);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

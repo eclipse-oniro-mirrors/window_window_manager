@@ -2259,6 +2259,30 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_NotEnabled, TestSize.Lev
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(false, session->IsLoosenedWithFreeMultiMode());
 }
+
+/**
+ * @tc.name: UpdateLSStateInfo
+ * @tc.desc: test UpdateLSStateInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateLSStateInfo, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "TestSession";
+    info.bundleName_ = "TestBundle";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_NE(nullptr, mockSessionStage);
+
+    session->sessionStage_ = nullptr;
+    ASSERT_EQ(WSError::WS_DO_NOTHING, session->UpdateLSStateInfo(true));
+
+    session->sessionStage_ = mockSessionStage;
+    EXPECT_CALL(*(mockSessionStage), UpdateLSState(_)).WillOnce(Return(WSError::WS_OK));
+    ASSERT_EQ(WSError::WS_OK, session->UpdateLSStateInfo(true));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

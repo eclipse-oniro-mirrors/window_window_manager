@@ -2091,6 +2091,29 @@ HWTEST_F(SessionStageStubTest, HandleSetIsStartMoving, TestSize.Level1)
         EXPECT_EQ(result, ERR_NONE);
     }
 }
+
+/**
+ * @tc.name: HandleUpdateLSState
+ * @tc.desc: test HandleUpdateLSState
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleUpdateLSState, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteBool(true);
+    int result = sessionStageStub_->HandleSetIsStartMoving(data, reply);
+    EXPECT_EQ(result, ERR_NONE);
+
+    MessageParcel data2;
+    MessageParcel reply2;
+    MessageOption option;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data2.WriteBool(false);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_LS_STATE);
+    result = sessionStageStub_->OnRemoteRequest(code, data2, reply2, option);
+    EXPECT_EQ(result, ERR_NONE);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
