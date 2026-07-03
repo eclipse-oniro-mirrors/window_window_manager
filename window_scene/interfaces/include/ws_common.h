@@ -153,6 +153,11 @@ enum class WSErrorReason : int32_t {
     WS_REASON_WINDOW_ANCO_CLEAR_SESSION_ERR,
 };
 
+enum class ScreenSupportMultiWindowReason : int32_t {
+    ADD = 1,
+    DELETE = 2,
+};
+
 extern const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP;
 
 bool CheckCollaboratorType(int32_t type);
@@ -434,7 +439,7 @@ struct AtomicServiceInfo {
 };
 
 struct PendingSessionActivationConfig {
-    // is compulsion open
+    // is forced start App
     bool forceStart = false;
     // is execute new want callback
     bool forceNewWant = true;
@@ -487,7 +492,6 @@ struct SessionInfo {
     int32_t collaboratorType_ = CollaboratorType::DEFAULT_TYPE;
     SessionState sessionState_ = SessionState::STATE_DISCONNECT;
     uint32_t requestOrientation_ = 0;
-    int32_t specificSessionRequestOrientation_ = -1;
     bool isRotable_ = false;
     bool isSetPointerAreas_ = false;
     bool isCastSession_ = false;

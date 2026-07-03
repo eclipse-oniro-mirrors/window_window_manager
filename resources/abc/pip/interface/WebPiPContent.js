@@ -26,6 +26,7 @@ class WebPiPContent extends ViewPU {
         this.xComponentId = 'webPipContent';
         this.xComponentType = XComponentType.SURFACE;
         this.setInitiallyProvidedValue(s);
+        this.windowId = 0;
     }
     setInitiallyProvidedValue(q) {
         if (q.xComponentController !== undefined) {
@@ -55,6 +56,7 @@ class WebPiPContent extends ViewPU {
         Stack.pop();
     }
     buildXComponent(j = null) {
+        this.windowId = this.getUIContext()?.getWindowId() ?? 0;
         this.observeComponentCreation2((k, l) => {
             XComponent.create({
                 id: this.xComponentId,
@@ -62,7 +64,8 @@ class WebPiPContent extends ViewPU {
                 controller: this.xComponentController
             }, 'webPipContent_XComponent');
             XComponent.onLoad(() => {
-                pip.initWebXComponentController(this.xComponentController, this.xComponentController.getXComponentSurfaceId());
+                pip.initWebXComponentController(this.windowId, 
+                    this.xComponentController, this.xComponentController.getXComponentSurfaceId());
                 console.debug(TAG, 'WebXComponent onLoad done');
             });
             XComponent.size({ width: '100%', height: '100%' });

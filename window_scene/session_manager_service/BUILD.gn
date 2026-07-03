@@ -54,6 +54,8 @@ ohos_shared_library("session_manager_service") {
     "image_framework:image_native",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]

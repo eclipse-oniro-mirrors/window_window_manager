@@ -47,7 +47,7 @@ protected:
     virtual ~SensorFoldStateMgr();
     FoldStatus GetNextFoldStatus(const SensorStatus& sensorStatus);
     virtual FoldStatus GetNextFoldStatusByAxis(
-        const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy);
+        const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy, size_t axisIndex);
     virtual FoldStatus GetNextGlobalFoldStatus(const std::vector<FoldStatus>& foldStatus);
     virtual sptr<AppExecFwk::IApplicationStateObserver> GetAppStateObserver();
     virtual void HandleTentChange(const SensorStatus& sensorStatus);

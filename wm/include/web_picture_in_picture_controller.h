@@ -43,6 +43,7 @@ public:
     WMError SetXComponentController(std::shared_ptr<XComponentController> xComponentController) override;
     uint8_t GetWebRequestId() override;
     WMError SetPipParentWindowId(uint32_t windowId) override;
+    void SetAutoStartEnabled(bool enable) override;
 
 protected:
     WMError CreatePictureInPictureWindow(StartPipType startType) override;

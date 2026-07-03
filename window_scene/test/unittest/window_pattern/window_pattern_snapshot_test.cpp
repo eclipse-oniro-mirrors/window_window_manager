@@ -497,6 +497,20 @@ HWTEST_F(WindowPatternSnapshotTest, NotifyAddSnapshot02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyAddSnapshot03
+ * @tc.desc: NotifyAddSnapshot Test with nullptr surfaceNode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, NotifyAddSnapshot03, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->surfaceNode_ = nullptr;
+    session_->state_ = SessionState::STATE_ACTIVE;
+    session_->NotifyAddSnapshot();
+    ASSERT_EQ(session_->GetSnapshot(), nullptr);
+}
+
+/**
  * @tc.name: NotifyRemoveSnapshot
  * @tc.desc: NotifyRemoveSnapshot Test
  * @tc.type: FUNC
@@ -696,6 +710,40 @@ HWTEST_F(WindowPatternSnapshotTest, SaveSnapshot02, TestSize.Level1)
     session_->systemConfig_.supportCacheLockedSessionSnapshot_ = true;
     session_->SaveSnapshot(false, true, pixelMap, false, LifeCycleChangeReason::SCREEN_LOCK);
     ASSERT_NE(session_->snapshot_, nullptr);
+}
+
+/**
+ * @tc.name: SaveSnapshotWithWindowSync
+ * @tc.desc: Test SaveSnapshot with windowSync parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SaveSnapshotWithWindowSync, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    
+    session_->scenePersistence_ =
+        sptr<ScenePersistence>::MakeSptr(session_->sessionInfo_.bundleName_, session_->persistentId_);
+    ASSERT_NE(session_->scenePersistence_, nullptr);
+    
+    struct RSSurfaceNodeConfig config;
+    session_->surfaceNode_ = RSSurfaceNode::Create(config);
+    ASSERT_NE(session_->surfaceNode_, nullptr);
+    
+    session_->bufferAvailable_ = true;
+    session_->surfaceNode_->bufferAvailable_ = true;
+    session_->property_->SetPrivacyMode(false);
+    
+    session_->snapshot_ = nullptr;
+    session_->SaveSnapshot(false, true, nullptr, false, LifeCycleChangeReason::DEFAULT, true);
+    ASSERT_EQ(session_->snapshot_, nullptr);
+    
+    session_->snapshot_ = nullptr;
+    session_->SaveSnapshot(false, true, nullptr, false, LifeCycleChangeReason::DEFAULT, false);
+    ASSERT_EQ(session_->snapshot_, nullptr);
+    
+    session_->snapshot_ = nullptr;
+    session_->SaveSnapshot(false, true, nullptr);
+    ASSERT_EQ(session_->snapshot_, nullptr);
 }
 
 /**
@@ -1815,9 +1863,11 @@ HWTEST_F(WindowPatternSnapshotTest, LoadSnapshotToMem03, TestSize.Level1)
     usleep(WAIT_SYNC_IN_NS * 10);
     
     session_->snapshot_ = nullptr;
+    session_->scenePersistence_->SetIsSavingSnapshot(false);
     session_->LoadSnapshotToMem();
     usleep(WAIT_SYNC_IN_NS * 10);
     ASSERT_NE(session_->snapshot_, nullptr);
+    ASSERT_EQ(session_->scenePersistence_->IsSavingSnapshot(), true);
 }
 
 /**

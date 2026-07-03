@@ -655,6 +655,10 @@ void ScreenSessionManagerClient::UpdateAvailableArea(ScreenId screenId, DMRect a
         TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return;
     }
+    auto screenSession = GetScreenSession(screenId);
+    if (screenSession != nullptr) {
+        screenSession->SetAvailableArea(area);
+    }
     screenSessionManager_->UpdateAvailableArea(screenId, area);
 }
 
@@ -663,6 +667,10 @@ void ScreenSessionManagerClient::UpdateSuperFoldAvailableArea(ScreenId screenId,
     if (!screenSessionManager_) {
         TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
         return;
+    }
+    auto screenSession = GetScreenSession(screenId);
+    if (screenSession != nullptr) {
+        screenSession->SetAvailableArea(bArea);
     }
     screenSessionManager_->UpdateSuperFoldAvailableArea(screenId, bArea, cArea);
 }
@@ -1691,6 +1699,18 @@ void ScreenSessionManagerClient::RegisterSwitchUserAnimationNotification(const s
     }
     TLOGI(WmsLogTag::DMS, "description: %{public}s regist success", description.c_str());
     animateFinishDescriptionSet_.insert(description);
+}
+
+void ScreenSessionManagerClient::UnRegisterSwitchUserAnimationNotification(const std::string& description)
+{
+    std::unique_lock<std::shared_mutex> lock(animateFinishDescriptionSetMutex_);
+    auto it = animateFinishDescriptionSet_.find(description);
+    if (it == animateFinishDescriptionSet_.end()) {
+        TLOGE(WmsLogTag::DMS, "description: %{public}s not find", description.c_str());
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "description: %{public}s erase success", description.c_str());
+    animateFinishDescriptionSet_.erase(it);
 }
 
 void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()

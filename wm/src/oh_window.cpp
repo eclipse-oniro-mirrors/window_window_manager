@@ -472,7 +472,6 @@ WindowManager_ErrorCode UnregisterDensityInfoChangeCallbackInner(int32_t windowI
     return WindowManager_ErrorCode::OK;
 }
 
-
 bool FindFrameMetricsMeasuredListener(int32_t windowId, uintptr_t measuredCallbackId,
     OHOS::sptr<OHWindowFrameMetricsMeasuredListener>& listener)
 {
@@ -1047,7 +1046,6 @@ int32_t OH_WindowManager_GetDensityInfoCopy(int32_t windowId, const OH_WindowMan
     }, __func__);
     return errCode;
 }
-
 
 int32_t OH_WindowManager_DensityInfo_Release(const OH_WindowManager_DensityInfo* info)
 {

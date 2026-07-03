@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <app_mgr_client.h>
 #include <atomic>
+#include <chrono>
 #include <climits>
 #include "configuration.h"
 #include <hitrace_meter.h>
@@ -128,6 +129,11 @@ constexpr int32_t GET_SCENE_NODE_COUNT_TIMEOUT = 50;
 constexpr const long PRE_CALC_WINDOW_PROPERTY_TIMEOUT = 1000;
 const std::string WANT_PARAM_GAME_PRELAUNCH = "ohos.params.gamePrelaunch";
 
+const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
+    "SCBGestureBack",
+    "SCBSystemSwipeDownArea"
+};
+
 bool CheckIfRectElementIsTooLarge(const WSRect& rect)
 {
     int32_t largeNumber = static_cast<int32_t>(SHRT_MAX);
@@ -185,6 +191,8 @@ SceneSession::SceneSession(const SessionInfo& info, const sptr<SpecificSessionCa
     GeneratePersistentId(false, info.persistentId_);
     specificCallback_ = specificCallback;
     SetCollaboratorType(info.collaboratorType_);
+    createTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
     TLOGI(WmsLogTag::WMS_LIFE, "Create session, id: %{public}d", GetPersistentId());
     WindowHelper::SplitStringByDelimiter(
         system::GetParameter("const.window.containerColorLists", ""), ",", containerColorList_);
@@ -689,7 +697,7 @@ WSError SceneSession::BackgroundTask(const bool isSaveSnapshot, LifeCycleChangeR
         if (WindowHelper::IsMainWindow(session->GetWindowType()) && isSaveSnapshot && needSaveSnapshot &&
             reason != LifeCycleChangeReason::GAME_PRELAUNCH_BACKGROUND) {
             session->SetFreeMultiWindow();
-            session->SaveSnapshot(true, true, nullptr, false, reason);
+            session->SaveSnapshot(true, true, nullptr, false, reason, true);
         }
         if (session->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::VISIBLE);
@@ -4094,8 +4102,7 @@ WSError SceneSession::ProcessPointDownSession(int32_t posX, int32_t posY)
     }
 
     // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ &&
-        sessionInfo_.bundleName_.find("SCBGestureBack") == std::string::npos) {
+    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(id, GetDisplayId());
     }
 
@@ -4143,8 +4150,7 @@ void SceneSession::NotifyOutsideDownEvent(const std::shared_ptr<MMI::PointerEven
     }
 
     // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ &&
-        sessionInfo_.bundleName_.find("SCBGestureBack") == std::string::npos) {
+    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(GetPersistentId(), GetDisplayId());
     }
 
@@ -4210,6 +4216,9 @@ WSError SceneSession::TransferPointerEventInner(const std::shared_ptr<MMI::Point
     bool isMovableSystemWindow = WindowHelper::IsSystemWindow(windowType) && !isDialog;
     TLOGD(WmsLogTag::WMS_EVENT, "%{public}s: %{public}d && %{public}d", property->GetWindowName().c_str(),
         WindowHelper::IsSystemWindow(windowType), IsDragAccessible());
+    if (isPointDown && WindowHelper::IsFvWindow(windowType)) {
+        NotifyClickFloatView();
+    }
     if (isMovableWindowType && !isMaxModeAvoidSysBar &&
         (isMainWindow || isSubWindow || isDialog || isDragAccessibleSystemWindow || isMovableSystemWindow)) {
         if (CheckDialogOnForeground() && isPointDown) {
@@ -4715,8 +4724,8 @@ void SceneSession::HandleMoveDragEnd(WSRect& rect, SizeChangeReason reason)
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set full screen after throw slip");
     }
 
-    uint64_t endDisplayId = moveDragController_->GetMoveDragEndDisplayId();
-    if (endDisplayId == moveDragController_->GetMoveDragStartDisplayId() ||
+    uint64_t endDisplayId = moveDragController_->GetEndDisplayId();
+    if (endDisplayId == moveDragController_->GetStartDisplayId() ||
         !IsCrossDisplayDragSupported()) {
         NotifySessionRectChange(rect, reason);
         HandleKeyboardMoveDragEnd(rect, reason);
@@ -5395,7 +5404,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     auto targetShadowSurfaceNode = moveDragBoundsApplier_->GetTargetShadowSurfaceNode();
     RETURN_IF_NULL(targetShadowSurfaceNode);
 
-    const auto startDisplayId = moveDragController_->GetMoveDragStartDisplayId();
+    const auto startDisplayId = moveDragController_->GetStartDisplayId();
     auto startScreenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(startDisplayId);
     if (startScreenSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "startScreenSession is null, startDisplayId: %{public}" PRIu64, startDisplayId);
@@ -5404,8 +5413,8 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
     bool isStartScreenMainOrExtend = isMainOrExtendScreenMode(startScreenSession->GetSourceMode());
     if (reason == SizeChangeReason::DRAG || reason == SizeChangeReason::DRAG_MOVE) {
         WSRect globalRect = moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
-        for (const auto displayId : moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag()) {
-            if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
+        for (const auto displayId : moveDragController_->CollectNewOverlappedDisplayIds()) {
+            if (displayId == moveDragController_->GetStartDisplayId()) {
                 continue;
             }
             auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(displayId);
@@ -5455,8 +5464,8 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
                 displayId, GetPersistentId());
         }
     } else if (reason == SizeChangeReason::DRAG_END) {
-        for (const auto displayId : moveDragController_->GetDisplayIdsDuringMoveDrag()) {
-            if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
+        for (const auto displayId : moveDragController_->GetOverlappedDisplayIds()) {
+            if (displayId == moveDragController_->GetStartDisplayId()) {
                 continue;
             }
             auto dragMoveMountedNode = GetWindowDragMoveMountedNode(displayId, this->GetZOrder());
@@ -6244,6 +6253,11 @@ std::vector<Rect> SceneSession::GetTouchHotAreas() const
 PiPTemplateInfo SceneSession::GetPiPTemplateInfo() const
 {
     return pipTemplateInfo_;
+}
+
+int64_t SceneSession::GetSessionCreateTimestamp() const
+{
+    return createTimestamp_;
 }
 
 void SceneSession::DumpSessionElementInfo(const std::vector<std::string>& params)
@@ -10210,6 +10224,8 @@ WSError SceneSession::NotifySupportWindowModesChange(
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s session is null", where);
             return;
         }
+        session->GetSessionProperty()->SetSupportedWindowModes(supportedWindowModes);
+        session->haveSetSupportedWindowModes_ = true;
         if (session->onSetSupportedWindowModesFunc_) {
             session->onSetSupportedWindowModesFunc_(std::move(supportedWindowModes));
         }
@@ -11536,6 +11552,29 @@ void SceneSession::SetIsShowOnDock(bool isShowOnDock)
 bool SceneSession::GetIsShowOnDock() const
 {
     return isShowOnDock_;
+}
+
+WSError SceneSession::NotifyClientToUpdateLSState(bool isLSState)
+{
+    PostTask([weakThis = wptr(this), isLSState, where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: session is null", where);
+            return;
+        }
+        session->UpdateLSStateInfo(isLSState);
+    }, __func__);
+    return WSError::WS_OK;
+}
+
+bool SceneSession::ShouldNotifyTouchOutside() const
+{
+    for (const auto& excludeName : TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES) {
+        if (sessionInfo_.bundleName_.find(excludeName) != std::string::npos) {
+            return false;
+        }
+    }
+    return true;
 }
 /*
  * Window Event end

@@ -608,6 +608,35 @@ HWTEST_F(SceneSessionTest3, SetIsMidScene, TestSize.Level1)
     sceneSession->SetIsMidScene(true);
     bool res = sceneSession->GetIsMidScene();
     EXPECT_EQ(res, true);
+
+    sceneSession->SetIsMidsScene(false);
+    res = sceneSession->GetIsMidScene();
+    EXPECT_EQ(res, false);
+}
+
+/**
+ * @tc.name: SetIsNeedRemoveSnapShot
+ * @tc.desc: SetIsNeedRemoveSnapShot
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, SetIsNeedRemoveSnapShot, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetIsNeedRemoveSnapShot";
+    info.bundleName_ = "SetIsNeedRemoveSnapShot";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->isNeedRemoveSnapShot_ = true;
+    sceneSession->SetIsNeedRemoveSnapShot(true);
+    bool res = sceneSession->GetIsNeedRemoveSnapShot();
+    EXPECT_EQ(res, true);
+
+    sceneSession->isNeedRemoveSnapShot_ = false;
+    sceneSession->GetIsNeedRemoveSnapShot(true);
+    res = sceneSession->GetIsNeedRemoveSnapShot();
+    EXPECT_EQ(res, true);
 }
 
 /**
@@ -1559,6 +1588,26 @@ HWTEST_F(SceneSessionTest3, NotifySupportWindowModesChange03, TestSize.Level1)
 
     supportedWindowModes = { AppExecFwk::SupportWindowMode::FULLSCREEN, AppExecFwk::SupportWindowMode::FLOATING };
     EXPECT_EQ(WSError::WS_OK, sceneSession->NotifySupportWindowModesChange(supportedWindowModes));
+}
+
+/**
+ * @tc.name: NotifyClientToUpdateLSState
+ * @tc.desc: test function : NotifyClientToUpdateLSState
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest3, NotifyClientToUpdateLSState, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyClientToUpdateLSState";
+    info.bundleName_ = "NotifyClientToUpdateLSState";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    WSError res = sceneSession->NotifyClientToUpdateLSState(true);
+    EXPECT_EQ(WSError::WS_OK, res);
+
+    res = sceneSession->NotifyClientToUpdateLSState(false);
+    EXPECT_EQ(WSError::WS_OK, res);
 }
 } // namespace
 } // namespace Rosen

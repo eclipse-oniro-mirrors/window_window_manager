@@ -151,6 +151,7 @@ HWTEST_F(WindowManagerStubTest, OnRemoteRequest05, TestSize.Level1)
     data.WriteInterfaceToken(WindowManagerStub::GetDescriptor());
     data.WriteUint32(static_cast<uint32_t>(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_CAMERA_FLOAT));
     sptr<IWindowManagerAgent> focusChangedListenerAgent = new WindowManagerAgent();
+    data.WriteInt32(INVALID_USER_ID);
     data.WriteRemoteObject(focusChangedListenerAgent->AsObject());
 
     uint32_t code =

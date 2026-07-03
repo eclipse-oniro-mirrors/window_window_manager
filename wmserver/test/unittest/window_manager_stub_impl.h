@@ -83,12 +83,12 @@ WMError SetWindowGravity(uint32_t windowId, WindowGravity gravity, uint32_t perc
     return WMError::WM_OK;
 };
 WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     return WMError::WM_OK;
 };
 WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     return WMError::WM_OK;
 };

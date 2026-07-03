@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <chrono>
+
 #include "singleton_container.h"
 #include "parameters.h"
 #include "picture_in_picture_manager.h"
@@ -39,6 +41,9 @@ WebPictureInPictureController::WebPictureInPictureController(const PiPConfig& co
     curState_ = PiPWindowState::STATE_UNDEFINED;
     isWeb_ = true;
     weakRef_ = this;
+    createTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    pipOption_->SetCreateTimestamp(createTimestamp_);
 }
 
 WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
@@ -49,13 +54,13 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
         mainWindowId_, mainWindow_->GetWindowState());
-    if (mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
+    if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     UpdateWinRectByComponent();
     auto windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName(PIP_WINDOW_NAME);
+    windowOption->SetWindowName(MakePipWindowName(createTimestamp_));
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
     windowOption->SetWindowRect(windowRect_);
@@ -64,8 +69,12 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     WMError errCode = WMError::WM_OK;
     PiPTemplateInfo pipTemplateInfo;
     pipOption_->GetPiPTemplateInfo(pipTemplateInfo);
+    pipTemplateInfo.createTimestamp = createTimestamp_;
     pipTemplateInfo.isWeb = true;
     auto context = mainWindow_->GetContext();
+    if (context == nullptr) {
+        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+    }
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(context->GetApplicationInfo()->name);
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context, errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
@@ -93,7 +102,7 @@ WMError WebPictureInPictureController::StartPictureInPicture(StartPipType startT
         return WMError::WM_ERROR_PIP_REPEAT_OPERATION;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    PictureInPictureManager::DoClose(true, true);
+    PictureInPictureManager::DoClose(window_ == nullptr ? INVALID_WINDOW_ID : window_->GetWindowId(), true, true);
     return StartPictureInPictureInner(startType);
 }
 
@@ -223,6 +232,30 @@ WMError WebPictureInPictureController::SetPipParentWindowId(uint32_t windowId)
     }
     TLOGI(WmsLogTag::WMS_PIP, "parentWindowId: %{public}u", windowId);
     return window_->SetPipParentWindowId(windowId);
+}
+
+void WebPictureInPictureController::SetAutoStartEnabled(bool enable)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "enable: %{public}u, mainWindow: %{public}u", enable, mainWindowId_);
+    isAutoStartEnabled_ = enable;
+    if (mainWindow_ == nullptr) {
+        return;
+    }
+    if (!pipOption_) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipOption is null");
+        return;
+    }
+    uint32_t priority = pipOption_->GetPipPriority(pipOption_->GetPipTemplate());
+    uint32_t contentWidth = 0;
+    uint32_t contentHeight = 0;
+    pipOption_->GetContentSize(contentWidth, contentHeight);
+    if (isAutoStartEnabled_) {
+        mainWindow_->SetAutoStartPiP(true, priority, contentWidth, contentHeight);
+        PictureInPictureManager::AttachAutoStartController(handleId_, weakRef_);
+    } else {
+        mainWindow_->SetAutoStartPiP(false, priority, contentWidth, contentHeight);
+        PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

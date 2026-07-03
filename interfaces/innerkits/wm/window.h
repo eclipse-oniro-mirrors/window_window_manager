@@ -1042,6 +1042,21 @@ public:
     virtual void OnUIContentCreate(std::weak_ptr<Ace::UIContent> uiContent) {}
 };
 
+/**
+ * @class IWindowHoverStateChangeListener
+ *
+ * @brief IWindowHoverStateChangeListener is used to observe the window hover state.
+ */
+class IWindowHoverStateChangeListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when window hover state change.
+     *
+     * @param hoverState The current window hover state.
+     */
+    virtual void OnWindowHoverStateChange(bool hoverState) {}
+};
+
 static WMError DefaultCreateErrCode = WMError::WM_OK;
 class Window : virtual public RefBase {
 public:
@@ -1697,6 +1712,7 @@ public:
     /**
      * @brief destroy window
      *
+     * @param reason Reason for window state change.
      * @return WMError
      */
     virtual WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) { return WMError::WM_OK; }
@@ -3252,10 +3268,7 @@ public:
      * @param targetId Indicates the id of the target main window.
      * @return WM_OK means raise success, others means raise failed.
      */
-    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Hide non-system floating windows.
@@ -4758,11 +4771,11 @@ public:
     virtual WMError OnContainerModalEvent(const std::string& eventName,
         const std::string& value) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /**
+    /*
      * @brief Determine whether the window spans multiple screens and displays in full screen mode.
      *
      * @param isAcrossDisplays the value true means to span multiple screens, and false means the opposite.
-     * @return WM_OK means success, others means failed.
+     * @return WM_OK means window show success, others means failed.
      */
     virtual WMError IsMainWindowFullScreenAcrossDisplays(
         bool& isAcrossDisplays) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
@@ -5730,6 +5743,30 @@ public:
      * @param showWhenCreate show when create for float view or floating ball.
      */
     virtual WMError UpdateFloatShowWhenCreate(const bool showWhenCreate)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Register window hover state change listener
+     *
+     * @param listener IWindowHoverStateChangeListener.
+     * @return WM_OK means register success, others means register failed
+     */
+    virtual WMError RegisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister window hover state change listener
+     *
+     * @param listener IWindowHoverStateChangeListener.
+     * @return WM_OK means register success, others means unregister failed
+     */
+    virtual WMError UnregisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
     {
         return WMError::WM_OK;
     }

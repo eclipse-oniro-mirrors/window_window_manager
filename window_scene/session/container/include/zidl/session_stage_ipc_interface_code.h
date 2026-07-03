@@ -136,6 +136,8 @@ enum class SessionStageInterfaceCode {
     TRANS_ID_SEND_FV_ACTION_EVENT,
     TRANS_ID_SYNC_FV_WINDOW_INFO,
     TRANS_ID_SYNC_FV_LIMITS,
+
+    TRANS_ID_UPDATE_LS_STATE,
 };
 }   // namespace Rosen
 }   // namespace OHOS

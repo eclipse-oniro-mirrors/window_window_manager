@@ -935,6 +935,219 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions10, TestSize.Lev
     ssm_->sceneSessionMap_.erase(1);
     ssm_->sceneSessionMap_.erase(2);
 }
+
+/**
+ * @tc.name: CheckBlockingFocus_SystemSubWindow_Main
+ * @tc.desc: SYSTEM_SUB_WINDOW inherits MAIN window blocking strategy
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemSubWindow_Main, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "MainApp";
+    sptr<SceneSession> mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    mainSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "SubApp";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW);
+    subSession->SetParentSession(mainSession);
+
+    bool ret = ssm_->CheckBlockingFocus(subSession, true);
+    EXPECT_EQ(ret, true);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_SystemSubWindow_Main_PC
+ * @tc.desc: SYSTEM_SUB_WINDOW with MAIN ancestor on PC still blocks
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemSubWindow_Main_PC, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "MainApp";
+    sptr<SceneSession> mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    mainSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "SubApp";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW);
+    subSession->SetParentSession(mainSession);
+
+    bool ret = ssm_->CheckBlockingFocus(subSession, true);
+    EXPECT_EQ(ret, true);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_SystemSubWindow_Float_PC
+ * @tc.desc: SYSTEM_SUB_WINDOW inherits FLOAT window strategy on PC (not blocking)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemSubWindow_Float_PC, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "MainApp";
+    sptr<SceneSession> mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    mainSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    SessionInfo floatInfo;
+    floatInfo.bundleName_ = "FloatApp";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(floatInfo, nullptr);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetParentSession(mainSession);
+
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "SubApp";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW);
+    subSession->SetParentSession(floatSession);
+
+    bool ret = ssm_->CheckBlockingFocus(subSession, false);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_SystemSubWindow_NoAncestor
+ * @tc.desc: SYSTEM_SUB_WINDOW with no ancestor returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemSubWindow_NoAncestor, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo subInfo;
+    subInfo.bundleName_ = "SubApp";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    subSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW);
+
+    bool ret = ssm_->CheckBlockingFocus(subSession, false);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_NonAppSession
+ * @tc.desc: Non-AppSession with includingAppSession=true returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_NonAppSession, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo info;
+    info.bundleName_ = "SystemApp";
+    info.isSystem_ = false;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_PANEL);
+
+    bool ret = ssm_->CheckBlockingFocus(session, true);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_SpecialWindow_PC
+ * @tc.desc: Special window types on PC do not block (only Phone/Pad)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SpecialWindow_PC, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+
+    SessionInfo info;
+    info.bundleName_ = "VoiceApp";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_VOICE_INTERACTION);
+
+    bool ret = ssm_->CheckBlockingFocus(session, false);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_Float_PadFreeMultiWindow
+ * @tc.desc: FLOAT window on Pad with free multi window mode does not block
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_Float_PadFreeMultiWindow, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    ssm_->systemConfig_.freeMultiWindowEnable_ = true;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+
+    SessionInfo mainInfo;
+    mainInfo.bundleName_ = "MainApp";
+    sptr<SceneSession> mainSession = sptr<SceneSession>::MakeSptr(mainInfo, nullptr);
+    mainSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    SessionInfo floatInfo;
+    floatInfo.bundleName_ = "FloatApp";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(floatInfo, nullptr);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetParentSession(mainSession);
+
+    bool ret = ssm_->CheckBlockingFocus(floatSession, false);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_NullSession
+ * @tc.desc: Null session returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_NullSession, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool ret = ssm_->CheckBlockingFocus(nullptr, true);
+    EXPECT_EQ(ret, false);
+
+    ret = ssm_->CheckBlockingFocus(nullptr, false);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_SystemNoBlockingFocus
+ * @tc.desc: System window without blockingFocus flag returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_SystemNoBlockingFocus, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo info;
+    info.bundleName_ = "SystemApp";
+    info.isSystem_ = true;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_PANEL);
+    session->blockingFocus_ = false;
+
+    bool ret = ssm_->CheckBlockingFocus(session, true);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: CheckBlockingFocus_AppSession_IncludingFalse
+ * @tc.desc: AppSession with includingAppSession=false returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, CheckBlockingFocus_AppSession_IncludingFalse, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+
+    SessionInfo info;
+    info.bundleName_ = "TestApp";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    bool ret = ssm_->CheckBlockingFocus(session, false);
+    EXPECT_EQ(ret, false);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

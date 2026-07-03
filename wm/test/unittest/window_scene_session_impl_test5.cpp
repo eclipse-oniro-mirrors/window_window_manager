@@ -819,7 +819,8 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow04, Function | SmallT
     EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(false), WSError::WS_OK);
     EXPECT_EQ(mainWindow->windowSystemConfig_.freeMultiWindowEnable_, false);
 
-    mainWindow->pendingWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN;
+    std::vector<AppExecFwk::SupportWindowMode> userModes = { AppExecFwk::SupportWindowMode::FULLSCREEN };
+    mainWindow->property_->SetSupportedWindowModes(userModes);
     EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(true), WSError::WS_OK);
     EXPECT_EQ(mainWindow->property_->GetWindowModeSupportType(), WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
     WindowSceneSessionImpl::windowSessionMap_.erase(mainWindow->property_->GetWindowName());
@@ -2249,6 +2250,7 @@ HWTEST_F(WindowSceneSessionImplTest5, IsDecorEnable1, Function | SmallTest | Lev
     sptr<WindowOption> subWindowOption = sptr<WindowOption>::MakeSptr();
     subWindowOption->SetWindowName("IsDecorEnable1");
     subWindowOption->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    subWindowOption->SetSubWindowMaximizeSupported(true);
 
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(subWindowOption);
     window->property_->SetDecorEnable(true);
@@ -2256,9 +2258,6 @@ HWTEST_F(WindowSceneSessionImplTest5, IsDecorEnable1, Function | SmallTest | Lev
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     auto ret = window->IsDecorEnable();
     EXPECT_EQ(false, ret);
-    subWindowOption->SetSubWindowMaximizeSupported(true);
-    ret = window->IsDecorEnable();
-    EXPECT_EQ(true, ret);
 }
 
 /**
@@ -3481,6 +3480,43 @@ HWTEST_F(WindowSceneSessionImplTest5, SendCombinedCompatibleConfigToArkUI, TestS
     window->property_->SetCombinedCompatibleConfig({"{aaa: bbb}", "arkUIAndWebConfig"});
     window->SendCombinedCompatibleConfigToArkUI();
     EXPECT_TRUE(WindowSceneSessionImpl::hasSentCombinedCompatibleConfig_);
+}
+
+/**
+ * @tc.name: CheckWindowCanInHoverState
+ * @tc.desc: Test CheckWindowCanInHoverState
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, CheckWindowCanInHoverState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CheckWindowCanInHoverState");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    window->property_->SetDisplayId(DISPLAY_ID_INVALID);
+    Rect windowRect = { 0, 0, 100, 100 };
+    bool result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    window->property_->SetDisplayId(0);
+    result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    Transform transform;
+    transform.scaleX_ = 2.0f;
+    transform.scaleY_ = 2.0f;
+    window->property_->SetTransform(transform);
+    result = window->CheckWindowCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
+
+    result = window->CheckCreaseRegionCanInHoverState(windowRect);
+    EXPECT_EQ(result, false);
 }
 }
 } // namespace Rosen

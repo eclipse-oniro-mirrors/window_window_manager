@@ -205,7 +205,7 @@ std::string JsFloatViewManager::CheckAndGetParam(napi_env env, napi_callback_inf
     uint32_t templateType = 0;
     ConvertFromJsValue(env, templateTypeValue, templateType);
     option.SetTemplate(templateType);
-
+ 
     if (hasCloseConfirm) {
         napi_value closeConfirmValue = nullptr;
         napi_get_named_property(env, config, "isConfirmOnClose", &closeConfirmValue);
@@ -417,14 +417,12 @@ napi_value JsFloatViewManager::OnUnBind(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "OnUnBind");
     size_t argc = ARG_COUNT_TWO;
-    napi_value argv[ARG_COUNT_TWO] = { nullptr };
-    // 解析应用传参FloatViewConfiguration对象
+    napi_value argv[ARG_COUNT_TWO] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARG_COUNT_TWO) {
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "Missing arguments for unbind operation.",
             ARKUI_WINDOW_FV_UNBIND, ARKUI_WINDOW_FV_UNBIND_BOOL);
     }
-
     auto jsFvController = GetFvControllers(env, argv[INDEX_ZERO]);
     if (jsFvController == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to get floatViewController from js object");

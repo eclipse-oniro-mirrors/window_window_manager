@@ -779,6 +779,10 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist,
     if (needSaveSnapshot) {
         SaveSnapshot(useFfrt, needPersist);
     }
+    if (GetSurfaceNode() == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "surfaceNode invalid %{public}d", persistentId_);
+        return;
+    }
     auto task = [weakThis = wptr(this), where = __func__, callback = std::move(callback)]() mutable {
         auto session = weakThis.promote();
         if (session == nullptr) {
@@ -1996,7 +2000,9 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken,
     isStarting_ = false;
     bufferAvailable_ = false;
     isNeedSyncSessionRect_ = true;
-    if (mainHandler_) {
+    isAlreadyDisconnect_ = true;
+    // SCBSystemSession release surfaceNode when it detach
+    if (mainHandler_ && !IsSystemSession()) {
         std::shared_ptr<RSSurfaceNode> surfaceNode;
         std::shared_ptr<RSSurfaceNode> shadowSurfaceNode;
         {
@@ -5093,6 +5099,7 @@ void Session::LoadSnapshotToMem()
         }
         std::lock_guard<std::mutex> lock(session->snapshotMutex_);
         session->snapshot_ = pixelMap;
+        session->scenePersistence_->SetIsSavingSnapshot(true);
         session->saveSnapshotCallback_();
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s done, id: %{public}d", where, session->GetPersistentId());
     };
@@ -5732,10 +5739,17 @@ WSError Session::SwitchFreeMultiWindow(const SystemSessionConfig& config)
         TLOGE(WmsLogTag::DEFAULT, "abilityInfo is nullptr!");
         return WSError::WS_ERROR_NULLPTR;
     }
-    std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
-        ExtractSupportWindowModeFromMetaData(sessionInfo_.abilityInfo);
-    auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
-    property->SetWindowModeSupportType(windowModeSupportType);
+    if (haveSetSupportedWindowModes_ && enable) {
+        std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+        property->GetSupportedWindowModes(supportedWindowModes);
+        auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
+        property->SetWindowModeSupportType(windowModeSupportType);
+    } else {
+        std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
+            ExtractSupportWindowModeFromMetaData(sessionInfo_.abilityInfo);
+        auto windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
+        property->SetWindowModeSupportType(windowModeSupportType);
+    }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}d enable: %{public}d defaultWindowMode: %{public}d",
         GetPersistentId(), enable, systemConfig_.defaultWindowMode_);
     bool isUiExtSubWindow = WindowHelper::IsSubWindow(property->GetWindowType()) &&
@@ -5862,10 +5876,10 @@ void Session::SetIsNeedRemoveSnapShot(bool isNeedRemoveSnapShot)
             TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "session is null");
             return;
         }
-        if (session->isNeedRemoveSnapShot_.load() != isNeedRemoveSnapShot) {
+        if (session->isNeedRemoveSnapShot_ != isNeedRemoveSnapShot) {
             TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "persistentId:%{public}d, isNeedRemoveSnapShot:%{public}d",
                 session->GetPersistentId(), isNeedRemoveSnapShot);
-            session->isNeedRemoveSnapShot_.store(isNeedRemoveSnapShot);
+            session->isNeedRemoveSnapShot_ = isNeedRemoveSnapShot;
         }
     }, __func__);
 }
@@ -5883,7 +5897,7 @@ bool Session::GetIsMidScene() const
 
 bool Session::GetIsNeedRemoveSnapShot() const
 {
-    return isNeedRemoveSnapShot_.load();
+    return isNeedRemoveSnapShot_;
 }
 
 void Session::SetTouchHotAreas(const std::vector<Rect>& touchHotAreas)
@@ -6439,5 +6453,15 @@ void Session::HandleHookDisplay(const PrelayoutContext& ctx)
               GetPersistentId(), callingUid_, ret);
         return;
     }
+}
+
+WSError Session::UpdateLSStateInfo(bool isLSState)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, isLSState: %{public}d", GetPersistentId(), isLSState);
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "session stage is nullptr");
+        return WSError::WS_DO_NOTHING;
+    }
+    return sessionStage_->UpdateLSState(isLSState);
 }
 } // namespace OHOS::Rosen

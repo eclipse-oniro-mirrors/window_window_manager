@@ -27,23 +27,24 @@ public:
     AniPipManager();
     ~AniPipManager();
     static ani_status Init(ani_env* env, ani_namespace nsp);
-    static void InitXComponentController(ani_env* env, ani_long nativeObj, ani_object xComponentController);
-    static ani_ref GetCustomUIController(ani_env* env, ani_long nativeObj);
-    static ani_ref GetTypeNode(ani_env* env, ani_long nativeObj);
-    static void SetTypeNodeEnabled(ani_env* env, ani_long nativeObj);
+    static void InitXComponentController(ani_env* env, ani_long nativeObj, ani_int windowId,
+        ani_object xComponentController);
+    static ani_ref GetCustomUIController(ani_env* env, ani_long nativeObj, ani_int windowId);
+    static ani_ref GetTypeNode(ani_env* env, ani_long nativeObj, ani_int windowId);
+    static void SetTypeNodeEnabled(ani_env* env, ani_long nativeObj, ani_int windowId);
     static void SetPipNodeType(ani_env* env, ani_long nativeObj, ani_object typeNode, ani_boolean markPip);
-    static void RegisterCallback(ani_env* env, ani_long nativeObj, ani_string type, ani_ref callback);
-    static void UnregisterCallback(ani_env* env, ani_long nativeObj, ani_string type);
+    static void RegisterCallback(ani_env* env, ani_long nativeObj, ani_int windowId, ani_string type, ani_ref callback);
+    static void UnregisterCallback(ani_env* env, ani_long nativeObj, ani_int windowId, ani_string type);
 
 private:
 
-    void OnInitXComponentController(ani_env* env, ani_object xComponentController);
-    ani_ref OnGetCustomUIController(ani_env* env);
-    ani_object OnGetTypeNode(ani_env* env);
-    void OnRegisterCallback(ani_env* env, ani_string type, ani_ref callback);
-    void OnUnregisterCallback(ani_env* env, ani_string type);
+    void OnInitXComponentController(ani_env* env, ani_int windowId, ani_object xComponentController);
+    ani_ref OnGetCustomUIController(ani_env* env, ani_int windowId);
+    ani_object OnGetTypeNode(ani_env* env, ani_int windowId);
+    void OnRegisterCallback(ani_env* env, ani_int windowId, ani_string type, ani_ref callback);
+    void OnUnregisterCallback(ani_env* env, ani_int windowId, ani_string type);
     void OnSetPipNodeType(ani_env* env, ani_object typeNode, ani_boolean markPip);
-    void OnSetTypeNodeEnabled(ani_env* env);
+    void OnSetTypeNodeEnabled(ani_env* env, ani_int windowId);
 };
 
 ani_status ANI_Manager_Constructor(ani_vm *vm, uint32_t *result);

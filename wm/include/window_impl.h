@@ -317,8 +317,8 @@ public:
     virtual std::string GetContentInfo(BackupAndRestoreType type = BackupAndRestoreType::CONTINUATION) override;
     WMError SetRestoredRouterStack(const std::string& routerStack) override;
     virtual const std::shared_ptr<AbilityRuntime::Context> GetContext() const override;
+    virtual Ace::UIContent* GetUIContent() const override;
     virtual Ace::UIContent* GetUIContentWithId(uint32_t winId) const override;
-    Ace::UIContent* GetUIContent() const override;
     std::shared_ptr<Ace::UIContent> GetUIContentSharedPtr() const;
     virtual void OnNewWant(const AAFwk::Want& want) override;
     virtual void SetRequestedOrientation(Orientation orientation, bool needAnimation = true) override;
@@ -583,7 +583,6 @@ private:
     std::atomic<float> virtualPixelRatio_ = 1.0f;
 
     std::string restoredRouterStack_; // It was set and get in same thread, which is js thread.
-
     /*
      * Window animation
      */

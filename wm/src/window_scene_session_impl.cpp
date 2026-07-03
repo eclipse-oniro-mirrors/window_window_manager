@@ -629,7 +629,7 @@ WMError WindowSceneSessionImpl::RecoverAndConnectSpecificSession()
     }
     if (WindowHelper::IsPipWindow(type)) {
         TLOGI(WmsLogTag::WMS_RECOVER, "pipWindow");
-        PictureInPictureManager::DoClose(true, true);
+        PictureInPictureManager::DoClose(GetWindowId(), true, true);
         return WMError::WM_OK;
     }
     windowRecoverStateChangeFunc_(true, WindowRecoverState::WINDOW_START_RECONNECT);
@@ -2692,12 +2692,12 @@ WMError WindowSceneSessionImpl::Destroy(bool needNotifyServer, bool needClearLis
         WLOGFW("Destroy window failed, id: %{public}d", GetPersistentId());
         return ret;
     }
+    RecordWindowLifecycleChange("destroy");
     WindowLifeCycleInfo windowLifeCycleInfo = GetWindowLifecycleInfo();
     SingletonContainer::Get<WindowManager>().NotifyWMSWindowDestroyed(windowLifeCycleInfo);
 
     // delete after replace WSError with WMError
     NotifyBeforeDestroy(GetWindowName());
-    RecordWindowLifecycleChange("destroy");
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         state_ = WindowState::STATE_DESTROYED;
@@ -3116,16 +3116,6 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height)
     }
     const auto& windowRect = GetRect();
     const auto& requestRect = GetRequestRect();
-
-    if (WindowHelper::IsSubWindow(GetType())) {
-        auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
-            if (width == requestRect.width_ && height == requestRect.height_) {
-                TLOGW(WmsLogTag::WMS_LAYOUT, "Request same size in multiWindow will not update, return");
-                return WMError::WM_OK;
-            }
-        }
-    }
 
     Rect newRect = { requestRect.posX_, requestRect.posY_, width, height }; // must keep w/h
     TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, state: %{public}d, type: %{public}d, mode: %{public}d, requestRect: "
@@ -4372,6 +4362,7 @@ WMError WindowSceneSessionImpl::RecoverForCompatibleMode()
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "recover fail, not main");
         return WMError::WM_ERROR_INVALID_CALLING;
     }
+    isTitleShowInFullScreen_ = false;
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     hostSession->OnSessionEvent(SessionEvent::EVENT_COMPATIBLE_TO_RECOVER);
@@ -5001,15 +4992,15 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_SYSTEM_ABNORMALLY);
     hostSession->NotifySupportWindowModesChange(supportedWindowModes);
+    property_->SetSupportedWindowModes(supportedWindowModes);
+    haveSetSupportedWindowModes_ = true;
     if (!IsPcOrPadFreeMultiWindowMode()) {
-        pendingWindowModeSupportType_ = windowModeSupportType;
         TLOGI(WmsLogTag::WMS_LAYOUT,
-            "[WindowSupportModes:SetInner] pending (not free multi window), id:%{public}u, type:%{public}u",
+            "[WindowSupportModes:SetInner] not free multi window, cached for later, id:%{public}u, type:%{public}u",
             GetWindowId(), windowModeSupportType);
         return WMError::WM_OK;
     }
 
-    haveSetSupportedWindowModes_ = true;
     property_->SetWindowModeSupportType(windowModeSupportType);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
     UpdateTitleButtonVisibility();
@@ -6829,6 +6820,7 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
         TLOGI(WmsLogTag::WMS_DECOR, "dock auto hide skip updateTitleInTargetPos");
         return WSError::WS_OK;
     }
+    isTitleShowInFullScreen_ = isShow && height >= 0 && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
     NotifyTitleChange(isShow, height);
     uiContent->UpdateTitleInTargetPos(isShow, height);
     return WSError::WS_OK;
@@ -6836,10 +6828,6 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
 
 void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
 {
-    if (haveSetSupportedWindowModes_) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "SupportedWindowMode is already set, id: %{public}d", GetPersistentId());
-        return;
-    }
     auto abilityContext = AbilityRuntime::Context::ConvertTo<AbilityRuntime::AbilityContext>(context_);
     if (abilityContext == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "abilityContext is nullptr");
@@ -6856,15 +6844,20 @@ void WindowSceneSessionImpl::UpdateSupportWindowModesWhenSwitchFreeMultiWindow()
     auto size = supportedWindowModes.size();
     if (windowSystemConfig_.freeMultiWindowEnable_ && size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE) {
         windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes);
-        if (auto hostSession = GetHostSession()) {
-            hostSession->NotifySupportWindowModesChange(supportedWindowModes);
-        }
     } else {
         std::vector<AppExecFwk::SupportWindowMode> updateWindowModes =
             ExtractSupportWindowModeFromMetaData(abilityInfo);
         windowModeSupportType = WindowHelper::ConvertSupportModesToSupportType(updateWindowModes);
     }
     property_->SetWindowModeSupportType(windowModeSupportType);
+    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
+
+    if (windowSystemConfig_.freeMultiWindowEnable_) {
+        if (haveSetSupportedWindowModes_) {
+            UpdateTitleButtonVisibility();
+        }
+        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
+    }
 }
 
 void WindowSceneSessionImpl::UpdateEnableDragWhenSwitchMultiWindow(bool enable)
@@ -6924,9 +6917,6 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
     } else {
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     }
-    if (enable) {
-        PendingUpdateSupportWindowModesWhenSwitchMultiWindow();
-    }
     if (enable && IsAnco() && windowSystemConfig_.IsPadWindow()) {
         uiContent_->SetContainerModalTitleVisible(false, true);
         uiContent_->EnableContainerModalCustomGesture(true);
@@ -6957,30 +6947,6 @@ WSError WindowSceneSessionImpl::ConfigDockAutoHide(bool isDockAutoHide)
         }
     }
     return WSError::WS_OK;
-}
-
-void WindowSceneSessionImpl::PendingUpdateSupportWindowModesWhenSwitchMultiWindow()
-{
-    if (pendingWindowModeSupportType_ == WindowModeSupport::WINDOW_MODE_SUPPORT_ALL) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "pending data has not set, id: %{public}d", GetPersistentId());
-        maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
-        return;
-    }
-
-    uint32_t windowModeSupportType = pendingWindowModeSupportType_;
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "id: %{public}d, windowModeSupportType: %{public}u",
-        GetPersistentId(), windowModeSupportType);
-    
-    pendingWindowModeSupportType_ = WindowModeSupport::WINDOW_MODE_SUPPORT_ALL;
-    property_->SetWindowModeSupportType(windowModeSupportType);
-
-    // update windowModeSupportType to server
-    UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_MODE_SUPPORT_INFO);
-    haveSetSupportedWindowModes_ = true;
-    UpdateTitleButtonVisibility();
-
-    // update window mode immediately when pending window support type take effect
-    maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
 }
 
 void WindowSceneSessionImpl::maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen()
@@ -8610,7 +8576,8 @@ WMError WindowSceneSessionImpl::SetWindowAnchorInfo(const WindowAnchorInfo& wind
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
     if (wsRet == WSError::WS_OK) {
-        GetProperty()->SetWindowAnchorInfo(windowAnchorInfo);
+        const auto& property = GetProperty();
+        property->SetWindowAnchorInfo(windowAnchorInfo);
     }
     return wsRet != WSError::WS_OK ? WMError::WM_ERROR_SYSTEM_ABNORMALLY : WMError::WM_OK;
 }
@@ -8811,7 +8778,7 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    windowPropertyInfo.windowRect = GetRect();
+    windowPropertyInfo.windowRect = property_->GetWindowRect();
     auto uicontent = GetUIContentSharedPtr();
     if (uicontent == nullptr) {
         TLOGD(WmsLogTag::WMS_ATTRIBUTE, "uicontent is nullptr");
@@ -8831,9 +8798,9 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
     windowPropertyInfo.isTransparent = IsTransparent();
     windowPropertyInfo.id = GetWindowId();
     windowPropertyInfo.displayId = GetDisplayId();
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}u, globalDisplayRect=%{public}s", GetWindowId(),
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}u, globalDisplayRect=%{public}s", windowPropertyInfo.id,
         windowPropertyInfo.globalDisplayRect.ToString().c_str());
-    {
+    if (WindowHelper::IsMainWindow(windowPropertyInfo.type) && useHookedSize) {
         Rect realWindowRect = windowPropertyInfo.windowRect;
         Rect realGlobalDisplayRect = windowPropertyInfo.globalDisplayRect;
         Rect realDrawableRect = windowPropertyInfo.drawableRect;
@@ -8855,11 +8822,9 @@ WMError WindowSceneSessionImpl::GetWindowPropertyInfo(WindowPropertyInfo& window
             realWindowRect.ToString().c_str(), hookedWindowRect.ToString().c_str(),
             realGlobalDisplayRect.ToString().c_str(), hookedGlobalDisplayRect.ToString().c_str(),
             realDrawableRect.ToString().c_str(), hookedDrawableRect.ToString().c_str(), useHookedSize);
-        if (useHookedSize) {
-            windowPropertyInfo.windowRect = hookedWindowRect;
-            windowPropertyInfo.globalDisplayRect = hookedGlobalDisplayRect;
-            windowPropertyInfo.drawableRect = hookedDrawableRect;
-        }
+        windowPropertyInfo.windowRect = hookedWindowRect;
+        windowPropertyInfo.globalDisplayRect = hookedGlobalDisplayRect;
+        windowPropertyInfo.drawableRect = hookedDrawableRect;
     }
     return WMError::WM_OK;
 }
@@ -9368,6 +9333,7 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
 	
 {
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
+    std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
     if (!IsPcOrPadFreeMultiWindowMode()) {
         return false;
     }
@@ -9377,7 +9343,25 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
     }
     Rect windowRect = property_->GetWindowRect();
     MMI::PointerEvent::PointerItem pointerItem;
+    int32_t foldCreaseRegionHeight = 0;
+    int32_t displayHeight = 0;
     bool isValidPointItem = pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
+    auto foldCreaseRegion = DisplayManager::GetInstance().GetCurrentFoldCreaseRegion();
+    if (foldCreaseRegion != nullptr) {
+        const auto& creaseRects = foldCreaseRegion->GetCreaseRects();
+        if (!creaseRects.empty()) {
+            foldCreaseRegionHeight = creaseRects.front().height_;
+        }
+    }
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display != nullptr) {
+        displayHeight = display->GetHeight();
+    }
+    int32_t displayX = pointerItem.GetDisplayX();
+    int32_t displayY = pointerItem.GetDisplayY();
+    if (property_->GetDisplayId() == DISPLAY_ID_C) {
+        displayY -= (displayHeight + foldCreaseRegionHeight);
+    }
     
     int32_t width = static_cast<int32_t>(windowRect.width_);
     int32_t height = static_cast<int32_t>(windowRect.height_);
@@ -9386,30 +9370,42 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
     float vpr = WindowSessionImpl::GetVirtualPixelRatio();
     float scaleX = compatScaleX_;
     float scaleY = compatScaleY_;
-    float outsideArea = HOTZONE_TOUCH * vpr * scaleX;
-    float insideArea = WINDOW_FRAME_WIDTH * vpr * scaleX;
+    float outsideArea = HOTZONE_TOUCH * vpr;
+    float insideArea = WINDOW_FRAME_WIDTH * vpr;
+    float cornerArea = WINDOW_FRAME_CORNER_TOUCH_WIDTH * vpr;
  
-    bool isHitTopHotArea = pointerItem.GetDisplayX() > posX - outsideArea * scaleX &&
-        pointerItem.GetDisplayX() < posX + (width + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY - outsideArea * scaleY &&
-        pointerItem.GetDisplayY() < posY + (insideArea + outsideArea) * scaleY;
+        bool isHitTopHotArea = displayX > posX - outsideArea * scaleX &&
+        displayX < posX + (width + outsideArea) * scaleX &&
+        displayY > posY - outsideArea * scaleY &&
+        displayY < posY + (insideArea + outsideArea) * scaleY;
  
-    bool isHitLeftHotArea = pointerItem.GetDisplayX() > posX - outsideArea * scaleX &&
-        pointerItem.GetDisplayX() < posX + (insideArea + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY - outsideArea * scaleY &&
-        pointerItem.GetDisplayY() < posY + (height + outsideArea) * scaleY;
+    bool isHitLeftHotArea = displayX > posX - outsideArea * scaleX &&
+        displayX < posX + (insideArea + outsideArea) * scaleX &&
+        displayY > posY - outsideArea * scaleY &&
+        displayY < posY + (height + outsideArea) * scaleY;
  
-    bool isHitRightHotArea = pointerItem.GetDisplayX() > posX + (width - insideArea) * scaleX &&
-        pointerItem.GetDisplayX() < posX + (width + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY - outsideArea * scaleY &&
-        pointerItem.GetDisplayY() < posY + (height + outsideArea) * scaleY;
+    bool isHitRightHotArea = displayX > posX + (width - insideArea) * scaleX &&
+        displayX < posX + (width + outsideArea) * scaleX &&
+        displayY > posY - outsideArea * scaleY &&
+        displayY < posY + (height + outsideArea) * scaleY;
     
-    bool isHitBottomHotArea = pointerItem.GetDisplayX() > posX - outsideArea * scaleX &&
-        pointerItem.GetDisplayX() < posX + (width + outsideArea) * scaleX &&
-        pointerItem.GetDisplayY() > posY + (height - insideArea) * scaleY &&
-        pointerItem.GetDisplayY() < posY + (height + outsideArea) * scaleY;
+    bool isHitBottomHotArea = displayX > posX - outsideArea * scaleX &&
+        displayX < posX + (width + outsideArea) * scaleX &&
+        displayY > posY + (height - insideArea) * scaleY &&
+        displayY < posY + (height + outsideArea) * scaleY;
  
-    bool isHitHotAreas = isHitTopHotArea || isHitLeftHotArea || isHitRightHotArea || isHitBottomHotArea;
+    bool isHitLeftBottomHotArea = displayX > posX &&
+        displayX < posX + cornerArea * scaleX &&
+        displayY > posY + (height - cornerArea) * scaleY &&
+        displayY < posY + height * scaleY;
+
+    bool isHitRightBottomHotArea = displayX > posX + (width - cornerArea) * scaleX &&
+        displayX < posX + width * scaleX &&
+        displayY > posY + (height - cornerArea) * scaleY &&
+        displayY < posY + height * scaleY;
+ 
+    bool isHitHotAreas = isHitTopHotArea || isHitLeftHotArea || isHitRightHotArea || isHitBottomHotArea ||
+      isHitLeftBottomHotArea || isHitRightBottomHotArea;
     if (isValidPointItem && isHitHotAreas) {
         TLOGI(WmsLogTag::WMS_DECOR, "hitHotAreas success");
         return true;
@@ -9515,6 +9511,7 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
     TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(),
         isDark, static_cast<uint32_t>(type));
     auto rsUIContext = GetRSUIContext();
+    AutoRSTransaction trans(rsUIContext);
     if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
         Rosen::RSAnimationTimingProtocol timingProtocol;
         timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
@@ -9677,6 +9674,69 @@ WMError WindowSceneSessionImpl::ClearNativeTouchEventFilter()
     std::unique_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
     nativeTouchEventFilter_ = nullptr;
     return WMError::WM_OK;
+}
+
+bool WindowSceneSessionImpl::CheckWindowCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
+    bool isFullScreen = false;
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        auto displayInfo = display->GetDisplayInfo();
+        if (displayInfo &&
+            windowRect.width_ == static_cast<uint32_t>(displayInfo->GetWidth()) &&
+            windowRect.height_ >= static_cast<uint32_t>(displayInfo->GetHeight())) {
+            isFullScreen = true;
+        }
+    } else {
+        isFullScreen = IsFullScreenSizeWindow(windowRect.width_, windowRect.height_);
+    }
+
+    Transform transform = property_->GetTransform();
+    if (!isFullScreen || GetWindowMode() != WindowMode::WINDOW_MODE_FULLSCREEN ||
+        (transform.scaleX_ != 1 || transform.scaleY_ != 1) || WindowSessionImpl::GetLSState()) {
+        return false;
+    }
+
+    return CheckCreaseRegionCanInHoverState(windowRect);
+}
+
+bool WindowSceneSessionImpl::CheckCreaseRegionCanInHoverState(const Rect& windowRect)
+{
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "display is null!");
+        return false;
+    }
+
+    FoldCreaseRegion foldCreaseRegion;
+    DMError res = display->GetLiveCreaseRegion(foldCreaseRegion);
+    if (res != DMError::DM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "foldCreaseRegion is null!");
+        return false;
+    }
+
+    const auto& creaseRects = foldCreaseRegion.GetCreaseRects();
+    if (creaseRects.empty()) {
+        TLOGE(WmsLogTag::DEFAULT, "creaseRects is empty!");
+        return false;
+    }
+
+    const DMRect& creaseRect = creaseRects.front();
+    if (creaseRect.width_ < creaseRect.height_) {
+        return false;
+    }
+
+    if ((creaseRect.posX_ < windowRect.posX_ || creaseRect.posY_ < windowRect.posY_) ||
+        (creaseRect.posX_ + creaseRect.width_ > windowRect.posX_ + windowRect.width_ ||
+        creaseRect.posY_ + creaseRect.height_ > windowRect.posY_ + windowRect.height_)) {
+        return false;
+    }
+    return true;
 }
 } // namespace Rosen
 } // namespace OHOS

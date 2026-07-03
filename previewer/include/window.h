@@ -312,9 +312,7 @@ public:
     virtual WMError SetShadowOffsetX(float offsetX) = 0;
     virtual WMError SetShadowOffsetY(float offsetY) = 0;
     virtual WMError SyncShadowsToComponent(const ShadowsInfo& shadowsInfo)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+        { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetBlur(float radius) = 0;
     virtual WMError SetBackdropBlur(float radius) = 0;
     virtual WMError SetBackdropBlurStyle(WindowBlurStyle blurStyle) = 0;

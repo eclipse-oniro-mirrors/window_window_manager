@@ -166,7 +166,7 @@ int32_t CJWindowImpl::ShowWindow()
         weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
     return static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(ret));
 }
-        
+
 int32_t CJWindowImpl::ShowWithAnimation()
 {
     WmErrorCode errCode = WmErrorCode::WM_OK;
@@ -380,7 +380,7 @@ int32_t CJWindowImpl::SetPreferredOrientation(uint32_t orientation)
         static_cast<uint32_t>(winOrientation));
     return static_cast<int32_t>(WmErrorCode::WM_OK);
 }
-        
+
 int32_t CJWindowImpl::SetWindowFocusable(bool focusable)
 {
     ResWindow result = CheckWindow();
@@ -1167,7 +1167,7 @@ int32_t CJWindowImpl::SetWindowLimits(const CWindowLimits& cWindowLimits,
     retPtr.maxWidth = sizeLimits.maxWidth_;
     retPtr.maxHeight = sizeLimits.maxHeight_;
     retPtr.minWidth = sizeLimits.minWidth_;
-    retPtr.maxHeight = sizeLimits.minHeight_;
+    retPtr.minHeight = sizeLimits.minHeight_;
     return static_cast<int32_t>(ret);
 }
 
@@ -1187,7 +1187,7 @@ int32_t CJWindowImpl::GetWindowLimits(CWindowLimits& retPtr)
     retPtr.maxWidth = windowLimits.maxWidth_;
     retPtr.maxHeight = windowLimits.maxHeight_;
     retPtr.minWidth = windowLimits.minWidth_;
-    retPtr.maxHeight = windowLimits.minHeight_;
+    retPtr.minHeight = windowLimits.minHeight_;
     return static_cast<int32_t>(ret);
 }
 
@@ -1482,7 +1482,7 @@ int32_t CJWindowImpl::GetWindowSystemBarProperties(CJBarProperties& retPtr)
         WindowType::WINDOW_TYPE_STATUS_BAR);
     SystemBarProperty navi = weakWindow->GetSystemBarPropertyByType(
         WindowType::WINDOW_TYPE_NAVIGATION_BAR);
-    
+
     retPtr.statusBarColor = CopyToHeap(GetHexColor(status.backgroundColor_));
     retPtr.statusBarContentColor = CopyToHeap(GetHexColor(status.contentColor_));
     retPtr.isStatusBarLightIcon = status.contentColor_ == SYSTEM_COLOR_WHITE;

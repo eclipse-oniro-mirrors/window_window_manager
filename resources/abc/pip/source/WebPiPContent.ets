@@ -23,6 +23,7 @@ struct WebPiPContent {
   private xComponentController: XComponentController = new XComponentController();
   xComponentId: string = 'webPipContent';
   xComponentType: XComponentType = XComponentType.SURFACE;
+  private windowId: number = 0;
 
   build() {
     Stack() {
@@ -33,10 +34,11 @@ struct WebPiPContent {
 
   @Builder
   buildXComponent() {
+    this.windowId = this.getUIContext()?.getWindowId() ?? 0;
     XComponent({ id: this.xComponentId, type: this.xComponentType, controller: this.xComponentController })
       .onLoad(() => {
         try {
-          pip.initWebXComponentController(this.xComponentController,
+          pip.initWebXComponentController(this.windowId, this.xComponentController,
             this.xComponentController.getXComponentSurfaceId());
           console.debug(TAG, 'WebXComponent onLoad done');
         } catch (error) {

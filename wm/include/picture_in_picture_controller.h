@@ -44,6 +44,7 @@ public:
     bool IsTypeNodeEnabled() const override;
     bool IsPullPiPAndHandleNavigation();
     std::string GetPiPNavigationId() const override;
+    
     inline std::shared_ptr<XComponentController> GetMainWindowXComponentController() const
     {
         return mainWindowXComponentController_;
@@ -72,6 +73,9 @@ protected:
 private:
     void DeletePIPMode();
     virtual NavigationController* GetNavigationController(const std::string& navId);
+    WMError ValidatePiPCreateParams(StartPipType startType);
+    WMError PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
+        std::shared_ptr<AbilityRuntime::Context>& abilityContext);
 };
 } // namespace Rosen
 } // namespace OHOS

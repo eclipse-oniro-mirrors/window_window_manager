@@ -885,11 +885,11 @@ int SceneSessionManagerLiteStub::HandleRegisterWindowManagerAgent(MessageParcel&
         return ERR_INVALID_DATA;
     }
     WindowManagerAgentType type = static_cast<WindowManagerAgentType>(typeId);
-    TLOGI(WmsLogTag::DEFAULT, "type=%{public}u", typeId);
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
             iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy);
+    WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -903,11 +903,11 @@ int SceneSessionManagerLiteStub::HandleUnregisterWindowManagerAgent(MessageParce
         return ERR_INVALID_DATA;
     }
     WindowManagerAgentType type = static_cast<WindowManagerAgentType>(typeId);
-    TLOGI(WmsLogTag::DEFAULT, "type=%{public}u", typeId);
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
             iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy);
+    WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -1062,13 +1062,15 @@ int SceneSessionManagerLiteStub::HandleRegisterWindowPropertyChangeAgent(Message
     }
 
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     if (windowManagerAgentObject == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read remote object failed");
         return ERR_INVALID_DATA;
     }
     sptr<IWindowManagerAgent> windowManagerAgentProxy = iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgentProxy);
+    WMError errCode = RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -1089,6 +1091,7 @@ int SceneSessionManagerLiteStub::HandleUnregisterWindowPropertyChangeAgent(Messa
     }
 
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     if (windowManagerAgentObject == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read remote object failed");
@@ -1096,7 +1099,8 @@ int SceneSessionManagerLiteStub::HandleUnregisterWindowPropertyChangeAgent(Messa
     }
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
         iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgentProxy);
+    WMError errCode = UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }

@@ -187,11 +187,12 @@ WMError WindowAdapter::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    TLOGI(WmsLogTag::DEFAULT, "Register agent type:%{public}d userId:%{public}d", type, userId_);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
 
-    auto ret = wmsProxy->RegisterWindowManagerAgent(type, windowManagerAgent);
+    auto ret = wmsProxy->RegisterWindowManagerAgent(type, windowManagerAgent, userId_);
     if (ret == WMError::WM_OK) {
         std::lock_guard<std::mutex> lock(wmAgentMapMutex_);
         windowManagerAgentMap_[type].insert(windowManagerAgent);
@@ -214,10 +215,11 @@ WMError WindowAdapter::UnregisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    TLOGI(WmsLogTag::DEFAULT, "Unregister agent type:%{public}d userId:%{public}d", type, userId_);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    auto ret = wmsProxy->UnregisterWindowManagerAgent(type, windowManagerAgent);
+    auto ret = wmsProxy->UnregisterWindowManagerAgent(type, windowManagerAgent, userId_);
     if (ret != WMError::WM_OK) {
         TLOGW(WmsLogTag::DEFAULT, "Unregister agent failed due to proxy, ret: %{public}d", ret);
         return ret;
@@ -246,6 +248,8 @@ WMError WindowAdapter::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInf
     uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    TLOGI(WmsLogTag::DEFAULT, "Register property agent key:%{public}d interest:%{public}d userId:%{public}d",
+        windowInfoKey, interestInfo, userId_);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
@@ -255,7 +259,7 @@ WMError WindowAdapter::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInf
     observedFlags_ |= static_cast<uint32_t>(windowInfoKey);
     interestedFlags_ |= interestInfo;
     
-    auto ret = wmsProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    auto ret = wmsProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, userId_);
     if (ret == WMError::WM_OK) {
         std::lock_guard<std::mutex> lock(wmAgentMapMutex_);
         windowManagerAgentMap_[type].insert(windowManagerAgent);
@@ -269,10 +273,12 @@ WMError WindowAdapter::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowI
     uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
 {
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    TLOGI(WmsLogTag::DEFAULT, "Unregister property agent key:%{public}d interest:%{public}d userId:%{public}d",
+        windowInfoKey, interestInfo, userId_);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    auto ret = wmsProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    auto ret = wmsProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, userId_);
 
     observedFlags_ &= ~(static_cast<uint32_t>(windowInfoKey));
     interestedFlags_ &= ~interestInfo;
@@ -767,7 +773,7 @@ void WindowAdapter::ReregisterWindowManagerAgent()
         }
     }
     for (const auto& [type, agent] : agentsToRegister) {
-        if (wmsProxy->RegisterWindowManagerAgent(type, agent) != WMError::WM_OK) {
+        if (wmsProxy->RegisterWindowManagerAgent(type, agent, userId_) != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_RECOVER, "Register failed due to wms proxy, type: %{public}" PRIu32, type);
         }
     }
@@ -801,7 +807,7 @@ void WindowAdapter::ReregisterWindowManagerFaultAgent(const sptr<IWindowManager>
     }
     // Begin re-register.
     for (const auto& [type, agent] : agentsToRegister) {
-        if (proxy->RegisterWindowManagerAgent(type, agent) != WMError::WM_OK) {
+        if (proxy->RegisterWindowManagerAgent(type, agent, userId_) != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_RECOVER, "Re-register fault agent failed");
             continue;
         }
@@ -860,8 +866,10 @@ bool WindowAdapter::InitSSMProxy()
         windowManagerServiceProxy_ = nullptr;
         return false;
     }
+    // U0 system user needs to register user switch listener and just register onece.
     int32_t clientUserId = GetUserIdByUid(getuid());
-    if (clientUserId == SYSTEM_USERID) {
+    if (clientUserId == SYSTEM_USERID && !isRegisteredUserSwitchListener_) {
+        TLOGI(WmsLogTag::WMS_MULTI_USER, "Registered user switch listener");
         SessionManager::GetInstance(userId_).RegisterUserSwitchListener([weakThis = wptr(this)] {
             auto instance = weakThis.promote();
             if (!instance) {
@@ -870,6 +878,7 @@ bool WindowAdapter::InitSSMProxy()
             }
             instance->OnUserSwitch();
         });
+        isRegisteredUserSwitchListener_ = true;
     }
     isProxyValid_ = true;
     return true;

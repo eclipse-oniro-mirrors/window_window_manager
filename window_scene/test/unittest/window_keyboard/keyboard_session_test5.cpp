@@ -19,6 +19,7 @@
 #include "interfaces/include/ws_common.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_keyboard_session.h"
+#include "session/host/include/move_drag_controller.h"
 #include "session/host/include/session.h"
 #include "session/host/include/scene_session.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
@@ -1523,6 +1524,30 @@ HWTEST_F(KeyboardSessionTest5, HandleCrossScreenChild02, TestSize.Level1)
     auto keyboardSession = GetKeyboardSession("CrossScreen02", "CrossScreen02");
     keyboardSession->moveDragController_ = nullptr;
     keyboardSession->HandleCrossScreenChild(false);
+}
+
+HWTEST_F(KeyboardSessionTest5, TestHandleCrossScreenChildWithController, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CrossScreenController", "CrossScreenController");
+    auto panelSession = GetSceneSession("CrossScreenPanel", "CrossScreenPanel");
+    ASSERT_NE(panelSession, nullptr);
+    RSSurfaceNodeConfig config;
+    config.SurfaceNodeName = "CrossScreenPanel";
+    auto surfaceNode = RSSurfaceNode::Create(config, RSSurfaceNodeType::DEFAULT);
+    ASSERT_NE(surfaceNode, nullptr);
+    panelSession->SetSurfaceNode(surfaceNode);
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+
+    auto callingSession = GetSceneSession("CrossScreenCalling", "CrossScreenCalling");
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetDisplayId(0);
+    keyboardSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(callingSession));
+    ASSERT_NE(keyboardSession->moveDragController_, nullptr);
+    keyboardSession->moveDragController_->InitMoveDragProperty();
+    EXPECT_TRUE(keyboardSession->moveDragController_->AddOverlappedDisplayId(0));
+
+    keyboardSession->HandleCrossScreenChild(false);
+    EXPECT_EQ(keyboardSession->moveDragController_->GetOverlappedDisplayIds().count(0), 1);
 }
 
 HWTEST_F(KeyboardSessionTest5, PostKeyboardAnimationSyncTimeoutTask01, TestSize.Level1)

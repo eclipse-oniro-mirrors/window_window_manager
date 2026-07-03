@@ -23,29 +23,23 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "Session
 WM_IMPLEMENT_SINGLE_INSTANCE(SessionManagerAgentController)
 
 WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
-    WindowManagerAgentType type, int32_t pid)
+    WindowManagerAgentType type, int32_t pid, int32_t instanceUserId)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "type=%{public}u, pid=%{public}d", static_cast<uint32_t>(type), pid);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
+        static_cast<uint32_t>(type), pid, instanceUserId);
     if (smAgentContainer_.RegisterAgent(windowManagerAgent, type)) {
-        std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
-        auto it = windowManagerPidAgentMap_.find(pid);
-        if (it != windowManagerPidAgentMap_.end()) {
-            auto& typeAgentMap = it->second;
-            auto typeAgentIter = typeAgentMap.find(type);
-            if (typeAgentIter != typeAgentMap.end()) {
-                smAgentContainer_.UnregisterAgent(typeAgentIter->second, type);
-                windowManagerAgentPairMap_.erase((typeAgentIter->second)->AsObject());
-            }
-            typeAgentMap.emplace(type, windowManagerAgent);
-        } else {
-            std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>> typeAgentMap;
-            typeAgentMap.emplace(type, windowManagerAgent);
-            TLOGI(WmsLogTag::WMS_MAIN, "insert pid: %{public}d, type: %{public}u",
-                pid, static_cast<uint32_t>(type));
-            windowManagerPidAgentMap_.emplace(pid, typeAgentMap);
+        std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
+        auto& userIdMap = windowManagerPidUserIdAgentMap_[pid];
+        auto& typeAgentMap = userIdMap[instanceUserId];
+        auto typeAgentIter = typeAgentMap.find(type);
+        if (typeAgentIter != typeAgentMap.end()) {
+            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Replace old agent, type=%{public}u, pid=%{public}d, uid=%{public}d",
+                static_cast<uint32_t>(type), pid, instanceUserId);
+            smAgentContainer_.UnregisterAgent(typeAgentIter->second, type);
+            windowManagerAgentPairMap_.erase((typeAgentIter->second)->AsObject());
         }
-        std::pair<int32_t, WindowManagerAgentType> pidPair = {pid, type};
-        windowManagerAgentPairMap_.emplace(windowManagerAgent->AsObject(), pidPair);
+        typeAgentMap[type] = windowManagerAgent;
+        windowManagerAgentPairMap_[windowManagerAgent->AsObject()] = {pid, instanceUserId, type};
         if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_STYLE &&
             windowManagementMode_ != WindowManagementMode::UNDEFINED) {
             NotifyWindowStyleChange(windowManagementMode_ == WindowManagementMode::FREEFORM ?
@@ -59,29 +53,35 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
 }
 
 WMError SessionManagerAgentController::UnregisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
-    WindowManagerAgentType type, int32_t pid)
+    WindowManagerAgentType type, int32_t pid, int32_t instanceUserId)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "type=%{public}u, pid=%{public}d", static_cast<uint32_t>(type), pid);
-    if (smAgentContainer_.UnregisterAgent(windowManagerAgent, type)) {
-        std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
-        auto it = windowManagerPidAgentMap_.find(pid);
-        if (it != windowManagerPidAgentMap_.end()) {
-            auto& typeAgentMap = it->second;
-            auto typeAgentIter = typeAgentMap.find(type);
-            if (typeAgentIter != typeAgentMap.end()) {
-                windowManagerAgentPairMap_.erase((typeAgentIter->second)->AsObject());
-                typeAgentMap.erase(type);
-                if (typeAgentMap.empty()) {
-                    TLOGI(WmsLogTag::WMS_MAIN, "erase pid: %{public}d, type: %{public}u",
-                        pid, static_cast<uint32_t>(type));
-                    windowManagerPidAgentMap_.erase(pid);
-                }
-            }
-        }
-        return WMError::WM_OK;
-    } else {
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
+        static_cast<uint32_t>(type), pid, instanceUserId);
+    if (!smAgentContainer_.UnregisterAgent(windowManagerAgent, type)) {
         return WMError::WM_ERROR_NULLPTR;
     }
+    std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
+    auto pidIter = windowManagerPidUserIdAgentMap_.find(pid);
+    if (pidIter == windowManagerPidUserIdAgentMap_.end()) {
+        return WMError::WM_OK;
+    }
+    auto userIdIter = pidIter->second.find(instanceUserId);
+    if (userIdIter == pidIter->second.end()) {
+        return WMError::WM_OK;
+    }
+    auto typeIter = userIdIter->second.find(type);
+    if (typeIter == userIdIter->second.end()) {
+        return WMError::WM_OK;
+    }
+    windowManagerAgentPairMap_.erase(windowManagerAgent->AsObject());
+    userIdIter->second.erase(type);
+    if (userIdIter->second.empty()) {
+        pidIter->second.erase(instanceUserId);
+    }
+    if (pidIter->second.empty()) {
+        windowManagerPidUserIdAgentMap_.erase(pid);
+    }
+    return WMError::WM_OK;
 }
 
 void SessionManagerAgentController::UpdateCameraFloatWindowStatus(uint32_t accessTokenId, bool isShowing)
@@ -204,21 +204,30 @@ void SessionManagerAgentController::UpdateCameraWindowStatus(uint32_t accessToke
 
 void SessionManagerAgentController::DoAfterAgentDeath(const sptr<IRemoteObject>& remoteObject)
 {
-    std::lock_guard<std::mutex> lock(windowManagerAgentPidMapMutex_);
+    std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
     auto it = windowManagerAgentPairMap_.find(remoteObject);
-    if (it != windowManagerAgentPairMap_.end()) {
-        auto [pid, type] = it->second;
-        auto pidIter = windowManagerPidAgentMap_.find(pid);
-        if (pidIter != windowManagerPidAgentMap_.end()) {
-            auto& typeAgentMap = pidIter->second;
-            TLOGI(WmsLogTag::WMS_MAIN, "type: %{public}u", static_cast<uint32_t>(type));
-            typeAgentMap.erase(type);
-            if (typeAgentMap.empty()) {
-                TLOGI(WmsLogTag::WMS_MAIN, "pid: %{public}d", pid);
-                windowManagerPidAgentMap_.erase(pid);
-            }
-        }
-        windowManagerAgentPairMap_.erase(remoteObject);
+    if (it == windowManagerAgentPairMap_.end()) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "Agent died but not in pairMap");
+        return;
+    }
+    auto [pid, userId, type] = it->second;
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Agent died, pid=%{public}d, uid=%{public}d, type=%{public}u",
+        pid, userId, static_cast<uint32_t>(type));
+    windowManagerAgentPairMap_.erase(remoteObject);
+    auto pidIter = windowManagerPidUserIdAgentMap_.find(pid);
+    if (pidIter == windowManagerPidUserIdAgentMap_.end()) {
+        return;
+    }
+    auto userIdIter = pidIter->second.find(userId);
+    if (userIdIter == pidIter->second.end()) {
+        return;
+    }
+    userIdIter->second.erase(type);
+    if (userIdIter->second.empty()) {
+        pidIter->second.erase(userId);
+    }
+    if (pidIter->second.empty()) {
+        windowManagerPidUserIdAgentMap_.erase(pid);
     }
 }
 

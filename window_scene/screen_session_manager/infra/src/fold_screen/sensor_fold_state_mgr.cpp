@@ -124,15 +124,16 @@ FoldStatus SensorFoldStateMgr::GetNextFoldStatus(const SensorStatus& sensorStatu
     std::vector<FoldStatus> nextFoldStatus;
     for (size_t i = 0; i < sensorStatus.axis_.size(); ++i) {
         nextFoldStatus.emplace_back(
-            GetNextFoldStatusByAxis(sensorStatus.axis_[i], currentFoldStatus_[i], foldAlgorithmStrategy_[i]));
+            GetNextFoldStatusByAxis(sensorStatus.axis_[i], currentFoldStatus_[i], foldAlgorithmStrategy_[i], i));
     }
     currentFoldStatus_ = nextFoldStatus;
     return GetNextGlobalFoldStatus(nextFoldStatus);
 }
 
 FoldStatus SensorFoldStateMgr::GetNextFoldStatusByAxis(
-    const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy)
+    const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy, size_t axisIndex)
 {
+    (void)axisIndex;
     if (std::isless(axis.angle_, ANGLE_MIN_VAL)) {
         return currentStatus;
     }

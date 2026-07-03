@@ -18,25 +18,22 @@
 #include "float_window_manager.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
+#include <ui/rs_ui_context.h>
 
 namespace OHOS {
 namespace Rosen {
 namespace {
     const std::string PIP_CONTENT_PATH = "/system/etc/window/resources/pip_content.abc";
     const std::string DESTROY_TIMEOUT_TASK = "PipDestroyTimeout";
-    const std::string STATE_CHANGE = "stateChange";
+    const std::string STATE_CHANGE_WM = "stateChange";
     const std::string UPDATE_NODE = "nodeUpdate";
     const int32_t INVALID_HANDLE_ID = -1;
 }
 
 PictureInPictureController::PictureInPictureController(sptr<PipOption> pipOption, sptr<Window> mainWindow,
     uint32_t windowId, napi_env env)
+    : PictureInPictureControllerBase(pipOption, mainWindow, windowId, env)
 {
-    pipOption_ = pipOption;
-    mainWindow_ = mainWindow;
-    mainWindowId_ = windowId;
-    env_ = env;
-    curState_ = PiPWindowState::STATE_UNDEFINED;
     weakRef_ = this;
 }
 
@@ -48,15 +45,19 @@ PictureInPictureController::~PictureInPictureController()
     PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
 }
 
-WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
+WMError PictureInPictureController::ValidatePiPCreateParams(StartPipType startType)
 {
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Create pip failed, invalid pipOption");
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            0, PipConst::FAILED, "Create pip failed, invalid pipOption");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     mainWindowXComponentController_ = pipOption_->GetXComponentController();
     if ((mainWindowXComponentController_ == nullptr && !IsTypeNodeEnabled()) || mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindowXComponentController or mainWindow is nullptr");
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "mainWindowXComponentController or mainWindow is nullptr");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
@@ -65,25 +66,35 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "mainWindow is not shown");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
+    return WMError::WM_OK;
+}
+
+WMError PictureInPictureController::PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
+    std::shared_ptr<AbilityRuntime::Context>& abilityContext)
+{
     UpdateWinRectByComponent();
     auto windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName(PIP_WINDOW_NAME);
+    windowOption->SetWindowName(MakePipWindowName(createTimestamp_));
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
     windowOption->SetWindowRect(windowRect_);
     windowOption->SetKeepScreenOn(true);
     windowOption->SetTouchable(false);
     WMError errCode = WMError::WM_OK;
-    PiPTemplateInfo pipTemplateInfo;
     pipOption_->GetPiPTemplateInfo(pipTemplateInfo);
+    pipTemplateInfo.createTimestamp = createTimestamp_;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOption_->GetContext());
-    const std::shared_ptr<AbilityRuntime::Context>& abilityContext = context->lock();
+    abilityContext = context->lock();
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "Window create failed");
         return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     window_ = window;
@@ -92,11 +103,24 @@ WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType st
     return WMError::WM_OK;
 }
 
+WMError PictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
+{
+    auto ret = ValidatePiPCreateParams(startType);
+    if (ret != WMError::WM_OK) {
+        return ret;
+    }
+    PiPTemplateInfo pipTemplateInfo;
+    std::shared_ptr<AbilityRuntime::Context> abilityContext;
+    return PreparePiPWindowCreation(startType, pipTemplateInfo, abilityContext);
+}
+
 WMError PictureInPictureController::StartPictureInPicture(StartPipType startType)
 {
     TLOGI(WmsLogTag::WMS_PIP, "called");
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption is null or Get PictureInPictureOption failed");
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            0, PipConst::FAILED, "pipOption is null or Get PictureInPictureOption failed");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     if (curState_ == PiPWindowState::STATE_STARTING || curState_ == PiPWindowState::STATE_STARTED) {
@@ -108,21 +132,22 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
     }
     if (!IsPullPiPAndHandleNavigation()) {
         TLOGE(WmsLogTag::WMS_PIP, "Navigation operate failed");
+        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+            pipOption_->GetPipTemplate(), PipConst::FAILED, "Navigation operate failed");
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    if (PictureInPictureManager::HasActiveController() && !PictureInPictureManager::IsActiveController(weakRef_)) {
-        // if current controller is not the active one, but belongs to the same mainWindow, reserve pipWindow
-        if (PictureInPictureManager::IsAttachedToSameWindow(mainWindowId_)) {
-            window_ = PictureInPictureManager::GetCurrentWindow();
-            if (window_ == nullptr) {
-                TLOGE(WmsLogTag::WMS_PIP, "Reuse pipWindow failed");
-                curState_ = PiPWindowState::STATE_UNDEFINED;
-                return WMError::WM_ERROR_PIP_CREATE_FAILED;
-            }
+    startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
+        static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
+    if (reachLimit) {
+        window_ = PictureInPictureManager::GetSameGroupWindowByMainWindowId(mainWindowId_,
+            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
+        if (window_ != nullptr) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
-            PictureInPictureManager::DoClose(false, false);
+            PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);
             mainWindowXComponentController_ = IsTypeNodeEnabled() ? nullptr : pipOption_->GetXComponentController();
             UpdateWinRectByComponent();
             UpdateContentSize(windowRect_.width_, windowRect_.height_);
@@ -135,10 +160,7 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
             }
             return err;
         }
-        // otherwise, stop the previous one
-        PictureInPictureManager::DoClose(true, true);
     }
-
     WMError errCode = StartPictureInPictureInner(startType);
     if (errCode != WMError::WM_OK) {
         DeletePIPMode();
@@ -480,7 +502,7 @@ void PictureInPictureController::NotifyStateChangeInner(PiPState state)
 
 void PictureInPictureController::NotifyStateChangeInner(napi_env env, PiPState state)
 {
-    std::shared_ptr<NativeReference> innerCallbackRef = GetPipContentCallbackRef(STATE_CHANGE);
+    std::shared_ptr<NativeReference> innerCallbackRef = GetPipContentCallbackRef(STATE_CHANGE_WM);
     if (innerCallbackRef == nullptr) {
         return;
     }
@@ -566,7 +588,6 @@ std::shared_ptr<NativeReference> PictureInPictureController::GetTypeNode() const
 {
     return pipOption_ == nullptr ? nullptr : pipOption_->GetTypeNodeRef();
 }
-
 
 NavigationController* PictureInPictureController::GetNavigationController(const std::string& navId)
 {

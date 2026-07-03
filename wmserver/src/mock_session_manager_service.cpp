@@ -131,7 +131,9 @@ void MockSessionManagerService::SMSDeathRecipient::SetScreenId(int32_t screenId)
 MockSessionManagerService::MockSessionManagerService()
     : SystemAbility(WINDOW_MANAGER_SERVICE_ID, true), defaultWMSUserId_(INVALID_USER_ID)
 {
+    std::string identity = IPCSkeleton::ResetCallingIdentity();
     defaultScreenId_ = DisplayManager::GetInstance().GetDefaultDisplayId();
+    IPCSkeleton::SetCallingIdentity(identity);
     TLOGI(WmsLogTag::WMS_MULTI_USER, "MockSessionManagerService initialized. Default screenId: %{public}" PRIu64,
         defaultScreenId_);
 }

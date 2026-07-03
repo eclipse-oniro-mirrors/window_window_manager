@@ -114,10 +114,10 @@ private:
         sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo, bool needRecalculateAvoidAreas,
         std::shared_ptr<RSTransaction> rsTransaction);
     bool RaiseCallingSession(const sptr<SceneSession>& callingSession, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
-    bool GetCallingSessionGlobalScaledRect(const sptr<SceneSession>& callingSession,
-        WSRect& callingSessionGlobalScaledRect) const;
     bool CalculateOccupiedArea(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect,
         const WSRect& panelRect, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
+    bool GetCallingSessionGlobalScaledRect(const sptr<SceneSession>& callingSession,
+        WSRect& callingSessionGlobalScaledRect) const;
     void CloseRSTransaction();
     bool GetSkipFlagForCallingSession(const sptr<SceneSession>& callingSession) const;
     bool stateChanged_ = false;

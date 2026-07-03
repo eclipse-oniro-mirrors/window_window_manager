@@ -56,7 +56,7 @@ bool ProductConfig::IsSecondaryDisplaySuperFoldDevice()
  
 bool ProductConfig::IsLoadDmsExt()
 {
-    return IsSingleDisplaySuperFoldDevice() || IsSecondaryDisplaySuperFoldDevice();
+    return IsSingleDisplaySuperFoldDevice() || IsSecondaryDisplaySuperFoldDevice() || IsSingleDisplayFoldDevice();
 }
 
 std::vector<std::string> ProductConfig::StringSplit(const std::string& str, char delim)

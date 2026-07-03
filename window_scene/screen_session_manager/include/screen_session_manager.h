@@ -1318,6 +1318,7 @@ private:
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
+    bool isCutoutLoad_ = false;
     struct UserDisplayInfo {
         bool isPcDevice;
     };

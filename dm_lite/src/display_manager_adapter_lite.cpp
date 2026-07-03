@@ -312,6 +312,30 @@ DMError DisplayManagerAdapterLite::IsOnboardDisplay(DisplayId displayId, bool& i
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
+DMError DisplayManagerAdapterLite::RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->RegisterDisplayAttributeAgent(attributes, displayManagerAgent);
+    }
+    
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapterLite::UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->UnregisterDisplayAttribute(attributes, displayManagerAgent);
+    }
+    
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 sptr<ScreenInfo> ScreenManagerAdapterLite::GetScreenInfo(ScreenId screenId)
 {
     if (screenId == SCREEN_ID_INVALID) {
