@@ -127,17 +127,17 @@ HWTEST_F(WindowErrorMsgTest, BuildDmErrorMsg, TestSize.Level1)
  */
 HWTEST_F(WindowErrorMsgTest, UnknownErrorMsg, TestSize.Level1)
 {
-    constexpr int32_t UNKNOWN_ERROR = -999;
+    constexpr int32_t unknownError = -999;
 
-    EXPECT_EQ("", WindowErrorMsg::GetErrorMsg(static_cast<WMError>(UNKNOWN_ERROR)));
-    EXPECT_EQ("", WindowErrorMsg::GetShortErrorMsg(static_cast<WmErrorCode>(UNKNOWN_ERROR)));
-    EXPECT_EQ("", WindowErrorMsg::GetFullErrorMsg(static_cast<WmErrorCode>(UNKNOWN_ERROR)));
-    EXPECT_EQ("", WindowErrorMsg::BuildErrorMsg(static_cast<WmErrorCode>(UNKNOWN_ERROR), "custom message"));
+    EXPECT_EQ("", WindowErrorMsg::GetErrorMsg(static_cast<WMError>(unknownError)));
+    EXPECT_EQ("", WindowErrorMsg::GetShortErrorMsg(static_cast<WmErrorCode>(unknownError)));
+    EXPECT_EQ("", WindowErrorMsg::GetFullErrorMsg(static_cast<WmErrorCode>(unknownError)));
+    EXPECT_EQ("", WindowErrorMsg::BuildErrorMsg(static_cast<WmErrorCode>(unknownError), "custom message"));
 
-    EXPECT_EQ("", WindowErrorMsg::GetErrorMsg(static_cast<DMError>(UNKNOWN_ERROR)));
-    EXPECT_EQ("", WindowErrorMsg::GetShortErrorMsg(static_cast<DmErrorCode>(UNKNOWN_ERROR)));
-    EXPECT_EQ("", WindowErrorMsg::GetFullErrorMsg(static_cast<DmErrorCode>(UNKNOWN_ERROR)));
-    EXPECT_EQ("", WindowErrorMsg::BuildErrorMsg(static_cast<DmErrorCode>(UNKNOWN_ERROR), "custom message"));
+    EXPECT_EQ("", WindowErrorMsg::GetErrorMsg(static_cast<DMError>(unknownError)));
+    EXPECT_EQ("", WindowErrorMsg::GetShortErrorMsg(static_cast<DmErrorCode>(unknownError)));
+    EXPECT_EQ("", WindowErrorMsg::GetFullErrorMsg(static_cast<DmErrorCode>(unknownError)));
+    EXPECT_EQ("", WindowErrorMsg::BuildErrorMsg(static_cast<DmErrorCode>(unknownError), "custom message"));
 }
 } // namespace
 } // namespace Rosen

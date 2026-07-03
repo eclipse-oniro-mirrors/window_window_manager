@@ -140,11 +140,6 @@ const std::unordered_map<WmErrorCode, ErrorMsgInfo> WM_ERROR_CODE_TO_MSG_MAP{
         "2. The window is in the current state." } },
     { WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
       { "This window state is abnormal.",
-        // Keep the original error message unchanged for compatibility and
-        // existing XTS cases. Ideally, the detailed message should be:
-        // "This window state is abnormal. Possible causes:
-        //  1. The window to operate is not created or has been destroyed;
-        //  2. Internal task error."
         "This window state is abnormal. Possible causes: The window is not created or destroyed." } },
     { WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
       { "This window manager service works abnormally.",
@@ -423,7 +418,7 @@ std::string WindowErrorMsg::BuildErrorMsg(WmErrorCode errorCode, const std::stri
     }
     // Preserve the original message format for compatibility.
     // Historically, shortMessage and customMessage are concatenated without
-    // a whitespace, and existing XTS cases rely on this behavior.
+    // a whitespace, and existing test cases rely on this behavior.
     return customMessage.empty() ? info->fullMessage : std::string(info->shortMessage) + customMessage;
 }
 
@@ -459,7 +454,7 @@ std::string WindowErrorMsg::BuildErrorMsg(DmErrorCode errorCode, const std::stri
     }
     // Preserve the original message format for compatibility.
     // Historically, shortMessage and customMessage are concatenated without
-    // a whitespace, and existing XTS cases rely on this behavior.
+    // a whitespace, and existing test cases rely on this behavior.
     return customMessage.empty() ? info->fullMessage : std::string(info->shortMessage) + customMessage;
 }
 } // namespace OHOS::Rosen
