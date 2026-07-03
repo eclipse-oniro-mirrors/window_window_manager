@@ -78,7 +78,7 @@ bool SessionDisplayPowerController::HandleSetDisplayStateOff(DisplayState& state
 
 bool SessionDisplayPowerController::SetDisplayState(DisplayState state)
 {
-    TLOGI(WmsLogTag::DMS, "[UL_POWER]state:%{public}u", state);
+    TLOGNFI(WmsLogTag::DMS, "[UL_POWER]state:%{public}u", state);
     switch (state) {
         case DisplayState::ON: {
             SetDisplayStateToOn(state);

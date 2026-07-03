@@ -264,7 +264,7 @@ void ScreenSessionManagerAdapter::NotifyPrivateWindowStateChanged(bool hasPrivat
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER);
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent is null");
+        TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "agent is null");
         return;
     }
 
@@ -280,7 +280,7 @@ void ScreenSessionManagerAdapter::NotifyPrivateStateWindowListChanged(DisplayId 
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::PRIVATE_WINDOW_LIST_LISTENER);
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent is null");
+        TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "agent is null");
         return;
     }
     for (auto& agent : agents) {
@@ -442,7 +442,7 @@ void ScreenSessionManagerAdapter::OnScreenshot(sptr<ScreenshotInfo> info)
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    TLOGNFI(WmsLogTag::DMS, "start");
+    TLOGD(WmsLogTag::DMS, "start");
     for (auto& agent : agents) {
         agent->OnScreenshot(info);
     }

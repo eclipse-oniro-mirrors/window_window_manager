@@ -402,7 +402,7 @@ int32_t CJDisplayManager::OnUnRegisterDisplayListenerWithType(const std::string&
         if (ret != DmErrorCode::DM_ERROR_NOT_SYSTEM_APP) {
             ret = DmErrorCode::DM_ERROR_INVALID_PARAM;
         }
-        TLOGE(WmsLogTag::DMS, "Failed to unregister display listener with type %{public}s", type.c_str());
+        TLOGE(WmsLogTag::DMS, "Failed to unregister type %{public}s", type.c_str());
     }
     return static_cast<int32_t>(ret);
 }
@@ -412,7 +412,7 @@ DMError CJDisplayManager::UnRegisterDisplayListenerWithType(const std::string& t
     TLOGD(WmsLogTag::DMS, "CJDisplayManager::UnRegisterDisplayListenerWithType is called");
     if (CJDisplayManager::cjCbMap_.empty() ||
         CJDisplayManager::cjCbMap_.find(type) == CJDisplayManager::cjCbMap_.end()) {
-        TLOGI(WmsLogTag::DMS, "UnRegisterDisplayListenerWithType methodName %{public}s not registered!", type.c_str());
+        TLOGI(WmsLogTag::DMS, "methodName %{public}s not registered!", type.c_str());
         return DMError::DM_OK;
     }
     std::lock_guard<std::mutex> lock(CJDisplayManager::mtx_);
