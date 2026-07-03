@@ -2675,6 +2675,166 @@ HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging03, TestSiz
     auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
     EXPECT_EQ(result, WSError::WS_OK);
 }
+
+/**
+ * @tc.name: GetSessionGlobalPosition01
+ * @tc.desc: Test GetSessionGlobalPosition with useUIExtension=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition01";
+    info.bundleName_ = "GetSessionGlobalPosition01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    WSRect globalRect = { 100, 200, 300, 400 };
+    sceneSession->SetSessionGlobalRect(globalRect);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(false);
+    EXPECT_EQ(position.x, 100);
+    EXPECT_EQ(position.y, 200);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition02
+ * @tc.desc: Test GetSessionGlobalPosition with useUIExtension=true but no modalUIExtension
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition02";
+    info.bundleName_ = "GetSessionGlobalPosition02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    WSRect globalRect = { 100, 200, 300, 400 };
+    sceneSession->SetSessionGlobalRect(globalRect);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(true);
+    EXPECT_EQ(position.x, 100);
+    EXPECT_EQ(position.y, 200);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition03
+ * @tc.desc: Test GetSessionGlobalPosition with useUIExtension=true and modalUIExtension, verify ceil
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition03";
+    info.bundleName_ = "GetSessionGlobalPosition03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->SetSessionGlobalRect({ 50, 60, 100, 200 });
+    sceneSession->SetScaleX(0.75f);
+    sceneSession->SetScaleY(0.75f);
+
+    ExtensionWindowEventInfo extensionInfo;
+    extensionInfo.persistentId = 12345;
+    extensionInfo.windowRect = { 100, 120, 200, 300 };
+    sceneSession->AddNormalModalUIExtension(extensionInfo);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(true);
+    
+    int32_t expectedX = ceil(50 + (100 - 50) * 0.75f);
+    int32_t expectedY = ceil(60 + (120 - 60) * 0.75f);
+    EXPECT_EQ(position.x, expectedX);
+    EXPECT_EQ(position.y, expectedY);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition04
+ * @tc.desc: Test GetSessionGlobalPosition with ceil rounding up
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition04";
+    info.bundleName_ = "GetSessionGlobalPosition04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->SetSessionGlobalRect({ 100, 100, 200, 200 });
+    sceneSession->SetScaleX(0.5f);
+    sceneSession->SetScaleY(0.5f);
+
+    ExtensionWindowEventInfo extensionInfo;
+    extensionInfo.persistentId = 12345;
+    extensionInfo.windowRect = { 150, 150, 200, 200 };
+    sceneSession->AddNormalModalUIExtension(extensionInfo);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(true);
+    
+    int32_t expectedX = ceil(100 + (150 - 100) * 0.5f);
+    int32_t expectedY = ceil(100 + (150 - 100) * 0.5f);
+    EXPECT_EQ(position.x, expectedX);
+    EXPECT_EQ(position.y, expectedY);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition05
+ * @tc.desc: Test GetSessionGlobalPosition with negative coordinates
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition05";
+    info.bundleName_ = "GetSessionGlobalPosition05";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->SetSessionGlobalRect({ -100, -50, 200, 200 });
+    sceneSession->SetScaleX(0.75f);
+    sceneSession->SetScaleY(0.75f);
+
+    ExtensionWindowEventInfo extensionInfo;
+    extensionInfo.persistentId = 12345;
+    extensionInfo.windowRect = { -50, -20, 200, 200 };
+    sceneSession->AddNormalModalUIExtension(extensionInfo);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(true);
+    
+    int32_t expectedX = ceil(-100 + (-50 - (-100)) * 0.75f);
+    int32_t expectedY = ceil(-50 + (-20 - (-50)) * 0.75f);
+    EXPECT_EQ(position.x, expectedX);
+    EXPECT_EQ(position.y, expectedY);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition06
+ * @tc.desc: Test GetSessionGlobalPosition with scale=1.0 (no scale)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition06";
+    info.bundleName_ = "GetSessionGlobalPosition06";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->SetSessionGlobalRect({ 100, 100, 200, 200 });
+    sceneSession->SetScaleX(1.0f);
+    sceneSession->SetScaleY(1.0f);
+
+    ExtensionWindowEventInfo extensionInfo;
+    extensionInfo.persistentId = 12345;
+    extensionInfo.windowRect = { 150, 150, 200, 200 };
+    sceneSession->AddNormalModalUIExtension(extensionInfo);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(true);
+    
+    EXPECT_EQ(position.x, 150);
+    EXPECT_EQ(position.y, 150);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

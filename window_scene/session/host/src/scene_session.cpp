@@ -3667,8 +3667,8 @@ Vector2f SceneSession::GetSessionGlobalPosition(bool useUIExtension)
     if (useUIExtension) {
         if (auto modalUIExtensionEventInfo = GetLastModalUIExtensionEventInfo()) {
             const auto& rect = modalUIExtensionEventInfo.value().windowRect;
-            windowRect.posX_ = rect.posX_;
-            windowRect.posY_ = rect.posY_;
+            windowRect.posX_ = ceil(windowRect.posX_ + (rect.posX_ - windowRect.posX_) * GetScaleX()); 
+            windowRect.posY_ = ceil(windowRect.posY_ + (rect.posY_ - windowRect.posY_) * GetScaleY()); 
         }
     }
     Vector2f position(windowRect.posX_, windowRect.posY_);
