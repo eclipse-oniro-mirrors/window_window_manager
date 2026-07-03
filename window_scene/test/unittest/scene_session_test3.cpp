@@ -609,7 +609,7 @@ HWTEST_F(SceneSessionTest3, SetIsMidScene, TestSize.Level1)
     bool res = sceneSession->GetIsMidScene();
     EXPECT_EQ(res, true);
 
-    sceneSession->SetIsMidsScene(false);
+    sceneSession->SetIsMidScene(false);
     res = sceneSession->GetIsMidScene();
     EXPECT_EQ(res, false);
 }
@@ -634,7 +634,7 @@ HWTEST_F(SceneSessionTest3, SetIsNeedRemoveSnapShot, TestSize.Level1)
     EXPECT_EQ(res, true);
 
     sceneSession->isNeedRemoveSnapShot_ = false;
-    sceneSession->GetIsNeedRemoveSnapShot(true);
+    sceneSession->SetIsNeedRemoveSnapShot(true);
     res = sceneSession->GetIsNeedRemoveSnapShot();
     EXPECT_EQ(res, true);
 }

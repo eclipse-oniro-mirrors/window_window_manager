@@ -2758,15 +2758,6 @@ WMError WindowSceneSessionImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal
     }
     const auto& windowRect = GetRect();
     const auto& requestRect = GetRequestRect();
-    if (WindowHelper::IsSubWindow(GetType())) {
-        auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
-            if (requestRect.posX_ == x && requestRect.posY_ == y) {
-                TLOGW(WmsLogTag::WMS_LAYOUT, "Request same position in multiWindow will not update");
-                return WMError::WM_OK;
-            }
-        }
-    }
     Rect newRect = { x, y, requestRect.width_, requestRect.height_ }; // must keep x/y
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
         "Id:%{public}d state:%{public}d type:%{public}d mode:%{public}d rect:"
