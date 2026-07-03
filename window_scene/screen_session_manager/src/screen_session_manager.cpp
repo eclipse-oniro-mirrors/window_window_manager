@@ -11168,16 +11168,6 @@ void ScreenSessionManager::DumpSpecialScreenInfo(ScreenId id, std::string& dumpI
 // --- Fold Screen ---
 ScreenProperty ScreenSessionManager::GetPhyScreenProperty(ScreenId screenId)
 {
-    if (!SessionPermission::IsSystemCalling()) {
-        TLOGNFE(WmsLogTag::DMS, "Permission Denied.calling: %{public}s, pid: %{public}d",
-            SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
-        return {};
-    }
-    return GetPhyScreenPropertyInner(screenId);
-}
-
-ScreenProperty ScreenSessionManager::GetPhyScreenPropertyInner(ScreenId screenId)
-{
     std::lock_guard<std::recursive_mutex> lock_phy(phyScreenPropMapMutex_);
     ScreenProperty property;
     auto iter = phyScreenPropMap_.find(screenId);

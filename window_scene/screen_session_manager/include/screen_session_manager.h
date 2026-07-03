@@ -444,7 +444,6 @@ public:
         ScreenPropertyChangeType screenPropertyChangeType, const RRect& bounds) override;
     uint32_t GetCurvedCompressionArea() override;
     ScreenProperty GetPhyScreenProperty(ScreenId screenId) override;
-    ScreenProperty GetPhyScreenPropertyInner(ScreenId screenId);
     void SetScreenPrivacyState(bool hasPrivate) override;
     void SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId) override;
     bool CheckNeedNotify(const std::vector<DisplayId>& displayIds,
