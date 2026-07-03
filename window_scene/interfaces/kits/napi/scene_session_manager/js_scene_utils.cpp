@@ -3213,7 +3213,7 @@ napi_value CreateSupportType(napi_env env)
 
 napi_value CreateJsWindowAnchorInfo(napi_env env, const WindowAnchorInfo& windowAnchorInfo)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offsetY:%{public}d"
+    TLOGD(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offsetY:%{public}d"
         "currentLayoutMode:%{public}s", windowAnchorInfo.windowAnchor_, windowAnchorInfo.offsetX_,
         windowAnchorInfo.offsetY_, windowAnchorInfo.attachOptions.currentLayoutMode.c_str());
     napi_value objValue = nullptr;
