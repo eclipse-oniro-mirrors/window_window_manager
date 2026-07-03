@@ -3248,14 +3248,18 @@ void SceneSessionManager::GetEffectiveDragResizeType(DragResizeType& dragResizeT
     if (dragResizeType != DragResizeType::RESIZE_TYPE_UNDEFINED) {
         return;
     }
+    dragResizeType = DragResizeType::RESIZE_EACH_FRAME;
+    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+    const bool isPc = systemConfig_.IsPcWindow() && !isPcMode;
+    if (isPc) {
+        return;
+    }
     if (systemConfig_.freeMultiWindowSupport_) {
         if (systemConfig_.freeMultiWindowConfig_.defaultDragResizeType_ != DragResizeType::RESIZE_TYPE_UNDEFINED) {
             dragResizeType = systemConfig_.freeMultiWindowConfig_.defaultDragResizeType_;
             return;
         }
         dragResizeType = DragResizeType::RESIZE_WHEN_DRAG_END;
-    } else {
-        dragResizeType = DragResizeType::RESIZE_EACH_FRAME;
     }
 }
 
@@ -3375,9 +3379,9 @@ WMError SceneSessionManager::SetAppKeyFramePolicy(const std::string& bundleName,
     taskScheduler_->PostAsyncTask([this, bundleName, keyFramePolicy, where = __func__] {
         auto allMatchSession = GetSceneSessionByBundleName(bundleName);
         for (const auto& sceneSession : allMatchSession) {
-            if (sceneSession != nullptr && systemConfig_.IsPcWindow() &&
+            if (sceneSession != nullptr &&
                 WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
-                TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s: pc main window id: %{public}d, bundleName: %{public}s",
+                TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s: main window id: %{public}d, bundleName: %{public}s",
                     where, sceneSession->GetPersistentId(), bundleName.c_str());
                 sceneSession->SetDragKeyFramePolicy(keyFramePolicy);
             }
