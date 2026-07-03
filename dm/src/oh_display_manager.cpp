@@ -928,7 +928,7 @@ static void NativeDisplayManager_SetColorSpace(NativeDisplayManager_DisplayInfo 
             static_cast<uint32_t>(DM_NATIVE_TO_NDK_COLOR_SPACE_TYPE_MAP.at(colorSpaceValue));
         colorLoop++;
     }
-    TLOGI(WmsLogTag::DMS, "[DMNDK] color spaces count:%{public}u.", colorLoop);
+    TLOGNFI(WmsLogTag::DMS, "[DMNDK] color spaces count:%{public}u.", colorLoop);
 }
 
 static void NativeDisplayManager_SetHdrFormat(NativeDisplayManager_DisplayInfo *displayInfo, sptr<DisplayInfo> info)
@@ -978,7 +978,7 @@ static void NativeDisplayManager_SetHdrFormat(NativeDisplayManager_DisplayInfo *
             static_cast<uint32_t>(DM_NATIVE_TO_NDK_HDR_FORMAT_TYPE_MAP.at(hdrFormatValue));
         hdrLoop++;
     }
-    TLOGI(WmsLogTag::DMS, "[DMNDK] hdr format count:%{public}u", hdrLoop);
+    TLOGNFI(WmsLogTag::DMS, "[DMNDK] hdr format count:%{public}u", hdrLoop);
 }
 
 static void NativeDisplayManager_SetDisplayInfo(NativeDisplayManager_DisplayInfo *displayInfo,
@@ -1010,7 +1010,7 @@ static void NativeDisplayManager_SetDisplayInfo(NativeDisplayManager_DisplayInfo
     NativeDisplayManager_SetColorSpace(displayInfo, info);
     /* hdr format */
     NativeDisplayManager_SetHdrFormat(displayInfo, info);
-    TLOGI(WmsLogTag::DMS, "[DMNDK] set display id[%{public}u] finish.", displayInfo->id);
+    TLOGNFI(WmsLogTag::DMS, "[DMNDK] set display id[%{public}u] finish.", displayInfo->id);
 }
 
 static NativeDisplayManager_ErrorCode NativeDisplayManager_SetDisplaysInfo(const std::vector<sptr<Display>>& displays,
@@ -1191,7 +1191,7 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateDisplayById(uint32_
             NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL);
         return NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL;
     }
-    TLOGI(WmsLogTag::DMS, "[DMNDK] get display id[%{public}" PRIu64"] info", display->GetId());
+    TLOGNFI(WmsLogTag::DMS, "[DMNDK] get display id[%{public}" PRIu64"] info", display->GetId());
     NativeDisplayManager_ErrorCode errorCode = NativeDisplayManager_ErrorCode::DISPLAY_MANAGER_OK;
     *displayInfo = NativeDisplayManager_FillDisplayInfo(display, &errorCode);
     return errorCode;
