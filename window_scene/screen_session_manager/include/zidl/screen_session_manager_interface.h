@@ -461,6 +461,7 @@ public:
     }
     virtual DMError GetRoundedCorner(DisplayId displayId, int& radius) { return DMError::DM_OK; }
     virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName) { return DMError::DM_OK; }
+    virtual sptr<IRemoteObject> GetRenderSession(ScreenId screenId) { return nullptr; }
 };
 } // namespace Rosen
 } // namespace OHOS

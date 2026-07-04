@@ -1402,17 +1402,16 @@ sptr<ScreenSession> ScreenSessionManagerClient::CreateTempScreenSession(
         TLOGE(WmsLogTag::DMS, "Failed to create temp screen session, screenSessionManager_ is null");
         return nullptr;
     }
-    auto screenSession = GetScreenSession(screenId);
-    if (screenSession == nullptr) {
-        TLOGE(WmsLogTag::DMS, "screenSession is null");
-        return nullptr;
-    }
     ScreenSessionConfig config = {
         .screenId = screenId,
         .rsId = rsId,
         .displayNode = displayNode,
-        .renderSession = screenSession->GetRenderSession(),
     };
+    config.renderSession = screenSessionManager_->GetRenderSession(screenId);
+    if (config.renderSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenId renderSession is null");
+        return nullptr;
+    }
     config.property = screenSessionManager_->GetScreenProperty(screenId);
     TLOGW(WmsLogTag::DMS, "CreateTempScreenSession width:%{public}f, height=%{public}f",
         config.property.GetBounds().rect_.GetWidth(), config.property.GetBounds().rect_.GetHeight());

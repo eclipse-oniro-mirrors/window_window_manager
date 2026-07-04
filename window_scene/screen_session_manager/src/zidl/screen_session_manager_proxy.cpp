@@ -5595,4 +5595,30 @@ void ScreenSessionManagerProxy::UnsubscribeMotionSensor(int32_t motionType)
         return;
     }
 }
+
+sptr<IRemoteObject> ScreenSessionManagerProxy::GetRenderSession(ScreenId screenId)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is null");
+        return nullptr;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken Failed");
+        return nullptr;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(screenId))) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return nullptr;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_RENDER_SESSION),
+                            data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "Send TRANS_ID_GET_RENDER_SESSION request failed");
+        return nullptr;
+    }
+    return reply.ReadRemoteObject();
+}
 } // namespace OHOS::Rosen

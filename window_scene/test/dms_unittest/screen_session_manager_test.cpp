@@ -2360,6 +2360,37 @@ HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurfaceRsFail01, TestSize.
     ssm_->screenSessionMap_.erase(screenId);
     ssm_->DestroyVirtualScreen(screenId);
 }
+
+/**
+ * @tc.name: GetRenderSession
+ * @tc.desc: GetRenderSession with invalid screenId returns nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetRenderSession, TestSize.Level1)
+{
+    ScreenId invalidScreenId = 9999;
+    auto ret = ssm_->GetRenderSession(invalidScreenId);
+    EXPECT_EQ(ret, nullptr);
+}
+
+/**
+ * @tc.name: GetRenderSessionWithValidScreen
+ * @tc.desc: GetRenderSession with valid screenId returns renderSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetRenderSessionWithValidScreen, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "GetRenderSessionWithValidScreen";
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    ASSERT_TRUE(screenId >= 0);
+    
+    auto ret = ssm_->GetRenderSession(screenId);
+    EXPECT_NE(ret, nullptr);
+    
+    ssm_->DestroyVirtualScreen(screenId);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
