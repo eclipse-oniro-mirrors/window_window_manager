@@ -9567,10 +9567,6 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
         TLOGE(WmsLogTag::WMS_DECOR, "out of range params");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
-            return NapiThrowError(env, ret, "[window][setWindowTitleMoveEnabled]msg: Invalid window type. "
-                "Only main windows and subwindows are supported.");
-        }
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setDecorButtonStyle]msg: Out of range params.");
     }
@@ -9578,6 +9574,10 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][setWindowTitleMoveEnabled]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, ret, "[window][setDecorButtonStyle]msg: Set decorButtonStyle failed.");
     }
     return NapiGetUndefined(env);
