@@ -1820,6 +1820,70 @@ HWTEST_F(SessionStageProxyTest, UpdateLSState, TestSize.Level1)
     EXPECT_EQ(WSError::WS_OK, successProxy->UpdateLSState(true));
     EXPECT_EQ(WSError::WS_OK, successProxy->UpdateLSState(false));
 }
+
+/**
+ * @tc.name: SwitchFreeMultiWindow
+ * @tc.desc: SwitchFreeMultiWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SwitchFreeMultiWindow, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    
+    std::set<ScreenId> emptyScreenSet;
+    WSError res = sessionStage_->SwitchFreeMultiWindow(false, emptyScreenSet);
+    ASSERT_EQ(WSError::WS_OK, res);
+    
+    res = sessionStage_->SwitchFreeMultiWindow(true, emptyScreenSet);
+    ASSERT_EQ(WSError::WS_OK, res);
+    
+    std::set<ScreenId> screenSet = {0, 1};
+    res = sessionStage_->SwitchFreeMultiWindow(true, screenSet);
+    ASSERT_EQ(WSError::WS_OK, res);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindow_Error
+ * @tc.desc: SwitchFreeMultiWindow error handling
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SwitchFreeMultiWindow_Error, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    
+    std::set<ScreenId> emptyScreenSet;
+    
+    // Case 1: Write interface token failed
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SwitchFreeMultiWindow(true, emptyScreenSet));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    
+    // Case 2: Write bool enable failed
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SwitchFreeMultiWindow(true, emptyScreenSet));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    
+    // Case 3: Write screenSet size failed
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SwitchFreeMultiWindow(true, emptyScreenSet));
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+    
+    // Case 4: Write screenSet element failed
+    std::set<ScreenId> screenSet = {0};
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SwitchFreeMultiWindow(true, screenSet));
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+    
+    // Case 5: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SwitchFreeMultiWindow(true, emptyScreenSet));
+    
+    // Case 6: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SwitchFreeMultiWindow(true, emptyScreenSet));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

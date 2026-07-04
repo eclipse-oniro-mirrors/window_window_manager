@@ -988,7 +988,7 @@ protected:
     bool escKeyHasDown_ { false };
     // Check whether the UIExtensionAbility process is started
     static bool isUIExtensionAbilityProcess_;
-    WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     std::string identityToken_ = { "" };
     void MakeSubOrDialogWindowDragableAndMoveble();

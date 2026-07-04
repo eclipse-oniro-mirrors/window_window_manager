@@ -275,7 +275,7 @@ public:
     /*
      * Free Multi Window
      */
-    WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     virtual bool GetFreeMultiWindowModeEnabledState() override;
     void UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable);
 

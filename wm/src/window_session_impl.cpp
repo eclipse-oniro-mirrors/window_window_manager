@@ -8921,7 +8921,7 @@ WSError WindowSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t height)
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SwitchFreeMultiWindow(bool enable)
+WSError WindowSessionImpl::SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet)
 {
     return WSError::WS_OK;
 }

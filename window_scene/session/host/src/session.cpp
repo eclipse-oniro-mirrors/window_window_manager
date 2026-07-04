@@ -5752,12 +5752,7 @@ WSError Session::SwitchFreeMultiWindow(const SystemSessionConfig& config)
     }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "windowId: %{public}d enable: %{public}d defaultWindowMode: %{public}d",
         GetPersistentId(), enable, systemConfig_.defaultWindowMode_);
-    bool isUiExtSubWindow = WindowHelper::IsSubWindow(property->GetWindowType()) &&
-        property->GetIsUIExtFirstSubWindow();
-    if (WindowHelper::IsMainWindow(GetWindowType()) || isUiExtSubWindow) {
-        return sessionStage_->SwitchFreeMultiWindow(enable);
-    }
-    return WSError::WS_OK;
+    return sessionStage_->SwitchFreeMultiWindow(enable, systemConfig_.supportMultiWindowScreenSet_);
 }
 
 WSError Session::GetIsMidScene(bool& isMidScene)
