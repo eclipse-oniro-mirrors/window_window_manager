@@ -3029,14 +3029,13 @@ napi_value JsWindow::OnGetWindowPropertiesSync(napi_env env, napi_callback_info 
     }
     WindowPropertyInfo windowPropertyInfo;
     WMError ret = windowToken->GetWindowPropertyInfo(windowPropertyInfo);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u, ret=%{public}d", windowPropertyInfo.id, ret);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get window properties failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowProperties", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowProperties]msg: The window is not created or destroyed");
     }
     auto objValue = CreateJsWindowPropertiesObject(env, windowPropertyInfo);
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u", windowPropertyInfo.id);
     if (objValue != nullptr) {
         return objValue;
     } else {
