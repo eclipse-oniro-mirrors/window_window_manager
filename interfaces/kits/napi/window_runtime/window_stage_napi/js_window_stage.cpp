@@ -1097,7 +1097,7 @@ napi_value JsWindowStage::OnSetWindowRectAutoSave(napi_env env, napi_callback_in
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowRectAutoSave]msg: WindowScene is null.");
+            "[window][setWindowRectAutoSave]msg: WindowScene is null. The window is not created or destroyed.");
     }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
@@ -1131,7 +1131,7 @@ napi_value JsWindowStage::OnSetWindowRectAutoSave(napi_env env, napi_callback_in
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             WmErrorCode wmErroeCode = WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErroeCode,
-                "[window][setWindowRectAutoSave]msg: Window is nullptr."));
+                "[window][setWindowRectAutoSave]msg: Window is nullptr. The window is not created or destroyed."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowRectAutoSave(enabled, isSaveBySpecifiedFlag));
@@ -1371,7 +1371,7 @@ napi_value JsWindowStage::OnIsWindowRectAutoSave(napi_env env, napi_callback_inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowRectAutoSave.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][isWindowRectAutoSave]msg: WindowScene is null."));
+            "[window][isWindowRectAutoSave]msg: WindowScene is null. The window is not created or destroyed."));
         return NapiGetUndefined(env);
     }
 
@@ -1387,7 +1387,7 @@ napi_value JsWindowStage::OnIsWindowRectAutoSave(napi_env env, napi_callback_inf
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env,
                 JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][isWindowRectAutoSave]msg: Window is nullptr."));
+                "[window][isWindowRectAutoSave]msg: Window is nullptr. The window is not created or destroyed."));
             return;
         }
         bool enabled = false;

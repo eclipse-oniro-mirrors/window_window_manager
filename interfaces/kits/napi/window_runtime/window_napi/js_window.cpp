@@ -9165,12 +9165,17 @@ napi_value JsWindow::OnSetWindowTitleMoveEnabled(napi_env env, napi_callback_inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleMoveEnabled.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTitleMoveEnabled]msg: WindowToken is nullptr.");
+            "[window][setWindowTitleMoveEnabled]msg: WindowToken is nullptr. The window is not created or destroyed.");
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetWindowTitleMoveEnabled(enable));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "Window set title move enable failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleMoveEnabled.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret,
+                "[window][setWindowTitleMoveEnabled]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, ret,
             "[window][setWindowTitleMoveEnabled]msg: Window set title move enable failed.");
     }
@@ -9446,7 +9451,7 @@ napi_value JsWindow::OnSetWindowDecorHeight(napi_env env, napi_callback_info inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowDecorHeight]msg: WindowToken is nullptr.");
+            "[window][setWindowDecorHeight]msg: WindowToken is nullptr. The window is not created or destroyed.");
     }
     int32_t height = 0;
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], height)) {
@@ -9484,7 +9489,7 @@ napi_value JsWindow::OnGetWindowDecorHeight(napi_env env, napi_callback_info inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowDecorHeight.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getWindowDecorHeight]msg: Window is nullptr.");
+            "[window][getWindowDecorHeight]msg: Window is nullptr. The window is not created or destroyed.");
     }
     int32_t height = 0;
     WMError ret = windowToken_->GetDecorHeight(height);
@@ -9512,7 +9517,7 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setDecorButtonStyle]msg: Window is nullptr.");
+            "[window][setDecorButtonStyle]msg: Window is nullptr. The window is not created or destroyed.");
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_DECOR, "This is PcAppInPad, not support");
@@ -9562,6 +9567,10 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
         TLOGE(WmsLogTag::WMS_DECOR, "out of range params");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][setWindowTitleMoveEnabled]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setDecorButtonStyle]msg: Out of range params.");
     }
@@ -9582,7 +9591,7 @@ napi_value JsWindow::OnGetDecorButtonStyle(napi_env env, napi_callback_info info
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getDecorButtonStyle.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getDecorButtonStyle]msg: Window is nullptr.");
+            "[window][getDecorButtonStyle]msg: Window is nullptr. The window is not created or destroyed.");
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_DECOR, "This is PcAppInPad, not support");
@@ -9602,6 +9611,10 @@ napi_value JsWindow::OnGetDecorButtonStyle(napi_env env, napi_callback_info info
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getDecorButtonStyle.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][getDecorButtonStyle]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, ret);
     }
     auto jsDecorButtonStyle = CreateJsDecorButtonStyleObj(env, decorButtonStyle);
@@ -9622,7 +9635,7 @@ napi_value JsWindow::OnGetTitleButtonRect(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getTitleButtonRect]msg: Window is nullptr.");
+            "[window][getTitleButtonRect]msg: Window is nullptr. The window is not created or destroyed.");
     }
     TitleButtonRect titleButtonRect;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetTitleButtonArea(titleButtonRect));
@@ -9843,7 +9856,8 @@ napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_i
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTitleButtonVisible]msg: WindowToken is nullptr.");
+            "[window][setWindowTitleButtonVisible]msg: WindowToken is nullptr. "
+            "The window is not created or destroyed.");
     }
     WMError errCode = windowToken_->SetTitleButtonVisible(isMaximizeVisible, isMinimizeVisible, isMaximizeVisible,
         isCloseVisible);
@@ -9851,6 +9865,10 @@ napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_i
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "set title button visible failed!");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][setWindowTitleButtonVisible]msg: Invalid window type. "
+                "Only main windows and SubWindowOptions.zLevelAboveParentLoosened is true are supported.");
+        }
         return NapiThrowError(env, ret, "[window][setWindowTitleButtonVisible]msg: Set title button visible failed.");
     }
     TLOGI(WmsLogTag::WMS_DECOR, "Window [%{public}u, %{public}s] [%{public}d, %{public}d, %{public}d]",
@@ -10318,7 +10336,7 @@ napi_value JsWindow::OnIsInFreeWindowMode(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isInFreeWindowMode.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][OnIsInFreeWindowMode]msg: invalid window");
+            "[window][OnIsInFreeWindowMode]msg: invalid window. The window is not created or destroyed.");
     }
     bool isInFreeWindowMode = windowToken_->IsPcOrPadFreeMultiWindowMode();
     TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u isInFreeWindowMod %{public}u end",
@@ -10333,7 +10351,7 @@ napi_value JsWindow::OnGetWindowStatus(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_PC, "window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowStatus", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getWindowStatus]msg: Window is nullptr");
+            "[window][getWindowStatus]msg: Window is nullptr. The window is not created or destroyed.");
     }
     WindowStatus windowStatus;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->GetWindowStatus(windowStatus));
