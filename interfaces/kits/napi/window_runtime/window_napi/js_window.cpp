@@ -97,7 +97,7 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
             g_jsWindowMap.erase(windowName);
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
-        windowToken_ = nullptr;
+        SetWindowToken(nullptr);
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in js window", windowName.c_str());
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
@@ -318,7 +318,6 @@ napi_value JsWindow::GetProperties(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::GetWindowPropertiesSync(napi_env env, napi_callback_info info)
 {
-    TLOGD(WmsLogTag::DEFAULT, "GetProperties");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnGetWindowPropertiesSync(env, info) : nullptr;
 }
@@ -1802,7 +1801,7 @@ napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window destroy failed"));
             return;
         }
-        windowToken_ = nullptr; // ensure window dtor when finalizer invalid
+        SetWindowToken(nullptr);
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroy") != napi_status::napi_ok) {
@@ -1845,7 +1844,7 @@ napi_value JsWindow::OnDestroyWindow(napi_env env, napi_callback_info info)
                 "[window][destroyWindow]msg: Window destroy failed."));
             return;
         }
-        windowToken_ = nullptr; // ensure window dtor when finalizer invalid
+        SetWindowToken(nullptr);
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroyWindow") != napi_status::napi_ok) {
@@ -3021,14 +3020,15 @@ napi_value JsWindow::OnGetProperties(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::OnGetWindowPropertiesSync(napi_env env, napi_callback_info info)
 {
-    if (windowToken_ == nullptr) {
+    auto windowToken = GetWindowToken();
+    if (windowToken == nullptr) {
         WLOGFW("window is nullptr or get invalid param");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowProperties", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowProperties]msg: The window is not created or destroyed");
     }
     WindowPropertyInfo windowPropertyInfo;
-    WMError ret = windowToken_->GetWindowPropertyInfo(windowPropertyInfo);
+    WMError ret = windowToken->GetWindowPropertyInfo(windowPropertyInfo);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get window properties failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowProperties", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
@@ -3036,7 +3036,7 @@ napi_value JsWindow::OnGetWindowPropertiesSync(napi_env env, napi_callback_info 
             "[window][getWindowProperties]msg: The window is not created or destroyed");
     }
     auto objValue = CreateJsWindowPropertiesObject(env, windowPropertyInfo);
-    TLOGND(WmsLogTag::WMS_ATTRIBUTE, "Get Prop, wid: %{public}u", windowToken_->GetWindowId());
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u", windowPropertyInfo.id);
     if (objValue != nullptr) {
         return objValue;
     } else {

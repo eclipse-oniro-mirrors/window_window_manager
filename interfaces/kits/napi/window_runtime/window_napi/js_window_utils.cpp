@@ -836,7 +836,6 @@ napi_value CreateJsWindowAnimationConfigObject(napi_env env, const KeyboardAnima
 
 napi_value CreateJsWindowPropertiesObject(napi_env env, const WindowPropertyInfo& windowPropertyInfo)
 {
-    WLOGD("CreateJsWindowPropertiesObject");
     napi_value objValue = nullptr;
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
 

@@ -504,10 +504,21 @@ private:
     napi_value OnSetSupportedWindowModes(napi_env env, napi_callback_info info);
 
     std::string windowName_;
+    mutable std::shared_mutex windowTokenMtx_;
     sptr<Window> windowToken_ = nullptr;
     std::unique_ptr<JsWindowRegisterManager> registerManager_ = nullptr;
     std::shared_ptr<NativeReference> jsTransControllerObj_ = nullptr;
     napi_env env_;
+    void SetWindowToken(const sptr<Window>& windowToken)
+    {
+        std::unique_lock<std::shared_mutex> lock(windowTokenMtx_);
+        windowToken_ = windowToken;
+    }
+    sptr<Window> GetWindowToken() const
+    {
+        std::shared_lock<std::shared_mutex> lock(windowTokenMtx_);
+        return windowToken_;
+    }
 
     /*
      * Window Immersive
