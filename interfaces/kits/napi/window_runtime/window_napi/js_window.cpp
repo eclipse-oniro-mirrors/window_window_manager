@@ -3474,14 +3474,15 @@ napi_value JsWindow::OnGetUIContext(napi_env env, napi_callback_info info)
     if (uicontent == nullptr) {
         WLOGFW("uicontent is nullptr");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getUIContext]msg: Uicontent is nullptr.");
+            "[window][getUIContext]msg: Uicontent is nullptr, window name='" + windowToken_->GetWindowName() + "'");
     }
 
     napi_value uiContext = uicontent->GetUINapiContext();
     if (uiContext == nullptr) {
         WLOGFE("uiContext obtained from jsEngine is nullptr");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getUIContext]msg: UiContext obtained from jsEngine is nullptr.");
+            "[window][getUIContext]msg: UiContext obtained from jsEngine is nullptr, window name='" +
+            windowToken_->GetWindowName() + "'");
     } else {
         return uiContext;
     }
