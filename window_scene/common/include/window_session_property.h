@@ -1081,10 +1081,10 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteFloat(defaultCornerRadius_)) {
             return false;
         }
-        if (!parcel.WriteParcelable(&pipMultiConfig_)) {
+        if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
-        if (!parcel.WriteBool(supportCreateFloatView_)) {
+        if (!parcel.WriteParcelable(&pipMultiConfig_)) {
             return false;
         }
         if (!parcel.WriteBool(supportCreateFloatingBall_)) {
