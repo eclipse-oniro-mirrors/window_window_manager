@@ -1801,7 +1801,7 @@ napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window destroy failed"));
             return;
         }
-        SetWindowToken(nullptr);
+        SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroy") != napi_status::napi_ok) {
@@ -1844,7 +1844,7 @@ napi_value JsWindow::OnDestroyWindow(napi_env env, napi_callback_info info)
                 "[window][destroyWindow]msg: Window destroy failed."));
             return;
         }
-        SetWindowToken(nullptr);
+        SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroyWindow") != napi_status::napi_ok) {
