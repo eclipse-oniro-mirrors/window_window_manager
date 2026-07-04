@@ -948,6 +948,49 @@ HWTEST_F(WindowPatternSnapshotTest, GetScreenStatus, TestSize.Level1)
     foldStatus = FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_EXPAND;
     ret = WSSnapshotHelper::GetScreenStatus(foldStatus);
     EXPECT_EQ(ret, SCREEN_UNKNOWN);
+
+    foldStatus = FoldStatus::UNKNOWN;
+    ret = WSSnapshotHelper::GetScreenStatus(foldStatus);
+    EXPECT_EQ(ret, SCREEN_FOLDED);
+
+    foldStatus = FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_EXPAND;
+    ret = WSSnapshotHelper::GetScreenStatus(foldStatus);
+    EXPECT_EQ(ret, SCREEN_FOLDED);
+
+    foldStatus = FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED;
+    ret = WSSnapshotHelper::GetScreenStatus(foldStatus);
+    EXPECT_EQ(ret, SCREEN_FOLDED);
+
+    foldStatus = FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED;
+    ret = WSSnapshotHelper::GetScreenStatus(foldStatus);
+    EXPECT_EQ(ret, SCREEN_FOLDED);
+
+    foldStatus = FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND;
+    ret = WSSnapshotHelper::GetScreenStatus(foldStatus);
+    EXPECT_EQ(ret, SCREEN_FOLDED);
+}
+
+/**
+ * @tc.name: IsSnapshotNeedCorrect
+ * @tc.desc: IsSnapshotNeedCorrect Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, IsSnapshotNeedCorrect, TestSize.Level1)
+{
+    auto helper = WSSnapshotHelper::GetInstance();
+    ASSERT_NE(helper, nullptr);
+
+    auto ret = helper->IsSnapshotNeedCorrect(SCREEN_UNKNOWN);
+    EXPECT_EQ(ret, false);
+
+    ret = helper->IsSnapshotNeedCorrect(SCREEN_EXPAND);
+    EXPECT_EQ(ret, false);
+
+    ret = helper->IsSnapshotNeedCorrect(SCREEN_FOLDED);
+    EXPECT_EQ(ret, false);
+
+    ret = helper->IsSnapshotNeedCorrect(defaultStatus);
+    EXPECT_EQ(ret, false);
 }
 
 /**
