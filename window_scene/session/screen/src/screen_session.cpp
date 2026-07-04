@@ -3097,7 +3097,7 @@ int32_t ScreenSession::GetApiVersion()
         TLOGI(WmsLogTag::DMS, "IPC get");
         g_uidVersionMap.Set(currentPid, apiVersion);
     }
-    TLOGNFI(WmsLogTag::DMS, "pid:%{public}d, api:%{public}d", apiVersion, apiVersion);
+    TLOGE_LIMITN_HOUR(WmsLogTag::DMS, THREE_TIMES, "pid:%{public}d, api:%{public}d", apiVersion, apiVersion);
     lastRequestTime = currentTime;
     return apiVersion;
 }
