@@ -2693,8 +2693,8 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition01, TestSize.Level1)
     sceneSession->SetSessionGlobalRect(globalRect);
 
     Vector2f position = sceneSession->GetSessionGlobalPosition(false);
-    EXPECT_EQ(position.x, 100);
-    EXPECT_EQ(position.y, 200);
+    EXPECT_EQ(position.x_, 100);
+    EXPECT_EQ(position.y_, 200);
 }
 
 /**
@@ -2714,8 +2714,8 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition02, TestSize.Level1)
     sceneSession->SetSessionGlobalRect(globalRect);
 
     Vector2f position = sceneSession->GetSessionGlobalPosition(true);
-    EXPECT_EQ(position.x, 100);
-    EXPECT_EQ(position.y, 200);
+    EXPECT_EQ(position.x_, 100);
+    EXPECT_EQ(position.y_, 200);
 }
 
 /**
@@ -2732,8 +2732,7 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition03, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
 
     sceneSession->SetSessionGlobalRect({ 50, 60, 100, 200 });
-    sceneSession->SetScaleX(0.75f);
-    sceneSession->SetScaleY(0.75f);
+    sceneSession->SetScale(0.75f, 0.75f, 0.5f, 0.5f);
 
     ExtensionWindowEventInfo extensionInfo;
     extensionInfo.persistentId = 12345;
@@ -2744,8 +2743,8 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition03, TestSize.Level1)
     
     int32_t expectedX = ceil(50 + (100 - 50) * 0.75f);
     int32_t expectedY = ceil(60 + (120 - 60) * 0.75f);
-    EXPECT_EQ(position.x, expectedX);
-    EXPECT_EQ(position.y, expectedY);
+    EXPECT_EQ(position.x_, expectedX);
+    EXPECT_EQ(position.y_, expectedY);
 }
 
 /**
@@ -2762,8 +2761,7 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition04, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
 
     sceneSession->SetSessionGlobalRect({ 100, 100, 200, 200 });
-    sceneSession->SetScaleX(0.5f);
-    sceneSession->SetScaleY(0.5f);
+    sceneSession->SetScale(0.5f, 0.5f, 0.5f, 0.5f);
 
     ExtensionWindowEventInfo extensionInfo;
     extensionInfo.persistentId = 12345;
@@ -2774,8 +2772,8 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition04, TestSize.Level1)
     
     int32_t expectedX = ceil(100 + (150 - 100) * 0.5f);
     int32_t expectedY = ceil(100 + (150 - 100) * 0.5f);
-    EXPECT_EQ(position.x, expectedX);
-    EXPECT_EQ(position.y, expectedY);
+    EXPECT_EQ(position.x_, expectedX);
+    EXPECT_EQ(position.y_, expectedY);
 }
 
 /**
@@ -2792,8 +2790,7 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition05, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
 
     sceneSession->SetSessionGlobalRect({ -100, -50, 200, 200 });
-    sceneSession->SetScaleX(0.75f);
-    sceneSession->SetScaleY(0.75f);
+    sceneSession->SetScale(0.75f, 0.75f, 0.5f, 0.5f);
 
     ExtensionWindowEventInfo extensionInfo;
     extensionInfo.persistentId = 12345;
@@ -2804,8 +2801,8 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition05, TestSize.Level1)
     
     int32_t expectedX = ceil(-100 + (-50 - (-100)) * 0.75f);
     int32_t expectedY = ceil(-50 + (-20 - (-50)) * 0.75f);
-    EXPECT_EQ(position.x, expectedX);
-    EXPECT_EQ(position.y, expectedY);
+    EXPECT_EQ(position.x_, expectedX);
+    EXPECT_EQ(position.y_, expectedY);
 }
 
 /**
@@ -2822,8 +2819,7 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition06, TestSize.Level1)
     ASSERT_NE(sceneSession, nullptr);
 
     sceneSession->SetSessionGlobalRect({ 100, 100, 200, 200 });
-    sceneSession->SetScaleX(1.0f);
-    sceneSession->SetScaleY(1.0f);
+    sceneSession->SetScale(1.0f, 1.0f, 0.5f, 0.5f);
 
     ExtensionWindowEventInfo extensionInfo;
     extensionInfo.persistentId = 12345;
@@ -2832,8 +2828,8 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition06, TestSize.Level1)
 
     Vector2f position = sceneSession->GetSessionGlobalPosition(true);
     
-    EXPECT_EQ(position.x, 150);
-    EXPECT_EQ(position.y, 150);
+    EXPECT_EQ(position.x_, 150);
+    EXPECT_EQ(position.y_, 150);
 }
 } // namespace
 } // namespace Rosen
