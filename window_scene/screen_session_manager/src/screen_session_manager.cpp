@@ -7964,9 +7964,9 @@ DMError ScreenSessionManager::SetOrientationInternal(ScreenId screenId, Orientat
         TLOGNFE(WmsLogTag::DMS, "Cannot find screen %{public}" PRIu64"", screenId);
         return DMError::DM_ERROR_NULLPTR;
     }
-    if ( options != nullptr && screenSession->GetScreenProperty().GetScreenTypeInfo() == ScreenTypeInfo::EXTERNAL) {
-        TLOGNFE(WmsLogTag::DMS, "screenTypeInfo is external");
-        // todo
+    if (options != nullptr && screenSession->GetScreenProperty().GetScreenTypeInfo() != ScreenTypeInfo::EXTERNAL &&
+    g_isPcDevice) {
+        TLOGNFE(WmsLogTag::DMS, "Only available in external screen");
         return DMError::DM_ERROR_NULLPTR;
     }
     // just for get orientation test
