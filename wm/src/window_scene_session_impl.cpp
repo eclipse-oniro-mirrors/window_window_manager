@@ -9327,6 +9327,7 @@ WMError WindowSceneSessionImpl::SetSeparationTouchEnabled(bool enabled)
     auto result = hostSession->SendCommonEvent(
         static_cast<int32_t>(CommonEventCommand::SET_WINDOW_SEPARATION_TOUCH_ENABLED), parameters);
     if (result == WMError::WM_OK) {
+        TLOGI(WmsLogTag::WMS_EVENT, "set window separation successfully WId:%{public}u", GetWindowId());
         isSeparationTouchEnabled_ = enabled;
     }
     return result;
