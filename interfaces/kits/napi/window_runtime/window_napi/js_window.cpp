@@ -225,7 +225,7 @@ napi_value JsWindow::MoveWindowTo(napi_env env, napi_callback_info info)
 /** @note @window.layout */
 napi_value JsWindow::MoveWindowToAsync(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "MoveToAsync");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "MoveToAsync");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnMoveWindowToAsync(env, info) : nullptr;
 }
@@ -233,7 +233,7 @@ napi_value JsWindow::MoveWindowToAsync(napi_env env, napi_callback_info info)
 /** @note @window.layout */
 napi_value JsWindow::MoveWindowToGlobal(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "MoveWindowToGlobal");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "MoveWindowToGlobal");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnMoveWindowToGlobal(env, info) : nullptr;
 }
@@ -273,7 +273,7 @@ napi_value JsWindow::ResizeWindow(napi_env env, napi_callback_info info)
 /** @note @window.layout */
 napi_value JsWindow::ResizeWindowAsync(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "ResizeAsync");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "ResizeAsync");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnResizeWindowAsync(env, info) : nullptr;
 }

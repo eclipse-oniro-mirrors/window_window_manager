@@ -2016,6 +2016,9 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         session->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
+        if (!session->sessionStage_) {
+            return;
+        }
         TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
             "[WindowRectUpdate:RSCallback] %{public}s id:%{public}d, preRect=%{public}s, rect=%{public}s, "
             "reason:%{public}d %{public}s client=%{public}s", where, persistentId,
@@ -2053,7 +2056,7 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "WMS::WindowRectUpdate::ServerNotify::NotifyClient id=%d reason=%u rect=%{public}s",
         persistentId, static_cast<uint32_t>(reason), winRect.ToString().c_str());
-    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
+    TLOGD(WmsLogTag::WMS_LAYOUT,
         "[WindowRectUpdate:ServerNotify] NotifyClient id:%{public}d, rect=%{public}s, "
         "preRect=%{public}s, reason:%{public}u, %{public}s",
         persistentId, winRect.ToString().c_str(), GetSessionRect().ToString().c_str(),
