@@ -1448,6 +1448,8 @@ napi_value JsSceneSessionManager::UpdateTitleInTargetPos(napi_env env, napi_call
 
 napi_value JsSceneSessionManager::GetSessionSnapshotPixelMap(napi_env env, napi_callback_info info)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_JsSceneSessionManager::GetSessionSnapshotPixelMap");
     WLOGFI("[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnGetSessionSnapshotPixelMap(env, info) : nullptr;
@@ -1455,6 +1457,8 @@ napi_value JsSceneSessionManager::GetSessionSnapshotPixelMap(napi_env env, napi_
 
 napi_value JsSceneSessionManager::GetSessionSnapshotPixelMapSync(napi_env env, napi_callback_info info)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_JsSceneSessionManager::GetSessionSnapshotPixelMapSync");
     TLOGD(WmsLogTag::WMS_MAIN, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnGetSessionSnapshotPixelMapSync(env, info) : nullptr;
