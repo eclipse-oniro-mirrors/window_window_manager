@@ -33,18 +33,25 @@ public:
 
     static sptr<FloatViewController> GetActiveController() { return activeController_; }
 
-    static void DoActionEvent(const std::string& actionName, const std::string& reason);
-    static void DoActionStart(const std::string& reason = "");
-    static void DoActionClose(const std::string& reason);
-    static void DoActionHide(const std::string& reason);
-    static void DoActionInSidebar(const std::string& reason);
-    static void DoActionInFloatingBall(const std::string& reason);
+    static void AddController(uint32_t windowId, wptr<FloatViewController> controller);
+    static void RemoveController(uint32_t windowId);
+    static wptr<FloatViewController> GetController(uint32_t windowId);
+
+    static void DoActionCloseByMainWindow(uint32_t mainWindowId, const std::string& reason);
+    static void DoActionEvent(uint32_t windowId, const std::string& actionName, const std::string& reason);
+    static void DoActionStart(uint32_t windowId, const std::string& reason = "");
+    static void DoActionClose(uint32_t mainWindowId, const std::string& reason);
+    static void DoActionHide(uint32_t windowId, const std::string& reason);
+    static void DoActionInSidebar(uint32_t windowId, const std::string& reason);
+    static void DoActionInFloatingBall(uint32_t windowId, const std::string& reason);
 
     static void SyncFvWindowInfo(uint32_t windowId, const FloatViewWindowInfo& windowInfo, const std::string& reason);
     static void SyncFvLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& limits);
 private:
     // controller in use
     static sptr<FloatViewController> activeController_;
+    static std::mutex controllerMapMutex_;
+    static std::map<uint32_t, wptr<FloatViewController>> windowId2Controller_;
 };
 } // namespace Rosen
 } // namespace OHOS
