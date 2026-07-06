@@ -235,7 +235,7 @@ HWTEST_F(SceneSessionManagerTest4, DestroyAndDisconnectSpecificSession01, TestSi
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    ASSERT_NE(ssm_->DestroyAndDisconnectSpecificSession(1), WSError::WS_ERROR_NULLPTR);
+    ASSERT_NE(ssm_->DestroyAndDisconnectSpecificSession(1).errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**

@@ -115,6 +115,11 @@ constexpr uint32_t OUTLINE_COLOR_OPAQUE_OFFSET = 24; // Shift right 24 bits.
 constexpr uint32_t OUTLINE_COLOR_OPAQUE = 0xff; // Color opaque byte.
 
 constexpr uint32_t MAX_RATIO_LIMITS_COUNT = 10; // Max ratio limits count.
+
+/*
+ * ability manager err
+ */
+constexpr uint32_t ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK = 2097253;
 }
 
 /**
@@ -452,6 +457,14 @@ enum class WMErrorReason : int32_t {
     WM_REASON_SUB_WINDOW_IPC_BIND_DIALOG_TARGET_ERR,
 };
 
+
+/**
+ * @brief Error result structure for window operations.
+ */
+struct WMErrorResult {
+    WMError errCode = WMError::WM_OK;
+    std::string errMsg = "";
+};
 
 /**
  * @brief Enumerates error code of window only used for js api.

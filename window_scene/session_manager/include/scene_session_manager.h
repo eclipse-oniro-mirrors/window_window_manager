@@ -246,14 +246,14 @@ public:
     sptr<SceneSession> GetSceneSessionByType(WindowType type);
     std::vector<sptr<SceneSession>> GetSceneSessionByBundleName(const std::string& bundleName);
 
-    WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
+    WSErrorResult CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
         SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
         std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<IRemoteObject> token = nullptr) override;
-    WSError DestroyAndDisconnectSpecificSession(const int32_t persistentId) override;
-    WSError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+    WSErrorResult DestroyAndDisconnectSpecificSession(const int32_t persistentId) override;
+    WSErrorResult DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
         const sptr<IRemoteObject>& callback) override;
     WMError GetCrossProcessWindowInfo(CrossProcessWindowInfo& crossProcessWindowInfo) override;
     void SetCreateSystemSessionListener(const NotifyCreateSystemSessionFunc& func);
@@ -1025,8 +1025,8 @@ private:
     void ConfigDecor(const WindowSceneConfig::ConfigItem& decorConfig, bool mainConfig = true);
     void ConfigWindowAnimation(const WindowSceneConfig::ConfigItem& windowAnimationConfig);
     void ConfigStartingWindowAnimation(const WindowSceneConfig::ConfigItem& startingWindowConfig);
-    WSError CleanupSessionByType(const sptr<SceneSession>& sceneSession);
-    WSError FinalizeSessionDestruction(const int32_t persistentId);
+    WSErrorResult CleanupSessionByType(const sptr<SceneSession>& sceneSession);
+    WSErrorResult FinalizeSessionDestruction(const int32_t persistentId);
     /**
      * @brief Configure window layout related settings.
      *
@@ -1719,7 +1719,7 @@ private:
      * Specific Window
      */
     void ClearSpecificSessionRemoteObjectMap(int32_t persistentId);
-    WSError DestroyAndDisconnectSpecificSessionInner(const int32_t persistentId);
+    WSErrorResult DestroyAndDisconnectSpecificSessionInner(const int32_t persistentId);
 
     WSError GetAppMainSceneSession(int32_t persistentId, sptr<SceneSession>& sceneSession);
     void CalculateCombinedExtWindowFlags();

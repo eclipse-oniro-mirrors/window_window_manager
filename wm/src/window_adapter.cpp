@@ -1279,18 +1279,21 @@ WMError WindowAdapter::MoveMainWindowToTargetDisplay(DisplayId displayId, int32_
     return ret;
 }
 
-void WindowAdapter::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
+WMErrorResult WindowAdapter::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
     sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
     SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
     std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token)
 {
-    INIT_PROXY_CHECK_RETURN();
+    WMErrorResult result{WMError::WM_DO_NOTHING, "init proxy failed"};
+    INIT_PROXY_CHECK_RETURN(result);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
-    CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
-    wmsProxy->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId,
+    result.errMsg = "window manager proxy is nullptr";
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, result);
+    WSErrorResult wsResult = wmsProxy->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId,
         property, persistentId, session, systemConfig, renderSession, surfaceNode, token);
+    return WMErrorResult{static_cast<WMError>(wsResult.errCode), wsResult.errMsg};
 }
 
 void WindowAdapter::RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
@@ -1306,24 +1309,29 @@ void WindowAdapter::RecoverAndConnectSpecificSession(const sptr<ISessionStage>& 
         sessionStage, eventChannel, surfaceNode, property, session, token);
 }
 
-WMError WindowAdapter::DestroyAndDisconnectSpecificSession(const int32_t persistentId)
+WMErrorResult WindowAdapter::DestroyAndDisconnectSpecificSession(const int32_t persistentId)
 {
-    INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
+    WMErrorResult result{WMError::WM_DO_NOTHING, "init proxy failed"};
+    INIT_PROXY_CHECK_RETURN(result);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
-    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
-    return static_cast<WMError>(wmsProxy->DestroyAndDisconnectSpecificSession(persistentId));
+    result.errMsg = "window manager proxy is nullptr";
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, result);
+    WSErrorResult wsResult = wmsProxy->DestroyAndDisconnectSpecificSession(persistentId);
+    return WMErrorResult{static_cast<WMError>(wsResult.errCode), wsResult.errMsg};
 }
 
-WMError WindowAdapter::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+WMErrorResult WindowAdapter::DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
     const sptr<IRemoteObject>& callback)
 {
-    INIT_PROXY_CHECK_RETURN(WMError::WM_DO_NOTHING);
+    WMErrorResult result{WMError::WM_DO_NOTHING, "init proxy failed"};
+    INIT_PROXY_CHECK_RETURN(result);
 
     auto wmsProxy = GetWindowManagerServiceProxy();
-    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
-    return static_cast<WMError>(
-        wmsProxy->DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback));
+    result.errMsg = "window manager proxy is nullptr";
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, result);
+    WSErrorResult wsResult = wmsProxy->DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
+    return WMErrorResult{static_cast<WMError>(wsResult.errCode), wsResult.errMsg};
 }
 
 WMError WindowAdapter::RecoverAndReconnectSceneSession(const sptr<ISessionStage>& sessionStage,

@@ -466,13 +466,15 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
 
     const WindowType type = GetType();
     bool hasToastFlag = property_->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_TOAST);
+    WMErrorResult result;
     if (WindowHelper::IsSubWindow(type) && (property_->GetIsUIExtFirstSubWindow() ||
                                             (property_->GetIsUIExtAnySubWindow() && hasToastFlag))) {
         property_->SetParentPersistentId(property_->GetParentId());
         SetDefaultDisplayIdIfNeed();
         property_->SetIsUIExtensionAbilityProcess(isUIExtensionAbilityProcess_);
         // create sub session by parent session
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+        result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+            iSessionStage, eventChannel, nodeId_,
             property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         if (!hasToastFlag) {
             AddSubWindowMapForExtensionWindow();
@@ -490,7 +492,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetDisplayId(crossProcessWindowInfo.displayId);
             property_->SetIsPcAppInPad(crossProcessWindowInfo.isPcAppInPad);
             property_->SetPcAppInpadCompatibleMode(crossProcessWindowInfo.isPcAppInpadCompatibleMode);
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+            result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+                iSessionStage, eventChannel,
                 nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         } else {
             sptr<WindowSessionImpl> parentSession = nullptr;
@@ -505,7 +508,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
             property_->SetPcAppInpadCompatibleMode(parentSession->GetProperty()->GetPcAppInpadCompatibleMode());
             // creat sub session by parent session
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+            result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+                iSessionStage, eventChannel,
                 nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
             {
                 std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
@@ -524,7 +528,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
         }
         PreProcessCreate();
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+        result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+            iSessionStage, eventChannel,
             nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
     }
     property_->SetPersistentId(persistentId);
@@ -551,9 +556,10 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         hostSession_ = session;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "name:%{public}s,id:%{public}d,parentId:%{public}d,type:%{public}u,"
-        "touchable:%{public}d,displayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
+        "touchable:%{public}d,displayId:%{public}" PRIu64 ", errCode: %{public}d, msg: %{public}s",
+        property_->GetWindowName().c_str(),
         property_->GetPersistentId(), property_->GetParentPersistentId(), GetType(),
-        property_->GetTouchable(), property_->GetDisplayId());
+        property_->GetTouchable(), property_->GetDisplayId(), result.errCode, result.errMsg.c_str());
     return WMError::WM_OK;
 }
 
@@ -2601,13 +2607,25 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     WMError ret = WMError::WM_OK;
     if (SysCapUtil::GetBundleName() == AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME) {
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window is scb window");
-        ret = SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSession(persistentId);
+        WMErrorResult result =
+            SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSession(persistentId);
+        ret = result.errCode;
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_LIFE,
+                "DestroyAndDisconnectSpecificSession failed, errCode: %{public}d, msg: %{public}s",
+                result.errCode, result.errMsg.c_str());
+        }
         return ret;
     }
     sptr<PatternDetachCallback> callback = sptr<PatternDetachCallback>::MakeSptr();
-    ret = SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId,
+    WMErrorResult result =
+        SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId,
         callback->AsObject());
+    ret = result.errCode;
     if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE,
+            "DestroyAndDisconnectSpecificSessionWithDetachCallback failed, errCode: %{public}d, msg: %{public}s",
+            result.errCode, result.errMsg.c_str());
         return ret;
     }
     auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -2619,7 +2637,6 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     if (waitTime >= WINDOW_DETACH_TIMEOUT) {
         TLOGW(WmsLogTag::WMS_LIFE, "Destroy window timeout, persistentId:%{public}d", persistentId);
         RecordLifeCycleExceptionEvent(ret, WMErrorReason::WM_REASON_WINDOW_DESTROY_ERR, "window detach timeout");
-        callback->GetResult(std::numeric_limits<int>::max());
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy window persistentId:%{public}d waitTime:%{public}lld", persistentId, waitTime);
     return ret;
