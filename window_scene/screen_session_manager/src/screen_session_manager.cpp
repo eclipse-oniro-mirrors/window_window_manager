@@ -2982,11 +2982,6 @@ sptr<ScreenSession> ScreenSessionManager::GetScreenSession(ScreenId screenId) co
         screenEventTracker_.LogWarningAllInfos();
     }
     ScreenId smsId = screenId;
-    if (IsConcurrentUser()) {
-        if (!screenIdManager_.ConvertToSmsScreenId(screenId, smsId)) {
-            smsId = screenId;
-        }
-    }
     auto iter = screenSessionMap_.find(smsId);
     if (iter == screenSessionMap_.end()) {
         TLOGNFW(WmsLogTag::DMS, "not found screen session id: %{public}" PRIu64".", screenId);
