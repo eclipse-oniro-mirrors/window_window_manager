@@ -12,15 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 import { AsyncCallback, Callback } from '@ohos.base';
 import { BusinessError } from '@ohos.base';
 import image from '@ohos.multimedia.image';
- 
+
 export default namespace screenshot {
- 
+
 loadLibrary('screenshotani_kit.z');
- 
+
 export function save(options: ScreenshotOptions, callback: AsyncCallback<image.PixelMap | undefined>): void {
     taskpool.execute((): image.PixelMap => {
         let res: image.PixelMap = saveSync(options);
@@ -31,7 +31,7 @@ export function save(options: ScreenshotOptions, callback: AsyncCallback<image.P
         callback(err as BusinessError, undefined);
     });
 }
- 
+
 export function save(callback: AsyncCallback<image.PixelMap | undefined>): void {
     taskpool.execute((): image.PixelMap => {
         let res: image.PixelMap = saveSync();
@@ -42,7 +42,7 @@ export function save(callback: AsyncCallback<image.PixelMap | undefined>): void 
         callback(err as BusinessError, undefined);
     });
 }
- 
+
 export function save(options?: ScreenshotOptions): Promise<image.PixelMap> {
     return new Promise<image.PixelMap>((resolve: (value: image.PixelMap) => void, reject: (error: BusinessError) => void ) => {
         taskpool.execute((): image.PixelMap => {
@@ -102,37 +102,37 @@ native function pickSync(): PickInfo;
  
 export interface ScreenshotOptions {
     screenRect?: Rect;
- 
+
     imageSize?: Size;
- 
+
     rotation?: int;
- 
+
     displayId?: long;
- 
+
     isNotificationNeeded?: boolean;
- 
+
     isCaptureFullOfScreen?: boolean;
 }
  
 export class ScreenshotOptionsImpl implements ScreenshotOptions{
     screenRect?: Rect;
- 
+
     imageSize?: Size;
- 
+
     rotation?: int;
- 
+
     displayId?: long;
- 
+
     isNotificationNeeded?: boolean;
-    
+
     isCaptureFullOfScreen?: boolean;
 }
 
 export interface HdrScreenshotOptions {
     displayId?: long;
- 
+
     isNotificationNeeded?: boolean;
- 
+
     isCaptureFullOfScreen?: boolean;
 
     displayIntent?: DisplayIntentType;
@@ -140,9 +140,9 @@ export interface HdrScreenshotOptions {
  
 export class HdrScreenshotOptionsImpl implements HdrScreenshotOptions {
     displayId?: long;
- 
+
     isNotificationNeeded?: boolean;
- 
+
     isCaptureFullOfScreen?: boolean;
 
     displayIntent?: DisplayIntentType;
@@ -155,42 +155,46 @@ export enum DisplayIntentType {
 }
 export interface Size {
     width: long;
- 
+
     height: long;
 }
  
 export class SizeImpl implements Size {
     width: long;
- 
+
     height: long;
 }
  
 export interface Rect {
     left: long;
- 
+
     top: long;
- 
+
     width: long;
- 
+
     height: long;
 }
  
 export class RectImpl implements Rect {
     left: long;
- 
+
     top: long;
- 
+
     width: long;
- 
+
     height: long;
 }
 
 export interface CaptureOption {
     displayId?: Long;
+
+    blackWindowIds?: Array<int>;
 }
  
 export class CaptureOptionImpl implements CaptureOption {
     displayId?: Long;
+
+    blackWindowIds?: Array<int>;
 }
  
 export interface PickInfo {

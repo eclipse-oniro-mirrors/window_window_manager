@@ -44,9 +44,6 @@ constexpr float TENT_MODE_EXIT_MAX_THRESHOLD = 175.0F;
 constexpr int32_t TENT_MODE_OFF = 0;
 constexpr int32_t TENT_MODE_ON = 1;
 constexpr int32_t TENT_MODE_HOVER_ON = 2;
-constexpr int32_t MAX_QUEUE_SIZE = 1;
-constexpr uint64_t MAX_TIME_INTERVAL_MS = 2000;
-
 std::chrono::time_point<std::chrono::system_clock> g_lastUpdateTime = std::chrono::system_clock::now();
 }  // namespace
 
@@ -75,24 +72,11 @@ SensorFoldStateMgr& SensorFoldStateMgr::GetInstance()
 
 SensorFoldStateMgr::SensorFoldStateMgr() : pImpl_(std::make_unique<Impl>())
 {
-    taskProcess_ = new TaskSequenceProcess(
-        MAX_QUEUE_SIZE,
-        MAX_TIME_INTERVAL_MS
-    );
     currentFoldStatus_ = {FoldStatus::UNKNOWN};
     foldAlgorithmStrategy_ = {0, 0};
 }
 
 SensorFoldStateMgr::~SensorFoldStateMgr() = default;
-
-void SensorFoldStateMgr::SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler)
-{
-    if (scheduler == nullptr) {
-        TLOGE(WmsLogTag::DMS, "scheduler is nullptr.");
-        return;
-    }
-    taskProcess_->SetTaskScheduler(scheduler);
-}
 
 void SensorFoldStateMgr::HandleSensorEvent(const SensorStatus& sensorStatus)
 {
@@ -230,33 +214,23 @@ void SensorFoldStateMgr::HandleSensorChange(FoldStatus nextStatus)
         TLOGW(WmsLogTag::DMS, "fold state is UNKNOWN");
         return;
     }
-    auto task = [=] {
-        if (globalFoldStatus_ != nextStatus) {
-            TLOGI(WmsLogTag::DMS, "current state: %{public}d, next state: %{public}d.", globalFoldStatus_, nextStatus);
-            ReportNotifyFoldStatusChange((int32_t)nextStatus);
-            PowerMgr::PowerMgrClient::GetInstance().RefreshActivity();
+    if (globalFoldStatus_ == nextStatus) {
+        TLOGD(WmsLogTag::DMS, "fold state doesn't change, foldState = %{public}d.", globalFoldStatus_);
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "current state: %{public}d, next state: %{public}d.", globalFoldStatus_, nextStatus);
+    ReportNotifyFoldStatusChange((int32_t)nextStatus);
+    PowerMgr::PowerMgrClient::GetInstance().RefreshActivity();
 
-            NotifyReportFoldStatusToScb((int32_t)nextStatus);
+    NotifyReportFoldStatusToScb((int32_t)nextStatus);
 
-            globalFoldStatus_ = nextStatus;
+    globalFoldStatus_ = nextStatus;
 
-            FoldScreenBasePolicy::GetInstance().SetFoldStatus(globalFoldStatus_);
-            ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(globalFoldStatus_);
-            FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
-        } else {
-            TLOGD(WmsLogTag::DMS, "fold state doesn't change, foldState = %{public}d.", globalFoldStatus_);
-        }
-        if (FoldScreenBasePolicy::GetInstance().GetdisplayModeRunningStatus() == false) {
-            FinishTaskSequence();
-        }
-    };
-    taskProcess_->AddTask(task);
-}
-
-void SensorFoldStateMgr::FinishTaskSequence()
-{
-    TLOGI(WmsLogTag::DMS, "TaskSequenceProcess SensorFoldStateMgr::FinishTaskSequence");
-    taskProcess_->FinishTask();
+    FoldScreenBasePolicy::GetInstance().SetFoldStatus(globalFoldStatus_);
+    ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(globalFoldStatus_);
+    if (!FoldScreenBasePolicy::GetInstance().GetLockDisplayStatus()) {
+        FoldScreenBasePolicy::GetInstance().SendSensorResult(globalFoldStatus_);
+    }
 }
 
 void SensorFoldStateMgr::UpdateFoldAlgorithmStrategy(const std::vector<ScreenAxis>& axis)

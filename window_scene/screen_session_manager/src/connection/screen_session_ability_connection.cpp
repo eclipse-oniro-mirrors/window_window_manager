@@ -21,9 +21,9 @@
 #include <system_ability_definition.h>
 
 #include "ability_connection.h"
-#include "window_manager_hilog.h"
-#include "ipc_skeleton.h"
 #include "extension_manager_client.h"
+#include "ipc_skeleton.h"
+#include "window_manager_hilog.h"
 #include "dms_global_mutex.h"
 
 namespace OHOS::Rosen {
@@ -189,7 +189,6 @@ int32_t ScreenSessionAbilityConnectionStub::SendMessageSyncBlock(int32_t transCo
             return RES_FAILURE;
         }
     }
-
     std::unique_lock<std::mutex> lockSendMessage(sendMessageMutex_);
     TLOGI(WmsLogTag::DMS, "LockSendMessage wait");
     sendMessageWaitFlag_ = false;
@@ -274,7 +273,7 @@ bool ScreenSessionAbilityConnection::ScreenSessionConnectExtension(const std::st
         IPCSkeleton::SetCallingIdentity(identity);
         return false;
     }
-    TLOGI(WmsLogTag::DMS, "ConnectServiceExtensionAbility succeed");
+    TLOGI(WmsLogTag::DMS, "ConnectServiceExtensionAbility result: %{public}d", ret);
     // set current callingIdentity back
     IPCSkeleton::SetCallingIdentity(identity);
     return true;
@@ -324,8 +323,8 @@ int32_t ScreenSessionAbilityConnection::SendMessageBlock(
     return RES_SUCCESS;
 }
 
-int32_t ScreenSessionAbilityConnectionStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
-    [[maybe_unused]]MessageParcel& reply, [[maybe_unused]]MessageOption& option)
+int32_t ScreenSessionAbilityConnectionStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply,
+    MessageOption& option)
 {
     TLOGI(WmsLogTag::DMS, "OnRemoteRequest code is %{public}u", code);
     if (data.ReadInterfaceToken() != GetDescriptor()) {

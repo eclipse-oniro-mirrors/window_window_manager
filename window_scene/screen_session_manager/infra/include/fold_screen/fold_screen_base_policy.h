@@ -121,25 +121,27 @@ public:
     // common
     void LockDisplayStatus(bool locked);
     virtual FoldDisplayMode GetModeMatchStatus();
-    virtual FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus);
     // FoldCreaseRegion
     sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
     FoldCreaseRegion GetLiveCreaseRegion() const;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const;
+    // Lock target fold status
+    // Declare as virtual only for use in MockFoldScreenPolicy class
+    virtual FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus);
+    virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStates() const;
+    virtual bool GetPhysicalFoldLockFlag() const;
+    virtual FoldStatus GetForcedFoldStatus() const;
+    virtual DMError SetFoldStatusAndLockControl(bool isLocked, FoldStatus targetFoldStatus = FoldStatus::UNKNOWN);
+    virtual void SetFoldLockFlagAndFoldStatus(bool physicalFoldLockFlag, FoldStatus targetFoldStatus);
+    virtual FoldStatus GetPhysicalFoldStatus();
+    virtual bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStates,
+        FoldStatus targetFoldStatus) const;
     virtual void SetMainScreenRegion(DMRect& mainScreenRegion) {};
     void SetCurrentDisplayMode(FoldDisplayMode mode);
     virtual void ChangeScreenPowerOnFold(const std::vector<std::pair<ScreenId,
         ScreenPowerStatus>>& screenPowerTaskList);
-    // Lock target fold status
-    virtual const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const;
-    virtual bool GetPhysicalFoldLockFlag() const;
-    virtual FoldStatus GetForceFoldStatus() const;
-    virtual DMError SetFoldStatusAndLockControl(bool isLocked, FoldStatus targetFoldStatus = FoldStatus::UNKNOWN);
-    virtual void SetFoldLockFlagAndFoldStatus(bool physicalFoldLockFlag, FoldStatus targetFoldStatus);
-    virtual FoldStatus GetPhysicalFoldStatus();
-    bool IsFoldStatusSupported(const std::unordered_set<FoldStatus>& supportedFoldStatus,
-        FoldStatus targetFoldStatus) const;
     virtual float GetSpecialVirtualPixelRatio();
+    bool GetLockDisplayStatus() const;
     virtual void PowerkeySetScreenActiveRect() {};
     const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap() const;
 
@@ -157,7 +159,7 @@ protected:
     int64_t getFoldingElapsedMs();
 
     std::atomic<bool> physicalFoldLockFlag_ = false;
-    std::atomic<FoldStatus> forceFoldStatus_ = FoldStatus::UNKNOWN;
+    std::atomic<FoldStatus> forcedFoldStatus_ = FoldStatus::UNKNOWN;
 
     std::mutex coordinationMutex_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;

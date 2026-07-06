@@ -92,9 +92,9 @@ std::string AniErrUtils::GetErrorMsg(const DmErrorCode& errorCode)
         DM_ERROR_CODE_TO_ERROR_MSG_MAP.at(errorCode) : "";
 }
 
-ani_object AniErrUtils::CreateAniError(ani_env* env, const DMError& errorCode, std::string msg)
+ani_object AniErrUtils::CreateAniError(ani_env* env, const DMError& errorCode, const std::string& message)
 {
-    msg = msg == "" ? GetErrorMsg(errorCode) : msg;
+    auto msg = message == "" ? GetErrorMsg(errorCode) : message;
     ani_string aniMsg;
     env->String_NewUTF8(msg.c_str(), msg.size(), &aniMsg);
     ani_object aniError = nullptr;
@@ -106,9 +106,9 @@ ani_object AniErrUtils::CreateAniError(ani_env* env, const DMError& errorCode, s
     return aniError;
 }
 
-ani_object AniErrUtils::CreateAniError(ani_env* env, const DmErrorCode& errorCode, std::string msg)
+ani_object AniErrUtils::CreateAniError(ani_env* env, const DmErrorCode& errorCode, const std::string& message)
 {
-    msg = msg == "" ? GetErrorMsg(errorCode) : msg;
+    auto msg = message == "" ? GetErrorMsg(errorCode) : message;
     ani_string aniMsg;
     env->String_NewUTF8(msg.c_str(), msg.size(), &aniMsg);
     ani_object aniError = nullptr;

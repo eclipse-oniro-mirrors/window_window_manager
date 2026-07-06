@@ -66,7 +66,7 @@ window_native_kit_deps = [
   "../../../../utils:libwmutil",
   "../../../../utils:libwmutil_base",
   "../../../../wm:libwm",
-  "../common:wm_napi_util",
+  "${window_base_path}/interfaces/kits/napi/common:dm_napi_common",
 ]
 
 window_native_kit_external_deps = [
@@ -191,9 +191,9 @@ ohos_shared_library("window_napi") {
     "../../../../utils:libwmutil_base",
     "../../../../window_scene/interfaces/innerkits:libwsutils",
     "../../../../wm:libwm",
-    "../common:wm_napi_util",
     "${window_base_path}/interfaces/kits/napi/window_animation:window_animation_utils",
     "${window_base_path}/window_scene/session:ui_effect_controller_client",
+    "${window_base_path}/interfaces/kits/napi/common:dm_napi_common",
   ]
 
   external_deps = [
@@ -250,10 +250,10 @@ ohos_shared_library("windowstage_kit") {
   include_dirs = [ "window_stage_napi" ]
   deps = [
     ":window_native_kit",
-    "../../../../utils:libwmutil",
-    "../../../../utils:libwmutil_base",
-    "../../../../wm:libwm",
-    "../common:wm_napi_util",
+    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_base",
+    "${window_base_path}/wm:libwm",
+    "${window_base_path}/interfaces/kits/napi/common:dm_napi_common",
   ]
 
   external_deps = [
