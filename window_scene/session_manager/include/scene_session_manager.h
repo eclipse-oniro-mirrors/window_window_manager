@@ -1628,7 +1628,6 @@ private:
     sptr<SceneSession> FindSessionByToken(
         const sptr<IRemoteObject>& token, WindowType type = WindowType::APP_MAIN_WINDOW_BASE);
 
-
     void CheckAndNotifyWaterMarkChangedResult();
     WSError NotifyWaterMarkFlagChangedResult(bool hasWaterMark);
     void ProcessPreload(const AppExecFwk::AbilityInfo& abilityInfo) const;
