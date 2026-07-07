@@ -9867,7 +9867,8 @@ napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_i
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error", ret);
         if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
             return NapiThrowError(env, ret, "[window][setWindowTitleButtonVisible]msg: Invalid window type. "
-                "Only main windows and SubWindowOptions.zLevelAboveParentLoosened is true are supported.");
+                "Only main windows and subwindows with subwindowoptions.zlevelaboveparentloosened set to true "
+                "are supported.");
         }
         return NapiThrowError(env, ret, "[window][setWindowTitleButtonVisible]msg: Set title button visible failed.");
     }
