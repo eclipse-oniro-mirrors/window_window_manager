@@ -169,6 +169,29 @@ HWTEST_F(MoveResamplerTest, TestMoveResamplerResampleAtEmpty, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestMoveResamplerResampleAtIdleKeepsLastResampledPosition
+ * @tc.desc: Verify ResampleAt returns last resampled position without filtering after input becomes idle
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveResamplerTest, TestMoveResamplerResampleAtIdleKeepsLastResampledPosition, TestSize.Level1)
+{
+    moveResampler_.maxEventIntervalUs_ = 1000; // 1ms for testing
+    moveResampler_.PushEvent(1000, 0, 0);
+    moveResampler_.PushEvent(2000, 100, 100);
+
+    MoveEvent first = moveResampler_.ResampleAt(1500);
+    auto last = moveResampler_.GetLastResampledEvent();
+    ASSERT_TRUE(last.has_value());
+    EXPECT_EQ(last->posX, first.posX);
+    EXPECT_EQ(last->posY, first.posY);
+
+    MoveEvent idle = moveResampler_.ResampleAt(18000);
+
+    EXPECT_EQ(idle.posX, first.posX);
+    EXPECT_EQ(idle.posY, first.posY);
+}
+
+/**
  * @tc.name: TestMoveResamplerResampleAtSingleEvent
  * @tc.desc: Verify ResampleAt returns single event when only one exists
  * @tc.type: FUNC
@@ -373,6 +396,7 @@ HWTEST_F(MoveResamplerTest, TestMoveResamplerReset, TestSize.Level1)
 
     moveResampler_.Reset();
     EXPECT_TRUE(moveResampler_.events_.empty());
+    EXPECT_FALSE(moveResampler_.GetLastResampledEvent().has_value());
 
     MoveEvent e = moveResampler_.ResampleAt(3000);
     EXPECT_EQ(e.posX, 0);

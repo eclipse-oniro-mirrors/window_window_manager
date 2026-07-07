@@ -1438,27 +1438,37 @@ TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEvent(
         return TargetRectUpdateMode::NONE;
     }
 
+    if (reason == SizeChangeReason::DRAG_END) {
+        return UpdateTargetRectOnMoveEnd(pointerEvent);
+    }
+
+    return UpdateTargetRectOnMoving(pointerEvent, reason);
+}
+
+TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoving(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason)
+{
     const auto [offsetX, offsetY] = ComputeOffsetFromStart(pointerEvent);
 
-    // If move resampling is active and the drag operation has not ended yet,
-    // do not update targetRect immediately. Instead, push the move event into
-    // moveResampler so that the target rect can be updated on the next vsync
-    // using resampled data.
-    //
-    // Note:
-    // - When reason is DRAG_END, it indicates that the drag-move operation
-    //   has finished. In this case, isStartMove_ will be set to false and
-    //   move resampling must be stopped.
-    // - No further events should be pushed into moveResampler after DRAG_END.
-    // - The final position at DRAG_END should be applied to the window
-    //   immediately, without resampling.
-    if (moveDragProperty_.isMoveResampleActive_ && reason != SizeChangeReason::DRAG_END) {
-        const int64_t eventTimeUs = pointerEvent->GetActionTime();
-        moveResampler_.PushEvent(eventTimeUs, offsetX, offsetY);
+    if (moveDragProperty_.isMoveResampleActive_) {
+        moveResampler_.PushEvent(pointerEvent->GetActionTime(), offsetX, offsetY);
         return TargetRectUpdateMode::RESAMPLE_SCHEDULED;
     }
 
     UpdateTargetRectWithOffset(offsetX, offsetY, reason);
+    return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
+}
+
+TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEnd(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (auto sample = moveResampler_.GetLastResampledEvent()) {
+        UpdateTargetRectWithOffset(sample->posX, sample->posY, SizeChangeReason::DRAG_END);
+        return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
+    }
+
+    const auto [offsetX, offsetY] = ComputeOffsetFromStart(pointerEvent);
+    UpdateTargetRectWithOffset(offsetX, offsetY, SizeChangeReason::DRAG_END);
     return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
