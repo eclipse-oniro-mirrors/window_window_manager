@@ -103,7 +103,7 @@ union WSColorParam {
 
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowSceneSessionImpl"};
-constexpr int32_t WINDOW_DETACH_TIMEOUT = 3000;
+constexpr int32_t WINDOW_DETACH_TIMEOUT = 1500;
 constexpr int32_t WINDOW_LAYOUT_TIMEOUT = 30;
 constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2000;
 const std::string PARAM_DUMP_HELP = "-h";
@@ -2630,7 +2630,9 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     }
     auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
-    callback->GetResult(WINDOW_DETACH_TIMEOUT);
+    if (!WindowHelper::IsSubWindow(GetType())) {
+        callback->GetResult(WINDOW_DETACH_TIMEOUT);
+    }
     auto endTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     auto waitTime = endTime - startTime;

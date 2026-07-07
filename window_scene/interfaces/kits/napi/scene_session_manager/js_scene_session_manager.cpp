@@ -180,6 +180,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         moduleName, JsSceneSessionManager::SetBehindWindowFilterEnabled);
     BindNativeFunction(env, exportObj, "getRootSceneSession", moduleName, JsSceneSessionManager::GetRootSceneSession);
     BindNativeFunction(env, exportObj, "requestSceneSession", moduleName, JsSceneSessionManager::RequestSceneSession);
+    BindNativeFunction(env, exportObj, "kioskModeChange", moduleName, JsSceneSessionManager::KioskModeChange);
     BindNativeFunction(env, exportObj, "updateSceneSessionWant",
         moduleName, JsSceneSessionManager::UpdateSceneSessionWant);
     BindNativeFunction(env, exportObj, "requestSceneSessionActivation", moduleName,
@@ -1010,6 +1011,13 @@ napi_value JsSceneSessionManager::RequestSceneSession(napi_env env, napi_callbac
         return nullptr;
     }
     return me->OnRequestSceneSession(env, info);
+}
+
+napi_value JsSceneSessionManager::KioskModeChange(napi_env env, napi_callback_info info)
+{
+    WLOGFD("[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnKioskModeChange(env, info) : nullptr;
 }
 
 napi_value JsSceneSessionManager::UpdateSceneSessionWant(napi_env env, napi_callback_info info)
@@ -2380,6 +2388,37 @@ napi_value JsSceneSessionManager::OnRequestSceneSession(napi_env env, napi_callb
         }
         return jsSceneSessionObj;
     }
+}
+
+napi_value JsSceneSessionManager::OnKioskModeChange(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    WSErrorCode errCode = WSErrorCode::WS_OK;
+    size_t argc = ARGC_TWO;
+    napi_value argv[ARGC_TWO] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_TWO) {
+        WLOGFE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        errCode = WSErrorCode::WS_ERROR_INVALID_PARAM;
+    }
+
+    bool isKioskMode = false;
+    if (!ConvertFromJsValue(env, argv[0], isKioskMode)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to isKiosMode.");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    int32_t persistentId = 0;
+    if (!ConvertFromJsValue(env, argv[1], persistentId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to persistentId.");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is invalid"));
+        return NapiGetUndefined(env);
+    }
+    SceneSessionManager::GetInstance().KioskModeChange(isKioskMode, persistentId);
+    return NapiGetUndefined(env);
 }
 
 napi_value JsSceneSessionManager::OnUpdateSceneSessionWant(napi_env env, napi_callback_info info)

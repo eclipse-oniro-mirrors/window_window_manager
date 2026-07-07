@@ -21335,6 +21335,7 @@ WMError SceneSessionManager::EnterKioskMode(const sptr<IRemoteObject>& token)
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
     return taskScheduler_->PostSyncTask([this, token, where = __func__] {
         auto session = FindSessionByToken(token, WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
         if (session == nullptr) {
@@ -21357,6 +21358,7 @@ WMError SceneSessionManager::ExitKioskMode()
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
     taskScheduler_->PostAsyncTask([this, where = __func__] {
         if (kioskModeChangeFunc_ != nullptr) {
             kioskModeChangeFunc_(false, INVALID_SESSION_ID);
@@ -21367,6 +21369,16 @@ WMError SceneSessionManager::ExitKioskMode()
         return WMError::WM_OK;
     }, __func__);
     return WMError::WM_OK;
+}
+
+void SceneSessionManager::KioskModeChange(bool isKioskMode, int32_t persistentId)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "isKiosMode:%{public}u, persistentId:%{public}d", isKioskMode, persistentId);
+    taskScheduler_->PostAsyncTask([this, isKioskMode, persistentId, where = __func__] {
+        isKioskMode_ = isKioskMode;
+        kioskAppPersistentId_ = persistentId;
+        return WMError::WM_OK;
+    }, __func__);
 }
 
 void SceneSessionManager::RegisterKioskModeChangeCallback(KioskModeChangeFunc&& func)

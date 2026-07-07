@@ -227,6 +227,7 @@ private:
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
     napi_value OnGetRootSceneSession(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSession(napi_env env, napi_callback_info info);
+    napi_value OnKioskModeChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneSessionWant(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionActivation(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionBackground(napi_env env, napi_callback_info info);
@@ -434,6 +435,7 @@ private:
      * Window Lifecycle
      */
     static napi_value RequestSceneSession(napi_env env, napi_callback_info info);
+    static napi_value KioskModeChange(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneSessionWant(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionActivation(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionBackground(napi_env env, napi_callback_info info);
