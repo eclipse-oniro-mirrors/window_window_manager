@@ -6902,9 +6902,16 @@ void WindowSceneSessionImpl::UpdateSubWindowDragEnabledByDecorVisible()
     TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, decorVisible: %{public}d", GetPersistentId(), decorVisible);
 }
 
-WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
+WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
+    const std::set<ScreenId>& supportMultiWindowScreenSet)
 {
     if (IsWindowSessionInvalid()) {
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    windowSystemConfig_.supportMultiWindowScreenSet_ = supportMultiWindowScreenSet;
+    bool isUiExtSubWindow = WindowHelper::IsSubWindow(property_->GetWindowType()) &&
+        property_->GetIsUIExtFirstSubWindow();
+    if (!WindowHelper::IsMainWindow(property_->GetWindowType()) && !isUiExtSubWindow) {
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
     if (windowSystemConfig_.freeMultiWindowEnable_ == enable) {

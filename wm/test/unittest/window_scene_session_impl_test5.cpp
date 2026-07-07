@@ -677,7 +677,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow01, TestSize.Level1)
     ASSERT_NE(nullptr, option);
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(nullptr, window);
-    auto ref = window->SwitchFreeMultiWindow(false);
+    auto ref = window->SwitchFreeMultiWindow(false, {});
     ASSERT_EQ(WSError::WS_ERROR_INVALID_WINDOW, ref);
 
     window->property_->SetPersistentId(1);
@@ -686,18 +686,18 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow01, TestSize.Level1)
     window->hostSession_ = session;
     window->property_->SetWindowName("SwitchFreeMultiWindow01");
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
-    ref = window->SwitchFreeMultiWindow(false);
+    ref = window->SwitchFreeMultiWindow(false, {});
     ASSERT_EQ(WSError::WS_ERROR_REPEAT_OPERATION, ref);
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
-    ref = window->SwitchFreeMultiWindow(true);
+    ref = window->SwitchFreeMultiWindow(true, {});
     ASSERT_EQ(WSError::WS_ERROR_REPEAT_OPERATION, ref);
 
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
     WindowSceneSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
         std::pair<uint64_t, sptr<WindowSessionImpl>>(window->GetWindowId(), window)));
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, window->SwitchFreeMultiWindow(true));
+    EXPECT_EQ(WSError::WS_OK, window->SwitchFreeMultiWindow(true, {}));
     EXPECT_EQ(true, window->windowSystemConfig_.freeMultiWindowEnable_);
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, window->SwitchFreeMultiWindow(false));
+    EXPECT_EQ(WSError::WS_OK, window->SwitchFreeMultiWindow(false, {}));
     EXPECT_EQ(false, window->windowSystemConfig_.freeMultiWindowEnable_);
     WindowSceneSessionImpl::windowSessionMap_.erase(window->GetWindowName());
 }
@@ -748,12 +748,13 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow02, TestSize.Level1)
     EXPECT_EQ(false, mainWindow->IsPcOrPadFreeMultiWindowMode());
     EXPECT_EQ(false, floatWindow->IsPcOrPadFreeMultiWindowMode());
     EXPECT_EQ(false, subWindow->IsPcOrPadFreeMultiWindowMode());
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, mainWindow->SwitchFreeMultiWindow(true));
+    EXPECT_EQ(WSError::WS_OK, mainWindow->SwitchFreeMultiWindow(true, {}));
     EXPECT_EQ(true, mainWindow->IsPcOrPadFreeMultiWindowMode());
     floatWindow->windowSystemConfig_.freeMultiWindowEnable_ = false;
-    EXPECT_EQ(WSError::WS_OK, floatWindow->SwitchFreeMultiWindow(true));
-    EXPECT_EQ(true, floatWindow->IsPcOrPadFreeMultiWindowMode());
-    EXPECT_EQ(WSError::WS_OK, subWindow->SwitchFreeMultiWindow(true));
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, floatWindow->SwitchFreeMultiWindow(true, {}));
+    EXPECT_EQ(false, floatWindow->IsPcOrPadFreeMultiWindowMode());
+    subWindow->property_->SetIsUIExtFirstSubWindow(true);
+    EXPECT_EQ(WSError::WS_OK, subWindow->SwitchFreeMultiWindow(true, {}));
     EXPECT_EQ(true, subWindow->IsPcOrPadFreeMultiWindowMode());
 
     EXPECT_EQ(WMError::WM_OK, mainWindow->Destroy(true));
@@ -785,7 +786,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow03, Function | SmallT
     mainWindow->haveSetSupportedWindowModes_ = true;
     mainWindow->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
     EXPECT_EQ(mainWindow->property_->GetWindowModeSupportType(), WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
-    EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(false), WSError::WS_OK);
+    EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(false, {}), WSError::WS_OK);
     EXPECT_EQ(WindowHelper::IsWindowModeSupported(mainWindow->property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN), false);
     EXPECT_EQ(mainWindow->windowSystemConfig_.freeMultiWindowEnable_, false);
@@ -816,12 +817,12 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow04, Function | SmallT
     mainWindow->haveSetSupportedWindowModes_ = true;
     mainWindow->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
     EXPECT_EQ(mainWindow->property_->GetWindowModeSupportType(), WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
-    EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(false), WSError::WS_OK);
+    EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(false, {}), WSError::WS_OK);
     EXPECT_EQ(mainWindow->windowSystemConfig_.freeMultiWindowEnable_, false);
 
     std::vector<AppExecFwk::SupportWindowMode> userModes = { AppExecFwk::SupportWindowMode::FULLSCREEN };
     mainWindow->property_->SetSupportedWindowModes(userModes);
-    EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(true), WSError::WS_OK);
+    EXPECT_EQ(mainWindow->SwitchFreeMultiWindow(true, {}), WSError::WS_OK);
     EXPECT_EQ(mainWindow->property_->GetWindowModeSupportType(), WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
     WindowSceneSessionImpl::windowSessionMap_.erase(mainWindow->property_->GetWindowName());
 }
