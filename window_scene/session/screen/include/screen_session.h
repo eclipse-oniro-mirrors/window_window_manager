@@ -118,6 +118,7 @@ public:
     void RegisterScreenChangeListener(IScreenChangeListener* screenChangeListener);
     void UnregisterScreenChangeListener(IScreenChangeListener* screenChangeListener);
     void UpdateScbScreenPropertyToServer(const ScreenProperty& screenProperty);
+    std::vector<std::string> SplitBySemicolon(const std::string& str);
 
     sptr<DisplayInfo> ConvertToDisplayInfo();
     sptr<DisplayInfo> ConvertToRealDisplayInfo();
@@ -149,6 +150,8 @@ public:
     void UpdateVirtualPixelRatio(const RRect& bounds);
     void SetScreenType(ScreenType type);
     void SetScreenTypeInfo(ScreenTypeInfo typeInfo);
+    void SetMirrorScreenType(MirrorScreenType type);
+    MirrorScreenType GetMirrorScreenType();
 
     void SetScreenSceneDestroyListener(const DestroyScreenSceneFunc& func);
     void DestroyScreenScene();
@@ -180,7 +183,7 @@ public:
     RRect CalcBoundsInRotationZero(FoldDisplayMode foldDisplayMode);
     RRect CalcBoundsByRotation(Rotation rotation);
     DisplayOrientation GetTargetOrientationWithBounds(
-        DisplayOrientation displayRotation, const RRect& boundsInRotationZero, uint32_t rotationOffset);
+        DisplayOrientation displayRotation, const RRect &boundsInRotationZero, uint32_t rotationOffset);
     void FillScreenInfo(sptr<ScreenInfo> info) const;
     void SetDisplayNodeSecurity();
     void InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startPoint, bool isExtend = false,
@@ -224,9 +227,9 @@ public:
     void UpdatePropertyAfterRotation(RRect bounds, int rotation, FoldDisplayMode foldDisplayMode);
     void UpdatePropertyOnly(RRect bounds, int rotation, FoldDisplayMode foldDisplayMode);
     void UpdateRotationOrientation(int rotation, FoldDisplayMode foldDisplayMode, const RRect& bounds);
-    void UpdatePropertyByFakeInUse(bool isFakeInUse);
-    ScreenProperty UpdatePropertyByFoldControl(const ScreenProperty& updatedProperty,
+    void UpdatePropertyByFoldControl(const ScreenProperty& updatedProperty,
         FoldDisplayMode foldDisplayMode = FoldDisplayMode::UNKNOWN, bool firstSCBConnect = false);
+    void UpdatePropertyByFakeInUse(bool isFakeInUse);
     void UpdateDisplayState(DisplayState displayState);
     void UpdateRefreshRate(uint32_t refreshRate);
     uint32_t GetRefreshRate();
@@ -257,8 +260,8 @@ public:
     void SetVirtualScreenType(VirtualScreenType screenType);
 
     std::string name_ { "UNKNOWN" };
-    ScreenId screenId_ {};
-    ScreenId rsId_ {};
+    ScreenId screenId_ = SCREEN_ID_INVALID;
+    ScreenId rsId_ = SCREEN_ID_INVALID;
     ScreenId defaultScreenId_ = SCREEN_ID_INVALID;
     ScreenId phyScreenId_ = SCREEN_ID_INVALID;
 
@@ -282,6 +285,7 @@ public:
     void SetSerialNumber(std::string serialNumber);
     std::string GetSerialNumber() const;
     ScreenShape GetScreenShape() const;
+
     void SetPhyWidthAndHeight(uint32_t phyWidth, uint32_t phyHeight);
     void SetValidHeight(uint32_t validHeight);
     void SetValidWidth(uint32_t validWidth);
@@ -296,6 +300,7 @@ public:
     uint32_t GetPointerActiveWidth();
     void SetPointerActiveHeight(uint32_t pointerActiveHeight);
     uint32_t GetPointerActiveHeight();
+
     float GetSensorRotation() const;
     DisplaySourceMode GetDisplaySourceMode() const;
     void SetXYPosition(int32_t x, int32_t y);
@@ -318,6 +323,8 @@ public:
     ScreenId groupSmsId_ { SCREEN_ID_INVALID };
     ScreenId lastGroupSmsId_ { SCREEN_ID_INVALID };
     std::atomic<bool> isScreenLocked_ = true;
+
+    std::vector<std::string> packageNames_ = {};
 
     void Connect();
     void Disconnect();
@@ -366,9 +373,6 @@ public:
     void UpdateValidRotationToScb();
     std::shared_ptr<Media::PixelMap> GetScreenSnapshot(float scaleX, float scaleY);
     void SetDefaultDeviceRotationOffset(uint32_t defaultRotationOffset);
-
-    void SetMirrorScreenType(MirrorScreenType mirrorType);
-    MirrorScreenType GetMirrorScreenType();
     Rotation ConvertIntToRotation(int rotation);
     void SetPhysicalRotation(int rotation);
     void SetScreenComponentRotation(int rotation);
@@ -380,10 +384,6 @@ public:
     void SecondaryReflexionChange(ScreenId screenId, bool isSecondaryReflexion);
     void EnableMirrorScreenRegion();
     void ExtendScreenConnectStatusChange(ScreenId screenId, ExtendScreenConnectStatus extendScreenConnectStatus);
-    void SetIsEnableRegionRotation(bool isEnableRegionRotation);
-    bool GetIsEnableRegionRotation();
-    void SetIsEnableCanvasRotation(bool isEnableCanvasRotation);
-    bool GetIsEnableCanvasRotation();
     void UpdateDisplayNodeRotation(FoldDisplayMode foldDisplayMode);
     void BeforeScreenPropertyChange(FoldStatus foldStatus);
     void ScreenModeChange(ScreenModeChangeEvent screenModeChangeEvent);
@@ -391,10 +391,15 @@ public:
     std::shared_ptr<Media::PixelMap> GetScreenSnapshotWithAllWindows(float scaleX, float scaleY,
         bool isNeedCheckDrmAndSurfaceLock);
 
+    void SetIsEnableRegionRotation(bool isEnableRegionRotation);
+    bool GetIsEnableRegionRotation();
+    void SetIsEnableCanvasRotation(bool isEnableCanvasRotation);
+    bool GetIsEnableCanvasRotation();
     DisplayId GetDisplayId();
+    DisplayId GetAvailableDisplayId() const;
 
     std::vector<sptr<SupportedScreenModes>> GetScreenModes();
-    void SetScreenModes(const std::vector<sptr<SupportedScreenModes>>& modes);
+    void SetScreenModes(std::vector<sptr<SupportedScreenModes>> modes);
 
     int32_t GetActiveId();
     void SetActiveId(int32_t activeIdx);
@@ -411,6 +416,7 @@ public:
     void SetScreenAvailableStatus(bool isScreenAvailable);
     bool IsScreenAvailable() const;
 
+    void UpdateDisplayNodeRotation(int rotation);
     void SetIsAvailableAreaNeedNotify(bool isAvailableAreaNeedNotify);
     bool GetIsAvailableAreaNeedNotify() const;
     uint64_t GetSessionId() const;
@@ -444,7 +450,6 @@ public:
     uint32_t GetScreenAreaHeight() const;
     void SetRenderSession(sptr<IRemoteObject> renderSession);
     sptr<IRemoteObject> GetRenderSession();
-
     void UpdateMirrorWidth(uint32_t mirrorWidth);
     void UpdateMirrorHeight(uint32_t mirrorHeight);
     void SetCurrentValidHeight(int32_t currentValidHeight);
@@ -475,6 +480,7 @@ public:
 
     void SetVprScaleRatio(float vprScaleRatio);
     float GetVprScaleRatio() const;
+
     void AddRotationCorrection(Rotation& rotation, FoldDisplayMode displayMode);
     void ClearPropertyChangeReasonAndEvent();
 
@@ -488,24 +494,24 @@ private:
     bool IsVertical(Rotation rotation) const;
     Orientation CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const;
     std::vector<IScreenChangeListener*> GetScreenChangeListenerList() const;
-    void UpdateScbScreenPropertyForSuperFlod(const ScreenProperty& screenProperty);
+    void UpdateScbScreenPropertyForSuperFold(const ScreenProperty& screenProperty);
 
     ScreenProperty property_;
     mutable std::mutex propertyMutex_; // above guarded by clientProxyMutex_
     std::shared_ptr<RSDisplayNode> displayNode_;
-    std::atomic<int32_t> virtualScreenUserId_ = INVALID_USERID;
     ScreenState screenState_ { ScreenState::INIT };
-    std::vector<IScreenChangeListener*> screenChangeListenerList_;
+    std::vector<IScreenChangeListener*> screenChangeListenerList_ = {};
     mutable std::mutex screenChangeListenerListMutex_;
     ScreenCombination combination_ { ScreenCombination::SCREEN_ALONE };
     mutable std::mutex combinationMutex_; // above guarded by clientProxyMutex_
     VirtualScreenFlag screenFlag_ { VirtualScreenFlag::DEFAULT };
+    MirrorScreenType mirrorScreenType_ { MirrorScreenType::VIRTUAL_MIRROR };
     VirtualScreenType screenType_ { VirtualScreenType::UNKNOWN };
     bool isFakeInUse_ = false;  // is fakeScreenSession can be used
     bool isBScreenHalf_ = false;
     bool isPhysicalMirrorSwitch_ = false;
     bool isScreenAvailable_ = true;
-    bool isExtendVirtual_ {false};
+    std::atomic<bool> isExtendVirtual_ {false};
     mutable std::shared_mutex displayNodeMutex_;
     std::atomic<bool> touchEnabled_ { true };
     std::function<void(float)> updateToInputManagerCallback_ = nullptr;
@@ -520,10 +526,9 @@ private:
     std::vector<uint32_t> colorSpaces_;
     mutable std::shared_mutex supportedRefreshRateMutex_;
     std::vector<uint32_t> supportedRefreshRate_;
-    MirrorScreenType mirrorScreenType_ { MirrorScreenType::VIRTUAL_MIRROR };
     std::string serialNumber_;
     std::pair<ScreenId, DMRect> mirrorScreenRegion_ = std::make_pair(INVALID_SCREEN_ID, DMRect::NONE());
-    SetScreenSceneDpiFunc setScreenSceneDpiCallback_ = nullptr;
+    SetScreenSceneDpiFunc SetScreenSceneDpiCallback_ = nullptr;
     DestroyScreenSceneFunc destroyScreenSceneCallback_ = nullptr;
     void ReportNotifyModeChange(DisplayOrientation displayOrientation);
     sptr<ScreenSession> fakeScreenSession_ = nullptr;
@@ -537,11 +542,11 @@ private:
     std::mutex isEnableRegionRotationMutex_;
     std::mutex isEnableCanvasRotationMutex_;
     std::shared_mutex availableAreaMutex_;
+    std::shared_mutex expandAvailableAreaMutex_;
     bool isAvailableAreaNeedNotify_ = false;
     bool isSecurity_ = true;
     uint64_t sessionId_;
     bool lastCloseHdrStatus_ = false;
-    mutable std::shared_mutex modesMutex_;
     float vprScaleRatio_ { 1.0f };
 
     void RemoveRotationCorrection(Rotation& rotation, FoldDisplayMode foldDisplayMode);

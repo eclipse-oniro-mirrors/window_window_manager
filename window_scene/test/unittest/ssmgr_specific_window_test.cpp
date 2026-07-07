@@ -510,8 +510,8 @@ HWTEST_F(SSMgrSpecificWindowTest, UpdateParentSessionForDialog, TestSize.Level1)
 HWTEST_F(SSMgrSpecificWindowTest, DestroyAndDisconnectSpecificSession, TestSize.Level1)
 {
     int32_t persistentId = 0;
-    WSError result = ssm_->DestroyAndDisconnectSpecificSession(persistentId);
-    ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
+    WSErrorResult result = ssm_->DestroyAndDisconnectSpecificSession(persistentId);
+    ASSERT_EQ(result.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -522,8 +522,8 @@ HWTEST_F(SSMgrSpecificWindowTest, DestroyAndDisconnectSpecificSession, TestSize.
 HWTEST_F(SSMgrSpecificWindowTest, DestroyAndDisconnectSpecificSessionWithDetachCallback, TestSize.Level1)
 {
     int32_t persistentId = 0;
-    WSError result = ssm_->DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, nullptr);
-    ASSERT_EQ(result, WSError::WS_ERROR_NULLPTR);
+    WSErrorResult result = ssm_->DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, nullptr);
+    ASSERT_EQ(result.errCode, WSError::WS_ERROR_NULLPTR);
 }
 } // namespace
 } // namespace Rosen

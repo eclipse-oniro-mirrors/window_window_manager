@@ -39,8 +39,7 @@ enum class DisplayDeviceType :uint32_t {
 class FoldScreenController : public DMS::FoldScreenBaseController {
 public:
     FoldScreenController(std::recursive_mutex& displayInfoMutex,
-        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler,
-        std::shared_ptr<TaskScheduler> taskScheduler);
+        std::shared_ptr<TaskScheduler> screenPowerTaskScheduler);
     virtual ~FoldScreenController();
 
     void BootAnimationFinishPowerInit() override;
@@ -66,6 +65,7 @@ public:
     void SetOnBootAnimation(bool onBootAnimation) override;
     void UpdateForPhyScreenPropertyChange() override;
     void ExitCoordination() override;
+    void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
     Drawing::Rect GetScreenSnapshotRect() override;
     void SetMainScreenRegion(DMRect& mainScreenRegion) override;
     std::chrono::steady_clock::time_point GetStartTimePoint() override;
@@ -78,10 +78,8 @@ public:
     void SetdisplayModeChangeStatus(bool status) override;
     bool GetdisplayModeRunningStatus() override;
     FoldDisplayMode GetLastCacheDisplayMode() override;
-    void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
     void SetIsClearingBootAnimation(bool isClearingBootAnimation) override;
     nlohmann::ordered_json GetFoldCreaseRegionJson() override;
-    void NotifyRunSensorFoldStateManager() override;
     float GetSpecialVirtualPixelRatio() override;
 private:
     sptr<FoldScreenPolicy> GetFoldScreenPolicy(DisplayDeviceType productType);
@@ -89,7 +87,6 @@ private:
     sptr<SensorFoldStateManager> sensorFoldStateManager_;
     std::recursive_mutex& displayInfoMutex_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
-    std::shared_ptr<TaskScheduler> taskScheduler_;
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };
 } // namespace OHOS::Rosen

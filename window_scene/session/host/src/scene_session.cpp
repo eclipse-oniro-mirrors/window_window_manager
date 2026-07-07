@@ -2016,6 +2016,9 @@ WSError SceneSession::UpdateRect(const WSRect& rect, SizeChangeReason reason,
         }
         session->dirtyFlags_ |= static_cast<uint32_t>(SessionUIDirtyFlag::RECT);
         session->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::WINDOW_RECT));
+        if (!session->sessionStage_) {
+            return;
+        }
         TLOGNI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
             "[WindowRectUpdate:RSCallback] %{public}s id:%{public}d, preRect=%{public}s, rect=%{public}s, "
             "reason:%{public}d %{public}s client=%{public}s", where, persistentId,
@@ -2053,7 +2056,7 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "WMS::WindowRectUpdate::ServerNotify::NotifyClient id=%d reason=%u rect=%{public}s",
         persistentId, static_cast<uint32_t>(reason), winRect.ToString().c_str());
-    TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, persistentId, WmsLogTag::WMS_LAYOUT,
+    TLOGD(WmsLogTag::WMS_LAYOUT,
         "[WindowRectUpdate:ServerNotify] NotifyClient id:%{public}d, rect=%{public}s, "
         "preRect=%{public}s, reason:%{public}u, %{public}s",
         persistentId, winRect.ToString().c_str(), GetSessionRect().ToString().c_str(),
@@ -3667,8 +3670,8 @@ Vector2f SceneSession::GetSessionGlobalPosition(bool useUIExtension)
     if (useUIExtension) {
         if (auto modalUIExtensionEventInfo = GetLastModalUIExtensionEventInfo()) {
             const auto& rect = modalUIExtensionEventInfo.value().windowRect;
-            windowRect.posX_ = rect.posX_;
-            windowRect.posY_ = rect.posY_;
+            windowRect.posX_ = ceil(windowRect.posX_ + (rect.posX_ - windowRect.posX_) * GetScaleX());
+            windowRect.posY_ = ceil(windowRect.posY_ + (rect.posY_ - windowRect.posY_) * GetScaleY());
         }
     }
     Vector2f position(windowRect.posX_, windowRect.posY_);
@@ -5889,7 +5892,7 @@ void SceneSession::NotifyPrivacyModeChange()
         "session property privacyMode:%{public}d, last privacyMode:%{public}d",
         GetPersistentId(), GetWindowName().c_str(), curExtPrivacyMode, GetSessionProperty()->GetPrivacyMode(),
         isPrivacyMode_);
-
+     
     if (curPrivacyMode != isPrivacyMode_) {
         isPrivacyMode_ = curPrivacyMode;
         if (privacyModeChangeNotifyFunc_) {
@@ -7117,7 +7120,7 @@ void SceneSession::OnWaterfallButtonChange(bool isShow)
         if (session->pcFoldScreenController_ == nullptr) {
             return;
         }
-        session->pcFoldScreenController_->UpdateSupportEnterWaterfallMode(isShow);
+        session->pcFoldScreenController_->UpdateSupportEnterWaterfallMode();
     }, __func__);
 }
 
@@ -8534,6 +8537,18 @@ ExtensionWindowFlags SceneSession::GetCombinedExtWindowFlags()
     combinedExtWindowFlags.hideNonSecureWindowsFlag = IsLifecycleForeground() &&
         (combinedExtWindowFlags.hideNonSecureWindowsFlag || shouldHideNonSecureWindows_.load());
     return combinedExtWindowFlags;
+}
+
+std::vector<UIExtensionTokenInfo> SceneSession::GetExtInfoWithHideNonSecureWindowFlag()
+{
+    std::vector<UIExtensionTokenInfo> filteredInfo;
+    std::copy_if(extensionTokenInfos_.begin(), extensionTokenInfos_.end(), std::back_inserter(filteredInfo),
+        [this](auto& info) {
+            auto iter = this->extWindowFlagsMap_.find(info.persistentId);
+            return iter != this->extWindowFlagsMap_.end() && iter->second.hideNonSecureWindowsFlag;    
+        });
+
+    return filteredInfo;
 }
 
 void SceneSession::NotifyDisplayMove(DisplayId from, DisplayId to)

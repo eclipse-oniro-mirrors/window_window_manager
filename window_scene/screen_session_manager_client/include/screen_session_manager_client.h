@@ -154,7 +154,7 @@ public:
     DMError SetPrimaryDisplaySystemDpi(float dpi);
     void FreezeScreen(ScreenId screenId, bool isFreeze);
     std::shared_ptr<Media::PixelMap> GetScreenSnapshotWithAllWindows(ScreenId screenId, float scaleX, float scaleY,
-        bool isNeedCheckDrmAndSurfaceLock);
+        bool isFreeze);
     void OnScreenPropertyChanged(ScreenId screenId, float rotation, RRect bounds);
     bool OnFoldPropertyChange(ScreenId screenId, const ScreenProperty& property,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode, ScreenProperty& midProperty) override;
@@ -185,7 +185,6 @@ private:
     void HandleDisplayNodeWhenScreenConnect(ScreenSessionConfig& config, sptr<ScreenSession>& screenSession);
     void HandleScreenDisconnectEvent(SessionOption option, ScreenEvent screenEvent);
     bool HandleScreenDisconnection(SessionOption option);
-    void NotifyClientScreenConnect(sptr<ScreenSession>& screenSession);
     void OnPropertyChanged(ScreenId screenId,
         const ScreenProperty& property, ScreenPropertyChangeReason reason) override;
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
@@ -209,6 +208,7 @@ private:
     void SetDisplayNodeScreenId(ScreenId screenId, ScreenId displayNodeScreenId) override;
     void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
     void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) override;
+    void NotifyClientScreenConnect(sptr<ScreenSession>& screenSession);
 
     void NotifyScreenConnect(const sptr<ScreenSession>& screenSession);
     void NotifyScreenDisconnect(const sptr<ScreenSession>& screenSession);

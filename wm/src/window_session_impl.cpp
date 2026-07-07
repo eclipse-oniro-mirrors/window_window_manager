@@ -2288,7 +2288,7 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     Rect viewportRect = rect;
     Rect hookedViewportRect = rect;
     HookWindowSizeByHookWindowInfo(hookedViewportRect);
-    TLOGI(WmsLogTag::WMS_LAYOUT,
+    TLOGD(WmsLogTag::WMS_LAYOUT,
         "HookWindowSize[UpdateViewportConfig], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
         "useHookedSize:%{public}d",
         GetPersistentId(), rect.ToString().c_str(), hookedViewportRect.ToString().c_str(),
@@ -8921,7 +8921,7 @@ WSError WindowSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t height)
     return WSError::WS_OK;
 }
 
-WSError WindowSessionImpl::SwitchFreeMultiWindow(bool enable)
+WSError WindowSessionImpl::SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet)
 {
     return WSError::WS_OK;
 }
@@ -9213,11 +9213,13 @@ void WindowSessionImpl::NotifyWindowStatusChange(WindowMode mode)
             windowStatus, GetPersistentId());
         return;
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-        "[WindowModeUpdate:Inner] NotifyWindowStatusChange id:%{public}d, mode:%{public}d, "
-        "status:%{public}d, lastStatus:%{public}d, skipRedundant:%{public}d", GetPersistentId(),
-        static_cast<int32_t>(mode), windowStatus, lastWindowStatus_.load(),
-        windowSystemConfig_.skipRedundantWindowStatusNotifications_);
+    if (lastWindowStatus_.load() != windowStatus) {
+        TLOGI(WmsLogTag::WMS_LAYOUT,
+            "[WindowModeUpdate:Inner] NotifyWindowStatusChange id:%{public}d, mode:%{public}d, "
+            "status:%{public}d, lastStatus:%{public}d, skipRedundant:%{public}d", GetPersistentId(),
+            static_cast<int32_t>(mode), windowStatus, lastWindowStatus_.load(),
+            windowSystemConfig_.skipRedundantWindowStatusNotifications_);
+    }
     lastWindowStatus_.store(windowStatus);
     std::lock_guard<std::recursive_mutex> lockListener(windowStatusChangeListenerMutex_);
     auto windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();

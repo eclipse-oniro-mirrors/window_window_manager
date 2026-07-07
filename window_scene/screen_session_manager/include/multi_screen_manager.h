@@ -18,7 +18,7 @@
 
 #include <hitrace_meter.h>
 #include <transaction/rs_interfaces.h>
-
+#include <transaction/rs_transaction.h>
 #include "dm_common.h"
 #include "screen_session_manager.h"
 #include "wm_single_instance.h"
@@ -42,14 +42,11 @@ public:
 
     void MultiScreenModeChange(ScreenId mainScreenId, ScreenId secondaryScreenId, const std::string& operateType);
 
-    void SetLastScreenMode(ScreenId mainScreenId, MultiScreenMode secondaryScreenMode);
-
-    void ExternalScreenDisconnectChange(sptr<ScreenSession> internalSession, sptr<ScreenSession> externalSession);
-
     bool AreScreensTouching(sptr<ScreenSession> mainScreenSession, sptr<ScreenSession> secondScreenSession,
         MultiScreenPositionOptions mainScreenOptions, MultiScreenPositionOptions secondScreenOption);
 
     void MultiScreenReportDataToRss(std::string multiScreenType, std::string status);
+
     void NotifyScreenConnectCompletion(ScreenId screenId);
 private:
     MultiScreenManager();
@@ -66,8 +63,6 @@ private:
         DMRect mainScreenRegion, const RotationOption& rotationOption, bool forceMirror = false);
 
     DMError PhysicalScreenUniqueSwitch(const std::vector<ScreenId>& screenIds);
-
-    std::pair<ScreenId, MultiScreenMode> lastScreenMode_;  // main screen id & secondary screen mode
 
     void BlockScreenConnect(sptr<ScreenSession>& screenSession, ScreenId screenId);
     std::mutex uniqueScreenMutex_;

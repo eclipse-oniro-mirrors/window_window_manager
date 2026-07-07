@@ -36,13 +36,13 @@ public:
     FoldCreaseRegion GetLiveCreaseRegion() override;
     void SetOnBootAnimation(bool onBootAnimation) override;
     FoldDisplayMode GetModeMatchStatus() override;
-    FoldDisplayMode GetModeMatchStatus(FoldStatus targetFoldStatus) override;
+    FoldDisplayMode GetModeMatchStatus(FoldStatus foldStatus) override;
     std::vector<uint32_t> GetScreenParams() override;
+    const std::unordered_set<FoldStatus>& GetSupportedFoldStates() const override;
     void ExitCoordination() override;
     void SetSecondaryDisplayModeChangeStatus(bool status) override;
     void GetAllCreaseRegion(std::vector<FoldCreaseRegionItem>& foldCreaseRegionItems) const override;
     void AddOrRemoveDisplayNodeToTree(ScreenId screenId, int32_t command) override;
-    const std::unordered_set<FoldStatus>& GetSupportedFoldStatus() const override;
 private:
     void HandlePropertyChange(sptr<ScreenSession> screenSession, ScreenProperty& ScreenProperty,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode, bool isNeedNotifyFoldProperty);
@@ -58,11 +58,9 @@ private:
     void SendPropertyChangeResult(sptr<ScreenSession> screenSession, ScreenId screenId,
         ScreenPropertyChangeReason reason, FoldDisplayMode displayMode);
     void SetStatusConditionalActiveRectAndTpFeature(ScreenProperty &screenProperty);
-    void SetStatusFullActiveRectAndTpFeature(const sptr<ScreenSession>& screenSession, ScreenProperty& screenProperty,
-        bool isNeedToSetSwitch = true);
-    void SetStatusMainActiveRectAndTpFeature(const sptr<ScreenSession>& screenSession, ScreenProperty &screenProperty);
-    void SetStatusGlobalFullActiveRectAndTpFeature(const sptr<ScreenSession>& screenSession,
-        ScreenProperty &screenProperty);
+    void SetStatusFullActiveRectAndTpFeature(ScreenProperty &screenProperty, bool isNeedToSetSwitch = true);
+    void SetStatusMainActiveRectAndTpFeature(ScreenProperty &screenProperty);
+    void SetStatusGlobalFullActiveRectAndTpFeature(ScreenProperty &screenProperty);
     void InitScreenParams();
     FoldCreaseRegion GetStatusFullFoldCreaseRegion(bool isVertical) const;
     void GetStatusFullFoldCreaseRect(bool isVertical, const std::vector<int32_t>& foldRect,
@@ -74,7 +72,7 @@ private:
     std::mutex coordinationMutex_;
     std::shared_ptr<TaskScheduler> screenPowerTaskScheduler_;
     std::vector<uint32_t> screenParams_;
-    bool isChangeScreenWhenBootCompleted = false;
+    bool changeScreenWhenBootCompleted_ = false;
     std::map<ScreenId, float> dualDisplayNodePositionZ_;
 };
 } // namespace OHOS::Rosen

@@ -273,7 +273,7 @@ public:
     virtual WSError SetPiPControlEvent(WsPiPControlType controlType, WsPiPControlStatus status) = 0;
     virtual WSError UpdateDisplayId(uint64_t displayId) = 0;
     virtual void NotifyDisplayMove(DisplayId from, DisplayId to) = 0;
-    virtual WSError SwitchFreeMultiWindow(bool enable) = 0;
+    virtual WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) = 0;
     virtual WSError ConfigDockAutoHide(bool isDockAutoHide) = 0;
     virtual WSError PcAppInPadNormalClose()
     {

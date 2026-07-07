@@ -274,21 +274,21 @@ public:
     {
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
-    virtual WSError CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
+    virtual WSErrorResult CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
         SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
         std::shared_ptr<RSSurfaceNode>& surfaceNode,
-        sptr<IRemoteObject> token = nullptr) { return WSError::WS_OK; }
+        sptr<IRemoteObject> token = nullptr) { return WSErrorResult(); }
     virtual WSError RecoverAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property, sptr<ISession>& session, sptr<IRemoteObject> token = nullptr)
     {
         return WSError::WS_OK;
     }
-    virtual WSError DestroyAndDisconnectSpecificSession(const int32_t persistentId) { return WSError::WS_OK; }
-    virtual WSError DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
-        const sptr<IRemoteObject>& callback) { return WSError::WS_OK; }
+    virtual WSErrorResult DestroyAndDisconnectSpecificSession(const int32_t persistentId) { return WSErrorResult(); }
+    virtual WSErrorResult DestroyAndDisconnectSpecificSessionWithDetachCallback(const int32_t persistentId,
+        const sptr<IRemoteObject>& callback) { return WSErrorResult(); }
     virtual WSError RecoverAndReconnectSceneSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, const std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<ISession>& session, sptr<WindowSessionProperty> property, sptr<IRemoteObject> token = nullptr)

@@ -627,7 +627,8 @@ napi_value JsWindowStage::OnCreateSubWindow(napi_env env, napi_callback_info inf
         if (weakScene == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "Window scene is null");
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindow]msg: The window is not created or destroyed."));
+                "[window][createSubWindow]msg: The main window is not created or destroyed. "
+                "Target subWindow name='" + windowName + "'"));
             return;
         }
         sptr<Rosen::WindowOption> windowOption = new Rosen::WindowOption();
@@ -637,7 +638,7 @@ napi_value JsWindowStage::OnCreateSubWindow(napi_env env, napi_callback_info inf
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "Create window failed");
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindow]msg: The window is not created or destroyed."));
+                "[window][createSubWindow]msg: Failed to create window, name='" + windowName + "'"));
             return;
         }
         task->Resolve(env, CreateJsWindowObject(env, window));

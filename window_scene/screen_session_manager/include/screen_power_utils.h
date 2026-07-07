@@ -32,7 +32,9 @@ public:
 
 private:
     static std::mutex powerTimingMutex_;
+#ifdef WM_SCREENLOCK_MANAGER_ENABLED
     static std::mutex powerLockMutex_;
+#endif
     static bool isEnablePowerForceTimingOut_;
 };
 } // Rosen

@@ -466,13 +466,15 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
 
     const WindowType type = GetType();
     bool hasToastFlag = property_->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_TOAST);
+    WMErrorResult result;
     if (WindowHelper::IsSubWindow(type) && (property_->GetIsUIExtFirstSubWindow() ||
                                             (property_->GetIsUIExtAnySubWindow() && hasToastFlag))) {
         property_->SetParentPersistentId(property_->GetParentId());
         SetDefaultDisplayIdIfNeed();
         property_->SetIsUIExtensionAbilityProcess(isUIExtensionAbilityProcess_);
         // create sub session by parent session
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel, nodeId_,
+        result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+            iSessionStage, eventChannel, nodeId_,
             property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         if (!hasToastFlag) {
             AddSubWindowMapForExtensionWindow();
@@ -490,7 +492,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetDisplayId(crossProcessWindowInfo.displayId);
             property_->SetIsPcAppInPad(crossProcessWindowInfo.isPcAppInPad);
             property_->SetPcAppInpadCompatibleMode(crossProcessWindowInfo.isPcAppInpadCompatibleMode);
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+            result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+                iSessionStage, eventChannel,
                 nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
         } else {
             sptr<WindowSessionImpl> parentSession = nullptr;
@@ -505,7 +508,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
             property_->SetPcAppInpadCompatibleMode(parentSession->GetProperty()->GetPcAppInpadCompatibleMode());
             // creat sub session by parent session
-            SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+            result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+                iSessionStage, eventChannel,
                 nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
             {
                 std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
@@ -524,7 +528,8 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
             property_->SetIsPcAppInPad(parentSession->GetProperty()->GetIsPcAppInPad());
         }
         PreProcessCreate();
-        SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(iSessionStage, eventChannel,
+        result = SingletonContainer::Get<WindowAdapter>().CreateAndConnectSpecificSession(
+            iSessionStage, eventChannel,
             nodeId_, property_, persistentId, session, windowSystemConfig_, renderSession, surfaceNode_, token);
     }
     property_->SetPersistentId(persistentId);
@@ -551,9 +556,10 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
         hostSession_ = session;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "name:%{public}s,id:%{public}d,parentId:%{public}d,type:%{public}u,"
-        "touchable:%{public}d,displayId:%{public}" PRIu64, property_->GetWindowName().c_str(),
+        "touchable:%{public}d,displayId:%{public}" PRIu64 ", errCode: %{public}d, msg: %{public}s",
+        property_->GetWindowName().c_str(),
         property_->GetPersistentId(), property_->GetParentPersistentId(), GetType(),
-        property_->GetTouchable(), property_->GetDisplayId());
+        property_->GetTouchable(), property_->GetDisplayId(), result.errCode, result.errMsg.c_str());
     return WMError::WM_OK;
 }
 
@@ -2601,13 +2607,25 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     WMError ret = WMError::WM_OK;
     if (SysCapUtil::GetBundleName() == AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME) {
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window is scb window");
-        ret = SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSession(persistentId);
+        WMErrorResult result =
+            SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSession(persistentId);
+        ret = result.errCode;
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_LIFE,
+                "DestroyAndDisconnectSpecificSession failed, errCode: %{public}d, msg: %{public}s",
+                result.errCode, result.errMsg.c_str());
+        }
         return ret;
     }
     sptr<PatternDetachCallback> callback = sptr<PatternDetachCallback>::MakeSptr();
-    ret = SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId,
+    WMErrorResult result =
+        SingletonContainer::Get<WindowAdapter>().DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId,
         callback->AsObject());
+    ret = result.errCode;
     if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE,
+            "DestroyAndDisconnectSpecificSessionWithDetachCallback failed, errCode: %{public}d, msg: %{public}s",
+            result.errCode, result.errMsg.c_str());
         return ret;
     }
     auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -2619,7 +2637,6 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     if (waitTime >= WINDOW_DETACH_TIMEOUT) {
         TLOGW(WmsLogTag::WMS_LIFE, "Destroy window timeout, persistentId:%{public}d", persistentId);
         RecordLifeCycleExceptionEvent(ret, WMErrorReason::WM_REASON_WINDOW_DESTROY_ERR, "window detach timeout");
-        callback->GetResult(std::numeric_limits<int>::max());
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy window persistentId:%{public}d waitTime:%{public}lld", persistentId, waitTime);
     return ret;
@@ -2758,15 +2775,6 @@ WMError WindowSceneSessionImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal
     }
     const auto& windowRect = GetRect();
     const auto& requestRect = GetRequestRect();
-    if (WindowHelper::IsSubWindow(GetType())) {
-        auto mainWindow = FindMainWindowWithContext();
-        if (mainWindow != nullptr && WindowHelper::IsSplitWindowMode(mainWindow->GetWindowMode())) {
-            if (requestRect.posX_ == x && requestRect.posY_ == y) {
-                TLOGW(WmsLogTag::WMS_LAYOUT, "Request same position in multiWindow will not update");
-                return WMError::WM_OK;
-            }
-        }
-    }
     Rect newRect = { x, y, requestRect.width_, requestRect.height_ }; // must keep x/y
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_LAYOUT,
         "Id:%{public}d state:%{public}d type:%{public}d mode:%{public}d rect:"
@@ -6894,9 +6902,16 @@ void WindowSceneSessionImpl::UpdateSubWindowDragEnabledByDecorVisible()
     TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, decorVisible: %{public}d", GetPersistentId(), decorVisible);
 }
 
-WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable)
+WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
+    const std::set<ScreenId>& supportMultiWindowScreenSet)
 {
     if (IsWindowSessionInvalid()) {
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    windowSystemConfig_.supportMultiWindowScreenSet_ = supportMultiWindowScreenSet;
+    bool isUiExtSubWindow = WindowHelper::IsSubWindow(property_->GetWindowType()) &&
+        property_->GetIsUIExtFirstSubWindow();
+    if (!WindowHelper::IsMainWindow(property_->GetWindowType()) && !isUiExtSubWindow) {
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
     if (windowSystemConfig_.freeMultiWindowEnable_ == enable) {
@@ -9319,6 +9334,7 @@ WMError WindowSceneSessionImpl::SetSeparationTouchEnabled(bool enabled)
     auto result = hostSession->SendCommonEvent(
         static_cast<int32_t>(CommonEventCommand::SET_WINDOW_SEPARATION_TOUCH_ENABLED), parameters);
     if (result == WMError::WM_OK) {
+        TLOGI(WmsLogTag::WMS_EVENT, "set window separation successfully WId:%{public}u", GetWindowId());
         isSeparationTouchEnabled_ = enabled;
     }
     return result;

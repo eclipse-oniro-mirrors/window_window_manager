@@ -48,7 +48,7 @@ void ScreenSessionManagerAdapter::OnDisplayChange(sptr<DisplayInfo> displayInfo,
 
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_EVENT_LISTENER);
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent is null");
+        TLOGE(WmsLogTag::DMS, "agents is empty");
         return;
     }
     for (const auto& agent : agents) {
@@ -131,11 +131,11 @@ void ScreenSessionManagerAdapter::OnDisplayAttributeChange(sptr<DisplayInfo> dis
     }
 }
 
-bool ScreenSessionManagerAdapter::IsAgentListenedAttributes(std::set<std::string>& listendAttributes,
+bool ScreenSessionManagerAdapter::IsAgentListenedAttributes(std::set<std::string>& listenedAttributes,
     const std::vector<std::string>& attributes)
 {
     for (auto attribute : attributes) {
-        if (listendAttributes.find(attribute) != listendAttributes.end()) {
+        if (listenedAttributes.find(attribute) != listenedAttributes.end()) {
             return true;
         }
     }
@@ -225,7 +225,7 @@ void ScreenSessionManagerAdapter::OnDisplayCreate(sptr<DisplayInfo> displayInfo)
 {
     INIT_PROXY_CHECK_RETURN();
     if (displayInfo == nullptr) {
-        TLOGE(WmsLogTag::DMS, "screenInfo nullptr");
+        TLOGE(WmsLogTag::DMS, "displayInfo nullptr");
         return;
     }
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_EVENT_LISTENER);
@@ -264,7 +264,7 @@ void ScreenSessionManagerAdapter::NotifyPrivateWindowStateChanged(bool hasPrivat
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER);
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent is null");
+        TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "agent is null");
         return;
     }
 
@@ -280,7 +280,7 @@ void ScreenSessionManagerAdapter::NotifyPrivateStateWindowListChanged(DisplayId 
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::PRIVATE_WINDOW_LIST_LISTENER);
     if (agents.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent is null");
+        TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "agent is null");
         return;
     }
     for (auto& agent : agents) {
@@ -301,7 +301,7 @@ void ScreenSessionManagerAdapter::OnScreenGroupChange(const std::string& trigger
         }
     }
     if (agents.empty() || infos.empty()) {
-        TLOGE(WmsLogTag::DMS, "agent or infos is null");
+        TLOGE(WmsLogTag::DMS, "agent or infos is empty");
         return;
     }
     for (auto& agent : agents) {
@@ -442,7 +442,7 @@ void ScreenSessionManagerAdapter::OnScreenshot(sptr<ScreenshotInfo> info)
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
-    TLOGNFI(WmsLogTag::DMS, "start");
+    TLOGD(WmsLogTag::DMS, "start");
     for (auto& agent : agents) {
         agent->OnScreenshot(info);
     }
@@ -518,6 +518,5 @@ void ScreenSessionManagerAdapter::NotifyAbnormalScreenConnectChange(ScreenId scr
         agent->NotifyAbnormalScreenConnectChange(screenId);
     }
 }
-
 } // namespace Rosen
 } // namespace OHOS

@@ -58,5 +58,6 @@ void SafeTaskScheduler::PostVoidSyncTask(Task&& task, const std::string& name)
     DmUtils::DropLock lock;
     handler_->PostSyncTask(std::move(localTask), "wms:" + name, AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
+
 } // namespace Rosen
 } // namespace OHOS
