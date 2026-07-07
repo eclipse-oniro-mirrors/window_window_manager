@@ -1407,10 +1407,15 @@ sptr<ScreenSession> ScreenSessionManagerClient::CreateTempScreenSession(
         .rsId = rsId,
         .displayNode = displayNode,
     };
-    config.renderSession = screenSessionManager_->GetRenderSession(screenId);
-    if (config.renderSession == nullptr) {
-        TLOGE(WmsLogTag::DMS, "screenId renderSession is null");
-        return nullptr;
+    auto screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        config.renderSession = screenSessionManager_->GetRenderSession(screenId);
+        if (config.renderSession == nullptr) {
+            TLOGE(WmsLogTag::DMS, "screenId is null");
+            return nullptr;
+        }
+    } else {
+        config.renderSession = screenSession->GetRenderSession();
     }
     config.property = screenSessionManager_->GetScreenProperty(screenId);
     TLOGW(WmsLogTag::DMS, "CreateTempScreenSession width:%{public}f, height=%{public}f",
