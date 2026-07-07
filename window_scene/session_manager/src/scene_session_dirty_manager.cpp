@@ -1022,6 +1022,9 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
     if (expandInputFlag & MMI::WindowInputPolicy::FLAG_TOUCHPAD_AXIS_SCROLL_REDISPATCH) {
         windowInfo.flags |= MMI::WindowInputPolicy::FLAG_TOUCHPAD_AXIS_SCROLL_REDISPATCH;
     }
+    if (expandInputFlag & MMI::WindowInputPolicy::FLAG_INJECTABLE_UNDER_LOCK) {
+        windowInfo.flags |= MMI::WindowInputPolicy::FLAG_INJECTABLE_UNDER_LOCK;
+    }
     UpdateWindowFlagsForReceiveDragEventEnabled(sceneSession, windowInfo);
     UpdateWindowFlagsForWindowSeparation(sceneSession, windowInfo);
     UpdateWindowFlagsForLockCursor(sceneSession, windowInfo);
