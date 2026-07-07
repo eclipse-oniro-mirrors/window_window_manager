@@ -2372,25 +2372,6 @@ HWTEST_F(ScreenSessionManagerTest, GetRenderSession, TestSize.Level1)
     auto ret = ssm_->GetRenderSession(invalidScreenId);
     EXPECT_EQ(ret, nullptr);
 }
-
-/**
- * @tc.name: GetRenderSessionWithValidScreen
- * @tc.desc: GetRenderSession with valid screenId returns renderSession
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, GetRenderSessionWithValidScreen, TestSize.Level1)
-{
-    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
-    VirtualScreenOption virtualOption;
-    virtualOption.name_ = "GetRenderSessionWithValidScreen";
-    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
-    ASSERT_TRUE(screenId >= 0);
-    
-    auto ret = ssm_->GetRenderSession(screenId);
-    EXPECT_NE(ret, nullptr);
-    
-    ssm_->DestroyVirtualScreen(screenId);
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

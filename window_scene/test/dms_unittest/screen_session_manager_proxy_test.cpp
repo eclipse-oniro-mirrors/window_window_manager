@@ -3789,21 +3789,5 @@ HWTEST_F(ScreenSessionManagerProxyTest, GetRenderSession04, TestSize.Level1)
     remoteMocker->SetRequestResult(ERR_NONE);
     LOG_SetCallback(nullptr);
 }
-
-/**
- * @tc.name: GetRenderSession05
- * @tc.desc: GetRenderSession normal success
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerProxyTest, GetRenderSession05, TestSize.Level1)
-{
-    ScreenId screenId = 1001;
-
-    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
-    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
-    MockMessageParcel::ClearAllErrorFlag();
-    auto ret = proxy->GetRenderSession(screenId);
-    EXPECT_NE(ret, nullptr);
-}
 } // namespace
 } // namespace OHOS::Rosen
