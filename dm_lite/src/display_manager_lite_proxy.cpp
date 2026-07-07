@@ -1389,4 +1389,27 @@ DMError DisplayManagerLiteProxy::SetResolution(ScreenId screenId, uint32_t width
     }
     return static_cast<DMError>(reply.ReadInt32());
 }
+
+sptr<FoldCreaseRegion> DisplayManagerLiteProxy::GetCurrentFoldCreaseRegion()
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is null");
+        return nullptr;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return nullptr;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_GET_CURRENT_FOLD_CREASE_REGION),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return nullptr;
+    }
+    return reply.ReadStrongParcelable<FoldCreaseRegion>();
+}
 } // namespace OHOS::Rosen

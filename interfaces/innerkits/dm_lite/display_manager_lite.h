@@ -19,10 +19,11 @@
 #include <vector>
 #include <mutex>
 
+#include "display_change_info.h"
 #include "display_lite.h"
 #include "dm_common.h"
+#include "fold_screen_info.h"
 #include "wm_single_instance.h"
-#include "display_change_info.h"
 
 namespace OHOS::Rosen {
 class DisplayManagerLite {
@@ -361,6 +362,13 @@ public:
      * @return DM_OK means set system keyboard status success.
      */
     DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
+
+    /**
+     * @brief Get the fold crease region in the current display mode.
+     *
+     * @return fold crease region in the current display mode.
+     */
+    sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
 private:
     DisplayManagerLite();
     ~DisplayManagerLite();

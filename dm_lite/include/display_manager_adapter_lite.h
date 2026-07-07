@@ -104,6 +104,7 @@ public:
         const sptr<IDisplayManagerAgent>& displayManagerAgent);
     virtual DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent>& displayManagerAgent);
+    virtual sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
 protected:

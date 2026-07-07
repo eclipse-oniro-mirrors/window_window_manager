@@ -350,6 +350,17 @@ DMError DisplayManagerAdapterLite::UnregisterDisplayAttribute(const std::vector<
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
+sptr<FoldCreaseRegion> DisplayManagerAdapterLite::GetCurrentFoldCreaseRegion()
+{
+    INIT_PROXY_CHECK_RETURN(nullptr);
+
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->GetCurrentFoldCreaseRegion();
+    }
+
+    return nullptr;
+}
+
 sptr<ScreenInfo> ScreenManagerAdapterLite::GetScreenInfo(ScreenId screenId)
 {
     if (screenId == SCREEN_ID_INVALID) {

@@ -647,5 +647,42 @@ HWTEST_F(DisplayManagerLiteProxyMockTest, UnRegisterDisplayAttribute07, TestSize
     logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion
+ * @tc.desc: GetCurrentFoldCreaseRegion
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, GetCurrentFoldCreaseRegion, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    auto foldCreaseRegion = proxy->GetCurrentFoldCreaseRegion();
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    foldCreaseRegion = proxy->GetCurrentFoldCreaseRegion();
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    foldCreaseRegion = proxy->GetCurrentFoldCreaseRegion();
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    foldCreaseRegion = proxy->GetCurrentFoldCreaseRegion();
+    EXPECT_EQ(foldCreaseRegion, nullptr);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen
