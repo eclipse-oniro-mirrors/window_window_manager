@@ -2153,14 +2153,29 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
     return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
-    int32_t requestId, int32_t scbRequestId)
+WMError WindowSceneSessionImpl::isNeedWindowShow(uint32_t reason)
 {
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH)) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to current user, NotifyAfterForeground");
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
         RecordWindowLifecycleChange("user switch show");
+        return true;
+    }
+    if (reason == static_cast<uint32_t>(WindowStateChangeReason::PC_APP_IN_PAD)) {
+        TLOGI(WmsLogTag::WMS_MULTI, "id: %{public}d, PcAppInPad when unlock.", GetPersistentId());
+        NotifyAfterForeground(true, false);
+        NotifyAfterDidForeground(reason);
+        RecordWindowLifecycleChange("PcAppInPad when unlock");
+        return true;
+    }
+    return false;
+}
+
+WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
+{
+    if (isNeedWindowShow(reason)) {
         return WMError::WM_OK;
     }
     const auto type = GetType();

@@ -2803,12 +2803,14 @@ void SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId(bool isBackg
         if (!isPcAppInPad) {
             return;
         }
-        StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground);
+        StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground,
+            WindowStateChangeReason::PC_APP_IN_PAD);
     };
     return taskScheduler_->PostAsyncTask(task, __func__);
 }
 
-WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground)
+WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground,
+    WindowStateChangeReason reason)
 {
     auto sessionState = sceneSession->GetSessionState();
     auto isInvalidMainSession = sessionState == SessionState::STATE_DISCONNECT ||
@@ -2837,12 +2839,12 @@ WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<
         }
     } else {
         TLOGI(WmsLogTag::WMS_LIFE,
-            "StartPcAppInPadUIAbilityBySCB with persistentId: %{public}d, type: %{public}d, state: %{public}d", persistentId,
-            sceneSession->GetWindowType(), sceneSession->GetSessionState());
+            "StartPcAppInPadUIAbilityBySCB with persistentId: %{public}d, type: %{public}d, state: %{public}d,"
+            "reason:%{public}u", persistentId,sceneSession->GetWindowType(), sceneSession->GetSessionState(), reason);
         bool isColdStart = false;
         abilitySessionInfo->isNewWant = false;
         int32_t errCode = StartUIAbilityBySCBTimeoutCheck(sceneSession,
-            abilitySessionInfo, static_cast<uint32_t>(WindowStateChangeReason::NORMAL), isColdStart);
+            abilitySessionInfo, static_cast<uint32_t>(reason), isColdStart);
         if (errCode != ERR_OK) {
             TLOGE(WmsLogTag::WMS_LIFE, "start failed! errCode: %{public}d", errCode);
             RecordLifeCycleExceptionEvent(sceneSession, errCode,

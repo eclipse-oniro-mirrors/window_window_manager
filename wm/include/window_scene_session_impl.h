@@ -790,6 +790,7 @@ private:
     void NotifyFreeMultiWindowModeResume();
     std::string TransferLifeCycleEventToString(LifeCycleEvent type) const;
     WindowLifeCycleInfo GetWindowLifecycleInfo() const;
+    bool isNeedWindowShow(uint32_t reason);
 
     /**
      * Window Transition Animation For PC
