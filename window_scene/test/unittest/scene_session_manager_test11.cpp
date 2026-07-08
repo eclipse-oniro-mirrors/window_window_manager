@@ -1027,7 +1027,7 @@ HWTEST_F(SceneSessionManagerTest11, UpdateHighlightStatus, TestSize.Level1)
     ssm_->UpdateHighlightStatus(DEFAULT_DISPLAY_ID, nullSceneSession1, nullSceneSession2, false);
     EXPECT_EQ(ssm_->highlightIds_.size(), 0);
 
-    ssm_->AddHighlightSessionIds(preSceneSession, false);
+    ssm_->AddHighlightSessionIds(preSceneSession, false, 0);
     EXPECT_EQ(ssm_->highlightIds_.size(), 1);
     ssm_->UpdateHighlightStatus(DEFAULT_DISPLAY_ID, preSceneSession, nullSceneSession2, false);
     EXPECT_EQ(ssm_->highlightIds_.size(), 1);
@@ -1094,7 +1094,7 @@ HWTEST_F(SceneSessionManagerTest11, SetHighlightSessionIds, TestSize.Level1)
     auto samePidSession = sptr<SceneSession>::MakeSptr(info1, nullptr);
     samePidSession->SetCallingPid(currSceneSession->GetCallingPid());
     samePidSession->persistentId_ = 321;
-    ssm_->AddHighlightSessionIds(samePidSession, false);
+    ssm_->AddHighlightSessionIds(samePidSession, false, 0);
     ssm_->SetHighlightSessionIds(currSceneSession, false, timeStamp);
     EXPECT_EQ(ssm_->highlightIds_.count(1) == 1, true);
 }
@@ -1127,8 +1127,8 @@ HWTEST_F(SceneSessionManagerTest11, AddHighlightSessionIds, TestSize.Level1)
     currSceneSession->persistentId_ = 2;
     preSceneSession->property_ = property1;
     currSceneSession->property_ = property2;
-    ssm_->AddHighlightSessionIds(currSceneSession, false);
-    ssm_->AddHighlightSessionIds(preSceneSession, false);
+    ssm_->AddHighlightSessionIds(currSceneSession, false, 0);
+    ssm_->AddHighlightSessionIds(preSceneSession, false, 0);
     ASSERT_EQ(ssm_->highlightIds_.count(1) == 1, true);
     ASSERT_EQ(ssm_->highlightIds_.count(2) == 1, true);
 }
@@ -1163,8 +1163,8 @@ HWTEST_F(SceneSessionManagerTest11, RemoveHighlightSessionIds, TestSize.Level1)
 
     preSceneSession->property_ = property1;
     currSceneSession->property_ = property2;
-    ssm_->AddHighlightSessionIds(currSceneSession, false);
-    ssm_->AddHighlightSessionIds(preSceneSession, false);
+    ssm_->AddHighlightSessionIds(currSceneSession, false, 0);
+    ssm_->AddHighlightSessionIds(preSceneSession, false, 0);
     ASSERT_EQ(ssm_->highlightIds_.count(1) == 1, true);
     ASSERT_EQ(ssm_->highlightIds_.count(2) == 1, true);
     ssm_->RemoveHighlightSessionIds(currSceneSession);
