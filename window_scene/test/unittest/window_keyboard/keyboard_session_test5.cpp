@@ -433,14 +433,14 @@ HWTEST_F(KeyboardSessionTest5, IsVisibleNotBackground02, TestSize.Level1)
 HWTEST_F(KeyboardSessionTest5, GetIsKeyboardSyncTransactionOpen01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("SyncOpen01", "SyncOpen01");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     EXPECT_EQ(keyboardSession->GetIsKeyboardSyncTransactionOpen(), false);
 }
 
 HWTEST_F(KeyboardSessionTest5, GetIsKeyboardSyncTransactionOpen02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("SyncOpen02", "SyncOpen02");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     EXPECT_EQ(keyboardSession->GetIsKeyboardSyncTransactionOpen(), true);
 }
 
@@ -655,7 +655,7 @@ HWTEST_F(KeyboardSessionTest5, RecalculatePanelRectForAvoidArea05, TestSize.Leve
 HWTEST_F(KeyboardSessionTest5, OpenKeyboardSyncTransaction01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("OpenSync01", "OpenSync01");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->OpenKeyboardSyncTransaction();
     usleep(WAIT_ASYNC_US);
 }
@@ -663,7 +663,7 @@ HWTEST_F(KeyboardSessionTest5, OpenKeyboardSyncTransaction01, TestSize.Level1)
 HWTEST_F(KeyboardSessionTest5, OpenKeyboardSyncTransaction02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("OpenSync02", "OpenSync02");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->OpenKeyboardSyncTransaction();
     usleep(WAIT_ASYNC_US);
 }
@@ -709,7 +709,7 @@ HWTEST_F(KeyboardSessionTest5, CloseKeyboardSyncTransaction04, TestSize.Level1)
     WindowAnimationInfo animationInfo;
     animationInfo.callingId = 10;
     animationInfo.isGravityChanged = false;
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     CallingWindowInfoData callingWindowInfoData;
     keyboardSession->CloseKeyboardSyncTransaction(rect, true, animationInfo, callingWindowInfoData);
     usleep(WAIT_ASYNC_US);
@@ -1280,7 +1280,7 @@ HWTEST_F(KeyboardSessionTest5, SetSurfaceBounds04, TestSize.Level1)
 HWTEST_F(KeyboardSessionTest5, GetRSTransaction01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("GetRSTrans01", "GetRSTrans01");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     std::shared_ptr<RSTransaction> transaction = keyboardSession->GetRSTransaction();
     EXPECT_EQ(transaction, nullptr);
 }
@@ -1288,21 +1288,21 @@ HWTEST_F(KeyboardSessionTest5, GetRSTransaction01, TestSize.Level1)
 HWTEST_F(KeyboardSessionTest5, GetRSTransaction02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("GetRSTrans02", "GetRSTrans02");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     std::shared_ptr<RSTransaction> transaction = keyboardSession->GetRSTransaction();
 }
 
 HWTEST_F(KeyboardSessionTest5, CloseRSTransaction01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseRSTrans01", "CloseRSTrans01");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->CloseRSTransaction();
 }
 
 HWTEST_F(KeyboardSessionTest5, CloseRSTransaction02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseRSTrans02", "CloseRSTrans02");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->CloseRSTransaction();
     EXPECT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 }
@@ -1310,7 +1310,7 @@ HWTEST_F(KeyboardSessionTest5, CloseRSTransaction02, TestSize.Level1)
 HWTEST_F(KeyboardSessionTest5, CloseRSTransaction03, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseRSTrans03", "CloseRSTrans03");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->CloseRSTransaction();
     usleep(WAIT_ASYNC_US);
 }
@@ -1553,7 +1553,7 @@ HWTEST_F(KeyboardSessionTest5, TestHandleCrossScreenChildWithController, TestSiz
 HWTEST_F(KeyboardSessionTest5, PostKeyboardAnimationSyncTimeoutTask01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("PostTimeout01", "PostTimeout01");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
     usleep(WAIT_ASYNC_US);
 }
@@ -1561,7 +1561,7 @@ HWTEST_F(KeyboardSessionTest5, PostKeyboardAnimationSyncTimeoutTask01, TestSize.
 HWTEST_F(KeyboardSessionTest5, PostKeyboardAnimationSyncTimeoutTask02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("PostTimeout02", "PostTimeout02");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
     usleep(WAIT_ASYNC_US);
 }

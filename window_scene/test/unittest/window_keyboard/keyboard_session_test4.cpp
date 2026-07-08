@@ -258,9 +258,9 @@ HWTEST_F(KeyboardSessionTest4, OpenKeyboardSyncTransaction01, TestSize.Level1)
     info.bundleName_ = "OpenKeyboardSyncTransaction01";
     sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, nullptr, nullptr);
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->OpenKeyboardSyncTransaction();
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->OpenKeyboardSyncTransaction();
     WSRect keyboardPanelRect = {0, 0, 0, 0};
     WindowAnimationInfo animationInfo;
@@ -287,7 +287,7 @@ HWTEST_F(KeyboardSessionTest4, CloseKeyBoardSyncTransaction01, TestSize.Level1)
     CallingWindowInfoData callingWindowInfoData;
 
     keyboardSession->specificCallback_->onUpdateAvoidArea_ = [](uint32_t callingSessionId) {};
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     // isKeyBoardSyncTransactionOpen_ is true
     keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, isKeyboardShow, animationInfo,
         callingWindowInfoData);
@@ -323,11 +323,11 @@ HWTEST_F(KeyboardSessionTest4, CloseKeyboardSyncTransaction02, TestSize.Level1)
     WindowAnimationInfo animationInfo;
     CallingWindowInfoData callingWindowInfoData;
 
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     ASSERT_NE(keyboardSession->property_, nullptr);
     keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, false, animationInfo, callingWindowInfoData);
     usleep(WAIT_ASYNC_US);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->property_->SetCallingSessionId(1);
     keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, false, animationInfo, callingWindowInfoData);
     usleep(WAIT_ASYNC_US);
@@ -641,7 +641,7 @@ HWTEST_F(KeyboardSessionTest4, NotifyKeyboardAnimationWillBegin02, TestSize.Leve
     animationInfo.callingId = 100;
 
     keyboardSession->specificCallback_->onUpdateAvoidArea_ = [](uint32_t callingSessionId) {};
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
     usleep(WAIT_ASYNC_US);
     ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, true);
