@@ -54,7 +54,7 @@ void DisplayAni::GetCutoutInfo(ani_env* env, ani_object obj, ani_object cutoutIn
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_long displayInfoRef = 0;
     if (ANI_OK != env->Object_GetFieldByName_Long(obj, "displayInfoRef", &displayInfoRef)) {
-        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo failed %{public}lld", displayInfoRef);
+        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo failed %{public}" PRId64, displayInfoRef);
     }
     DisplayInfo* displayInfo = reinterpret_cast<DisplayInfo*>(displayInfoRef);
     if (display == nullptr) {
@@ -123,7 +123,7 @@ void DisplayAni::GetDisplayInfoRef(ani_env* env, ani_object displayObj)
 {
     ani_long displayRef = 0;
     if (env->Object_GetFieldByName_Long(displayObj, "displayRef", &displayRef)) {
-        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo begin %{public}lld", displayRef);
+        TLOGI(WmsLogTag::DMS, "[ANI] GetCutoutInfo begin %{public}" PRId64, displayRef);
     }
     DisplayAni* displayAni = reinterpret_cast<DisplayAni*>(displayRef);
     if (displayAni != nullptr) {
@@ -270,7 +270,7 @@ void DisplayAni::RegisterCallback(ani_env* env, ani_object obj, ani_string type,
     TLOGI(WmsLogTag::DMS, "[ANI] begin");
     ani_long displayRef;
     env->Object_GetFieldByName_Long(obj, "displayRef", &displayRef);
-    TLOGI(WmsLogTag::DMS, "[ANI] RegisterCallback begin %{public}lld", displayRef);
+    TLOGI(WmsLogTag::DMS, "[ANI] RegisterCallback begin %{public}" PRId64, displayRef);
     DisplayAni* displayAni = reinterpret_cast<DisplayAni*>(displayRef);
     if (displayAni != nullptr) {
         displayAni->OnRegisterCallback(env, obj, type, callback);
