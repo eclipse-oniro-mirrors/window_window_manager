@@ -542,6 +542,8 @@ void SecondaryDisplayFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession> sc
     std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
     screenSession->SetPhyScreenId(screenId);
+    screenSession->SetRSScreenId(screenId);
+    screenProperty_.SetRsId(screenId);
     bool isNeedNotifyFoldProperty = true;
     bool isNeedToSetSwitch = true;
     switch (displayMode) {

@@ -1727,6 +1727,11 @@ void ScreenSession::SetScreenType(ScreenType type)
     property_.SetScreenType(type);
 }
 
+void ScreenSession::SetScreenTypeInfo(ScreenTypeInfo typeInfo)
+{
+    property_.SetScreenTypeInfo(typeInfo);
+}
+
 Rotation ScreenSession::CalcRotationSystemInner(Orientation orientation, FoldDisplayMode foldDisplayMode) const
 {
     sptr<SupportedScreenModes> info = GetActiveScreenMode();
@@ -2133,6 +2138,7 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
     info->SetOrientation(CalcDisplayOrientationToOrientation(property_.GetDisplayOrientation()));
     info->SetSourceMode(sourceMode);
     info->SetType(property_.GetScreenType());
+    info->SetScreenTypeInfo(property_.GetScreenTypeInfo());
     info->SetModeId(activeIdx_);
     info->SetSerialNumber(serialNumber_);
     info->SetMirrorWidth(property_.GetMirrorWidth());
@@ -3548,6 +3554,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
     screenProperty.SetDpiPhyBounds(eventPara.GetPhyWidth(), eventPara.GetPhyHeight());
     screenProperty.SetPhyBounds(eventPara.GetPhyBounds());
     screenProperty.SetBounds(eventPara.GetBounds());
+    screenProperty.SetRsId(eventPara.GetRsId());
     DMRect calRect = DMRect{0, 0, eventPara.GetBounds().rect_.width_,
                 eventPara.GetBounds().rect_.height_};
     screenProperty.SetAvailableArea(calRect);

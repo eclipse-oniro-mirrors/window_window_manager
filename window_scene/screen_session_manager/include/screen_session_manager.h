@@ -734,6 +734,7 @@ protected:
     void GetAndMergeEdidInfo(sptr<ScreenSession> screenSession);
     static bool IsConcurrentUser();
     void NotifyUserClientProxy(sptr<ScreenSession> screenSession, ScreenId screenId, ScreenEvent screenEvent);
+    void UpdateScreenTypeInfo(sptr<ScreenSession> screenSession);
 
     int32_t switchId_ { -1 };
     int32_t connectScreenNumber_ = 0;

@@ -80,6 +80,9 @@ ani_status ScreenAniUtils::ConvertScreen(ani_env *env, sptr<Screen> screen, ani_
     env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("sourceMode").c_str(),
         ScreenAniUtils::CreateAniEnum(env, "@ohos.screen.screen.ScreenSourceMode",
         static_cast<ani_int>(info->GetSourceMode())));
+    env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("screenType").c_str(),
+        ScreenAniUtils::CreateAniEnum(env, "@ohos.screen.screen.ScreenType",
+        static_cast<ani_int>(info->GetScreenTypeInfo())));
     std::unique_ptr<ScreenAni> screenAni = std::make_unique<ScreenAni>(screen);
     if (ANI_OK != env->Object_SetFieldByName_Long(obj, "screenNativeObj",
         reinterpret_cast<ani_long>(screenAni.release()))) {

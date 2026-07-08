@@ -563,6 +563,8 @@ void SingleDisplayPocketFoldPolicy::SendPropertyChangeResult(sptr<ScreenSession>
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(screenId);
     ScreenSessionManager::GetInstance().OnBeforeScreenPropertyChange(currentFoldStatus_);
     screenSession->SetPhyScreenId(screenId);
+    screenSession->SetRSScreenId(screenId);
+    screenProperty_.SetRsId(screenId);
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         screenSession->UpdatePropertyByFoldControl(screenProperty_);
         screenSession->PropertyChange(screenSession->GetScreenProperty(), reason);

@@ -351,6 +351,15 @@ enum class Rotation : uint32_t {
 };
 
 /**
+ * @brief Enumerates screen type.
+ */
+enum class ScreenTypeInfo : uint32_t {
+    BUILT_IN = 0,
+    EXTERNAL = 1,
+    VIRTUAL = 2,
+};
+
+/**
  * @brief Enumerates orientations.
  */
 enum class Orientation : uint32_t {

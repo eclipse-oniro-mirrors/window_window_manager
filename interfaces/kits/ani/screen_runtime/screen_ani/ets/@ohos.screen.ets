@@ -429,6 +429,8 @@ export interface Screen {
 
     readonly sourceMode: ScreenSourceMode;
 
+    readonly screenType: ScreenType;
+
     setDensityDpi(densityDpi: double, callback: AsyncCallback<void>): void;
 
     setDensityDpi(densityDpi: double): Promise<void>;
@@ -464,6 +466,8 @@ class ScreenImpl implements Screen {
     readonly orientation: Orientation;
 
     readonly sourceMode: ScreenSourceMode;
+
+    readonly screenType: ScreenType;
 
     screenNativeObj: long;
 
@@ -624,6 +628,14 @@ export enum ScreenSourceMode {
     SCREEN_EXTEND = 2,
 
     SCREEN_ALONE = 3
+}
+
+export enum ScreenType {
+    BUILT_IN = 0,
+
+    EXTERNAL = 1,
+    
+    VIRTUAL = 2,
 }
 
 export enum Orientation {

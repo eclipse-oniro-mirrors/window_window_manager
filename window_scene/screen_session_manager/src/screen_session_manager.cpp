@@ -787,6 +787,7 @@ sptr<ScreenSession> ScreenSessionManager::CreateZeroScreenSession(ScreenId scree
     screenSession->SetDisplayGroupId(DISPLAY_GROUP_ID_DEFAULT);
     screenSession->SetMainDisplayIdOfGroup(MAIN_SCREEN_ID_DEFAULT);
     screenSession->SetScreenType(ScreenType::VIRTUAL);
+    screenSession->SetScreenTypeInfo(ScreenTypeInfo::VIRTUAL);
     return screenSession;
 }
 
@@ -2463,6 +2464,37 @@ void ScreenSessionManager::NotifyUserClientProxy(sptr<ScreenSession> screenSessi
         currentUserIdForSettings_, screenId);
 }
 
+void ScreenSessionManager::UpdateScreenTypeInfo(sptr<ScreenSession> screenSession)
+{
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "screen session is nullptr");
+        return;
+    }
+    ScreenTypeInfo typeInfo = ScreenTypeInfo::VIRTUAL;
+    ScreenType type = screenSession->GetScreenProperty().GetScreenType();
+    if (type == ScreenType::VIRTUAL) {
+        typeInfo = ScreenTypeInfo::VIRTUAL;
+    } else if (type == ScreenType::REAL) {
+        ScreenId rsScreenId = screenSession->GetRSScreenId();
+        if (DESKTOPPCTYPE == 0) {
+            typeInfo = ScreenTypeInfo::EXTERNAL;
+        } else {
+            if (rsScreenId == SCREEN_ID_DEFAULT || rsScreenId == SCREEN_ID_MAIN ||
+                rsScreenId == SCREEN_ID_FULL || rsScreenId == SCREEN_ID_PC_MAIN) {
+                typeInfo = ScreenTypeInfo::BUILT_IN;
+            } else {
+                typeInfo = ScreenTypeInfo::EXTERNAL;
+            }
+        }
+    }
+    screenSession->SetScreenTypeInfo(typeInfo);
+    auto phyScreenSession = GetOrCreatePhysicalScreenSession(screenSession->GetRSScreenId());
+    if (phyScreenSession == nullptr) {
+        return;
+    }
+    phyScreenSession->SetScreenTypeInfo(typeInfo);
+}
+
 void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSession,
     ScreenId screenId, ScreenEvent screenEvent)
 {
@@ -2477,6 +2509,7 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
+    UpdateScreenTypeInfo(screenSession);
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
 
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
@@ -9742,6 +9775,7 @@ sptr<ScreenSession> ScreenSessionManager::InitVirtualScreen(ScreenId smsScreenId
     screenSession->modes_.emplace_back(info);
     screenSession->activeIdx_ = 0;
     screenSession->SetScreenType(ScreenType::VIRTUAL);
+    screenSession->SetScreenTypeInfo(ScreenTypeInfo::VIRTUAL);
     screenSession->SetVirtualPixelRatio(option.density_);
     screenSession->SetIsPcUse(g_isPcDevice ? true : false);
     screenSession->SetDisplayBoundary(RectF(0, 0, option.width_, option.height_), 0);

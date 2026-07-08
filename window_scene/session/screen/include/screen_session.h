@@ -149,6 +149,7 @@ public:
     void SetDefaultDensity(float defaultDensity);
     void UpdateVirtualPixelRatio(const RRect& bounds);
     void SetScreenType(ScreenType type);
+    void SetScreenTypeInfo(ScreenTypeInfo typeInfo);
     void SetMirrorScreenType(MirrorScreenType type);
     MirrorScreenType GetMirrorScreenType();
 
