@@ -2009,7 +2009,7 @@ WSError WindowSessionImpl::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyI
     }
     auto notifyTime = focusNotifyInfo->timeStamp_;
     if (focusNotifyInfo->isSameCallingPid_ && !focusNotifyInfo->isSyncNotify_) {
-        window->UpdateFocusState(isFocused);
+        UpdateFocusState(isFocused);
         updateFocusTimeStamp_.store(notifyTime);
         return WSError::WS_OK;
     }
