@@ -10024,7 +10024,7 @@ void SceneSessionManager::AddHighlightSessionIds(const sptr<SceneSession>& scene
         TLOGE(WmsLogTag::WMS_FOCUS, "sceneSession is nullptr");
         return;
     }
-    auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(INVALID_TIME_STAMP, std::vector<int32_t>(),
+    auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(timeStamp, std::vector<int32_t>(),
         sceneSession->GetPersistentId(), false);
     sceneSession->UpdateHighlightStatus(highlightNotifyInfo, true, needBlockHighlightNotify);
     {
