@@ -22,6 +22,7 @@
 #include "mock/mock_ui_effect_controller_client_stub.h"
 #include "mock/mock_ui_effect_controller_stub.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "motion_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/zidl/scene_session_manager_interface.h"
 #include "session_manager/include/zidl/scene_session_manager_proxy.h"
@@ -3101,6 +3102,114 @@ HWTEST_F(sceneSessionManagerProxyTest, GetAppWindowShowingInfosByBundleName01, T
 
     ret = proxy->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
     EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RegisterMotionSensor
+ * @tc.desc: RegisterMotionSensor proxy test
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, RegisterMotionSensor, TestSize.Level1)
+{
+    auto tempProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
+    bool ret = tempProxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+
+    ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_TRUE(ret);
+}
+
+/**
+ * @tc.name: UnregisterMotionSensor
+ * @tc.desc: UnregisterMotionSensor proxy test
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, UnregisterMotionSensor, TestSize.Level1)
+{
+    auto tempProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
+    bool ret = tempProxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_FALSE(ret);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+
+    ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_TRUE(ret);
+}
+
+HWTEST_F(sceneSessionManagerProxyTest, RegisterMotionSensor_SmartMotionType, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    bool ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    EXPECT_TRUE(ret);
+
+    ret = proxy->RegisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE));
+    EXPECT_TRUE(ret);
+}
+
+HWTEST_F(sceneSessionManagerProxyTest, UnregisterMotionSensor_SmartMotionType, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    bool ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+    EXPECT_TRUE(ret);
+
+    ret = proxy->UnregisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE));
+    EXPECT_TRUE(ret);
 }
 } // namespace
 } // namespace Rosen

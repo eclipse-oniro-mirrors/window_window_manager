@@ -46,6 +46,7 @@
 #include "scene_session_converter.h"
 #include "screen_fold_data.h"
 #include "screen_session_manager_client.h"
+#include "motion_manager.h"
 #include "session/host/include/keyboard_session.h"
 #include "session/host/include/session.h"
 #include "session/host/include/root_scene_session.h"
@@ -159,6 +160,8 @@ using NotifyAppUseControlListFunc =
 using NotifyRootSceneAvoidAreaChangeFunc = std::function<void(const sptr<AvoidArea>& avoidArea, AvoidAreaType type,
     const sptr<OccupiedAreaChangeInfo>& info)>;
 using NotifySupportRotationRegisteredFunc = std::function<void()>;
+using NotifySensorRotationChangeFunc = std::function<void(float sensorRotation)>;
+using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation)>;
 using NotifyWatchGestureConsumeResultFunc = std::function<void(int32_t keyCode, bool isConsumed)>;
 using NotifyWatchFocusActiveChangeFunc = std::function<void(bool isActive)>;
 using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(const std::string& id)>;
@@ -227,7 +230,7 @@ private:
     NotifyAppProcessDiedFunc procDiedCallback_;
 };
 
-class SceneSessionManager : public SceneSessionManagerStub {
+class SceneSessionManager : public SceneSessionManagerStub, public IMotionEventListener {
 WM_DECLARE_SINGLE_INSTANCE_BASE(SceneSessionManager)
 public:
     friend class AnomalyDetection;
@@ -761,6 +764,8 @@ public:
      * Window Rotation
      */
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
+    void SetSensorRotationChangeListener(NotifySensorRotationChangeFunc&& func);
+    void SetSmartSensorRotationChangeListener(NotifySmartSensorRotationChangeFunc&& func);
     WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
     /*
@@ -981,6 +986,11 @@ public:
         const WindowAnimationOption& animationOption) override;
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
     WMError NotifySupportRotationRegistered() override;
+
+    bool RegisterMotionSensor(int32_t motionType) override;
+    bool UnregisterMotionSensor(int32_t motionType) override;
+    void OnMotionRotationChanged(float sensorRotation) override;
+    void OnMotionSmartRotationChanged(float sensorRotation) override;
 
     std::vector<sptr<SceneSession>> GetSceneSessions(ScreenId screenId);
     WMError UpdateScreenLockState(int32_t persistentId);
@@ -1553,6 +1563,8 @@ private:
      */
     RotateAnimationConfig rotateAnimationConfig_;
     NotifySupportRotationRegisteredFunc supportRotationRegisteredListener_;
+    NotifySensorRotationChangeFunc sensorRotationChangeListener_;
+    NotifySmartSensorRotationChangeFunc smartSensorRotationChangeListener_;
 
     /*
      * PiP Window

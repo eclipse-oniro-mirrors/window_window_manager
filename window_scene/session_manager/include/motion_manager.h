@@ -21,7 +21,7 @@
 #include "refbase.h"
 #include "dm_common.h"
 #include "screen_rotation_property.h"
-#include "screen_sensor_plugin.h"
+#include "session_sensor_plugin.h"
 #include "window_manager_hilog.h"
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
@@ -49,6 +49,7 @@ class IMotionEventListener {
 public:
     virtual ~IMotionEventListener() = default;
     virtual void OnMotionRotationChanged(float sensorRotation) = 0;
+    virtual void OnMotionSmartRotationChanged(float sensorRotation) = 0;
 };
 
 class MotionManager {
@@ -58,8 +59,8 @@ public:
     void Init();
     void SetMotionEventListener(IMotionEventListener* listener);
     
-    void SubscribeMotionSensor(MotionType motionType);
-    void UnsubscribeMotionSensor(MotionType motionType);
+    bool SubscribeMotionSensor(MotionType motionType);
+    bool UnsubscribeMotionSensor(MotionType motionType);
     
     void OnScreenOn();
     void OnScreenOff();
@@ -68,7 +69,6 @@ public:
     float GetLastSmartMotionRotation() const;
     
     bool IsMotionSensorSubscribed(MotionType motionType) const;
-    bool NeedMotionSensorSubscribe(MotionType motionType) const;
     bool IsScreenOn() const;
     bool IsInitialized() const;
     bool IsDefaultSmartMotionEnabled() const;
@@ -84,26 +84,22 @@ private:
     MotionManager(const MotionManager&) = delete;
     MotionManager& operator=(const MotionManager&) = delete;
     
-    void SubscribeDefaultMotionSensors();
     void UnsubscribeAllMotionSensors();
-    void SubscribeMotionSensorInternal(MotionType motionType);
-    void UnsubscribeMotionSensorInternal(MotionType motionType);
+    bool SubscribeMotionSensorInternal(MotionType motionType);
+    bool UnsubscribeMotionSensorInternal(MotionType motionType);
     void HandleMotionEvent(MotionType motionType, float rotation);
     void HandleDeviceSensorRotation(float rotation);
     void HandleSmartSensorRotation(float rotation);
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);
     static float ConvertDeviceMotionToFloat(DeviceRotation deviceRotation);
-    static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
-    static void SmartRotationMotionEventCallback(const MotionSensorEvent& motionData);
+    static void RotationMotionEventCallback(const SessionMotionSensorEvent& motionData);
+    static void SmartRotationMotionEventCallback(const SessionMotionSensorEvent& motionData);
     
     std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;
     
-    // 已注册类型
     std::map<MotionType, bool> subscribedMotionTypes_;
-    // 亮屏时需要注册类型
-    std::map<MotionType, bool> needSubscribedMotionTypes_;
     float lastMotionRotation_ = -1.0f;
     float lastSmartMotionRotation_ = -1.0f;
     

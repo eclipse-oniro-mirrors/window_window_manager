@@ -318,6 +318,10 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetFloatViewLimits(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REGISTER_MOTION_SENSOR):
+            return HandleRegisterMotionSensor(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UNREGISTER_MOTION_SENSOR):
+            return HandleUnregisterMotionSensor(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -3194,6 +3198,36 @@ int SceneSessionManagerStub::HandleGetAppWindowShowingInfosByBundleName(MessageP
                 return ERR_INVALID_DATA;
             }
         }
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleRegisterMotionSensor(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t motionType = 0;
+    if (!data.ReadInt32(motionType)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
+        return ERR_INVALID_DATA;
+    }
+    bool result = RegisterMotionSensor(motionType);
+    if (!reply.WriteBool(result)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write result failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleUnregisterMotionSensor(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t motionType = 0;
+    if (!data.ReadInt32(motionType)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
+        return ERR_INVALID_DATA;
+    }
+    bool result = UnregisterMotionSensor(motionType);
+    if (!reply.WriteBool(result)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write result failed");
+        return ERR_INVALID_DATA;
     }
     return ERR_NONE;
 }

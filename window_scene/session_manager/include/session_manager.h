@@ -96,6 +96,9 @@ public:
      */
     void NotifySetSpecificWindowZIndex();
 
+    bool RegisterMotionSensor(int32_t motionType);
+    bool UnregisterMotionSensor(int32_t motionType);
+
 private:
     friend class sptr<SessionManager>;
     ~SessionManager() override;

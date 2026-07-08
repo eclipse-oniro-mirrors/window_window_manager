@@ -580,6 +580,30 @@ void SessionManager::NotifySetSpecificWindowZIndex()
     }
 }
 
+bool SessionManager::RegisterMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d, userId=%{public}d",
+        motionType, userId_);
+    auto proxy = GetSceneSessionManagerProxy();
+    if (proxy == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "proxy is null");
+        return false;
+    }
+    return proxy->RegisterMotionSensor(motionType);
+}
+
+bool SessionManager::UnregisterMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor motionType: %{public}d, userId=%{public}d",
+        motionType, userId_);
+    auto proxy = GetSceneSessionManagerProxy();
+    if (proxy == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "proxy is null");
+        return false;
+    }
+    return proxy->UnregisterMotionSensor(motionType);
+}
+
 FoundationDeathRecipient::FoundationDeathRecipient(int32_t userId) : userId_(userId) {}
 
 void FoundationDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& wptrDeath)

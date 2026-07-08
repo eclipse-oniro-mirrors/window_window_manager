@@ -224,6 +224,8 @@ public:
     WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    bool RegisterMotionSensor(int32_t motionType) override;
+    bool UnregisterMotionSensor(int32_t motionType) override;
 
 private:
     template<typename T>

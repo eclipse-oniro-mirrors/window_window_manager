@@ -19,6 +19,7 @@
 
 #include "iremote_object_mocker.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "motion_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/zidl/scene_session_manager_interface.h"
 #include "session/container/include/window_event_channel.h"
@@ -3242,6 +3243,126 @@ HWTEST_F(SceneSessionManagerStubTest,
     data.WriteInt32(0);
     int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleRegisterMotionSensor_Success
+ * @tc.desc: Test HandleRegisterMotionSensor with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleRegisterMotionSensor_Success, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_REGISTER_MOTION_SENSOR);
+
+    MessageOption option;
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleRegisterMotionSensor_ReadMotionTypeFailed
+ * @tc.desc: Test HandleRegisterMotionSensor when ReadInt32 motionType failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleRegisterMotionSensor_ReadMotionTypeFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    int res = stub_->HandleRegisterMotionSensor(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUnregisterMotionSensor_Success
+ * @tc.desc: Test HandleUnregisterMotionSensor with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUnregisterMotionSensor_Success, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_UNREGISTER_MOTION_SENSOR);
+
+    MessageOption option;
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleUnregisterMotionSensor_ReadMotionTypeFailed
+ * @tc.desc: Test HandleUnregisterMotionSensor when ReadInt32 motionType failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUnregisterMotionSensor_ReadMotionTypeFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    int res = stub_->HandleUnregisterMotionSensor(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+HWTEST_F(SceneSessionManagerStubTest, HandleRegisterMotionSensor_SmartMotionType, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_REGISTER_MOTION_SENSOR);
+
+    MessageOption option;
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+HWTEST_F(SceneSessionManagerStubTest, HandleRegisterMotionSensor_SmartEnhanceType, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE));
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_REGISTER_MOTION_SENSOR);
+
+    MessageOption option;
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+HWTEST_F(SceneSessionManagerStubTest, HandleUnregisterMotionSensor_SmartMotionType, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_UNREGISTER_MOTION_SENSOR);
+
+    MessageOption option;
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
 }
 } // namespace
 } // namespace Rosen

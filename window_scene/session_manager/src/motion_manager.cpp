@@ -14,12 +14,11 @@
  */
 
 #include "motion_manager.h"
-#include "screen_session_manager.h"
 #include <parameters.h>
 #include <securec.h>
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-#include "screen_sensor_plugin.h"
+#include "session_sensor_plugin.h"
 #endif
 
 namespace OHOS {
@@ -48,6 +47,7 @@ MotionManager::~MotionManager()
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager destroyed");
     UnsubscribeAllMotionSensors();
+    SessionUnloadMotionSensor();
 }
 
 void MotionManager::Init()
@@ -59,38 +59,18 @@ void MotionManager::Init()
     }
     
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
+    if (!SessionLoadMotionSensor()) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "load motion plugin failed");
+    }
     int32_t smartRotationEnabled = OHOS::system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
         DISABLED_SMART_ROTATION);
     isDefaultSmartMotionEnabled_ = (smartRotationEnabled == ENABLED_SMART_ROTATION);
     TLOGI(WmsLogTag::WMS_ROTATION, "default_rotation_sensor: %{public}d, smartMotionEnabled: %{public}d",
         smartRotationEnabled, isDefaultSmartMotionEnabled_);
-    
-    if (isDefaultSmartMotionEnabled_) {
-        needSubscribedMotionTypes_[MotionType::SMART_MOTION_TYPE] = true;
-        needSubscribedMotionTypes_[MotionType::DEVICE_MOTION_TYPE] = false;
-    } else {
-        needSubscribedMotionTypes_[MotionType::DEVICE_MOTION_TYPE] = true;
-        needSubscribedMotionTypes_[MotionType::SMART_MOTION_TYPE] = false;
-    }
-    
-    if (isScreenOn_) {
-        SubscribeDefaultMotionSensors();
-    }
 #endif
     
     isInitialized_ = true;
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager initialized");
-}
-
-void MotionManager::SubscribeDefaultMotionSensors()
-{
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    for (auto& pair : needSubscribedMotionTypes_) {
-        if (pair.second) {
-            SubscribeMotionSensorInternal(pair.first);
-        }
-    }
-#endif
 }
 
 void MotionManager::SetMotionEventListener(IMotionEventListener* listener)
@@ -100,114 +80,94 @@ void MotionManager::SetMotionEventListener(IMotionEventListener* listener)
     TLOGI(WmsLogTag::WMS_ROTATION, "Motion event listener set");
 }
 
-void MotionManager::SubscribeMotionSensorInternal(MotionType motionType)
+bool MotionManager::SubscribeMotionSensorInternal(MotionType motionType)
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    if (!isScreenOn_) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "Screen is off, skip subscribe motion type: %{public}d", motionType);
-        return;
-    }
-    
     if (subscribedMotionTypes_[motionType]) {
         TLOGI(WmsLogTag::WMS_ROTATION, "Motion type %{public}d already subscribed", motionType);
-        return;
+        return true;
     }
 
-    if (!needSubscribedMotionTypes_[motionType]) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "Motion type %{public}d no need subscribed", motionType);
-        return;
-    }
-    
-    OnMotionChangedPtr callback = nullptr;
+    SessionOnMotionChangedPtr callback = nullptr;
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         callback = RotationMotionEventCallback;
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
         callback = SmartRotationMotionEventCallback;
     } else {
         TLOGE(WmsLogTag::WMS_ROTATION, "Unknown motion type: %{public}d", motionType);
-        return;
+        return false;
     }
     
-    if (!SubscribeCallback(static_cast<int32_t>(motionType), callback)) {
+    if (!SessionSubscribeCallback(static_cast<int32_t>(motionType), callback)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "Failed to subscribe motion type: %{public}d", motionType);
-        return;
+        return false;
     }
     
     subscribedMotionTypes_[motionType] = true;
     TLOGI(WmsLogTag::WMS_ROTATION, "Successfully subscribed motion type: %{public}d", motionType);
+    return true;
 #else
     TLOGW(WmsLogTag::WMS_ROTATION, "WM_SUBSCRIBE_MOTION_ENABLE not defined");
+    return false;
 #endif
 }
 
-void MotionManager::UnsubscribeMotionSensorInternal(MotionType motionType)
+bool MotionManager::UnsubscribeMotionSensorInternal(MotionType motionType)
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
     if (!subscribedMotionTypes_[motionType]) {
         TLOGI(WmsLogTag::WMS_ROTATION, "Motion type %{public}d not subscribed", motionType);
-        return;
+        return true;
     }
     
-    OnMotionChangedPtr callback = nullptr;
+    SessionOnMotionChangedPtr callback = nullptr;
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         callback = RotationMotionEventCallback;
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
         callback = SmartRotationMotionEventCallback;
     } else {
         TLOGE(WmsLogTag::WMS_ROTATION, "Unknown motion type: %{public}d", motionType);
-        return;
+        return false;
     }
     
-    if (!UnsubscribeCallback(static_cast<int32_t>(motionType), callback)) {
+    if (!SessionUnsubscribeCallback(static_cast<int32_t>(motionType), callback)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "Failed to unsubscribe motion type: %{public}d", motionType);
-        return;
+        return false;
     }
     
     subscribedMotionTypes_[motionType] = false;
     TLOGI(WmsLogTag::WMS_ROTATION, "Successfully unsubscribed motion type: %{public}d", motionType);
+    return true;
 #else
     TLOGW(WmsLogTag::WMS_ROTATION, "WM_SUBSCRIBE_MOTION_ENABLE not defined");
+    return false;
 #endif
 }
 
-void MotionManager::SubscribeMotionSensor(MotionType motionType)
+bool MotionManager::SubscribeMotionSensor(MotionType motionType)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    needSubscribedMotionTypes_[motionType] = true;
-    SubscribeMotionSensorInternal(motionType);
+    return SubscribeMotionSensorInternal(motionType);
 }
 
-void MotionManager::UnsubscribeMotionSensor(MotionType motionType)
+bool MotionManager::UnsubscribeMotionSensor(MotionType motionType)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    needSubscribedMotionTypes_[motionType] = false;
-    UnsubscribeMotionSensorInternal(motionType);
+    return UnsubscribeMotionSensorInternal(motionType);
 }
 
 void MotionManager::OnScreenOn()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     isScreenOn_ = true;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Screen on, subscribing needed motion sensors");
-    
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    for (auto& pair : needSubscribedMotionTypes_) {
-        if (pair.second) {
-            SubscribeMotionSensorInternal(pair.first);
-        }
-    }
-#endif
+    TLOGI(WmsLogTag::WMS_ROTATION, "Screen on, TS side controls subscription");
 }
 
 void MotionManager::OnScreenOff()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     isScreenOn_ = false;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Screen off, unsubscribing all motion sensors");
-    
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    UnsubscribeAllMotionSensors();
-#endif
+    TLOGI(WmsLogTag::WMS_ROTATION, "Screen off, TS side controls subscription");
 }
 
 void MotionManager::UnsubscribeAllMotionSensors()
@@ -253,7 +213,7 @@ float MotionManager::ConvertDeviceMotionToFloat(DeviceRotation deviceRotation)
     }
 }
 
-void MotionManager::RotationMotionEventCallback(const MotionSensorEvent& motionData)
+void MotionManager::RotationMotionEventCallback(const SessionMotionSensorEvent& motionData)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Rotation motion callback, status: %{public}d", motionData.status);
     
@@ -263,7 +223,7 @@ void MotionManager::RotationMotionEventCallback(const MotionSensorEvent& motionD
     MotionManager::GetInstance().HandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, rotation);
 }
 
-void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& motionData)
+void MotionManager::SmartRotationMotionEventCallback(const SessionMotionSensorEvent& motionData)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, status: %{public}d", motionData.status);
     
@@ -287,30 +247,26 @@ void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
 void MotionManager::HandleDeviceSensorRotation(float rotation)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "HandleDeviceSensorRotation rotation: %{public}f", rotation);
-    
-    auto screenSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();
-    if (!screenSession) {
-        TLOGW(WmsLogTag::WMS_ROTATION, "screenSession is null");
+    if (lastMotionRotation_ == rotation) {
+        TLOGD(WmsLogTag::WMS_ROTATION, "rotation unchanged, skip notification");
         return;
     }
     lastMotionRotation_ = rotation;
-    screenSession->HandleSensorRotation(rotation);
+    if (motionEventListener_ != nullptr) {
+        motionEventListener_->OnMotionRotationChanged(rotation);
+    }
 }
 
 void MotionManager::HandleSmartSensorRotation(float rotation)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "HandleSmartSensorRotation rotation: %{public}f", rotation);
-    
-    auto screenSession = ScreenSessionManager::GetInstance().GetDefaultScreenSession();
-    if (!screenSession) {
-        TLOGW(WmsLogTag::WMS_ROTATION, "screenSession is null");
-        return;
-    }
     if (lastSmartMotionRotation_ == rotation) {
         return;
     }
     lastSmartMotionRotation_ = rotation;
-    screenSession->HandleSmartRotation(rotation);
+    if (motionEventListener_ != nullptr) {
+        motionEventListener_->OnMotionSmartRotationChanged(rotation);
+    }
 }
 
 float MotionManager::GetLastMotionRotation() const
@@ -327,15 +283,6 @@ bool MotionManager::IsMotionSensorSubscribed(MotionType motionType) const
 {
     auto it = subscribedMotionTypes_.find(motionType);
     if (it != subscribedMotionTypes_.end()) {
-        return it->second;
-    }
-    return false;
-}
-
-bool MotionManager::NeedMotionSensorSubscribe(MotionType motionType) const
-{
-    auto it = needSubscribedMotionTypes_.find(motionType);
-    if (it != needSubscribedMotionTypes_.end()) {
         return it->second;
     }
     return false;
@@ -390,14 +337,12 @@ void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation)
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 bool MotionSubscriberWrapper::SubscribeMotionSensor(MotionType motionType)
 {
-    MotionManager::GetInstance().SubscribeMotionSensor(motionType);
-    return true;
+    return MotionManager::GetInstance().SubscribeMotionSensor(motionType);
 }
 
 bool MotionSubscriberWrapper::UnsubscribeMotionSensor(MotionType motionType)
 {
-    MotionManager::GetInstance().UnsubscribeMotionSensor(motionType);
-    return true;
+    return MotionManager::GetInstance().UnsubscribeMotionSensor(motionType);
 }
 #endif
 

@@ -322,6 +322,8 @@ ohos_shared_library("scene_session_manager") {
 
 session_manager_sources = [
     "../session_manager_service/src/session_manager_service_proxy.cpp",
+    "src/motion_manager.cpp",
+    "src/session_sensor_plugin.cpp",
     "src/session_manager.cpp",
     "src/zidl/scene_session_manager_proxy.cpp",
     "src/zidl/session_lifecycle_listener_proxy.cpp",

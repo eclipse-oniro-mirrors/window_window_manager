@@ -1800,6 +1800,70 @@ WMError SceneSessionManagerProxy::CheckWindowId(int32_t windowId, int32_t& pid)
     return WMError::WM_OK;
 }
 
+bool SceneSessionManagerProxy::RegisterMotionSensor(int32_t motionType)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_NORMAL);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteInt32(motionType)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write motionType failed");
+        return false;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Remote is null");
+        return false;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REGISTER_MOTION_SENSOR),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
+        return false;
+    }
+    bool result = false;
+    if (!reply.ReadBool(result)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "ReadBool failed");
+        return false;
+    }
+    return result;
+}
+
+bool SceneSessionManagerProxy::UnregisterMotionSensor(int32_t motionType)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_NORMAL);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteInt32(motionType)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Write motionType failed");
+        return false;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Remote is null");
+        return false;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UNREGISTER_MOTION_SENSOR),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
+        return false;
+    }
+    bool result = false;
+    if (!reply.ReadBool(result)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "ReadBool failed");
+        return false;
+    }
+    return result;
+}
+
 WSError SceneSessionManagerProxy::GetSessionDumpInfo(const std::vector<std::string>& params, std::string& info)
 {
     MessageParcel data;
@@ -1809,6 +1873,7 @@ WSError SceneSessionManagerProxy::GetSessionDumpInfo(const std::vector<std::stri
         WLOGFE("WriteInterfaceToken failed");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
+
     if (!data.WriteStringVector(params)) {
         WLOGFE("Write params failed");
         return WSError::WS_ERROR_IPC_FAILED;

@@ -185,6 +185,8 @@ public:
         TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
+        TRANS_ID_REGISTER_MOTION_SENSOR,
+        TRANS_ID_UNREGISTER_MOTION_SENSOR,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -531,6 +533,9 @@ public:
 
     virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) = 0;
+
+    virtual bool RegisterMotionSensor(int32_t motionType) { return false; }
+    virtual bool UnregisterMotionSensor(int32_t motionType) { return false; }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_INTERFACE_H

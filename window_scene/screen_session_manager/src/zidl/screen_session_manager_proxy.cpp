@@ -5551,56 +5551,6 @@ DMError ScreenSessionManagerProxy::GetScreenCapability(ScreenId screenId, Screen
     return ret;
 }
 
-void ScreenSessionManagerProxy::SubscribeMotionSensor(int32_t motionType)
-{
-    sptr<IRemoteObject> remote = Remote();
-    if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "remote is null");
-        return;
-    }
-    MessageParcel reply;
-    MessageParcel data;
-    MessageOption option(MessageOption::TF_ASYNC);
-    if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
-        return;
-    }
-    if (!data.WriteInt32(motionType)) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "Write motionType failed");
-        return;
-    }
-    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
-        return;
-    }
-}
-
-void ScreenSessionManagerProxy::UnsubscribeMotionSensor(int32_t motionType)
-{
-    sptr<IRemoteObject> remote = Remote();
-    if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "remote is null");
-        return;
-    }
-    MessageParcel reply;
-    MessageParcel data;
-    MessageOption option(MessageOption::TF_ASYNC);
-    if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
-        return;
-    }
-    if (!data.WriteInt32(motionType)) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "Write motionType failed");
-        return;
-    }
-    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "SendRequest failed");
-        return;
-    }
-}
-
 sptr<IRemoteObject> ScreenSessionManagerProxy::GetRenderSession(ScreenId screenId)
 {
     sptr<IRemoteObject> remote = Remote();

@@ -98,9 +98,8 @@ HWTEST_F(MotionManagerTest, Init02, TestSize.Level1)
  */
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
 {
-    MotionManager::GetInstance().SetScreenOnState(true);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
-    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
@@ -111,22 +110,21 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor01, TestSize.Level1)
  */
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
 {
-    MotionManager::GetInstance().SetScreenOnState(true);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::SMART_MOTION_TYPE);
-    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::SMART_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
 /**
  * @tc.name: SubscribeMotionSensor03
- * @tc.desc: test function : SubscribeMotionSensor screen off
+ * @tc.desc: test function : SubscribeMotionSensor screen off still allows TS control
  * @tc.type: FUNC
  */
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor03, TestSize.Level1)
 {
     MotionManager::GetInstance().SetScreenOnState(false);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
-    ASSERT_FALSE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_TRUE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
 }
 
 /**
@@ -136,10 +134,9 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor03, TestSize.Level1)
  */
 HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
 {
-    MotionManager::GetInstance().SetScreenOnState(true);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
-    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
@@ -151,7 +148,7 @@ HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor01, TestSize.Level1)
 HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
 {
     MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
-    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
+    ASSERT_FALSE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
 }
 
@@ -346,30 +343,6 @@ HWTEST_F(MotionManagerTest, IsMotionSensorSubscribed01, TestSize.Level1)
 {
     bool subscribed = MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE);
     ASSERT_FALSE(subscribed);
-}
-
-/**
- * @tc.name: NeedMotionSensorSubscribe01
- * @tc.desc: test function : NeedMotionSensorSubscribe
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, NeedMotionSensorSubscribe01, TestSize.Level1)
-{
-    bool needed = MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE);
-    ASSERT_FALSE(needed);
-}
-
-/**
- * @tc.name: NeedMotionSensorSubscribe02
- * @tc.desc: test function : NeedMotionSensorSubscribe after Subscribe
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, NeedMotionSensorSubscribe02, TestSize.Level1)
-{
-    MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
-    bool needed = MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE);
-    ASSERT_TRUE(needed);
-    MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
 }
 
 /**
