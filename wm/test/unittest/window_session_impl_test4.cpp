@@ -2846,7 +2846,7 @@ HWTEST_F(WindowSessionImplTest4, NotifyHighlightChange01, TestSize.Level1)
     WSError res = window->NotifyHighlightChange(info, highlight);
     EXPECT_EQ(res, WSError::WS_OK);
     EXPECT_EQ(window->isHighlighted_, false);
-    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp + 1000);
+    EXPECT_EQ(window->updateHighlightTimeStamp_.load(), currentTimeStamp - 1000);
 }
 
 /**

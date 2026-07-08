@@ -1268,7 +1268,8 @@ private:
         const sptr<SceneSession>& currSceneSession, bool isProactiveUnfocus);
     void SetHighlightSessionIds(const sptr<SceneSession>& sceneSession, bool needBlockHighlightNotify,
         int64_t timeStamp);
-    void AddHighlightSessionIds(const sptr<SceneSession>& sceneSession, bool needBlockHighlightNotify);
+    void AddHighlightSessionIds(const sptr<SceneSession>& sceneSession, bool needBlockHighlightNotify,
+        int64_t timeStamp);
     void RemoveHighlightSessionIds(const sptr<SceneSession>& sceneSession);
     std::string GetHighlightIdsStr();
 

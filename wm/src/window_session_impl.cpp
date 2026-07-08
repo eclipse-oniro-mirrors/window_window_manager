@@ -2007,9 +2007,14 @@ WSError WindowSessionImpl::UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyI
         TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is null");
         return WSError::WS_ERROR_NULLPTR;
     }
+    auto notifyTime = focusNotifyInfo->timeStamp_;
+    if (focusNotifyInfo->isSameCallingPid_ && !focusNotifyInfo->isSyncNotify_) {
+        UpdateFocusState(isFocused);
+        updateFocusTimeStamp_.store(notifyTime);
+        return WSError::WS_OK;
+    }
     auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count());
-    auto notifyTime = focusNotifyInfo->timeStamp_;
     auto updateFocusTime = updateFocusTimeStamp_.load();
     TLOGI(WmsLogTag::WMS_FOCUS, "unfocusId:%{public}d, focusId:%{public}d, isFocused:%{public}d,"
         "isSyncNotify:%{public}d, old:%{public}" PRId64 ", new:%{public}" PRId64 ", current:%{public}" PRId64,
@@ -3341,6 +3346,10 @@ WSError WindowSessionImpl::NotifyHighlightChange(const sptr<HighlightNotifyInfo>
     if (highlightNotifyInfo == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "highlight notify info is null");
         return WSError::WS_ERROR_NULLPTR;
+    }
+    if (!isHighlight && !highlightNotifyInfo->isSyncNotify_) {
+        NotifyHighlightChange(isHighlight);
+        return WSError::WS_OK;
     }
     auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());

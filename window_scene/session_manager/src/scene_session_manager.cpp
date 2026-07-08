@@ -9956,12 +9956,12 @@ void SceneSessionManager::UpdateHighlightStatus(DisplayId displayId, const sptr<
     }
     if(SessionHelper::IsSystemWindow(currSceneSession->GetWindowType())) {
         TLOGD(WmsLogTag::WMS_FOCUS, "system highlighted");
-        AddHighlightSessionIds(currSceneSession, needBlockHighlightNotify);
+        AddHighlightSessionIds(currSceneSession, needBlockHighlightNotify, focusGroup->GetUpdateFocusTimeStamp());
         return;
     }
     if(currSceneSession->IsSameMainSession(preSceneSession)) {
         TLOGD(WmsLogTag::WMS_FOCUS, "related highlighted");
-        AddHighlightSessionIds(currSceneSession, needBlockHighlightNotify);
+        AddHighlightSessionIds(currSceneSession, needBlockHighlightNotify, focusGroup->GetUpdateFocusTimeStamp());
         return;
     }
     TLOGD(WmsLogTag::WMS_FOCUS, "highlighted");
@@ -10017,13 +10017,14 @@ void SceneSessionManager::SetHighlightSessionIds(const sptr<SceneSession>& scene
 }
 
 /** @note @window.focus */
-void SceneSessionManager::AddHighlightSessionIds(const sptr<SceneSession>& sceneSession, bool needBlockHighlightNotify)
+void SceneSessionManager::AddHighlightSessionIds(const sptr<SceneSession>& sceneSession, bool needBlockHighlightNotify,
+    int64_t timeStamp)
 {
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "sceneSession is nullptr");
         return;
     }
-    auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(INVALID_TIME_STAMP, std::vector<int32_t>(),
+    auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(timeStamp, std::vector<int32_t>(),
         sceneSession->GetPersistentId(), false);
     sceneSession->UpdateHighlightStatus(highlightNotifyInfo, true, needBlockHighlightNotify);
     {
