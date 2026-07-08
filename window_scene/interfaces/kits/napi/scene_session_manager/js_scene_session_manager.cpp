@@ -2398,7 +2398,7 @@ napi_value JsSceneSessionManager::OnKioskModeChange(napi_env env, napi_callback_
     napi_value argv[ARGC_TWO] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARGC_TWO) {
-        WLOGFE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        WLOGFE("Argc is invalid: %{public}zu", argc);
         errCode = WSErrorCode::WS_ERROR_INVALID_PARAM;
     }
 
