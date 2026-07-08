@@ -2163,7 +2163,7 @@ bool WindowSceneSessionImpl::isNeedWindowShow(uint32_t reason)
         return true;
     }
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::PC_APP_IN_PAD)) {
-        TLOGI(WmsLogTag::WMS_MULTI, "id: %{public}d, PcAppInPad when unlock.", GetPersistentId());
+        TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d, PcAppInPad when unlock.", GetPersistentId());
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
         RecordWindowLifecycleChange("PcAppInPad when unlock");
