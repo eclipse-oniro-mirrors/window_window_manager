@@ -735,6 +735,48 @@ HWTEST_F(WindowSessionImplTest, UpdateFocus05, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateFocus06
+ * @tc.desc: UpdateFocus with otherWindow nullptr in sync mode when isFocused true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFocus06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFocus06");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, 999, window->GetWindowId(), true);
+    WSError res = window->UpdateFocus(info, true);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
+}
+
+/**
+ * @tc.name: UpdateFocus07
+ * @tc.desc: UpdateFocus with otherWindow nullptr in sync mode when isFocused false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateFocus07, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateFocus07");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    auto currentTimeStamp = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    window->updateFocusTimeStamp_.store(currentTimeStamp);
+    auto info = sptr<FocusNotifyInfo>::MakeSptr(currentTimeStamp + 1000, window->GetWindowId(), 999, true);
+    WSError res = window->UpdateFocus(info, false);
+    EXPECT_EQ(res, WSError::WS_OK);
+    EXPECT_EQ(window->updateFocusTimeStamp_.load(), currentTimeStamp + 1000);
+}
+
+/**
  * @tc.name: RequestFocusByClient
  * @tc.desc: RequestFocusByClient Test
  * @tc.type: FUNC
