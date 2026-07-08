@@ -402,9 +402,9 @@ enum class WMError : int32_t {
     WM_ERROR_INVALID_CALLING,
     WM_ERROR_SYSTEM_ABNORMALLY,
 
-    WM_ERROR_DEVICE_NOT_SUPPORT = 801, // the value do not change.It is defined on all system
+    WM_ERROR_DEVICE_NOT_SUPPORT = 801, // the value do not change.It is defined on all system.
 
-    WM_ERROR_NEED_REPORT_BASE = 1000, // error code > 1000 means need report
+    WM_ERROR_NEED_REPORT_BASE = 1000, // error code > 1000 means need report.
     WM_ERROR_NULLPTR,
     WM_ERROR_INVALID_TYPE,
     WM_ERROR_INVALID_PARAM,

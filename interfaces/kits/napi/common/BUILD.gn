@@ -27,6 +27,7 @@ config("dm_napi_common_config") {
 config("dm_napi_common_public_config") {
   include_dirs = [
     ".",
+    "../../../../utils/include",
     "../../../innerkits/dm",
   ]
 }
