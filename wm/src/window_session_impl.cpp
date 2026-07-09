@@ -2375,6 +2375,7 @@ int32_t WindowSessionImpl::GetFloatingWindowParentId()
 
 Rect WindowSessionImpl::GetRect() const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::GetRect");
     return GetRect(false);
 }
 
@@ -2760,6 +2761,7 @@ void WindowSessionImpl::RegisterKeyFrameCallback()
 
 WSError WindowSessionImpl::LinkKeyFrameNode()
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::LinkKeyFrameNode");
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");
     auto uiContent = GetUIContentSharedPtr();
     auto session = GetHostSession();
@@ -2780,6 +2782,7 @@ WSError WindowSessionImpl::SetStageKeyFramePolicy(const KeyFramePolicy& keyFrame
 
 WMError WindowSessionImpl::SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::SetDragKeyFramePolicy");
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "in");
     if (!IsPhonePadOrPcWindow()) {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -3168,6 +3171,7 @@ Rect WindowSessionImpl::GetRequestRect() const
 
 Rect WindowSessionImpl::GetGlobalDisplayRect(bool useHookedSize) const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::GetGlobalDisplayRect");
     auto rect = property_->GetGlobalDisplayRect();
     auto hookedRect = rect;
     HookWindowSizeByHookWindowInfo(hookedRect);
@@ -3183,6 +3187,7 @@ Rect WindowSessionImpl::GetGlobalDisplayRect(bool useHookedSize) const
 
 WMError WindowSessionImpl::ClientToGlobalDisplay(const Position& inPosition, Position& outPosition) const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::ClientToGlobalDisplay");
     const auto windowId = GetWindowId();
     const auto transform = GetCurrentTransform();
     if (WindowHelper::IsScaled(transform)) {
@@ -3208,6 +3213,7 @@ WMError WindowSessionImpl::ClientToGlobalDisplay(const Position& inPosition, Pos
 
 WMError WindowSessionImpl::GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::GlobalDisplayToClient");
     const auto windowId = GetWindowId();
     const auto transform = GetCurrentTransform();
     if (WindowHelper::IsScaled(transform)) {
@@ -4967,6 +4973,8 @@ EnableIfSame<T, IWindowRectChangeListener,
 WMError WindowSessionImpl::RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener,
     bool useHookedSize)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowSessionImpl::RegisterWindowRectChangeListener");
     WMError ret = WMError::WM_DO_NOTHING;
     {
         std::lock_guard<std::mutex> lockListener(windowRectChangeListenerMutex_);
@@ -5006,6 +5014,8 @@ EnableIfSame<T, IRectChangeInGlobalDisplayListener,
 WMError WindowSessionImpl::RegisterRectChangeInGlobalDisplayListener(
     const sptr<IRectChangeInGlobalDisplayListener>& listener, bool useHookedSize)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowSessionImpl::RegisterRectChangeInGlobalDisplayListener");
     WMError ret = WMError::WM_DO_NOTHING;
     {
         std::lock_guard<std::mutex> lock(rectChangeInGlobalDisplayListenerMutex_);

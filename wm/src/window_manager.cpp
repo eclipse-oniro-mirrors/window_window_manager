@@ -2059,6 +2059,7 @@ void WindowManager::UpdateWindowModeTypeInfo(WindowModeType type) const
 
 WMError WindowManager::GetWindowModeType(WindowModeType& windowModeType) const
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::GetWindowModeType");
     WMError ret = WindowAdapter::GetInstance(userId_).GetWindowModeType(windowModeType);
     if (ret != WMError::WM_OK) {
         WLOGFE("get window mode type failed");
@@ -2103,6 +2104,8 @@ WMError WindowManager::GetAccessibilityWindowInfo(std::vector<sptr<Accessibility
 
 WMError WindowManager::ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId)
 {
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
+        "CUSTOM_ANIMATOR_WindowManager::ConvertToRelativeCoordinateExtended");
     WMError ret = WindowAdapter::GetInstance(userId_).ConvertToRelativeCoordinateExtended(rect, newRect, newDisplayId);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Convert relative coordinate failed");
