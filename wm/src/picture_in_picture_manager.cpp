@@ -217,7 +217,7 @@ void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
         return;
     }
     autoStartControllerMap_.erase(mit);
-    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}lu", autoStartControllerMap_.size());
+    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}u", autoStartControllerMap_.size());
     auto controller = pipController.promote();
     if (controller != nullptr) {
         uint32_t mainWindowId = controller->GetMainWindowId();

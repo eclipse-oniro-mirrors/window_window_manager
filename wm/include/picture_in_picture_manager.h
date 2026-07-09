@@ -70,7 +70,7 @@ public:
     static const PiPMultiConfig& GetMultiPipConfig();
     static bool IsTemplateTypeSupported(PiPTemplateType type);
     static bool IsPipGroupLimitReached(PiPTemplateType type);
-    static bool IsautoStartControllerMapEmpty();
+    static bool IsAutoStartControllerMapEmpty();
     static std::shared_ptr<NativeReference> innerCallbackRef_;
 
 private:
