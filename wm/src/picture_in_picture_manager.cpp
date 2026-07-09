@@ -300,11 +300,11 @@ sptr<Window> PictureInPictureManager::GetCurrentWindowByMainWindowId(uint32_t wi
 }
 
 sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t windowId,
-    PiPTemplateType PipType)
+    PiPTemplateType type)
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     PiPGroupConfig group;
-    if (!pipMultiConfig_.FindGroupConfig(PipType, group)) {
+    if (!pipMultiConfig_.FindGroupConfig(type, group)) {
         return nullptr;
     }
     auto firstController = static_cast<sptr<PictureInPictureControllerBase>>(nullptr);
@@ -363,24 +363,6 @@ void PictureInPictureManager::DoLocateSource(uint32_t windowId)
     if (auto controller = GetPipControllerInfo(windowId)) {
         controller->LocateSource();
     }
-}
-
-void PictureInPictureManager::DoCloseByMainWindowId(uint32_t mainWindowId)
-{
-    TLOGI(WmsLogTag::WMS_PIP, "mainWindowId: %{public}u", mainWindowId);
-    std::vector<uint32_t> idList;
-    {
-        std::lock_guard<std::mutex> lock(controllerMapMutex_);
-        for (const auto& controller : windowToControllerMap_) {
-            if (controller.second != nullptr && controller.second->GetMainWindowId() == mainWindowId) {
-                idList.push_back(controller.first);
-            }
-        }
-    }
-    for (const auto& id : idList) {
-        DoClose(id, true, true);
-    }
-    TLOGI(WmsLogTag::WMS_PIP, "DoCloseByMainWindowId done");
 }
 
 void PictureInPictureManager::DoClose(uint32_t windowId, bool destroyWindow, bool byPriority)
