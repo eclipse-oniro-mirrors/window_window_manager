@@ -159,6 +159,10 @@ napi_value JsScreen::OnSetOrientation(napi_env env, napi_callback_info info)
         if (ret == DmErrorCode::DM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetOrientation success");
+        } else if (ret == DmErrorCode::DM_ERROR_INVALID_SCREEN) {
+            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
+                "[screen][setOrientation]msg: only support external screen or screen is invalid"));
+            TLOGNE(WmsLogTag::DMS, "OnSetOrientation failed: invalid screen");
         } else {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret), "JsScreen::OnSetOrientation failed."));
             TLOGNE(WmsLogTag::DMS, "OnSetOrientation failed");
