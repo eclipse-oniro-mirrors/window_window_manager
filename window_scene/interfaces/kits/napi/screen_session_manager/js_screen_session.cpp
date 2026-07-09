@@ -622,49 +622,47 @@ void JsScreenSession::OnDisconnect(ScreenId screenId)
 }
 
 void JsScreenSession::OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) 
- { 
-     const std::string callbackType = ON_SENSOR_ROTATION_CHANGE_CALLBACK; 
-     if (!IsCallbackRegistered(callbackType)) { 
-         TLOGE(WmsLogTag::WMS_ROTATION, "Callback %{public}s is unregistered!", callbackType.c_str()); 
-         return; 
-     } 
+{ 
+    const std::string callbackType = ON_SENSOR_ROTATION_CHANGE_CALLBACK;
+    if (!IsCallbackRegistered(callbackType)) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Callback %{public}s is unregistered!", callbackType.c_str());
+        return;
+    }
  
+    auto jsCallbackRef = GetJSCallback(callbackType);
+    wptr<ScreenSession> screenSessionWeak(screenSession_);
+    auto napiTask = [jsCallbackRef, callbackType, screenSessionWeak, sensorRotation, isSwitchUser, env = env_]() {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnSensorRotationChange");
+        if (jsCallbackRef == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, jsCallbackRef is null!",
+                callbackType.c_str());
+            return;
+        } 
+        auto method = jsCallbackRef->GetNapiValue();
+        if (method == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, method is null!",
+                callbackType.c_str());
+            return;
+        } 
+        auto screenSession = screenSessionWeak.promote();
+        if (screenSession == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, screenSession is null!",
+                callbackType.c_str());
+            return;
+        } 
+        napi_value argv[] = { CreateJsValue(env, sensorRotation), CreateJsValue(env, isSwitchUser) };
+        napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
+    }; 
  
-     auto jsCallbackRef = GetJSCallback(callbackType); 
-     wptr<ScreenSession> screenSessionWeak(screenSession_); 
-     auto napiTask = [jsCallbackRef, callbackType, screenSessionWeak, sensorRotation, isSwitchUser, env = env_]() { 
-         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnSensorRotationChange"); 
-         if (jsCallbackRef == nullptr) { 
-             TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, jsCallbackRef is null!", 
-                 callbackType.c_str()); 
-             return; 
-         } 
-         auto method = jsCallbackRef->GetNapiValue(); 
-         if (method == nullptr) { 
-             TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, method is null!", 
-                 callbackType.c_str()); 
-             return; 
-         } 
-         auto screenSession = screenSessionWeak.promote(); 
-         if (screenSession == nullptr) { 
-             TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, screenSession is null!", 
-                 callbackType.c_str()); 
-             return; 
-         } 
-         napi_value argv[] = { CreateJsValue(env, sensorRotation), CreateJsValue(env, isSwitchUser) }; 
-         napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr); 
-     }; 
- 
- 
-     if (env_ != nullptr) { 
-         napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnSensorRotationChange"); 
-         if (ret != napi_status::napi_ok) { 
-             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to SendEvent."); 
-         } 
-     } else { 
-         TLOGE(WmsLogTag::WMS_ROTATION, "env is nullptr"); 
-     } 
- }
+    if (env_ != nullptr) {
+        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnSensorRotationChange");
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "Failed to SendEvent.");
+        }
+    } else {
+        TLOGE(WmsLogTag::WMS_ROTATION, "env is nullptr");
+    } 
+}
 
 void JsScreenSession::OnScreenOrientationChange(float screenOrientation, ScreenId screenId)
 {
