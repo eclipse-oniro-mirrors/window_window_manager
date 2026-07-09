@@ -42,12 +42,14 @@ public:
     static bool IsActiveController(wptr<PictureInPictureControllerBase> pipController);
     static void AttachAutoStartController(int32_t handleId, wptr<PictureInPictureControllerBase> pipController);
     static void DetachAutoStartController(int32_t handleId, wptr<PictureInPictureControllerBase> pipController);
+    static void EvictOldestControllerIfNeeded(const sptr<PictureInPictureControllerBase>& controller);
 
     static bool IsAttachedToSameWindow(uint32_t windowId);
     static sptr<Window> GetCurrentWindowByMainWindowId(uint32_t windowId);
-    static sptr<Window> GetSameGroupWindowByMainWindowId(uint32_t windowId, PiPTemplateType templateType);
+    static sptr<Window> GetSameGroupWindowByMainWindowId(uint32_t windowId, PiPTemplateType PipType);
     static sptr<Window> GetCurrentWindow();
 
+    static void DoCloseByMainWindowId(uint32_t mainWindowId);
     static void DoPreRestore(uint32_t windowId);
     static void DoRestore(uint32_t windowId);
     static void DoClose(uint32_t windowId, bool destroyWindow, bool byPriority);
@@ -69,6 +71,7 @@ public:
     static const PiPMultiConfig& GetMultiPipConfig();
     static bool IsTemplateTypeSupported(PiPTemplateType type);
     static bool IsPipGroupLimitReached(PiPTemplateType type);
+    static bool IsautoStartControllerMapEmpty();
     static std::shared_ptr<NativeReference> innerCallbackRef_;
 
 private:
@@ -76,6 +79,7 @@ private:
     static std::map<uint32_t, std::vector<wptr<PictureInPictureControllerBase>>> mainWindowToAutoStartControllersMap_;
     static std::map<uint32_t, sptr<PictureInPictureControllerBase>> windowToControllerMap_;
     static std::mutex controllerMapMutex_;
+    static std::mutex AutoStartControllerMapMutex_;
     static void UpdatePipGroupCountLocked(const sptr<PictureInPictureControllerBase>& controller, bool increase);
     static bool IsControllerStateActive(PiPWindowState state);
 
