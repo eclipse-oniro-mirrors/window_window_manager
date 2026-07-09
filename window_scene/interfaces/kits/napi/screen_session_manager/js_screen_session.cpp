@@ -33,6 +33,7 @@ const std::string ON_CONNECTION_CALLBACK = "connect";
 const std::string ON_DISCONNECTION_CALLBACK = "disconnect";
 const std::string ON_PROPERTY_CHANGE_CALLBACK = "propertyChange";
 const std::string ON_POWER_STATUS_CHANGE_CALLBACK = "powerStatusChange";
+const std::string ON_SENSOR_ROTATION_CHANGE_CALLBACK = "sensorRotationChange";
 const std::string ON_SCREEN_ORIENTATION_CHANGE_CALLBACK = "screenOrientationChange";
 const std::string ON_SCREEN_ORIENTATION_CHANGE_WITH_OPTIONS_CALLBACK = "screenOrientationChangeWithOptions";
 const std::string ON_SCREEN_ROTATION_LOCKED_CHANGE = "screenRotationLockedChange";
@@ -620,6 +621,51 @@ void JsScreenSession::OnDisconnect(ScreenId screenId)
     CallJsCallback(ON_DISCONNECTION_CALLBACK);
 }
 
+void JsScreenSession::OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) 
+ { 
+     const std::string callbackType = ON_SENSOR_ROTATION_CHANGE_CALLBACK; 
+     if (!IsCallbackRegistered(callbackType)) { 
+         TLOGE(WmsLogTag::WMS_ROTATION, "Callback %{public}s is unregistered!", callbackType.c_str()); 
+         return; 
+     } 
+ 
+ 
+     auto jsCallbackRef = GetJSCallback(callbackType); 
+     wptr<ScreenSession> screenSessionWeak(screenSession_); 
+     auto napiTask = [jsCallbackRef, callbackType, screenSessionWeak, sensorRotation, isSwitchUser, env = env_]() { 
+         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnSensorRotationChange"); 
+         if (jsCallbackRef == nullptr) { 
+             TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, jsCallbackRef is null!", 
+                 callbackType.c_str()); 
+             return; 
+         } 
+         auto method = jsCallbackRef->GetNapiValue(); 
+         if (method == nullptr) { 
+             TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, method is null!", 
+                 callbackType.c_str()); 
+             return; 
+         } 
+         auto screenSession = screenSessionWeak.promote(); 
+         if (screenSession == nullptr) { 
+             TLOGNE(WmsLogTag::WMS_ROTATION, "Call js callback %{public}s failed, screenSession is null!", 
+                 callbackType.c_str()); 
+             return; 
+         } 
+         napi_value argv[] = { CreateJsValue(env, sensorRotation), CreateJsValue(env, isSwitchUser) }; 
+         napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr); 
+     }; 
+ 
+ 
+     if (env_ != nullptr) { 
+         napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnSensorRotationChange"); 
+         if (ret != napi_status::napi_ok) { 
+             TLOGE(WmsLogTag::WMS_ROTATION, "Failed to SendEvent."); 
+         } 
+     } else { 
+         TLOGE(WmsLogTag::WMS_ROTATION, "env is nullptr"); 
+     } 
+ }
+
 void JsScreenSession::OnScreenOrientationChange(float screenOrientation, ScreenId screenId)
 {
     const std::string callbackType = ON_SCREEN_ORIENTATION_CHANGE_CALLBACK;
@@ -1201,5 +1247,4 @@ void JsScreenSession::OnScreenModeChange(ScreenModeChangeEvent screenModeChangeE
         TLOGE(WmsLogTag::DMS, "OnScreenModeChange: env is nullptr");
     }
 }
-
 } // namespace OHOS::Rosen

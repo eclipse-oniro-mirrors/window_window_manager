@@ -356,10 +356,10 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "notifyRotationBegin", moduleName,
         JsSceneSessionManager::NotifyRotationBegin);
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    BindNativeFunction(env, exportObj, "registerMotion", moduleName,
-        JsSceneSessionManager::RegisterMotion);
-    BindNativeFunction(env, exportObj, "unregisterMotion", moduleName,
-        JsSceneSessionManager::UnregisterMotion);
+    BindNativeFunction(env, exportObj, "registerMotionSensor", moduleName,
+        JsSceneSessionManager::RegisterMotionSensor);
+    BindNativeFunction(env, exportObj, "unregisterMotionSensor", moduleName,
+        JsSceneSessionManager::UnregisterMotionSensor);
 #endif
     BindNativeFunction(env, exportObj, "supportFollowParentWindowLayout", moduleName,
         JsSceneSessionManager::SupportFollowParentWindowLayout);
@@ -1775,18 +1775,18 @@ napi_value JsSceneSessionManager::NotifyRotationBegin(napi_env env, napi_callbac
 }
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-napi_value JsSceneSessionManager::RegisterMotion(napi_env env, napi_callback_info info)
+napi_value JsSceneSessionManager::RegisterMotionSensor(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnRegisterMotion(env, info) : nullptr;
+    return (me != nullptr) ? me->OnRegisterMotionSensor(env, info) : nullptr;
 }
 
-napi_value JsSceneSessionManager::UnregisterMotion(napi_env env, napi_callback_info info)
+napi_value JsSceneSessionManager::UnregisterMotionSensor(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
-    return (me != nullptr) ? me->OnUnregisterMotion(env, info) : nullptr;
+    return (me != nullptr) ? me->OnUnregisterMotionSensor(env, info) : nullptr;
 }
 #endif
 
@@ -6103,7 +6103,7 @@ napi_value JsSceneSessionManager::OnNotifyRotationBegin(napi_env env, napi_callb
 }
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-napi_value JsSceneSessionManager::OnRegisterMotion(napi_env env, napi_callback_info info)
+napi_value JsSceneSessionManager::OnRegisterMotionSensor(napi_env env, napi_callback_info info)
 {
     size_t argc = ARGC_ONE;
     napi_value argv[ARGC_ONE] = {nullptr};
@@ -6125,14 +6125,14 @@ napi_value JsSceneSessionManager::OnRegisterMotion(napi_env env, napi_callback_i
         napi_get_boolean(env, false, &result);
         return result;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotion motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d", motionType);
     bool ret = SceneSessionManager::GetInstance().RegisterMotionSensor(motionType);
     napi_value result = nullptr;
     napi_get_boolean(env, ret, &result);
     return result;
 }
 
-napi_value JsSceneSessionManager::OnUnregisterMotion(napi_env env, napi_callback_info info)
+napi_value JsSceneSessionManager::OnUnregisterMotionSensor(napi_env env, napi_callback_info info)
 {
     size_t argc = ARGC_ONE;
     napi_value argv[ARGC_ONE] = {nullptr};
@@ -6154,7 +6154,7 @@ napi_value JsSceneSessionManager::OnUnregisterMotion(napi_env env, napi_callback
         napi_get_boolean(env, false, &result);
         return result;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotion motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor motionType: %{public}d", motionType);
     bool ret = SceneSessionManager::GetInstance().UnregisterMotionSensor(motionType);
     napi_value result = nullptr;
     napi_get_boolean(env, ret, &result);

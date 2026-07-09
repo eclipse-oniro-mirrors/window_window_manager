@@ -389,6 +389,16 @@ int ScreenSessionManagerClientStub::HandleOnFoldPropertyChanged(MessageParcel& d
     return ERR_NONE;
 }
 
+int ScreenSessionManagerClientStub::HandleOnPowerStatusChanged(MessageParcel& data, MessageParcel& reply) 
+ { 
+     TLOGD(WmsLogTag::DMS, "HandleOnPowerStatusChanged"); 
+     auto event = static_cast<DisplayPowerEvent>(data.ReadUint32()); 
+     auto status = static_cast<EventStatus>(data.ReadUint32()); 
+     auto reason = static_cast<PowerStateChangeReason>(data.ReadUint32()); 
+     OnPowerStatusChanged(event, status, reason); 
+     return ERR_NONE; 
+ }
+
 int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::DMS, "HandleOnSensorRotationChanged");

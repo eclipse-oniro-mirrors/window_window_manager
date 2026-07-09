@@ -142,8 +142,8 @@ public:
     static napi_value NotifyRotationChange(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    static napi_value RegisterMotion(napi_env env, napi_callback_info info);
-    static napi_value UnregisterMotion(napi_env env, napi_callback_info info);
+    static napi_value RegisterMotionSensor(napi_env env, napi_callback_info info);
+    static napi_value UnregisterMotionSensor(napi_env env, napi_callback_info info);
 #endif
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
@@ -312,8 +312,8 @@ private:
     napi_value OnNotifyRotationChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    napi_value OnRegisterMotion(napi_env env, napi_callback_info info);
-    napi_value OnUnregisterMotion(napi_env env, napi_callback_info info);
+    napi_value OnRegisterMotionSensor(napi_env env, napi_callback_info info);
+    napi_value OnUnregisterMotionSensor(napi_env env, napi_callback_info info);
 #endif
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);

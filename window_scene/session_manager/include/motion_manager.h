@@ -62,18 +62,13 @@ public:
     bool SubscribeMotionSensor(MotionType motionType);
     bool UnsubscribeMotionSensor(MotionType motionType);
     
-    void OnScreenOn();
-    void OnScreenOff();
-    
     float GetLastMotionRotation() const;
     float GetLastSmartMotionRotation() const;
     
     bool IsMotionSensorSubscribed(MotionType motionType) const;
-    bool IsScreenOn() const;
     bool IsInitialized() const;
     bool IsDefaultSmartMotionEnabled() const;
     void Reset();
-    void SetScreenOnState(bool isScreenOn);
     void SetDefaultSmartMotionEnabled(bool enabled);
     
     void TestHandleMotionEvent(MotionType motionType, float rotation);
@@ -104,7 +99,6 @@ private:
     float lastSmartMotionRotation_ = -1.0f;
     
     bool isDefaultSmartMotionEnabled_ = false;
-    bool isScreenOn_ = true;
     bool isInitialized_ = false;
 };
 

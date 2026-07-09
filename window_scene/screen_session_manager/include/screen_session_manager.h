@@ -375,7 +375,6 @@ public:
     void SetIsOuterOnlyModeBeforePowerOff(bool isOuterOnlyModeBeforePowerOff);
     void OnVerticalChangeBoundsWhenSwitchUser(sptr<ScreenSession>& screenSession, FoldDisplayMode oldScbDisplayMode);
     void HandleFoldStatusChangeWhenSwitchUser(sptr<ScreenSession>& screenSession, FoldDisplayMode oldScbDisplayMode);
-    void HandleMotionSensorRotationWhenSwitchUser(sptr<ScreenSession>& screenSession);
 
     bool SetScreenPower(ScreenPowerStatus status, PowerStateChangeReason reason, bool isApAod = false);
     void SetScreenPowerForFold(ScreenPowerStatus status);
@@ -423,6 +422,7 @@ public:
             FoldDisplayMode displayMode) override;
     void OnPowerStatusChange(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
+    void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) override;
     void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId) override;
     void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) override;
     void OnScreenOrientationChangeWithOptions(float screenOrientation,

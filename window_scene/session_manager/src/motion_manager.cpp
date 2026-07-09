@@ -156,20 +156,6 @@ bool MotionManager::UnsubscribeMotionSensor(MotionType motionType)
     return UnsubscribeMotionSensorInternal(motionType);
 }
 
-void MotionManager::OnScreenOn()
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    isScreenOn_ = true;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Screen on, TS side controls subscription");
-}
-
-void MotionManager::OnScreenOff()
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    isScreenOn_ = false;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Screen off, TS side controls subscription");
-}
-
 void MotionManager::UnsubscribeAllMotionSensors()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
@@ -288,11 +274,6 @@ bool MotionManager::IsMotionSensorSubscribed(MotionType motionType) const
     return false;
 }
 
-bool MotionManager::IsScreenOn() const
-{
-    return isScreenOn_;
-}
-
 bool MotionManager::IsInitialized() const
 {
     return isInitialized_;
@@ -311,15 +292,7 @@ void MotionManager::Reset()
     lastSmartMotionRotation_ = -1.0f;
     motionEventListener_ = nullptr;
     isInitialized_ = false;
-    isScreenOn_ = true;
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager reset");
-}
-
-void MotionManager::SetScreenOnState(bool isScreenOn)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    isScreenOn_ = isScreenOn;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Set screen on state: %{public}d", isScreenOn);
 }
 
 void MotionManager::SetDefaultSmartMotionEnabled(bool enabled)

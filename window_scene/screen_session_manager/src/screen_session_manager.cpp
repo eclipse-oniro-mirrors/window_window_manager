@@ -61,7 +61,6 @@
 #include "window_manager_hilog.h"
 #include "screen_rotation_property.h"
 #include "screen_sensor_connector.h"
-#include "session_manager/include/motion_manager.h"
 #include "screen_setting_helper.h"
 #include "screen_session_dumper.h"
 #include "mock_session_manager_service.h"
@@ -6923,6 +6922,9 @@ void ScreenSessionManager::HandlerSensor(ScreenPowerStatus status, PowerStateCha
         return;
     }
     if (status == ScreenPowerStatus::POWER_STATUS_ON) {
+        DmsXcollie dmsXcollie("DMS:SubscribeRotationSensor", XCOLLIE_TIMEOUT_10S); 
+        TLOGNFI(WmsLogTag::DMS, "subscribe sensor when power on"); 
+        ScreenSensorConnector::SubscribeRotationSensor();
 #if defined(SENSOR_ENABLE) && defined(FOLD_ABILITY_ENABLE)
         if (g_foldScreenFlag && reason != PowerStateChangeReason::STATE_CHANGE_REASON_DISPLAY_SWITCH) {
             DMS::ScreenSensorMgr::GetInstance().RegisterPostureCallback();
@@ -6950,6 +6952,9 @@ void ScreenSessionManager::UnregisterInHandlerSensorWithPowerOff(PowerStateChang
     TLOGNFI(WmsLogTag::DMS, "unsubscribe sensor when off");
     if (isMultiScreenCollaboration_) {
         TLOGNFI(WmsLogTag::DMS, "[UL_POWER]MultiScreenCollaboration, not unsubscribe rotation sensor");
+    } else { 
+        DmsXcollie dmsXcollie("DMS:UnsubscribeRotationSensor", XCOLLIE_TIMEOUT_10S); 
+        ScreenSensorConnector::UnsubscribeRotationSensor(); 
     }
 #if defined(SENSOR_ENABLE) && defined(FOLD_ABILITY_ENABLE)
     if (g_foldScreenFlag && reason != PowerStateChangeReason::STATE_CHANGE_REASON_DISPLAY_SWITCH &&
@@ -8124,8 +8129,8 @@ void ScreenSessionManager::SetSensorSubscriptionEnabled()
         return;
     }
     DmsXcollie dmsXcollie("DMS:SetSensorSubscriptionEnabled", XCOLLIE_TIMEOUT_10S);
-    MotionManager::GetInstance().Init();
-    TLOGNFI(WmsLogTag::DMS, "MotionManager initialized, SceneSessionManager controls sensor subscription");
+    ScreenSensorConnector::SubscribeRotationSensor();
+    TLOGNFI(WmsLogTag::DMS, "subscribe rotation sensor successful");
 }
 
 void ScreenSessionManager::SetPostureAndHallSensorEnabled()
@@ -12668,6 +12673,17 @@ void ScreenSessionManager::OnPowerStatusChange(DisplayPowerEvent event, EventSta
     clientProxy->OnPowerStatusChanged(event, status, reason);
 }
 
+void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) 
+ { 
+     TLOGD(WmsLogTag::WMS_ROTATION, "screenId: %{public}" PRIu64 " sensorRotation: %{public}f", screenId, sensorRotation); 
+     auto clientProxy = GetClientProxy(); 
+     if (!clientProxy) { 
+         TLOGNFI(WmsLogTag::WMS_ROTATION, "clientProxy_ is null"); 
+         return; 
+     } 
+     clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser); 
+ }
+
 void ScreenSessionManager::OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId)
 {
     TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " hoverStatus: %{public}d", screenId, hoverStatus);
@@ -12944,19 +12960,6 @@ void ScreenSessionManager::HandleFoldStatusChangeWhenSwitchUser(
 #endif
 }
 
-void ScreenSessionManager::HandleMotionSensorRotationWhenSwitchUser(sptr<ScreenSession>& screenSession)
-{
-#ifdef WM_MULTI_USR_ABILITY_ENABLE
-    bool deviceMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
-        MotionType::DEVICE_MOTION_TYPE);
-    if (deviceMotionNeeded) {
-        screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-    } else {
-        screenSession->UpdateValidRotationToScb();
-    }
-#endif
-}
-
 void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid)
 {
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
@@ -12979,7 +12982,7 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
         delayTime = SWITCH_USER_DISPLAYMODE_CHANGE_DELAY;
         HandleFoldStatusChangeWhenSwitchUser(screenSession, oldScbDisplayMode);
     } else {
-        HandleMotionSensorRotationWhenSwitchUser(screenSession);
+        screenSession->UpdateValidRotationToScb();
     }
     
     auto task = [=] {
