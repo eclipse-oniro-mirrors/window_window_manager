@@ -44,7 +44,7 @@ PictureInPictureController::~PictureInPictureController()
         return;
     }
     PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
-    if (PictureInPictureManager::IsautoStartControllerMapEmpty()) {
+    if (PictureInPictureManager::IsAutoStartControllerMapEmpty()) {
         TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_ is empty, SetAutoStartEnabled false");
         SetAutoStartEnabled(false);
     }
@@ -67,7 +67,7 @@ WMError PictureInPictureController::ValidatePiPCreateParams(StartPipType startTy
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
         mainWindowId_, mainWindow_->GetWindowState());
-    mainWindowLifeCycleListener_ = sptr<PictureInPictureController::WindowLifeCycleListener>::MakeSptr();
+    mainWindowLifeCycleListener_ = sptr<PictureInPictureController::WindowLifeCycleListener>::MakeSptr(mainWindowId_);
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
@@ -152,6 +152,8 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
         if (window_ != nullptr) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
+            SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
+                pipOption_->GetPipTemplate(), PipConst::FAILED, "Reuse pipWindow failed");
             PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);
             mainWindowXComponentController_ = IsTypeNodeEnabled() ? nullptr : pipOption_->GetXComponentController();
             UpdateWinRectByComponent();
@@ -200,8 +202,11 @@ void PictureInPictureController::SetAutoStartEnabled(bool enable)
         mainWindow_->SetAutoStartPiP(true, priority, contentWidth, contentHeight);
         PictureInPictureManager::AttachAutoStartController(handleId_, weakRef_);
     } else {
-        mainWindow_->SetAutoStartPiP(false, priority, contentWidth, contentHeight);
         PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
+        if (PictureInPictureManager::IsAutoStartControllerMapEmpty()) {
+            TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_ is empty, SetAutoStartEnabled false");
+            mainWindow_->SetAutoStartPiP(false, priority, contentWidth, contentHeight);
+        }
         if (IsTypeNodeEnabled()) {
             TLOGI(WmsLogTag::WMS_PIP, "typeNode enabled");
             return;
