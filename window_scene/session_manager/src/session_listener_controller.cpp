@@ -111,7 +111,19 @@ void SessionListenerController::NotifySessionBackground(int32_t persistentId)
         return;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Id:%{public}d", persistentId);
-    CallListeners(&ISessionListener::OnMissionMovedToBackground, persistentId);
+    const std::shared_ptr<FfrtQueueHelper>& ffrtQueue = SceneSessionManager::GetInstance().GetFfrtQueueHelper();
+    if (ffrtQueue != nullptr) {
+        ffrtQueue->SubmitTask([ weakThis = weak_from_this(), persistentId ]() {
+            auto controller = weakThis.lock();
+            if (controller == nullptr) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "NotifySessionBackground controller is null.");
+                return;
+            }
+            controller->CallListeners(&ISessionListener::OnMissionMovedToBackground, persistentId);
+        });
+    } else {
+        CallListeners(&ISessionListener::OnMissionMovedToBackground, persistentId);
+    }
 }
 
 void SessionListenerController::HandleUnInstallApp(const std::list<int32_t>& sessions)
