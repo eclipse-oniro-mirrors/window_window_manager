@@ -728,7 +728,7 @@ public:
     /*
      * window hover state
      */
-    bool GetWindowHoverState();
+    bool GetWindowHoverState() override;
     WMError RegisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
     WMError UnregisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
     WSError UpdateLSState(bool isLSState) override;

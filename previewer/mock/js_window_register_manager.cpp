@@ -195,6 +195,18 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
     return WmErrorCode::WM_OK;
 }
 
+WmErrorCode JsWindowRegisterManager::RegisterWindowPostureModeListener(napi_env env, sptr<Window> window,
+    napi_value callback, WindowPostureMode mode)
+{
+    return WmErrorCode::WM_OK;
+}
+
+WmErrorCode JsWindowRegisterManager::UnregisterWindowPostureModeListener(napi_env env, sptr<Window> window,
+    napi_value callback, WindowPostureMode mode)
+{
+    return WmErrorCode::WM_OK;
+}
+
 bool JsWindowRegisterManager::IsCallbackRegistered(napi_env env, std::string& type, napi_value jsListenerObject)
 {
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {

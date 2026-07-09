@@ -2340,6 +2340,27 @@ export enum ExtensionWindowAttribute {
 }
 
 /**
+ * Enumerates of window posture mode.
+ *
+ * @syscap SystemCapability.Window.SessionManager
+ * @stagemodelonly
+ * @since 26.0.0 dynamic&static
+ */
+export enum WindowPostureMode {
+ 	/**
+ 	 * Desktop mode, when the following conditions are met:
+ 	 * 1. The fold status of screen is half folded status (FoldStatus.FOLD_STATUS_HALF_FOLDED).
+ 	 * 2. The width of creaseRects obtained via display.getLiveCreaseRegion is greater than its height.
+ 	 * 3. The size of the window is the same as that of the screen.
+ 	 *
+ 	 * @syscap SystemCapability.Window.SessionManager
+ 	 * @stagemodelonly
+ 	 * @since 26.0.0 dynamic&static
+ 	 */
+ 	DESKTOP_MODE = 0
+}
+
+/**
  * Options for system window creation.
  *
  * @interface SystemWindowOptions
@@ -3215,6 +3236,9 @@ export class WindowInternal implements Window {
     private native setRotationLocked(nativeObj: long, locked: boolean): void;
     private native getRotationLocked(nativeObj: long): boolean;
     private native isInFreeWindowMode(nativeObj: long): boolean;
+    private native isInWindowPostureMode(nativeObj: long, mode: WindowPostureMode): boolean;
+    private native onWindowPostureModeChange(nativeObj: long, mode: WindowPostureMode, callback: Callback<boolean>): void;
+    private native offWindowPostureModeChange(nativeObj: long, mode: WindowPostureMode, callback?: Callback<boolean>): void;
     private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor: WindowAnchor,
       offsetX: int, offsetY: int): void;
     private native setWindowDelayRaiseOnDrag(nativeObj: long, isEnabled: boolean): void;
@@ -5392,6 +5416,18 @@ export class WindowInternal implements Window {
       this.offSync(this.nativeObj, type, callback);
     }
 
+    public isInWindowPostureMode(mode: WindowPostureMode): boolean {
+      return this.isInWindowPostureMode(this.nativeObj, mode);
+    }
+
+    public onWindowPostureModeChange(mode: WindowPostureMode, callback: Callback<boolean>): void {
+      this.onWindowPostureModeChange(this.nativeObj, mode, callback);
+    }
+
+    public offWindowPostureModeChange(mode: WindowPostureMode, callback?: Callback<boolean>): void {
+      this.offWindowPostureModeChange(this.nativeObj, mode, callback);
+    }
+
     public setRelativePositionToParentWindowEnabled(enabled: boolean, anchor?: WindowAnchor,
       offsetX?: int, offsetY?: int): Promise<void> {
       return new Promise<void>(
@@ -5723,6 +5759,9 @@ export interface Window {
     isInFreeWindowMode(): boolean;
     onFreeWindowModeChange(callback: Callback<boolean>): void;
     offFreeWindowModeChange(callback?: Callback<boolean>): void;
+    isInWindowPostureMode(mode: WindowPostureMode): boolean;
+    onWindowPostureModeChange(mode: WindowPostureMode, callback: Callback<boolean>): void;
+    offWindowPostureModeChange(mode: WindowPostureMode, callback?: Callback<boolean>): void;
     setRelativePositionToParentWindowEnabled(enabled: boolean, anchor?: WindowAnchor,
       offsetX?: int, offsetY?: int): Promise<void>;
     setWindowDelayRaiseOnDrag(isEnabled: boolean): void;

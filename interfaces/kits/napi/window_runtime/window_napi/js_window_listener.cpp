@@ -73,6 +73,7 @@ const std::string WINDOW_ROTATION_CHANGE_CB = "rotationChange";
 const std::string FREE_WINDOW_MODE_CHANGE_CB = "freeWindowModeChange";
 const std::string APPLICATION_FOCUS_STATE_CHANGE_CB = "applicationFocusStageChange";
 const std::string PARENT_LIFECYCLE_EVENT_CB = "parentLifecycleEvent";
+const std::string WINDOW_POSTURE_CHANGE_CB = "windowPostureChange";
 
 JsWindowListener::~JsWindowListener()
 {
@@ -858,6 +859,26 @@ void JsWindowListener::OnOcclusionStateChanged(const WindowVisibilityState state
         TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: occlusionState=%{public}u", where, static_cast<uint32_t>(state));
     };
     napi_status status = napi_send_event(env_, jsCallback, napi_eprio_high, "OnOcclusionStateChanged");
+    if (status != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed to send event: retStatus=%{public}d", static_cast<int32_t>(status));
+    }
+}
+
+void JsWindowListener::OnWindowHoverStateChange(bool hoverState)
+{
+    const char* const where = __func__;
+    auto jsCallback = [self = weakRef_, hoverState, where, env = env_] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || env == nullptr) {
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: listener or env is null", where);
+            return;
+        }
+        HandleScope handleScope(env);
+        napi_value argv[] = { CreateJsValue(env, hoverState) };
+        thisListener->CallJsMethod(WINDOW_POSTURE_CHANGE_CB.c_str(), argv, ArraySize(argv));
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: hoverState=%{public}d", where, hoverState);
+    };
+    napi_status status = napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowHoverStateChange");
     if (status != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed to send event: retStatus=%{public}d", static_cast<int32_t>(status));
     }
