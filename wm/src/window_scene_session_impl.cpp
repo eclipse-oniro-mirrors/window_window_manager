@@ -103,7 +103,7 @@ union WSColorParam {
 
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowSceneSessionImpl"};
-constexpr int32_t WINDOW_DETACH_TIMEOUT = 3000;
+constexpr int32_t WINDOW_DETACH_TIMEOUT = 1500;
 constexpr int32_t WINDOW_LAYOUT_TIMEOUT = 30;
 constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2000;
 const std::string PARAM_DUMP_HELP = "-h";
@@ -2153,14 +2153,29 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
     return Show(reason, withAnimation, withFocus, false, requestId, scbRequestId);
 }
 
-WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
-    int32_t requestId, int32_t scbRequestId)
+bool WindowSceneSessionImpl::isNeedWindowShow(uint32_t reason)
 {
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH)) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to current user, NotifyAfterForeground");
         NotifyAfterForeground(true, false);
         NotifyAfterDidForeground(reason);
         RecordWindowLifecycleChange("user switch show");
+        return true;
+    }
+    if (reason == static_cast<uint32_t>(WindowStateChangeReason::PC_APP_IN_PAD)) {
+        TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d, PcAppInPad when unlock.", GetPersistentId());
+        NotifyAfterForeground(true, false);
+        NotifyAfterDidForeground(reason);
+        RecordWindowLifecycleChange("PcAppInPad when unlock");
+        return true;
+    }
+    return false;
+}
+
+WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
+    int32_t requestId, int32_t scbRequestId)
+{
+    if (isNeedWindowShow(reason)) {
         return WMError::WM_OK;
     }
     const auto type = GetType();
@@ -2630,7 +2645,9 @@ WMError WindowSceneSessionImpl::SyncDestroyAndDisconnectSpecificSession(int32_t 
     }
     auto startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
-    callback->GetResult(WINDOW_DETACH_TIMEOUT);
+    if (!WindowHelper::IsSubWindow(GetType())) {
+        callback->GetResult(WINDOW_DETACH_TIMEOUT);
+    }
     auto endTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     auto waitTime = endTime - startTime;

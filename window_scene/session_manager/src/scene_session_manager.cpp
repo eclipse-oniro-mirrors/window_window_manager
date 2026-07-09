@@ -2803,12 +2803,14 @@ void SceneSessionManager::SchedulePcAppInPadLifecycleByPersistentId(bool isBackg
         if (!isPcAppInPad) {
             return;
         }
-        StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground);
+        StartOrMinimizePcAppInPadUIAbilityBySCB(sceneSession, isBackground,
+            WindowStateChangeReason::PC_APP_IN_PAD);
     };
     return taskScheduler_->PostAsyncTask(task, __func__);
 }
 
-WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground)
+WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<SceneSession>& sceneSession, bool isBackground,
+    WindowStateChangeReason reason)
 {
     auto sessionState = sceneSession->GetSessionState();
     auto isInvalidMainSession = sessionState == SessionState::STATE_DISCONNECT ||
@@ -2837,12 +2839,12 @@ WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<
         }
     } else {
         TLOGI(WmsLogTag::WMS_LIFE,
-            "StartPcAppInPadUIAbilityBySCB with persistentId: %{public}d, type: %{public}d, state: %{public}d", persistentId,
-            sceneSession->GetWindowType(), sceneSession->GetSessionState());
+            "StartPcAppInPadUIAbilityBySCB with persistentId: %{public}d, type: %{public}d, state: %{public}d,"
+            "reason:%{public}u", persistentId,sceneSession->GetWindowType(), sceneSession->GetSessionState(), reason);
         bool isColdStart = false;
         abilitySessionInfo->isNewWant = false;
         int32_t errCode = StartUIAbilityBySCBTimeoutCheck(sceneSession,
-            abilitySessionInfo, static_cast<uint32_t>(WindowStateChangeReason::NORMAL), isColdStart);
+            abilitySessionInfo, static_cast<uint32_t>(reason), isColdStart);
         if (errCode != ERR_OK) {
             TLOGE(WmsLogTag::WMS_LIFE, "start failed! errCode: %{public}d", errCode);
             RecordLifeCycleExceptionEvent(sceneSession, errCode,
@@ -21336,6 +21338,7 @@ WMError SceneSessionManager::EnterKioskMode(const sptr<IRemoteObject>& token)
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
     return taskScheduler_->PostSyncTask([this, token, where = __func__] {
         auto session = FindSessionByToken(token, WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
         if (session == nullptr) {
@@ -21358,6 +21361,7 @@ WMError SceneSessionManager::ExitKioskMode()
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
     taskScheduler_->PostAsyncTask([this, where = __func__] {
         if (kioskModeChangeFunc_ != nullptr) {
             kioskModeChangeFunc_(false, INVALID_SESSION_ID);
@@ -21368,6 +21372,16 @@ WMError SceneSessionManager::ExitKioskMode()
         return WMError::WM_OK;
     }, __func__);
     return WMError::WM_OK;
+}
+
+void SceneSessionManager::KioskModeChange(bool isKioskMode, int32_t persistentId)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "isKiosMode:%{public}u, persistentId:%{public}d", isKioskMode, persistentId);
+    taskScheduler_->PostAsyncTask([this, isKioskMode, persistentId, where = __func__] {
+        isKioskMode_ = isKioskMode;
+        kioskAppPersistentId_ = persistentId;
+        return WMError::WM_OK;
+    }, __func__);
 }
 
 void SceneSessionManager::RegisterKioskModeChangeCallback(KioskModeChangeFunc&& func)
