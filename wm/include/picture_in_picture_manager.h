@@ -46,10 +46,9 @@ public:
 
     static bool IsAttachedToSameWindow(uint32_t windowId);
     static sptr<Window> GetCurrentWindowByMainWindowId(uint32_t windowId);
-    static sptr<Window> GetSameGroupWindowByMainWindowId(uint32_t windowId, PiPTemplateType PipType);
+    static sptr<Window> GetSameGroupWindowByMainWindowId(uint32_t windowId, PiPTemplateType templateType);
     static sptr<Window> GetCurrentWindow();
 
-    static void DoCloseByMainWindowId(uint32_t mainWindowId);
     static void DoPreRestore(uint32_t windowId);
     static void DoRestore(uint32_t windowId);
     static void DoClose(uint32_t windowId, bool destroyWindow, bool byPriority);
