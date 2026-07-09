@@ -74,7 +74,9 @@
 #include "scene_screen_change_listener.h"
 #include "scene_system_ability_listener.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 #include "motion_manager.h"
+#endif
 #include "session/host/include/ability_info_manager.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_controller.h"
@@ -21989,18 +21991,29 @@ WMError SceneSessionManager::NotifySupportRotationRegistered()
 
 bool SceneSessionManager::RegisterMotionSensor(int32_t motionType)
 {
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d", motionType);
     MotionManager::GetInstance().Init();
     MotionManager::GetInstance().SetMotionEventListener(this);
     return MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
+#else
+    TLOGW(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor: WM_SUBSCRIBE_MOTION_ENABLE not defined");
+    return false;
+#endif
 }
 
 bool SceneSessionManager::UnregisterMotionSensor(int32_t motionType)
 {
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor motionType: %{public}d", motionType);
     return MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
+#else
+    TLOGW(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor: WM_SUBSCRIBE_MOTION_ENABLE not defined");
+    return false;
+#endif
 }
 
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
@@ -22030,6 +22043,7 @@ void SceneSessionManager::SetSmartSensorRotationChangeListener(NotifySmartSensor
         smartSensorRotationChangeListener_ = std::move(func);
     }, __func__);
 }
+#endif
 
 WMError SceneSessionManager::GetAllJsonProfile(AppExecFwk::ProfileType profileType, int32_t userId,
     std::vector<AppExecFwk::JsonProfileInfo>& jsonProfileInfos)

@@ -580,6 +580,7 @@ void SessionManager::NotifySetSpecificWindowZIndex()
     }
 }
 
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 bool SessionManager::RegisterMotionSensor(int32_t motionType)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d, userId=%{public}d",
@@ -603,6 +604,7 @@ bool SessionManager::UnregisterMotionSensor(int32_t motionType)
     }
     return proxy->UnregisterMotionSensor(motionType);
 }
+#endif
 
 FoundationDeathRecipient::FoundationDeathRecipient(int32_t userId) : userId_(userId) {}
 

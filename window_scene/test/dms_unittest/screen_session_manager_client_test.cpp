@@ -743,36 +743,6 @@ HWTEST_F(ScreenSessionManagerClientTest, OnSensorRotationChanged02, TestSize.Lev
 }
 
 /**
- * @tc.name: OnSmartSensorRotationChanged01
- * @tc.desc: OnSmartSensorRotationChanged test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged01, TestSize.Level1)
-{
-    ScreenId screenId = 0;
-    float sensorRotation = 90.0f;
-    bool isSwitchUser = false;
-
-    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
-    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-}
-
-/**
- * @tc.name: OnSmartSensorRotationChanged02
- * @tc.desc: OnSmartSensorRotationChanged test with isSwitchUser true
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged02, TestSize.Level1)
-{
-    ScreenId screenId = 1;
-    float sensorRotation = 180.0f;
-    bool isSwitchUser = true;
-
-    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
-    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-}
-
-/**
  * @tc.name: OnHoverStatusChanged01
  * @tc.desc: OnHoverStatusChanged test
  * @tc.type: FUNC

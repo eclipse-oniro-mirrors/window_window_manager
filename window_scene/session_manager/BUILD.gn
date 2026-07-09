@@ -58,6 +58,7 @@ scene_session_manager_sources = [
   "src/anomaly_detection.cpp",
   "src/extension_session_manager.cpp",
   "src/hidump_controller.cpp",
+  "src/motion_manager.cpp",
   "src/pip_controller.cpp",
   "src/publish/scb_dump_subscriber.cpp",
   "src/rdb/starting_window_rdb_manager.cpp",
@@ -85,6 +86,7 @@ scene_session_manager_sources = [
   "src/zidl/session_lifecycle_listener_stub.cpp",
   "src/zidl/session_router_stack_listener_proxy.cpp",
   "src/zidl/session_router_stack_listener_stub.cpp",
+  "src/session_sensor_plugin.cpp",
 ]
 
 scene_session_manager_deps = [
@@ -173,6 +175,12 @@ ohos_static_library("scene_session_manager_static") {
   if (window_manager_feature_support_dmsfwk) {
     sources +=[ "src/distributed_client.cpp" ]
     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
+  }
+
+  if (window_manager_feature_subscribe_motion) {
+    if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
+      defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+    }
   }
 
   if (defined(global_parts_info) &&
@@ -264,6 +272,12 @@ ohos_shared_library("scene_session_manager") {
     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
   }
 
+  if (window_manager_feature_subscribe_motion) {
+    if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
+      defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+    }
+  }
+
   if (defined(global_parts_info) &&
       defined(global_parts_info.resourceschedule_memmgr_override)) {
     external_deps += [ "memmgr:memmgrclient" ]
@@ -322,8 +336,6 @@ ohos_shared_library("scene_session_manager") {
 
 session_manager_sources = [
     "../session_manager_service/src/session_manager_service_proxy.cpp",
-    "src/motion_manager.cpp",
-    "src/session_sensor_plugin.cpp",
     "src/session_manager.cpp",
     "src/zidl/scene_session_manager_proxy.cpp",
     "src/zidl/session_lifecycle_listener_proxy.cpp",

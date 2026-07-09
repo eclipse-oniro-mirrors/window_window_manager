@@ -239,6 +239,8 @@
             OHOS::Rosen::UIEffectManager::RegisterUIEffectSetParamsCallback*;
             OHOS::Rosen::UIEffectManager::SetUIEffectControllerAliveState*;
             OHOS::Rosen::UIEffectParams::ConvertToJsValue*;
+            OHOS::Rosen::MotionManager::GetInstance*;
+            OHOS::Rosen::IMotionEventListener*;
 
             VTT*OHOS::Rosen::SessionLifecycleListenerStub*;
             VTT*OHOS::Rosen::SessionRouterStackListenerStub*;

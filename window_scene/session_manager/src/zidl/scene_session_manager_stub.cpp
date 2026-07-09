@@ -318,10 +318,12 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetFloatViewLimits(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REGISTER_MOTION_SENSOR):
             return HandleRegisterMotionSensor(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UNREGISTER_MOTION_SENSOR):
             return HandleUnregisterMotionSensor(data, reply);
+#endif
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -3202,6 +3204,7 @@ int SceneSessionManagerStub::HandleGetAppWindowShowingInfosByBundleName(MessageP
     return ERR_NONE;
 }
 
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 int SceneSessionManagerStub::HandleRegisterMotionSensor(MessageParcel& data, MessageParcel& reply)
 {
     int32_t motionType = 0;
@@ -3231,4 +3234,5 @@ int SceneSessionManagerStub::HandleUnregisterMotionSensor(MessageParcel& data, M
     }
     return ERR_NONE;
 }
+#endif
 } // namespace OHOS::Rosen

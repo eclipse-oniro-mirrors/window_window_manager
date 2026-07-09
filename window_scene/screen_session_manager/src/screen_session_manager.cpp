@@ -12949,20 +12949,8 @@ void ScreenSessionManager::HandleMotionSensorRotationWhenSwitchUser(sptr<ScreenS
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
     bool deviceMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
         MotionType::DEVICE_MOTION_TYPE);
-    bool smartMotionNeeded = MotionManager::GetInstance().IsMotionSensorSubscribed(
-        MotionType::SMART_MOTION_TYPE) ||
-        MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::SMART_MOTION_ENHANCE_TYPE);
-    
-    TLOGNFI(WmsLogTag::WMS_ROTATION, "deviceMotionNeeded: %{public}d, smartMotionNeeded: %{public}d",
-        deviceMotionNeeded, smartMotionNeeded);
-    
-    if (deviceMotionNeeded && smartMotionNeeded) {
+    if (deviceMotionNeeded) {
         screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-        screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
-    } else if (deviceMotionNeeded) {
-        screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-    } else if (smartMotionNeeded) {
-        screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
     } else {
         screenSession->UpdateValidRotationToScb();
     }

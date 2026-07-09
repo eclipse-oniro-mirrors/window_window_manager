@@ -385,17 +385,6 @@ void ScreenSessionManagerClient::OnSensorRotationChanged(ScreenId screenId, floa
     screenSession->SensorRotationChange(sensorRotation, isSwitchUser);
 }
 
-void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
-    bool isSwitchUser)
-{
-    auto screenSession = GetScreenSession(screenId);
-    if (!screenSession) {
-        TLOGE(WmsLogTag::DMS, "screenSession is null");
-        return;
-    }
-    screenSession->SmartSensorRotationChange(sensorRotation, isSwitchUser);
-}
-
 void ScreenSessionManagerClient::OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate)
 {
     auto screenSession = GetScreenSession(screenId);

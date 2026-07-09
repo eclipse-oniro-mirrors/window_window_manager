@@ -56,8 +56,10 @@ enum class ListenerFunctionType : uint32_t {
     VIRTUAL_DENSITY_CHANGE_CB,
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     SENSOR_ROTATION_CHANGE_CB,
     SMART_SENSOR_ROTATION_CHANGE_CB,
+#endif
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
@@ -139,8 +141,10 @@ public:
     static napi_value RegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationChange(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     static napi_value RegisterMotion(napi_env env, napi_callback_info info);
     static napi_value UnregisterMotion(napi_env env, napi_callback_info info);
+#endif
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarHeightMode(napi_env env, napi_callback_info info);
@@ -307,8 +311,10 @@ private:
     napi_value OnRegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     napi_value OnRegisterMotion(napi_env env, napi_callback_info info);
     napi_value OnUnregisterMotion(napi_env env, napi_callback_info info);
+#endif
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarHeightMode(napi_env env, napi_callback_info info);
@@ -491,10 +497,12 @@ private:
         const RotationChangeInfo& rotationChangeInfo, bool isRestrictNotify = false);
     void ProcessSupportRotationRegister();
     void OnSupportRotationRegistered();
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     void ProcessSensorRotationRegister();
     void OnSensorRotationChange(float sensorRotation);
     void ProcessSmartSensorRotationRegister();
     void OnSmartSensorRotationChange(float sensorRotation);
+#endif
 
     /*
      * Window Pattern

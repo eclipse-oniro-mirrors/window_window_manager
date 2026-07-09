@@ -53,10 +53,6 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnSensorRotationChanged(data, reply);
     };
-    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SMART_SENSOR_ROTATION_CHANGED] =
-        [this](MessageParcel& data, MessageParcel& reply) {
-        return HandleOnSmartSensorRotationChanged(data, reply);
-    };
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_HOVER_STATUS_CHANGED] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnHoverStatusChanged(data, reply);
@@ -390,16 +386,6 @@ int ScreenSessionManagerClientStub::HandleOnFoldPropertyChanged(MessageParcel& d
         TLOGE(WmsLogTag::DMS, "Write screenProperty failed");
         return ERR_TRANSACTION_FAILED;
     }
-    return ERR_NONE;
-}
-
-int ScreenSessionManagerClientStub::HandleOnPowerStatusChanged(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::DMS, "HandleOnPowerStatusChanged");
-    auto event = static_cast<DisplayPowerEvent>(data.ReadUint32());
-    auto status = static_cast<EventStatus>(data.ReadUint32());
-    auto reason = static_cast<PowerStateChangeReason>(data.ReadUint32());
-    OnPowerStatusChanged(event, status, reason);
     return ERR_NONE;
 }
 

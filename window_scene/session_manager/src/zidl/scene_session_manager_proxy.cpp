@@ -1800,11 +1800,12 @@ WMError SceneSessionManagerProxy::CheckWindowId(int32_t windowId, int32_t& pid)
     return WMError::WM_OK;
 }
 
+#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 bool SceneSessionManagerProxy::RegisterMotionSensor(int32_t motionType)
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option(MessageOption::TF_NORMAL);
+    MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
         return false;
@@ -1836,7 +1837,7 @@ bool SceneSessionManagerProxy::UnregisterMotionSensor(int32_t motionType)
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option(MessageOption::TF_NORMAL);
+    MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_ROTATION, "WriteInterfaceToken failed");
         return false;
@@ -1863,6 +1864,7 @@ bool SceneSessionManagerProxy::UnregisterMotionSensor(int32_t motionType)
     }
     return result;
 }
+#endif
 
 WSError SceneSessionManagerProxy::GetSessionDumpInfo(const std::vector<std::string>& params, std::string& info)
 {
