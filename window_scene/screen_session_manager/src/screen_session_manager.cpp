@@ -3081,6 +3081,16 @@ sptr<ScreenSession> ScreenSessionManager::GetScreenSession(ScreenId screenId) co
     return iter->second;
 }
 
+sptr<IRemoteObject> ScreenSessionManager::GetRenderSession(ScreenId screenId)
+{
+    auto screenSession = GetScreenSession(screenId);
+    if (!screenSession) {
+        TLOGE(WmsLogTag::DMS, "GetRenderSession: screenSession is null, screenId: %{public}" PRIu64, screenId);
+        return nullptr;
+    }
+    return screenSession->GetRenderSession();
+}
+
 sptr<ScreenSession> ScreenSessionManager::GetDefaultScreenSession()
 {
     GetDefaultScreenId();

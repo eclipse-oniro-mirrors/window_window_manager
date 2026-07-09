@@ -72,6 +72,7 @@ public:
     void SetPropertyChangedCallback(std::function<void(sptr<ScreenSession>& screenSession,
         SuperFoldStatusChangeEvents changeEvent)> callback);
     sptr<ScreenSession> GetScreenSession(ScreenId screenId) const;
+    sptr<IRemoteObject> GetRenderSession(ScreenId screenId) override;
     sptr<ScreenSession> GetDefaultScreenSession();
     std::vector<ScreenId> GetAllScreenIds();
 

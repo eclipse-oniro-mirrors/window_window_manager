@@ -1766,6 +1766,12 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             UnsubscribeMotionSensor(motionType);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_GET_RENDER_SESSION: {
+            ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
+            sptr<IRemoteObject> renderSession = GetRenderSession(screenId);
+            reply.WriteRemoteObject(renderSession);
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
