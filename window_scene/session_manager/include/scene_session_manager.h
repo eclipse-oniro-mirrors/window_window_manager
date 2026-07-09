@@ -275,6 +275,7 @@ public:
         std::vector<AppExecFwk::JsonProfileInfo>& jsonProfileInfos);
     WMError GetJsonProfile(AppExecFwk::ProfileType profileType, const std::string& bundleName,
         const std::string& moduleName, int32_t userId, std::string& profileInfo);
+    const std::shared_ptr<FfrtQueueHelper>& GetFfrtQueueHelper() const { return ffrtQueueHelper_; };
 
     /*
      * Window Recover
