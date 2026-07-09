@@ -191,20 +191,48 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
         return;
     }
     EvictOldestControllerIfNeeded(controller);
-    {
-        std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
-        autoStartControllerMap_[handleId] = pipController;
-        auto it = mainWindowToAutoStartControllersMap_.find(controller->GetMainWindowId());
-        if (it != mainWindowToAutoStartControllersMap_.end()) {
-            for (const auto& wptr : it->second) {
-                if (wptr.GetRefPtr() == pipController.GetRefPtr()) {
-                    TLOGI(WmsLogTag::WMS_PIP, "controller already registered for mainWindow: %{public}u",
-                        controller->GetMainWindowId());
-                    return;
-                }
+    std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
+    autoStartControllerMap_[handleId] = pipController;
+    auto it = mainWindowToAutoStartControllersMap_.find(controller->GetMainWindowId());
+    if (it != mainWindowToAutoStartControllersMap_.end()) {
+        for (const auto& wptr : it->second) {
+            if (wptr.GetRefPtr() == pipController.GetRefPtr()) {
+                TLOGI(WmsLogTag::WMS_PIP, "controller already registered for mainWindow: %{public}u",
+                    controller->GetMainWindowId());
+                return;
             }
         }
-        mainWindowToAutoStartControllersMap_[controller->GetMainWindowId()].push_back(pipController);
+    }
+    mainWindowToAutoStartControllersMap_[controller->GetMainWindowId()].push_back(pipController);
+}
+
+void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
+    wptr<PictureInPictureControllerBase> pipController)
+{
+    std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
+    TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}d", handleId);
+    auto mit = autoStartControllerMap_.find(handleId);
+    if (mit == autoStartControllerMap_.end() || mit->second != pipController) {
+        TLOGW(WmsLogTag::WMS_PIP, "no same pip controller");
+        return;
+    }
+    autoStartControllerMap_.erase(mit);
+    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}lu", autoStartControllerMap_.size());
+    auto controller = pipController.promote();
+    if (controller != nullptr) {
+        uint32_t mainWindowId = controller->GetMainWindowId();
+        auto it = mainWindowToAutoStartControllersMap_.find(mainWindowId);
+        if (it != mainWindowToAutoStartControllersMap_.end()) {
+            auto& controllers = it->second;
+            controllers.erase(std::remove_if(controllers.begin(), controllers.end(),
+                [&pipController](const wptr<PictureInPictureControllerBase>& w) {
+                    return w.GetRefPtr() == pipController.GetRefPtr();
+                }),
+                controllers.end());
+            if (controllers.empty()) {
+                mainWindowToAutoStartControllersMap_.erase(it);
+            }
+        }
     }
 }
 
@@ -240,38 +268,9 @@ void PictureInPictureManager::EvictOldestControllerIfNeeded(const sptr<PictureIn
     }
 }
 
-void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
-    wptr<PictureInPictureControllerBase> pipController)
+bool PictureInPictureManager::IsAutoStartControllerMapEmpty()
 {
     std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
-    TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}d", handleId);
-    auto mit = autoStartControllerMap_.find(handleId);
-    if (mit == autoStartControllerMap_.end() || mit->second != pipController) {
-        TLOGW(WmsLogTag::WMS_PIP, "no same pip controller");
-        return;
-    }
-    autoStartControllerMap_.erase(mit);
-    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}lu", autoStartControllerMap_.size());
-    auto controller = pipController.promote();
-    if (controller != nullptr) {
-        uint32_t mainWindowId = controller->GetMainWindowId();
-        auto it = mainWindowToAutoStartControllersMap_.find(mainWindowId);
-        if (it != mainWindowToAutoStartControllersMap_.end()) {
-            auto& controllers = it->second;
-            controllers.erase(std::remove_if(controllers.begin(), controllers.end(),
-                [&pipController](const wptr<PictureInPictureControllerBase>& w) {
-                    return w.GetRefPtr() == pipController.GetRefPtr();
-                }),
-                controllers.end());
-            if (controllers.empty()) {
-                mainWindowToAutoStartControllersMap_.erase(it);
-            }
-        }
-    }
-}
-
-bool PictureInPictureManager::IsautoStartControllerMapEmpty()
-{
     return autoStartControllerMap_.empty();
 }
 
