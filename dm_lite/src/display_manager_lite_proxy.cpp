@@ -93,7 +93,7 @@ bool DisplayManagerLiteProxy::RegisterClientDeathListener(sptr<IRemoteObject> re
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
 
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
@@ -245,7 +245,7 @@ FoldDisplayMode DisplayManagerLiteProxy::GetFoldDisplayMode()
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken Failed");
         return FoldDisplayMode::UNKNOWN;
@@ -297,7 +297,7 @@ bool DisplayManagerLiteProxy::IsFoldable()
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "IsFoldable WriteInterfaceToken failed");
         return false;
@@ -324,7 +324,7 @@ FoldStatus DisplayManagerLiteProxy::GetFoldStatus()
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return FoldStatus::UNKNOWN;
@@ -351,7 +351,7 @@ sptr<DisplayInfo> OHOS::Rosen::DisplayManagerLiteProxy::GetDefaultDisplayInfo(in
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return nullptr;
@@ -394,7 +394,7 @@ sptr<DisplayInfo> DisplayManagerLiteProxy::GetDisplayInfoById(DisplayId displayI
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return nullptr;

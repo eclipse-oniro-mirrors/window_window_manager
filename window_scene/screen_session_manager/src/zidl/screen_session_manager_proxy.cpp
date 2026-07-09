@@ -33,7 +33,7 @@ sptr<DisplayInfo> OHOS::Rosen::ScreenSessionManagerProxy::GetDefaultDisplayInfo(
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return nullptr;
@@ -1233,7 +1233,7 @@ bool ScreenSessionManagerProxy::RegisterClientDeathListener(sptr<IRemoteObject> 
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
 
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
@@ -2243,7 +2243,7 @@ sptr<DisplayInfo> ScreenSessionManagerProxy::GetDisplayInfoById(DisplayId displa
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return nullptr;
@@ -2899,7 +2899,7 @@ sptr<CutoutInfo> ScreenSessionManagerProxy::GetCutoutInfo(DisplayId displayId, i
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "with rotation : failed!");
         return nullptr;
@@ -3306,7 +3306,7 @@ FoldDisplayMode ScreenSessionManagerProxy::GetFoldDisplayMode()
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken Failed");
         return FoldDisplayMode::UNKNOWN;
@@ -3329,7 +3329,7 @@ bool ScreenSessionManagerProxy::IsFoldable()
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return false;
@@ -3402,7 +3402,7 @@ FoldStatus ScreenSessionManagerProxy::GetFoldStatus()
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return FoldStatus::UNKNOWN;
@@ -4973,7 +4973,7 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenMaxRefreshRate(ScreenId id, u
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
 
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
