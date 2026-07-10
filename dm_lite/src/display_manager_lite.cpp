@@ -51,6 +51,7 @@ public:
         sptr<IDisplayAttributeListener> listener);
     DMError UnregisterDisplayAttributeListener(sptr<IDisplayAttributeListener> listener);
     DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributesNotListened);
+    sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
     void DlcloseClearResource();
     void OnRemoteDied();
     sptr<DisplayLite> GetDisplayById(DisplayId displayId);
@@ -1007,5 +1008,15 @@ DMError DisplayManagerLite::IsOnboardDisplay(DisplayId displayId, bool& isOnboar
         return DMError::DM_ERROR_INVALID_PARAM;
     }
     return SingletonContainer::Get<DisplayManagerAdapterLite>().IsOnboardDisplay(displayId, isOnboardDisplay);
+}
+
+sptr<FoldCreaseRegion> DisplayManagerLite::GetCurrentFoldCreaseRegion()
+{
+    return pImpl_->GetCurrentFoldCreaseRegion();
+}
+
+sptr<FoldCreaseRegion> DisplayManagerLite::Impl::GetCurrentFoldCreaseRegion()
+{
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().GetCurrentFoldCreaseRegion();
 }
 } // namespace OHOS::Rosen

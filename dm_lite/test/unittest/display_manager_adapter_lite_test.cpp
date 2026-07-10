@@ -496,6 +496,36 @@ HWTEST_F(DisplayManagerAdapterLiteTest, UnregisterDisplayAttribute, TestSize.Lev
     EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
     SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = proxyBak;
 }
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion01
+ * @tc.desc: GetCurrentFoldCreaseRegion test with null proxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, GetCurrentFoldCreaseRegion01, TestSize.Level1)
+{
+    auto proxyBak = SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = nullptr;
+    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().GetCurrentFoldCreaseRegion();
+    ASSERT_EQ(ret, nullptr);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = proxyBak;
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion02
+ * @tc.desc: GetCurrentFoldCreaseRegion test with valid proxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, GetCurrentFoldCreaseRegion02, TestSize.Level1)
+{
+    SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
+    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        ASSERT_NE(ret->GetDisplayId(), DISPLAY_ID_INVALID);
+        auto creaseRects = ret->GetCreaseRects();
+        ASSERT_TRUE(creaseRects.size() <= 20);
+    }
+}
 }
 }
 }

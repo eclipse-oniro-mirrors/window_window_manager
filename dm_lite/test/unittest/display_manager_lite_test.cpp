@@ -937,6 +937,46 @@ HWTEST_F(DisplayManagerTest, UnregisterDisplayAttribute, TestSize.Level1)
     ret = DisplayManagerLite::GetInstance().pImpl_->UnregisterDisplayAttribute(attributes);
     ASSERT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
 }
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion01
+ * @tc.desc: GetCurrentFoldCreaseRegion test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion01, TestSize.Level1)
+{
+    auto ret = DisplayManagerLite::GetInstance().GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        ASSERT_NE(ret->GetDisplayId(), DISPLAY_ID_INVALID);
+    }
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion02
+ * @tc.desc: GetCurrentFoldCreaseRegion test with impl
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion02, TestSize.Level1)
+{
+    auto ret = DisplayManagerLite::GetInstance().pImpl_->GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        ASSERT_NE(ret->GetDisplayId(), DISPLAY_ID_INVALID);
+    }
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion03
+ * @tc.desc: GetCurrentFoldCreaseRegion test check creaseRects
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion03, TestSize.Level1)
+{
+    auto ret = DisplayManagerLite::GetInstance().GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        auto creaseRects = ret->GetCreaseRects();
+        ASSERT_TRUE(creaseRects.size() <= 20);
+    }
+}
 }
 } // namespace Rosen
 } // namespace OHOS

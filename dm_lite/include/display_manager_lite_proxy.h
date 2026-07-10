@@ -21,6 +21,7 @@
 #include "cutout_info.h"
 #include "display_info.h"
 #include "dm_common.h"
+#include "fold_screen_info.h"
 #include "window_manager_hilog.h"
 #include "zidl/idisplay_manager_agent.h"
 
@@ -87,6 +88,7 @@ public:
     bool GetKeyboardState();
     bool SynchronizePowerStatus(ScreenPowerState state);
     DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height, float virtualPixelRatio);
+    sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
 private:
     static inline DMError ConvertToDMError(ErrCode errCode, int32_t dmError);
     sptr<IRemoteObject> Remote()
