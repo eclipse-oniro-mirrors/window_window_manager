@@ -409,16 +409,6 @@ int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel&
     return ERR_NONE;
 }
 
-int ScreenSessionManagerClientStub::HandleOnSmartSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_ROTATION, "enter");
-    auto screenId = static_cast<ScreenId>(data.ReadUint64());
-    auto sensorRotation = data.ReadFloat();
-    auto isSwitchUser = data.ReadBool();
-    OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-    return ERR_NONE;
-}
-
 int ScreenSessionManagerClientStub::HandleOnScreenExtendChanged(MessageParcel& data, MessageParcel& reply)
 {
     auto mainScreenId = static_cast<ScreenId>(data.ReadUint64());
