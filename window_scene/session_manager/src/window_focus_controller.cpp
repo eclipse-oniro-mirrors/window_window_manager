@@ -146,7 +146,8 @@ WSError WindowFocusController::RemoveFocusGroup(DisplayGroupId displayGroupId, D
 sptr<FocusGroup> WindowFocusController::GetFocusGroupInner(DisplayId displayId)
 {
     DisplayId displayGroupId = GetDisplayGroupId(displayId);
-    TLOGD(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64 ", displayGroupId: %{public}d", displayId, displayGroupId);
+    TLOGD(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64 ", displayGroupId: %{public}d",
+        displayId, displayGroupId);
     std::lock_guard<std::mutex> lock(focusGroupMapMutex_);
     auto iter = focusGroupMap_.find(displayGroupId);
     if (iter == focusGroupMap_.end()) {
