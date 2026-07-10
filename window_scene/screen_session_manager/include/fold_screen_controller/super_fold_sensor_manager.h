@@ -78,7 +78,7 @@ private:
  
     void NotifyFoldAngleChanged(float foldAngle);
  
-    void NotifyHallChanged(uint16_t hall);
+    void NotifyHallChanged(uint16_t hall, float foldAngle, bool isHallEvent = false);
 
     void NotifySoftKeyboardChanged();
  
