@@ -29,6 +29,8 @@
             OHOS::Rosen::ScreenProperty::GetInputOffsetX*;
             OHOS::Rosen::ScreenProperty::GetInputOffsetY*;
             OHOS::Rosen::ScreenProperty::GetIsFakeInUse*;
+            OHOS::Rosen::ScreenProperty::GetIsInUse*;
+            OHOS::Rosen::ScreenProperty::SetIsInUse*;
             OHOS::Rosen::ScreenProperty::GetOffsetX*;
             OHOS::Rosen::ScreenProperty::GetOffsetY*;
             OHOS::Rosen::ScreenProperty::GetOrientation*;

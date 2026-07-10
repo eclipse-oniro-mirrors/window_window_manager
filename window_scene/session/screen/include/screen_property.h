@@ -41,6 +41,7 @@ enum class ScreenPropertyChangeReason : uint32_t {
     SCREEN_MODE_CHANGE,
     ACTIVE_MODE_CHANGE,
     RESOLUTION_EFFECT_CHANGE,
+    SYNC_ClIENT_SCREEN_PROPERTY_ONLY,
 };
 class ScreenProperty {
 public:
@@ -225,6 +226,16 @@ public:
     void SetCreaseRect(DMRect creaseRect)
     {
         creaseRect_ = creaseRect;
+    }
+
+    bool GetIsInUse() const
+    {
+        return isInUse_;
+    }
+
+    void SetIsInUse(bool isInUse)
+    {
+        isInUse_ = isInUse;
     }
 
     FoldDisplayMode GetDisplayMode() const;
@@ -430,6 +441,8 @@ private:
     FoldDisplayMode displayMode_ { FoldDisplayMode::UNKNOWN };
     uint32_t rogWidth_{ 0 };
     uint32_t rogHeight_{ 0 };
+
+    bool isInUse_ { true };
 };
 } // namespace OHOS::Rosen
 

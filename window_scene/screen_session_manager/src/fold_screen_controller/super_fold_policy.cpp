@@ -362,11 +362,14 @@ bool SuperFoldPolicy::GetdisplayModeRunningStatus()
 
 void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isScreenOn)
 {
+    std::string tp = FULL_TP;
     ScreenId offScreenId = GetCurrentScreenId();
     if (screenId == SCREEN_ID_MAIN) {
         offScreenId = SCREEN_ID_FULL;
+        tp = MAIN_TP;
     } else if (screenId == SCREEN_ID_FULL) {
         offScreenId = SCREEN_ID_MAIN;
+        tp = FULL_TP;
     }
     if (isScreenOn) {
         auto task = [=] {
@@ -374,18 +377,58 @@ void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isSc
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(offScreenId,
                 ScreenPowerStatus::POWER_STATUS_OFF);
             SetScreenCombination(offScreenId, ScreenCombination::SCREEN_ALONE);
+            SetScreenIsInUse(offScreenId, false);
+            SetScreenPowerState(offScreenId, DisplayState::OFF);
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: on screenId: %{public}" PRIu64"", screenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(screenId,
                 ScreenPowerStatus::POWER_STATUS_ON);
-            SetScreenCombination(offScreenId, ScreenCombination::SCREEN_MAIN);
+            SetScreenCombination(screenId, ScreenCombination::SCREEN_MAIN);
+            SetScreenIsInUse(screenId, true);
+            SetScreenPowerState(screenId, DisplayState::ON);
             SetdisplayModeChangeStatus(false);
+            ScreenSessionManager::GetInstance().NotifyScreenModeChange();
         };
         ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
             PostAsyncTask(task, __func__);
     } else {
         SetdisplayModeChangeStatus(false);
+        SetScreenCombination(offScreenId, ScreenCombination::SCREEN_ALONE);
+        SetScreenIsInUse(offScreenId, false);
+        SetScreenCombination(screenId, ScreenCombination::SCREEN_MAIN);
+        SetScreenIsInUse(screenId, true);
     }
+#ifdef TP_FEATURE_ENABLE
+    RSInterfaces::GetInstance().SetTpFeatureConfig(TP_TYPE, tp.c_str());
+#endif
     SetCurrentScreenId(screenId);
+}
+
+void SuperFoldPolicy::SetScreenPowerState(ScreenId screenId, DisplayState displayState)
+{
+    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "ScreenId:%{public}" PRIu64" displayState:%{public}d", screenId, displayState);
+    screenSession->UpdateDisplayState(displayState);
+}
+
+void SuperFoldPolicy::SetScreenIsInUse(ScreenId screenId, bool isInUse)
+{
+    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(screenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::DMS, "screenSession is null");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "ScreenId:%{public}" PRIu64" isInUse:%{public}d", screenId, isInUse);
+    screenSession->SetScreenInUseStatus(isInUse);
+    sptr<ScreenSession> fakeScreenSession = screenSession->GetFakeScreenSession();
+    if (fakeScreenSession != nullptr) {
+        TLOGI(WmsLogTag::DMS, "fakeScreenId:%{public}" PRIu64" isInUse:%{public}d",
+            fakeScreenSession->GetScreenId(), isInUse);
+        fakeScreenSession->SetScreenInUseStatus(isInUse);
+    }
 }
 
 void SuperFoldPolicy::SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination)
@@ -441,7 +484,22 @@ DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMod
     SetCurrentDisplayMode(displayMode);
     SetdisplayModeChangeStatus(false);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
+    OnScreenPropertyChangeNotifyClient();
     return DMError::DM_OK;
+}
+
+void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
+{
+    auto screenSessionMain = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_MAIN);
+    if (screenSessionMain != nullptr) {
+        ScreenSessionManager::GetInstance().OnPropertyChange(screenSessionMain->GetScreenProperty(),
+            ScreenPropertyChangeReason::SYNC_ClIENT_SCREEN_PROPERTY_ONLY, SCREEN_ID_MAIN);
+    }
+    auto screenSessionFull = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
+    if (screenSessionFull != nullptr) {
+        ScreenSessionManager::GetInstance().OnPropertyChange(screenSessionFull->GetScreenProperty(),
+            ScreenPropertyChangeReason::SYNC_ClIENT_SCREEN_PROPERTY_ONLY, SCREEN_ID_FULL);
+    }
 }
 
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
@@ -460,6 +518,8 @@ void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
         SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
+        SetScreenIsInUse(SCREEN_ID_MAIN, false);
+        SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::ON);
         SetdisplayModeChangeStatus(false);
     };
     ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
@@ -475,6 +535,8 @@ void SuperFoldPolicy::ExitCoordination()
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);
     SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_ALONE);
+    SetScreenIsInUse(SCREEN_ID_MAIN, false);
+    SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::OFF);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
     RecoverDisplayMode();
 }

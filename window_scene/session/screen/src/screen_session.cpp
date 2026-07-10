@@ -519,6 +519,16 @@ bool ScreenSession::GetIsCurrentInUse() const
     return isInUse_;
 }
 
+void ScreenSession::SetScreenInUseStatus(bool isInUse)
+{
+    property_.SetIsInUse(isInUse);
+}
+
+void ScreenSession::isInUse()
+{
+    return property_.GetIsInUse();
+}
+
 uint64_t ScreenSession::GetSessionId() const
 {
     return sessionId_;
