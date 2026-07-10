@@ -511,7 +511,7 @@ void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
         SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
-        SetScreenIsInUse(SCREEN_ID_MAIN, false);
+        SetScreenIsInUse(SCREEN_ID_MAIN, true);
         SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::ON);
         SetdisplayModeChangeStatus(false);
     };
