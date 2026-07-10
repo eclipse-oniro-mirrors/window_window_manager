@@ -311,6 +311,14 @@ public:
     bool TryToCancelScreenOff();
 
     /**
+     * @brief Notify that the boot animation has finished, used to trigger fold screen power init.
+     *
+     * Called by the boot animation process on foldable devices to drive the fold screen
+     * power-on sequence once the boot animation completes.
+     */
+    void NotifyBootAnimationFinished();
+
+    /**
      * @brief Set the brightness level of the target screen.
      *
      * @param brightnessData Brightness data including screenId, level, and brightnessPosition.

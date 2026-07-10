@@ -684,5 +684,27 @@ HWTEST_F(DisplayManagerLiteProxyMockTest, GetCurrentFoldCreaseRegion, TestSize.L
     logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: NotifyBootAnimationFinished
+ * @tc.desc: NotifyBootAnimationFinished error and success paths
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, NotifyBootAnimationFinished, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    displayManagerLiteProxy_->NotifyBootAnimationFinished();
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    displayManagerLiteProxy_->NotifyBootAnimationFinished();
+    EXPECT_TRUE(logMsg.find("NotifyBootAnimationFinished async sent") != std::string::npos);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

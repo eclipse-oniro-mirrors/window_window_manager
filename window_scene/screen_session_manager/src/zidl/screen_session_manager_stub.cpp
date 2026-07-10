@@ -1772,6 +1772,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             reply.WriteRemoteObject(renderSession);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED: {
+            NotifyBootAnimationFinished();
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

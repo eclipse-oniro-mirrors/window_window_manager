@@ -6925,6 +6925,9 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
         if (FoldScreenStateInternel::IsDualDisplayFoldDevice()) {
             that.RegisterSettingDuringCallStateObserver();
         }
+        // Fallback path: also trigger fold screen power init here so that the
+        // foundation-restart case (boot animation does not replay) still works.
+        // Idempotency is guaranteed by std::call_once inside the callback.
         if (that.foldScreenPowerInit_ != nullptr) {
             that.foldScreenPowerInit_();
         }
@@ -6975,7 +6978,22 @@ void ScreenSessionManager::BootFinishedCallback(const char *key, const char *val
 
 void ScreenSessionManager::SetFoldScreenPowerInit(std::function<void()> foldScreenPowerInit)
 {
-    foldScreenPowerInit_ = foldScreenPowerInit;
+    // Wrap the callback so the power-init body runs exactly once across all
+    // callers (BootFinishedCallback / NotifyBootAnimationFinished) and threads.
+    foldScreenPowerInit_ = [cb = std::move(foldScreenPowerInit)]() {
+        static std::once_flag onceFlag;
+        std::call_once(onceFlag, [&cb]() {
+            if (cb != nullptr) { cb(); }
+        });
+    };
+}
+
+void ScreenSessionManager::NotifyBootAnimationFinished()
+{
+    TLOGNFI(WmsLogTag::DMS, "boot animation finished, trigger fold screen power init");
+    if (foldScreenPowerInit_ != nullptr) {
+        foldScreenPowerInit_();
+    }
 }
 
 void ScreenSessionManager::SetRotateLockedFromSettingData()

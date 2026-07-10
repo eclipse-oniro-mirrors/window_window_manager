@@ -3919,6 +3919,24 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability, Test
 }
 
 /**
+ * @tc.name: OnRemoteRequest_NotifyBootAnimationFinished
+ * @tc.desc: TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_NotifyBootAnimationFinished, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
  * @tc.name: SubscribeMotionSensor01
  * @tc.desc: normal function, TRANS_ID_SUBSCRIBE_MOTION_SENSOR test
  * @tc.type: FUNC
