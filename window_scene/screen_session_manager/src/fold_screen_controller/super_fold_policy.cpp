@@ -456,31 +456,24 @@ DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMod
         return DMError::DM_OK;
     }
     SetdisplayModeChangeStatus(true);
-    std::string tp = FULL_TP;
     ReportFoldDisplayModeChange(displayMode);
     switch (displayMode) {
         case FoldDisplayMode::MAIN: {
             SwitchScreenAndSetScreenPower(SCREEN_ID_MAIN, isScreenOn);
-            tp = MAIN_TP;
             break;
         }
         case FoldDisplayMode::FULL: {
             SwitchScreenAndSetScreenPower(SCREEN_ID_FULL, isScreenOn);
-            tp = FULL_TP;
             break;
         }
         case FoldDisplayMode::COORDINATION: {
             ChangeScreenDisplayModeToCoordination(isScreenOn);
-            tp = MAIN_TP;
             break;
         }
         default: {
             return DMError::DM_ERROR_INVALID_MODE_ID;
         }
     }
-#ifdef TP_FEATURE_ENABLE
-    RSInterfaces::GetInstance().SetTpFeatureConfig(TP_TYPE, tp.c_str());
-#endif
     SetCurrentDisplayMode(displayMode);
     SetdisplayModeChangeStatus(false);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
