@@ -142,7 +142,7 @@ WMError PictureInPictureController::StartPictureInPicture(StartPipType startType
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    startTimestamp_ =  std::chrono::duration_cast<std::chrono::milliseconds>(
+    startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
         static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
