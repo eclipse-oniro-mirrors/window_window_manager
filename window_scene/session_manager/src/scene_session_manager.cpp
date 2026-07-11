@@ -2854,6 +2854,8 @@ WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<
             exceptionInfo.needRemoveSession = true;
             if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
                 abilitySessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+            } else if (errCode == ERR_LOW_MEMORY_APP_FREEZE) {
+                abilitySessionInfo->errorReason = ERR_REASON_LOW_MEMORY_APP_FREEZE;
             } else {
                 abilitySessionInfo->errorReason = ERR_REASON_DEFAULT;
             }
