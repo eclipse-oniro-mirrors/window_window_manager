@@ -376,27 +376,23 @@ void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isSc
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: off screenId: %{public}" PRIu64"", offScreenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(offScreenId,
                 ScreenPowerStatus::POWER_STATUS_OFF);
-            SetScreenCombination(offScreenId, ScreenCombination::SCREEN_ALONE);
-            SetScreenIsInUse(offScreenId, false);
             SetScreenPowerState(offScreenId, DisplayState::OFF);
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: on screenId: %{public}" PRIu64"", screenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(screenId,
                 ScreenPowerStatus::POWER_STATUS_ON);
-            SetScreenCombination(screenId, ScreenCombination::SCREEN_MAIN);
-            SetScreenIsInUse(screenId, true);
             SetScreenPowerState(screenId, DisplayState::ON);
             SetdisplayModeChangeStatus(false);
-            ScreenSessionManager::GetInstance().NotifyScreenModeChange();
         };
         ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
             PostAsyncTask(task, __func__);
     } else {
         SetdisplayModeChangeStatus(false);
-        SetScreenCombination(offScreenId, ScreenCombination::SCREEN_ALONE);
-        SetScreenIsInUse(offScreenId, false);
-        SetScreenCombination(screenId, ScreenCombination::SCREEN_MAIN);
-        SetScreenIsInUse(screenId, true);
     }
+    SetScreenCombination(offScreenId, ScreenCombination::SCREEN_ALONE);
+    SetScreenIsInUse(offScreenId, false);
+    SetScreenCombination(screenId, ScreenCombination::SCREEN_MAIN);
+    SetScreenIsInUse(screenId, true);
+    ScreenSessionManager::GetInstance().NotifyScreenModeChange();
 #ifdef TP_FEATURE_ENABLE
     RSInterfaces::GetInstance().SetTpFeatureConfig(TP_TYPE, tp.c_str());
 #endif
