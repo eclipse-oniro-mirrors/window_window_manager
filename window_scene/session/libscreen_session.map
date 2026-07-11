@@ -355,6 +355,8 @@
             OHOS::Rosen::ScreenSession::SetRogScreenResolution*;
             OHOS::Rosen::ScreenSession::GetRenderSession*;
             OHOS::Rosen::ScreenSession::SetRenderSession*;
+            OHOS::Rosen::ScreenSession::SetScreenInUseStatus*;
+            OHOS::Rosen::ScreenSession::isInUse*;
             OHOS::Rosen::ScreenSessionGroup::AddChild*;
             OHOS::Rosen::ScreenSessionGroup::ConvertToScreenGroupInfo*;
             OHOS::Rosen::ScreenSessionGroup::GetChildCount*;
