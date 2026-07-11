@@ -169,7 +169,7 @@ void SuperFoldSensorManager::NotifyFoldAngleChanged(float foldAngle)
     }
     if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::HALF_FOLDED) {
         TLOGD(WmsLogTag::DMS, "half fold hall change, hall = %{public}u", curHall_);
-        NotifyHallChanged(curHall_);
+        NotifyHallChanged(curHall_, foldAngle, false);
     }
 }
 
@@ -201,14 +201,14 @@ void SuperFoldSensorManager::HandleHallData(const SensorEvent * const event)
     curHall_ = newHall;
     TLOGW(WmsLogTag::DMS, "Handle hall change, hall = %{public}u", curHall_);
     auto task = [this, curHall = curHall_] {
-        NotifyHallChanged(curHall);
+        NotifyHallChanged(curHall, curAngle_, true);
     };
     if (taskScheduler_) {
         taskScheduler_->PostAsyncTask(task, "DMSHandleHall");
     }
 }
 
-void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall)
+void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall, float foldAngle, bool isHallEvent)
 {
     SuperFoldStatusChangeEvents events;
     bool isActive = (hall == hallActive_);
@@ -238,7 +238,7 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall)
     }
     // notify
     HandleSuperSensorChange(events);
-    if (std::isgreater(curAngle_, ANGLE_SENSOR_THRESHOLD)) {
+    if (std::isgreater(foldAngle, ANGLE_SENSOR_THRESHOLD)) {
         HandleSuperSensorChange(SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
     }
 }
@@ -277,7 +277,7 @@ void SuperFoldSensorManager::SetStateMachineToActived()
     TLOGW(WmsLogTag::DMS, "All locks have been unlocked to start statemachine");
     auto task = [this, curHall = curHall_, curAngle = curAngle_] {
         NotifyFoldAngleChanged(curAngle);
-        NotifyHallChanged(curHall);
+        NotifyHallChanged(curHall, curAngle);
     };
     if (taskScheduler_) {
         taskScheduler_->PostAsyncTask(task, "DMSHandleHall");
@@ -298,7 +298,7 @@ void SuperFoldSensorManager::HandleFoldStatusUnlocked()
     }
     TLOGI(WmsLogTag::DMS, "All locks have been unlocked to start statemachine.");
     NotifyFoldAngleChanged(curAngle_);
-    NotifyHallChanged(curHall_);
+    NotifyHallChanged(curHall_, curAngle_);
 }
 
 float SuperFoldSensorManager::GetCurAngle()
