@@ -120,6 +120,11 @@ constexpr uint32_t MAX_RATIO_LIMITS_COUNT = 10; // Max ratio limits count.
  * ability manager err
  */
 constexpr uint32_t ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK = 2097253;
+
+/*
+ * low memory application freeze err
+ */
+constexpr uint32_t ERR_LOW_MEMORY_APP_FREEZE = 2097404;
 }
 
 /**
