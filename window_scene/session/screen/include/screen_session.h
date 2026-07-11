@@ -306,7 +306,7 @@ public:
     void SetXYPosition(int32_t x, int32_t y);
 
     void SetScreenInUseStatus(bool isInUse);
-    void isInUse();
+    bool isInUse();
 
     bool isPrimary_ { false };
     bool isInternal_ { false };

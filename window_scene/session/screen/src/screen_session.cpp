@@ -524,7 +524,7 @@ void ScreenSession::SetScreenInUseStatus(bool isInUse)
     property_.SetIsInUse(isInUse);
 }
 
-void ScreenSession::isInUse()
+bool ScreenSession::isInUse()
 {
     return property_.GetIsInUse();
 }
