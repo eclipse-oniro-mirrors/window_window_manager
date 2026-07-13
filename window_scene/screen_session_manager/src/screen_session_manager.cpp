@@ -11357,7 +11357,7 @@ DMError ScreenSessionManager::SetFoldDisplayModeForSuperMultiDevice(
     }
     if (displayMode == FoldDisplayMode::COORDINATION && CountRealPhysicalScreensNotInternal() > 0) {
         TLOGI(WmsLogTag::DMS, "has external screen can not enter coordination");
-        return DMError::DM_ERROR_NOT_SUPPORT_COOR_WHEN_EXTERNAL;
+        return DMError::DM_ERROR_NOT_SUPPORT_COOR_WHEN_HAS_EXTERNAL_SCREEN;
     }
     ret = SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(displayMode);
 #endif
