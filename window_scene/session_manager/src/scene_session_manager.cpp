@@ -17228,9 +17228,8 @@ void SceneSessionManager::UpdateModalExtensionRect(const sptr<IRemoteObject>& to
             ExtensionWindowEventInfo extensionInfo { persistentId, pid, -1, globalRect, rect, true };
             TLOGNI(WmsLogTag::WMS_UIEXT, "%{public}s: pid: %{public}d, persistentId: %{public}d, "
                 "parentId: %{public}d, rect: %{public}s, globalRect: %{public}s, parentGlobalRect: %{public}s, "
-                "scale:[%{public}f,%{public}f]",
-                where, pid, persistentId, parentId, rect.ToString().c_str(), globalRect.ToString().c_str(),
-                parentSession->GetSessionGlobalRect().ToString().c_str(),
+                "scale:[%{public}f,%{public}f]", where, pid, persistentId, parentId, rect.ToString().c_str(),
+                globalRect.ToString().c_str(), parentSession->GetSessionGlobalRect().ToString().c_str(),
                 parentSession->GetScaleX(), parentSession->GetScaleY());
             parentSession->UpdateNormalModalUIExtension(extensionInfo);
         }
