@@ -232,7 +232,7 @@ void JsWindowListener::OnAvoidAreaChanged(const AvoidArea avoidArea, AvoidAreaTy
 
 void JsWindowListener::LifeCycleCallBack(LifeCycleEventType eventType)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "event type: %{public}u", eventType);
+    TLOGI(WmsLogTag::WMS_LIFE, "event: %{public}u", eventType);
     auto task = [self = weakRef_, eventType, eng = env_] () {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsWindowListener::LifeCycleCallBack");
         auto thisListener = self.promote();

@@ -1154,7 +1154,7 @@ void SceneSessionManager::RegisterSetForegroundWindowNumCallback(SetForegroundWi
 WSError SceneSessionManager::SetSessionContinueState(const sptr<IRemoteObject>& token,
     const ContinueState& continueState)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     int32_t callingUid = IPCSkeleton::GetCallingUid();
     return taskScheduler_->PostSyncTask([this, token, continueState, callingUid, where = __func__] {
         sptr <SceneSession> sceneSession = FindSessionByToken(token);
@@ -3954,12 +3954,12 @@ int32_t SceneSessionManager::StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSes
         CloseAllFd(sceneSession->GetSessionInfo().want);
         HiviewDFX::XCollie::GetInstance().CancelTimer(timerId);
         *retCode = static_cast<int32_t>(result);
-        TLOGNI(WmsLogTag::WMS_LIFE, "start ui ability sceneFlag:%{public}d isRestart:%{public}d retCode: %{public}d",
+        TLOGNI(WmsLogTag::WMS_LIFE, "StartUIAbility sceneFlag:%{public}d isRestart:%{public}d retCode: %{public}d",
             startParams.sceneFlag, startParams.isRestart, *retCode);
     }, START_UI_ABILITY_TIMEOUT);
 
     if (isTimeout) {
-        TLOGE(WmsLogTag::WMS_LIFE, "start ui ability timeout, currentUserId: %{public}d", currentUserId_.load());
+        TLOGE(WmsLogTag::WMS_LIFE, "Timeout, currentUserId: %{public}d", currentUserId_.load());
         return static_cast<int32_t>(WSError::WS_ERROR_START_UI_ABILITY_TIMEOUT);
     }
     ResetSceneMissionInfo(abilitySessionInfo);
@@ -4143,7 +4143,7 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
 }
 
 void SceneSessionManager::ResetSessionInfoAfterStartUIAbility(const sptr<SceneSession>& sceneSession) {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
     if (sceneSession->GetRestartApp()) {
         sceneSession->SetRestartApp(false);
         sceneSession->GetSessionProperty()->SetIsNeedUpdateWindowMode(true);
@@ -10306,7 +10306,7 @@ WSError SceneSessionManager::SendTouchEvent(const std::shared_ptr<MMI::PointerEv
 #ifdef SECURITY_COMPONENT_MANAGER_ENABLE
     FillSecCompEnhanceData(pointerEvent, pointerItem);
 #endif
-    TLOGI(WmsLogTag::WMS_EVENT, "eid=%{public}d,ac=%{public}d,deviceId=%{public}d,zIndex=%{public}ud",
+    TLOGD(WmsLogTag::WMS_EVENT, "eid=%{public}d,ac=%{public}d,deviceId=%{public}d,zIndex=%{public}ud",
         pointerEvent->GetPointerId(), pointerEvent->GetPointerAction(), pointerEvent->GetDeviceId(), zIndex);
     pointerEvent->AddFlag(MMI::PointerEvent::EVENT_FLAG_NO_INTERCEPT);
     MMI::InputManager::GetInstance()->SimulateInputEvent(pointerEvent, static_cast<float>(zIndex));
