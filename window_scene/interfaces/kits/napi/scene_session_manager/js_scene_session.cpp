@@ -1548,7 +1548,7 @@ void JsSceneSession::ProcessClearSubSessionRegister()
         }
         jsSceneSession->OnClearSubSession(subPersistentId);
     });
-    TLOGI(WmsLogTag::WMS_LIFE, "success");
+    TLOGD(WmsLogTag::WMS_LIFE, "success");
 }
 
 void JsSceneSession::ProcessBindDialogTargetRegister()

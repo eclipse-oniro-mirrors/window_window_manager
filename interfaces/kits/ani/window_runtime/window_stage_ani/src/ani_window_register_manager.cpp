@@ -959,24 +959,31 @@ WmErrorCode AniWindowRegisterManager::UnregisterListener(sptr<Window> window, co
 WmErrorCode AniWindowRegisterManager::RegisterWindowPostureListener(sptr<Window> window, uint32_t postureMode,
     ani_env* env, ani_ref callback)
 {
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window is null");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     std::lock_guard<std::mutex> lock(postureModeMapMtx_);
     if (IsWindowPostureCallbackRegistered(env, postureMode, callback)) {
         return WmErrorCode::WM_OK;
     }
     ani_ref cbRef{};
     if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]create global ref fail");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]create global ref fail, Window [%{public}u, %{public}s]",
+            window->GetWindowId(), window->GetWindowName().c_str());
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     ani_vm* vm = nullptr;
     ani_status aniRet = env->GetVM(&vm);
     if (aniRet != ANI_OK || vm == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Get VM failed, ret: %{public}u", aniRet);
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Get VM failed, ret: %{public}u, Window [%{public}u, %{public}s]",
+            aniRet, window->GetWindowId(), window->GetWindowName().c_str());
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     auto windowManagerListener = sptr<AniWindowListener>::MakeSptr(env, vm, cbRef, CaseType::CASE_WINDOW);
     if (windowManagerListener == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]New AniWindowListener failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]New AniWindowListener failed, Window [%{public}u, %{public}s]",
+            window->GetWindowId(), window->GetWindowName().c_str());
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     windowManagerListener->SetMainEventHandler();
@@ -1384,17 +1391,29 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowPostureModeChangeRegister(con
     const sptr<Window>& window, bool isRegister, ani_env* env, uint32_t mode)
 {
     if (window == nullptr || listener == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window or listener is null");
+        std::string windowName = (window != nullptr) ? window->GetWindowName() : "";
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] window or listener is null, windowName = '%{public}s'",
+            windowName.c_str());
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
-    sptr<IWindowHoverStateChangeListener> thisListener(listener);
-    WmErrorCode ret = WmErrorCode::WM_OK;
-    if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowHoverStateChangeListener(thisListener));
+    WMError retCode = WMError::WM_OK;
+    if (mode == static_cast<uint32_t>(WindowPostureMode::DESKTOP_MODE)) {
+        sptr<IWindowHoverStateChangeListener> thisListener(listener);
+        if (isRegister) {
+            retCode = window->RegisterWindowHoverStateChangeListener(thisListener);
+        } else {
+            retCode = window->UnregisterWindowHoverStateChangeListener(thisListener);
+        }
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowHoverStateChangeListener(thisListener));
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid window posture mode: %{public}u", mode);
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
-    return ret;
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "retCode=%{public}d", static_cast<int32_t>(retCode));
+    auto retErrCode = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+    if (WM_JS_TO_ERROR_CODE_MAP.count(retCode) > 0) {
+        retErrCode = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
+    }
+    return retErrCode;
 }
 } // namespace Rosen
 } // namespace OHOS

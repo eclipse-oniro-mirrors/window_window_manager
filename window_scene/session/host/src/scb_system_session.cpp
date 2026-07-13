@@ -260,7 +260,7 @@ void SCBSystemSession::SetIsUseControlSession(bool isUseControlSession)
 
 void SCBSystemSession::NotifyWindowSceneDetach()
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d in", GetPersistentId());
+    TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
     if (GetSessionState() == SessionState::STATE_DISCONNECT && isAlreadyDisconnect_) {
         TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d release surfaceNode", GetPersistentId());
         std::lock_guard<std::mutex> lock(surfaceNodeMutex_);

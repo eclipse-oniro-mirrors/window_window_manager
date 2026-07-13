@@ -129,7 +129,7 @@ private:
         WSPropertyChangeAction action) override;
 
     sptr<KeyboardSessionCallback> keyboardCallback_ = nullptr;
-    bool isKeyboardSyncTransactionOpen_ = false;
+    std::atomic<bool> isKeyboardSyncTransactionOpen_ = false;
     NotifyKeyboarEffectOptionChangeFunc changeKeyboardEffectOptionFunc_;
     bool isCalculateOccupiedAreaWaitUntilDragEnd_ = false;
     WMError IsLandscape(uint64_t screenId, bool& isLandscape);

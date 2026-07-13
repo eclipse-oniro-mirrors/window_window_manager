@@ -11892,13 +11892,36 @@ napi_value JsWindow::OnIsInWindowPostureMode(napi_env env, napi_callback_info in
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                               "[window][isInWindowPostureMode]msg: The window is not created or destroyed");
     }
-    auto result = windowToken_->GetWindowHoverState();
+    constexpr size_t argcSize = 1;
+    size_t argc = 4;
+    napi_value argv[4] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != argcSize) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][isInWindowPostureMode]msg: Incorrect number of parameters.");
+    }
+    WindowPostureMode postureMode = WindowPostureMode::END;
+    WmErrorCode errCode = ParseWindowPostureMode(env, argv[0], postureMode);
+    if (errCode != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, errCode,
+                              "[window][isInWindowPostureMode]msg: parse window posture mode failed.");
+    }
+    bool result = false;
+    if (postureMode == WindowPostureMode::DESKTOP_MODE) {
+        result = windowToken_->GetWindowHoverState();
+    } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid posture mode: %{public}u", static_cast<uint32_t>(postureMode));
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][isInWindowPostureMode]msg: Invalid posture mode.");
+    }
     auto objValue = CreateJsValue(env, result);
     if (objValue != nullptr) {
         return objValue;
     } else {
+        std::string windowName = windowToken_->GetWindowName();
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, 
-            "[window][isInWindowPostureMode]msg: Internal task error");
+            "[window][isInWindowPostureMode]msg: Internal task error, windowName='" + windowName + "'");
     }
 }
 
@@ -11907,19 +11930,19 @@ WmErrorCode JsWindow::ParseWindowPostureMode(napi_env env, napi_value nativeMode
     postureMode = WindowPostureMode::END;
     if (nativeMode == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid param");
-        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     uint32_t resultValue = 0;
     WmErrorCode errCode = WmErrorCode::WM_OK;
     CHECK_NAPI_RETCODE(
-        errCode, WmErrorCode::WM_ERROR_INVALID_PARAM, napi_get_value_uint32(env, nativeMode, &resultValue));
+        errCode, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, napi_get_value_uint32(env, nativeMode, &resultValue));
     if (errCode != WmErrorCode::WM_OK) {
         return errCode;
     }
     if (resultValue < static_cast<uint32_t>(WindowPostureMode::START) ||
             resultValue >= static_cast<uint32_t>(WindowPostureMode::END)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid posture mode: %{public}u", resultValue);
-        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     postureMode = static_cast<WindowPostureMode>(resultValue);
     return WmErrorCode::WM_OK;
@@ -11940,20 +11963,20 @@ napi_value JsWindow::OnRegisterWindowPostureModeChange(napi_env env, napi_callba
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != argcSize) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
                               "[window][onWindowPostureModeChange]msg: Incorrect number of parameters.");
     }
     WindowPostureMode postureMode = WindowPostureMode::END;
     errCode = ParseWindowPostureMode(env, argv[0], postureMode);
     if (errCode != WmErrorCode::WM_OK) {
         return NapiThrowError(env, errCode,
-                              "[window][offWindowPostureModeChange]msg: parse window posture mode failed.");
+                              "[window][onWindowPostureModeChange]msg: parse window posture mode failed.");
     }
     size_t cbIndex = argc - 1;
     napi_value callback = argv[cbIndex];
     if (!NapiIsCallable(env, callback)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Callback(info->argv[%{public}zu]) is not callable", cbIndex);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
                               "[window][onWindowPostureModeChange]msg: Callback is not callable.");
     }
     auto ret = registerManager_->RegisterWindowPostureModeListener(env, windowToken, callback, postureMode);
@@ -11970,7 +11993,7 @@ napi_value JsWindow::OnUnregisterWindowPostureModeChange(napi_env env, napi_call
     WmErrorCode errCode = WmErrorCode::WM_OK;
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Window is nullptr");
-        return NapiThrowError(env,  WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                               "[window][offWindowPostureModeChange]msg: The window is not created or destroyed.");
     }
     sptr<Window> windowToken = windowToken_;
@@ -11981,7 +12004,7 @@ napi_value JsWindow::OnUnregisterWindowPostureModeChange(napi_env env, napi_call
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < argcMin || argc > argcMax) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
                               "[window][offWindowPostureModeChange]msg: Incorrect number of parameters.");
     }
     WindowPostureMode postureMode = WindowPostureMode::END;
@@ -11996,7 +12019,7 @@ napi_value JsWindow::OnUnregisterWindowPostureModeChange(napi_env env, napi_call
         callback = argv[cbIndex];
         if (!NapiIsCallable(env, callback)) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Callback(info->argv[%{public}zu]) is not callable", cbIndex);
-            return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
                                 "[window][offWindowPostureModeChange]msg: Callback is not callable.");
         }
     }

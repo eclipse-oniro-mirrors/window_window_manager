@@ -683,7 +683,7 @@ WSError SceneSession::BackgroundTask(const bool isSaveSnapshot, LifeCycleChangeR
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s isFromInnerkits: %{public}d", where, isFromInnerkits);
+        TLOGND(WmsLogTag::WMS_LIFE, "%{public}s isFromInnerkits: %{public}d", where, isFromInnerkits);
         auto state = session->GetSessionState();
         if (state == SessionState::STATE_BACKGROUND) {
             return WSError::WS_OK;
@@ -856,7 +856,7 @@ WSError SceneSession::DisconnectTask(bool isFromClient, bool isSaveSnapshot, boo
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s isFromInnerkits: %{public}d", where, isFromInnerkits);
+        TLOGND(WmsLogTag::WMS_LIFE, "%{public}s isFromInnerkits: %{public}d", where, isFromInnerkits);
         auto isMainWindow = SessionHelper::IsMainWindow(session->GetWindowType());
         if (isMainWindow) {
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s Notify scene session id: %{public}d paused", where,
@@ -1646,7 +1646,7 @@ void SceneSession::UpdatePrivacyModeControlInfo()
     }
     ControlInfo controlInfo;
     if (!isPrivacyMode && !GetAppControlInfo(ControlAppType::PRIVACY_WINDOW, controlInfo)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "no need to update privacy mode control info");
+        TLOGI(WmsLogTag::WMS_LIFE, "Not update");
         return;
     }
     controlInfo = { .isNeedControl = isPrivacyMode, .isControlRecentOnly = true };

@@ -931,6 +931,10 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
 WmErrorCode JsWindowRegisterManager::RegisterWindowPostureModeListener(napi_env env, sptr<Window> window,
     napi_value callback, WindowPostureMode mode)
 {
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "window is null");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     std::lock_guard<std::mutex> lock(postureModeMapMtx_);
     if (IsWindowPostureCallbackRegistered(env, mode, callback)) {
         return WmErrorCode::WM_OK;
@@ -941,7 +945,8 @@ WmErrorCode JsWindowRegisterManager::RegisterWindowPostureModeListener(napi_env 
     sptr<JsWindowListener> windowManagerListener = new(std::nothrow) JsWindowListener(env,
         callbackRef, CaseType::CASE_WINDOW);
     if (windowManagerListener == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "New JsWindowListener failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "New JsWindowListener failed, Window [%{public}u, %{public}s]",
+            window->GetWindowId(), window->GetWindowName().c_str());
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     windowManagerListener->SetMainEventHandler();
@@ -1316,13 +1321,15 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowPostureModeChangeRegister(cons
     const sptr<Window>& window, bool isRegister, napi_env env, WindowPostureMode mode)
 {
     if (window == nullptr || listener == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "window or listener is null");
+        std::string windowName = (window != nullptr) ? window->GetWindowName() : "";
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "window or listener is null, windowName='%{public}s'",
+            windowName.c_str());
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
 
     WMError retCode = WMError::WM_OK;
-    sptr<IWindowHoverStateChangeListener> thisListener(listener);
     if (mode == WindowPostureMode::DESKTOP_MODE) {
+        sptr<IWindowHoverStateChangeListener> thisListener(listener);
         if (isRegister) {
             retCode = window->RegisterWindowHoverStateChangeListener(thisListener);
         } else {
@@ -1330,14 +1337,10 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowPostureModeChangeRegister(cons
         }
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid window posture mode: %{public}u", static_cast<uint32_t>(mode));
-        return WmErrorCode::WM_ERROR_INVALID_PARAM;
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "retCode=%{public}d", static_cast<int32_t>(retCode));
-    auto retErrCode = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
-    if (WM_JS_TO_ERROR_CODE_MAP.count(retCode) > 0) {
-        retErrCode = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
-    }
-    return retErrCode;
+    return MappingWmErrorCodeSafely(retCode);
 }
 } // namespace Rosen
 } // namespace OHOS

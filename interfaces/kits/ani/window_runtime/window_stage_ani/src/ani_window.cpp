@@ -6136,7 +6136,28 @@ bool AniWindow::OnIsInWindowPostureMode(ani_env* env, ani_enum_item mode)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return false;
     }
-    auto result = windowToken_->GetWindowHoverState();
+    uint32_t postureMode = static_cast<uint32_t>(WindowPostureMode::END);
+    ani_status aniRet = AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] get enum value failed, ret: %{public}d", static_cast<int32_t>(aniRet));
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return false;
+    }
+    if (postureMode < static_cast<uint32_t>(WindowPostureMode::START) ||
+            postureMode >= static_cast<uint32_t>(WindowPostureMode::END)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] postureMode %{public}u failed", postureMode);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return false;
+    }
+    WindowPostureMode enumMode = static_cast<WindowPostureMode>(postureMode);
+    bool result = false;
+    if (enumMode == WindowPostureMode::DESKTOP_MODE) {
+        result = windowToken_->GetWindowHoverState();
+    } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] postureMode %{public}u failed", postureMode);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return false;
+    }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "GetWindowHoverState %{public}d", result);
     return result;
 }
@@ -6179,11 +6200,16 @@ void AniWindow::OnRegisterWindowPostureModeChange(ani_env* env, ani_enum_item mo
         return;
     }
     uint32_t postureMode = static_cast<uint32_t>(WindowPostureMode::END);
-    AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    ani_status aniRet = AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] get enum value failed, ret: %{public}d", static_cast<int32_t>(aniRet));
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return;
+    }
     if (postureMode < static_cast<uint32_t>(WindowPostureMode::START) ||
             postureMode >= static_cast<uint32_t>(WindowPostureMode::END)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] postureMode %{public}u failed", postureMode);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] mode:%{public}u", postureMode);
@@ -6204,11 +6230,16 @@ void AniWindow::OnUnregisterWindowPostureModeChange(ani_env* env, ani_enum_item 
         return;
     }
     uint32_t postureMode = static_cast<uint32_t>(WindowPostureMode::END);
-    AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    ani_status aniRet = AniWindowUtils::GetEnumValue(env, mode, postureMode);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] get enum value failed, ret: %{public}d", static_cast<int32_t>(aniRet));
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return;
+    }
     if (postureMode < static_cast<uint32_t>(WindowPostureMode::START) ||
             postureMode >= static_cast<uint32_t>(WindowPostureMode::END)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] postureMode %{public}u failed", postureMode);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return;
     }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI] mode:%{public}u", postureMode);

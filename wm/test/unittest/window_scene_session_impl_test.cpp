@@ -1822,7 +1822,7 @@ HWTEST_F(WindowSceneSessionImplTest, Hide04, TestSize.Level0)
     EXPECT_EQ(WMError::WM_OK, window->Show(0, false, true, false));
 
     EXPECT_EQ(WMError::WM_OK, window->Hide(0, false, false, true));
-    EXPECT_FALSE(g_logMsg.find("lifecycleCallback is null") == std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("Callback is null") == std::string::npos);
     EXPECT_FALSE(g_logMsg.find("window attach state timeout, persistentId") == std::string::npos);
     EXPECT_FALSE(g_logMsg.find("get attach state sync result, id") == std::string::npos);
     EXPECT_EQ(WMError::WM_OK, window->Show(0, false, true, true));
