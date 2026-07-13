@@ -58,6 +58,7 @@ public:
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(uint32_t, ModeId, modeId, 0);
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(std::string, SerialNumber, serialNumber, "");
     DEFINE_VAR_DEFAULT_FUNC_GET_SET(ScreenId, RsId, rsId, SCREEN_ID_INVALID);
+    DEFINE_VAR_DEFAULT_FUNC_GET_SET(bool, IsInUse isInUse, false);
     DEFINE_VAR_FUNC_GET(std::vector<sptr<SupportedScreenModes>>, Modes, modes);
 protected:
     const static uint32_t MAX_SUPPORTED_SCREEN_MODES_SIZE = 20;

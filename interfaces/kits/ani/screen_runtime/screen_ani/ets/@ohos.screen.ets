@@ -431,6 +431,8 @@ export interface Screen {
 
     readonly screenType: ScreenType;
 
+    readonly isInUse: boolean;
+
     setDensityDpi(densityDpi: double, callback: AsyncCallback<void>): void;
 
     setDensityDpi(densityDpi: double): Promise<void>;
@@ -468,6 +470,8 @@ class ScreenImpl implements Screen {
     readonly sourceMode: ScreenSourceMode;
 
     readonly screenType: ScreenType;
+
+    readonly isInUse: boolean;
 
     screenNativeObj: long;
 
