@@ -2207,6 +2207,14 @@ bool Session::IsNeedNotifyAttachState(bool isAttach)
             GetPersistentId());
         return false;
     }
+    if (WindowHelper::IsSubWindow(GetWindowType())) {
+        auto mainSession = GetMainSession();
+        if ((mainSession && mainSession->GetShowRecent()) || isAttach == isClientAttach_) {
+            TLOGI(WmsLogTag::WMS_LIFE, "No need notifyWindowAttachStateChange, persistentId:%{public}d",
+                GetPersistentId());
+            return false;
+        }
+    }
     return true;
 }
 
