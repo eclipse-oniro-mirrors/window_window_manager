@@ -271,6 +271,13 @@ bool DisplayManagerAdapterLite::TryToCancelScreenOff()
     return displayManagerServiceProxy_->TryToCancelScreenOff();
 }
 
+void DisplayManagerAdapterLite::NotifyBootAnimationFinished()
+{
+    INIT_PROXY_CHECK_RETURN();
+
+    displayManagerServiceProxy_->NotifyBootAnimationFinished();
+}
+
 bool DisplayManagerAdapterLite::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
     if (IsScreenLessDevice()) {

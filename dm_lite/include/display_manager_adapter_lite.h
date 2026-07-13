@@ -96,6 +96,7 @@ public:
     virtual bool SetDisplayState(DisplayState state);
     virtual DisplayState GetDisplayState(DisplayId displayId);
     virtual bool TryToCancelScreenOff();
+    virtual void NotifyBootAnimationFinished();
     virtual bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
     virtual uint32_t GetScreenBrightness(uint64_t screenId);
     virtual DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);

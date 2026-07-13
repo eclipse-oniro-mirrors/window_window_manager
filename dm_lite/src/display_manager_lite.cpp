@@ -960,6 +960,11 @@ bool DisplayManagerLite::TryToCancelScreenOff()
     return SingletonContainer::Get<DisplayManagerAdapterLite>().TryToCancelScreenOff();
 }
 
+void DisplayManagerLite::NotifyBootAnimationFinished()
+{
+    SingletonContainer::Get<DisplayManagerAdapterLite>().NotifyBootAnimationFinished();
+}
+
 bool DisplayManagerLite::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
     TLOGD(WmsLogTag::DMS, "[UL_POWER]SetScreenBrightness screenId:%{public}" PRIu64

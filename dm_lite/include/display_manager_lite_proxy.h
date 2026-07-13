@@ -89,6 +89,7 @@ public:
     bool SynchronizePowerStatus(ScreenPowerState state);
     DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height, float virtualPixelRatio);
     sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
+    void NotifyBootAnimationFinished();
 private:
     static inline DMError ConvertToDMError(ErrCode errCode, int32_t dmError);
     sptr<IRemoteObject> Remote()

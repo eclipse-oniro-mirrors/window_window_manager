@@ -261,6 +261,31 @@ FoldDisplayMode DisplayManagerLiteProxy::GetFoldDisplayMode()
 #endif
 }
 
+void DisplayManagerLiteProxy::NotifyBootAnimationFinished()
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+    TLOGI(WmsLogTag::DMS, "NotifyBootAnimationFinished async sent");
+#endif
+}
+
 void DisplayManagerLiteProxy::SetFoldDisplayMode(const FoldDisplayMode displayMode)
 {
 #ifdef SCENE_BOARD_ENABLED
