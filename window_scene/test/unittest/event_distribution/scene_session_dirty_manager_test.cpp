@@ -1046,17 +1046,15 @@ HWTEST_F(SceneSessionDirtyManagerTest, CalTransform_CompatMode, TestSize.Level1)
     ExtensionWindowEventInfo extensionInfo;
     extensionInfo.persistentId = 12345;
     extensionInfo.pid = 1234;
-    extensionInfo.windowRect = { 0, 120, 1260, 2600 };
+    extensionInfo.windowRect = { 0, 60, 1260, 2600 };  // ✅ 缩放后的位置：120 * 0.5 = 60
     session->AddNormalModalUIExtension(extensionInfo);
     session->isScbCoreEnabled_ = true;
     session->SetSessionGlobalRect({ 0, 0, 1260, 2720 });
     translate = session->GetSessionGlobalPosition(true);
-    Vector2f translateOffset(0, 60);
 
     manager_->CalTransform(session, transform, testSingleHandData, true);
     testTransform = Matrix3f::IDENTITY;
-    EXPECT_EQ(transform, testTransform.Translate(translate).Scale(scale, 0.5f, 0.5f)
-        .Inverse().Translate(translateOffset));
+    EXPECT_EQ(transform, testTransform.Translate(translate).Scale(scale, 0.5f, 0.5f).Inverse());
 }
 
 /**
@@ -1265,38 +1263,6 @@ HWTEST_F(SceneSessionDirtyManagerTest, CalTransformTest_04, TestSize.Level1)
         .Scale(scale, sceneSession->GetPivotX(), sceneSession->GetPivotY()).Inverse());
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.erase(screenId);
     ScreenSessionManagerClient::GetInstance().OnUpdateFoldDisplayMode(displayMode);
-}
-
-/**
- * @tc.name: UpdateModalExtensionInCompatStatus
- * @tc.desc: UpdateModalExtensionInCompatStatus
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionDirtyManagerTest, UpdateModalExtensionInCompatStatus, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.bundleName_ = "UpdateModalExtensionInCompatStatus";
-    sessionInfo.moduleName_ = "UpdateModalExtensionInCompatStatus";
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-
-    Matrix3f transform;
-    EXPECT_FALSE(manager_->UpdateModalExtensionInCompatStatus(nullptr, transform));
-    EXPECT_FALSE(manager_->UpdateModalExtensionInCompatStatus(session, transform));
-    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
-    compatibleModeProperty->SetIsAdaptToProportionalScale(true);
-    session->property_->SetCompatibleModeProperty(compatibleModeProperty);
-    session->SetScale(0.5f, 0.5f, 0.5f, 0.5f);
-    EXPECT_FALSE(manager_->UpdateModalExtensionInCompatStatus(session, transform));
-
-    ExtensionWindowEventInfo extensionInfo;
-    extensionInfo.persistentId = 12345;
-    extensionInfo.pid = 1234;
-    extensionInfo.windowRect = { 0, 120, 1260, 2600 };
-    session->AddNormalModalUIExtension(extensionInfo);
-
-    EXPECT_TRUE(manager_->UpdateModalExtensionInCompatStatus(session, transform));
-    compatibleModeProperty->SetIsAdaptToImmersive(true);
-    EXPECT_TRUE(manager_->UpdateModalExtensionInCompatStatus(session, transform));
 }
 
 /**

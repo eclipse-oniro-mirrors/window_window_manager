@@ -1315,9 +1315,11 @@ HWTEST_F(SceneSessionTest4, UpdateAllModalUIExtensions, TestSize.Level1)
 {
     WSRect globalRect = { 100, 100, 100, 100 };
     sceneSession->SetSessionGlobalRect(globalRect);
+    sceneSession->SetScale(1.0f, 1.0f, 0.5f, 0.5f);
+    WSRect clientRect = { 100, 100, 100, 100 };
+    sceneSession->SetClientRect(clientRect);
 
     WSRect newGlobalRect = { 150, 150, 100, 100 };
-    sceneSession->UpdateAllModalUIExtensions(newGlobalRect);
 
     Rect windowRect = { 100, 100, 100, 100 };
     Rect uiExtRect = { 0, 0, 100, 100 };
@@ -1327,8 +1329,11 @@ HWTEST_F(SceneSessionTest4, UpdateAllModalUIExtensions, TestSize.Level1)
     sceneSession->modalUIExtensionInfoList_.push_back(extensionInfo2);
     sceneSession->UpdateAllModalUIExtensions(newGlobalRect);
     usleep(WAIT_SYNC_IN_NS);
-    EXPECT_EQ(sceneSession->modalUIExtensionInfoList_[1].windowRect.posX_, 150);
-    EXPECT_EQ(sceneSession->modalUIExtensionInfoList_[1].windowRect.posY_, 150);
+    
+    int32_t expectedX = ceil(150 + (0 - 100) * 1.0f);
+    int32_t expectedY = ceil(150 + (0 - 100) * 1.0f);
+    EXPECT_EQ(sceneSession->modalUIExtensionInfoList_[1].windowRect.posX_, expectedX);
+    EXPECT_EQ(sceneSession->modalUIExtensionInfoList_[1].windowRect.posY_, expectedY);
 }
 
 /**

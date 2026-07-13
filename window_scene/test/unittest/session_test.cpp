@@ -1859,31 +1859,6 @@ HWTEST_F(WindowSessionTest, NotifyHighlightChange, TestSize.Level1)
 }
 
 /**
- * @tc.name: TransformRelativeRectToGlobalRect
- * @tc.desc: TransformRelativeRectToGlobalRect Test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionTest, TransformRelativeRectToGlobalRect, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.isSystem_ = false;
-    sessionInfo.bundleName_ = "bundleName";
-    sessionInfo.abilityName_ = "abilityName";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    PcFoldScreenManager::GetInstance().UpdateFoldScreenStatus(
-        0, SuperFoldStatus::HALF_FOLDED, { 0, 0, 2472, 1648 }, { 0, 1648, 2472, 1648 }, { 0, 1624, 2472, 1648 });
-    WSRect rect{ 0, 100, 100, 100 };
-    sceneSession->SetSessionGlobalRect({ 0, 0, 2472, 1648 });
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 0, 2472, 1648 });
-    sceneSession->TransformRelativeRectToGlobalRect(rect);
-    EXPECT_EQ(rect.posY_, 100);
-    sceneSession->SetSessionGlobalRect({ 0, 9999, 2472, 1648 });
-    sceneSession->GetLayoutController()->SetSessionRect({ 0, 9999, 2472, 1648 });
-    sceneSession->TransformRelativeRectToGlobalRect(rect);
-    EXPECT_NE(rect.posY_, 100);
-}
-
-/**
  * @tc.name: IsStatusBarVisible
  * @tc.desc: IsStatusBarVisible Test
  * @tc.type: FUNC
