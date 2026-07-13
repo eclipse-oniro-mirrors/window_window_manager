@@ -1327,6 +1327,8 @@ HWTEST_F(SceneSessionTest4, UpdateAllModalUIExtensions, TestSize.Level1)
     sceneSession->modalUIExtensionInfoList_.push_back(extensionInfo2);
     sceneSession->UpdateAllModalUIExtensions(newGlobalRect);
     usleep(WAIT_SYNC_IN_NS);
+    EXPECT_EQ(sceneSession->modalUIExtensionInfoList_[1].windowRect.posX_, 150);
+    EXPECT_EQ(sceneSession->modalUIExtensionInfoList_[1].windowRect.posY_, 150);
 }
 
 /**
