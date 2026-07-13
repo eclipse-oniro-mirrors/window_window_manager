@@ -29,6 +29,8 @@
             OHOS::Rosen::ScreenProperty::GetInputOffsetX*;
             OHOS::Rosen::ScreenProperty::GetInputOffsetY*;
             OHOS::Rosen::ScreenProperty::GetIsFakeInUse*;
+            OHOS::Rosen::ScreenProperty::GetIsInUse*;
+            OHOS::Rosen::ScreenProperty::SetIsInUse*;
             OHOS::Rosen::ScreenProperty::GetOffsetX*;
             OHOS::Rosen::ScreenProperty::GetOffsetY*;
             OHOS::Rosen::ScreenProperty::GetOrientation*;
@@ -353,6 +355,8 @@
             OHOS::Rosen::ScreenSession::SetRogScreenResolution*;
             OHOS::Rosen::ScreenSession::GetRenderSession*;
             OHOS::Rosen::ScreenSession::SetRenderSession*;
+            OHOS::Rosen::ScreenSession::SetScreenInUseStatus*;
+            OHOS::Rosen::ScreenSession::isInUse*;
             OHOS::Rosen::ScreenSessionGroup::AddChild*;
             OHOS::Rosen::ScreenSessionGroup::ConvertToScreenGroupInfo*;
             OHOS::Rosen::ScreenSessionGroup::GetChildCount*;

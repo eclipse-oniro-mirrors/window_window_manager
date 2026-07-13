@@ -307,6 +307,9 @@ void ScreenSessionManagerClient::OnPropertyChanged(ScreenId screenId,
             screenSession->SetScreenProperty(oldProperty);
         }
         return;
+    } else if (reason == ScreenPropertyChangeReason::SYNC_ClIENT_SCREEN_PROPERTY_ONLY) {
+        screenSession->SetScreenProperty(property);
+        return;
     }
     screenSession->PropertyChange(property, reason);
 }
