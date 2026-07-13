@@ -756,6 +756,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SwitchFreeMultiWindow02, TestSize.Level1)
     subWindow->property_->SetIsUIExtFirstSubWindow(true);
     EXPECT_EQ(WSError::WS_OK, subWindow->SwitchFreeMultiWindow(true, {}));
     EXPECT_EQ(true, subWindow->IsPcOrPadFreeMultiWindowMode());
+    subWindow->property_->SetIsUIExtFirstSubWindow(false);
 
     EXPECT_EQ(WMError::WM_OK, mainWindow->Destroy(true));
     EXPECT_EQ(WMError::WM_OK, floatWindow->Destroy(true));
