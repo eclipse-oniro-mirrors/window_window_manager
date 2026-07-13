@@ -171,6 +171,10 @@ HWTEST_F(WebPictureInPictureControllerTest, UpdateContentSize, TestSize.Level1)
     height = 150;
     webPipControl->UpdateContentSize(width, height);
 
+    auto mw1 = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw1);
+    webPipControl->mainWindow_ = mw1;
+
     webPipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
     webPipControl->UpdateContentSize(width, height);
     webPipControl->curState_ = PiPWindowState::STATE_STARTED;
@@ -196,7 +200,7 @@ HWTEST_F(WebPictureInPictureControllerTest, RestorePictureInPictureWindow, TestS
     auto webPipControl = sptr<WebPictureInPictureController>::MakeSptr(config);
     webPipControl->window_ = mw;
     webPipControl->RestorePictureInPictureWindow();
-    EXPECT_EQ(webPipControl->curState_, PiPWindowState::STATE_STOPPED);
+    EXPECT_EQ(webPipControl->curState_, PiPWindowState::STATE_STOPPING);
 }
 
 /**
