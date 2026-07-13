@@ -64,6 +64,7 @@ public:
 private:
     void NotifyFoldStatus(ScreenClosedState screenClosedState);
     void SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination);
+    bool ChangeScreenStatusMainHasExternalScreen(ScreenId screenIdOn);
     std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::mutex currentScreenIdMutex_;
     ScreenId currentScreenId_ = { SCREEN_ID_INVALID };

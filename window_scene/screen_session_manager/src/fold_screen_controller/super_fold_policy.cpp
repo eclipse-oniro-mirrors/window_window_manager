@@ -370,6 +370,11 @@ void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isSc
     }
     if (isScreenOn) {
         auto task = [=] {
+            if (ChangeScreenStatusMainHasExternalScreen(screenId)) {
+                TLOGNI(WmsLogTag::DMS, "expand to fold has internal screen return");
+                SetdisplayModeChangeStatus(false);
+                return;
+            }
             TLOGNI(WmsLogTag::DMS, "SetScreenPower: off screenId: %{public}" PRIu64"", offScreenId);
             ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(offScreenId,
                 ScreenPowerStatus::POWER_STATUS_OFF);
@@ -386,6 +391,17 @@ void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isSc
         SetdisplayModeChangeStatus(false);
     }
     SetCurrentScreenId(screenId);
+}
+
+bool SuperFoldPolicy::ChangeScreenStatusMainHasExternalScreen(ScreenId screenIdOn)
+{
+    if (ScreenSessionManager::GetInstance().CountRealPhysicalScreensNotInternal() > 0 &&
+        screenIdOn == SCREEN_ID_MAIN) {
+        PowerMgr::PowerMgrClient::GetInstance().SuspendDevice();
+        SetScreenPowerState(screenIdOn, DisplayState::OFF);
+        return true;
+    }
+    return false;
 }
 
 void SuperFoldPolicy::SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination)
