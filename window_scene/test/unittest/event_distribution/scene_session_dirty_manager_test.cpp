@@ -1046,7 +1046,7 @@ HWTEST_F(SceneSessionDirtyManagerTest, CalTransform_CompatMode, TestSize.Level1)
     ExtensionWindowEventInfo extensionInfo;
     extensionInfo.persistentId = 12345;
     extensionInfo.pid = 1234;
-    extensionInfo.windowRect = { 0, 60, 1260, 2600 };  // ✅ 缩放后的位置：120 * 0.5 = 60
+    extensionInfo.windowRect = { 0, 60, 1260, 2600 };
     session->AddNormalModalUIExtension(extensionInfo);
     session->isScbCoreEnabled_ = true;
     session->SetSessionGlobalRect({ 0, 0, 1260, 2720 });
