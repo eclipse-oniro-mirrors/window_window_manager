@@ -1344,8 +1344,6 @@ void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI:
     MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable)
 {
     const int32_t& action = pointerEvent->GetPointerAction();
-    const auto& sourceType = pointerEvent->GetSourceType();
-    const auto& rect = SessionHelper::TransferToWSRect(GetRect());
     bool isPointDown = (action == MMI::PointerEvent::POINTER_ACTION_DOWN ||
         action == MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN);
     bool needNotifyEvent = true;
@@ -1391,12 +1389,8 @@ void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI:
         pointerEvent->MarkProcessed();
     }
     if (isPointDown || isPointUp) {
-        TLOGI(WmsLogTag::WMS_INPUT_KEY_FLOW, "InputId:%{public}d,wid:%{public}u,pointId:%{public}d"
-            ",srcType:%{public}d,rect:[%{public}d,%{public}d,%{public}u,%{public}u]"
-            ",notify:%{public}d",
-            pointerEvent->GetId(), GetWindowId(), pointerEvent->GetPointerId(),
-            sourceType, rect.posX_, rect.posY_, rect.width_, rect.height_,
-            needNotifyEvent);
+        TLOGNI(WmsLogTag::WMS_INPUT_KEY_FLOW, "ConsumePointerEvent InputId:%{public}d,notify:%{public}d",
+            pointerEvent->GetId(), needNotifyEvent);
     }
 }
 
@@ -2341,7 +2335,7 @@ void WindowSceneSessionImpl::NotifyFreeMultiWindowModeResume()
 
 void WindowSceneSessionImpl::Resume(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in, isColdStart: %{public}d, isDidForeground: %{public}d, isGamePreLaunch:%{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d, isDidForeground: %{public}d, isGamePreLaunch:%{public}d",
         isColdStart_, isDidForeground_, isGamePreLaunch);
     isDidForeground_ = true;
     isColdStart_ = false;
@@ -2350,7 +2344,7 @@ void WindowSceneSessionImpl::Resume(bool isGamePreLaunch)
 
 void WindowSceneSessionImpl::Pause(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in, isColdStart: %{public}d isGamePreLaunch: %{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d isGamePreLaunch: %{public}d",
         isColdStart_, isGamePreLaunch);
     isColdStart_ = false;
     NotifyAfterLifecyclePaused();

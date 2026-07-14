@@ -192,7 +192,7 @@ WMError WindowScene::GoResume(bool isGamePreLaunch)
 
 WMError WindowScene::GoPause(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in isGamePreLaunch: %{public}d", isGamePreLaunch);
+    TLOGD(WmsLogTag::WMS_LIFE, "isGamePreLaunch: %{public}d", isGamePreLaunch);
     auto mainWindow = GetMainWindow();
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "failed, because main window is null");

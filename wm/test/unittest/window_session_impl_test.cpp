@@ -3169,7 +3169,7 @@ HWTEST_F(WindowSessionImplTest, GetAttachStateSyncResult, TestSize.Level1)
     window->lifecycleCallback_ = nullptr;
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     window->GetAttachStateSyncResult(true, true);
-    EXPECT_TRUE(g_errLog.find("lifecycleCallback is null") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("Callback is null") != std::string::npos);
     EXPECT_TRUE(g_errLog.find("get attach state sync result") == std::string::npos);
 
     window->lifecycleCallback_ = sptr<LifecycleFutureCallback>::MakeSptr();
