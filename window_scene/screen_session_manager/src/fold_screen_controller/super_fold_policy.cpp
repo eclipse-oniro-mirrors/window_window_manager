@@ -341,6 +341,10 @@ bool SuperFoldPolicy::CheckDisplayMode(FoldDisplayMode displayMode)
         TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
         return false;
     }
+    if (GetCurrentDisplayMode() != FoldDisplayMode::FULL && displayMode == FoldDisplayMode::COORDINATION) {
+        TLOGI(WmsLogTag::DMS, "only full can enter coordination");
+        return false;
+    }
     return true;
 }
 
@@ -512,10 +516,6 @@ void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
 
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
 {
-    if (GetCurrentDisplayMode() != FoldDisplayMode::FULL) {
-        TLOGI(WmsLogTag::DMS, "only full can enter coordination");
-        return;
-    }
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     auto taskCoordination = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on full screenId");
