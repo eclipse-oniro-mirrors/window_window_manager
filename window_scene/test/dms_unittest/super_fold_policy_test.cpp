@@ -326,6 +326,39 @@ HWTEST_F(SuperFoldPolicyTest, CheckDisplayMode05, TestSize.Level1)
     EXPECT_TRUE(ret);
 }
 
+HWTEST_F(SuperFoldPolicyTest, CheckDisplayMode06, TestSize.Level1)
+{
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    FoldDisplayMode mode = FoldDisplayMode::MAIN;
+    bool ret = SuperFoldPolicy::GetInstance().CheckDisplayMode(mode);
+    EXPECT_TRUE(ret);
+}
+
+HWTEST_F(SuperFoldPolicyTest, CheckDisplayMode07, TestSize.Level1)
+{
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    FoldDisplayMode mode = FoldDisplayMode::COORDINATION;
+    bool ret = SuperFoldPolicy::GetInstance().CheckDisplayMode(mode);
+    EXPECT_TRUE(ret);
+}
+
+HWTEST_F(SuperFoldPolicyTest, CheckDisplayMode08, TestSize.Level1)
+{
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    FoldDisplayMode mode = FoldDisplayMode::COORDINATION;
+    bool ret = SuperFoldPolicy::GetInstance().CheckDisplayMode(mode);
+    EXPECT_FALSE(ret);
+}
+
 HWTEST_F(SuperFoldPolicyTest, GetModeChangeRunningStatus01, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
@@ -456,11 +489,11 @@ HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeInner05, TestSize.Level1)
 
 HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeToCoordination, TestSize.Level1)
 {
-    LOG_SetCallback(MyLogCallback);
-    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
     bool isScreenOn = true;
     SuperFoldPolicy::GetInstance().ChangeScreenDisplayModeToCoordination(isScreenOn);
-    EXPECT_TRUE(g_logMsg.find("only full can enter coordination") != std::string::npos);
+    auto coordinationFlag = ScreenSessionManager::GetInstance().GetCoordinationFlag();
+    EXPECT_TRUE(coordinationFlag);
     g_logMsg.clear();
 }
 
