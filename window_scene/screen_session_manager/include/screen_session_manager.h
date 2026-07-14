@@ -689,6 +689,8 @@ public:
     bool IsOnBootAnimation() const;
     void NotifyBootAnimationFinished() override;
 
+    int32_t CountRealPhysicalScreensNotInternal();
+
 protected:
     ScreenSessionManager();
     virtual ~ScreenSessionManager() = default;
@@ -1319,6 +1321,10 @@ private:
     void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
     void ApplyVirtualScreenScale(const sptr<ScreenSession>& screenSession,
         uint32_t width, uint32_t height, uint32_t renderWidth, uint32_t renderHeight);
+
+    bool CanWakeUpDevice();
+    void ScreenDisconnectWakeUpDevice();
+    DMError SetFoldDisplayModeForSuperMultiDevice(const FoldDisplayMode displayMode, std::string& reason);
 
     // custom resolution
     void RegisterSettingCustomResolutionObserver();

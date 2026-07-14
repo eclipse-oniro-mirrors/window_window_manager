@@ -645,6 +645,89 @@ HWTEST_F(SuperFoldPolicyTest, SetScreenCombination02, TestSize.Level1)
     ScreenSessionManager::GetInstance().screenSessionMap_.erase(screenId);
     g_logMsg.clear();
 }
+
+HWTEST_F(SuperFoldPolicyTest, ChangeScreenStatusMainHasExternalScreen01, TestSize.Level1)
+{
+    ScreenId externalId = 100;
+    ScreenSessionConfig externalConfig = {
+        .screenId = externalId,
+    };
+    sptr<ScreenSession> externalSession = sptr<ScreenSession>::MakeSptr(externalConfig,
+        ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    externalSession->SetScreenType(ScreenType::REAL);
+    externalSession->SetIsInternal(false);
+    {
+        std::lock_guard<std::recursive_mutex> lock(ScreenSessionManager::GetInstance().screenSessionMapMutex_);
+        ScreenSessionManager::GetInstance().screenSessionMap_[externalId] = externalSession;
+    }
+    ScreenId screenIdOn = SCREEN_ID_MAIN;
+    bool ret = SuperFoldPolicy::GetInstance().ChangeScreenStatusMainHasExternalScreen(screenIdOn);
+    EXPECT_TRUE(ret);
+    {
+        std::lock_guard<std::recursive_mutex> lock(ScreenSessionManager::GetInstance().screenSessionMapMutex_);
+        ScreenSessionManager::GetInstance().screenSessionMap_.erase(externalId);
+    }
+}
+
+HWTEST_F(SuperFoldPolicyTest, ChangeScreenStatusMainHasExternalScreen02, TestSize.Level1)
+{
+    ScreenId externalId = 100;
+    ScreenSessionConfig externalConfig = {
+        .screenId = externalId,
+    };
+    sptr<ScreenSession> externalSession = sptr<ScreenSession>::MakeSptr(externalConfig,
+        ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    externalSession->SetScreenType(ScreenType::REAL);
+    externalSession->SetIsInternal(false);
+    {
+        std::lock_guard<std::recursive_mutex> lock(ScreenSessionManager::GetInstance().screenSessionMapMutex_);
+        ScreenSessionManager::GetInstance().screenSessionMap_[externalId] = externalSession;
+    }
+    ScreenId screenIdOn = SCREEN_ID_FULL;
+    bool ret = SuperFoldPolicy::GetInstance().ChangeScreenStatusMainHasExternalScreen(screenIdOn);
+    EXPECT_FALSE(ret);
+    {
+        std::lock_guard<std::recursive_mutex> lock(ScreenSessionManager::GetInstance().screenSessionMapMutex_);
+        ScreenSessionManager::GetInstance().screenSessionMap_.erase(externalId);
+    }
+}
+
+HWTEST_F(SuperFoldPolicyTest, ChangeScreenStatusMainHasExternalScreen03, TestSize.Level1)
+{
+    ScreenId externalId = 100;
+    ScreenSessionConfig externalConfig = {
+        .screenId = externalId,
+    };
+    sptr<ScreenSession> externalSession = sptr<ScreenSession>::MakeSptr(externalConfig,
+        ScreenSessionReason::CREATE_SESSION_FOR_REAL);
+    externalSession->SetScreenType(ScreenType::REAL);
+    externalSession->SetIsInternal(true);
+    {
+        std::lock_guard<std::recursive_mutex> lock(ScreenSessionManager::GetInstance().screenSessionMapMutex_);
+        ScreenSessionManager::GetInstance().screenSessionMap_[externalId] = externalSession;
+    }
+    ScreenId screenIdOn = SCREEN_ID_MAIN;
+    bool ret = SuperFoldPolicy::GetInstance().ChangeScreenStatusMainHasExternalScreen(screenIdOn);
+    EXPECT_FALSE(ret);
+    {
+        std::lock_guard<std::recursive_mutex> lock(ScreenSessionManager::GetInstance().screenSessionMapMutex_);
+        ScreenSessionManager::GetInstance().screenSessionMap_.erase(externalId);
+    }
+}
+
+HWTEST_F(SuperFoldPolicyTest, ChangeScreenStatusMainHasExternalScreen04, TestSize.Level1)
+{
+    ScreenId screenIdOn = SCREEN_ID_MAIN;
+    bool ret = SuperFoldPolicy::GetInstance().ChangeScreenStatusMainHasExternalScreen(screenIdOn);
+    EXPECT_FALSE(ret);
+}
+
+HWTEST_F(SuperFoldPolicyTest, ChangeScreenStatusMainHasExternalScreen05, TestSize.Level1)
+{
+    ScreenId screenIdOn = SCREEN_ID_FULL;
+    bool ret = SuperFoldPolicy::GetInstance().ChangeScreenStatusMainHasExternalScreen(screenIdOn);
+    EXPECT_FALSE(ret);
+}
 }
 }
 }

@@ -64,6 +64,7 @@ public:
 private:
     void NotifyFoldStatus(ScreenClosedState screenClosedState);
     void SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination);
+    bool ChangeScreenStatusMainHasExternalScreen(ScreenId screenIdOn, ScreenId screenIdOff);
     void SetScreenIsInUse(ScreenId screenId, bool isInUse);
     void SetScreenPowerState(ScreenId screenId, DisplayState displayState);
     void OnScreenPropertyChangeNotifyClient();

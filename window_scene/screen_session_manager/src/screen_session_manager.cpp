@@ -980,6 +980,25 @@ int32_t ScreenSessionManager::CountRealPhysicalScreens()
     return sum;
 }
 
+int32_t ScreenSessionManager::CountRealPhysicalScreensNotInternal()
+{
+    int32_t sum = 0;
+    std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+    for (const auto& sessionIt : screenSessionMap_) {
+        sptr<ScreenSession> screenSession = sessionIt.second;
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr!");
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::REAL &&
+            !screenSession->GetIsInternal()) {
+            sum++;
+        }
+    }
+    TLOGI(WmsLogTag::DMS, "count real physical screen number: %{public}d", sum);
+    return sum;
+}
+
 void ScreenSessionManager::AodLibInit()
 {
     static bool isNeedLoadAodLib = FoldScreenStateInternel::IsSingleDisplayPocketFoldDevice() ||
@@ -2500,9 +2519,6 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
 {
     AddOrUpdateUserDisplayNode(currentUserId_, screenId, screenSession->GetDisplayNode());
     InitRotationCorrectionMap(DISPLAYMODE_CORRECTION);
-    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-        ExitCoordination("screen connect");
-    }
     {
         std::shared_lock<std::shared_mutex> lock(ssmRotationCorrectionMutex_);
         screenSession->SetRotationCorrectionMap(rotationCorrectionMap_);
@@ -2511,7 +2527,13 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
     UpdateScreenTypeInfo(screenSession);
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
-
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        ExitCoordination("screen connect");
+        auto displayMode = GetFoldDisplayMode();
+        if (displayMode == FoldDisplayMode::MAIN) {
+            PowerMgr::PowerMgrClient::GetInstance().SuspendDevice();
+        }
+    }
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
         return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
     };
@@ -2720,12 +2742,19 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
         return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
     };
-
+    ScreenDisconnectWakeUpDevice();
     if (g_setLocalResolution && isExternalRealScreen(screenSession)) {
         TLOGNFI(WmsLogTag::DMS, "External screen disconnected, check if need restore custom resolution");
         RestoreCustomResolution();
     }
     TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
+}
+
+void ScreenSessionManager::ScreenDisconnectWakeUpDevice()
+{
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && CountRealPhysicalScreensNotInternal() <= 0) {
+        FixPowerStatus();
+    }
 }
 
 void ScreenSessionManager::HandleProcessDisconnectEvent(sptr<ScreenSession> screenSession,
@@ -5749,6 +5778,9 @@ bool ScreenSessionManager::WakeUpBegin(PowerStateChangeReason reason)
         TLOGNFI(WmsLogTag::DMS, "[UL_POWER]wakeup cannot start dream");
         return false;
     }
+    if (!CanWakeUpDevice()) {
+        return false;
+    }
     if (reason == PowerStateChangeReason::STATE_CHANGE_REASON_END_DREAM) {
         NotifyDisplayPowerEvent(DisplayPowerEvent::DISPLAY_END_DREAM, EventStatus::BEGIN, reason);
         return BlockScreenWaitPictureFrameByCV(false);
@@ -5763,6 +5795,19 @@ bool ScreenSessionManager::WakeUpBegin(PowerStateChangeReason reason)
         return ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::WAKEUP_BEGIN_ADVANCED, type);
     }
     return ScreenStateMachine::GetInstance().HandlePowerStateChange(ScreenPowerEvent::WAKEUP_BEGIN, type);
+}
+
+bool ScreenSessionManager::CanWakeUpDevice()
+{
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        auto displayMode = GetFoldDisplayMode();
+        if (displayMode == FoldDisplayMode::MAIN &&
+            CountRealPhysicalScreensNotInternal() > 0) {
+            TLOGNFI(WmsLogTag::DMS, "[UL_POWER]has not internal physical screen, return");
+            return false;
+        }
+    }
+    return true;
 }
 
 bool ScreenSessionManager::DoWakeUpBegin(PowerStateChangeReason reason)
@@ -6126,6 +6171,9 @@ bool ScreenSessionManager::SetDisplayState(DisplayState state)
     DmsXcollie dmsXcollie("DMS:SetScreenOffDelayTime", XCOLLIE_TIMEOUT_30S);
     if (!sessionDisplayPowerController_) {
         TLOGNFE(WmsLogTag::DMS, "[UL_POWER]sessionDisplayPowerController_ is null");
+        return false;
+    }
+    if (state == DisplayState::ON && !CanWakeUpDevice()) {
         return false;
     }
     if (ScreenStateMachine::GetInstance().GetTransitionState() == ScreenTransitionState::SCREEN_INIT) {
@@ -11273,11 +11321,7 @@ DMError ScreenSessionManager::SetFoldDisplayModeInner(const FoldDisplayMode disp
     }
 #ifdef FOLD_ABILITY_ENABLE
     if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-        if (reason == "exitCoordinationMode" || reason == "exitBackSelfie") {
-            SuperFoldPolicy::GetInstance().ExitCoordination();
-            return DMError::DM_OK;
-        }
-        return SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(displayMode);
+        return SetFoldDisplayModeForSuperMultiDevice(displayMode, reason);
     }
     if (!g_foldScreenFlag) {
         return DMError::DM_ERROR_INVALID_MODE_ID;
@@ -11316,6 +11360,26 @@ DMError ScreenSessionManager::SetFoldDisplayModeInner(const FoldDisplayMode disp
     NotifyClientProxyUpdateFoldDisplayMode(displayMode);
 #endif
     return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::SetFoldDisplayModeForSuperMultiDevice(
+    const FoldDisplayMode displayMode, std::string& reason)
+{
+    DMError ret = DMError::DM_OK;
+    TLOGNFI(WmsLogTag::DMS, "calling clientName: %{public}s, calling pid: %{public}d, setmode: %{public}d,",
+        SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid(), displayMode);
+#ifdef FOLD_ABILITY_ENABLE
+    if (reason == "exitCoordinationMode" || reason == "exitBackSelfie") {
+        SuperFoldPolicy::GetInstance().ExitCoordination();
+        return DMError::DM_OK;
+    }
+    if (displayMode == FoldDisplayMode::COORDINATION && CountRealPhysicalScreensNotInternal() > 0) {
+        TLOGI(WmsLogTag::DMS, "has external screen can not enter coordination");
+        return DMError::DM_ERROR_NOT_SUPPORT_COOR_WHEN_HAS_EXTERNAL_SCREEN;
+    }
+    ret = SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(displayMode);
+#endif
+    return ret;
 }
 
 void ScreenSessionManager::ExitCoordinationAndRecoverDisplayMode()
