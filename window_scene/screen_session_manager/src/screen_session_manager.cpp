@@ -261,7 +261,7 @@ const int32_t AOD_POWER_ON = 0;
 const int32_t AOD_POWER_OFF = 1;
 
 const std::string DEVICE_TYPE = system::GetParameter("const.product.devicetype", "unknown");
-const std::vector<std::string> CAPTURE_DEVICE = {"phone", "2in1", "tablet"};
+const std::vector<std::string> CAPTURE_DEVICE = {"phone", "2in1", "tablet", "default"};
 constexpr uint32_t FLOATING_BALL_TYPE = 2145;
 
 constexpr int32_t COLD_SWITCH_ANIMATE_TIMEOUT_MILLISECONDS = 18000;
