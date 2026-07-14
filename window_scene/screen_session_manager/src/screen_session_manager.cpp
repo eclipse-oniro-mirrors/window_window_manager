@@ -8496,8 +8496,8 @@ ScreenId ScreenSessionManager::GetAssociatedScreenId(const VirtualScreenOption& 
         TLOGNFI(WmsLogTag::DMS, "not support mulyi-screen nulti-user");
         return MAIN_SCREEN_ID_DEFAULT;
     }
-    auto userId = INVALID_USERID;
-    if (option.userId_ !=  INVALID_USERID){
+    auto userId = INVALID_USER_ID;
+    if (option.userId_ !=  INVALID_USER_ID){
         userId = option.userId_;
     } else {
         userId = GetUserIdByCallingUid();
