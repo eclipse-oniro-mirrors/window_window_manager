@@ -64,10 +64,8 @@ ani_status ScreenAniUtils::GetAniString(ani_env* env, const std::string& str, an
     return env->String_NewUTF8(str.c_str(), static_cast<ani_size>(str.size()), result);
 }
 
-ani_status ScreenAniUtils::ConvertScreen(ani_env *env, sptr<Screen> screen, ani_object obj)
+void ScreenAniUtils::SetScreenBasicFields(ani_env *env, sptr<ScreenInfo> info, ani_object obj)
 {
-    sptr<ScreenInfo> info = screen->GetScreenInfo();
-    TLOGI(WmsLogTag::DMS, "[ANI] convert screen id %{public}u", static_cast<uint32_t>(info->GetScreenId()));
     env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("id").c_str(),
         static_cast<ani_long>(info->GetScreenId()));
     env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("parent").c_str(),
@@ -83,6 +81,15 @@ ani_status ScreenAniUtils::ConvertScreen(ani_env *env, sptr<Screen> screen, ani_
     env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("screenType").c_str(),
         ScreenAniUtils::CreateAniEnum(env, "@ohos.screen.screen.ScreenType",
         static_cast<ani_int>(info->GetScreenTypeInfo())));
+    env->Object_SetFieldByName_Boolean(obj, Builder::BuildPropertyName("isInUse").c_str(),
+        static_cast<ani_boolean>(info->GetIsInUse()));
+}
+
+ani_status ScreenAniUtils::ConvertScreen(ani_env *env, sptr<Screen> screen, ani_object obj)
+{
+    sptr<ScreenInfo> info = screen->GetScreenInfo();
+    TLOGI(WmsLogTag::DMS, "[ANI] convert screen id %{public}u", static_cast<uint32_t>(info->GetScreenId()));
+    SetScreenBasicFields(env, info, obj);
     std::unique_ptr<ScreenAni> screenAni = std::make_unique<ScreenAni>(screen);
     if (ANI_OK != env->Object_SetFieldByName_Long(obj, "screenNativeObj",
         reinterpret_cast<ani_long>(screenAni.release()))) {
