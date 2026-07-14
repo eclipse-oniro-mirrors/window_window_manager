@@ -196,6 +196,18 @@ inline void RunIfRSClientMultiInstanceEnabled(const std::function<void()>& actio
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED();
     action();
 }
+
+class RSUIContextContainer {
+public:
+    static sptr<IRemoteObject> GetRenderSession();
+    static void SetRenderSession(sptr<IRemoteObject> renderSessionObj);
+    static std::shared_ptr<RSUIContext> GetRSUIContext();
+    static void SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj);
+
+private:
+    static sptr<IRemoteObject> renderSession;
+    static std::shared_ptr<RSUIContext> rsUIContext;
+};
 } // namespace Rosen
 } // namespace OHOS
 

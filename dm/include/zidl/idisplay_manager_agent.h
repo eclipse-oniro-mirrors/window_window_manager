@@ -76,8 +76,8 @@ public:
         TRANS_ID_ON_SCREEN_MODE_CHANGED,
         TRANS_ID_NOTIFY_ABNORMAL_SCREEN_CONNECT_CHANGED,
         TRANS_ID_ON_BRIGHTNESS_INFO_CHANGED,
-        TRANS_ID_ON_RECORDING_DISPLAY_CHANGED,
         TRANS_ID_ON_DISPLAY_ATTRIBUTE_CHANGED,
+        TRANS_ID_ON_RECORDING_DISPLAY_CHANGED,
     };
     virtual void NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) = 0;
     virtual void NotifyDisplayStateChanged(DisplayId id, DisplayState state) = 0;
@@ -102,9 +102,9 @@ public:
     virtual void NotifyScreenModeChange(const std::vector<sptr<ScreenInfo>>& screenInfos) = 0;
     virtual void NotifyAbnormalScreenConnectChange(ScreenId screenId) = 0;
     virtual void NotifyBrightnessInfoChanged(ScreenId screenId, const ScreenBrightnessInfo& info) = 0;
-    virtual void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds) = 0;
     virtual void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo,
         const std::vector<std::string>& attributes) = 0;
+    virtual void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds) = 0;
 };
 } // namespace Rosen
 } // namespace OHOS

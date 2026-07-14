@@ -351,6 +351,8 @@ ohos_shared_library("scene_session") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "zlib:shared_libz",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   if (!(host_os == "linux" && host_cpu == "arm64")) {
@@ -482,7 +484,6 @@ ohos_shared_library("screen_session") {
   sources = screen_session_sources
   deps = screen_session_deps
   external_deps = screen_session_external_deps
-  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   defines = []
   if (window_manager_feature_screen_color_gamut) {

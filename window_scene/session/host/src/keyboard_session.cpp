@@ -725,15 +725,16 @@ void KeyboardSession::OpenKeyboardSyncTransaction()
             TLOGNE(WmsLogTag::WMS_KEYBOARD, "Keyboard session is null");
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        if (session->isKeyboardSyncTransactionOpen_) {
-            TLOGNI(WmsLogTag::WMS_KEYBOARD, "Keyboard sync transaction is already open");
+        bool expected = false;
+        // The transaction is closed.
+        if (session->isKeyboardSyncTransactionOpen_.compare_exchange_strong(expected, true)) {
+            TLOGNI(WmsLogTag::WMS_KEYBOARD, "Open keyboard sync, screenId:%{public}" PRIu64, session->GetScreenId());
+            session->syncTransRSUIContext_ = session->GetRSUIContext();
+            RSSyncTransactionAdapter::OpenSyncTransaction(session->syncTransRSUIContext_, session->GetEventHandler());
+            session->PostKeyboardAnimationSyncTimeoutTask();
             return WSError::WS_OK;
         }
-        TLOGNI(WmsLogTag::WMS_KEYBOARD, "Open keyboard sync, screenId:%{public}" PRIu64, session->GetScreenId());
-        session->isKeyboardSyncTransactionOpen_ = true;
-        session->syncTransRSUIContext_ = session->GetRSUIContext();
-        RSSyncTransactionAdapter::OpenSyncTransaction(session->syncTransRSUIContext_, session->GetEventHandler());
-        session->PostKeyboardAnimationSyncTimeoutTask();
+        TLOGNI(WmsLogTag::WMS_KEYBOARD, "Keyboard sync transaction is already open");
         return WSError::WS_OK;
     };
     PostSyncTask(task);
@@ -757,7 +758,7 @@ void KeyboardSession::CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRe
             callingId, isKeyboardShow, animationInfo.isGravityChanged, callingWindowInfoData.callingWindowState,
             callingWindowInfoData.scaleY);
         std::shared_ptr<RSTransaction> rsTransaction = nullptr;
-        if (session->isKeyboardSyncTransactionOpen_) {
+        if (session->isKeyboardSyncTransactionOpen_.load()) {
             rsTransaction = session->GetRSTransaction();
         }
         // The callingId may change in WindowManager.
@@ -804,27 +805,26 @@ void KeyboardSession::CloseKeyboardSyncTransaction(const WSRect& keyboardPanelRe
 
 void KeyboardSession::CloseRSTransaction()
 {
-    if (!isKeyboardSyncTransactionOpen_) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "Keyboard sync transaction is closed");
+    bool expected = true;
+    if (isKeyboardSyncTransactionOpen_.compare_exchange_strong(expected, false)) { // The transaction is open.
+        auto handler = GetEventHandler();
+        if (handler) {
+            TLOGI(WmsLogTag::WMS_KEYBOARD, "cancelled");
+            handler->RemoveTask(KEYBOARD_ANIM_SYNC_EVENT_NAME);
+        }
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "Close keyboard sync, screenId: %{public}" PRIu64, GetScreenId());
+        RSSyncTransactionAdapter::CloseSyncTransaction(syncTransRSUIContext_, handler);
+        syncTransRSUIContext_ = nullptr;
         return;
     }
-    isKeyboardSyncTransactionOpen_ = false;
-    auto handler = GetEventHandler();
-    if (handler) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "cancelled");
-        handler->RemoveTask(KEYBOARD_ANIM_SYNC_EVENT_NAME);
-    }
-    TLOGI(WmsLogTag::WMS_KEYBOARD, "Close keyboard sync, screenId: %{public}" PRIu64, GetScreenId());
-    RSSyncTransactionAdapter::CloseSyncTransaction(syncTransRSUIContext_, handler);
-    syncTransRSUIContext_ = nullptr;
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "Keyboard sync transaction is closed");
 }
 
 std::shared_ptr<RSTransaction> KeyboardSession::GetRSTransaction()
 {
-    auto transactionController = RSSyncTransactionController::GetInstance();
     std::shared_ptr<RSTransaction> rsTransaction = nullptr;
-    if (transactionController) {
-        rsTransaction = transactionController->GetRSTransaction();
+    if (isKeyboardSyncTransactionOpen_.load()) {
+        rsTransaction = RSSyncTransactionAdapter::GetRSTransaction(syncTransRSUIContext_);
     }
     return rsTransaction;
 }
@@ -952,10 +952,10 @@ void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
     RETURN_IF_NULL(keyboardPanelSurfaceNode);
     RETURN_IF_NULL(moveDragController_);
     auto displayIds = isMoveOrDrag ?
-        moveDragController_->GetNewAddedDisplayIdsDuringMoveDrag() :
-        moveDragController_->GetDisplayIdsDuringMoveDrag();
+        moveDragController_->CollectNewOverlappedDisplayIds() :
+        moveDragController_->GetOverlappedDisplayIds();
     for (const auto displayId : displayIds) {
-        if (displayId == moveDragController_->GetMoveDragStartDisplayId()) {
+        if (displayId == moveDragController_->GetStartDisplayId()) {
             continue;
         }
         auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(displayId);

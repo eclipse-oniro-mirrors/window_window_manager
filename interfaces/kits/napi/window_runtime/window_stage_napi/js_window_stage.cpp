@@ -231,10 +231,13 @@ napi_value JsWindowStage::RemoveStartingWindow(napi_env env, napi_callback_info 
 napi_value JsWindowStage::SetWindowRectAutoSave(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     if (me != nullptr) {
         return me->OnSetWindowRectAutoSave(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][setWindowRectAutoSave]msg: Window is nullptr.");
 }
@@ -242,10 +245,13 @@ napi_value JsWindowStage::SetWindowRectAutoSave(napi_env env, napi_callback_info
 napi_value JsWindowStage::IsWindowRectAutoSave(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.isWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     if (me != nullptr) {
         return me->OnIsWindowRectAutoSave(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowRectAutoSave.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][isWindowRectAutoSave]msg: Window is nullptr.");
 }
@@ -621,7 +627,8 @@ napi_value JsWindowStage::OnCreateSubWindow(napi_env env, napi_callback_info inf
         if (weakScene == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "Window scene is null");
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindow]msg: The window is not created or destroyed."));
+                "[window][createSubWindow]msg: The main window is not created or destroyed. "
+                "Target subWindow name='" + windowName + "'"));
             return;
         }
         sptr<Rosen::WindowOption> windowOption = new Rosen::WindowOption();
@@ -631,7 +638,7 @@ napi_value JsWindowStage::OnCreateSubWindow(napi_env env, napi_callback_info inf
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "Create window failed");
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindow]msg: The window is not created or destroyed."));
+                "[window][createSubWindow]msg: Failed to create window, name='" + windowName + "'"));
             return;
         }
         task->Resolve(env, CreateJsWindowObject(env, window));
@@ -833,7 +840,7 @@ napi_value JsWindowStage::OnDisableWindowDecor(napi_env env, napi_callback_info 
             WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return CreateJsValue(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STAGE_ABNORMALLY));
     }
- 
+
     auto window = weakScene->GetMainWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "Window is null");
@@ -1085,14 +1092,13 @@ napi_value JsWindowStage::OnRemoveStartingWindow(napi_env env, napi_callback_inf
 
 napi_value JsWindowStage::OnSetWindowRectAutoSave(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     auto windowScene = windowScene_.lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "WindowScene is null");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowRectAutoSave]msg: WindowScene is null.");
+            "[window][setWindowRectAutoSave]msg: WindowScene is null. The window is not created or destroyed.");
     }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
@@ -1126,7 +1132,7 @@ napi_value JsWindowStage::OnSetWindowRectAutoSave(napi_env env, napi_callback_in
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             WmErrorCode wmErroeCode = WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErroeCode,
-                "[window][setWindowRectAutoSave]msg: Window is nullptr."));
+                "[window][setWindowRectAutoSave]msg: Window is nullptr. The window is not created or destroyed."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowRectAutoSave(enabled, isSaveBySpecifiedFlag));
@@ -1360,17 +1366,16 @@ napi_value JsWindowStage::OnRemoveImageForRecent(napi_env env, napi_callback_inf
 
 napi_value JsWindowStage::OnIsWindowRectAutoSave(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.isWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     auto windowScene = windowScene_.lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "WindowScene is null");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error",
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowRectAutoSave.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][isWindowRectAutoSave]msg: WindowScene is null."));
+            "[window][isWindowRectAutoSave]msg: WindowScene is null. The window is not created or destroyed."));
         return NapiGetUndefined(env);
     }
- 
+
     auto window = windowScene->GetMainWindow();
     const char* const where = __func__;
     napi_value result = nullptr;
@@ -1379,18 +1384,18 @@ napi_value JsWindowStage::OnIsWindowRectAutoSave(napi_env env, napi_callback_inf
         auto window = weakWindow.promote();
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s Window is nullptr", where);
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error",
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowRectAutoSave.error",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env,
                 JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][isWindowRectAutoSave]msg: Window is nullptr."));
+                "[window][isWindowRectAutoSave]msg: Window is nullptr. The window is not created or destroyed."));
             return;
         }
         bool enabled = false;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->IsWindowRectAutoSave(enabled));
         if (ret != WmErrorCode::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s get the auto-save state of the window rect failed!", where);
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error", ret);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowRectAutoSave.error", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env,
                 ret, "[window][isWindowRectAutoSave]msg: Window recover position failed."));
         } else {
@@ -1399,7 +1404,7 @@ napi_value JsWindowStage::OnIsWindowRectAutoSave(napi_env env, napi_callback_inf
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnIsWindowRectAutoSave") != napi_status::napi_ok) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowRectAutoSave.error",
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowRectAutoSave.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env,
             CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),

@@ -69,8 +69,8 @@ ohos_shared_library("screen_session_manager") {
     "src/connection/screen_session_ability_connection.cpp",
     "src/connection/screen_snapshot_picker_connection.cpp",
     "src/multi_screen_change_utils.cpp",
-    "src/multi_screen_mode_change_manager.cpp",
     "src/multi_screen_power_change_manager.cpp",
+    "src/multi_screen_mode_change_manager.cpp",
     "src/publish/screen_session_publish.cpp",
     "src/screen_aod_plugin.cpp",
     "src/screen_cutout_controller.cpp",
@@ -147,7 +147,6 @@ ohos_shared_library("screen_session_manager") {
     "os_account:os_account_innerkits",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
-    "screenlock_mgr:screenlock_client",
   ]
 
   defines = []
@@ -286,7 +285,15 @@ ohos_shared_library("screen_session_manager") {
     print("window manager screen multi usr ability is disabled.")
   }
 
-  ldflags = [ "-Wl,-Bsymbolic-functions" ]
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.theme_screenlock_mgr)) {
+    defines += [ "WM_SCREENLOCK_MANAGER_ENABLED" ]
+    external_deps += [ "screenlock_mgr:screenlock_client" ]
+    print("window manager screen lock manager ability is enabled.")
+  } else {
+    print("window manager screen lock manager ability is disabled.")
+  }
+
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"

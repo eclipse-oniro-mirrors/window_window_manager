@@ -163,7 +163,7 @@ void IntentionEventManager::InputEventListener::OnInputEvent(
     uint32_t windowId = static_cast<uint32_t>(pointerEvent->GetTargetWindowId());
     auto sceneSession = SceneSessionManager::GetInstance().GetSceneSession(windowId);
     if (sceneSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "The scene session is nullptr");
+        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "Session is null");
         pointerEvent->MarkProcessed();
         return;
     }
@@ -185,8 +185,8 @@ void IntentionEventManager::InputEventListener::OnInputEvent(
         }
         static uint32_t eventId = 0;
         TLOGI(WmsLogTag::WMS_INPUT_KEY_FLOW, "eid:%{public}d,InputId:%{public}d,wid:%{public}u"
-            ",wName:%{public}s,ac:%{public}d,sys:%{public}d", eventId++, pointerEvent->GetId(), windowId,
-            sceneSession->GetSessionInfo().abilityName_.c_str(), action, sceneSession->GetSessionInfo().isSystem_);
+            ",ac:%{public}d,sys:%{public}d", eventId++, pointerEvent->GetId(), windowId,
+            action, sceneSession->GetSessionInfo().isSystem_);
     }
     if (sceneSession->GetSessionInfo().isSystem_) {
         sceneSession->SendPointerEventToUI(pointerEvent);

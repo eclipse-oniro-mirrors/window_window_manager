@@ -36,7 +36,7 @@ constexpr size_t MAX_LENGTH_STRING = 64;
 constexpr int32_t MIN_POSITION = -10000;
 constexpr int32_t MAX_POSITION = 10000;
 constexpr uint32_t MAX_RESOLUTION = 8192;
-static constexpr std::array<uint32_t, 187> kValidTransIds = {{
+static constexpr std::array<uint32_t, 188> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_VISIBLE_AREA_DISPLAY_INFO_BY_ID),
@@ -224,6 +224,7 @@ static constexpr std::array<uint32_t, 187> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_POWER_STATE_AOD),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED),
 }};
 
 sptr<IRemoteObject> GetRemote()
@@ -299,6 +300,7 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp,
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_DEFAULT_MODE_WHEN_SWITCH_USER):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_EXTEND_SCREEN_CREATE_FINISH):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_EXTEND_SCREEN_DESTROY_FINISH):
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_SCREEN_MASK_APPEAR):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_KEYBOARD_STATE):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_AREA_OF_DISPLAY_AREA):

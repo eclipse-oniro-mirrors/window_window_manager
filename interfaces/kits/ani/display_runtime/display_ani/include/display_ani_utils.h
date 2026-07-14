@@ -91,7 +91,7 @@ static DmErrorCode GetRelativePostionFromAni(
 static DmErrorCode SetRelativePostionObj(
     ani_env* env, RelativePosition& relativePosition, ani_object relativePositionObj);
  
-static void SetFoldCreaseRegion(ani_env* env, FoldCreaseRegion& region, ani_object foldCreaseRegionObj);
+static DmErrorCode SetFoldCreaseRegion(ani_env* env, FoldCreaseRegion& region, ani_object foldCreaseRegionObj);
 
 static std::shared_ptr<DisplayAni> FindAniDisplayObject(sptr<Display> display, DisplayId displayId);
 

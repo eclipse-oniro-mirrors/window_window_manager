@@ -46,7 +46,7 @@ ohos_shared_library("floatview_kit") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
-    "../common:wm_napi_util",
+    "../common:dm_napi_common",
     "../floating_ball_napi:floatingball_kit",
   ]
 
@@ -71,10 +71,6 @@ ohos_shared_library("floatview_kit") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
-  if (window_manager_feature_support_api_metrics) {
-    external_deps += [ "api_metrics:histogrammanager" ]
-    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
-  }
 }
 
 ohos_shared_library("floatview_napi") {
@@ -98,7 +94,6 @@ ohos_shared_library("floatview_napi") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
-    "../common:wm_napi_util",
     "../floating_ball_napi:floatingball_kit",
   ]
 

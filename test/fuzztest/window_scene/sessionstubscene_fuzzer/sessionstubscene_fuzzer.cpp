@@ -139,6 +139,9 @@ void SessionStubTestCompatibleMode(sptr<Session> sessionStub, MessageParcel& par
     sessionStub->OnRemoteRequest(static_cast<uint32_t>(Rosen::SessionInterfaceCode::TRANS_ID_GET_SELECT_MODE),
         parcel, reply, option);
     parcel.RewindRead(0);
+    sessionStub->OnRemoteRequest(static_cast<uint32_t>(Rosen::SessionInterfaceCode::TRANS_ID_GET_FORCE_SPLIT_ENABLE),
+        parcel, reply, option);
+    parcel.RewindRead(0);
     sessionStub->OnRemoteRequest(
         static_cast<uint32_t>(Rosen::SessionInterfaceCode::TRANS_ID_NOTIFY_SPLIT_RATIO_CHANGED),
         parcel, reply, option);

@@ -631,14 +631,14 @@ HWTEST_F(WindowAdapterTest, ReregisterWindowManagerAgent, TestSize.Level1)
     instance_->windowManagerServiceProxy_ = wmsProxy;
 
     // branch 2-1: mock wmsProxy->RegisterWindowManagerAgent return failed.
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).WillOnce(Return(WMError::WM_ERROR_NULLPTR));
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _)).WillOnce(Return(WMError::WM_ERROR_NULLPTR));
     instance_->windowManagerAgentMap_[type].insert(agent);
     instance_->ReregisterWindowManagerAgent();
     EXPECT_TRUE(g_errLog.find("Register failed due to wms proxy") != std::string::npos);
 
     // branch 2-2: mock wmsProxy->RegisterWindowManagerAgent return ok.
     g_errLog.clear();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).WillRepeatedly(Return(WMError::WM_OK));
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _)).WillRepeatedly(Return(WMError::WM_OK));
     instance_->ReregisterWindowManagerAgent();
     EXPECT_FALSE(g_errLog.find("Register failed due to wms proxy") != std::string::npos);
 
@@ -1021,13 +1021,15 @@ HWTEST_F(WindowAdapterTest, CreateAndConnectSpecificSession, TestSize.Level1)
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
     std::shared_ptr<RSSurfaceNode> node;
+    uint64_t nodeId = 100;
     sptr<WindowSessionProperty> property;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
     sptr<IRemoteObject> token;
-    int32_t id = 101; // 101 is persistentId
+    int32_t id = 101;
     windowAdapter.CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, node, token);
     ASSERT_EQ(session, nullptr);
 }
 
@@ -1300,7 +1302,7 @@ HWTEST_F(WindowAdapterTest, RegisterWindowPropertyChangeAgent, TestSize.Level1)
 
     // use mock window manager service proxy.
     auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowPropertyChangeAgent(_, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*remoteObject, RegisterWindowPropertyChangeAgent(_, _, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
     instance_->windowManagerServiceProxy_ = wmsProxy;
 
@@ -1328,13 +1330,13 @@ HWTEST_F(WindowAdapterTest, UnregisterWindowPropertyChangeAgent, Function | Smal
     instance_->isProxyValid_ = true; // jump INIT_PROXY_CHECK_RETURN
 
     // branch 1: mock wmsProxy->UnregisterWindowPropertyChangeAgent return failed.
-    EXPECT_CALL(*remoteObject, UnregisterWindowPropertyChangeAgent(_, _, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowPropertyChangeAgent(_, _, _, _))
         .WillOnce(Return(WMError::WM_ERROR_NULLPTR));
     ret = instance_->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
 
     // branch 2: mock wmsProxy->UnregisterWindowPropertyChangeAgent return ok.
-    EXPECT_CALL(*remoteObject, UnregisterWindowPropertyChangeAgent(_, _, _)).WillRepeatedly(Return(WMError::WM_OK));
+    EXPECT_CALL(*remoteObject, UnregisterWindowPropertyChangeAgent(_, _, _, _)).WillRepeatedly(Return(WMError::WM_OK));
     ret = instance_->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
     EXPECT_EQ(WMError::WM_OK, ret);
 
@@ -1634,7 +1636,7 @@ HWTEST_F(WindowAdapterTest, RegisterWindowManagerAgent, TestSize.Level1)
     instance_->windowManagerServiceProxy_ = nullptr;
 
     auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
     instance_->windowManagerServiceProxy_ = wmsProxy;
 
@@ -1660,7 +1662,7 @@ HWTEST_F(WindowAdapterTest, UnregisterWindowManagerAgent, TestSize.Level1)
     // mock window manager service proxy
     auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     auto wmProxy = iface_cast<IWindowManager>(remoteObject);
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _))
         .Times(3)
         .WillOnce(Return(WMError::WM_ERROR_SAMGR))
         .WillRepeatedly(Return(WMError::WM_OK));
@@ -1707,7 +1709,7 @@ HWTEST_F(WindowAdapterTest, ReregisterWindowManagerFaultAgent, TestSize.Level1)
     instance_->isProxyValid_ = true;
     instance_->windowManagerServiceProxy_ = nullptr;
     auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _))
         .Times(2)
         .WillOnce(Return(WMError::WM_ERROR_SAMGR))
         .WillRepeatedly(Return(WMError::WM_OK));
@@ -1749,20 +1751,17 @@ HWTEST_F(WindowAdapterTest, SetSpecificSystemWindowZIndex, TestSize.Level1)
  */
 HWTEST_F(WindowAdapterTest, MoveMainWindowToTargetDisplay, TestSize.Level1)
 {
-    instance_->isProxyValid_ = false;
-    auto ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
-    EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
-
-    instance_->isProxyValid_ = true;
-    instance_->windowManagerServiceProxy_ = nullptr;
-    ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    auto ret = windowAdapter.MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(WMError::WM_DO_NOTHING, ret);
 
     auto remoteObject = sptr<WindowManagerServiceMocker>::MakeSptr();
     auto wmsProxy = iface_cast<IWindowManager>(remoteObject);
-    instance_->windowManagerServiceProxy_ = wmsProxy;
+    windowAdapter.windowManagerServiceProxy_ = wmsProxy;
     EXPECT_CALL(*remoteObject, MoveMainWindowToTargetDisplay(_, _)).WillOnce(Return(WSError::WS_OK));
-    ret = instance_->MoveMainWindowToTargetDisplay(0, 1);
+    ret = windowAdapter.MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 

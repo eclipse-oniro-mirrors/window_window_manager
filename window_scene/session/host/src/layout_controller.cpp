@@ -250,10 +250,10 @@ void LayoutController::SetScale(float scaleX, float scaleY, float pivotX, float 
     pivotY_ = pivotY;
 }
 
-void LayoutController::SetRsScale(float rsScaleX, float rsScaleY)
+void LayoutController::SetIgnoreRotateScale(float ignoreRotateScaleX, float ignoreRotateScaleY)
 {
-    rsScaleX_ = rsScaleX;
-    rsScaleY_ = rsScaleY;
+    ignoreRotateScaleX_ = ignoreRotateScaleX;
+    ignoreRotateScaleY_ = ignoreRotateScaleY;
 }
 
 void LayoutController::SetClientScale(float scaleX, float scaleY, float pivotX, float pivotY)

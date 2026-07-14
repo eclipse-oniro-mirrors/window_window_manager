@@ -92,8 +92,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
 
 WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
     sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option, const sptr<IRemoteObject>& iSession,
-    const std::string& identityToken, bool isModuleAbilityHookEnd, sptr<IRemoteObject> renderSession,
-    int32_t requestId, int32_t scbRequestId)
+    const std::string& identityToken, bool isModuleAbilityHookEnd, int32_t requestId, int32_t scbRequestId)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "[requestId: %{public}d][scbRequestId: %{public}d]WindowScene with window session!",
         requestId, scbRequestId);
@@ -111,7 +110,7 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
             SingletonContainer::Get<WindowManager>().IsModuleHookOff(isModuleAbilityHookEnd, moduleName);
     }
     auto mainWindow = SingletonContainer::Get<StaticCall>()
-        .CreateWindow(option, context, iSession, identityToken, isModuleAbilityHookEnd, renderSession);
+        .CreateWindow(option, context, iSession, identityToken, isModuleAbilityHookEnd);
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "mainWindow is null after create Window!");
         return WMError::WM_ERROR_NULLPTR;
@@ -193,7 +192,7 @@ WMError WindowScene::GoResume(bool isGamePreLaunch)
 
 WMError WindowScene::GoPause(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in isGamePreLaunch: %{public}d", isGamePreLaunch);
+    TLOGD(WmsLogTag::WMS_LIFE, "isGamePreLaunch: %{public}d", isGamePreLaunch);
     auto mainWindow = GetMainWindow();
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "failed, because main window is null");

@@ -134,6 +134,7 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "maxLines",                                     WindowSceneConfig::ValueType::INTS },
     { "textAlign",                                    WindowSceneConfig::ValueType::INTS },
     { "textContainerWidth",                           WindowSceneConfig::ValueType::INTS },
+    { "marginBottom",                                 WindowSceneConfig::ValueType::INTS },
     { "maxFontScale",                                 WindowSceneConfig::ValueType::STRING },
     { "isSettingButtonMirror",                        WindowSceneConfig::ValueType::STRING },
 };

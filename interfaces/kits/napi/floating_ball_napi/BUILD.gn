@@ -45,10 +45,10 @@ ohos_shared_library("floatingball_kit") {
   ]
 
   deps = [
-    "../../../../utils:libwmutil",
-    "../../../../utils:libwmutil_base",
+    "${window_base_path}/utils:libwmutil",
+    "${window_base_path}/utils:libwmutil_base",
     "../../../../wm:libwm",
-    "../common:wm_napi_util",
+    "${window_base_path}/interfaces/kits/napi/common:dm_napi_common",
   ]
 
   external_deps = [
@@ -111,6 +111,7 @@ ohos_shared_library("floatingball_napi") {
     "ability_runtime:napi_common",
     "ability_runtime:runtime",
     "c_utils:utils",
+    "hilog:libhilog",
     "napi:ace_napi",
   ]
 
@@ -123,10 +124,7 @@ ohos_shared_library("floatingball_napi") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
   if (window_manager_feature_support_api_metrics) {
-    external_deps += [
-        "api_metrics:histogrammanager",
-        "hilog:libhilog"
-     ]
+    external_deps += [ "api_metrics:histogrammanager" ]
     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
 

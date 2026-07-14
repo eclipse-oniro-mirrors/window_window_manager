@@ -45,6 +45,11 @@ DMError BaseAdapterLite::RegisterDisplayManagerAgent(const sptr<IDisplayManagerA
     return displayManagerServiceProxy_->RegisterDisplayManagerAgent(displayManagerAgent, type);
 }
 
+bool BaseAdapterLite::RegisterClientDeathListener()
+{
+    return true;
+}
+
 DMError BaseAdapterLite::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {
@@ -63,7 +68,6 @@ bool BaseAdapterLite::InitDMSProxy()
             TLOGE(WmsLogTag::DMS, "Failed to get system ability mgr.");
             return false;
         }
-
         sptr<IRemoteObject> remoteObject
             = systemAbilityManager->GetSystemAbility(DISPLAY_MANAGER_SERVICE_SA_ID);
         if (!remoteObject) {
@@ -75,7 +79,6 @@ bool BaseAdapterLite::InitDMSProxy()
             TLOGW(WmsLogTag::DMS, "Failed to get system display manager services");
             return false;
         }
-
         dmsDeath_ = new(std::nothrow) DMSDeathRecipientLite(*this);
         if (dmsDeath_ == nullptr) {
             TLOGE(WmsLogTag::DMS, "Failed to create death Recipient ptr DMSDeathRecipient");
@@ -85,11 +88,29 @@ bool BaseAdapterLite::InitDMSProxy()
             TLOGE(WmsLogTag::DMS, "Failed to add death recipient");
             return false;
         }
+        RegisterClientDeathListener();
         isProxyValid_ = true;
     }
     return true;
 }
 
+bool DisplayManagerAdapterLite::RegisterClientDeathListener()
+{
+    if (reverseDeathStub_) {
+        return true;
+    }
+    if (displayManagerServiceProxy_ != nullptr) {
+        TLOGW(WmsLogTag::DMS, "regis reverse death");
+        reverseDeathStub_ = sptr<ReverseDeathStub>::MakeSptr();
+        if (reverseDeathStub_ != nullptr && displayManagerServiceProxy_ ->
+            RegisterClientDeathListener(reverseDeathStub_ -> AsObject()) == false) {
+            reverseDeathStub_ = nullptr;
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
 sptr<DisplayInfo> DisplayManagerAdapterLite::GetDefaultDisplayInfo(int32_t userId)
 {
     INIT_PROXY_CHECK_RETURN(nullptr);
@@ -126,13 +147,6 @@ void DisplayManagerAdapterLite::SetFoldDisplayMode(const FoldDisplayMode mode)
     INIT_PROXY_CHECK_RETURN();
 
     return displayManagerServiceProxy_->SetFoldDisplayMode(mode);
-}
-
-void DisplayManagerAdapterLite::SetFoldDisplayModeAsync(const FoldDisplayMode mode)
-{
-    INIT_PROXY_CHECK_RETURN();
-
-    return displayManagerServiceProxy_->SetFoldDisplayModeAsync(mode);
 }
 
 sptr<DisplayInfo> DisplayManagerAdapterLite::GetDisplayInfo(DisplayId displayId)
@@ -257,6 +271,13 @@ bool DisplayManagerAdapterLite::TryToCancelScreenOff()
     return displayManagerServiceProxy_->TryToCancelScreenOff();
 }
 
+void DisplayManagerAdapterLite::NotifyBootAnimationFinished()
+{
+    INIT_PROXY_CHECK_RETURN();
+
+    displayManagerServiceProxy_->NotifyBootAnimationFinished();
+}
+
 bool DisplayManagerAdapterLite::SetScreenBrightness(const DmsScreenBrightnessData& brightnessData)
 {
     if (IsScreenLessDevice()) {
@@ -279,7 +300,7 @@ uint32_t DisplayManagerAdapterLite::GetScreenBrightness(uint64_t screenId)
 
 std::vector<DisplayId> DisplayManagerAdapterLite::GetAllDisplayIds(int32_t userId)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGD(WmsLogTag::DMS, "DisplayManagerAdapterLite::GetAllDisplayIds enter");
     INIT_PROXY_CHECK_RETURN(std::vector<DisplayId>());
 
     return displayManagerServiceProxy_->GetAllDisplayIds(userId);
@@ -312,13 +333,47 @@ DMError DisplayManagerAdapterLite::IsOnboardDisplay(DisplayId displayId, bool& i
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
+DMError DisplayManagerAdapterLite::RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->RegisterDisplayAttributeAgent(attributes, displayManagerAgent);
+    }
+    
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapterLite::UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
+    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->UnregisterDisplayAttribute(attributes, displayManagerAgent);
+    }
+    
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+sptr<FoldCreaseRegion> DisplayManagerAdapterLite::GetCurrentFoldCreaseRegion()
+{
+    INIT_PROXY_CHECK_RETURN(nullptr);
+
+    if (displayManagerServiceProxy_) {
+        return displayManagerServiceProxy_->GetCurrentFoldCreaseRegion();
+    }
+
+    return nullptr;
+}
+
 sptr<ScreenInfo> ScreenManagerAdapterLite::GetScreenInfo(ScreenId screenId)
 {
     if (screenId == SCREEN_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "screen id is invalid");
         return nullptr;
     }
-
     INIT_PROXY_CHECK_RETURN(nullptr);
 
     return displayManagerServiceProxy_->GetScreenInfoById(screenId);

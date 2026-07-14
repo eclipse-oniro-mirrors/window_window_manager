@@ -49,6 +49,7 @@ ohos_fuzztest("SceneSessionMgrStubFvFuzzTest") {
     "graphic_2d:librender_service_base",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "eventhandler:libeventhandler",
   ]
 }
 

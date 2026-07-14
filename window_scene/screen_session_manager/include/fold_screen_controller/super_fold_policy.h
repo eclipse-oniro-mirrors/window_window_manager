@@ -64,6 +64,9 @@ public:
 private:
     void NotifyFoldStatus(ScreenClosedState screenClosedState);
     void SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination);
+    void SetScreenIsInUse(ScreenId screenId, bool isInUse);
+    void SetScreenPowerState(ScreenId screenId, DisplayState displayState);
+    void OnScreenPropertyChangeNotifyClient();
     std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::mutex currentScreenIdMutex_;
     ScreenId currentScreenId_ = { SCREEN_ID_INVALID };

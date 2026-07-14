@@ -46,7 +46,6 @@ constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr int32_t CONCURRENT_USER_ID_DEFAULT = -1;
 constexpr int32_t INVALID_UID = -1;
-constexpr int32_t INVALID_USERID = -1;
 constexpr int32_t USER_ID_DEFAULT = 0;
 constexpr int32_t ROTATION_UNSET = -1;
 constexpr int32_t ROTATION_MIN = 0;
@@ -59,6 +58,8 @@ constexpr uint32_t DISPLAY_B_HEIGHT = 1608;
 constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
 constexpr int32_t DEFAULT_CUSTOM_LOGIC_DIRECTION = 0;
 }
+const float DEFAULT_HEADROOM = 1.0f;
+const float DEFAULT_SDR_NITS = 500.0f;
 constexpr uint32_t DISPLAY_A_WIDTH = 2472;
 constexpr float DEFAULT_SNAPSHOT_SCALE = 1.0f;
 constexpr uint64_t PC_WATCH_DOG_TIME_INTERVAL = 10 * 1000;
@@ -277,9 +278,6 @@ extern const std::map<DMError, DmErrorCode> DM_JS_TO_ERROR_CODE_MAP;
 
 extern const std::map<DMError, std::string> DM_ERROR_JS_TO_ERROR_MESSAGE_MAP;
 
-constexpr float DEFAULT_HEADROOM = 1.0f;
-constexpr float DEFAULT_SDR_NITS = 500.0f;
-
 using DisplayStateCallback = std::function<void(DisplayState)>;
 
 /**
@@ -350,6 +348,15 @@ enum class Rotation : uint32_t {
     ROTATION_90,
     ROTATION_180,
     ROTATION_270,
+};
+
+/**
+ * @brief Enumerates screen type.
+ */
+enum class ScreenTypeInfo : uint32_t {
+    BUILT_IN = 0,
+    EXTERNAL = 1,
+    VIRTUAL = 2,
 };
 
 /**
@@ -862,7 +869,8 @@ enum class DMDeviceStatus: uint32_t {
     STATUS_TENT_HOVER,
     STATUS_TENT,
     STATUS_GLOBAL_FULL,
-    STATUS_EXPAND
+    STATUS_EXPAND,
+    STATUS_COORDINATION
 };
 
 /**
@@ -956,7 +964,8 @@ enum class DisplayModeChangeReason : uint32_t {
     RECOVER,
     INVALID,
     SETMODE,
-    FORCE_SET
+    FORCE_SET,
+    RECOVER_FROM_CACHE_MODE,
 };
 
 enum class ScreenClosedState : uint32_t {

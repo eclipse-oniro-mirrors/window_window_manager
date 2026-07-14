@@ -192,8 +192,8 @@ void AbstractDisplay::SetDisplayOrientation(DisplayOrientation displayOrientatio
 
 bool AbstractDisplay::RequestRotation(Rotation rotation)
 {
-    TLOGD(WmsLogTag::DMS, "request rotation from %{public}u to %{public}u, display %{public}" PRIu64"", rotation_,
-        rotation, id_);
+    TLOGD(WmsLogTag::DMS, "request rotation from %{public}u to %{public}u, display %{public}" PRIu64"",
+        rotation_, rotation, id_);
     if (rotation_ == rotation) {
         TLOGE(WmsLogTag::DMS, "rotation not change %{public}u", rotation);
         return false;
@@ -251,8 +251,8 @@ bool AbstractDisplay::BindAbstractScreen(sptr<AbstractScreen> abstractScreen)
     height_ = static_cast<int32_t>(info->height_);
     refreshRate_ = info->refreshRate_;
     screenId_ = dmsScreenId;
-    TLOGD(WmsLogTag::DMS, "display bind to screen. display:%{public}" PRIu64", screen:%{public}" PRIu64"", id_,
-        dmsScreenId);
+    TLOGD(WmsLogTag::DMS, "display bind to screen. display:%{public}" PRIu64", screen:%{public}" PRIu64"",
+        id_, dmsScreenId);
     return true;
 }
 

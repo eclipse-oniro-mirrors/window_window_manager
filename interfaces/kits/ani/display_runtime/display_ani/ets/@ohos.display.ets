@@ -83,7 +83,7 @@ export interface CutoutInfo {
 
 export class CutoutInfoImpl implements CutoutInfo {
     constructor() {
-        this.boundingRects = new Array<Rect>(CUTO_ARRAY_LENGTH, () => { return new RectImpl() });
+        this.boundingRects = new Array<Rect>(5, () => { return new RectImpl() });
         this.waterfallDisplayAreaRects = new WaterfallDisplayAreaRectsImpl();
     }
 
@@ -785,7 +785,7 @@ export function offFoldDisplayModeChange(callback?: Callback<FoldDisplayMode>): 
     syncOff('foldDisplayModeChange', displayMgrRef, callback);
 }
 
-export function offBrightnessInfoChange<T1, T2>(callback?: BrightnessCallback<T1, T2>): void {	
+export function offBrightnessInfoChange<T1, T2>(callback?: BrightnessCallback<T1, T2>): void {
     syncOff('brightnessInfoChange', displayMgrRef, callback);
 }
 
@@ -1053,7 +1053,7 @@ export function brightnessInfoChangeCallback(cb: object, cbArg: long, cbArgBrigh
     func(cbArg, cbArgBrightness);
 }
 
-export native function getBrightnessInfoNative(display: long, displayMgrRef: long): BrightnessInfo;
+export native function getBrightnessInfoNative(displayId: long, displayMgrRef: long): BrightnessInfo;
 
 export let displayMgrRef: long;
 

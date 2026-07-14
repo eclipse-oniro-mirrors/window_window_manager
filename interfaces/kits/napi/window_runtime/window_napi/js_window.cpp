@@ -97,7 +97,7 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
             g_jsWindowMap.erase(windowName);
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
-        windowToken_ = nullptr;
+        SetWindowToken(nullptr);
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in js window", windowName.c_str());
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
@@ -193,7 +193,11 @@ napi_value JsWindow::Recover(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnRecover(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnRecover(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][recover]msg: Window is nullptr.");
 }
 
 napi_value JsWindow::Restore(napi_env env, napi_callback_info info)
@@ -221,7 +225,7 @@ napi_value JsWindow::MoveWindowTo(napi_env env, napi_callback_info info)
 /** @note @window.layout */
 napi_value JsWindow::MoveWindowToAsync(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "MoveToAsync");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "MoveToAsync");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnMoveWindowToAsync(env, info) : nullptr;
 }
@@ -229,7 +233,7 @@ napi_value JsWindow::MoveWindowToAsync(napi_env env, napi_callback_info info)
 /** @note @window.layout */
 napi_value JsWindow::MoveWindowToGlobal(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "MoveWindowToGlobal");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "MoveWindowToGlobal");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnMoveWindowToGlobal(env, info) : nullptr;
 }
@@ -269,7 +273,7 @@ napi_value JsWindow::ResizeWindow(napi_env env, napi_callback_info info)
 /** @note @window.layout */
 napi_value JsWindow::ResizeWindowAsync(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "ResizeAsync");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "ResizeAsync");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnResizeWindowAsync(env, info) : nullptr;
 }
@@ -314,7 +318,6 @@ napi_value JsWindow::GetProperties(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::GetWindowPropertiesSync(napi_env env, napi_callback_info info)
 {
-    TLOGD(WmsLogTag::DEFAULT, "GetProperties");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnGetWindowPropertiesSync(env, info) : nullptr;
 }
@@ -787,6 +790,7 @@ napi_value JsWindow::RaiseToAppTop(napi_env env, napi_callback_info info)
 napi_value JsWindow::DisableWindowDecor(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.disableWindowDecor", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnDisableWindowDecor(env, info) : nullptr;
 }
@@ -946,6 +950,7 @@ napi_value JsWindow::SetWaterMarkFlag(napi_env env, napi_callback_info info)
 napi_value JsWindow::SetHandwritingFlag(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setHandwritingFlag", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnSetHandwritingFlag(env, info) : nullptr;
 }
@@ -1027,7 +1032,11 @@ napi_value JsWindow::GetWindowLimits(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnGetWindowLimits(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnGetWindowLimits(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][getWindowLimits]msg: Window is nullptr.");
 }
 
 /** @note @window.layout */
@@ -1035,7 +1044,11 @@ napi_value JsWindow::GetWindowLimitsVP(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnGetWindowLimitsVP(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnGetWindowLimitsVP(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][getWindowLimitsVP]msg: Window is nullptr.");
 }
 
 /** @note @window.layout */
@@ -1067,16 +1080,23 @@ napi_value JsWindow::SetWindowLimits(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
-    return (me != nullptr) ? me->OnSetWindowLimits(env, info) : nullptr;
+    if (me != nullptr) {
+        return me->OnSetWindowLimits(env, info);
+    }
+    return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+        "[window][setWindowLimits]msg: Window is nullptr.");
 }
 
 napi_value JsWindow::SetWindowDecorVisible(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowDecorVisible", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnSetWindowDecorVisible(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorVisible.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][setWindowDecorVisible]msg: Window is nullptr.");
 }
@@ -1142,10 +1162,13 @@ napi_value JsWindow::GetWindowTransitionAnimation(napi_env env, napi_callback_in
 napi_value JsWindow::SetWindowDecorHeight(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowDecorHeight", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnSetWindowDecorHeight(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][setWindowDecorHeight]msg: Window is nullptr.");
 }
@@ -1153,10 +1176,13 @@ napi_value JsWindow::SetWindowDecorHeight(napi_env env, napi_callback_info info)
 napi_value JsWindow::GetWindowDecorHeight(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.getWindowDecorHeight", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnGetWindowDecorHeight(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowDecorHeight.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][getWindowDecorHeight]msg: Window is nullptr.");
 }
@@ -1164,10 +1190,13 @@ napi_value JsWindow::GetWindowDecorHeight(napi_env env, napi_callback_info info)
 napi_value JsWindow::SetDecorButtonStyle(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setDecorButtonStyle", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnSetDecorButtonStyle(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][setDecorButtonStyle]msg: Window is nullptr.");
 }
@@ -1179,6 +1208,8 @@ napi_value JsWindow::GetDecorButtonStyle(napi_env env, napi_callback_info info)
     if (me != nullptr) {
         return me->OnGetDecorButtonStyle(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getDecorButtonStyle.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][getDecorButtonStyle]msg: Window is nullptr.");
 }
@@ -1186,10 +1217,13 @@ napi_value JsWindow::GetDecorButtonStyle(napi_env env, napi_callback_info info)
 napi_value JsWindow::GetTitleButtonRect(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.getTitleButtonRect", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnGetTitleButtonRect(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][getTitleButtonRect]msg: Window is nullptr.");
 }
@@ -1239,10 +1273,13 @@ napi_value JsWindow::SetTitleButtonVisible(napi_env env, napi_callback_info info
 napi_value JsWindow::SetWindowTitleButtonVisible(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowTitleButtonVisible", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnSetWindowTitleButtonVisible(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][setWindowTitleButtonVisible]msg: Window is nullptr.");
 }
@@ -1250,10 +1287,13 @@ napi_value JsWindow::SetWindowTitleButtonVisible(napi_env env, napi_callback_inf
 napi_value JsWindow::SetWindowTitle(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_DECOR, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowTitle", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     if (me != nullptr) {
         return me->OnSetWindowTitle(env, info);
     }
+    HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitle.error",
+        WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
         "[window][setWindowTitle]msg: Window is nullptr.");
 }
@@ -1289,6 +1329,7 @@ napi_value JsWindow::IsImmersiveLayout(napi_env env, napi_callback_info info)
 napi_value JsWindow::IsInFreeWindowMode(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_IMMS, "[NAPI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.isInFreeWindowMode", HISTOGRAM_BOOLEAN_COUNTS);
     JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
     return (me != nullptr) ? me->OnIsInFreeWindowMode(env, info) : nullptr;
 }
@@ -1760,7 +1801,7 @@ napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window destroy failed"));
             return;
         }
-        windowToken_ = nullptr; // ensure window dtor when finalizer invalid
+        SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroy") != napi_status::napi_ok) {
@@ -1803,7 +1844,7 @@ napi_value JsWindow::OnDestroyWindow(napi_env env, napi_callback_info info)
                 "[window][destroyWindow]msg: Window destroy failed."));
             return;
         }
-        windowToken_ = nullptr; // ensure window dtor when finalizer invalid
+        SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
         task->Resolve(env, NapiGetUndefined(env));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroyWindow") != napi_status::napi_ok) {
@@ -2979,22 +3020,22 @@ napi_value JsWindow::OnGetProperties(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::OnGetWindowPropertiesSync(napi_env env, napi_callback_info info)
 {
-    if (windowToken_ == nullptr) {
+    auto windowToken = GetWindowToken();
+    if (windowToken == nullptr) {
         WLOGFW("window is nullptr or get invalid param");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowProperties", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowProperties]msg: The window is not created or destroyed");
     }
     WindowPropertyInfo windowPropertyInfo;
-    WMError ret = windowToken_->GetWindowPropertyInfo(windowPropertyInfo);
+    WMError ret = windowToken->GetWindowPropertyInfo(windowPropertyInfo);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u, ret=%{public}d", windowPropertyInfo.id, ret);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get window properties failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowProperties", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowProperties]msg: The window is not created or destroyed");
     }
     auto objValue = CreateJsWindowPropertiesObject(env, windowPropertyInfo);
-    TLOGND(WmsLogTag::WMS_ATTRIBUTE, "Get Prop, wid: %{public}u", windowToken_->GetWindowId());
     if (objValue != nullptr) {
         return objValue;
     } else {
@@ -3432,14 +3473,15 @@ napi_value JsWindow::OnGetUIContext(napi_env env, napi_callback_info info)
     if (uicontent == nullptr) {
         WLOGFW("uicontent is nullptr");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getUIContext]msg: Uicontent is nullptr.");
+            "[window][getUIContext]msg: Uicontent is nullptr, window name='" + windowToken_->GetWindowName() + "'");
     }
 
     napi_value uiContext = uicontent->GetUINapiContext();
     if (uiContext == nullptr) {
         WLOGFE("uiContext obtained from jsEngine is nullptr");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getUIContext]msg: UiContext obtained from jsEngine is nullptr.");
+            "[window][getUIContext]msg: UiContext obtained from jsEngine is nullptr, window name='" +
+            windowToken_->GetWindowName() + "'");
     } else {
         return uiContext;
     }
@@ -6557,9 +6599,8 @@ napi_value JsWindow::OnChangeCallingWindowId(napi_env env, napi_callback_info in
 
 napi_value JsWindow::OnDisableWindowDecor(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.disableWindowDecor", HISTOGRAM_BOOLEAN_COUNTS);
     if (windowToken_ == nullptr) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor",
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][disableWindowDecor]msg: windowToken is nullptr");
@@ -6567,7 +6608,7 @@ napi_value JsWindow::OnDisableWindowDecor(napi_env env, napi_callback_info info)
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->DisableAppWindowDecor());
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "Window DisableWindowDecor failed");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor.error", ret);
         return NapiThrowError(env, ret);
     }
     TLOGI(WmsLogTag::WMS_DECOR, "Window [%{public}u, %{public}s] end",
@@ -7892,7 +7933,6 @@ napi_value JsWindow::OnSetWaterMarkFlag(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::OnSetHandwritingFlag(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setHandwritingFlag", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -7902,7 +7942,7 @@ napi_value JsWindow::OnSetHandwritingFlag(napi_env env, napi_callback_info info)
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
- 
+
     napi_value nativeBool = argv[0];
     if (nativeBool == nullptr) {
         WLOGFE("SetHandwritingFlag Invalid window flag");
@@ -7947,7 +7987,7 @@ napi_value JsWindow::OnSetHandwritingFlag(napi_env env, napi_callback_info info)
                 task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "SetHandwritingFlag failed."));
             }
         };
- 
+
     napi_value lastParam = (argc == 1) ? nullptr : (GetType(env, argv[1]) == napi_function ? argv[1] : nullptr);
     napi_value result = nullptr;
     NapiAsyncTask::Schedule("JsWindow::OnSetHandwritingFlag",
@@ -9040,7 +9080,6 @@ napi_value JsWindow::OnDetachLayoutToParentWindow(napi_env env, napi_callback_in
 
 napi_value JsWindow::OnSetWindowDecorVisible(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowDecorVisible", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -9080,10 +9119,9 @@ napi_value JsWindow::OnSetWindowDecorVisible(napi_env env, napi_callback_info in
 
 napi_value JsWindow::OnGetWindowDecorVisible(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.getWindowDecorVisible", HISTOGRAM_BOOLEAN_COUNTS);
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "window is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorVisible.error", 
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowDecorVisible.error", 
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getWindowDecorVisible]msg: WindowToken is nullptr.");
@@ -9092,7 +9130,7 @@ napi_value JsWindow::OnGetWindowDecorVisible(napi_env env, napi_callback_info in
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetDecorVisible(isVisible));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "Get window decor visibility failed");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorVisible.error", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowDecorVisible.error", ret);
         return NapiThrowError(env, ret,
             "[window][getWindowDecorVisible]msg: Get window decor visibility failed.");
     }
@@ -9127,12 +9165,17 @@ napi_value JsWindow::OnSetWindowTitleMoveEnabled(napi_env env, napi_callback_inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleMoveEnabled.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTitleMoveEnabled]msg: WindowToken is nullptr.");
+            "[window][setWindowTitleMoveEnabled]msg: WindowToken is nullptr. The window is not created or destroyed.");
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetWindowTitleMoveEnabled(enable));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "Window set title move enable failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleMoveEnabled.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret,
+                "[window][setWindowTitleMoveEnabled]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, ret,
             "[window][setWindowTitleMoveEnabled]msg: Window set title move enable failed.");
     }
@@ -9393,7 +9436,6 @@ napi_value JsWindow::OnGetWindowTransitionAnimation(napi_env env, napi_callback_
 
 napi_value JsWindow::OnSetWindowDecorHeight(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowDecorHeight", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -9409,7 +9451,7 @@ napi_value JsWindow::OnSetWindowDecorHeight(napi_env env, napi_callback_info inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowDecorHeight]msg: WindowToken is nullptr.");
+            "[window][setWindowDecorHeight]msg: WindowToken is nullptr. The window is not created or destroyed.");
     }
     int32_t height = 0;
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], height)) {
@@ -9419,7 +9461,7 @@ napi_value JsWindow::OnSetWindowDecorHeight(napi_env env, napi_callback_info inf
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setWindowDecorHeight]msg: Failed to convert parameter to height.");
     }
- 
+
     if (height < MIN_DECOR_HEIGHT || height > MAX_DECOR_HEIGHT) {
         TLOGE(WmsLogTag::WMS_DECOR, "height should greater than 37 or smaller than 112");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",
@@ -9427,6 +9469,7 @@ napi_value JsWindow::OnSetWindowDecorHeight(napi_env env, napi_callback_info inf
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setWindowDecorHeight]msg: Height should greater than 37 or smaller than 112.");
     }
+
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetDecorHeight(height));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "Set window decor height failed");
@@ -9441,13 +9484,12 @@ napi_value JsWindow::OnSetWindowDecorHeight(napi_env env, napi_callback_info inf
 
 napi_value JsWindow::OnGetWindowDecorHeight(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.getWindowDecorHeight", HISTOGRAM_BOOLEAN_COUNTS);
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowDecorHeight.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getWindowDecorHeight]msg: Window is nullptr.");
+            "[window][getWindowDecorHeight]msg: Window is nullptr. The window is not created or destroyed.");
     }
     int32_t height = 0;
     WMError ret = windowToken_->GetDecorHeight(height);
@@ -9470,13 +9512,12 @@ napi_value JsWindow::OnGetWindowDecorHeight(napi_env env, napi_callback_info inf
 
 napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setDecorButtonStyle", HISTOGRAM_BOOLEAN_COUNTS);
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setDecorButtonStyle]msg: Window is nullptr.");
+            "[window][setDecorButtonStyle]msg: Window is nullptr. The window is not created or destroyed.");
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_DECOR, "This is PcAppInPad, not support");
@@ -9533,6 +9574,10 @@ napi_value JsWindow::OnSetDecorButtonStyle(napi_env env, napi_callback_info info
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDecorButtonStyle.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][setWindowTitleMoveEnabled]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, ret, "[window][setDecorButtonStyle]msg: Set decorButtonStyle failed.");
     }
     return NapiGetUndefined(env);
@@ -9546,7 +9591,7 @@ napi_value JsWindow::OnGetDecorButtonStyle(napi_env env, napi_callback_info info
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getDecorButtonStyle.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getDecorButtonStyle]msg: Window is nullptr.");
+            "[window][getDecorButtonStyle]msg: Window is nullptr. The window is not created or destroyed.");
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_DECOR, "This is PcAppInPad, not support");
@@ -9566,6 +9611,10 @@ napi_value JsWindow::OnGetDecorButtonStyle(napi_env env, napi_callback_info info
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getDecorButtonStyle.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][getDecorButtonStyle]msg: Invalid window type. "
+                "Only main windows and subwindows are supported.");
+        }
         return NapiThrowError(env, ret);
     }
     auto jsDecorButtonStyle = CreateJsDecorButtonStyleObj(env, decorButtonStyle);
@@ -9581,25 +9630,24 @@ napi_value JsWindow::OnGetDecorButtonStyle(napi_env env, napi_callback_info info
 
 napi_value JsWindow::OnGetTitleButtonRect(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.getTitleButtonRect", HISTOGRAM_BOOLEAN_COUNTS);
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_DECOR, "window is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect",
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getTitleButtonRect]msg: Window is nullptr.");
+            "[window][getTitleButtonRect]msg: Window is nullptr. The window is not created or destroyed.");
     }
     TitleButtonRect titleButtonRect;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetTitleButtonArea(titleButtonRect));
     if (ret != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect", ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect.error", ret);
         return NapiThrowError(env, ret, "[window][getTitleButtonRect]msg: Get titleButtonRect failed.");
     }
     TLOGI(WmsLogTag::WMS_DECOR, "Window [%{public}u, %{public}s] end",
         windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str());
     napi_value TitleButtonAreaObj = ConvertTitleButtonAreaToJsValue(env, titleButtonRect);
     if (TitleButtonAreaObj == nullptr) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect",
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTitleButtonRect.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][getTitleButtonRect]msg: TitleButtonRect convert Failed.");
@@ -9769,7 +9817,6 @@ napi_value JsWindow::OnSetTitleButtonVisible(napi_env env, napi_callback_info in
 
 napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowTitleButtonVisible", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -9809,7 +9856,8 @@ napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_i
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTitleButtonVisible]msg: WindowToken is nullptr.");
+            "[window][setWindowTitleButtonVisible]msg: WindowToken is nullptr. "
+            "The window is not created or destroyed.");
     }
     WMError errCode = windowToken_->SetTitleButtonVisible(isMaximizeVisible, isMinimizeVisible, isMaximizeVisible,
         isCloseVisible);
@@ -9817,6 +9865,11 @@ napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_i
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DECOR, "set title button visible failed!");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error", ret);
+        if (ret == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+            return NapiThrowError(env, ret, "[window][setWindowTitleButtonVisible]msg: Invalid window type. "
+                "Only main windows and subwindows with subwindowoptions.zlevelaboveparentloosened set to true "
+                "are supported.");
+        }
         return NapiThrowError(env, ret, "[window][setWindowTitleButtonVisible]msg: Set title button visible failed.");
     }
     TLOGI(WmsLogTag::WMS_DECOR, "Window [%{public}u, %{public}s] [%{public}d, %{public}d, %{public}d]",
@@ -9827,7 +9880,6 @@ napi_value JsWindow::OnSetWindowTitleButtonVisible(napi_env env, napi_callback_i
 
 napi_value JsWindow::OnSetWindowTitle(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowTitle", HISTOGRAM_BOOLEAN_COUNTS);
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -10280,13 +10332,12 @@ napi_value JsWindow::OnIsImmersiveLayout(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::OnIsInFreeWindowMode(napi_env env, napi_callback_info info)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.isInFreeWindowMode", HISTOGRAM_BOOLEAN_COUNTS);
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "windowToken_ is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isInFreeWindowMode.error",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][OnIsInFreeWindowMode]msg: invalid window");
+            "[window][OnIsInFreeWindowMode]msg: invalid window. The window is not created or destroyed.");
     }
     bool isInFreeWindowMode = windowToken_->IsPcOrPadFreeMultiWindowMode();
     TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u isInFreeWindowMod %{public}u end",
@@ -10301,7 +10352,7 @@ napi_value JsWindow::OnGetWindowStatus(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_PC, "window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowStatus", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getWindowStatus]msg: Window is nullptr");
+            "[window][getWindowStatus]msg: Window is nullptr. The window is not created or destroyed.");
     }
     WindowStatus windowStatus;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->GetWindowStatus(windowStatus));
@@ -11813,6 +11864,174 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
     return CreateJsValue(env, locked);
 }
 
+napi_value JsWindow::IsInWindowPostureMode(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "IsInWindowPostureMode");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnIsInWindowPostureMode(env, info) : nullptr;
+}
+
+napi_value JsWindow::OnWindowPostureModeChange(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "OnWindowPostureModeChange");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnRegisterWindowPostureModeChange(env, info) : nullptr;
+}
+
+napi_value JsWindow::OffWindowPostureModeChange(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "OffWindowPostureModeChange");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnUnregisterWindowPostureModeChange(env, info) : nullptr;
+}
+
+napi_value JsWindow::OnIsInWindowPostureMode(napi_env env, napi_callback_info info)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][isInWindowPostureMode]msg: The window is not created or destroyed");
+    }
+    constexpr size_t argcSize = 1;
+    size_t argc = 4;
+    napi_value argv[4] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != argcSize) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][isInWindowPostureMode]msg: Incorrect number of parameters.");
+    }
+    WindowPostureMode postureMode = WindowPostureMode::END;
+    WmErrorCode errCode = ParseWindowPostureMode(env, argv[0], postureMode);
+    if (errCode != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, errCode,
+                              "[window][isInWindowPostureMode]msg: parse window posture mode failed.");
+    }
+    bool result = false;
+    if (postureMode == WindowPostureMode::DESKTOP_MODE) {
+        result = windowToken_->GetWindowHoverState();
+    } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid posture mode: %{public}u", static_cast<uint32_t>(postureMode));
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][isInWindowPostureMode]msg: Invalid posture mode.");
+    }
+    auto objValue = CreateJsValue(env, result);
+    if (objValue != nullptr) {
+        return objValue;
+    } else {
+        std::string windowName = windowToken_->GetWindowName();
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, 
+            "[window][isInWindowPostureMode]msg: Internal task error, windowName='" + windowName + "'");
+    }
+}
+
+WmErrorCode JsWindow::ParseWindowPostureMode(napi_env env, napi_value nativeMode, WindowPostureMode& postureMode)
+{
+    postureMode = WindowPostureMode::END;
+    if (nativeMode == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid param");
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+    }
+    uint32_t resultValue = 0;
+    WmErrorCode errCode = WmErrorCode::WM_OK;
+    CHECK_NAPI_RETCODE(
+        errCode, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, napi_get_value_uint32(env, nativeMode, &resultValue));
+    if (errCode != WmErrorCode::WM_OK) {
+        return errCode;
+    }
+    if (resultValue < static_cast<uint32_t>(WindowPostureMode::START) ||
+            resultValue >= static_cast<uint32_t>(WindowPostureMode::END)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid posture mode: %{public}u", resultValue);
+        return WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+    }
+    postureMode = static_cast<WindowPostureMode>(resultValue);
+    return WmErrorCode::WM_OK;
+}
+
+napi_value JsWindow::OnRegisterWindowPostureModeChange(napi_env env, napi_callback_info info)
+{
+    WmErrorCode errCode = WmErrorCode::WM_OK;
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][onWindowPostureModeChange]msg: The window is not created or destroyed.");
+    }
+    sptr<Window> windowToken = windowToken_;
+    constexpr size_t argcSize = 2;
+    size_t argc = 4;
+    napi_value argv[4] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != argcSize) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][onWindowPostureModeChange]msg: Incorrect number of parameters.");
+    }
+    WindowPostureMode postureMode = WindowPostureMode::END;
+    errCode = ParseWindowPostureMode(env, argv[0], postureMode);
+    if (errCode != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, errCode,
+                              "[window][onWindowPostureModeChange]msg: parse window posture mode failed.");
+    }
+    size_t cbIndex = argc - 1;
+    napi_value callback = argv[cbIndex];
+    if (!NapiIsCallable(env, callback)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Callback(info->argv[%{public}zu]) is not callable", cbIndex);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][onWindowPostureModeChange]msg: Callback is not callable.");
+    }
+    auto ret = registerManager_->RegisterWindowPostureModeListener(env, windowToken, callback, postureMode);
+    if (ret != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, ret, "[window][onWindowPostureModeChange]msg: Register listener failed.");
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Id=%{public}u, mode=%{public}u", windowToken->GetWindowId(),
+        static_cast<uint32_t>(postureMode));
+    return NapiGetUndefined(env);
+}
+
+napi_value JsWindow::OnUnregisterWindowPostureModeChange(napi_env env, napi_callback_info info)
+{
+    WmErrorCode errCode = WmErrorCode::WM_OK;
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][offWindowPostureModeChange]msg: The window is not created or destroyed.");
+    }
+    sptr<Window> windowToken = windowToken_;
+    constexpr size_t argcMin = 1;
+    constexpr size_t argcMax = 2;
+    size_t argc = 4;
+    napi_value argv[4] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < argcMin || argc > argcMax) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][offWindowPostureModeChange]msg: Incorrect number of parameters.");
+    }
+    WindowPostureMode postureMode = WindowPostureMode::END;
+    errCode = ParseWindowPostureMode(env, argv[0], postureMode);
+    if (errCode != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, errCode,
+                              "[window][offWindowPostureModeChange]msg: parse window posture mode failed.");
+    }
+    napi_value callback = nullptr;
+    if(argc > 1) {
+        size_t cbIndex = argc - 1;
+        callback = argv[cbIndex];
+        if (!NapiIsCallable(env, callback)) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Callback(info->argv[%{public}zu]) is not callable", cbIndex);
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                                "[window][offWindowPostureModeChange]msg: Callback is not callable.");
+        }
+    }
+    auto ret = registerManager_->UnregisterWindowPostureModeListener(env, windowToken, callback, postureMode);
+    if (ret != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, ret, "[window][offWindowPostureModeChange]msg: Unregister listener failed.");
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Id=%{public}u, mode=%{public}u", windowToken->GetWindowId(), 
+        static_cast<uint32_t>(postureMode));
+    return NapiGetUndefined(env);
+}
+
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
 {
     BindNativeFunction(env, object, "startMoving", moduleName, JsWindow::StartMoving);
@@ -12016,6 +12235,9 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "isInFreeWindowMode", moduleName, JsWindow::IsInFreeWindowMode);
     BindNativeFunction(env, object, "setRotationLocked", moduleName, JsWindow::SetRotationLocked);
     BindNativeFunction(env, object, "getRotationLocked", moduleName, JsWindow::GetRotationLocked);
+    BindNativeFunction(env, object, "isInWindowPostureMode", moduleName, JsWindow::IsInWindowPostureMode);
+    BindNativeFunction(env, object, "onWindowPostureModeChange", moduleName, JsWindow::OnWindowPostureModeChange);
+    BindNativeFunction(env, object, "offWindowPostureModeChange", moduleName, JsWindow::OffWindowPostureModeChange);
 }
 }  // namespace Rosen
 }  // namespace OHOS

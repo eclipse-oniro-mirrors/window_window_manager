@@ -46,11 +46,11 @@ void PipOptionAni::ClearAniRefs(ani_env* env)
 
 void PipOptionAni::SetNodeControllerRef(ani_ref ref)
 {
-    if (ref) {
-        TLOGI(WmsLogTag::WMS_PIP, "SetNodeControllerRef");
-    } else {
+    if (!ref) {
         TLOGE(WmsLogTag::WMS_PIP, "NodeControllerRef is null, not set");
+        return;
     }
+    TLOGI(WmsLogTag::WMS_PIP, "Set NodeControllerRef");
     customNodeController_ = ref;
 }
 
@@ -72,11 +72,11 @@ ani_ref PipOptionAni::GetTypeNodeRef() const
 
 void PipOptionAni::SetStorageRef(ani_ref ref)
 {
-    if (ref) {
-        TLOGI(WmsLogTag::WMS_PIP, "SetStorageRef");
-    } else {
-        TLOGE(WmsLogTag::WMS_PIP, "SetStorageRef is null");
+    if (!ref) {
+        TLOGE(WmsLogTag::WMS_PIP, "StorageRef is null");
+        return;
     }
+    TLOGI(WmsLogTag::WMS_PIP, "Set StorageRef");
     storage_ = ref;
 }
 

@@ -379,16 +379,16 @@ NativeDisplayManager_ErrorCode OH_NativeDisplayManager_UnregisterAvailableAreaCh
 /**
  * @brief create available area.
  *
- * @param { displayid } displayid.
+ * @param { displayid } displayId.
  * @param { **availableArea } Indicates the pointer to an <b>NativeDisplayManager_Rect</b> object.
  * @return { @link DISPLAY_MANAGER_OK } If the operation is successful.
  *         { @link DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM } If Parameter illegal.
-  *         { @link DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORT } device not support.
+ *         { @link DISPLAY_MANAGER_ERROR_DEVICE_NOT_SUPPORT } device not support.
  *         { @link DISPLAY_MANAGER_ERROR_SYSTEM_ABNORMAL } If display manager service works abnormally.
  * @since 20
  */
 NativeDisplayManager_ErrorCode OH_NativeDisplayManager_CreateAvailableArea(
-    uint64_t displayId, NativeDisplayManager_Rect** availableArea);
+    uint64_t displayId, NativeDisplayManager_Rect **availableArea);
 
 /**
  * @brief destroy available area.
@@ -448,7 +448,7 @@ typedef void (*OH_NativeDisplayManager_DisplayRemoveCallback)(uint64_t displayId
 /**
  * @brief Register the callback for display remove listener.
  *
- * @param { displayremoveCallback } display remove callback.
+ * @param { displayRemoveCallback } display remove callback.
  * @param { *listenerIndex } Indicates the pointer to an <b>uint32_t</b> object.
  * @return { @link DISPLAY_MANAGER_OK } If the operation is successful.
  *         { @link DISPLAY_MANAGER_ERROR_ILLEGAL_PARAM } If Parameter illegal.

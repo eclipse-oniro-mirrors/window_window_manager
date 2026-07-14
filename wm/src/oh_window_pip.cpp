@@ -455,3 +455,13 @@ int32_t OH_PictureInPicture_UnregisterAllResizeListeners(uint32_t controllerId)
     }
     return GetErrorCodeFromWMError(pipController->UnregisterAllPiPWindowSize());
 }
+
+int32_t OH_PictureInPicture_SetAutoStartEnabled(uint32_t controllerId, bool enabled)
+{
+    auto pipController = GetControllerFromId(controllerId);
+    if (pipController == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "controllerId not found: %{public}d", controllerId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM;
+    }
+    return GetErrorCodeFromWMError(pipController->SetPipAutoStartEnabled(enabled));
+}

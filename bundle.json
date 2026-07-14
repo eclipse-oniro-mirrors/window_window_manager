@@ -96,7 +96,9 @@
           "screenlock_mgr",
           "os_account",
           "api_metrics",
-          "json"
+          "json",
+          "egl",
+          "opengles"
         ],
         "third_party": [
         ]

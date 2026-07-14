@@ -324,7 +324,8 @@ sptr<Window> FloatWindowManager::CreateFvWindow(sptr<WindowOption> &windowOption
     WMError &error, const wptr<FloatViewController> &fvControllerWeak)
 {
     std::lock_guard<std::mutex> lock(windowMutex_);
-    if (pipCnt_ > 0) {
+    // need check pip when not bind or show float view first
+    if ((!templateInfo.isBind_ || templateInfo.showWhenCreate_) && pipCnt_ > 0) {
         TLOGW(WmsLogTag::WMS_SYSTEM, "there are active pip, can not create float view");
         error = WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS;
         return nullptr;
@@ -350,9 +351,12 @@ sptr<Window> FloatWindowManager::CreatePipWindow(sptr<WindowOption> &windowOptio
 {
     std::lock_guard<std::mutex> lock(windowMutex_);
     if (floatViewCnt_ > 0) {
-        TLOGW(WmsLogTag::WMS_SYSTEM, "there are active float view, can not create pip");
-        error = WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS;
-        return nullptr;
+        auto fvController = FloatViewManager::GetActiveController();
+        if (fvController != nullptr && fvController->GetCurState() != FvWindowState::FV_STATE_IN_FLOATING_BALL) {
+            TLOGW(WmsLogTag::WMS_SYSTEM, "there are active float view, can not create pip");
+            error = WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS;
+            return nullptr;
+        }
     }
     sptr<Window> window = Window::CreatePiP(windowOption, templateInfo, context, error);
     if (window != nullptr) {

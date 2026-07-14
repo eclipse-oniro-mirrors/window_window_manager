@@ -175,9 +175,13 @@ HWTEST_F(WindowSessionTest, SetActive01, TestSize.Level1)
     auto surfaceNode = CreateRSSurfaceNode();
     SystemSessionConfig sessionConfig;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint64_t nodeId = 0;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> outputSurfaceNode;
     ASSERT_NE(nullptr, property);
     ASSERT_EQ(WSError::WS_OK,
-              session_->Connect(mockSessionStage, mockEventChannel, surfaceNode, sessionConfig, property));
+        session_->Connect(mockSessionStage, mockEventChannel, nodeId, sessionConfig, renderSession,
+        outputSurfaceNode, property));
     ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, session_->SetActive(true));
     ASSERT_EQ(false, session_->isActive_);
 
@@ -319,18 +323,23 @@ HWTEST_F(WindowSessionTest, ConnectInner, TestSize.Level1)
     session_->state_ = SessionState::STATE_CONNECT;
     session_->isTerminating_ = false;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint64_t nodeId = 1000;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     property->SetIsNeedUpdateWindowMode(true);
     session_->SetScreenId(233);
     session_->SetSessionProperty(property);
     auto res = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res, WSError::WS_ERROR_INVALID_SESSION);
 
     session_->isTerminating_ = true;
     auto res2 = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res2, WSError::WS_OK);
 
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
@@ -338,7 +347,8 @@ HWTEST_F(WindowSessionTest, ConnectInner, TestSize.Level1)
     session_->SetScreenId(SCREEN_ID_INVALID);
     session_->SetSessionProperty(property);
     auto res3 = session_->ConnectInner(
-        mockSessionStage_, mockEventChannel_, nullptr, sessionConfig, property, nullptr, 1, 1, "");
+        mockSessionStage_, mockEventChannel_, nodeId, sessionConfig, renderSession, surfaceNode,
+        property, nullptr, 1, 1, "");
     ASSERT_EQ(res3, WSError::WS_OK);
     ASSERT_EQ(false, session_->GetSessionProperty()->GetIsNeedUpdateWindowMode());
 }
@@ -905,6 +915,20 @@ HWTEST_F(WindowSessionTest, NotifyAddSnapshot, TestSize.Level1)
 {
     ASSERT_NE(session_, nullptr);
     session_->state_ = SessionState::STATE_DISCONNECT;
+    session_->NotifyAddSnapshot();
+    ASSERT_EQ(session_->GetSnapshot(), nullptr);
+}
+
+/**
+ * @tc.name: NotifyAddSnapshot02
+ * @tc.desc: NotifyAddSnapshot Test with nullptr surfaceNode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, NotifyAddSnapshot02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->surfaceNode_ = nullptr;
+    session_->state_ = SessionState::STATE_ACTIVE;
     session_->NotifyAddSnapshot();
     ASSERT_EQ(session_->GetSnapshot(), nullptr);
 }
@@ -1629,6 +1653,24 @@ HWTEST_F(WindowSessionTest, SwitchFreeMultiWindow, TestSize.Level1)
  }
 
 /**
+ * @tc.name: InitSessionPropertyWhenConnect2
+ * @tc.desc: InitSessionPropertyWhenConnect test 2
+ * @tc.type: FUNC
+ */
+ HWTEST_F(WindowSessionTest, InitSessionPropertyWhenConnect2, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    session_->InitSessionPropertyWhenConnect(property);
+    EXPECT_EQ(true, property->GetIsShowDecorInFreeMultiWindow());
+
+    session_->SetIsShowDecorInFreeMultiWindow(false);
+    session_->InitSessionPropertyWhenConnect(property);
+    EXPECT_EQ(false, property->GetIsShowDecorInFreeMultiWindow());
+}
+
+/**
  * @tc.name: SetTouchHotAreas
  * @tc.desc: SetTouchHotAreas test
  * @tc.type: FUNC
@@ -2216,6 +2258,30 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_NotEnabled, TestSize.Lev
     session->property_->SetZLevelAboveParentLoosened(false);
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(false, session->IsLoosenedWithFreeMultiMode());
+}
+
+/**
+ * @tc.name: UpdateLSStateInfo
+ * @tc.desc: test UpdateLSStateInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateLSStateInfo, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "TestSession";
+    info.bundleName_ = "TestBundle";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_NE(nullptr, mockSessionStage);
+
+    session->sessionStage_ = nullptr;
+    ASSERT_EQ(WSError::WS_DO_NOTHING, session->UpdateLSStateInfo(true));
+
+    session->sessionStage_ = mockSessionStage;
+    EXPECT_CALL(*(mockSessionStage), UpdateLSState(_)).WillOnce(Return(WSError::WS_OK));
+    ASSERT_EQ(WSError::WS_OK, session->UpdateLSStateInfo(true));
 }
 } // namespace
 } // namespace Rosen

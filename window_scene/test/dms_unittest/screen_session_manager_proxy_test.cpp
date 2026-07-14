@@ -3704,5 +3704,90 @@ HWTEST_F(ScreenSessionManagerProxyTest, RemoveVirtualScreenSurface06, TestSize.L
     MockMessageParcel::SetWriteBoolErrorFlag(false);
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: GetRenderSession01
+ * @tc.desc: GetRenderSession with remote is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetRenderSession01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 0;
+
+    sptr<MockIRemoteObject> remoteMocker = nullptr;
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    auto ret = proxy->GetRenderSession(screenId);
+    EXPECT_EQ(ret, nullptr);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetRenderSession02
+ * @tc.desc: GetRenderSession with WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetRenderSession02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 0;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    auto ret = proxy->GetRenderSession(screenId);
+    EXPECT_EQ(ret, nullptr);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken Failed") != std::string::npos);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetRenderSession03
+ * @tc.desc: GetRenderSession with WriteUint64 (screenId) failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetRenderSession03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    auto ret = proxy->GetRenderSession(screenId);
+    EXPECT_EQ(ret, nullptr);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: GetRenderSession04
+ * @tc.desc: GetRenderSession with SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, GetRenderSession04, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ScreenId screenId = 1001;
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    auto ret = proxy->GetRenderSession(screenId);
+    EXPECT_EQ(ret, nullptr);
+    EXPECT_TRUE(logMsg.find("Send TRANS_ID_GET_RENDER_SESSION request failed") != std::string::npos);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

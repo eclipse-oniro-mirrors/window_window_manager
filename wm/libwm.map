@@ -35,11 +35,13 @@
             OHOS::Rosen::FloatingBallController::GetFloatingBallWindowInfo*;
             OHOS::Rosen::FloatingBallController::RegisterFbClickObserver*;
             OHOS::Rosen::FloatingBallController::RegisterFbLifecycle*;
+            OHOS::Rosen::FloatingBallController::RegisterFbDestroyObserver*;
             OHOS::Rosen::FloatingBallController::RestoreMainWindow*;
             OHOS::Rosen::FloatingBallController::StartFloatingBall*;
             OHOS::Rosen::FloatingBallController::StopFloatingBallFromClient*;
             OHOS::Rosen::FloatingBallController::UnRegisterFbClickObserver*;
             OHOS::Rosen::FloatingBallController::UnRegisterFbLifecycle*;
+            OHOS::Rosen::FloatingBallController::UnRegisterFbDestroyObserver*;
             OHOS::Rosen::FloatingBallController::UpdateFloatingBall*;
             OHOS::Rosen::FloatingBallController::UpdateMainWindow*;
             OHOS::Rosen::FloatingBallManager::IsActiveController*;
@@ -127,6 +129,8 @@
  	        OHOS::Rosen::PictureInPictureControllerBase::SetPipWindow*;
  	        OHOS::Rosen::PictureInPictureControllerBase::GetSurfaceId*;
  	        OHOS::Rosen::PictureInPictureControllerBase::GetStateChangeReason*;
+            OHOS::Rosen::PictureInPictureManager::IsTemplateTypeSupported*;
+            OHOS::Rosen::PictureInPictureManager::GetCurrentWindow*;
             OHOS::Rosen::PictureInPictureManager::GetPipControllerInfo*;
             OHOS::Rosen::PictureInPictureManager::GetPipEnabled*;
             OHOS::Rosen::PictureInPictureManager::IsSupportPiP*;
@@ -511,7 +515,7 @@
         GetGtxTouchEvent*;
         RegisterInputEventScale*;
         UnRegisterInputEventScale*;
-    }
+    };
     local:
     *;
 };

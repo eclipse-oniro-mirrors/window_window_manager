@@ -1137,7 +1137,7 @@ WMError WindowManagerService::GetWindowStateSnapshot(int32_t persistentId, std::
 }
 
 WMError WindowManagerService::RegisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         WLOGFE("register windowManager agent permission denied!");
@@ -1147,9 +1147,12 @@ WMError WindowManagerService::RegisterWindowManagerAgent(WindowManagerAgentType 
         WLOGFE("windowManagerAgent is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    auto task = [this, &windowManagerAgent, type]() {
-        WMError ret = WindowManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type);
-        if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR) { // if system bar, notify once
+    auto task = [this, &windowManagerAgent, type, instanceUserId]() {
+        TLOGI(WmsLogTag::WMS_MAIN, "RegisterWindowManagerAgent type=%{public}u, instanceUserId=%{public}d",
+            static_cast<uint32_t>(type), instanceUserId);
+        WMError ret = WindowManagerAgentController::GetInstance().RegisterWindowManagerAgent(
+            windowManagerAgent, type);
+        if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SYSTEM_BAR) {
             windowController_->NotifySystemBarTints();
         }
         return ret;
@@ -1158,7 +1161,7 @@ WMError WindowManagerService::RegisterWindowManagerAgent(WindowManagerAgentType 
 }
 
 WMError WindowManagerService::UnregisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
         WLOGFE("unregister windowManager agent permission denied!");
@@ -1168,8 +1171,11 @@ WMError WindowManagerService::UnregisterWindowManagerAgent(WindowManagerAgentTyp
         WLOGFE("windowManagerAgent is null");
         return WMError::WM_ERROR_NULLPTR;
     }
-    auto task = [this, &windowManagerAgent, type]() {
-        return WindowManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type);
+    auto task = [this, &windowManagerAgent, type, instanceUserId]() {
+        TLOGI(WmsLogTag::WMS_MAIN, "UnregisterWindowManagerAgent type=%{public}u, instanceUserId=%{public}d",
+            static_cast<uint32_t>(type), instanceUserId);
+        return WindowManagerAgentController::GetInstance().UnregisterWindowManagerAgent(
+            windowManagerAgent, type);
     };
     return PostSyncTask(task, "UnregisterWindowManagerAgent");
 }

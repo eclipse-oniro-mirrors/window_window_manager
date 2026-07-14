@@ -2394,6 +2394,8 @@ napi_value CreateJsSessionSizeChangeReason(napi_env env)
         static_cast<int32_t>(SizeChangeReason::SCENE_WITH_ANIMATION)));
     napi_set_named_property(env, objValue, "LS_STATE_CHANGE", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::LS_STATE_CHANGE)));
+    napi_set_named_property(env, objValue, "SPLIT_ENABLE_CHANGE", CreateJsValue(env,
+        static_cast<int32_t>(SizeChangeReason::SPLIT_ENABLE_CHANGE)));
     napi_set_named_property(env, objValue, "END", CreateJsValue(env,
         static_cast<int32_t>(SizeChangeReason::END)));
 
@@ -3211,7 +3213,7 @@ napi_value CreateSupportType(napi_env env)
 
 napi_value CreateJsWindowAnchorInfo(napi_env env, const WindowAnchorInfo& windowAnchorInfo)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offsetY:%{public}d"
+    TLOGD(WmsLogTag::WMS_LAYOUT, "windowAnchorInfo %{public}d, offsetX:%{public}d, offsetY:%{public}d"
         "currentLayoutMode:%{public}s", windowAnchorInfo.windowAnchor_, windowAnchorInfo.offsetX_,
         windowAnchorInfo.offsetY_, windowAnchorInfo.attachOptions.currentLayoutMode.c_str());
     napi_value objValue = nullptr;

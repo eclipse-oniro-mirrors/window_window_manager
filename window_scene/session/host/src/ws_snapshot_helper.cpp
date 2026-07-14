@@ -46,7 +46,9 @@ int32_t WSSnapshotHelper::GetScreenStatus(FoldStatus foldStatus)
 {
     if (foldStatus == FoldStatus::UNKNOWN || foldStatus == FoldStatus::FOLDED ||
         foldStatus == FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_EXPAND ||
-        foldStatus == FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED) {
+        foldStatus == FoldStatus::FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED ||
+        foldStatus == FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED ||
+        foldStatus == FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND) {
         return SCREEN_FOLDED;
     } else if (foldStatus == FoldStatus::EXPAND || foldStatus == FoldStatus::HALF_FOLD) {
         return SCREEN_EXPAND;
@@ -95,8 +97,9 @@ uint32_t WSSnapshotHelper::GetWindowRotation() const
 
 bool WSSnapshotHelper::IsSnapshotNeedCorrect(SnapshotStatus key) const
 {
-    return CORRECTION_ENABLE && (key == SCREEN_UNKNOWN ||
-        (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && key == SCREEN_EXPAND));
+    return CORRECTION_ENABLE && !FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice() &&
+        (key == SCREEN_UNKNOWN ||
+         (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice() && key == SCREEN_EXPAND));
 }
 // LCOV_EXCL_STOP
 } // namespace OHOS::Rosen

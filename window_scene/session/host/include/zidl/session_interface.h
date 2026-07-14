@@ -50,7 +50,8 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ISession");
 
     virtual WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") { return WSError::WS_OK; }
     virtual WSError Foreground(
@@ -427,6 +428,7 @@ public:
         WSPropertyChangeAction action) { return WMError::WM_OK; }
     virtual WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) { return WMError::WM_OK; }
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
+    virtual WMError GetForceSplitEnable(bool& enable) { return WMError::WM_OK; }
     virtual WSError AdjustKeyboardLayout(const KeyboardLayoutParams& params) { return WSError::WS_OK; }
     virtual WSError SetDialogSessionBackGestureEnabled(bool isEnabled) { return WSError::WS_OK; }
     virtual void NotifyExtensionDetachToDisplay() {}

@@ -119,9 +119,10 @@ public:
     virtual std::vector<std::shared_ptr<Media::PixelMap>> GetDisplayHDRSnapshot(
         DisplayId displayId, DmErrorCode& errorCode, bool isUseDma = false,
         bool isCaptureFullOfScreen = false, DisplayIntentType displayIntent = DisplayIntentType::CANONICAL)
-    {
-        return { nullptr, nullptr };
-    }
+        {
+            errorCode = DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT;
+            return { nullptr, nullptr };
+        }
     virtual std::shared_ptr<Media::PixelMap> GetSnapshotByPicker(Media::Rect &rect,
         DmErrorCode* errorCode = nullptr)
     {
@@ -198,7 +199,7 @@ public:
         DisplayManagerAgentType type) { return DMError::DM_OK; }
     virtual DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type) { return DMError::DM_OK; }
-    virtual DMError RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+    virtual DMError RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent>& displayManagerAgent) { return DMError::DM_OK; }
     virtual DMError UnRegisterDisplayAttribute(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent>& displayManagerAgent) { return DMError::DM_OK; }
@@ -224,6 +225,7 @@ public:
     virtual bool SetDisplayState(DisplayState state) { return false; }
     virtual DisplayState GetDisplayState(DisplayId displayId) {return DisplayState::UNKNOWN; }
     virtual bool TryToCancelScreenOff() { return false; }
+    virtual void NotifyBootAnimationFinished() {}
     virtual bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData) { return false; }
     virtual uint32_t GetScreenBrightness(uint64_t screenId) { return 0; }
     virtual std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT)
@@ -237,6 +239,7 @@ public:
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) { return false; }
     virtual void NotifyDisplayEvent(DisplayEvent event) {}
     virtual bool SetFreeze(std::vector<DisplayId> displayIds, bool isFreeze) { return false; }
     virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId) { return nullptr; }
@@ -292,7 +295,6 @@ public:
     virtual DMError SetPrimaryDisplaySystemDpi(float dpi) { return DMError::DM_OK; }
     // Fold Screen
     virtual void SetFoldDisplayMode(const FoldDisplayMode displayMode) {}
-    virtual void SetFoldDisplayModeAsync(const FoldDisplayMode displayMode) {}
     virtual DMError SetFoldDisplayModeFromJs(const FoldDisplayMode displayMode,
         std::string reason = "") { return DMError::DM_OK; }
 
@@ -300,8 +302,10 @@ public:
 
     virtual void SetFoldStatusLocked(bool locked) {}
     virtual DMError SetFoldStatusLockedFromJs(bool locked) { return DMError::DM_OK; }
+
     virtual DMError ForceSetFoldStatusAndLock(FoldStatus targetFoldStatus) { return DMError::DM_OK; }
     virtual DMError RestorePhysicalFoldStatus() { return DMError::DM_OK; }
+
     virtual void SetFoldStatusExpandAndLocked(bool locked) {}
 
     virtual FoldDisplayMode GetFoldDisplayMode() { return FoldDisplayMode::UNKNOWN; }
@@ -365,7 +369,6 @@ public:
     virtual void NotifyAodOpCompletion(AodOP op, int32_t result) {}
     virtual void SetPowerStateForAod(ScreenPowerState state) {}
     virtual void RecordEventFromScb(std::string description, bool needRecordEvent) {}
-    virtual DeviceScreenConfig GetDeviceScreenConfig() { return {}; }
     virtual DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) { return DMError::DM_OK; }
     virtual DMError SetVirtualScreenRefreshRate(ScreenId screenId, uint32_t refreshInterval)
@@ -380,6 +383,7 @@ public:
     {
         return DMError::DM_OK;
     }
+    virtual DeviceScreenConfig GetDeviceScreenConfig() { return {}; }
     virtual void SetVirtualScreenBlackList(ScreenId screenId, std::vector<uint64_t>& windowIdList,
         std::vector<uint64_t> surfaceIdList = {}, std::vector<uint8_t> typeBlackList = {}) {}
     virtual void SetVirtualDisplayMuteFlag(ScreenId screenId, bool muteFlag) {}
@@ -393,12 +397,12 @@ public:
     {
         return DMError::DM_OK;
     }
-    virtual bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) { return false; }
     virtual DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
         std::vector<uint64_t>& windowIdList)
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) { return false; }
 
     virtual std::shared_ptr<Media::PixelMap> GetScreenCapture(const CaptureOption& captureOption,
         DmErrorCode* errorCode = nullptr)
@@ -441,7 +445,6 @@ public:
     virtual void NotifyExtendScreenDestroyFinish() {}
     virtual void NotifyScreenMaskAppear() {}
     virtual bool GetKeyboardState() { return false; }
-    virtual uint32_t GetDeviceStatus() { return 0; }
     virtual DMError GetScreenAreaOfDisplayArea(DisplayId displayId, const DMRect& displayArea,
         ScreenId& screenId, DMRect& screenArea) { return DMError::DM_OK; }
     virtual DMError GetBrightnessInfo(DisplayId displayId,
@@ -449,9 +452,9 @@ public:
     virtual DMError GetSupportsInput(DisplayId displayId, bool& supportsInput) { return DMError::DM_OK; };
     virtual DMError SetSupportsInput(DisplayId displayId, bool supportsInput) { return DMError::DM_OK; };
     virtual DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) { return DMError::DM_OK; }
+    virtual bool SynchronizePowerStatus(ScreenPowerState state) { return false; }
     virtual DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) { return DMError::DM_OK; }
-    virtual bool SynchronizePowerStatus(ScreenPowerState state) { return false; }
     virtual void NotifySwitchUserAnimationFinish() {}
     virtual void SubscribeMotionSensor(int32_t motionType) {}
     virtual void UnsubscribeMotionSensor(int32_t motionType) {}
@@ -461,6 +464,7 @@ public:
     }
     virtual DMError GetRoundedCorner(DisplayId displayId, int& radius) { return DMError::DM_OK; }
     virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName) { return DMError::DM_OK; }
+    virtual sptr<IRemoteObject> GetRenderSession(ScreenId screenId) { return nullptr; }
 };
 } // namespace Rosen
 } // namespace OHOS
