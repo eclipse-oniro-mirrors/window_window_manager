@@ -3226,14 +3226,14 @@ WMError WindowSceneSessionImpl::GetTargetOrientationConfigInfo(Orientation targe
         getTargetInfoCallback_->GetTargetOrientationResult(WINDOW_PAGE_ROTATION_TIMEOUT);
     OrientationInfo info = infoResult.first;
     OrientationInfo currentInfo = infoResult.second;
-    //Handle timeout graccefully：if rect is empty, use display size as fallback.
+    //Handle timeout gracefully:if rect is empty, use display size as fallback.
     if (info.rect.IsUninitializedRect() && displayInfo !=nullptr) {
         TLOGW(WmsLogTag::WMS_ROTATION, "GetTargetOrientationResult timeout, using display size as fallback");
-        infoe.rect.posX_ = 0;
+        info.rect.posX_ = 0;
         info.rect.posY_ = 0;
         info.rect.width_ = displayInfo->GetWidth();
         info.rect.height_ = displayInfo->GetHeight();
-        info.rotation = static_cast<uint32_t>(displayInfo->GetRotation());
+        info.rotation = static_cast<int32_t>(displayInfo->GetRotation());
     }
     Ace::ViewportConfig config = FillTargetOrientationConfig(info, displayInfo, GetDisplayId());
     targetViewportConfigAndAvoidArea.config = std::make_shared<Ace::ViewportConfig>(config);
