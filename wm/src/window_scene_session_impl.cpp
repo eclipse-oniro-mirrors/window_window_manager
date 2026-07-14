@@ -3239,7 +3239,7 @@ WMError WindowSceneSessionImpl::GetTargetOrientationConfigInfo(Orientation targe
     OrientationInfo info = infoResult.first;
     OrientationInfo currentInfo = infoResult.second;
     //Handle timeout gracefully:if rect is empty, use display size as fallback.
-    if (info.rect.IsUninitializedRect() && displayInfo !=nullptr) {
+    if (info.rect.IsUninitializedRect() && displayInfo != nullptr) {
         TLOGW(WmsLogTag::WMS_ROTATION, "GetTargetOrientationResult timeout, using display size as fallback");
         info.rect.posX_ = 0;
         info.rect.posY_ = 0;
