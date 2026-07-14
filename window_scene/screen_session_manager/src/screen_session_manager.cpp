@@ -719,6 +719,13 @@ void ScreenSessionManager::CreateScreenForBoot()
 
     if (GetClientProxy() == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "boot client proxy is nullptr");
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
+    if (isBoot_ && isUpdatePowerStateNeeded_) {
+        TLOGNFI(WmsLogTag::DMS, "Update screen power state to display power manager");
+        DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UpdateScreenPowerState(true);
+        isUpdatePowerStateNeeded_ = false;
+    }
+#endif
     } else {
         TLOGNFI(WmsLogTag::DMS, "boot screen connect");
         HandleScreenConnectEvent(defaultScreenSession, defaultScreenSession->GetScreenId(), ScreenEvent::CONNECTED);
@@ -2525,6 +2532,13 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
     }
     bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
     HandlePhysicalMirrorConnect(screenSession, phyMirrorEnable);
+#ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
+    if (isBoot_ && isUpdatePowerStateNeeded_) {
+        TLOGNFI(WmsLogTag::DMS, "Update screen power state to display power manager");
+        DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UpdateScreenPowerState(true);
+        isUpdatePowerStateNeeded_ = false;
+    }
+#endif
     UpdateScreenTypeInfo(screenSession);
     ScreenConnectionChanged(screenSession, screenId, screenEvent, phyMirrorEnable);
     if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
@@ -7563,10 +7577,13 @@ ScreenPowerState ScreenSessionManager::GetScreenPower()
 
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetScreenPower");
 #ifdef FOLD_ABILITY_ENABLE
-    if (!g_foldScreenFlag || FoldScreenStateInternel::IsSuperFoldDisplayDevice()
-        || FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-        state = static_cast<ScreenPowerState>(RSInterfaces::GetInstance()
-            .GetScreenPowerStatus(GetDefaultScreenId()));
+    if (!g_foldScreenFlag || FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        if (!HasInternalScreen() && g_isPcDevice) {
+            state = GetScreenPower(GetDefaultScreenId());
+        } else {
+            state = static_cast<ScreenPowerState>(RSInterfaces::GetInstance()
+                .GetScreenPowerStatus(GetDefaultScreenId()));
+        }
     } else {
         uint32_t retryTimes = 0;
         bool res = false;

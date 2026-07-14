@@ -1351,6 +1351,7 @@ private:
     std::atomic<bool> needAnotherScreenKeepOffFakeFlag_{false};
     std::atomic<bool> onBootAnimation_ = false;
     bool isBoot_ = false;
+    bool isUpdatePowerStateNeeded_ = true;
     int32_t retryCount_ = 50;
     std::mutex screenActiveModeRectMapMutex_;
     std::map<FoldDisplayMode, RRect> screenActiveModeRectMap_ = {};
