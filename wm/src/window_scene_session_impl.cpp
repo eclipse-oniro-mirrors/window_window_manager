@@ -105,7 +105,7 @@ namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowSceneSessionImpl"};
 constexpr int32_t WINDOW_DETACH_TIMEOUT = 1500;
 constexpr int32_t WINDOW_LAYOUT_TIMEOUT = 30;
-constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2000;
+constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2500;
 const std::string PARAM_DUMP_HELP = "-h";
 constexpr float MIN_GRAY_SCALE = 0.0f;
 constexpr float MAX_GRAY_SCALE = 1.0f;
@@ -3260,6 +3260,15 @@ WMError WindowSceneSessionImpl::GetTargetOrientationConfigInfo(Orientation targe
         getTargetInfoCallback_->GetTargetOrientationResult(WINDOW_PAGE_ROTATION_TIMEOUT);
     OrientationInfo info = infoResult.first;
     OrientationInfo currentInfo = infoResult.second;
+    //Handle timeout gracefully:if rect is empty, use display size as fallback.
+    if (info.rect.IsUninitializedRect() && displayInfo !=nullptr) {
+        TLOGW(WmsLogTag::WMS_ROTATION, "GetTargetOrientationResult timeout, using display size as fallback");
+        info.rect.posX_ = 0;
+        info.rect.posY_ = 0;
+        info.rect.width_ = displayInfo->GetWidth();
+        info.rect.height_ = displayInfo->GetHeight();
+        info.rotation = static_cast<int32_t>(displayInfo->GetRotation());
+    }
     Ace::ViewportConfig config = FillTargetOrientationConfig(info, displayInfo, GetDisplayId());
     targetViewportConfigAndAvoidArea.config = std::make_shared<Ace::ViewportConfig>(config);
     targetViewportConfigAndAvoidArea.avoidAreas = info.avoidAreas;
