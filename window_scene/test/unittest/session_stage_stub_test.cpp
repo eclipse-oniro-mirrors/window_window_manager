@@ -2091,6 +2091,71 @@ HWTEST_F(SessionStageStubTest, HandleSetIsStartMoving, TestSize.Level1)
         EXPECT_EQ(result, ERR_NONE);
     }
 }
+
+/**
+ * @tc.name: HandleUpdateLSState
+ * @tc.desc: test HandleUpdateLSState
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleUpdateLSState, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteBool(true);
+    int result = sessionStageStub_->HandleSetIsStartMoving(data, reply);
+    EXPECT_EQ(result, ERR_NONE);
+
+    MessageParcel data2;
+    MessageParcel reply2;
+    MessageOption option;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data2.WriteBool(false);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_LS_STATE);
+    result = sessionStageStub_->OnRemoteRequest(code, data2, reply2, option);
+    EXPECT_EQ(result, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleSwitchFreeMultiWindow
+ * @tc.desc: HandleSwitchFreeMultiWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteBool(true);
+    data.WriteUint32(0);
+    
+    int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+    
+    WSError errCode = static_cast<WSError>(reply.ReadInt32());
+    ASSERT_EQ(errCode, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: HandleSwitchFreeMultiWindow_WithScreenSet
+ * @tc.desc: HandleSwitchFreeMultiWindow with screenSet
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_WithScreenSet, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteBool(true);
+    data.WriteUint32(2);
+    data.WriteUint64(0);
+    data.WriteUint64(1);
+    
+    int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+    
+    WSError errCode = static_cast<WSError>(reply.ReadInt32());
+    ASSERT_EQ(errCode, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

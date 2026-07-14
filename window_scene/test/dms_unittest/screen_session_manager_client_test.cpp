@@ -3067,5 +3067,49 @@ HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor02, TestSize.Lev
     screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
     ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
 }
+
+/**
+ * @tc.name: UnRegisterSwitchUserAnimationNotification01
+ * @tc.desc: UnRegisterSwitchUserAnimationNotification test, unregister successfully
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterSwitchUserAnimationNotification01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<ScreenSessionManagerClient> client = sptr<ScreenSessionManagerClient>::MakeSptr();
+    ASSERT_NE(client, nullptr);
+
+    std::string desc = "test_desc_01";
+    client->RegisterSwitchUserAnimationNotification(desc);
+    EXPECT_NE(client->animateFinishDescriptionSet_.find(desc), client->animateFinishDescriptionSet_.end());
+
+    client->UnRegisterSwitchUserAnimationNotification(desc);
+    EXPECT_TRUE(logMsg.find("erase success") != std::string::npos);
+    EXPECT_EQ(client->animateFinishDescriptionSet_.find(desc), client->animateFinishDescriptionSet_.end());
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: UnRegisterSwitchUserAnimationNotification02
+ * @tc.desc: UnRegisterSwitchUserAnimationNotification test, unregister not found description
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientTest, UnRegisterSwitchUserAnimationNotification02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<ScreenSessionManagerClient> client = sptr<ScreenSessionManagerClient>::MakeSptr();
+    ASSERT_NE(client, nullptr);
+
+    std::string desc = "test_desc_not_exist";
+    client->UnRegisterSwitchUserAnimationNotification(desc);
+    EXPECT_TRUE(logMsg.find("not find") != std::string::npos);
+
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace Rosen
 } // namespace OHOS

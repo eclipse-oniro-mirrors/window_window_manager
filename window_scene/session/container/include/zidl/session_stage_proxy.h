@@ -88,7 +88,7 @@ public:
     WSError NotifyPiPActiveStatusChange(bool status) override;
     WSError UpdateDisplayId(uint64_t displayId) override;
     void NotifyDisplayMove(DisplayId from, DisplayId to) override;
-    WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
     void NotifyKeyboardPanelInfoChange(const KeyboardPanelInfo& keyboardPanelInfo) override;
@@ -152,6 +152,7 @@ public:
     WSError UpdateWindowUIType(WindowUIType windowUIType) override;
     WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError SetIsStartMoving(bool isStartMoving) override;
+    WSError UpdateLSState(bool isLSState) override;
 
 private:
     static inline BrokerDelegator<SessionStageProxy> delegator_;

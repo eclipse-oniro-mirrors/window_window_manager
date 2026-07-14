@@ -51,7 +51,7 @@ public:
     std::vector<PiPControlEnableInfo> GetControlEnable();
     void GetContentSize(uint32_t& width, uint32_t& height);
     std::shared_ptr<XComponentController> GetXComponentController();
-    bool GetCornerAdsorptionEnabled();
+    bool GetCornerAdsorptionEnabled() const;
     std::shared_ptr<NativeReference> GetPipContentCallbackRef(const std::string&);
     void SetNodeControllerRef(std::shared_ptr<NativeReference> ref);
     std::shared_ptr<NativeReference> GetNodeControllerRef() const;
@@ -61,6 +61,8 @@ public:
     std::shared_ptr<NativeReference> GetStorageRef() const;
     void SetTypeNodeEnabled(bool enable);
     bool IsTypeNodeEnabled() const;
+    void SetCreateTimestamp(int64_t createTimestamp);
+    int64_t GetCreateTimestamp() const;
     uint32_t GetPipPriority(uint32_t pipTemplateType) const;
     void GetPiPTemplateInfo(PiPTemplateInfo& pipTemplateInfo);
     void SetHandleId(const int32_t handleId);
@@ -80,6 +82,7 @@ protected:
     bool useTypeNode_ = false;
     int32_t handleId_ = -1;
     bool cornerAdsorptionEnabled_ = true;
+    int64_t createTimestamp_ = 0;
 
 private:
     std::map<std::string, std::shared_ptr<NativeReference>> pipContentlistenerMap_;

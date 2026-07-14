@@ -2489,8 +2489,8 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->moveDragStartDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->moveDragEndDisplayId_ = startDisplayId;
+    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
+    sceneSession->GetMoveDragController()->endDisplayId_ = startDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), true);
@@ -2500,8 +2500,8 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_DESKTOP);
     sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_DESKTOP;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->moveDragStartDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->moveDragEndDisplayId_ = endDisplayId;
+    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
+    sceneSession->GetMoveDragController()->endDisplayId_ = endDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), true);
@@ -2511,8 +2511,8 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->moveDragStartDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->moveDragEndDisplayId_ = endDisplayId;
+    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
+    sceneSession->GetMoveDragController()->endDisplayId_ = endDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), false);
@@ -2522,8 +2522,8 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_DESKTOP);
     sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_DESKTOP;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->moveDragStartDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->moveDragEndDisplayId_ = startDisplayId;
+    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
+    sceneSession->GetMoveDragController()->endDisplayId_ = startDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), true);

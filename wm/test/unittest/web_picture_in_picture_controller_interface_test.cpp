@@ -510,6 +510,21 @@ HWTEST_F(WebPictureInPictureControllerInterfaceTest, UnsetPipInitialSurfaceRect,
     ret = controller->UnsetPipInitialSurfaceRect();
     EXPECT_EQ(WMError::WM_ERROR_PIP_INTERNAL_ERROR, ret);
 }
+
+/**
+ * @tc.name: SetPipAutoStartEnabled
+ * @tc.desc: SetPipAutoStartEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WebPictureInPictureControllerInterfaceTest, SetPipAutoStartEnabled, TestSize.Level1)
+{
+    controller->Create(pipConfig);
+    WMError ret = controller->SetPipAutoStartEnabled(true);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    controller->sptrWebPipController_ = nullptr;
+    ret = controller->SetPipAutoStartEnabled(true);
+    EXPECT_EQ(WMError::WM_ERROR_PIP_INTERNAL_ERROR, ret);
+}
 }
 }
 }

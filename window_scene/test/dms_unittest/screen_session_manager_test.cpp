@@ -2360,6 +2360,18 @@ HWTEST_F(ScreenSessionManagerTest, RemoveVirtualScreenSurfaceRsFail01, TestSize.
     ssm_->screenSessionMap_.erase(screenId);
     ssm_->DestroyVirtualScreen(screenId);
 }
+
+/**
+ * @tc.name: GetRenderSession
+ * @tc.desc: GetRenderSession with invalid screenId returns nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetRenderSession, TestSize.Level1)
+{
+    ScreenId invalidScreenId = 9999;
+    auto ret = ssm_->GetRenderSession(invalidScreenId);
+    EXPECT_EQ(ret, nullptr);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

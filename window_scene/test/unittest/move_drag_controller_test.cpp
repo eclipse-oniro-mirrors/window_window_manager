@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,36 +132,39 @@ HWTEST_F(MoveDragControllerTest, GetStartDragFlag, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetMoveDragStartDisplayId
- * @tc.desc: test function : GetMoveDragStartDisplayId
+ * @tc.name: TestDisplayIdAccessors
+ * @tc.desc: Verify start and end display IDs are returned from controller state
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, GetMoveDragStartDisplayId, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestDisplayIdAccessors, TestSize.Level1)
 {
-    uint64_t res = moveDragController->GetMoveDragStartDisplayId();
-    EXPECT_EQ(-1ULL, res);
+    constexpr DisplayId START_DISPLAY_ID = 1;
+    constexpr DisplayId END_DISPLAY_ID = 2;
+    moveDragController->startDisplayId_ = START_DISPLAY_ID;
+    moveDragController->endDisplayId_ = END_DISPLAY_ID;
+
+    EXPECT_EQ(START_DISPLAY_ID, moveDragController->GetStartDisplayId());
+    EXPECT_EQ(END_DISPLAY_ID, moveDragController->GetEndDisplayId());
 }
 
 /**
- * @tc.name: GetMoveDragEndDisplayId
- * @tc.desc: test function : GetMoveDragEndDisplayId
+ * @tc.name: TestOverlappedDisplayIds
+ * @tc.desc: Verify overlapped display IDs are added, deduplicated and cleared
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, GetMoveDragEndDisplayId, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestOverlappedDisplayIds, TestSize.Level1)
 {
-    uint64_t res = moveDragController->GetMoveDragEndDisplayId();
-    EXPECT_EQ(-1ULL, res);
-}
+    constexpr DisplayId DISPLAY_ID = 1;
+    moveDragController->ClearOverlappedDisplayIds();
+    EXPECT_TRUE(moveDragController->GetOverlappedDisplayIds().empty());
 
-/**
- * @tc.name: GetDisplayIdsDuringMoveDrag
- * @tc.desc: test function : GetDisplayIdsDuringMoveDrag
- * @tc.type: FUNC
- */
-HWTEST_F(MoveDragControllerTest, GetDisplayIdsDuringMoveDrag, TestSize.Level1)
-{
-    std::set<uint64_t> res = moveDragController->GetDisplayIdsDuringMoveDrag();
-    ASSERT_EQ(true, res.empty());
+    EXPECT_TRUE(moveDragController->AddOverlappedDisplayId(DISPLAY_ID));
+    EXPECT_FALSE(moveDragController->AddOverlappedDisplayId(DISPLAY_ID));
+    EXPECT_EQ(moveDragController->GetOverlappedDisplayIds().size(), 1);
+    EXPECT_EQ(moveDragController->GetOverlappedDisplayIds().count(DISPLAY_ID), 1);
+
+    moveDragController->ClearOverlappedDisplayIds();
+    EXPECT_TRUE(moveDragController->GetOverlappedDisplayIds().empty());
 }
 
 /**
@@ -196,8 +199,8 @@ HWTEST_F(MoveDragControllerTest, InitCrossDisplayProperty, TestSize.Level0)
 {
     moveDragController->InitCrossDisplayProperty(1);
     ASSERT_EQ(true,
-              moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
-                  moveDragController->GetDisplayIdsDuringMoveDrag().end());
+              moveDragController->GetOverlappedDisplayIds().find(1) !=
+                  moveDragController->GetOverlappedDisplayIds().end());
 }
 
 /**
@@ -949,20 +952,20 @@ HWTEST_F(MoveDragControllerTest, TestConsumeMoveEventWithStartMove, TestSize.Lev
 
     // Case 1: MOVE normal flow
     moveDragController->isStartMove_ = true;
-    moveDragController->moveDragIsInterrupted_ = false;
+    moveDragController->SetInterrupted(false);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
     EXPECT_TRUE(moveDragController->ConsumeMoveEvent(pointerEvent));
 
     // Case 2: MOVE interrupted
     moveDragController->isStartMove_ = true;
-    moveDragController->moveDragIsInterrupted_ = true;
+    moveDragController->SetInterrupted(true);
     EXPECT_TRUE(moveDragController->ConsumeMoveEvent(pointerEvent));
     EXPECT_FALSE(moveDragController->isStartMove_);
 
     // Case 3: UP ends drag
     moveDragController->isStartMove_ = true;
     moveDragController->hasPointDown_ = true;
-    moveDragController->moveDragIsInterrupted_ = false;
+    moveDragController->SetInterrupted(false);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_UP);
     EXPECT_FALSE(moveDragController->ConsumeMoveEvent(pointerEvent));
     EXPECT_FALSE(moveDragController->hasPointDown_);
@@ -974,10 +977,10 @@ HWTEST_F(MoveDragControllerTest, TestConsumeMoveEventWithStartMove, TestSize.Lev
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_CANCEL);
     EXPECT_TRUE(moveDragController->ConsumeMoveEvent(pointerEvent));
 
-    // Case 5: BUTTON_DOWN with moveDragIsInterrupted_ is true
+    // Case 5: BUTTON_DOWN with interrupted state is true
     moveDragController->isStartMove_ = true;
     moveDragController->hasPointDown_ = true;
-    moveDragController->moveDragIsInterrupted_ = true;
+    moveDragController->SetInterrupted(true);
     pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN);
     EXPECT_TRUE(moveDragController->ConsumeMoveEvent(pointerEvent));
     EXPECT_FALSE(moveDragController->isStartMove_);
@@ -1121,19 +1124,19 @@ HWTEST_F(MoveDragControllerTest, ConsumeDragEvent2, TestSize.Level1)
         ASSERT_EQ(false, moveDragController->ConsumeDragEvent(pointerEvent));
         pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_MOVE));
         ASSERT_EQ(true, moveDragController->ConsumeDragEvent(pointerEvent));
-        moveDragController->moveDragIsInterrupted_ = false;
+        moveDragController->SetInterrupted(false);
         ASSERT_EQ(true, moveDragController->ConsumeDragEvent(pointerEvent));
-        moveDragController->moveDragIsInterrupted_ = true;
+        moveDragController->SetInterrupted(true);
         pointerEvent->SetPointerAction(static_cast<int32_t>(MMI::PointerEvent::POINTER_ACTION_UP));
         ASSERT_EQ(true, moveDragController->ConsumeDragEvent(pointerEvent));
         moveDragController->hasPointDown_ = false;
         ASSERT_EQ(false, moveDragController->ConsumeDragEvent(pointerEvent));
         moveDragController->hasPointDown_ = true;
-        moveDragController->moveDragIsInterrupted_ = false;
+        moveDragController->SetInterrupted(false);
         ScreenProperty screenProperty0;
         ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] =
             sptr<ScreenSession>::MakeSptr(0, screenProperty0, 0);
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         ASSERT_EQ(false, moveDragController->ConsumeDragEvent(pointerEvent));
     }
 }
@@ -1472,34 +1475,48 @@ HWTEST_F(MoveDragControllerTest, GetPointerType, TestSize.Level1)
 }
 
 /**
- * @tc.name: GetNewAddedDisplayIdsDuringMoveDrag
- * @tc.desc: test function : GetNewAddedDisplayIdsDuringMoveDrag
+ * @tc.name: TestCollectNewOverlappedDisplayIdsReturnsNewDisplay
+ * @tc.desc: Verify empty cache and one newly overlapped display
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, GetNewAddedDisplayIdsDuringMoveDrag, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestCollectNewOverlappedDisplayIdsReturnsNewDisplay, TestSize.Level1)
 {
-    std::set<uint64_t> res = moveDragController->GetDisplayIdsDuringMoveDrag();
-    EXPECT_EQ(true, res.empty());
+    auto res = moveDragController->CollectNewOverlappedDisplayIds();
+    EXPECT_TRUE(res.empty());
+
+    constexpr DisplayId testDisplayId = 1;
+    moveDragController->moveDragProperty_.targetRect_ = { 10, 10, 40, 40 };
+    moveDragController->globalScreenRectMap_ = {
+        { testDisplayId, { 0, 0, 100, 100 } }
+    };
+
+    res = moveDragController->CollectNewOverlappedDisplayIds();
+
+    EXPECT_EQ(res.size(), 1);
+    EXPECT_EQ(res.count(testDisplayId), 1);
+    EXPECT_EQ(moveDragController->overlappedDisplayIds_.count(testDisplayId), 1);
 }
 
 /**
- * @tc.name: GetNewAddedDisplayIdsDuringMoveDrag02
- * @tc.desc: test function : GetNewAddedDisplayIdsDuringMoveDrag02
+ * @tc.name: TestCollectNewOverlappedDisplayIdsSkipsExistingDisplays
+ * @tc.desc: Verify existing overlapped displays are not returned again
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, GetNewAddedDisplayIdsDuringMoveDrag02, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestCollectNewOverlappedDisplayIdsSkipsExistingDisplays, TestSize.Level1)
 {
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
-    std::set<uint64_t> res = moveDragController->GetNewAddedDisplayIdsDuringMoveDrag();
-    EXPECT_EQ(true, res.empty());
-    moveDragController->displayIdSetDuringMoveDrag_.insert(0);
-    moveDragController->displayIdSetDuringMoveDrag_.insert(1001);
-    ScreenProperty screenProperty0;
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] =
-        sptr<ScreenSession>::MakeSptr(0, screenProperty0, 0);
-    res = moveDragController->GetNewAddedDisplayIdsDuringMoveDrag();
-    EXPECT_EQ(true, res.empty());
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    auto res = moveDragController->CollectNewOverlappedDisplayIds();
+    EXPECT_TRUE(res.empty());
+
+    moveDragController->overlappedDisplayIds_.insert(0);
+    moveDragController->overlappedDisplayIds_.insert(1001);
+    moveDragController->moveDragProperty_.targetRect_ = { 10, 10, 40, 40 };
+    moveDragController->globalScreenRectMap_ = {
+        { 0, { 0, 0, 100, 100 } },
+        { 1001, { 0, 0, 100, 100 } }
+    };
+
+    res = moveDragController->CollectNewOverlappedDisplayIds();
+    EXPECT_TRUE(res.empty());
 }
 
 /**
@@ -1531,44 +1548,75 @@ HWTEST_F(MoveDragControllerTest, MoveDragInterrupted, TestSize.Level1)
  */
 HWTEST_F(MoveDragControllerTest, ResetCrossMoveDragProperty, TestSize.Level1)
 {
+    moveDragController->startDisplayGroupId_ = 1;
+    moveDragController->startDisplayId_ = 1;
+    moveDragController->endDisplayId_ = 2;
+    moveDragController->startDisplayOffsetX_ = 100;
+    moveDragController->startDisplayOffsetY_ = 200;
+    moveDragController->AddOverlappedDisplayId(1);
+
     moveDragController->ResetCrossMoveDragProperty();
+
     EXPECT_EQ(false, moveDragController->hasPointDown_);
+    EXPECT_EQ(DISPLAY_GROUP_ID_DEFAULT, moveDragController->startDisplayGroupId_);
+    EXPECT_EQ(DISPLAY_ID_INVALID, moveDragController->startDisplayId_);
+    EXPECT_EQ(DISPLAY_ID_INVALID, moveDragController->endDisplayId_);
+    EXPECT_EQ(0, moveDragController->startDisplayOffsetX_);
+    EXPECT_EQ(0, moveDragController->startDisplayOffsetY_);
+    EXPECT_TRUE(moveDragController->GetOverlappedDisplayIds().empty());
 }
 
 /**
- * @tc.name: OnConnect
- * @tc.desc: test function : OnConnect
+ * @tc.name: SetInterrupted
+ * @tc.desc: test function : SetInterrupted and IsInterrupted
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, OnConnect, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, SetInterrupted, TestSize.Level1)
 {
-    ScreenId screenId = 1001;
-    moveDragController->OnConnect(screenId);
-    EXPECT_EQ(moveDragController->moveDragIsInterrupted_, true);
+    moveDragController->SetInterrupted(true);
+    EXPECT_TRUE(moveDragController->IsInterrupted());
 }
 
 /**
- * @tc.name: OnDisconnect
- * @tc.desc: test function : OnDisconnect
+ * @tc.name: TestScreenChangeListenerInterruptsController
+ * @tc.desc: Verify screen change events interrupt the move-drag controller
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, OnDisconnect, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestScreenChangeListenerInterruptsController, TestSize.Level1)
 {
-    ScreenId screenId = 1001;
-    moveDragController->OnDisconnect(screenId);
-    EXPECT_EQ(moveDragController->moveDragIsInterrupted_, true);
+    constexpr ScreenId SCREEN_ID = 1;
+    auto listener = sptr<MoveDragController::ScreenChangeListener>::MakeSptr(wptr(moveDragController));
+    ASSERT_NE(listener, nullptr);
+
+    moveDragController->SetInterrupted(false);
+    listener->OnConnect(SCREEN_ID);
+    EXPECT_TRUE(moveDragController->IsInterrupted());
+
+    moveDragController->SetInterrupted(false);
+    listener->OnDisconnect(SCREEN_ID);
+    EXPECT_TRUE(moveDragController->IsInterrupted());
+
+    moveDragController->SetInterrupted(false);
+    listener->OnChange(SCREEN_ID);
+    EXPECT_TRUE(moveDragController->IsInterrupted());
 }
 
 /**
- * @tc.name: OnChange
- * @tc.desc: test function : OnChange
+ * @tc.name: TestScreenChangeListenerWithoutController
+ * @tc.desc: Verify screen change events are ignored after the controller is released
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, OnChange, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestScreenChangeListenerWithoutController, TestSize.Level1)
 {
-    ScreenId screenId = 1001;
-    moveDragController->OnChange(screenId);
-    EXPECT_EQ(moveDragController->moveDragIsInterrupted_, true);
+    constexpr ScreenId SCREEN_ID = 1;
+    auto listener = sptr<MoveDragController::ScreenChangeListener>::MakeSptr(wptr<MoveDragController>(nullptr));
+    ASSERT_NE(listener, nullptr);
+
+    moveDragController->SetInterrupted(false);
+    listener->OnConnect(SCREEN_ID);
+    listener->OnDisconnect(SCREEN_ID);
+    listener->OnChange(SCREEN_ID);
+    EXPECT_FALSE(moveDragController->IsInterrupted());
 }
 
 /**
@@ -1652,8 +1700,8 @@ HWTEST_F(MoveDragControllerTest, MapRectFromTargetToStart, TestSize.Level1)
     ret = moveDragController->MapRectFromTargetToStart(winRect, 0);
     int32_t currentDisplayOffsetX = static_cast<int32_t>(screenProperty0.GetStartX());
     int32_t currentDisplayOffsetY = static_cast<int32_t>(screenProperty0.GetStartY());
-    WSRect testRect = { winRect.posX_ + currentDisplayOffsetX - moveDragController->originalDisplayOffsetX_,
-                        winRect.posY_ + currentDisplayOffsetY - moveDragController->originalDisplayOffsetY_,
+    WSRect testRect = { winRect.posX_ + currentDisplayOffsetX - moveDragController->startDisplayOffsetX_,
+                        winRect.posY_ + currentDisplayOffsetY - moveDragController->startDisplayOffsetY_,
                         winRect.width_,
                         winRect.height_ };
     EXPECT_EQ(ret, testRect);
@@ -1676,9 +1724,9 @@ HWTEST_F(MoveDragControllerTest, GetTargetRectByDisplayId, TestSize.Level1)
     int32_t currentDisplayOffsetX = static_cast<int32_t>(screenProperty0.GetStartX());
     int32_t currentDisplayOffsetY = static_cast<int32_t>(screenProperty0.GetStartY());
     WSRect testRect = { moveDragController->moveDragProperty_.targetRect_.posX_ +
-                            moveDragController->originalDisplayOffsetX_ - currentDisplayOffsetX,
+                            moveDragController->startDisplayOffsetX_ - currentDisplayOffsetX,
                         moveDragController->moveDragProperty_.targetRect_.posY_ +
-                            moveDragController->originalDisplayOffsetY_ - currentDisplayOffsetY,
+                            moveDragController->startDisplayOffsetY_ - currentDisplayOffsetY,
                         moveDragController->moveDragProperty_.targetRect_.width_,
                         moveDragController->moveDragProperty_.targetRect_.height_ };
     EXPECT_EQ(ret, testRect);
@@ -1785,7 +1833,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnDragEvent, TestSize.Level
     // Case 1: Cross-display disabled & displayId mismatch → no update
     moveDragController->moveDragProperty_.targetRect_ = WSRect::EMPTY_RECT;
     moveDragController->supportCrossDisplay_ = false;
-    moveDragController->moveDragStartDisplayId_ = 1;
+    moveDragController->startDisplayId_ = 1;
     moveDragController->UpdateTargetRectOnDragEvent(pointerEvent, SizeChangeReason::DRAG);
     EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_, WSRect::EMPTY_RECT);
 
@@ -1799,7 +1847,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnDragEvent, TestSize.Level
     // Case 3: PointerEvent displayId equals moveDragStartDisplayId and aspect ratio is not 0
     moveDragController->moveDragProperty_.targetRect_ = WSRect::EMPTY_RECT;
     pointerEvent->SetTargetDisplayId(0);
-    moveDragController->moveDragStartDisplayId_ = 0;
+    moveDragController->startDisplayId_ = 0;
     moveDragController->aspectRatio_ = 1.0f;
     moveDragController->UpdateTargetRectOnDragEvent(pointerEvent, SizeChangeReason::DRAG);
     EXPECT_NE(moveDragController->moveDragProperty_.targetRect_, WSRect::EMPTY_RECT);
@@ -1984,8 +2032,8 @@ HWTEST_F(MoveDragControllerTest, TestHandleDragEnd, TestSize.Level1)
     // Case 2: screenRect invalid → return true
     {
         moveDragController->hasPointDown_ = true;
-        moveDragController->moveDragStartDisplayId_ = 5; // not in screenSessionMap → invalid
-        moveDragController->moveDragIsInterrupted_ = false;
+        moveDragController->startDisplayId_ = 5; // not in screenSessionMap → invalid
+        moveDragController->SetInterrupted(false);
         bool ret = moveDragController->HandleDragEnd(pointerEvent);
         EXPECT_TRUE(ret);
         EXPECT_FALSE(moveDragController->hasPointDown_);
@@ -1994,26 +2042,26 @@ HWTEST_F(MoveDragControllerTest, TestHandleDragEnd, TestSize.Level1)
     // Case 3: normal flow → return true
     {
         moveDragController->hasPointDown_ = true;
-        moveDragController->moveDragStartDisplayId_ = 0;
-        moveDragController->moveDragIsInterrupted_ = false;
+        moveDragController->startDisplayId_ = 0;
+        moveDragController->SetInterrupted(false);
         // Make GetTargetRect() return rect overlapping screen rect
         moveDragController->moveDragProperty_.targetRect_ = { 0, 0, 50, 50 };
         bool ret = moveDragController->HandleDragEnd(pointerEvent);
         EXPECT_TRUE(ret);
         // Because target rect overlaps screen 0, drag end display should remain 0
-        EXPECT_EQ(moveDragController->moveDragEndDisplayId_, 0);
+        EXPECT_EQ(moveDragController->endDisplayId_, 0);
     }
 
     // Case 4: pointer ends on different display → choose pointerEvent->TargetDisplayId()
     {
         moveDragController->hasPointDown_ = true;
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         // Make targetRect NOT overlap screen rect → force choose pointerEvent display
         moveDragController->moveDragProperty_.targetRect_ = { 400, 400, 100, 100 };
         pointerEvent->SetTargetDisplayId(7);
         bool ret = moveDragController->HandleDragEnd(pointerEvent);
         EXPECT_TRUE(ret);
-        EXPECT_EQ(moveDragController->moveDragEndDisplayId_, 7);
+        EXPECT_EQ(moveDragController->endDisplayId_, 7);
     }
 
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
@@ -2028,30 +2076,30 @@ HWTEST_F(MoveDragControllerTest, TestShouldBlockCrossDisplay, TestSize.Level1)
 {
     std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
 
-    // Case 1: targetDisplayId != moveDragStartDisplayId_ AND supportCrossDisplay_ == false → should block
+    // Case 1: targetDisplayId != startDisplayId_ AND supportCrossDisplay_ == false → should block
     {
         pointerEvent->SetTargetDisplayId(1);
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         moveDragController->supportCrossDisplay_ = false;
 
         bool ret = moveDragController->ShouldBlockCrossDisplay(pointerEvent);
         EXPECT_TRUE(ret);
     }
 
-    // Case 2: targetDisplayId != moveDragStartDisplayId_ AND supportCrossDisplay_ == true → should NOT block
+    // Case 2: targetDisplayId != startDisplayId_ AND supportCrossDisplay_ == true → should NOT block
     {
         pointerEvent->SetTargetDisplayId(2);
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         moveDragController->supportCrossDisplay_ = true;
 
         bool ret = moveDragController->ShouldBlockCrossDisplay(pointerEvent);
         EXPECT_FALSE(ret);
     }
 
-    // Case 3: targetDisplayId == moveDragStartDisplayId_ → never block, regardless of supportCrossDisplay_
+    // Case 3: targetDisplayId == startDisplayId_ → never block, regardless of supportCrossDisplay_
     {
         pointerEvent->SetTargetDisplayId(5);
-        moveDragController->moveDragStartDisplayId_ = 5;
+        moveDragController->startDisplayId_ = 5;
         moveDragController->supportCrossDisplay_ = false; // or true
 
         bool ret = moveDragController->ShouldBlockCrossDisplay(pointerEvent);
@@ -2091,8 +2139,8 @@ HWTEST_F(MoveDragControllerTest, TestComputeOffsetFromStart, TestSize.Level1)
     moveDragController->moveDragProperty_.originalPointerPosX_ = 50;
     moveDragController->moveDragProperty_.originalPointerPosY_ = 80;
     // Assume original display offset at drag start was (0, 0)
-    moveDragController->originalDisplayOffsetX_ = 0;
-    moveDragController->originalDisplayOffsetY_ = 0;
+    moveDragController->startDisplayOffsetX_ = 0;
+    moveDragController->startDisplayOffsetY_ = 0;
     // Normal scaling
     moveDragController->moveDragProperty_.scaleX_ = 2.0f;
     moveDragController->moveDragProperty_.scaleY_ = 4.0f;
@@ -2181,10 +2229,76 @@ HWTEST_F(MoveDragControllerTest, TestSyncPropertiesFromSceneSession, TestSize.Le
 
     // Case 2: session is valid → properties copied correctly
     {
+        constexpr DisplayId testDisplayId = 10;
+        constexpr DisplayGroupId testDisplayGroupId = 20;
+        constexpr int32_t testStartX = 100;
+        constexpr int32_t testStartY = 200;
+        ScreenProperty screenProperty;
+        screenProperty.SetStartX(testStartX);
+        screenProperty.SetStartY(testStartY);
+        screenProperty.SetDisplayGroupId(testDisplayGroupId);
+        ScreenSessionManagerClient::GetInstance().screenSessionMap_[testDisplayId] =
+            sptr<ScreenSession>::MakeSptr(testDisplayId, screenProperty, testDisplayId);
+        session_->GetSessionProperty()->SetDisplayId(testDisplayId);
         moveDragController->sceneSession_ = wptr(session_);
         bool ret = moveDragController->SyncPropertiesFromSceneSession();
         EXPECT_TRUE(ret);
+        EXPECT_EQ(testDisplayId, moveDragController->startDisplayId_);
+        EXPECT_EQ(testStartX, moveDragController->startDisplayOffsetX_);
+        EXPECT_EQ(testStartY, moveDragController->startDisplayOffsetY_);
+        EXPECT_EQ(testDisplayGroupId, moveDragController->startDisplayGroupId_);
+        ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
     }
+}
+
+/**
+ * @tc.name: TestSyncPropertiesFromSceneSessionFallback
+ * @tc.desc: Verify display properties fall back when screen session is unavailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestSyncPropertiesFromSceneSessionFallback, TestSize.Level1)
+{
+    constexpr DisplayId missingDisplayId = 30;
+    moveDragController->startDisplayOffsetX_ = 100;
+    moveDragController->startDisplayOffsetY_ = 200;
+    moveDragController->startDisplayGroupId_ = 1;
+    session_->GetSessionProperty()->SetDisplayId(missingDisplayId);
+
+    bool ret = moveDragController->SyncPropertiesFromSceneSession();
+
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(missingDisplayId, moveDragController->startDisplayId_);
+    EXPECT_EQ(0, moveDragController->startDisplayOffsetX_);
+    EXPECT_EQ(0, moveDragController->startDisplayOffsetY_);
+    EXPECT_EQ(DISPLAY_GROUP_ID_DEFAULT, moveDragController->startDisplayGroupId_);
+}
+
+/**
+ * @tc.name: TestShouldFlushOnDragEnd
+ * @tc.desc: Verify flush decision for invalid, same-display and cross-display end states
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestShouldFlushOnDragEnd, TestSize.Level1)
+{
+    moveDragController->startDisplayId_ = DISPLAY_ID_INVALID;
+    moveDragController->endDisplayId_ = DISPLAY_ID_INVALID;
+    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+
+    moveDragController->startDisplayId_ = DISPLAY_ID_INVALID;
+    moveDragController->endDisplayId_ = 1;
+    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+
+    moveDragController->startDisplayId_ = 1;
+    moveDragController->endDisplayId_ = DISPLAY_ID_INVALID;
+    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+
+    moveDragController->startDisplayId_ = 1;
+    moveDragController->endDisplayId_ = 1;
+    EXPECT_TRUE(moveDragController->ShouldFlushOnDragEnd());
+
+    moveDragController->startDisplayId_ = 1;
+    moveDragController->endDisplayId_ = 2;
+    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
 }
 
 /**
@@ -2201,7 +2315,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
 
     // Case 1: Cross-display is blocked → UNCHANGED
     {
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         moveDragController->supportCrossDisplay_ = false; // Disable cross-display
         pointerEvent->SetTargetDisplayId(1);              // Different display → block
 
@@ -2211,7 +2325,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
 
     // Case 2: Move resample activated → RESAMPLE_SCHEDULED
     {
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         moveDragController->supportCrossDisplay_ = true; // Not blocked now
         pointerEvent->SetTargetDisplayId(0);             // Same display
         moveDragController->moveDragProperty_.isMoveResampleActive_ = true;  // Enable resample
@@ -2222,7 +2336,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
 
     // Case 3: Direct update → UPDATED_IMMEDIATELY
     {
-        moveDragController->moveDragStartDisplayId_ = 0;
+        moveDragController->startDisplayId_ = 0;
         moveDragController->supportCrossDisplay_ = true; // Allowed
         moveDragController->moveDragProperty_.isMoveResampleActive_ = false; // Disable resample
         pointerEvent->SetTargetDisplayId(0);             // Same display
@@ -2234,6 +2348,57 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
         state = moveDragController->UpdateTargetRectOnMoveEvent(pointerEvent, SizeChangeReason::DRAG_END);
         EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     }
+}
+
+/**
+ * @tc.name: TestUpdateTargetRectOnMoveEnd
+ * @tc.desc: Verify move end uses raw offset or last resampled offset
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEnd, TestSize.Level1)
+{
+    auto pointerEvent = MMI::PointerEvent::Create();
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(1);
+    pointerItem.SetOriginPointerId(1);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerEvent->SetPointerId(1);
+    pointerEvent->AddPointerItem(pointerItem);
+    pointerEvent->SetTargetDisplayId(0);
+
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    auto screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty prop;
+    prop.SetStartX(0);
+    prop.SetStartY(0);
+    screenSession->SetScreenProperty(prop);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] = screenSession;
+
+    moveDragController->supportCrossDisplay_ = true;
+    moveDragController->startDisplayOffsetX_ = 0;
+    moveDragController->startDisplayOffsetY_ = 0;
+    moveDragController->moveDragProperty_.originalPointerPosX_ = 50;
+    moveDragController->moveDragProperty_.originalPointerPosY_ = 80;
+    moveDragController->moveDragProperty_.scaleX_ = 1.0f;
+    moveDragController->moveDragProperty_.scaleY_ = 1.0f;
+    moveDragController->moveDragProperty_.originalRect_ = { 100, 200, 300, 400 };
+    moveDragController->moveResampler_.Reset();
+
+    auto state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
+    EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 150);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 320);
+
+    moveDragController->moveResampler_.startupInitialized_ = true;
+    moveDragController->moveResampler_.startupPhase_ = false;
+    moveDragController->moveResampler_.PushEvent(1000, 10, 20);
+    moveDragController->moveResampler_.ResampleAt(2000);
+
+    state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
+    EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 110);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 220);
 }
 
 /**
@@ -2425,39 +2590,6 @@ HWTEST_F(MoveDragControllerTest, TestUpdateResampleActivationByFpsRangeCheck, Te
 }
 
 /**
- * @tc.name: TestIsWindowCrossScreenOnDragEnd
- * @tc.desc: Verify IsWindowCrossScreenOnDragEnd under different display id combinations
- * @tc.type: FUNC
- */
-HWTEST_F(MoveDragControllerTest, TestIsWindowCrossScreenOnDragEnd, TestSize.Level1)
-{
-    // Case 1: both start and end display are invalid → false
-    moveDragController->moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
-    moveDragController->moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
-    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
-
-    // Case 2: start invalid, end valid → false
-    moveDragController->moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
-    moveDragController->moveDragEndDisplayId_ = 1;
-    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
-
-    // Case 3: start valid, end invalid → false
-    moveDragController->moveDragStartDisplayId_ = 1;
-    moveDragController->moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
-    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
-
-    // Case 4: both valid but same display → false
-    moveDragController->moveDragStartDisplayId_ = 1;
-    moveDragController->moveDragEndDisplayId_ = 1;
-    EXPECT_FALSE(moveDragController->IsWindowCrossScreenOnDragEnd());
-
-    // Case 5: both valid and different display → true
-    moveDragController->moveDragStartDisplayId_ = 1;
-    moveDragController->moveDragEndDisplayId_ = 2;
-    EXPECT_TRUE(moveDragController->IsWindowCrossScreenOnDragEnd());
-}
-
-/**
  * @tc.name: KeepsTargetRectInsideAvailableAreaWhenAvoidRectWouldOverflow
  * @tc.desc: Verify single-screen avoidance keeps the avoid rect inside the available area
  * @tc.type: FUNC
@@ -2518,23 +2650,28 @@ HWTEST_F(MoveDragControllerTest, ClearsMovingAvoidRectWhenMoveStops, TestSize.Le
 }
 
 /**
- * @tc.name: InitMoveDragPropertyResetsAvoidRectAndRefreshesScreenCache
- * @tc.desc: Verify InitMoveDragProperty clears stale avoid data and refreshes cached screen rects
+ * @tc.name: TestInitMoveDragPropertyRefreshesSameGroupCache
+ * @tc.desc: Verify move-drag init clears avoid rect and refreshes same-group screen cache
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, InitMoveDragPropertyResetsAvoidRectAndRefreshesScreenCache, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestInitMoveDragPropertyRefreshesSameGroupCache, TestSize.Level1)
 {
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    constexpr DisplayId testDisplayId = 1;
+    constexpr DisplayGroupId testDisplayGroupId = 10;
     ScreenProperty screenProperty;
+    screenProperty.SetDisplayGroupId(testDisplayGroupId);
     screenProperty.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
-        sptr<ScreenSession>::MakeSptr(1, screenProperty, 0);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[testDisplayId] =
+        sptr<ScreenSession>::MakeSptr(testDisplayId, screenProperty, 0);
+    session_->GetSessionProperty()->SetDisplayId(testDisplayId);
     moveDragController->SetMovingAvoidRect({ 1, 2, 3, 4 });
 
     moveDragController->InitMoveDragProperty();
 
     EXPECT_EQ(moveDragController->movingAvoidRect_, WSRect::EMPTY_RECT);
-    EXPECT_EQ(moveDragController->globalScreenRectMap_.count(1), 1);
+    EXPECT_EQ(moveDragController->startDisplayGroupId_, testDisplayGroupId);
+    EXPECT_EQ(moveDragController->globalScreenRectMap_.count(testDisplayId), 1);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
 }
 
@@ -2565,36 +2702,51 @@ HWTEST_F(MoveDragControllerTest, UpdateTargetRectWithOffsetAppliesAvoidStrategyB
 }
 
 /**
- * @tc.name: RefreshesCachedScreenRectsFromScreenProperties
- * @tc.desc: Verify RefreshGlobalScreenRects caches screen and available rects in global coordinates
+ * @tc.name: TestRefreshGlobalScreenRectsFiltersDisplayGroup
+ * @tc.desc: Verify only same-group screen rects are cached in global coordinates
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, RefreshesCachedScreenRectsFromScreenProperties, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestRefreshGlobalScreenRectsFiltersDisplayGroup, TestSize.Level1)
 {
     constexpr ScreenId screenId = 1;
+    constexpr ScreenId otherGroupScreenId = 2;
+    constexpr DisplayGroupId testDisplayGroupId = 10;
+    constexpr DisplayGroupId otherDisplayGroupId = 11;
+    moveDragController->startDisplayGroupId_ = testDisplayGroupId;
+
     ScreenProperty screenProperty;
+    screenProperty.SetDisplayGroupId(testDisplayGroupId);
     screenProperty.SetStartX(10);
     screenProperty.SetStartY(20);
     screenProperty.SetBounds(RRect({ 0, 0, 300, 200 }, 0.0f, 0.0f));
     ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
         sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
 
+    ScreenProperty otherGroupScreenProperty;
+    otherGroupScreenProperty.SetDisplayGroupId(otherDisplayGroupId);
+    otherGroupScreenProperty.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[otherGroupScreenId] =
+        sptr<ScreenSession>::MakeSptr(otherGroupScreenId, otherGroupScreenProperty, 0);
+
     moveDragController->RefreshGlobalScreenRects();
 
     const WSRect expectedScreenRect = { 10, 20, 300, 200 };
     EXPECT_EQ(moveDragController->globalScreenRectMap_[screenId], expectedScreenRect);
+    EXPECT_EQ(moveDragController->globalScreenRectMap_.count(otherGroupScreenId), 0);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
 }
 
 /**
- * @tc.name: FallsBackToPropertyAvailableRectWhenDisplayIsUnavailable
- * @tc.desc: Verify a missing display keeps the available area from ScreenProperty
+ * @tc.name: TestGetScreenAvailableRectWithoutDisplay
+ * @tc.desc: Verify missing display falls back to ScreenProperty available area
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenDisplayIsUnavailable, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestGetScreenAvailableRectWithoutDisplay, TestSize.Level1)
 {
     constexpr ScreenId screenId = DISPLAY_ID_INVALID;
+    moveDragController->startDisplayGroupId_ = DISPLAY_GROUP_ID_DEFAULT;
     ScreenProperty screenProperty;
+    screenProperty.SetDisplayGroupId(DISPLAY_GROUP_ID_DEFAULT);
     screenProperty.SetStartX(10);
     screenProperty.SetStartY(20);
     screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
@@ -2621,14 +2773,16 @@ HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenDisplayIsUn
 }
 
 /**
- * @tc.name: FallsBackToPropertyAvailableRectWhenExpandAreaIsUnavailable
- * @tc.desc: Verify a half-folded screen retains its property area when no expanded area is available
+ * @tc.name: TestGetScreenAvailableRectWithoutExpandedArea
+ * @tc.desc: Verify half-folded screen falls back when expanded area is unavailable
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenExpandAreaIsUnavailable, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestGetScreenAvailableRectWithoutExpandedArea, TestSize.Level1)
 {
     constexpr ScreenId screenId = DISPLAY_ID_INVALID;
+    moveDragController->startDisplayGroupId_ = DISPLAY_GROUP_ID_DEFAULT;
     ScreenProperty screenProperty;
+    screenProperty.SetDisplayGroupId(DISPLAY_GROUP_ID_DEFAULT);
     screenProperty.SetStartX(10);
     screenProperty.SetStartY(20);
     screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
@@ -2698,7 +2852,7 @@ HWTEST_F(MoveDragControllerTest, ReturnsCachedRectsOnlyForKnownScreens, TestSize
     EXPECT_EQ(moveDragController->GetGlobalAvailableScreenRect(1), std::optional<WSRect>(expectedAvailableRect));
     EXPECT_EQ(moveDragController->GetGlobalAvailableScreenRect(2), std::nullopt);
 
-    const ScreenIdSet screenIds = { 1, 3, 2 };
+    const std::unordered_set<ScreenId> screenIds = { 1, 3, 2 };
     const auto screenRects = moveDragController->GetGlobalScreenRects(screenIds);
     EXPECT_EQ(screenRects.size(), 2);
 }
@@ -2765,7 +2919,7 @@ HWTEST_F(MoveDragControllerTest, SkipsCrossScreenAvoidanceWhenTargetScreenDataIs
 {
     moveDragController->SetMovingAvoidRect({ 10, 10, 20, 20 });
     moveDragController->lastMoveEventPointerDisplayId_ = 2;
-    ScreenIdSet overlapScreenIds = { 1, 2 };
+    std::unordered_set<ScreenId> overlapScreenIds = { 1, 2 };
     const WSRect targetRect = { 80, 10, 40, 40 };
 
     EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
@@ -2787,7 +2941,7 @@ HWTEST_F(MoveDragControllerTest, KeepsTargetRectWhenCrossScreenUnionCannotFit, T
     moveDragController->globalAvailableScreenRectMap_ = {
         { 2, { 100, 0, 100, 100 } }
     };
-    ScreenIdSet overlapScreenIds = { 1, 2 };
+    std::unordered_set<ScreenId> overlapScreenIds = { 1, 2 };
     const WSRect targetRect = { 80, 10, 80, 40 };
 
     EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
@@ -2855,41 +3009,6 @@ HWTEST_F(MoveDragControllerTest, AdjustsTargetRectOnlyWhenAvoidRectCanFit, TestS
 }
 
 /**
- * @tc.name: GetNewAddedDisplayIdsDuringMoveDragAddsOnlyNewOverlappingScreens
- * @tc.desc: Verify overlapping screens are added while existing and non-overlapping screens are skipped
- * @tc.type: FUNC
- */
-HWTEST_F(MoveDragControllerTest, GetNewAddedDisplayIdsDuringMoveDragAddsOnlyNewOverlappingScreens, TestSize.Level1)
-{
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
-    moveDragController->moveDragProperty_.targetRect_ = { 10, 10, 40, 40 };
-    moveDragController->displayIdSetDuringMoveDrag_.insert(1);
-
-    ScreenProperty existingScreen;
-    existingScreen.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
-        sptr<ScreenSession>::MakeSptr(1, existingScreen, 0);
-
-    ScreenProperty newOverlappingScreen;
-    newOverlappingScreen.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[2] =
-        sptr<ScreenSession>::MakeSptr(2, newOverlappingScreen, 0);
-
-    ScreenProperty nonOverlappingScreen;
-    nonOverlappingScreen.SetStartX(200);
-    nonOverlappingScreen.SetBounds(RRect({ 0, 0, 100, 100 }, 0.0f, 0.0f));
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[3] =
-        sptr<ScreenSession>::MakeSptr(3, nonOverlappingScreen, 0);
-
-    const auto newDisplayIds = moveDragController->GetNewAddedDisplayIdsDuringMoveDrag();
-
-    EXPECT_EQ(newDisplayIds.size(), 1);
-    EXPECT_EQ(newDisplayIds.count(2), 1);
-    EXPECT_EQ(moveDragController->displayIdSetDuringMoveDrag_.count(2), 1);
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
-}
-
-/**
  * @tc.name: SkipsCrossScreenAvoidanceWhenOnlyOneTargetCacheIsMissing
  * @tc.desc: Verify cross-screen avoidance falls back when either target cache entry is absent
  * @tc.type: FUNC
@@ -2903,7 +3022,7 @@ HWTEST_F(MoveDragControllerTest, SkipsCrossScreenAvoidanceWhenOnlyOneTargetCache
     moveDragController->globalScreenRectMap_ = {
         { 2, { 100, 0, 100, 100 } }
     };
-    ScreenIdSet overlapScreenIds = { 1, 2 };
+    std::unordered_set<ScreenId> overlapScreenIds = { 1, 2 };
     EXPECT_EQ(moveDragController->AdjustByCrossScreenAvoidStrategy(targetRect, overlapScreenIds), targetRect);
 
     moveDragController->globalScreenRectMap_.clear();

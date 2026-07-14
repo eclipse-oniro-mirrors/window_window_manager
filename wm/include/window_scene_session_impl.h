@@ -49,6 +49,7 @@ public:
         bool isFromInnerkits = false) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
+    WMError NotifyRemoveStartingWindow() override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
     void UpdateAnimationSpeedIfEnabled();
     void PreProcessCreate();
@@ -255,10 +256,8 @@ public:
     WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY) override;
     WmErrorCode StopMoveWindow() override;
-    WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
-    uint32_t pendingWindowModeSupportType_ { WindowModeSupport::WINDOW_MODE_SUPPORT_ALL };
 
     /*
      * Compatible Mode
@@ -276,7 +275,7 @@ public:
     /*
      * Free Multi Window
      */
-    WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     virtual bool GetFreeMultiWindowModeEnabledState() override;
     void UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable);
 
@@ -295,13 +294,6 @@ public:
      */
     WMError SetGestureBackEnabled(bool enable) override;
     WMError GetGestureBackEnabled(bool& enable) const override;
-
-    /*
-     * PC Fold Screen
-     */
-    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
-    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
-    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
 
     /*
      * Window Property
@@ -343,9 +335,15 @@ public:
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
 
     /*
-     * Starting Window
+     * PC Fold Screen
      */
-    WMError NotifyRemoveStartingWindow() override;
+    WSError SetFullScreenWaterfallMode(bool isWaterfallMode) override;
+    WSError SetSupportEnterWaterfallMode(bool isSupportEnter) override;
+
+    /*
+     * PC Screen Manager
+     */
+    WMError OnContainerModalEvent(const std::string& eventName, const std::string& value) override;
 
     /*
      * Window Scene
@@ -425,6 +423,10 @@ public:
     WMError SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter) override;
     NativeTouchEventFilter GetNativeTouchEventFilter() const override;
     WMError ClearNativeTouchEventFilter() override;
+    /*
+     * window hover state
+     */
+    bool CheckWindowCanInHoverState(const Rect& windowRect) override;
 
 protected:
     WMError CreateAndConnectSpecificSession();
@@ -554,7 +556,6 @@ private:
     WindowLimits GetCustomizedLimitsForSetWindowLimits(const WindowLimits& windowLimits);
     WindowLimits ConvertBaseLimitsToTargetUnit(const WindowLimits& srcLimits, PixelUnit targetPixelUnit);
     void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() override;
-    void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() override;
     WMError ValidateSnapshotAnimationConfig(const SnapshotAnimationConfig& config);
     void maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen();
     void ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
@@ -629,8 +630,14 @@ private:
     /*
      * PC Window Layout
      */
+    WMError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
+
+    /*
+     * PC Window Layout
+     */
     bool CheckAcrossDisplayPresentation(AcrossDisplayPresentation state) const;
     void ApplyMaximizePresentation(MaximizePresentation presentation);
+    WMError SetSupportedWindowModesInner(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
     WMError CheckMaximizePreConditions(AcrossDisplayPresentation state);
     WMError ExecuteMaximizeWithOptions(MaximizePresentation presentation,
         AcrossDisplayPresentation state, const SnapshotAnimationConfig& snapshotAnimationConfig);
@@ -706,7 +713,6 @@ private:
     static WMError VerifySubWindowLevel(bool isToast, const sptr<WindowSessionImpl>& parentSession);
     bool hasAncestorFloatSession(uint32_t parentId, const SessionMap& sessionMap);
     WMError SetParentWindowInner(int32_t oldParentWindowId, const sptr<WindowSessionImpl>& newParentWindow);
-    WMError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo);
 
     WMError RegisterKeyboardPanelInfoChangeListener(const sptr<IKeyboardPanelInfoChangeListener>& listener) override;
     WMError UnregisterKeyboardPanelInfoChangeListener(const sptr<IKeyboardPanelInfoChangeListener>& listener) override;
@@ -784,6 +790,7 @@ private:
     void NotifyFreeMultiWindowModeResume();
     std::string TransferLifeCycleEventToString(LifeCycleEvent type) const;
     WindowLifeCycleInfo GetWindowLifecycleInfo() const;
+    bool isNeedWindowShow(uint32_t reason);
 
     /**
      * Window Transition Animation For PC
@@ -823,6 +830,8 @@ private:
     void AddRSNodeModifier(bool isDark, const std::shared_ptr<RSBaseNode>& rsNode);
     void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type);
     void UpdateSidebarBlurStyleWhenColorModeChange();
+
+    bool CheckCreaseRegionCanInHoverState(const Rect& windowRect);
 };
 } // namespace Rosen
 } // namespace OHOS

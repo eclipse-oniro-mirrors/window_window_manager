@@ -1391,7 +1391,7 @@ HWTEST_F(MainSessionTest, SetForceSplitEnable01, TestSize.Level1)
     session->setSelectModeCallback_ = nullptr;
 
     auto ret = session->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret, WSError::WS_OK);
 }
 
 /**
@@ -1415,7 +1415,7 @@ HWTEST_F(MainSessionTest, SetForceSplitEnable02, TestSize.Level1)
 
     auto ret = session->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
     EXPECT_EQ(receivedSelectMode, SelectMode::WIDE_MODE);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret, WSError::WS_OK);
 }
 
 /**
@@ -1442,7 +1442,7 @@ HWTEST_F(MainSessionTest, SetForceSplitEnable03, TestSize.Level1)
 
     auto ret = session->SetForceSplitEnable(true, false, SelectMode::SQUARE_MODE);
     EXPECT_EQ(receivedSelectMode, SelectMode::SQUARE_MODE);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret, WSError::WS_OK);
 }
 
 /**
@@ -1503,7 +1503,7 @@ HWTEST_F(MainSessionTest, SetForceSplitEnable05, TestSize.Level1)
 
     auto ret = session->SetForceSplitEnable(true, false, SelectMode::WIDE_MODE);
     EXPECT_EQ(receivedSelectMode, SelectMode::WIDE_MODE);
-    EXPECT_EQ(ret, WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(ret, WSError::WS_OK);
 }
 
 /**

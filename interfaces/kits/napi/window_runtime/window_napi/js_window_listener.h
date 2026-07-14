@@ -73,6 +73,7 @@ extern const std::string WINDOW_ROTATION_CHANGE_CB;
 extern const std::string FREE_WINDOW_MODE_CHANGE_CB;
 extern const std::string APPLICATION_FOCUS_STATE_CHANGE_CB;
 extern const std::string PARENT_LIFECYCLE_EVENT_CB;
+extern const std::string WINDOW_POSTURE_CHANGE_CB;
 
 class JsWindowListener : public IWindowChangeListener,
                          public ISystemBarChangedListener,
@@ -90,6 +91,7 @@ class JsWindowListener : public IWindowChangeListener,
                          public IGestureNavigationEnabledChangedListener,
                          public IWindowVisibilityChangedListener,
                          public IOcclusionStateChangedListener,
+                         public IWindowHoverStateChangeListener,
                          public IFrameMetricsChangedListener,
                          public IDisplayIdChangeListener,
                          public ISystemDensityChangeListener,
@@ -155,6 +157,7 @@ public:
     void SetMainEventHandler();
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;
     void OnOcclusionStateChanged(const WindowVisibilityState state) override;
+    void OnWindowHoverStateChange(bool hoverState) override;
     void OnFrameMetricsChanged(const FrameMetrics& metrics) override;
     void OnDisplayIdChanged(DisplayId displayId) override;
     void OnSystemDensityChanged(float density) override;

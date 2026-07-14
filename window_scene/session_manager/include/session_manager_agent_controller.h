@@ -31,9 +31,9 @@ class SessionManagerAgentController {
 WM_DECLARE_SINGLE_INSTANCE_BASE(SessionManagerAgentController)
 public:
     WMError RegisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
-        WindowManagerAgentType type, int32_t pid);
+        WindowManagerAgentType type, int32_t pid, int32_t instanceUserId = INVALID_USER_ID);
     WMError UnregisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
-        WindowManagerAgentType type, int32_t pid);
+        WindowManagerAgentType type, int32_t pid, int32_t instanceUserId = INVALID_USER_ID);
 
     void UpdateCameraFloatWindowStatus(uint32_t accessTokenId, bool isShowing);
     void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused);
@@ -67,9 +67,10 @@ private:
     void DoAfterAgentDeath(const sptr<IRemoteObject>& remoteObject);
 
     ClientAgentContainer<IWindowManagerAgent, WindowManagerAgentType> smAgentContainer_;
-    std::map<int32_t, std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>>> windowManagerPidAgentMap_;
-    std::map<sptr<IRemoteObject>, std::pair<int32_t, WindowManagerAgentType>> windowManagerAgentPairMap_;
-    std::mutex windowManagerAgentPidMapMutex_;
+    std::map<int32_t, std::map<int32_t, std::map<WindowManagerAgentType, sptr<IWindowManagerAgent>>>>
+        windowManagerPidUserIdAgentMap_;
+    std::map<sptr<IRemoteObject>, std::tuple<int32_t, int32_t, WindowManagerAgentType>> windowManagerAgentPairMap_;
+    std::mutex windowManagerPidUserIdAgentMapMutex_;
     WindowManagementMode windowManagementMode_ { WindowManagementMode::UNDEFINED };
 };
 }

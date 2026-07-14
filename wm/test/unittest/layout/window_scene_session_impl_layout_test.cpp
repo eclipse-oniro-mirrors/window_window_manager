@@ -1108,6 +1108,96 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
 }
 
 /**
+ * @tc.name: SupportedWindowModesSwitchFreeMultiWindow01
+ * @tc.desc: Switch out: user vector in property preserved, type reset to metadata
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, SupportedWindowModesSwitchFreeMultiWindow01,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SupportedWindowModesSwitchFreeMultiWindow01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    // Simulate: user called SetSupportedWindowModes — vector stored in property
+    std::vector<AppExecFwk::SupportWindowMode> userModes = { AppExecFwk::SupportWindowMode::FLOATING };
+    window->property_->SetSupportedWindowModes(userModes);
+    uint32_t userType = WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING;
+    window->property_->SetWindowModeSupportType(userType);
+
+    // Switch out of free multi window mode
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+    window->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
+
+    // Falls through to metadata recalc (returns from null abilityContext)
+    // User vector in property should be preserved
+    std::vector<AppExecFwk::SupportWindowMode> storedModes;
+    window->property_->GetSupportedWindowModes(storedModes);
+    ASSERT_EQ(storedModes.size(), 1u);
+    EXPECT_EQ(storedModes[0], AppExecFwk::SupportWindowMode::FLOATING);
+}
+
+/**
+ * @tc.name: SupportedWindowModesSwitchFreeMultiWindow02
+ * @tc.desc: Switch back to free multi window, property vector should restore type
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, SupportedWindowModesSwitchFreeMultiWindow02,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SupportedWindowModesSwitchFreeMultiWindow02");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    // Simulate: user set modes — vector stored in property, type was reset during switch out
+    std::vector<AppExecFwk::SupportWindowMode> userModes = { AppExecFwk::SupportWindowMode::FLOATING };
+    window->property_->SetSupportedWindowModes(userModes);
+
+    // Switch back to free multi window — metadata recalc reads vector from property
+    window->context_ = abilityContext_;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
+
+    // Type should be restored from property's supportedWindowModes vector
+    EXPECT_EQ(window->property_->GetWindowModeSupportType(), WindowModeSupport::WINDOW_MODE_SUPPORT_ALL);
+}
+
+/**
+ * @tc.name: SupportedWindowModesSwitchFreeMultiWindow03
+ * @tc.desc: Without user-set vector, switch out should go through metadata path
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, SupportedWindowModesSwitchFreeMultiWindow03,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SupportedWindowModesSwitchFreeMultiWindow03");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    // No user-set vector (default state)
+    window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+
+    window->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
+
+    // Falls through to metadata recalc (returns from null abilityContext), no crash
+    std::vector<AppExecFwk::SupportWindowMode> storedModes;
+    window->property_->GetSupportedWindowModes(storedModes);
+    EXPECT_TRUE(storedModes.empty());
+}
+
+/**
  * @tc.name: CalcSingleWinIntersect01
  * @tc.desc: Test PX limits intersection calculation
  * @tc.type: FUNC

@@ -45,9 +45,6 @@ class SceneSession;
 using NotifyWindowDragHotAreaFunc = std::function<void(DisplayId displayId, uint32_t type, SizeChangeReason reason)>;
 using NotifyWindowPidChangeCallback = std::function<void(int32_t windowId, bool startMoving)>;
 
-using ScreenIdSet = std::unordered_set<ScreenId>;
-using ScreenRectMap = std::unordered_map<ScreenId, WSRect>;
-
 const uint32_t WINDOW_HOT_AREA_TYPE_UNDEFINED = 0;
 
 enum class MoveDirection : uint32_t {
@@ -167,10 +164,10 @@ struct MoveResampleConfig {
     }
 };
 
-class MoveDragController : public ScreenManager::IScreenListener {
+class MoveDragController : public RefBase {
 public:
     MoveDragController(wptr<SceneSession> sceneSession);
-    ~MoveDragController() = default;
+    ~MoveDragController();
 
     /*
      * Cross Display Move Drag
@@ -292,33 +289,60 @@ public:
      */
     bool RestoreToPreDragGravity(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
-    /*
-     * Cross Display Move Drag
+    /**
+     * @brief Get the start display ID of the current move-drag operation.
+     *
+     * @return The start display ID.
      */
-    uint64_t GetMoveDragStartDisplayId() const;
-    uint64_t GetMoveDragEndDisplayId() const;
-    std::set<uint64_t> GetDisplayIdsDuringMoveDrag();
-    std::set<uint64_t> GetNewAddedDisplayIdsDuringMoveDrag();
+    DisplayId GetStartDisplayId() const;
+
+    /**
+     * @brief Get the end display ID of the current move-drag operation.
+     *
+     * @return The end display ID.
+     */
+    DisplayId GetEndDisplayId() const;
+
+    /**
+     * @brief Add a display ID to the overlapped display set.
+     *
+     * @param displayId The display ID to add.
+     * @return true if the display ID is added for the first time; false if it already exists.
+     */
+    bool AddOverlappedDisplayId(DisplayId displayId);
+
+    /**
+     * @brief Get display IDs overlapped during the current move-drag operation.
+     *
+     * Returns all display IDs that the window has overlapped at any point during
+     * the current move-drag operation.
+     *
+     * @return Display IDs overlapped during the current move-drag operation.
+     */
+    std::set<DisplayId> GetOverlappedDisplayIds() const;
+
+    /**
+     * @brief Clear display IDs overlapped during the current move-drag operation.
+     */
+    void ClearOverlappedDisplayIds();
+
+    /**
+     * @brief Collect display IDs newly overlapped during the current move-drag operation.
+     *
+     * Updates the internal overlapped display set based on the current window
+     * bounds and returns only the display IDs that are overlapped for the first
+     * time during the current move-drag operation.
+     *
+     * @return Display IDs newly overlapped during this call.
+     */
+    std::set<DisplayId> CollectNewOverlappedDisplayIds();
+
     void InitCrossDisplayProperty(DisplayId displayId);
     void ResetCrossMoveDragProperty();
     void SetMoveAvailableArea(const DMRect& area);
     void SetMoveInputBarStartDisplayId(DisplayId displayId);
     void SetOriginalPositionZ(float originalPositionZ) { originalPositionZ_ = originalPositionZ; }
     float GetOriginalPositionZ() const { return originalPositionZ_; }
-
-    /**
-     * @brief whether the window has been dragged across monitor boundaries by the user.
-     *
-     * Determines if the window movement resulted in a cross-screen drag operation by
-     * comparing the display ID where the drag started versus where it ended.
-     *
-     * @note This method should only be called in the drag-end processing flow,
-     *       after the drag operation has completed and the final display ID is known.
-     *
-     * @return true if the window was dragged to a different monitor (cross-screen),
-     *         false if the drag operation stayed within the same monitor.
-     */
-    bool IsWindowCrossScreenOnDragEnd() const;
 
     /**
      * @brief Decide whether RS commands should be flushed to RS process on drag end.
@@ -333,12 +357,19 @@ public:
      */
     bool ShouldFlushOnDragEnd() const;
 
-    /*
-     * Monitor screen connection status
+    /**
+     * @brief Set whether the current move-drag operation is interrupted.
+     *
+     * @param isInterrupted Whether the current move-drag operation is interrupted.
      */
-    void OnConnect(ScreenId screenId) override;
-    void OnDisconnect(ScreenId screenId) override;
-    void OnChange(ScreenId screenId) override;
+    void SetInterrupted(bool isInterrupted);
+
+    /**
+     * @brief Check whether the current move-drag operation is interrupted.
+     *
+     * @return true if the current move-drag operation is interrupted; false otherwise.
+     */
+    bool IsInterrupted() const;
 
     struct MoveCoordinateProperty {
         int32_t pointerWindowX = 0;
@@ -419,6 +450,31 @@ public:
     static uint32_t LoadMovingEventThrottleSystemConfig();
 
 private:
+    /**
+     * @brief Listener for screen change events.
+     *
+     * This listener is used to handle changes in screen configuration, such as
+     * resolution changes or display additions/removals, which may affect the
+     * move-drag operation.
+     */
+    class ScreenChangeListener : public ScreenManager::IScreenListener {
+    public:
+        explicit ScreenChangeListener(wptr<MoveDragController> controller);
+        ~ScreenChangeListener() override = default;
+
+        void RegisterIfNeeded();
+        void UnregisterIfNeeded();
+        void OnConnect(ScreenId screenId) override;
+        void OnDisconnect(ScreenId screenId) override;
+        void OnChange(ScreenId screenId) override;
+
+    private:
+        void NotifyController(ScreenId screenId, const char* reason);
+
+        wptr<MoveDragController> controller_;
+        bool isRegistered_ = false;
+    };
+
     struct MoveDragProperty {
         int32_t pointerId_ = -1;
         int32_t pointerType_ = -1;
@@ -581,6 +637,30 @@ private:
      */
     TargetRectUpdateMode UpdateTargetRectOnMoveEvent(
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
+
+    /**
+     * @brief Handle targetRect updates during moving.
+     *
+     * Depending on whether move resampling is enabled, this method either updates
+     * targetRect immediately or queues the pointer event for later resampling.
+     *
+     * @param pointerEvent The current pointer event.
+     * @param reason       The reason for the size or position change.
+     * @return TargetRectUpdateMode The mode indicating how targetRect was (or will be) updated.
+     */
+    TargetRectUpdateMode UpdateTargetRectOnMoving(
+        const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
+
+    /**
+     * @brief Handle the final targetRect update when move ends.
+     *
+     * If a resampled event is available, its offset is used to avoid a visible
+     * jump at the end of moving. Otherwise, the raw pointer event is used.
+     *
+     * @param pointerEvent The current pointer event.
+     * @return TargetRectUpdateMode Always returns UPDATED_IMMEDIATELY.
+     */
+    TargetRectUpdateMode UpdateTargetRectOnMoveEnd(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
     /**
      * @brief Process a pointer event during window dragging and update targetRect accordingly.
@@ -907,22 +987,40 @@ private:
 
     std::optional<Gravity> preDragGravity_ = std::nullopt;
 
-    /*
-     * Cross Display Move Drag
+    sptr<ScreenChangeListener> screenChangeListener_ = nullptr;
+
+    bool isInterrupted_ = false;
+
+    /**
+     * @brief Display group of the move-drag start display.
+     *
+     * Used to restrict the cross-display drag-move operation to the same display group.
      */
-    bool moveDragIsInterrupted_ = false;
-    DisplayId moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
-    DisplayId moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
+    DisplayGroupId startDisplayGroupId_ = DISPLAY_GROUP_ID_DEFAULT;
+
+    /**
+     * @brief Display ID of the display where the move-drag operation started.
+     */
+    DisplayId startDisplayId_ = DISPLAY_ID_INVALID;
+    int32_t startDisplayOffsetX_ = 0;
+    int32_t startDisplayOffsetY_ = 0;
+
+    /**
+     * @brief Display ID of the display where the move-drag operation ended.
+     */
+    DisplayId endDisplayId_ = DISPLAY_ID_INVALID;
+
     DisplayId hotAreaDisplayId_ = 0;
-    int32_t originalDisplayOffsetX_ = 0;
-    int32_t originalDisplayOffsetY_ = 0;
     float originalPositionZ_ = 0.0f;
-    std::mutex displayIdSetDuringMoveDragMutex_;
-    std::set<uint64_t> displayIdSetDuringMoveDrag_;
+
+    mutable std::mutex overlappedDisplayIdsMutex_;
+    std::set<DisplayId> overlappedDisplayIds_;
+    // Above guarded by overlappedDisplayIdsMutex_
+
     DMRect moveAvailableArea_ = {0, 0, 0, 0};
     DisplayId moveInputBarStartDisplayId_ = DISPLAY_ID_INVALID;
     ScreenSizeProperty screenSizeProperty_;
-    // Above guarded by displayIdSetDuringMoveDragMutex_
+
     std::mutex specifyMoveStartMutex_;
     DisplayId specifyMoveStartDisplayId_ = DISPLAY_ID_INVALID;
     bool isSpecifyMoveStart_ = false;
@@ -952,13 +1050,13 @@ private:
      * @brief Cached full-screen rectangles for all connected screens
      *        in the legacy global coordinate system.
      */
-    ScreenRectMap globalScreenRectMap_;
+    std::unordered_map<ScreenId, WSRect> globalScreenRectMap_;
 
     /**
      * @brief Cached available rectangles for all connected screens
      *        in the legacy global coordinate system.
      */
-    ScreenRectMap globalAvailableScreenRectMap_;
+    std::unordered_map<ScreenId, WSRect> globalAvailableScreenRectMap_;
 
     /**
      * @brief Refresh cached full-screen and available rectangles for all connected screens.
@@ -981,7 +1079,7 @@ private:
      * @param screenIds The target screen IDs.
      * @return The full-screen rectangles corresponding to the input screen IDs.
      */
-    std::vector<WSRect> GetGlobalScreenRects(const ScreenIdSet& screenIds) const;
+    std::vector<WSRect> GetGlobalScreenRects(const std::unordered_set<ScreenId>& screenIds) const;
 
     /**
      * @brief Get the cached available rectangle for the specified screen
@@ -1001,7 +1099,7 @@ private:
      * @param targetRect The target rect to check, in the legacy global coordinate system.
      * @return The set of overlapped screen IDs.
      */
-    ScreenIdSet GetOverlapScreenIds(const WSRect& targetRect) const;
+    std::unordered_set<ScreenId> GetOverlapScreenIds(const WSRect& targetRect) const;
 
     /**
      * @brief Adjust the target rect according to the avoid rect and screen avoidance strategy.
@@ -1048,7 +1146,8 @@ private:
      * @param overlapScreenIds The screens overlapped with the target rect.
      * @return The adjusted target rect, or the original target rect if avoidance is not applicable.
      */
-    WSRect AdjustByCrossScreenAvoidStrategy(const WSRect& targetRect, ScreenIdSet& overlapScreenIds) const;
+    WSRect AdjustByCrossScreenAvoidStrategy(
+        const WSRect& targetRect, std::unordered_set<ScreenId>& overlapScreenIds) const;
 
     /**
      * @brief Adjust the target rect to keep it from overlapping another screen.

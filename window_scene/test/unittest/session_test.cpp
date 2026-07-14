@@ -920,6 +920,20 @@ HWTEST_F(WindowSessionTest, NotifyAddSnapshot, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyAddSnapshot02
+ * @tc.desc: NotifyAddSnapshot Test with nullptr surfaceNode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, NotifyAddSnapshot02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->surfaceNode_ = nullptr;
+    session_->state_ = SessionState::STATE_ACTIVE;
+    session_->NotifyAddSnapshot();
+    ASSERT_EQ(session_->GetSnapshot(), nullptr);
+}
+
+/**
  * @tc.name: NotifyRemoveSnapshot
  * @tc.desc: NotifyRemoveSnapshot Test
  * @tc.type: FUNC
@@ -2244,6 +2258,30 @@ HWTEST_F(WindowSessionTest, IsLoosenedWithFreeMultiMode_NotEnabled, TestSize.Lev
     session->property_->SetZLevelAboveParentLoosened(false);
     session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ASSERT_EQ(false, session->IsLoosenedWithFreeMultiMode());
+}
+
+/**
+ * @tc.name: UpdateLSStateInfo
+ * @tc.desc: test UpdateLSStateInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateLSStateInfo, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "TestSession";
+    info.bundleName_ = "TestBundle";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    EXPECT_NE(nullptr, mockSessionStage);
+
+    session->sessionStage_ = nullptr;
+    ASSERT_EQ(WSError::WS_DO_NOTHING, session->UpdateLSStateInfo(true));
+
+    session->sessionStage_ = mockSessionStage;
+    EXPECT_CALL(*(mockSessionStage), UpdateLSState(_)).WillOnce(Return(WSError::WS_OK));
+    ASSERT_EQ(WSError::WS_OK, session->UpdateLSStateInfo(true));
 }
 } // namespace
 } // namespace Rosen

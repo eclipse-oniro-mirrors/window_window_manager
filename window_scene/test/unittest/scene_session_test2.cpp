@@ -907,6 +907,9 @@ HWTEST_F(SceneSessionTest2, ProcessPointDownSession, TestSize.Level1)
     info.bundleName_ = "ProcessPointDownSession";
     info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::NORMAL);
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
     sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     EXPECT_NE(nullptr, sceneSession->specificCallback_);
     auto sessionTouchOutsideFun = [sceneSession](int32_t persistentId, DisplayId displayId) {
@@ -923,9 +926,21 @@ HWTEST_F(SceneSessionTest2, ProcessPointDownSession, TestSize.Level1)
     sceneSession->specificCallback_->onSessionTouchOutside_ = nullptr;
     EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
 
+    sceneSession->specificCallback_->onSessionTouchOutside_ = sessionTouchOutsideFun;
     sceneSession->sessionInfo_.bundleName_ = "SCBGestureBack";
-    sceneSession->specificCallback_->onOutsideDownEvent_ = nullptr;
     EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
+    sceneSession->sessionInfo_.bundleName_ = "SCBSystemSwipeDownArea";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
+    sceneSession->specificCallback_->onSessionTouchOutside_ = nullptr;
+    sceneSession->sessionInfo_.bundleName_ = "SCBGestureBack";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
+    sceneSession->sessionInfo_.bundleName_ = "NormalApp";
+    EXPECT_EQ(WSError::WS_OK, sceneSession->ProcessPointDownSession(3, 4));
+
+    sceneSession->specificCallback_->onOutsideDownEvent_ = nullptr;
 
     info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::TRANSMIT_ALL);
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(info, nullptr);
@@ -1984,6 +1999,30 @@ HWTEST_F(SceneSessionTest2, OnSessionEvent_NotSplitMovable_PcWindow_NoSpecialDra
 
     // Verify IsPcWindow() returns true
     EXPECT_EQ(session->systemConfig_.IsPcWindow(), true);
+}
+
+/**
+ * @tc.name: ShouldNotifyTouchOutside
+ * @tc.desc: Test ShouldNotifyTouchOutside with exclude bundle names
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, ShouldNotifyTouchOutside, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    session->sessionInfo_.bundleName_ = "";
+    EXPECT_TRUE(session->ShouldNotifyTouchOutside());
+
+    session->sessionInfo_.bundleName_ = "SCBGestureBack";
+    EXPECT_FALSE(session->ShouldNotifyTouchOutside());
+
+    session->sessionInfo_.bundleName_ = "SCBSystemSwipeDownArea";
+    EXPECT_FALSE(session->ShouldNotifyTouchOutside());
+
+    session->sessionInfo_.bundleName_ = "com.example.myapp";
+    EXPECT_TRUE(session->ShouldNotifyTouchOutside());
 }
 } // namespace
 } // namespace Rosen

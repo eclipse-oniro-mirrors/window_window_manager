@@ -19,10 +19,11 @@
 #include <vector>
 #include <mutex>
 
+#include "display_change_info.h"
 #include "display_lite.h"
 #include "dm_common.h"
+#include "fold_screen_info.h"
 #include "wm_single_instance.h"
-#include "display_change_info.h"
 
 namespace OHOS::Rosen {
 class DisplayManagerLite {
@@ -45,6 +46,14 @@ public:
          * @brief Notify when the state of a display changes
          */
         virtual void OnChange(DisplayId) = 0;
+    };
+
+    class IDisplayAttributeListener : public virtual RefBase {
+    public:
+        /**
+         * @brief Notify when an attribute of a display changed.
+         */
+        virtual void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attributes) = 0;
     };
 
     class IFoldStatusListener : public virtual RefBase {
@@ -142,6 +151,31 @@ public:
     DMError UnregisterScreenMagneticStateListener(sptr<IScreenMagneticStateListener> listener);
 
     /**
+     * @brief Register a display attribute listener.
+     *
+     * @param listener IDisplayAttributeListener.
+     * @return DM_OK means register success, others means register failed.
+     */
+    DMError RegisterDisplayAttributeListener(const std::vector<std::string>& attributes,
+        sptr<IDisplayAttributeListener> listener);
+
+    /**
+     * @brief Unregister an existed display attribute listener.
+     *
+     * @param listener IDisplayAttributeListener.
+     * @return DM_OK means unregister success, others means unregister failed.
+     */
+    DMError UnregisterDisplayAttributeListener(sptr<IDisplayAttributeListener> listener);
+
+    /**
+     * @brief Unregister display attribute not listening.
+     *
+     * @param attributesNotListened Attributes which not listening.
+     * @return DM_OK means unregister success, others means unregister failed.
+     */
+    DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributesNotListened);
+
+    /**
      * @brief Get the default display object.
      *
      * @return Default display object.
@@ -183,13 +217,6 @@ public:
      * 使用场景：目前仅提供给维修场景使用，折叠屏手动色彩校准
      */
     void SetFoldDisplayMode(const FoldDisplayMode mode);
-
-    /**
-     * @brief Change the display mode of the foldable device asynchronously.
-     *
-     * @param mode target display mode to change.
-     */
-    void SetFoldDisplayModeAsync(const FoldDisplayMode mode);
 
     /**
      * @brief Get the display object by id.
@@ -284,6 +311,14 @@ public:
     bool TryToCancelScreenOff();
 
     /**
+     * @brief Notify that the boot animation has finished, used to trigger fold screen power init.
+     *
+     * Called by the boot animation process on foldable devices to drive the fold screen
+     * power-on sequence once the boot animation completes.
+     */
+    void NotifyBootAnimationFinished();
+
+    /**
      * @brief Set the brightness level of the target screen.
      *
      * @param brightnessData Brightness data including screenId, level, and brightnessPosition.
@@ -335,6 +370,13 @@ public:
      * @return DM_OK means set system keyboard status success.
      */
     DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
+
+    /**
+     * @brief Get the fold crease region in the current display mode.
+     *
+     * @return fold crease region in the current display mode.
+     */
+    sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
 private:
     DisplayManagerLite();
     ~DisplayManagerLite();

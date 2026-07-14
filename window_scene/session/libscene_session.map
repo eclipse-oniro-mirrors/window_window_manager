@@ -76,6 +76,7 @@
             OHOS::Rosen::SceneSession::UpdateExtWindowFlags*;
             OHOS::Rosen::SceneSession::UpdateSubWindowLevel*;
             OHOS::Rosen::SceneSession::AddExtensionTokenInfo*;
+            OHOS::Rosen::SceneSession::GetExtInfoWithHideNonSecureWindowFlag*;
             OHOS::Rosen::SceneSession::AddUIExtSurfaceNodeId*;
             OHOS::Rosen::SceneSession::GetGestureBackEnabled*;
             OHOS::Rosen::SceneSession::NotifyForceHideChange*;
@@ -313,6 +314,7 @@
             OHOS::Rosen::SceneSession::GetForceHideState*;
             OHOS::Rosen::SceneSession::GetPiPTemplateInfo*;
             OHOS::Rosen::SceneSession::IsLayoutFullScreen*;
+            OHOS::Rosen::SceneSession::GetSessionCreateTimestamp*;
             OHOS::Rosen::SceneSession::IsViewKeepScreenOn*;
             OHOS::Rosen::SceneSession::GetAbilityColorMode*;
             OHOS::Rosen::SceneSession::GetCollaboratorType*;
@@ -372,6 +374,7 @@
             OHOS::Rosen::SessionStub::OnRemoteRequest*;
             OHOS::Rosen::Session::*;
             OHOS::Rosen::ExtensionSession::*;
+            OHOS::Rosen::SceneSession::NotifyClientToUpdateLSState*;
             
             virtual?thunk?to?OHOS::Rosen::Session::~Session*;
             non-virtual?thunk?to?OHOS::Rosen::Session::*;

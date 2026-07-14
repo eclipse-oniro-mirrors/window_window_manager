@@ -159,6 +159,10 @@ napi_value JsScreen::OnSetOrientation(napi_env env, napi_callback_info info)
         if (ret == DmErrorCode::DM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::DMS, "OnSetOrientation success");
+        } else if (ret == DmErrorCode::DM_ERROR_INVALID_SCREEN) {
+            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret),
+                "[screen][setOrientation]msg: only support external screen or screen is invalid"));
+            TLOGNE(WmsLogTag::DMS, "OnSetOrientation failed: invalid screen");
         } else {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(ret), "JsScreen::OnSetOrientation failed."));
             TLOGNE(WmsLogTag::DMS, "OnSetOrientation failed");
@@ -171,7 +175,7 @@ napi_value JsScreen::OnSetOrientation(napi_env env, napi_callback_info info)
 
 napi_value JsScreen::SetScreenActiveMode(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::DMS, "called");
+    TLOGI(WmsLogTag::DMS, "SetScreenActiveMode is called");
     JsScreen* me = CheckParamsAndGetThis<JsScreen>(env, info);
 #ifdef XPOWER_EVENT_ENABLE
     if (me != nullptr) {
@@ -213,6 +217,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
         GetType(env, argv[ARGC_TWO - 1]) == napi_function) {
         lastParam = argv[ARGC_TWO - 1];
     }
+
     napi_value result = nullptr;
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [this, modeId, env, task = napiAsyncTask.get()]() {
@@ -235,7 +240,7 @@ napi_value JsScreen::OnSetScreenActiveMode(napi_env env, napi_callback_info info
 
 napi_value JsScreen::SetDensityDpi(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::DMS, "called");
+    TLOGI(WmsLogTag::DMS, "SetDensityDpi is called");
     JsScreen* me = CheckParamsAndGetThis<JsScreen>(env, info);
     return (me != nullptr) ? me->OnSetDensityDpi(env, info) : nullptr;
 }
@@ -315,6 +320,42 @@ std::shared_ptr<NativeReference> FindJsDisplayObject(ScreenId screenId)
     return g_JsScreenMap[screenId];
 }
 
+void SetJsScreenProperties(napi_env env, napi_value objValue, const sptr<ScreenInfo>& info)
+{
+    ScreenId screenId = info->GetScreenId();
+    napi_set_named_property(env, objValue, "id",
+        CreateJsValue(env, screenId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(screenId)));
+    ScreenId rsId = info->GetRsId();
+    napi_set_named_property(env, objValue, "rsId",
+        CreateJsValue(env, rsId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(rsId)));
+    ScreenId parentId = info->GetParentId();
+    napi_set_named_property(env, objValue, "parent",
+        CreateJsValue(env, parentId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(parentId)));
+    napi_set_named_property(env, objValue, "orientation", CreateJsValue(env, info->GetOrientation()));
+    napi_set_named_property(env, objValue, "serialNumber", CreateJsValue(env, info->GetSerialNumber()));
+    napi_set_named_property(env, objValue, "sourceMode", CreateJsValue(env, info->GetSourceMode()));
+    napi_set_named_property(env, objValue, "screenType",
+        CreateJsValue(env, static_cast<uint32_t>(info->GetScreenTypeInfo())));
+    napi_set_named_property(env, objValue, "activeModeIndex", CreateJsValue(env, info->GetModeId()));
+    napi_set_named_property(env, objValue, "supportedModeInfo", CreateJsScreenModeArrayObject(env, info->GetModes()));
+    napi_set_named_property(env, objValue, "densityDpi", CreateJsValue(env,
+        static_cast<uint32_t>(info->GetVirtualPixelRatio() * DOT_PER_INCH))); // Dpi = Density(VPR) * 160.
+}
+
+void BindJsScreenFunctions(napi_env env, napi_value objValue, ScreenId screenId)
+{
+    std::shared_ptr<NativeReference> jsScreenRef;
+    napi_ref result = nullptr;
+    napi_create_reference(env, objValue, 1, &result);
+    jsScreenRef.reset(reinterpret_cast<NativeReference*>(result));
+    std::lock_guard<std::recursive_mutex> lock(g_mutex);
+    g_JsScreenMap[screenId] = jsScreenRef;
+    const char *moduleName = "JsScreen";
+    BindNativeFunction(env, objValue, "setScreenActiveMode", moduleName, JsScreen::SetScreenActiveMode);
+    BindNativeFunction(env, objValue, "setOrientation", moduleName, JsScreen::SetOrientation);
+    BindNativeFunction(env, objValue, "setDensityDpi", moduleName, JsScreen::SetDensityDpi);
+}
+
 napi_value CreateJsScreenObject(napi_env env, sptr<Screen>& screen)
 {
     TLOGD(WmsLogTag::DMS, "called");
@@ -338,33 +379,9 @@ napi_value CreateJsScreenObject(napi_env env, sptr<Screen>& screen)
         TLOGE(WmsLogTag::DMS, "Failed to GetScreenInfo");
         return NapiGetUndefined(env);
     }
-    ScreenId screenId = info->GetScreenId();
-    napi_set_named_property(env, objValue, "id",
-        CreateJsValue(env, screenId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(screenId)));
-    ScreenId rsId = info->GetRsId();
-    napi_set_named_property(env, objValue, "rsId",
-        CreateJsValue(env, rsId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(rsId)));
-    ScreenId parentId = info->GetParentId();
-    napi_set_named_property(env, objValue, "parent",
-        CreateJsValue(env, parentId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(parentId)));
-    napi_set_named_property(env, objValue, "orientation", CreateJsValue(env, info->GetOrientation()));
-    napi_set_named_property(env, objValue, "serialNumber", CreateJsValue(env, info->GetSerialNumber()));
-    napi_set_named_property(env, objValue, "sourceMode", CreateJsValue(env, info->GetSourceMode()));
-    napi_set_named_property(env, objValue, "activeModeIndex", CreateJsValue(env, info->GetModeId()));
-    napi_set_named_property(env, objValue, "supportedModeInfo", CreateJsScreenModeArrayObject(env, info->GetModes()));
-    napi_set_named_property(env, objValue, "densityDpi", CreateJsValue(env,
-        static_cast<uint32_t>(info->GetVirtualPixelRatio() * DOT_PER_INCH))); // Dpi = Density(VPR) * 160.
+    SetJsScreenProperties(env, objValue, info);
     if (jsScreenObj == nullptr || jsScreenObj->GetNapiValue() == nullptr) {
-        std::shared_ptr<NativeReference> JsScreenRef;
-        napi_ref result = nullptr;
-        napi_create_reference(env, objValue, 1, &result);
-        JsScreenRef.reset(reinterpret_cast<NativeReference*>(result));
-        std::lock_guard<std::recursive_mutex> lock(g_mutex);
-        g_JsScreenMap[screenId] = JsScreenRef;
-        const char *moduleName = "JsScreen";
-        BindNativeFunction(env, objValue, "setScreenActiveMode", moduleName, JsScreen::SetScreenActiveMode);
-        BindNativeFunction(env, objValue, "setOrientation", moduleName, JsScreen::SetOrientation);
-        BindNativeFunction(env, objValue, "setDensityDpi", moduleName, JsScreen::SetDensityDpi);
+        BindJsScreenFunctions(env, objValue, info->GetScreenId());
     }
     return objValue;
 }

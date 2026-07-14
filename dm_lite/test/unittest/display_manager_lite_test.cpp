@@ -42,6 +42,10 @@ class DmMockFoldStatusListener : public DisplayManagerLite::IFoldStatusListener 
 public:
     virtual void OnFoldStatusChanged([[maybe_unused]]FoldStatus foldStatus) {}
 };
+
+class DmMockDisplayAttributeListener : public DisplayManagerLite::IDisplayAttributeListener {
+    void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attributes) override {}
+};
 class DisplayManagerTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -822,6 +826,156 @@ HWTEST_F(DisplayManagerTest, SetScreenSwitchState01, TestSize.Level1)
     EXPECT_TRUE(g_errLog.find("[UL_POWER] start") != std::string::npos);
     
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnDisplayAttributeChange
+ * @tc.desc: OnDisplayAttributeChange test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, OnDisplayAttributeChange, Function | SmallTest | Level1)
+{
+    sptr<DisplayManagerLite::IDisplayAttributeListener> listener = new DmMockDisplayAttributeListener();
+    std::vector<std::string> attributes = { "rotation" };
+    auto ret = DisplayManagerLite::GetInstance().RegisterDisplayAttributeListener(attributes, listener);
+    ASSERT_EQ(ret, DMError::DM_OK);
+    auto displayAttributeAgent = DisplayManagerLite::GetInstance().pImpl_->displayManagerAttributeAgent_;
+    ASSERT_NE(displayAttributeAgent, nullptr);
+    displayAttributeAgent->OnDisplayAttributeChange(nullptr, attributes);
+
+    sptr<DisplayInfo> displayInfo = new DisplayInfo();
+    displayInfo->SetDisplayId(DISPLAY_ID_INVALID);
+    displayAttributeAgent->OnDisplayAttributeChange(displayInfo, attributes);
+
+    attributes = {};
+    displayAttributeAgent->OnDisplayAttributeChange(displayInfo, attributes);
+
+    displayInfo->SetDisplayId(0);
+    attributes = { "rotation" };
+    displayAttributeAgent->OnDisplayAttributeChange(displayInfo, attributes);
+
+    ASSERT_NE(displayAttributeAgent->pImpl_, nullptr);
+    displayAttributeAgent->pImpl_ = nullptr;
+    displayAttributeAgent->OnDisplayAttributeChange(displayInfo, attributes);
+    DisplayManagerLite::GetInstance().pImpl_->displayManagerListener_ = nullptr;
+}
+
+/**
+ * @tc.name: RegisterDisplayAttributeListener
+ * @tc.desc: RegisterDisplayAttributeListener test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, RegisterDisplayAttributeListener, TestSize.Level1)
+{
+    sptr<DisplayManagerLite::IDisplayAttributeListener> listener;
+    std::vector<std::string> attributes = { "rotation" };
+    auto ret = DisplayManagerLite::GetInstance().RegisterDisplayAttributeListener(attributes, listener);
+    ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    listener = new DmMockDisplayAttributeListener();
+    ret = DisplayManagerLite::GetInstance().RegisterDisplayAttributeListener(attributes, listener);
+    ASSERT_EQ(ret, DisplayManagerLite::GetInstance().pImpl_->RegisterDisplayAttributeListener(attributes, listener));
+    listener.clear();
+}
+
+/**
+ * @tc.name: ImplRegisterDisplayAttributeListener
+ * @tc.desc: ImplRegisterDisplayAttributeListener test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, ImplRegisterDisplayAttributeListener, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    sptr<DisplayManagerLite::Impl> impl_;
+    sptr<DisplayManagerLite::IDisplayAttributeListener> listener;
+    DisplayManagerLite::GetInstance().pImpl_->displayManagerAttributeAgent_ = nullptr;
+    sptr<DisplayManagerLite::Impl::DisplayManagerAttributeAgent> displayManagerAttributeAgent =
+        new DisplayManagerLite::Impl::DisplayManagerAttributeAgent(impl_);
+    std::vector<std::string> attributes{};
+    auto ret = DisplayManagerLite::GetInstance().pImpl_->RegisterDisplayAttributeListener(attributes, listener);
+    attributes = { "rotation" };
+    ret = DisplayManagerLite::GetInstance().pImpl_->RegisterDisplayAttributeListener(attributes, listener);
+    ASSERT_EQ(ret, SingletonContainer::Get<DisplayManagerAdapterLite>().RegisterDisplayAttributeAgent(
+        attributes, displayManagerAttributeAgent));
+    listener.clear();
+    displayManagerAttributeAgent.clear();
+}
+
+/**
+ * @tc.name: UnregisterDisplayAttributeListener
+ * @tc.desc: UnregisterDisplayAttributeListener test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, UnregisterDisplayAttributeListener, TestSize.Level1)
+{
+    sptr<DisplayManagerLite::IDisplayAttributeListener> listener;
+    auto ret = DisplayManagerLite::GetInstance().UnregisterDisplayAttributeListener(listener);
+    ASSERT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+    listener = new DmMockDisplayAttributeListener();
+    ret = DisplayManagerLite::GetInstance().UnregisterDisplayAttributeListener(listener);
+    ASSERT_EQ(ret, DisplayManagerLite::GetInstance().pImpl_->UnregisterDisplayAttributeListener(listener));
+    listener.clear();
+}
+
+/**
+ * @tc.name: UnregisterDisplayAttribute
+ * @tc.desc: UnregisterDisplayAttribute test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, UnregisterDisplayAttribute, TestSize.Level1)
+{
+    std::vector<std::string> attributes = { "rotation" };
+    auto displayManagerAttributeAgent = DisplayManagerLite::GetInstance().pImpl_->displayManagerAttributeAgent_;
+    DisplayManagerLite::GetInstance().pImpl_->displayManagerAttributeAgent_ = nullptr;
+    auto ret = DisplayManagerLite::GetInstance().pImpl_->UnregisterDisplayAttribute(attributes);
+    ASSERT_EQ(ret, DMError::DM_OK);
+
+    DisplayManagerLite::GetInstance().pImpl_->displayManagerAttributeAgent_ = displayManagerAttributeAgent;
+    ret = DisplayManagerLite::GetInstance().pImpl_->UnregisterDisplayAttribute(attributes);
+    ASSERT_EQ(ret, DMError::DM_OK);
+
+    attributes = {};
+    ret = DisplayManagerLite::GetInstance().pImpl_->UnregisterDisplayAttribute(attributes);
+    ASSERT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion01
+ * @tc.desc: GetCurrentFoldCreaseRegion test
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion01, TestSize.Level1)
+{
+    auto ret = DisplayManagerLite::GetInstance().GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        ASSERT_NE(ret->GetDisplayId(), DISPLAY_ID_INVALID);
+    }
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion02
+ * @tc.desc: GetCurrentFoldCreaseRegion test with impl
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion02, TestSize.Level1)
+{
+    auto ret = DisplayManagerLite::GetInstance().pImpl_->GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        ASSERT_NE(ret->GetDisplayId(), DISPLAY_ID_INVALID);
+    }
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion03
+ * @tc.desc: GetCurrentFoldCreaseRegion test check creaseRects
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion03, TestSize.Level1)
+{
+    auto ret = DisplayManagerLite::GetInstance().GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        auto creaseRects = ret->GetCreaseRects();
+        ASSERT_TRUE(creaseRects.size() <= 20);
+    }
 }
 }
 } // namespace Rosen

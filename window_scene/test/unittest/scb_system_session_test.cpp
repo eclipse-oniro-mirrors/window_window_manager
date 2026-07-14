@@ -18,7 +18,11 @@
 #include "common/include/session_permission.h"
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
+#define private public
+#define protected public
 #include "session/host/include/session.h"
+#undef private
+#undef protected
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 
@@ -29,10 +33,10 @@ namespace OHOS {
 namespace Rosen {
 namespace {
     std::string g_errLog;
-    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
-        const char *msg)
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+        const char* msg)
     {
-        g_errLog = msg;
+        g_errLog += msg;
     }
 }
 class SCBSystemSessionTest : public testing::Test {
@@ -346,6 +350,46 @@ HWTEST_F(SCBSystemSessionTest, SCBSystemSessionConstruction002, TestSize.Level1)
     info8.isSystem_ = true;
     auto scbSystemSession8 = sptr<SCBSystemSession>::MakeSptr(info8, specificCallback);
     ASSERT_NE(nullptr, scbSystemSession8);
+}
+
+/**
+ * @tc.name: SCBSystemSession
+ * @tc.desc: check func NotifyWindowSceneDetach
+ * @tc.type: FUNC
+ */
+ HWTEST_F(SCBSystemSessionTest, NotifyWindowSceneDetach, TestSize.Level1)
+ {
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    SessionInfo info;
+    info.abilityName_ = "testSCBSystemSession1";
+    info.moduleName_ = "testSCBSystemSession2";
+    info.bundleName_ = "testSCBSystemSession3";
+    info.isSystem_ = true;
+    info.persistentId_ = 9527;
+    auto scbSystemSession = sptr<SCBSystemSession>::MakeSptr(info, specificCallback);
+    ASSERT_NE(nullptr, scbSystemSession);
+ 
+    scbSystemSession->state_ = SessionState::STATE_DISCONNECT;
+    scbSystemSession->isAlreadyDisconnect_ = false;
+    scbSystemSession->NotifyWindowSceneDetach();
+    EXPECT_TRUE(g_errLog.find("9527 release surfaceNode") == std::string::npos);
+
+    scbSystemSession->state_ = SessionState::STATE_CONNECT;
+    scbSystemSession->isAlreadyDisconnect_ = false;
+    scbSystemSession->NotifyWindowSceneDetach();
+    EXPECT_TRUE(g_errLog.find("9527 release surfaceNode") == std::string::npos);
+
+    scbSystemSession->state_ = SessionState::STATE_CONNECT;
+    scbSystemSession->isAlreadyDisconnect_ = true;
+    scbSystemSession->NotifyWindowSceneDetach();
+    EXPECT_TRUE(g_errLog.find("9527 release surfaceNode") == std::string::npos);
+
+    scbSystemSession->state_ = SessionState::STATE_DISCONNECT;
+    scbSystemSession->isAlreadyDisconnect_ = true;
+    scbSystemSession->NotifyWindowSceneDetach();
+    EXPECT_TRUE(g_errLog.find("9527 release surfaceNode") != std::string::npos);
+    LOG_SetCallback(nullptr);
 }
 
 /**

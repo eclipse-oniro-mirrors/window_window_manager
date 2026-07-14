@@ -20,11 +20,12 @@
  
 #include "dm_common.h"
  
-#include "fold_screen_controller/super_fold_sensor_manager.h"
 #include "fold_screen_controller/super_fold_state_manager.h"
 #include "fold_screen_controller/fold_screen_controller_config.h"
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
+#include "fold_screen_controller/super_fold_sensor_manager.h"
+#include "dms_global_mutex.h"
 #include "screen_sensor_mgr.h"
 
 namespace OHOS {
@@ -76,7 +77,7 @@ void SuperFoldSensorManager::UnregisterPostureCallback()
     if (ret == SENSOR_SUCCESS) {
         TLOGI(WmsLogTag::DMS, "success.");
     } else {
-        TLOGE(WmsLogTag::DMS, "UnregisterPostureCallback failed with ret: %{public}d", ret);
+        TLOGE(WmsLogTag::DMS, "UnregisterPostureCallback failed with ret:  %{public}d", ret);
     }
 }
 
@@ -92,7 +93,7 @@ void SuperFoldSensorManager::UnregisterHallCallback()
     if (ret == SENSOR_SUCCESS) {
         TLOGI(WmsLogTag::DMS, "success.");
     } else {
-        TLOGE(WmsLogTag::DMS, "UnRegisterHallCallback failed with ret: %{public}d", ret);
+        TLOGE(WmsLogTag::DMS, "UnRegisterHallCallback failed with ret:  %{public}d", ret);
     }
 }
 
@@ -166,6 +167,10 @@ void SuperFoldSensorManager::NotifyFoldAngleChanged(float foldAngle)
         events == SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED) {
         HandleSuperSensorChange(events);
     }
+    if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::HALF_FOLDED) {
+        TLOGD(WmsLogTag::DMS, "half fold hall change, hall = %{public}u", curHall_);
+        NotifyHallChanged(curHall_, foldAngle, false);
+    }
 }
 
 void SuperFoldSensorManager::HandleHallData(const SensorEvent * const event)
@@ -194,16 +199,16 @@ void SuperFoldSensorManager::HandleHallData(const SensorEvent * const event)
         return;
     }
     curHall_ = newHall;
-    TLOGI(WmsLogTag::DMS, "Hall change, hall = %{public}u", curHall_);
+    TLOGW(WmsLogTag::DMS, "Handle hall change, hall = %{public}u", curHall_);
     auto task = [this, curHall = curHall_] {
-        NotifyHallChanged(curHall);
+        NotifyHallChanged(curHall, curAngle_, true);
     };
     if (taskScheduler_) {
         taskScheduler_->PostAsyncTask(task, "DMSHandleHall");
     }
 }
 
-void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall)
+void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall, float foldAngle, bool isHallEvent)
 {
     SuperFoldStatusChangeEvents events;
     bool isActive = (hall == hallActive_);
@@ -215,13 +220,25 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall)
             TLOGI(WmsLogTag::DMS, "is expanded");
             return;
         }
+        std::unique_lock<std::mutex> lock(oneHopDeviceDownMutex_);
+        if (oneHopDeviceDownTime_ > std::chrono::steady_clock::now() - std::chrono::milliseconds(waitMilliSeconds_)) {
+            TLOGI(WmsLogTag::DMS, "NotifyHallChanged: onehop already down! Not notify");
+            return;
+        }
+        auto result =
+            DmUtils::safe_wait_for(oneHopDeviceDownEventCV_,
+            lock, std::chrono::milliseconds(waitMilliSeconds_ + waitMilliSeconds_));
+        if (result != std::cv_status::timeout) {
+            TLOGI(WmsLogTag::DMS, "NotifyHallChanged: onehop device down. Not notify");
+            return;
+        }
         TLOGI(WmsLogTag::DMS, "NotifyHallChanged: Keyboard on!");
         events = SuperFoldStatusChangeEvents::KEYBOARD_ON;
         HandleSuperSensorChange(SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
     }
     // notify
     HandleSuperSensorChange(events);
-    if (std::isgreater(curAngle_, ANGLE_SENSOR_THRESHOLD)) {
+    if (std::isgreater(foldAngle, ANGLE_SENSOR_THRESHOLD)) {
         HandleSuperSensorChange(SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
     }
 }
@@ -229,7 +246,7 @@ void SuperFoldSensorManager::NotifyHallChanged(uint16_t hall)
 void SuperFoldSensorManager::HandleSuperSensorChange(SuperFoldStatusChangeEvents events)
 {
     // trigger events
-    if (ScreenSessionManager::GetInstance().GetIsExtendModelocked() ||
+    if (ScreenSessionManager::GetInstance().GetIsExtendModeLocked() ||
         ScreenSessionManager::GetInstance().GetIsFoldStatusLocked() ||
         ScreenSessionManager::GetInstance().GetIsLandscapeLockStatus()) {
         return;
@@ -239,7 +256,7 @@ void SuperFoldSensorManager::HandleSuperSensorChange(SuperFoldStatusChangeEvents
 
 void SuperFoldSensorManager::DriveStateMachineToExpand()
 {
-    TLOGW(WmsLogTag::DMS, "to expand.");
+    TLOGW(WmsLogTag::DMS, "to expand");
     SuperFoldStateManager::GetInstance().DriveStateMachineToExpand();
 }
 
@@ -249,17 +266,22 @@ void SuperFoldSensorManager::SetStateMachineToActived()
         TLOGW(WmsLogTag::DMS, "Fold status is still locked.");
         return;
     }
-    if (ScreenSessionManager::GetInstance().GetIsExtendModelocked()) {
-        TLOGW(WmsLogTag::DMS, "Extend screen is still connected.");
+    if (ScreenSessionManager::GetInstance().GetIsExtendModeLocked()) {
+        TLOGW(WmsLogTag::DMS, "Extend screen is still extend.");
         return;
     }
     if (ScreenSessionManager::GetInstance().GetIsLandscapeLockStatus()) {
         TLOGW(WmsLogTag::DMS, "Landscape status is still locked.");
         return;
     }
-    TLOGW(WmsLogTag::DMS, "All locks have been unlocked to start statemachine.");
-    NotifyHallChanged(curHall_);
-    NotifyFoldAngleChanged(curAngle_);
+    TLOGW(WmsLogTag::DMS, "All locks have been unlocked to start statemachine");
+    auto task = [this, curHall = curHall_, curAngle = curAngle_] {
+        NotifyFoldAngleChanged(curAngle);
+        NotifyHallChanged(curHall, curAngle);
+    };
+    if (taskScheduler_) {
+        taskScheduler_->PostAsyncTask(task, "DMSHandleHall");
+    }
 }
 
 void SuperFoldSensorManager::HandleFoldStatusLockedToExpand()
@@ -275,8 +297,8 @@ void SuperFoldSensorManager::HandleFoldStatusUnlocked()
         return;
     }
     TLOGI(WmsLogTag::DMS, "All locks have been unlocked to start statemachine.");
-    NotifyHallChanged(curHall_);
     NotifyFoldAngleChanged(curAngle_);
+    NotifyHallChanged(curHall_, curAngle_);
 }
 
 float SuperFoldSensorManager::GetCurAngle()
@@ -296,6 +318,14 @@ void SuperFoldSensorManager::SetTaskScheduler(std::shared_ptr<TaskScheduler> sch
 {
     TLOGI(WmsLogTag::DMS, "Set task scheduler.");
     taskScheduler_ = scheduler;
+}
+
+void SuperFoldSensorManager::HandleOnehopDeviceDown()
+{
+    TLOGI(WmsLogTag::DMS, "handle onehop device down event.");
+    std::unique_lock<std::mutex> lock(oneHopDeviceDownMutex_);
+    oneHopDeviceDownTime_ = std::chrono::steady_clock::now();
+    oneHopDeviceDownEventCV_.notify_all();
 }
 } // Rosen
 } // OHOS

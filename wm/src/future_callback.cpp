@@ -39,7 +39,6 @@ WSError FutureCallback::OnUpdateSessionRect(const Rect& rect, WindowSizeChangeRe
     return WSError::WS_DO_NOTHING;
 }
 
-// LCOV_EXCL_START
 WSError FutureCallback::OnUpdateGlobalDisplayRect(
     const Rect& rect, WindowSizeChangeReason reason, int32_t persistentId)
 {
@@ -55,6 +54,7 @@ WSError FutureCallback::OnUpdateGlobalDisplayRect(
     return WSError::WS_DO_NOTHING;
 }
 
+// LCOV_EXCL_START
 WSError FutureCallback::OnUpdateTargetOrientationInfo(OrientationInfo& info, OrientationInfo& currentInfo)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "update the target orientation info");
@@ -120,11 +120,11 @@ void FutureCallback::ResetRotationResultLock()
     getRotationResultFuture_.ResetLock({});
 }
 
-int32_t FutureCallback::GetUpdateRectResult(long timeOut)
+int32_t FutureCallback::GetUpdateRectResult(long timeoutMs)
 {
-    return updateRectFuture_.GetResult(timeOut);
+    return updateRectFuture_.GetResult(timeoutMs);
 }
- 
+
 void FutureCallback::OnFirstValidRectUpdate(int32_t persistentId)
 {
     updateRectFuture_.SetValue(persistentId);

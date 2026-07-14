@@ -836,7 +836,6 @@ napi_value CreateJsWindowAnimationConfigObject(napi_env env, const KeyboardAnima
 
 napi_value CreateJsWindowPropertiesObject(napi_env env, const WindowPropertyInfo& windowPropertyInfo)
 {
-    WLOGD("CreateJsWindowPropertiesObject");
     napi_value objValue = nullptr;
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
 
@@ -1817,6 +1816,23 @@ napi_value ExtensionWindowAttributeInit(napi_env env)
         CreateJsValue(env, static_cast<int32_t>(ExtensionWindowAttribute::SYSTEM_WINDOW)));
     napi_set_named_property(env, objValue, "SUB_WINDOW",
         CreateJsValue(env, static_cast<int32_t>(ExtensionWindowAttribute::SUB_WINDOW)));
+    return objValue;
+}
+
+napi_value WindowPostureModeInit(napi_env env)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "env is nullptr");
+        return nullptr;
+    }
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to create object");
+        return nullptr;
+    }
+    napi_set_named_property(env, objValue, "DESKTOP_MODE",
+        CreateJsValue(env, static_cast<int32_t>(WindowPostureMode::DESKTOP_MODE)));
     return objValue;
 }
 

@@ -51,6 +51,7 @@ ohos_fuzztest("SessionStubFloatViewFuzzTest") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "eventhandler:libeventhandler",
   ]
 }
 

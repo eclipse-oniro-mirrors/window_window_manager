@@ -178,7 +178,7 @@ void* AniPipUtils::GetAbilityContext(ani_env *env, ani_object aniObj)
         TLOGE(WmsLogTag::WMS_PIP,  "get field fail, status : %{public}d", status);
         return nullptr;
     }
-    return reinterpret_cast<void*>(nativeContextLong);
+    return (void*)nativeContextLong;
 }
 
 ani_status AniPipUtils::CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, const char* signature, ...)
@@ -384,7 +384,7 @@ void AniPipUtils::TransferToPipControllerAni(sptr<PictureInPictureController>& p
 }
 
 void AniPipUtils::TransferToPipControllerNapi(sptr<PictureInPictureControllerAni>& pipControllerAni,
-                                              sptr<PictureInPictureController>& pipController)
+    sptr<PictureInPictureController>& pipController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipControllerAni == nullptr || pipController == nullptr) {

@@ -304,6 +304,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleDestroySubWindowZLevelAboveParentLoosened(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_IS_START_MOVING):
             return HandleSetIsStartMoving(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_LS_STATE):
+            return HandleUpdateLSState(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1192,7 +1194,12 @@ int SessionStageStub::HandleSwitchFreeMultiWindow(MessageParcel& data, MessagePa
 {
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "called!");
     bool enable = data.ReadBool();
-    WSError errCode = SwitchFreeMultiWindow(enable);
+    std::set<ScreenId> supportMultiWindowScreenSet;
+    uint32_t screenSetSize = data.ReadUint32();
+    for (uint32_t i = 0; i < screenSetSize; ++i) {
+        supportMultiWindowScreenSet.insert(static_cast<ScreenId>(data.ReadUint64()));
+    }
+    WSError errCode = SwitchFreeMultiWindow(enable, supportMultiWindowScreenSet);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -1897,6 +1904,14 @@ int SessionStageStub::HandleSetIsStartMoving(MessageParcel& data, MessageParcel&
         return ERR_INVALID_DATA;
     }
     SetIsStartMoving(isStartMoving);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleUpdateLSState(MessageParcel& data, MessageParcel& reply)
+{
+    bool isLSState = data.ReadBool();
+    WSError errCode = UpdateLSState(isLSState);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen

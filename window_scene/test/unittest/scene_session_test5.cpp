@@ -291,6 +291,24 @@ HWTEST_F(SceneSessionTest5, NotifyOutsideDownEvent, TestSize.Level1)
     info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::TRANSMIT_ALL);
     sptr<SceneSession> session1 = sptr<SceneSession>::MakeSptr(info, nullptr);
     session1->NotifyOutsideDownEvent(pointerEvent);
+
+    info.bundleName_ = "NormalApp";
+    info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::NORMAL);
+    sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session2->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session2->specificCallback_->onSessionTouchOutside_ = [](int32_t id, DisplayId displayId) {};
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = nullptr;
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = [](int32_t id, DisplayId displayId) {};
+    session2->sessionInfo_.bundleName_ = "SCBGestureBack";
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = nullptr;
+    session2->NotifyOutsideDownEvent(pointerEvent);
 }
 
 /**
@@ -2178,7 +2196,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     EXPECT_NE(sceneSession, nullptr);
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     EXPECT_NE(sceneSession->moveDragController_, nullptr);
-    sceneSession->moveDragController_->moveDragStartDisplayId_ = 0;
+    sceneSession->moveDragController_->startDisplayId_ = 0;
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     // create surfacenode
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
@@ -2187,8 +2205,8 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType);
     sceneSession->SetSurfaceNode(surfaceNode);
     // set displayId to moveDrag map
-    sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(0);
-    sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(1001);
+    sceneSession->moveDragController_->overlappedDisplayIds_.insert(0);
+    sceneSession->moveDragController_->overlappedDisplayIds_.insert(1001);
     // register FindScenePanelRsNodeByZOrderFunc to get drag mounted node
     sceneSession->SetFindScenePanelRsNodeByZOrderFunc([this](uint64_t screenId, uint32_t targetZOrder) {
         return CreateRSSurfaceNode();
@@ -2208,7 +2226,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     // set original position Z
     sceneSession->moveDragController_->originalPositionZ_ = 100;
     // set same screen
-    sceneSession->moveDragController_->moveDragEndDisplayId_ = 0;
+    sceneSession->moveDragController_->endDisplayId_ = 0;
     // test func
     sceneSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
     EXPECT_EQ(surfaceNode->GetStagingProperties().GetPositionZ(), 100);
@@ -2216,7 +2234,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     // set original position Z
     sceneSession->moveDragController_->originalPositionZ_ = 200;
     // set different screen
-    sceneSession->moveDragController_->moveDragEndDisplayId_ = 1001;
+    sceneSession->moveDragController_->endDisplayId_ = 1001;
     // test func
     sceneSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
     EXPECT_EQ(surfaceNode->GetStagingProperties().GetPositionZ(), 200);

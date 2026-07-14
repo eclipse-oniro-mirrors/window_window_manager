@@ -77,7 +77,7 @@ int32_t ScreenSessionManagerLiteStub::OnRemoteRequest(uint32_t code, MessageParc
 
 int ScreenSessionManagerLiteStub::HandleRegisterDisplayManagerAgent(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleRegisterDisplayManagerAgent!");
     auto agent = iface_cast<IDisplayManagerAgent>(data.ReadRemoteObject());
     if (agent == nullptr) {
         return ERR_INVALID_DATA;
@@ -90,7 +90,7 @@ int ScreenSessionManagerLiteStub::HandleRegisterDisplayManagerAgent(MessageParce
 
 int ScreenSessionManagerLiteStub::HandleUnRegisterDisplayManagerAgent(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleUnRegisterDisplayManagerAgent!");
     auto agent = iface_cast<IDisplayManagerAgent>(data.ReadRemoteObject());
     if (agent == nullptr) {
         return ERR_INVALID_DATA;
@@ -103,7 +103,7 @@ int ScreenSessionManagerLiteStub::HandleUnRegisterDisplayManagerAgent(MessagePar
 
 int ScreenSessionManagerLiteStub::HandleGetFoldDisplayMode(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleGetFoldDisplayMode!");
     FoldDisplayMode displayMode = GetFoldDisplayMode();
     reply.WriteUint32(static_cast<uint32_t>(displayMode));
     return ERR_NONE;
@@ -111,7 +111,7 @@ int ScreenSessionManagerLiteStub::HandleGetFoldDisplayMode(MessageParcel &data, 
 
 int ScreenSessionManagerLiteStub::HandleSetFoldDisplayMode(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleSetFoldDisplayMode!");
     FoldDisplayMode displayMode = static_cast<FoldDisplayMode>(data.ReadUint32());
     SetFoldDisplayMode(displayMode);
     return ERR_NONE;
@@ -119,21 +119,21 @@ int ScreenSessionManagerLiteStub::HandleSetFoldDisplayMode(MessageParcel &data, 
 
 int ScreenSessionManagerLiteStub::HandleIsFoldable(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleIsFoldable!");
     reply.WriteBool(IsFoldable());
     return ERR_NONE;
 }
 
 int ScreenSessionManagerLiteStub::HandleGetFoldStatus(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleGetFoldStatus!");
     reply.WriteUint32(static_cast<uint32_t>(GetFoldStatus()));
     return ERR_NONE;
 }
 
 int ScreenSessionManagerLiteStub::HandleGetDefaultDisplayInfo(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleGetDefaultDisplayInfo!");
     auto info = GetDefaultDisplayInfo();
     reply.WriteParcelable(info);
     return ERR_NONE;
@@ -141,7 +141,7 @@ int ScreenSessionManagerLiteStub::HandleGetDefaultDisplayInfo(MessageParcel &dat
 
 int ScreenSessionManagerLiteStub::HandleGetDisplayById(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleGetDisplayById!");
     DisplayId displayId = data.ReadUint64();
     auto info = GetDisplayInfoById(displayId);
     reply.WriteParcelable(info);
@@ -150,7 +150,7 @@ int ScreenSessionManagerLiteStub::HandleGetDisplayById(MessageParcel &data, Mess
 
 int ScreenSessionManagerLiteStub::HandleGetCutoutInfo(MessageParcel &data, MessageParcel &reply)
 {
-    TLOGD(WmsLogTag::DMS, "run!");
+    TLOGD(WmsLogTag::DMS, "run HandleGetCutoutInfo!");
     DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
     sptr<CutoutInfo> cutoutInfo = GetCutoutInfo(displayId);
     reply.WriteParcelable(cutoutInfo);

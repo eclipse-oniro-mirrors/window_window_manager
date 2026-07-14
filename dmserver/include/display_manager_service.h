@@ -104,10 +104,10 @@ public:
     DMError StopExpand(const std::vector<ScreenId>& expandScreenIds);
     void RemoveVirtualScreenFromGroup(std::vector<ScreenId> screens);
     sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId);
-    sptr<DisplayInfo> GetDisplayInfoByScreenId(ScreenId screenId) const;
     sptr<ScreenGroupInfo> GetScreenGroupInfoById(ScreenId screenId);
     ScreenId GetScreenGroupIdByScreenId(ScreenId screenId);
     DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
+    sptr<DisplayInfo> GetDisplayInfoByScreenId(ScreenId screenId) const;
 
     std::vector<DisplayId> GetAllDisplayIds();
     DMError SetScreenActiveMode(ScreenId screenId, uint32_t modeId);

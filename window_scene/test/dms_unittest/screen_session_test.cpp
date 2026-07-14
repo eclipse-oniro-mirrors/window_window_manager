@@ -5278,11 +5278,11 @@ HWTEST_F(ScreenSessionTest, HandleResolutionEffectPropertyChange2, TestSize.Leve
 
 
 /**
- * @tc.name  : UpdateScbScreenPropertyForSuperFlod
- * @tc.desc  : test UpdateScbScreenPropertyForSuperFlod
+ * @tc.name  : UpdateScbScreenPropertyForSuperFold
+ * @tc.desc  : test UpdateScbScreenPropertyForSuperFold
  * @tc.type: FUNC
  */
-HWTEST_F(ScreenSessionTest, UpdateScbScreenPropertyForSuperFlod, TestSize.Level1)
+HWTEST_F(ScreenSessionTest, UpdateScbScreenPropertyForSuperFold, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         GTEST_SKIP();
@@ -5293,22 +5293,22 @@ HWTEST_F(ScreenSessionTest, UpdateScbScreenPropertyForSuperFlod, TestSize.Level1
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(0, property, 0);
 
     property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::KEYBOARD_ON);
-    session->UpdateScbScreenPropertyForSuperFlod(property);
+    session->UpdateScbScreenPropertyForSuperFold(property);
     EXPECT_TRUE(g_errLog.find("handle keyboard on and keyboard succ") != std::string::npos);
     g_errLog.clear();
 
     property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::KEYBOARD_OFF);
-    session->UpdateScbScreenPropertyForSuperFlod(property);
+    session->UpdateScbScreenPropertyForSuperFold(property);
     EXPECT_TRUE(g_errLog.find("handle keyboard on and keyboard succ") != std::string::npos);
     g_errLog.clear();
 
     property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_ON);
-    session->UpdateScbScreenPropertyForSuperFlod(property);
+    session->UpdateScbScreenPropertyForSuperFold(property);
     EXPECT_TRUE(g_errLog.find("handle system keyboard on and system keyboard succ") != std::string::npos);
     g_errLog.clear();
 
     property.SetSuperFoldStatusChangeEvent(SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF);
-    session->UpdateScbScreenPropertyForSuperFlod(property);
+    session->UpdateScbScreenPropertyForSuperFold(property);
     EXPECT_TRUE(g_errLog.find("handle system keyboard on and system keyboard succ") != std::string::npos);
     g_errLog.clear();
     LOG_SetCallback(nullptr);
@@ -5345,6 +5345,41 @@ HWTEST_F(ScreenSessionTest, ProcPropertyChange, TestSize.Level1)
     sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
     session->ProcPropertyChange(screenProperty, eventPara);
     EXPECT_EQ(screenProperty.GetPropertyChangeReason(), eventPara.GetPropertyChangeReason());
+}
+
+/**
+ * @tc.name  : ProcPropertyChange_SyncAvailableArea
+ * @tc.desc  : ProcPropertyChange syncs availableArea from eventPara when it is initialized
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ProcPropertyChange_SyncAvailableArea, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    ScreenProperty eventPara;
+    DMRect area { 10, 20, 300, 400 };
+    eventPara.SetAvailableArea(area);
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ProcPropertyChange(screenProperty, eventPara);
+    EXPECT_EQ(screenProperty.GetAvailableArea(), area);
+}
+
+/**
+ * @tc.name  : ProcPropertyChange_PreserveUninitializedArea
+ * @tc.desc  : ProcPropertyChange preserves local availableArea when eventPara's is uninitialized
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionTest, ProcPropertyChange_PreserveUninitializedArea, TestSize.Level1)
+{
+    ScreenId screenId = 10000;
+    ScreenProperty screenProperty;
+    DMRect localArea { 5, 5, 200, 200 };
+    screenProperty.SetAvailableArea(localArea);
+    ScreenProperty eventPara;
+    eventPara.SetAvailableArea(DMRect { 0, 0, 0, 0 }); // uninitialized rect
+    sptr<ScreenSession> session = sptr<ScreenSession>::MakeSptr(screenId, screenProperty, screenId);
+    session->ProcPropertyChange(screenProperty, eventPara);
+    EXPECT_EQ(screenProperty.GetAvailableArea(), localArea);
 }
 
 /**

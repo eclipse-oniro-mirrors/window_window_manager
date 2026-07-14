@@ -176,9 +176,9 @@ HWTEST_F(WindowSceneSessionImplTest3, UpdateTitleInTargetPos, TestSize.Level1)
     windowSceneSessionImpl->windowSessionMap_.insert(
         std::make_pair(windowSceneSessionImpl->GetWindowName(),
                        std::make_pair(windowSceneSessionImpl->GetWindowId(), windowSceneSessionImpl)));
-    ret = windowSceneSessionImpl->SwitchFreeMultiWindow(true);
+    ret = windowSceneSessionImpl->SwitchFreeMultiWindow(true, {});
     EXPECT_EQ(WSError::WS_OK, ret);
-    ret = windowSceneSessionImpl->SwitchFreeMultiWindow(false);
+    ret = windowSceneSessionImpl->SwitchFreeMultiWindow(false, {});
     EXPECT_EQ(WSError::WS_OK, ret);
 
     windowSceneSessionImpl->uiContent_ = std::make_unique<Ace::UIContentMocker>();

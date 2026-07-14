@@ -64,6 +64,26 @@ float ScreenProperty::GetScreenComponentRotation() const
     return screenComponentRotation_;
 }
 
+void ScreenProperty::SetRsId(ScreenId rsId)
+{
+    rsId_ = rsId;
+}
+
+ScreenId ScreenProperty::GetRsId() const
+{
+    return rsId_;
+}
+
+void ScreenProperty::SetInternalStatus(bool isInternal)
+{
+    isInternal_ = isInternal;
+}
+
+bool ScreenProperty::GetInternalStatus() const
+{
+    return isInternal_;
+}
+
 void ScreenProperty::SetBounds(const RRect& bounds)
 {
     bounds_ = bounds;
@@ -270,25 +290,6 @@ uint32_t ScreenProperty::GetRefreshRate() const
     return refreshRate_;
 }
 
-void ScreenProperty::SetRsId(ScreenId rsId)
-{
-    rsId_ = rsId;
-}
-
-ScreenId ScreenProperty::GetRsId() const
-{
-    return rsId_;
-}
-
-void ScreenProperty::SetInternalStatus(bool isInternal)
-{
-    isInternal_ = isInternal;
-}
-
-bool ScreenProperty::GetInternalStatus() const
-{
-    return isInternal_;
-}
 
 void ScreenProperty::SetPropertyChangeReason(ScreenPropertyChangeReason propertyChangeReason)
 {
@@ -312,7 +313,7 @@ float ScreenProperty::GetVirtualPixelRatio() const
 
 void ScreenProperty::SetScreenRotation(Rotation rotation)
 {
-    bool enableRotation = (system::GetParameter("persist.window.rotation.enabled", "1") == "1");
+    bool enableRotation = system::GetParameter("persist.window.rotation.enabled", "1") == "1";
     if (!enableRotation) {
         return;
     }
@@ -501,12 +502,12 @@ void ScreenProperty::CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight)
     yDpi_ = std::floor(yDpi_ * TRUNCATE_THREE_DECIMALS) / TRUNCATE_THREE_DECIMALS;
 }
 
-float ScreenProperty::GetXDpi() const
+float ScreenProperty::GetXDpi()
 {
     return xDpi_;
 }
 
-float ScreenProperty::GetYDpi() const
+float ScreenProperty::GetYDpi()
 {
     return yDpi_;
 }
@@ -593,6 +594,16 @@ ScreenType ScreenProperty::GetScreenType() const
     return type_;
 }
 
+void ScreenProperty::SetScreenTypeInfo(ScreenTypeInfo typeInfo)
+{
+    typeInfo_ = typeInfo;
+}
+
+ScreenTypeInfo ScreenProperty::GetScreenTypeInfo() const
+{
+    return typeInfo_;
+}
+
 void ScreenProperty::SetScreenRequestedOrientation(Orientation orientation)
 {
     screenRequestedOrientation_ = orientation;
@@ -657,8 +668,6 @@ RRect ScreenProperty::GetPhysicalTouchBounds() const
 void ScreenProperty::SetPhysicalTouchBounds(Rotation rotationOffset)
 {
     if (!FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
-        physicalTouchBounds_.rect_.width_ = bounds_.rect_.width_;
-        physicalTouchBounds_.rect_.height_ = bounds_.rect_.height_;
         return;
     }
     float correctionValue = rotation_ - static_cast<float>(rotationOffset) * SECONDARY_ROTATION_90 +

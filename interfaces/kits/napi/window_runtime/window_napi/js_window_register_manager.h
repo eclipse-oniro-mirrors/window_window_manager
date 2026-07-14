@@ -79,8 +79,13 @@ public:
         CaseType caseType, napi_env env, napi_value callback, napi_value parameter = nullptr);
     WmErrorCode UnregisterListener(sptr<Window> window, std::string type,
         CaseType caseType, napi_env env, napi_value value);
+    WmErrorCode RegisterWindowPostureModeListener(napi_env env, sptr<Window> window,
+        napi_value callback, WindowPostureMode mode);
+    WmErrorCode UnregisterWindowPostureModeListener(napi_env env, sptr<Window> window,
+        napi_value callback, WindowPostureMode mode);
 private:
     bool IsCallbackRegistered(napi_env env, std::string type, napi_value jsListenerObject);
+    bool IsWindowPostureCallbackRegistered(napi_env env, WindowPostureMode mode, napi_value callback);
     WmErrorCode ProcessWindowChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window, bool isRegister,
         napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessSystemAvoidAreaChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
@@ -164,11 +169,15 @@ private:
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessParentLifecycleEventRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
+    WmErrorCode ProcessWindowPostureModeChangeRegister(const sptr<JsWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister, napi_env env, WindowPostureMode mode);
     WmErrorCode ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
         const sptr<JsWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
         napi_env env, napi_value parameter);
     std::map<std::string, std::map<std::shared_ptr<NativeReference>, sptr<JsWindowListener>>> jsCbMap_;
     std::mutex mtx_;
+    std::map<WindowPostureMode, std::map<std::shared_ptr<NativeReference>, sptr<JsWindowListener>>> jsPostureModeCbMap_;
+    std::mutex postureModeMapMtx_;
 };
 } // namespace Rosen
 } // namespace OHOS

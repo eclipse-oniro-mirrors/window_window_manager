@@ -191,6 +191,7 @@ struct UIExtensionTokenInfo {
     uint32_t callingTokenId { 0 };
     sptr<IRemoteObject> abilityToken;
     int32_t pid;
+    int32_t persistentId;
 };
 
 struct FullInfoForMMI {
@@ -399,6 +400,7 @@ public:
      * PiP Window
      */
     PiPTemplateInfo GetPiPTemplateInfo() const;
+    int64_t GetSessionCreateTimestamp() const;
     void SetPiPTemplateInfo(const PiPTemplateInfo& pipTemplateInfo);
     WSError UpdatePiPRect(const Rect& rect, SizeChangeReason reason) override;
     WSError UpdatePiPControlStatus(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -832,6 +834,7 @@ public:
     ExtensionWindowFlags GetCombinedExtWindowFlags();
     void RemoveExtWindowFlags(int32_t extPersistentId);
     void ClearExtWindowFlags();
+    std::vector<UIExtensionTokenInfo> GetExtInfoWithHideNonSecureWindowFlag();
     void NotifyDisplayMove(DisplayId from, DisplayId to);
     void NotifySessionFullScreen(bool fullScreen);
     void SetDefaultDisplayIdIfNeed();
@@ -1153,6 +1156,8 @@ public:
         const TransitionAnimation& animation) override;
     void SetTransitionAnimationCallback(UpdateTransitionAnimationFunc&& func);
 
+    WSError NotifyClientToUpdateLSState(bool isLSState);
+
 protected:
     void NotifyIsCustomAnimationPlaying(bool isPlaying);
     std::string GetRatioPreferenceKey();
@@ -1258,6 +1263,7 @@ protected:
      */
     NotifyPrepareClosePiPSessionFunc onPrepareClosePiPSession_;
     std::atomic<bool> pipActiveStatus_{true};
+    int64_t createTimestamp_ = 0;
 
     /*
      * Window Layout
@@ -1360,6 +1366,7 @@ protected:
     bool keyboardAvoidAreaActive_ = true;
 
 private:
+    bool ShouldNotifyTouchOutside() const;
     void NotifyAccessibilityVisibilityChange();
     void CalculateCombinedExtWindowFlags();
     WSError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo,

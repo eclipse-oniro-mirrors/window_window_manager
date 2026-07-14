@@ -235,7 +235,7 @@ HWTEST_F(SceneSessionManagerTest4, DestroyAndDisconnectSpecificSession01, TestSi
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     ssm_->sceneSessionMap_.insert({ 1, sceneSession });
-    ASSERT_NE(ssm_->DestroyAndDisconnectSpecificSession(1), WSError::WS_ERROR_NULLPTR);
+    ASSERT_NE(ssm_->DestroyAndDisconnectSpecificSession(1).errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -683,6 +683,38 @@ HWTEST_F(SceneSessionManagerTest4, UpdateSessionDisplayId, TestSize.Level1)
     result = ssm_->UpdateSessionDisplayId(1, 2);
     EXPECT_EQ(result, WSError::WS_OK);
     EXPECT_EQ(sceneSession->GetPropertyDirtyFlags(), static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
+}
+
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow
+ * @tc.desc: UpdateScreenSupportMultiWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateScreenSupportMultiWindow, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+ 
+    auto result = ssm_->UpdateScreenSupportMultiWindow(INVALID_SCREEN_ID, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 1);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.size(), 1);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::DELETE);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 0);
+ 
+    result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::DELETE);
+    EXPECT_EQ(result, WSError::WS_OK);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
 }
 
 /**
@@ -1792,10 +1824,6 @@ HWTEST_F(SceneSessionManagerTest4, CheckBlockingFocus, TestSize.Level1)
 
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     ret = ssm_->CheckBlockingFocus(sceneSession, true);
-    EXPECT_EQ(ret, true);
-
-    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD);
-    ret = ssm_->CheckBlockingFocus(sceneSession, false);
     EXPECT_EQ(ret, true);
 
     sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_VOICE_INTERACTION);

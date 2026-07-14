@@ -123,6 +123,10 @@ class IWindowTitleButtonRectChangedListener : virtual public RefBase {
 };
 class IWindowVisibilityChangedListener : virtual public RefBase {
 };
+class IWindowHoverStateChangeListener : virtual public RefBase {
+public:
+    virtual void OnWindowHoverStateChange(bool hoverState) {}
+};
 
 using WindowVisibilityListenerSptr = sptr<IWindowVisibilityChangedListener>;
 
@@ -312,9 +316,7 @@ public:
     virtual WMError SetShadowOffsetX(float offsetX) = 0;
     virtual WMError SetShadowOffsetY(float offsetY) = 0;
     virtual WMError SyncShadowsToComponent(const ShadowsInfo& shadowsInfo)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+        { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetBlur(float radius) = 0;
     virtual WMError SetBackdropBlur(float radius) = 0;
     virtual WMError SetBackdropBlurStyle(WindowBlurStyle blurStyle) = 0;
@@ -397,6 +399,20 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
+    virtual bool GetWindowHoverState()
+    {
+        return false;
+    }
+    virtual WMError RegisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+    virtual WMError UnregisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
     virtual WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,

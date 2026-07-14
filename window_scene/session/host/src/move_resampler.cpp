@@ -116,22 +116,40 @@ void MoveResampler::PushEvent(int64_t timeUs, int32_t posX, int32_t posY)
 
 MoveEvent MoveResampler::ResampleAt(int64_t targetTimeUs)
 {
+    constexpr int64_t staleEventThresholdUs = 16000; // 16ms
+    if (events_.empty() || targetTimeUs - lastRawEvent_.timeUs >= staleEventThresholdUs) {
+        const auto& event = lastResampledEvent_ ? *lastResampledEvent_ : lastRawEvent_;
+        return {
+            .timeUs = targetTimeUs,
+            .posX = event.posX,
+            .posY = event.posY
+        };
+    }
+
     // Apply startup smoothing if in startup phase
     ApplyStartupSmoothing(targetTimeUs);
 
     auto [rawX, rawY] = ResampleRaw(targetTimeUs);
     auto filteredX = filterX_.Filter(targetTimeUs, rawX);
     auto filteredY = filterY_.Filter(targetTimeUs, rawY);
-    return {
+
+    lastResampledEvent_ = {
         .timeUs = targetTimeUs,
         .posX = static_cast<int32_t>(std::round(filteredX)),
         .posY = static_cast<int32_t>(std::round(filteredY))
     };
+    return *lastResampledEvent_;
+}
+
+std::optional<MoveEvent> MoveResampler::GetLastResampledEvent() const
+{
+    return lastResampledEvent_;
 }
 
 void MoveResampler::Reset()
 {
     events_.clear();
+    lastResampledEvent_.reset();
     lastRawEvent_ = {};
     filterX_.Reset();
     filterY_.Reset();
@@ -183,13 +201,6 @@ void MoveResampler::ApplyStartupSmoothing(int64_t targetTimeUs)
 
 std::pair<double, double> MoveResampler::ResampleRaw(int64_t targetTimeUs)
 {
-    // Clear old events first
-    CleanupOldEvents(targetTimeUs);
-
-    if (events_.empty()) {
-        return { static_cast<double>(lastRawEvent_.posX), static_cast<double>(lastRawEvent_.posY) };
-    }
-
     // Only one event available → no sampling, direct value return;
     // Or if target time is older than the earliest event → clamp to first event.
     if (events_.size() == 1 || targetTimeUs <= events_.front().timeUs) {
@@ -327,8 +338,13 @@ std::pair<double, double> MoveResampler::ExtrapolateFit(int64_t targetTimeUs) co
     if (events_.empty()) {
         return { static_cast<double>(lastRawEvent_.posX), static_cast<double>(lastRawEvent_.posY) };
     }
+
+    constexpr int64_t maxExtrapolateDurationUs = 8000;  // 8ms
+    targetTimeUs = std::min(targetTimeUs, lastRawEvent_.timeUs + maxExtrapolateDurationUs);
+
+    constexpr size_t maxFitEventCount = 4;
     size_t nEvents = events_.size();
-    size_t startIdx = (nEvents > 5) ? (nEvents - 5) : 0; // 5: using up to last 5 points
+    size_t startIdx = (nEvents > maxFitEventCount) ? (nEvents - maxFitEventCount) : 0;
     size_t endIdx = nEvents - 1;
     return LinearFitAt(startIdx, endIdx, targetTimeUs);
 }
