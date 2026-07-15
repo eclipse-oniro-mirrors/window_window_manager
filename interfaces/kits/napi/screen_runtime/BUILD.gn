@@ -58,6 +58,8 @@ ohos_shared_library("screen_napi") {
     "image_framework:image",
     "image_framework:image_native",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines = []
@@ -110,6 +112,8 @@ ohos_shared_library("screen_kit") {
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   if (window_manager_feature_support_api_metrics) {

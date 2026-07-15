@@ -55,7 +55,7 @@ ohos_shared_library("pip_napi") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "image_framework:image_native",
-    
+    "node:node_header_notice",
   ]
   relative_install_dir = "module"
   part_name = "window_manager"

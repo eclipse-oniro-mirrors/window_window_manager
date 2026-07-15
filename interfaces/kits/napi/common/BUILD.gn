@@ -69,6 +69,7 @@ ohos_static_library("dm_napi_common") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   subsystem_name = "window"

@@ -66,6 +66,8 @@ ohos_source_set("ui_effect_controller_client") {
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
     ]
   public_configs = [ ":ui_effect_public_config" ]
   deps = [ "${window_base_path}/utils:ui_effect_controller_common" ]
@@ -94,6 +96,8 @@ ohos_source_set("ui_effect_controller") {
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
     ]
   deps = [
     "${window_base_path}/utils:ui_effect_controller_common",

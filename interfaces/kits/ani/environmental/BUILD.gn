@@ -67,6 +67,8 @@ ohos_shared_library("window_static_env_module") {
     "image_framework:image_taihe",
     "napi:ace_napi",
     "runtime_core:ani",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   innerapi_tags = [ "platformsdk" ]

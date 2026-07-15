@@ -57,6 +57,8 @@ ohos_shared_library("embeddablewindowstage") {
   external_deps = [
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   relative_install_dir = "module/application"
@@ -118,6 +120,8 @@ ohos_shared_library("embeddablewindowstage_kit") {
     "hilog:libhilog",
     "ipc:ipc_core",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   innerapi_tags = [ "platformsdk" ]

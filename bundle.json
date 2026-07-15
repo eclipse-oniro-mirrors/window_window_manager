@@ -98,7 +98,9 @@
           "api_metrics",
           "json",
           "egl",
-          "opengles"
+          "opengles",
+          "node",
+          "libuv"
         ],
         "third_party": [
         ]

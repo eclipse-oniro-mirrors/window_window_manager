@@ -89,6 +89,7 @@ ohos_static_library("libdm_static") {
     "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
     "ffrt:libffrt",
+    "node:node_header_notice",
   ]
 
   part_name = "window_manager"
@@ -154,6 +155,7 @@ ohos_shared_library("libdm") {
     "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
     "ffrt:libffrt",
+    "node:node_header_notice",
   ]
 
   part_name = "window_manager"

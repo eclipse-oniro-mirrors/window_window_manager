@@ -98,6 +98,7 @@ ohos_shared_library("windowstageani_kit") {
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
   ]
 
   defines = []
@@ -167,6 +168,7 @@ ohos_shared_library("windowstageani_module") {
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
   ]
 
   defines = []

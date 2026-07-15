@@ -81,6 +81,8 @@ ohos_shared_library("displayani_kit") {
     "runtime_core:ani",
     "napi:ace_napi",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]

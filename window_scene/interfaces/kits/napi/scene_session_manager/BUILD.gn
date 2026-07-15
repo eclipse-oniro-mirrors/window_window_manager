@@ -81,6 +81,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     "samgr:samgr_proxy",
     "egl:libEGL",
     "opengles:libGLES",
+    "node:node_header_notice",
   ]
 
   defines = []
