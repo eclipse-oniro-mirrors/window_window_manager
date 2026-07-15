@@ -17295,17 +17295,17 @@ void SceneSessionManager::UpdateModalExtensionRect(const sptr<IRemoteObject>& to
             where, pid, persistentId, parentId, rect.posX_, rect.posY_, rect.width_, rect.height_);
         auto parentSession = GetSceneSession(parentId);
         if (parentSession) {
-            auto parentTransX = parentSession->GetSessionGlobalRect().posX_ - parentSession->GetClientRect().posX_;
-            auto parentTransY = parentSession->GetSessionGlobalRect().posY_ - parentSession->GetClientRect().posY_;
-            Rect globalRect = { rect.posX_ + parentTransX, rect.posY_ + parentTransY, rect.width_, rect.height_ };
-            WSRect transRect = { globalRect.posX_, globalRect.posY_, globalRect.width_, globalRect.height_ };
-            parentSession->TransformRelativeRectToGlobalRect(transRect);
-            globalRect.posY_ = transRect.posY_;
+            Rect globalRect = { rect.posX_, rect.posY_, rect.width_, rect.height_ };
+            globalRect.posX_ = ceil(parentSession->GetSessionGlobalRect().posX_ +
+                (globalRect.posX_ - parentSession->GetClientRect().posX_) * parentSession->GetScaleX());
+            globalRect.posY_ = ceil(parentSession->GetSessionGlobalRect().posY_ +
+                (globalRect.posY_ - parentSession->GetClientRect().posY_) * parentSession->GetScaleY());
             ExtensionWindowEventInfo extensionInfo { persistentId, pid, -1, globalRect, rect, true };
             TLOGNI(WmsLogTag::WMS_UIEXT, "%{public}s: pid: %{public}d, persistentId: %{public}d, "
-                "parentId: %{public}d, rect: %{public}s, globalRect: %{public}s, parentGlobalRect: %{public}s",
-                where, pid, persistentId, parentId, rect.ToString().c_str(), globalRect.ToString().c_str(),
-                parentSession->GetSessionGlobalRect().ToString().c_str());
+                "parentId: %{public}d, rect: %{public}s, globalRect: %{public}s, parentGlobalRect: %{public}s, "
+                "scale:[%{public}f,%{public}f]", where, pid, persistentId, parentId, rect.ToString().c_str(),
+                globalRect.ToString().c_str(), parentSession->GetSessionGlobalRect().ToString().c_str(),
+                parentSession->GetScaleX(), parentSession->GetScaleY());
             parentSession->UpdateNormalModalUIExtension(extensionInfo);
         }
     };
