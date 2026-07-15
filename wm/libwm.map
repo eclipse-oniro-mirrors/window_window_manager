@@ -95,6 +95,7 @@
             OHOS::Rosen::GetSnapshotCallback::RegisterFunc*;
             OHOS::Rosen::PictureInPictureController::PictureInPictureController*;
             OHOS::Rosen::PictureInPictureControllerAni::PictureInPictureControllerAni*;
+            OHOS::Rosen::PictureInPictureControllerBase::GetControllerState*;
             OHOS::Rosen::PictureInPictureControllerBase::GetControllerId*;
             OHOS::Rosen::PictureInPictureControllerBase::GetPictureInPictureStartObserver*;
             OHOS::Rosen::PictureInPictureControllerBase::GetPipEnabled*;
