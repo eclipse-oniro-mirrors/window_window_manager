@@ -1202,6 +1202,7 @@ void WindowSceneSessionImpl::OnWindowRecoverStateChange(bool isSpecificSession, 
             if (isHighlighted_) {
                 NotifyHighlightChange(false);
             }
+            SetIsStartMoving(false);
             break;
         case WindowRecoverState::WINDOW_FINISH_RECONNECT:
             UpdateFinishRecoverProperty(isSpecificSession);
