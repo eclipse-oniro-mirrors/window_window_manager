@@ -1753,7 +1753,7 @@ napi_value JsSceneSessionManager::OnApplyFeatureConfig(napi_env env, napi_callba
 bool JsSceneSessionManager::IsCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsSceneSessionManager::IsCallbackRegistered[%s]", type.c_str());
-    std::shared_lock<std::shared_mutex> lock(jsCbMapMutex_);
+    std::lock_guard<std::mutex> lock(jsCbMapMutex_);
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
         return false;
     }
@@ -1840,7 +1840,7 @@ napi_value JsSceneSessionManager::OnRegisterCallback(napi_env env, napi_callback
     callbackRef.reset(reinterpret_cast<NativeReference*>(result));
     {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsSceneSessionManager set jsCbMap[%s]", cbType.c_str());
-        std::unique_lock<std::shared_mutex> lock(jsCbMapMutex_);
+        std::lock_guard<std::mutex> lock(jsCbMapMutex_);
         jsCbMap_[cbType] = callbackRef;
     }
     WLOGFD("End, type=%{public}s", cbType.c_str());
@@ -5025,7 +5025,7 @@ std::shared_ptr<NativeReference> JsSceneSessionManager::GetJSCallback(const std:
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsSceneSessionManager::GetJSCallback[%s]", functionName.c_str());
     std::shared_ptr<NativeReference> jsCallBack = nullptr;
-    std::shared_lock<std::shared_mutex> lock(jsCbMapMutex_);
+    std::lock_guard<std::mutex> lock(jsCbMapMutex_);
     auto iter = jsCbMap_.find(functionName);
     if (iter == jsCbMap_.end()) {
         TLOGE(WmsLogTag::DEFAULT, "Can't find callback %{public}s", functionName.c_str());

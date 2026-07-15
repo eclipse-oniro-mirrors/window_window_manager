@@ -144,8 +144,13 @@ void RootScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason re
 
 void RootScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root map size: %{public}u", static_cast<uint32_t>(rootSceneMap_.size()));
-    for (const auto& sceneMap : rootSceneMap_) {
+    std::unordered_map<DisplayId, wptr<Window>> rootSceneMap;
+    {
+        std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
+        rootSceneMap = rootSceneMap_;
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root map size: %{public}u", static_cast<uint32_t>(rootSceneMap.size()));
+    for (const auto& sceneMap : rootSceneMap) {
         if (sceneMap.second == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "root window is null, display=%{public}" PRIu64, sceneMap.first);
             continue;
@@ -238,8 +243,13 @@ void RootScene::UpdateConfigurationForAll(const std::shared_ptr<AppExecFwk::Conf
 
 void RootScene::UpdateConfigurationSync(const std::shared_ptr<AppExecFwk::Configuration>& configuration)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root map size: %{public}u", static_cast<uint32_t>(rootSceneMap_.size()));
-    for (const auto& sceneMap : rootSceneMap_) {
+    std::unordered_map<DisplayId, wptr<Window>> rootSceneMap;
+    {
+        std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
+        rootSceneMap = rootSceneMap_;
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root map size: %{public}u", static_cast<uint32_t>(rootSceneMap.size()));
+    for (const auto& sceneMap : rootSceneMap) {
         if (sceneMap.second == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "root window is null, display=%{public}" PRIu64, sceneMap.first);
             continue;
@@ -526,6 +536,7 @@ void RootScene::GetExtensionConfig(AAFwk::WantParams& want) const
 
 UIContentResult RootScene::GetUIContentByDisplayId(DisplayId displayId)
 {
+    std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
     auto iter = rootSceneMap_.find(displayId);
     if (iter == rootSceneMap_.end()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Can not find rootScene, displayId: %{public}" PRIu64, displayId);
@@ -542,6 +553,7 @@ UIContentResult RootScene::GetUIContentByDisplayId(DisplayId displayId)
 
 void RootScene::AddRootScene(DisplayId displayId, wptr<Window> window)
 {
+    std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
     auto iter = rootSceneMap_.find(displayId);
     if (iter == rootSceneMap_.end()) {
         rootSceneMap_.emplace(displayId, window);
@@ -554,6 +566,7 @@ void RootScene::AddRootScene(DisplayId displayId, wptr<Window> window)
 
 void RootScene::RemoveRootScene(DisplayId displayId)
 {
+    std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
     TLOGI(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64, displayId);
     auto iter = rootSceneMap_.find(displayId);
     if (iter == rootSceneMap_.end()) {

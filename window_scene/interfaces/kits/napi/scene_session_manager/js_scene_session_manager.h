@@ -470,7 +470,7 @@ private:
         bool isFromScreenVirtual, bool isToScreenVirtual);
 
     napi_env env_;
-    std::shared_mutex jsCbMapMutex_;
+    std::mutex jsCbMapMutex_;
     std::map<std::string, std::shared_ptr<NativeReference>> jsCbMap_;
 
     sptr<RootScene> rootScene_;
