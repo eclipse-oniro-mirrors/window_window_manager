@@ -179,15 +179,88 @@ HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig, TestSize.Level1)
     AppForceLandscapeConfig config = {};
     window_->SetForceSplitConfig(config);
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    config.hasChanged_ = false;
-    window_->SetForceSplitConfig(config);
-    config.hasChanged_ = true;
     window_->SetForceSplitConfig(config);
     config.containsConfig_ = true;
     window_->SetForceSplitConfig(config);
     EXPECT_TRUE(logMsg.find("uiContent is null!") != std::string::npos);
     LOG_SetCallback(nullptr);
     GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig02
+ * @tc.desc: SetForceSplitConfig with containsConfig true and isRouter true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig02 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig02");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "{\"split\": \"half\"}";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig02 end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig03
+ * @tc.desc: SetForceSplitConfig with containsConfig true and isRouter false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig03 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig03");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "{\"mode\": \"default\"}";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig03 end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig04
+ * @tc.desc: SetForceSplitConfig with containsConfig false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig04 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig04");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = false;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig04 end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig05
+ * @tc.desc: SetForceSplitConfig with containsConfig true and empty configJsonStr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig05 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig05");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig05 end";
 }
 
 /**

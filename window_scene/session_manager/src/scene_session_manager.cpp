@@ -18995,18 +18995,19 @@ WSError SceneSessionManager::SetAppForceLandscapeConfig(const std::string& bundl
         TLOGE(WmsLogTag::WMS_COMPAT, "bundle name is empty");
         return WSError::WS_ERROR_NULLPTR;
     }
-    AppForceLandscapeConfig preConfig;
     {
         std::unique_lock<std::shared_mutex> lock(appForceLandscapeMutex_);
-        if (appForceLandscapeMap_.count(bundleName)) {
-            preConfig = appForceLandscapeMap_[bundleName];
-        } else {
-            preConfig = {};
-        }
-        config.hasChanged_ = !AppForceLandscapeConfig::IsSameForceSplitConfig(preConfig, config);
         appForceLandscapeMap_[bundleName] = config;
     }
-
+    {
+        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+        for (const auto& iter : sceneSessionMap_) {
+            auto& session = iter.second;
+            if (session && session->GetSessionInfo().bundleName_ == bundleName) {
+                session->NotifyAppForceLandscapeConfigUpdated();
+            }
+        }
+    }
     TLOGI(WmsLogTag::WMS_COMPAT,
         "bundleName:%{public}s, config:[containsConfig_%{public}d, isRouter_%{public}d, configJsonStr_%{public}s",
         bundleName.c_str(), config.containsConfig_, config.isRouter_, config.configJsonStr_.c_str());

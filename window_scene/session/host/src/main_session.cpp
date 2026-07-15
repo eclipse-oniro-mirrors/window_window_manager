@@ -724,10 +724,19 @@ WSError MainSession::NotifyCompatibleModeChange(CompatibleStyleMode mode)
 
 WSError MainSession::UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo)
 {
-    if (!sessionStage_) {
-        return WSError::WS_ERROR_NULLPTR;
-    }
-    return sessionStage_->UpdateAppHookWindowInfo(hookWindowInfo);
+    PostTask([weakThis = wptr(this), hookWindowInfo]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "session is null");
+            return;
+        }
+        if (!session->sessionStage_) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is nullptr!");
+            return;
+        }
+        session->sessionStage_->UpdateAppHookWindowInfo(hookWindowInfo);
+    }, "UpdateAppHookWindowInfo");
+    return WSError::WS_OK;
 }
 
 WSError MainSession::UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo)
