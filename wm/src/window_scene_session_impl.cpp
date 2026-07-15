@@ -172,23 +172,13 @@ bool IsValueInRange(double value, double lowerBound, double upperBound)
 
 void RecalculatePxLimitsByVp(const WindowLimits& RefreshLimitsVp, WindowLimits& RefreshLimitsPx, float vpr)
 {
-    RefreshLimitsPx.maxWidth_ = static_cast<uint32_t>(RefreshLimitsVp.maxWidth_ * vpr);
-    RefreshLimitsPx.maxHeight_ = static_cast<uint32_t>(RefreshLimitsVp.maxHeight_ * vpr);
-    RefreshLimitsPx.minWidth_ = static_cast<uint32_t>(RefreshLimitsVp.minWidth_ * vpr);
-    RefreshLimitsPx.minHeight_ = static_cast<uint32_t>(RefreshLimitsVp.minHeight_ * vpr);
+    WindowHelper::RecalculatePxLimitsByVp(RefreshLimitsVp, RefreshLimitsPx, vpr);
 }
 
 // Must ensure that vpr is non-zero
 void RecalculateVpLimitsByPx(const WindowLimits& limits, WindowLimits& limitsVP, float vpr)
 {
-    if (MathHelper::NearZero(vpr)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "vpr is zero");
-        return;
-    }
-    limitsVP.maxWidth_ = static_cast<uint32_t>(std::round(limits.maxWidth_ / vpr));
-    limitsVP.maxHeight_ = static_cast<uint32_t>(std::round(limits.maxHeight_ / vpr));
-    limitsVP.minWidth_ = static_cast<uint32_t>(std::round(limits.minWidth_ / vpr));
-    limitsVP.minHeight_ = static_cast<uint32_t>(std::round(limits.minHeight_ / vpr));
+    WindowHelper::RecalculateVpLimitsByPx(limits, limitsVP, vpr);
 }
 
 uint32_t SafelyRoundToUint32(double value)
@@ -226,16 +216,8 @@ void RecalculateLimits(double maxRatio, double minRatio, WindowLimits& limits)
 WindowLimits CalculateLimitsIntersection(const WindowLimits& currentLimits,
     const WindowLimits& attachedLimits, bool intersectHeight, bool intersectWidth)
 {
-    WindowLimits result = currentLimits;
-    if (intersectHeight) {
-        result.minHeight_ = std::max(currentLimits.minHeight_, attachedLimits.minHeight_);
-        result.maxHeight_ = std::min(currentLimits.maxHeight_, attachedLimits.maxHeight_);
-    }
-    if (intersectWidth) {
-        result.minWidth_ = std::max(currentLimits.minWidth_, attachedLimits.minWidth_);
-        result.maxWidth_ = std::min(currentLimits.maxWidth_, attachedLimits.maxWidth_);
-    }
-    return result;
+    return WindowHelper::CalculateLimitsIntersection(currentLimits, attachedLimits,
+        intersectHeight, intersectWidth);
 }
 
 /**
@@ -247,13 +229,7 @@ WindowLimits CalculateLimitsIntersection(const WindowLimits& currentLimits,
  */
 bool IsLimitsIntersectionValid(const WindowLimits& limits, bool checkHeight, bool checkWidth)
 {
-    if (checkWidth && limits.minWidth_ > limits.maxWidth_) {
-        return false;
-    }
-    if (checkHeight && limits.minHeight_ > limits.maxHeight_) {
-        return false;
-    }
-    return true;
+    return WindowHelper::IsLimitsIntersectionValid(limits, checkHeight, checkWidth);
 }
 
 /**
@@ -7299,19 +7275,8 @@ void WindowSceneSessionImpl::UpdateNewSize()
 /** @note @window.layout */
 bool WindowSceneSessionImpl::HasIntersectedAttachLimits() const
 {
-    auto anchorInfo = property_->GetWindowAnchorInfo();
-    if (anchorInfo.isAnchoredByAttach_) {
-        if (anchorInfo.attachOptions.isIntersectedWidthLimit ||
-            anchorInfo.attachOptions.isIntersectedHeightLimit) {
-            return true;
-        }
-    }
-    for (const auto& [id, options] : property_->GetAttachedLimitOptionsList()) {
-        if (options.isIntersectedWidthLimit || options.isIntersectedHeightLimit) {
-            return true;
-        }
-    }
-    return false;
+    return WindowHelper::HasIntersectedAttachLimits(property_->GetWindowAnchorInfo(),
+        property_->GetAttachedLimitOptionsList());
 }
 
 /** @note @window.layout */

@@ -4862,8 +4862,19 @@ napi_value JsSceneSessionManager::OnGetWindowLimits(napi_env env, napi_callback_
             "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
+    float targetDensity = 0.0f;
+    if (argc >= ARGC_TWO) {
+        double densityValue = 0.0;
+        if (!ConvertFromJsValue(env, argv[1], densityValue)) {
+            TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Failed to convert parameter to targetDensity");
+            napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                "Input parameter is missing or invalid"));
+            return NapiGetUndefined(env);
+        }
+        targetDensity = static_cast<float>(densityValue);
+    }
     WindowLimits windowLimits;
-    WMError ret = SceneSessionManager::GetInstance().GetWindowLimits(windowId, windowLimits);
+    WMError ret = SceneSessionManager::GetInstance().GetWindowLimits(windowId, windowLimits, targetDensity);
     if (ret != WMError::WM_OK) {
         WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Get window limits failed, return %{public}d", wmErrorCode);

@@ -396,6 +396,77 @@ enum class UpdateStartingWindowColorCacheResult : uint32_t {
     INFO_MAP_BUNDLE_NOT_FOUND,
     INFO_MAP_KEY_PAIR_NOT_FOUND,
 };
+
+// Result of intersecting against one attached window. Both PX and VP results must be valid to apply.
+struct SingleIntersectResult {
+    bool pxValid = false;
+    bool vpValid = false;
+    WindowLimits pxLimits;
+    WindowLimits vpLimits;
+};
+
+// Intersect against one attached window. Density/intersection math is shared via WindowHelper so the
+// server produces the same numbers as the client CalcSingleWinIntersect.
+SingleIntersectResult CalcSingleIntersect(const WindowLimits& curPx, const WindowLimits& curVp,
+    const WindowLimits& attached, const AttachLimitOptions& options, float vpr)
+{
+    SingleIntersectResult result;
+    bool intersectHeight = options.isIntersectedHeightLimit;
+    bool intersectWidth = options.isIntersectedWidthLimit;
+    WindowLimits attachedPx;
+    if (attached.pixelUnit_ == PixelUnit::VP) {
+        WindowHelper::RecalculatePxLimitsByVp(attached, attachedPx, vpr);
+    } else {
+        attachedPx = attached;
+    }
+    result.pxLimits = WindowHelper::CalculateLimitsIntersection(curPx, attachedPx, intersectHeight,
+        intersectWidth);
+    result.pxValid = WindowHelper::IsLimitsIntersectionValid(result.pxLimits, intersectHeight, intersectWidth);
+    WindowLimits attachedVp;
+    if (attached.pixelUnit_ == PixelUnit::PX) {
+        WindowHelper::RecalculateVpLimitsByPx(attached, attachedVp, vpr);
+    } else {
+        attachedVp = attached;
+    }
+    result.vpLimits = WindowHelper::CalculateLimitsIntersection(curVp, attachedVp, intersectHeight,
+        intersectWidth);
+    result.vpValid = WindowHelper::IsLimitsIntersectionValid(result.vpLimits, intersectHeight, intersectWidth);
+    return result;
+}
+
+// Re-run the attached-limits intersection loop. Mirrors the client
+// CalculateAttachedWindowLimitsIntersection: only commit a source when both PX and VP intersections valid.
+void IntersectAttachedLimits(const WindowSessionProperty& prop, WindowLimits& pxLimits,
+    WindowLimits& vpLimits, float vpr)
+{
+    auto attachedList = prop.GetAttachedWindowLimitsList();
+    if (attachedList.empty()) {
+        return;
+    }
+    bool isMainWindow = WindowHelper::IsMainWindow(prop.GetWindowType());
+    auto anchorInfo = prop.GetWindowAnchorInfo();
+    for (const auto& item : attachedList) {
+        AttachLimitOptions options = isMainWindow ? prop.GetAttachedLimitOptions(item.first) :
+            AttachLimitOptions { anchorInfo.attachOptions.isIntersectedHeightLimit,
+                                 anchorInfo.attachOptions.isIntersectedWidthLimit };
+        bool intersectHeight = options.isIntersectedHeightLimit;
+        bool intersectWidth = options.isIntersectedWidthLimit;
+        if (!intersectHeight && !intersectWidth) {
+            continue;
+        }
+        auto result = CalcSingleIntersect(pxLimits, vpLimits, item.second, options, vpr);
+        bool committed = result.pxValid && result.vpValid;
+        TLOGD(WmsLogTag::WMS_LAYOUT, "intersect id:%{public}d, srcId:%{public}d, attachedUnit:%{public}u, "
+            "attachedMinH:%{public}u, hIntersect:%{public}d, wIntersect:%{public}d, committed:%{public}d",
+            prop.GetPersistentId(), item.first, item.second.pixelUnit_, item.second.minHeight_,
+            intersectHeight, intersectWidth, committed);
+        if (!committed) {
+            continue;
+        }
+        pxLimits = result.pxLimits;
+        vpLimits = result.vpLimits;
+    }
+}
 } // namespace
 
 sptr<SceneSessionManager> SceneSessionManager::CreateInstance()
@@ -2725,7 +2796,7 @@ WMError SceneSessionManager::CheckWindowId(int32_t windowId, int32_t& pid)
     return taskScheduler_->PostSyncTask(task, "CheckWindowId:" + std::to_string(windowId));
 }
 
-WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& windowLimits)
+WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity)
 {
     if (!SessionPermission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "permission denied!");
@@ -2743,13 +2814,64 @@ WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& win
     }
     WindowLimits userWindowLimits = sessionProperty->GetUserWindowLimits();
     bool useVPLimits = (userWindowLimits.pixelUnit_ == PixelUnit::VP);
-    windowLimits = useVPLimits ? sessionProperty->GetWindowLimitsVP() : sessionProperty->GetWindowLimits();
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "id:%{public}d, targetDensity:%{public}f, useVP:%{public}d",
+        windowId, targetDensity, useVPLimits);
+    if (targetDensity < 0.0f || MathHelper::NearZero(targetDensity)) {
+        // Default or invalid targetDensity: keep the original behaviour, return stored limits as-is.
+        windowLimits = useVPLimits ? sessionProperty->GetWindowLimitsVP() : sessionProperty->GetWindowLimits();
+    } else {
+        // Valid targetDensity: recalculate limits at this density.
+        windowLimits = RecalcWindowLimitsByDensity(sceneSession, targetDensity);
+    }
     bool isInitialized = !windowLimits.IsDefault();
-    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "GetWindowLimits minWidth:%{public}u, minHeight:%{public}u, "
-        "maxWidth:%{public}u, maxHeight:%{public}u, vpRatio:%{public}f, pixelUnit:%{public}u, "
-        "isInitialized:%{public}u", windowLimits.minWidth_, windowLimits.minHeight_, windowLimits.maxWidth_,
-        windowLimits.maxHeight_, windowLimits.vpRatio_, windowLimits.pixelUnit_, isInitialized);
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "GetWindowLimits windowId:%{public}d, minWidth:%{public}u, "
+        "minHeight:%{public}u, maxWidth:%{public}u, maxHeight:%{public}u, vpRatio:%{public}f, "
+        "pixelUnit:%{public}u, isInitialized:%{public}u, targetDensity:%{public}f", windowId,
+        windowLimits.minWidth_, windowLimits.minHeight_, windowLimits.maxWidth_, windowLimits.maxHeight_,
+        windowLimits.vpRatio_, windowLimits.pixelUnit_, isInitialized, targetDensity);
     return WMError::WM_OK;
+}
+
+WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSession>& sceneSession,
+    float targetDensity) const
+{
+    auto sessionProperty = sceneSession->GetSessionProperty();
+    int32_t winId = sceneSession->GetPersistentId();
+    bool useVPLimits = (sessionProperty->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP);
+    // The user-specified unit is density-invariant, so the base is taken in the user unit and the other
+    // unit is derived. Mirrors the client UpdateDensityInner + CalculateAttachedWindowLimitsIntersection.
+    float vpr = targetDensity;
+    auto anchorInfo = sessionProperty->GetWindowAnchorInfo();
+    auto optionsList = sessionProperty->GetAttachedLimitOptionsList();
+    auto attachedList = sessionProperty->GetAttachedWindowLimitsList();
+    bool hasIntersected = WindowHelper::HasIntersectedAttachLimits(anchorInfo, optionsList);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, vpr:%{public}f, useVP:%{public}d, "
+        "hasIntersected:%{public}d, anchorH:%{public}d, anchorW:%{public}d, optionsSize:%{public}zu, "
+        "attachedSize:%{public}zu", winId, vpr, useVPLimits, hasIntersected,
+        anchorInfo.attachOptions.isIntersectedHeightLimit, anchorInfo.attachOptions.isIntersectedWidthLimit,
+        optionsList.size(), attachedList.size());
+    WindowLimits limitsPx;
+    WindowLimits limitsVp;
+    if (useVPLimits) {
+        limitsVp = hasIntersected ? sessionProperty->GetLimitsForAttachedWindows()
+                                  : sessionProperty->GetWindowLimitsVP();
+        WindowHelper::RecalculatePxLimitsByVp(limitsVp, limitsPx, vpr);
+    } else {
+        limitsPx = hasIntersected ? sessionProperty->GetLimitsForAttachedWindows()
+                                  : sessionProperty->GetWindowLimits();
+        limitsVp = WindowLimits::DEFAULT_VP_LIMITS();
+        WindowHelper::RecalculateVpLimitsByPx(limitsPx, limitsVp, vpr);
+    }
+    limitsPx.vpRatio_ = vpr;
+    limitsVp.vpRatio_ = vpr;
+    bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(sessionProperty->GetDisplayId());
+    TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, base:%{public}s, displayInFreeMulti:%{public}d, "
+        "willIntersect:%{public}d", winId, hasIntersected ? "LimitsForAttached" : "Stored", displayInFreeMulti,
+        hasIntersected && displayInFreeMulti);
+    if (hasIntersected && displayInFreeMulti) {
+        IntersectAttachedLimits(*sessionProperty, limitsPx, limitsVp, vpr);
+    }
+    return useVPLimits ? limitsVp : limitsPx;
 }
 
 void SceneSessionManager::ConfigDockAutoHide(bool isDockAutoHide) {
