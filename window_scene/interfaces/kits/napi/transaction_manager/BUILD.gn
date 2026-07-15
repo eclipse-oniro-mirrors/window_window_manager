@@ -58,6 +58,8 @@ ohos_shared_library("transactionmanager_napi") {
     "napi:ace_napi",
     "egl:libEGL",
     "opengles:libGLES",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   relative_install_dir = "module"

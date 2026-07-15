@@ -142,6 +142,7 @@ scene_session_manager_external_deps = [
   "access_token:libtokenid_sdk",
   "egl:libEGL",
   "opengles:libGLES",
+  "node:node_header_notice",
 ]
 
 ## Build libscene_session_manager_static.a

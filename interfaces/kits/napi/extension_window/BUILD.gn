@@ -54,7 +54,11 @@ ohos_shared_library("extensionwindow") {
     ":extension_window_js",
   ]
 
-  external_deps = [ "napi:ace_napi" ]
+  external_deps = [
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
+  ]
 
   relative_install_dir = "module/application"
   part_name = "window_manager"
@@ -119,6 +123,8 @@ ohos_shared_library("extensionwindow_napi") {
     "image_framework:image_native",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   innerapi_tags = [ "platformsdk" ]

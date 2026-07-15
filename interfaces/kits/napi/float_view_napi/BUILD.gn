@@ -61,6 +61,7 @@ ohos_shared_library("floatview_kit") {
     "image_framework:image",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   innerapi_tags = [ "platformsdk" ]
@@ -108,6 +109,7 @@ ohos_shared_library("floatview_napi") {
     "image_framework:image",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   relative_install_dir = "module/window"

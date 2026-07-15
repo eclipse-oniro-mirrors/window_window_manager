@@ -65,6 +65,8 @@ ohos_source_set("ui_effect_controller_common") {
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
   part_name = "window_manager"
   subsystem_name = "window"

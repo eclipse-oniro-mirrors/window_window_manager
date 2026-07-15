@@ -61,6 +61,7 @@ ohos_shared_library("floatingball_kit") {
     "image_framework:image",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
   
   public_configs = [ ":fb_config" ]
@@ -113,6 +114,7 @@ ohos_shared_library("floatingball_napi") {
     "c_utils:utils",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   relative_install_dir = "module/window"

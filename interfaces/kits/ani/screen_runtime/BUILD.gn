@@ -83,6 +83,8 @@ ohos_shared_library("screenani_kit") {
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   innerapi_tags = [ "platformsdk" ]

@@ -87,6 +87,8 @@ window_native_kit_external_deps = [
   "ipc:ipc_napi",
   "ipc:ipc_single",
   "napi:ace_napi",
+  "node:node_header_notice",
+  "libuv:uv",
 ]
 
 ## Build libwindow_native_kit_static.a
@@ -212,6 +214,8 @@ ohos_shared_library("window_napi") {
     "hitrace:hitrace_meter",
     "image_framework:image",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   if (window_manager_feature_support_api_metrics) {
@@ -264,6 +268,8 @@ ohos_shared_library("windowstage_kit") {
     "image_framework:image",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   if (window_manager_feature_support_api_metrics) {
