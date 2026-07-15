@@ -78,6 +78,7 @@ std::map<uint32_t, std::vector<wptr<PictureInPictureControllerBase>>>
     PictureInPictureManager::mainWindowToAutoStartControllersMap_ = {};
 std::map<uint32_t, sptr<PictureInPictureControllerBase>> PictureInPictureManager::windowToControllerMap_ = {};
 std::mutex PictureInPictureManager::controllerMapMutex_;
+std::mutex PictureInPictureManager::AutoStartControllerMapMutex_;
 std::shared_ptr<NativeReference> PictureInPictureManager::innerCallbackRef_ = nullptr;
 PiPMultiConfig PictureInPictureManager::pipMultiConfig_ = GetDefaultPiPMultiConfig();
 
@@ -189,6 +190,54 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
     if (controller == nullptr) {
         return;
     }
+    EvictOldestControllerIfNeeded(controller);
+    std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
+    autoStartControllerMap_[handleId] = pipController;
+    auto it = mainWindowToAutoStartControllersMap_.find(controller->GetMainWindowId());
+    if (it != mainWindowToAutoStartControllersMap_.end()) {
+        for (const auto& wptr : it->second) {
+            if (wptr.GetRefPtr() == pipController.GetRefPtr()) {
+                TLOGI(WmsLogTag::WMS_PIP, "controller already registered for mainWindow: %{public}u",
+                    controller->GetMainWindowId());
+                return;
+            }
+        }
+    }
+    mainWindowToAutoStartControllersMap_[controller->GetMainWindowId()].push_back(pipController);
+}
+
+void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
+    wptr<PictureInPictureControllerBase> pipController)
+{
+    std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
+    TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}d", handleId);
+    auto mit = autoStartControllerMap_.find(handleId);
+    if (mit == autoStartControllerMap_.end() || mit->second != pipController) {
+        TLOGW(WmsLogTag::WMS_PIP, "no same pip controller");
+        return;
+    }
+    autoStartControllerMap_.erase(mit);
+    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}u", autoStartControllerMap_.size());
+    auto controller = pipController.promote();
+    if (controller != nullptr) {
+        uint32_t mainWindowId = controller->GetMainWindowId();
+        auto it = mainWindowToAutoStartControllersMap_.find(mainWindowId);
+        if (it != mainWindowToAutoStartControllersMap_.end()) {
+            auto& controllers = it->second;
+            controllers.erase(std::remove_if(controllers.begin(), controllers.end(),
+                [&pipController](const wptr<PictureInPictureControllerBase>& w) {
+                    return w.GetRefPtr() == pipController.GetRefPtr();
+                }),
+                controllers.end());
+            if (controllers.empty()) {
+                mainWindowToAutoStartControllersMap_.erase(it);
+            }
+        }
+    }
+}
+
+void PictureInPictureManager::EvictOldestControllerIfNeeded(const sptr<PictureInPictureControllerBase>& controller)
+{
     PiPGroupConfig group;
     auto type = static_cast<PiPTemplateType>(controller->GetPipTemplate());
     if (!pipMultiConfig_.FindGroupConfig(type, group)) {
@@ -217,39 +266,12 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
     if (group.maxCount > 0 && countInGroup >= group.maxCount && oldest != nullptr) {
         DetachAutoStartController(oldest->GetHandleId(), oldest);
     }
-    autoStartControllerMap_[handleId] = pipController;
-    auto it = mainWindowToAutoStartControllersMap_.find(controller->GetMainWindowId());
-    if (it != mainWindowToAutoStartControllersMap_.end()) {
-        for (const auto& wptr : it->second) {
-            if (wptr.GetRefPtr() == pipController.GetRefPtr()) {
-                return;
-            }
-        }
-    }
-    mainWindowToAutoStartControllersMap_[controller->GetMainWindowId()].push_back(pipController);
 }
 
-void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
-    wptr<PictureInPictureControllerBase> pipController)
+bool PictureInPictureManager::IsAutoStartControllerMapEmpty()
 {
-    TLOGI(WmsLogTag::WMS_PIP, "handleId: %{public}d", handleId);
-    autoStartControllerMap_.erase(handleId);
-    auto controller = pipController.promote();
-    if (controller != nullptr) {
-        uint32_t mainWindowId = controller->GetMainWindowId();
-        auto it = mainWindowToAutoStartControllersMap_.find(mainWindowId);
-        if (it != mainWindowToAutoStartControllersMap_.end()) {
-            auto& controllers = it->second;
-            controllers.erase(std::remove_if(controllers.begin(), controllers.end(),
-                [&pipController](const wptr<PictureInPictureControllerBase>& w) {
-                    return w.GetRefPtr() == pipController.GetRefPtr();
-                }),
-                controllers.end());
-            if (controllers.empty()) {
-                mainWindowToAutoStartControllersMap_.erase(it);
-            }
-        }
-    }
+    std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
+    return autoStartControllerMap_.empty();
 }
 
 bool PictureInPictureManager::IsAttachedToSameWindow(uint32_t windowId)
@@ -433,15 +455,18 @@ void PictureInPictureManager::DoControlEvent(uint32_t windowId, PiPControlType c
 
 void PictureInPictureManager::AutoStartPipWindow(uint32_t windowId)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "mainWindowId: %{public}u", windowId);
+    TLOGI(WmsLogTag::WMS_PIP, "start, mainWindowId: %{public}u", windowId);
     auto it = mainWindowToAutoStartControllersMap_.find(windowId);
     if (it == mainWindowToAutoStartControllersMap_.end() || it->second.empty()) {
         TLOGE(WmsLogTag::WMS_PIP, "no autoStartController registered for mainWindow: %{public}u", windowId);
         return;
     }
+    int32_t count = 0;
     for (const auto& wptrPipController : it->second) {
+        TLOGI(WmsLogTag::WMS_PIP, "count: %{public}d, mainWindowId: %{public}u", ++count, windowId);
         auto pipController = wptrPipController.promote();
         if (pipController == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "autoStartController is nullptr, mainWindowId:%{public}u", windowId);
             continue;
         }
         pipController->SetStateChangeReason(PiPStateChangeReason::AUTO_START);
@@ -464,16 +489,17 @@ void PictureInPictureManager::AutoStartPipWindow(uint32_t windowId)
         int32_t handleId = navController->GetTopHandle();
         auto mapIt = autoStartControllerMap_.find(handleId);
         if (mapIt == autoStartControllerMap_.end()) {
-            TLOGE(WmsLogTag::WMS_PIP, "GetNavController info error, %{public}d not registered", handleId);
+            TLOGE(WmsLogTag::WMS_PIP, "GetNavController info error, handleId %{public}d not registered", handleId);
             continue;
         }
         auto handlePipController = mapIt->second.promote();
         if (handlePipController == nullptr) {
-            TLOGE(WmsLogTag::WMS_PIP, "GetNavController info error, %{public}d not registered", handleId);
+            TLOGE(WmsLogTag::WMS_PIP, "handlePipController is nullptr, handleId %{public}d not registered", handleId);
             continue;
         }
         handlePipController->StartPictureInPicture(StartPipType::AUTO_START);
     }
+    TLOGI(WmsLogTag::WMS_PIP, "finish, mainWindowId: %{public}u", windowId);
 }
 
 void PictureInPictureManager::PipSizeChange(uint32_t windowId, double width, double height, double scale)

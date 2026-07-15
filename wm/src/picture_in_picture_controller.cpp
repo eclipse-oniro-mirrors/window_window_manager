@@ -39,10 +39,15 @@ PictureInPictureController::PictureInPictureController(sptr<PipOption> pipOption
 
 PictureInPictureController::~PictureInPictureController()
 {
+    TLOGI(WmsLogTag::WMS_PIP, "Destruction");
     if (!isAutoStartEnabled_) {
         return;
     }
     PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
+    if (PictureInPictureManager::IsAutoStartControllerMapEmpty()) {
+        TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_ is empty, SetAutoStartEnabled false");
+        SetAutoStartEnabled(false);
+    }
 }
 
 WMError PictureInPictureController::ValidatePiPCreateParams(StartPipType startType)
@@ -194,8 +199,11 @@ void PictureInPictureController::SetAutoStartEnabled(bool enable)
         mainWindow_->SetAutoStartPiP(true, priority, contentWidth, contentHeight);
         PictureInPictureManager::AttachAutoStartController(handleId_, weakRef_);
     } else {
-        mainWindow_->SetAutoStartPiP(false, priority, contentWidth, contentHeight);
         PictureInPictureManager::DetachAutoStartController(handleId_, weakRef_);
+        if (PictureInPictureManager::IsAutoStartControllerMapEmpty()) {
+            TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_ is empty, SetAutoStartEnabled false");
+            mainWindow_->SetAutoStartPiP(false, priority, contentWidth, contentHeight);
+        }
         if (IsTypeNodeEnabled()) {
             TLOGI(WmsLogTag::WMS_PIP, "typeNode enabled");
             return;
@@ -556,7 +564,7 @@ bool PictureInPictureController::IsPullPiPAndHandleNavigation()
         return false;
     }
 
-    TLOGI(WmsLogTag::WMS_PIP, "IsPullPiPAndHandleNavigation IsNavDestinationInTopStack");
+    TLOGI(WmsLogTag::WMS_PIP, "IsNavDestinationInTopStack: true");
     handleId_ = navController->GetTopHandle();
     if (handleId_ == INVALID_HANDLE_ID) {
         TLOGE(WmsLogTag::WMS_PIP, "Get top handle error");
