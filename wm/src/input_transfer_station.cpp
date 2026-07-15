@@ -184,6 +184,11 @@ void InputTransferStation::LoadGameController()
 
 void InputTransferStation::AddInputWindow(const sptr<Window>& window)
 {
+    if (IsRegisterToMMI()) {
+        TLOGI(WmsLogTag::WMS_EVENT, "Add input window, already registered to MMI");
+        return;
+    }
+    
     uint32_t windowId = window->GetWindowId();
     TLOGD(WmsLogTag::WMS_EVENT, "Add input window, windowId: %{public}u", windowId);
 
