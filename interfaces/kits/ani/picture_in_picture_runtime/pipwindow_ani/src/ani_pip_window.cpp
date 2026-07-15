@@ -656,7 +656,7 @@ ani_object AniPiPWindow::NativeTransferDynamic(ani_env* aniEnv, ani_class cls, a
 
     // PictureInPictureControllerAni
     sptr<PictureInPictureControllerAni> pipControllerAni = aniPipController->GetController();
-        if (pipControllerAni == nullptr) {
+    if (pipControllerAni == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipControllerAni is nullptr");
         AniPipUtils::AniThrowError(aniEnv, WMError::WM_ERROR_INVALID_PARAM);
         return AniPipUtils::AniGetUndefined(aniEnv);
