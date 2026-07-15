@@ -94,7 +94,11 @@ WMError PictureInPictureController::PreparePiPWindowCreation(StartPipType startT
     pipTemplateInfo.createTimestamp = createTimestamp_;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOption_->GetContext());
     abilityContext = context->lock();
-    SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
+    if (abilityContext && abilityContext->GetApplicationInfo()) {
+        SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
+    } else {
+        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+    }
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
@@ -345,6 +349,10 @@ void PictureInPictureController::PrepareSource()
     }
     if (mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is nullptr");
+        return;
+    }
+    if (pipOption_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "Get PictureInPicture option failed");
         return;
     }
     std::string navId = pipOption_->GetNavigationId();

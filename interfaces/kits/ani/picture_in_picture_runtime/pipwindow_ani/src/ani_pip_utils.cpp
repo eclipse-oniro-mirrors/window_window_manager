@@ -220,34 +220,42 @@ bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
     }
     napi_env napiEnv = nullptr;
     bool napiScopeOpened = arkts_napi_scope_open(env, &napiEnv);
-    if (!napiScopeOpened) {
+    if (!napiScopeOpened || napiEnv == nullptr) {
         TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_open failed");
         return false;
     }
-    if (napiEnv == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "cannot open napi scope");
-        return false;
+
+    auto closeScope = [&]() {
+        if (napiScopeOpened) {
+            if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
+                TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
+            }
+        }
     }
     napi_value value = nativeRef->GetNapiValue();
     if (value == nullptr) {
         TLOGW(WmsLogTag::WMS_PIP, "NativeReference has null napi value");
+        closeScope();
         return true;
     }
     hybridgref ref {};
     if (!hybridgref_create_from_napi(napiEnv, value, &ref)) {
         TLOGE(WmsLogTag::WMS_PIP, "hybridgref_create_from_napi failed");
+        closeScope();
         return false;
     }
     ani_object esValue = nullptr;
     if (!hybridgref_get_esvalue(env, ref, &esValue)) {
         TLOGE(WmsLogTag::WMS_PIP, "hybridgref_get_esvalue failed");
         hybridgref_delete_from_napi(napiEnv, ref);
+        closeScope();
         return false;
     }
     ani_status st = env->GlobalReference_Create(esValue, &aniRef);
     if (st != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "GlobalReference_Create failed: %{public}d", static_cast<int32_t>(st));
         hybridgref_delete_from_napi(napiEnv, ref);
+        closeScope();
         return false;
     }
     if (!hybridgref_delete_from_napi(napiEnv, ref)) {
@@ -255,11 +263,7 @@ bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
         env->GlobalReference_Delete(aniRef);
         return false;
     }
-    if (napiScopeOpened) {
-        if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
-            TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
-        }
-    }
+    closeScope();
     return true;
 }
 
@@ -384,7 +388,7 @@ void AniPipUtils::TransferToPipControllerAni(sptr<PictureInPictureController>& p
 }
 
 void AniPipUtils::TransferToPipControllerNapi(sptr<PictureInPictureControllerAni>& pipControllerAni,
-    sptr<PictureInPictureController>& pipController)
+                                             sptr<PictureInPictureController>& pipController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipControllerAni == nullptr || pipController == nullptr) {
