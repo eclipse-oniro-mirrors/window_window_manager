@@ -105,7 +105,7 @@ namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "WindowSceneSessionImpl"};
 constexpr int32_t WINDOW_DETACH_TIMEOUT = 3000;
 constexpr int32_t WINDOW_LAYOUT_TIMEOUT = 30;
-constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2500;
+constexpr int32_t WINDOW_PAGE_ROTATION_TIMEOUT = 2000;
 const std::string PARAM_DUMP_HELP = "-h";
 constexpr float MIN_GRAY_SCALE = 0.0f;
 constexpr float MAX_GRAY_SCALE = 1.0f;
