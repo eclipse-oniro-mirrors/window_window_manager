@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "display_manager_adapter_lite.h"
+#include "display_manager_agent_default.h"
 #include "scene_board_judgement.h"
 
 using namespace testing;
@@ -454,6 +455,76 @@ HWTEST_F(DisplayManagerAdapterLiteTest, GetPhysicalScreenIds, TestSize.Level1)
     std::vector<ScreenId> screenIds;
     auto ret = SingletonContainer::Get<ScreenManagerAdapterLite>().GetPhysicalScreenIds(screenIds);
     EXPECT_EQ(ret, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: RegisterDisplayAttributeAgent
+ * @tc.desc: RegisterDisplayAttributeAgent
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, RegisterDisplayAttributeAgent, TestSize.Level1)
+{
+    std::vector<std::string> attributes = { "rotation" };
+    sptr<IDisplayManagerAgent> displayManagerAttributeAgent = new DisplayManagerAgentDefault();
+    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().RegisterDisplayAttributeAgent(
+        attributes, displayManagerAttributeAgent);
+    EXPECT_NE(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    auto proxyBak = SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = nullptr;
+    ret = SingletonContainer::Get<DisplayManagerAdapterLite>().RegisterDisplayAttributeAgent(
+        attributes, displayManagerAttributeAgent);
+    EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = proxyBak;
+}
+
+/**
+ * @tc.name: UnregisterDisplayAttribute
+ * @tc.desc: UnregisterDisplayAttribute
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, UnregisterDisplayAttribute, TestSize.Level1)
+{
+    std::vector<std::string> attributes = { "rotation" };
+    sptr<IDisplayManagerAgent> displayManagerAttributeAgent = new DisplayManagerAgentDefault();
+    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayAttribute(
+        attributes, displayManagerAttributeAgent);
+    EXPECT_NE(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    auto proxyBak = SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = nullptr;
+    ret = SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayAttribute(
+        attributes, displayManagerAttributeAgent);
+    EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = proxyBak;
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion01
+ * @tc.desc: GetCurrentFoldCreaseRegion test with null proxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, GetCurrentFoldCreaseRegion01, TestSize.Level1)
+{
+    auto proxyBak = SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = nullptr;
+    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().GetCurrentFoldCreaseRegion();
+    ASSERT_EQ(ret, nullptr);
+    SingletonContainer::Get<DisplayManagerAdapterLite>().displayManagerServiceProxy_ = proxyBak;
+}
+
+/**
+ * @tc.name: GetCurrentFoldCreaseRegion02
+ * @tc.desc: GetCurrentFoldCreaseRegion test with valid proxy
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, GetCurrentFoldCreaseRegion02, TestSize.Level1)
+{
+    SingletonContainer::Get<DisplayManagerAdapterLite>().InitDMSProxy();
+    auto ret = SingletonContainer::Get<DisplayManagerAdapterLite>().GetCurrentFoldCreaseRegion();
+    if (ret != nullptr) {
+        ASSERT_NE(ret->GetDisplayId(), DISPLAY_ID_INVALID);
+        auto creaseRects = ret->GetCreaseRects();
+        ASSERT_TRUE(creaseRects.size() <= 20);
+    }
 }
 }
 }

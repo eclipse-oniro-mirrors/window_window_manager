@@ -14,6 +14,8 @@
  */
 
 #include "picture_in_picture_controller_ani.h"
+
+#include <chrono>
 #include "picture_in_picture_manager.h"
 #include "float_window_manager.h"
 #include "singleton_container.h"
@@ -42,6 +44,11 @@ PictureInPictureControllerAni::PictureInPictureControllerAni(sptr<PipOptionAni> 
     mainWindow_ = mainWindow;
     mainWindowId_ = windowId;
     curState_ = PiPWindowState::STATE_UNDEFINED;
+    createTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    if (pipOption_ != nullptr) {
+        pipOption_->SetCreateTimestamp(createTimestamp_);
+    }
     if (env->GetVM(&vm_) != ANI_OK || !vm_) {
         TLOGE(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni Get VM failed");
     }
@@ -82,7 +89,8 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
         mainWindowId_, mainWindow_->GetWindowState());
-    mainWindowLifeCycleListener_ = sptr<PictureInPictureControllerAni::WindowLifeCycleListener>::MakeSptr();
+    mainWindowLifeCycleListener_ =
+        sptr<PictureInPictureControllerAni::WindowLifeCycleListener>::MakeSptr(mainWindowId_);
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
@@ -90,7 +98,7 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     }
     UpdateWinRectByComponent();
     auto windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName(PIP_WINDOW_NAME);
+    windowOption->SetWindowName(MakePipWindowName(createTimestamp_));
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_PIP);
     windowOption->SetWindowRect(windowRect_);
@@ -99,6 +107,7 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     WMError errCode = WMError::WM_OK;
     PiPTemplateInfo pipTemplateInfo;
     pipOption_->GetPiPTemplateInfo(pipTemplateInfo);
+    pipTemplateInfo.createTimestamp = createTimestamp_;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOption_->GetContext());
     const std::shared_ptr<AbilityRuntime::Context>& abilityContext = context->lock();
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
@@ -132,17 +141,17 @@ WMError PictureInPictureControllerAni::StartPictureInPicture(StartPipType startT
         return WMError::WM_ERROR_PIP_CREATE_FAILED;
     }
     curState_ = PiPWindowState::STATE_STARTING;
-    if (PictureInPictureManager::HasActiveController() && !PictureInPictureManager::IsActiveController(weakRef_)) {
-        if (PictureInPictureManager::IsAttachedToSameWindow(mainWindowId_)) {
-            window_ = PictureInPictureManager::GetCurrentWindow();
-            if (!window_) {
-                TLOGE(WmsLogTag::WMS_PIP, "Reuse pipWindow failed");
-                curState_ = PiPWindowState::STATE_UNDEFINED;
-                return WMError::WM_ERROR_PIP_CREATE_FAILED;
-            }
+    startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
+        static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
+    if (reachLimit) {
+        window_ = PictureInPictureManager::GetSameGroupWindowByMainWindowId(mainWindowId_,
+            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
+        if (window_ != nullptr) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
-            PictureInPictureManager::DoClose(false, false);
+            PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);
             mainWindowXComponentController_ = IsTypeNodeEnabled() ? nullptr : pipOption_->GetXComponentController();
             UpdateWinRectByComponent();
             UpdateContentSize(windowRect_.width_, windowRect_.height_);
@@ -155,7 +164,6 @@ WMError PictureInPictureControllerAni::StartPictureInPicture(StartPipType startT
             }
             return err;
         }
-        PictureInPictureManager::DoClose(true, true);
     }
     WMError errCode = StartPictureInPictureInner(startType);
     if (errCode != WMError::WM_OK) {

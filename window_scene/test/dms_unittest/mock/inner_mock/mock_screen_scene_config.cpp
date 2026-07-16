@@ -306,6 +306,11 @@ bool ScreenSceneConfig::IsSupportRotateWithSensor()
     }
     return false;
 }
+
+bool ScreenSceneConfig::IsSupportTentMode()
+{
+    return false;
+}
 std::string ScreenSceneConfig::GetExternalScreenDefaultMode()
 {
     if (stringConfig_.count("externalScreenDefaultMode") != 0) {

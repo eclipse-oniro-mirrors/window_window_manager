@@ -34,8 +34,13 @@ public:
         ani_env* env, ani_ref callback, ani_long timeout);
     WmErrorCode UnregisterListener(sptr<Window> window, const std::string& type, CaseType caseType,
         ani_env* env, ani_ref callback);
+    WmErrorCode RegisterWindowPostureListener(sptr<Window> window, uint32_t postureMode,
+        ani_env* env, ani_ref callback);
+    WmErrorCode UnregisterWindowPostureListener(sptr<Window> window, uint32_t postureMode,
+        ani_env* env, ani_ref callback);
 private:
     bool IsCallbackRegistered(ani_env* env, std::string type, ani_ref jsListenerObject);
+    bool IsWindowPostureCallbackRegistered(ani_env* env, uint32_t mode, ani_ref callback);
     WmErrorCode ProcessWindowChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window, bool isRegister,
         ani_env* env);
     WmErrorCode ProcessSystemAvoidAreaChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
@@ -119,19 +124,23 @@ private:
         const sptr<Window>& window, bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowStatusDidChangeRegister(const sptr<AniWindowListener>& listener,
         const sptr<Window>& window, bool isRegister, ani_env* env);
+    WmErrorCode ProcessFreeWindowModeChangeRegister(const sptr<AniWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister, ani_env* env);
     WmErrorCode ProcessAcrossDisplaysChangeRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessScreenshotAppEventRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, ani_env* env);
-    WmErrorCode ProcessFreeWindowModeChangeRegister(const sptr<AniWindowListener>& listener,
-        const sptr<Window>& window, bool isRegister, ani_env* env);
     WmErrorCode ProcessParentLifecycleEventRegister(const sptr<AniWindowListener>& listener,
         const sptr<Window>& window, bool isRegister, ani_env* env);
+    WmErrorCode ProcessWindowPostureModeChangeRegister(const sptr<AniWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister, ani_env* env, uint32_t mode);
     WmErrorCode ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
         const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister, ani_env* env,
         ani_long timeout);
     std::map<std::string, std::map<ani_ref, sptr<AniWindowListener>>> jsCbMap_;
     std::mutex mtx_;
+    std::map<uint32_t, std::map<ani_ref, sptr<AniWindowListener>>> jsPostureModeCbMap_;
+    std::mutex postureModeMapMtx_;
 };
 } // namespace Rosen
 } // namespace OHOS

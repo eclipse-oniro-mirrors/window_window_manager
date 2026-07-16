@@ -69,7 +69,6 @@ public:
     void SetRequestedOrientation(Orientation orientation, bool needAnimation = true);
     void SetDefaultRequestedOrientation(Orientation orientation);
     void SetUserRequestedOrientation(Orientation orientation);
-    void SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation);
     void SetPrivacyMode(bool isPrivate);
     void SetSystemPrivacyMode(bool isSystemPrivate);
     void SetSnapshotSkip(bool isSkip);
@@ -150,7 +149,6 @@ public:
     bool GetRequestedAnimation() const;
     Orientation GetDefaultRequestedOrientation() const;
     Orientation GetUserRequestedOrientation() const;
-    bool GetIsSpecificSessionRequestOrientation() const;
     bool GetPrivacyMode() const;
     bool GetSystemPrivacyMode() const;
     bool GetSnapshotSkip() const;
@@ -411,6 +409,8 @@ public:
     CompatibleStyleMode GetPageCompatibleMode() const;
     void SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig);
     std::vector<std::string> GetCombinedCompatibleConfig() const;
+    void SetSelectMode(SelectMode selectMode);
+    SelectMode GetSelectMode() const;
 
     /*
      * Keyboard
@@ -554,7 +554,6 @@ private:
     bool needRotateAnimation_ = true;
     Orientation defaultRequestedOrientation_ = Orientation::UNSPECIFIED; // only accessed on SSM thread
     Orientation userRequestedOrientation_ = Orientation::UNSPECIFIED;
-    bool isSpecificSessionRequestOrientation_ = false;
     bool isPrivacyMode_ { false };
     bool isSystemPrivacyMode_ { false };
     bool isSnapshotSkip_ { false };
@@ -728,6 +727,8 @@ private:
     Rect globalDisplayRect_ { 0, 0, 0, 0 };
     mutable std::mutex hookWindowInfoMutex_;
     HookWindowInfo hookWindowInfo_;
+    mutable std::mutex selectModeMutex_;
+    SelectMode selectMode_ = SelectMode::INVALID_MODE;
     bool isPcAppInpadCompatibleMode_ = false;
     bool isPcAppInpadSpecificSystemBarInvisible_ = false;
     bool isPcAppInpadOrientationLandscape_ = false;
@@ -1003,9 +1004,12 @@ struct SystemSessionConfig : public Parcelable {
     bool supportCreateFloatView_ = false;
     bool supportCreateFloatingBall_ = false;
     bool statusBarHeightMode_ = false;  // true: display height, false: component height
+    PiPMultiConfig pipMultiConfig_ = GetDefaultPiPMultiConfig();
+    std::set<ScreenId> supportMultiWindowScreenSet_;
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
+    void ConvertPipMultiConfig(const std::string& itemValue);
     void ConvertSupportCreateFloatingBall(const std::string& itemValue);
 
     virtual bool Marshalling(Parcel& parcel) const override
@@ -1080,11 +1084,22 @@ struct SystemSessionConfig : public Parcelable {
         if (!parcel.WriteBool(supportCreateFloatView_)) {
             return false;
         }
+        if (!parcel.WriteParcelable(&pipMultiConfig_)) {
+            return false;
+        }
         if (!parcel.WriteBool(supportCreateFloatingBall_)) {
             return false;
         }
         if (!parcel.WriteBool(statusBarHeightMode_)) {
             return false;
+        }
+        if (!parcel.WriteUint32(supportMultiWindowScreenSet_.size())) {
+            return false;
+        }
+        for (const auto& screenId : supportMultiWindowScreenSet_) {
+            if (!parcel.WriteUint64(screenId)) {
+                return false;
+            }
         }
         return true;
     }
@@ -1144,8 +1159,18 @@ struct SystemSessionConfig : public Parcelable {
             return nullptr;
         }
         config->supportCreateFloatView_ = parcel.ReadBool();
+        sptr<PiPMultiConfig> pipConfig = parcel.ReadParcelable<PiPMultiConfig>();
+        if (pipConfig != nullptr) {
+            config->pipMultiConfig_ = *pipConfig;
+        } else {
+            config->pipMultiConfig_ = GetDefaultPiPMultiConfig();
+        }
         config->supportCreateFloatingBall_ = parcel.ReadBool();
         config->statusBarHeightMode_ = parcel.ReadBool();
+        uint32_t screenSetSize = parcel.ReadUint32();
+        for (uint32_t i = 0; i < screenSetSize; ++i) {
+            config->supportMultiWindowScreenSet_.insert(static_cast<ScreenId>(parcel.ReadUint64()));
+        }
         return config;
     }
         
@@ -1177,6 +1202,11 @@ struct SystemSessionConfig : public Parcelable {
     bool IsSupportPCMode() const
     {
         return IsPcWindow() || IsFreeMultiWindowMode();
+    }
+
+    bool IsDisplayInFreeMultiWindow(const uint64_t screenId) const
+    {
+        return supportMultiWindowScreenSet_.find(screenId) != supportMultiWindowScreenSet_.end();
     }
 };
 } // namespace Rosen

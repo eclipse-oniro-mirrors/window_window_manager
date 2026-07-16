@@ -40,6 +40,7 @@ group("unittest") {
     ":ws_session_coordinate_helper_test",
     ":ws_session_helper_test",
     ":ws_session_manager_agent_controller_test",
+    ":ws_session_manager_agent_controller_multi_user_test",
     ":ws_session_permission_test",
     ":ws_session_stub_mock_test",
     ":ws_session_utils_test",
@@ -78,7 +79,6 @@ group("unittest") {
       ":ws_compatible_mode_session_proxy_test",
       ":ws_compatible_mode_session_stub_test",
       ":ws_hidumper_controller_test",
-      ":ws_keyboard_session_test",
       ":ws_main_session_lifecycle_test",
       ":ws_main_session_test",
       ":ws_mock_session_manager_service_test",
@@ -907,6 +907,16 @@ ohos_unittest("ws_session_manager_agent_controller_test") {
   module_out_path = module_out_path
 
   sources = [ "session_manager_agent_controller_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_session_manager_agent_controller_multi_user_test") {
+  module_out_path = module_out_path
+
+  sources = [ "session_manager_agent_controller_multi_user_test.cpp" ]
 
   deps = [ ":ws_unittest_common" ]
 

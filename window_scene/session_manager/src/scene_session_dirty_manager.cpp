@@ -265,10 +265,6 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         }
         Vector2f scale(sceneSession->GetScaleX(), sceneSession->GetScaleY());
         Vector2f translate = sceneSession->GetSessionGlobalPosition(useUIExtension);
-        if (useUIExtension && UpdateModalExtensionInCompatStatus(sceneSession, transform)) {
-            TLOGD(WmsLogTag::WMS_EVENT, "sceneSession is compat mode");
-            return;
-        }
         transform = transform.Translate(translate)
                              .Scale(scale, sceneSession->GetPivotX(), sceneSession->GetPivotY()).Inverse();
         return;
@@ -278,35 +274,6 @@ void SceneSessionDirtyManager::CalTransform(const sptr<SceneSession>& sceneSessi
         return;
     }
     CalNotRotateTransform(sceneSession, transform, useUIExtension);
-}
-
-bool SceneSessionDirtyManager::UpdateModalExtensionInCompatStatus(const sptr<SceneSession>& sceneSession,
-    Matrix3f& transform) const
-{
-    if (sceneSession == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "sceneSession is nullptr");
-        return false;
-    }
-    if (!sceneSession->IsInCompatScaleStatus()) {
-        TLOGD(WmsLogTag::WMS_EVENT, "sceneSession not is compat scale status");
-        return false;
-    }
-    auto modalUIExtensionEventInfo = sceneSession->GetLastModalUIExtensionEventInfo();
-    if (!modalUIExtensionEventInfo) {
-        TLOGE(WmsLogTag::WMS_EVENT, "modalUIExtensionEventInfo is nullptr");
-        return false;
-    }
-    const WSRect& rect = sceneSession->GetSessionGlobalRect();
-    float heightDiff = rect.height_ - modalUIExtensionEventInfo.value().windowRect.height_;
-    Vector2f scale(sceneSession->GetScaleX(), sceneSession->GetScaleY());
-    Vector2f translate(rect.posX_, rect.posY_ + heightDiff);
-    transform = transform.Translate(translate)
-        .Scale(scale, sceneSession->GetPivotX(), sceneSession->GetPivotY()).Inverse();
-    if (!sceneSession->GetSessionProperty()->IsAdaptToImmersive()) {
-        Vector2f translateOffset(0, heightDiff * (1 - sceneSession->GetScaleY()));
-        transform = transform.Translate(translateOffset);
-    }
-    return true;
 }
 
 void SceneSessionDirtyManager::UpdateDefaultHotAreas(sptr<SceneSession> sceneSession,
@@ -1021,6 +988,9 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
     }
     if (expandInputFlag & MMI::WindowInputPolicy::FLAG_TOUCHPAD_AXIS_SCROLL_REDISPATCH) {
         windowInfo.flags |= MMI::WindowInputPolicy::FLAG_TOUCHPAD_AXIS_SCROLL_REDISPATCH;
+    }
+    if (expandInputFlag & MMI::WindowInputPolicy::FLAG_INJECTABLE_UNDER_LOCK) {
+        windowInfo.flags |= MMI::WindowInputPolicy::FLAG_INJECTABLE_UNDER_LOCK;
     }
     UpdateWindowFlagsForReceiveDragEventEnabled(sceneSession, windowInfo);
     UpdateWindowFlagsForWindowSeparation(sceneSession, windowInfo);

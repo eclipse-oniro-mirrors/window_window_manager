@@ -85,6 +85,8 @@ ohos_shared_library("libwindow_extension") {
     "ipc:ipc_napi",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"
@@ -129,6 +131,8 @@ ohos_shared_library("window_extension_module") {
     "hilog:libhilog",
     "ipc:ipc_napi",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
   relative_install_dir = "extensionability/"

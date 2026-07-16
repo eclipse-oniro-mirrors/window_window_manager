@@ -54,7 +54,7 @@ public:
     void OnAvailableAreaChanged(DMRect area) override;
     ani_status CallAniMethodVoid(ani_object object, const char* cls,
         const char* method, const char* signature, ...);
-    void OnBrightnessInfoChanged(DisplayId id, const ScreenBrightnessInfo& info) override;
+    void OnBrightnessInfoChanged(DisplayId id, const ScreenBrightnessInfo& brightnessInfo) override;
     void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attribuutes) override;
 
 private:

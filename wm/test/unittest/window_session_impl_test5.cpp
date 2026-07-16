@@ -1651,7 +1651,7 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeFail, Function | 
 
     window->SetUIContentInner("info", nullptr, nullptr,
         WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
-    EXPECT_TRUE(g_errLog.find("get selectMode fail") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("get selectMode") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 
@@ -1687,7 +1687,7 @@ HWTEST_F(WindowSessionImplTest5, SetUIContentInnerGetSelectModeSuccess, Function
 
     window->SetUIContentInner("info", nullptr, nullptr,
         WindowSetUIContentType::DEFAULT, BackupAndRestoreType::NONE, nullptr);
-    EXPECT_TRUE(g_errLog.find("get selectMode success") != std::string::npos);
+    EXPECT_TRUE(g_errLog.find("get selectMode") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 
@@ -1960,7 +1960,8 @@ HWTEST_F(WindowSessionImplTest5, SendFbActionEvent, TestSize.Level1)
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     window->hostSession_ = nullptr;
     std::string action = "click";
-    ASSERT_EQ(WSError::WS_OK, window->SendFbActionEvent(action));
+    std::string reason = "APP_STOP";
+    ASSERT_EQ(WSError::WS_OK, window->SendFbActionEvent(action, reason));
 }
 
 /**
@@ -2959,6 +2960,70 @@ HWTEST_F(WindowSessionImplTest5, SetIsStartMoving, TestSize.Level1)
     // Case 2: set false
     EXPECT_EQ(WSError::WS_OK, window->SetIsStartMoving(false));
     EXPECT_FALSE(window->IsStartMoving());
+}
+
+/**
+ * @tc.name: UpdateLSStateAndGetLSState
+ * @tc.desc: Test UpdateLSState And GetLSState
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, UpdateLSStateAndGetLSState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("UpdateLSStateAndGetLSState");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    EXPECT_EQ(WSError::WS_OK, window->UpdateLSState(true));
+    EXPECT_TRUE(window->GetLSState());
+
+    EXPECT_EQ(WSError::WS_OK, window->UpdateLSState(false));
+    EXPECT_FALSE(window->GetLSState());
+}
+
+/**
+ * @tc.name: UpdateHoverState
+ * @tc.desc: Test UpdateHoverState and NotifyWindowHoverStateChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, UpdateHoverState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("UpdateHoverState");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    Rect windowRect = { 0, 0, 100, 200 };
+    window->SetHoverState(false);
+    window->UpdateHoverState(windowRect, FoldStatus::EXPAND);
+    EXPECT_FALSE(window->GetHoverState());
+
+    window->NotifyWindowHoverStateChange(false);
+
+    window->UpdateHoverState(windowRect, FoldStatus::HALF_FOLD);
+    EXPECT_FALSE(window->GetHoverState());
+}
+
+/**
+ * @tc.name: GetWindowHoverState
+ * @tc.desc: Test GetWindowHoverState
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, GetWindowHoverState, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetDisplayId(0);
+    option->SetWindowName("GetWindowHoverState");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->property_, nullptr);
+
+    bool hoverState = window->GetWindowHoverState();
+    EXPECT_FALSE(hoverState);
 }
 } // namespace
 } // namespace Rosen

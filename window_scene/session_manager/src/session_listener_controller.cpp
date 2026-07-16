@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "session_helper.h"
 #include "session_listener_controller.h"
 #include "scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -110,7 +111,19 @@ void SessionListenerController::NotifySessionBackground(int32_t persistentId)
         return;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Id:%{public}d", persistentId);
-    CallListeners(&ISessionListener::OnMissionMovedToBackground, persistentId);
+    const std::shared_ptr<FfrtQueueHelper>& ffrtQueue = SceneSessionManager::GetInstance().GetFfrtQueueHelper();
+    if (ffrtQueue != nullptr) {
+        ffrtQueue->SubmitTask([ weakThis = weak_from_this(), persistentId ]() {
+            auto controller = weakThis.lock();
+            if (controller == nullptr) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "NotifySessionBackground controller is null.");
+                return;
+            }
+            controller->CallListeners(&ISessionListener::OnMissionMovedToBackground, persistentId);
+        });
+    } else {
+        CallListeners(&ISessionListener::OnMissionMovedToBackground, persistentId);
+    }
 }
 
 void SessionListenerController::HandleUnInstallApp(const std::list<int32_t>& sessions)
@@ -251,14 +264,16 @@ SessionListenerController::AppInstanceFilterKey SessionListenerController::Resol
     const sptr<SceneSession>& session) const
 {
     const auto& sessionInfo = session->GetSessionInfo();
+    int32_t appIndex = sessionInfo.appIndex_;
     std::string appInstanceKey = sessionInfo.appInstanceKey_;
-    if (appInstanceKey.empty()) {
+    if (!SessionHelper::IsMainWindow(session->GetWindowType())) {
         auto mainSession = session->GetMainSession();
         if (mainSession) {
             appInstanceKey = mainSession->GetSessionInfo().appInstanceKey_;
+            appIndex = mainSession->GetSessionInfo().appIndex_;
         }
     }
-    return AppInstanceFilterKey{ sessionInfo.bundleName_, sessionInfo.appIndex_, appInstanceKey };
+    return AppInstanceFilterKey{ sessionInfo.bundleName_, appIndex, appInstanceKey };
 }
 
 ISessionLifecycleListener::LifecycleEventPayload SessionListenerController::ConstructAppInstancePayload(

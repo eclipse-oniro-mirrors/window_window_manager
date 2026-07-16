@@ -69,6 +69,7 @@ class AniWindowListener : public IWindowChangeListener,
                         public IAcrossDisplaysChangeListener,
                         public IScreenshotAppEventListener,
                         public IApplicationFocusChangedListener,
+                        public IWindowHoverStateChangeListener,
                         public IWindowStageLifeCycle {
 public:
     AniWindowListener(ani_env* env, ani_vm* vm, ani_ref callback, CaseType caseType)
@@ -106,6 +107,7 @@ public:
     void OnGestureNavigationEnabledUpdate(bool enable) override;
     void OnWaterMarkFlagUpdate(bool showWaterMark) override;
     void OnApplicationFocusUpdate(bool isFocused) override;
+    void OnWindowHoverStateChange(bool hoverState) override;
     void SetMainEventHandler();
     void SetTimeout(int64_t timeout) override;
     int64_t GetTimeout() const override;

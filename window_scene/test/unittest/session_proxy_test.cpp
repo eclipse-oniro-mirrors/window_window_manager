@@ -876,6 +876,112 @@ HWTEST_F(SessionProxyTest, GetAppForceLandscapeConfig, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetForceSplitEnable_WriteInterfaceTokenFailed
+ * @tc.desc: GetForceSplitEnable when WriteInterfaceToken fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, GetForceSplitEnable_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    ASSERT_NE(mockRemote, nullptr);
+    auto sProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(sProxy, nullptr);
+
+    bool enable = false;
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(sProxy->GetForceSplitEnable(enable), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable_NullRemote
+ * @tc.desc: GetForceSplitEnable when remote is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, GetForceSplitEnable_NullRemote, TestSize.Level1)
+{
+    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    ASSERT_NE(nullProxy, nullptr);
+
+    bool enable = false;
+    EXPECT_EQ(nullProxy->GetForceSplitEnable(enable), WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable_TransactionFailed
+ * @tc.desc: GetForceSplitEnable when IPC transaction fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, GetForceSplitEnable_TransactionFailed, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    ASSERT_NE(mockRemote, nullptr);
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(failProxy, nullptr);
+
+    bool enable = false;
+    EXPECT_EQ(failProxy->GetForceSplitEnable(enable), WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable_ReadBoolFailed
+ * @tc.desc: GetForceSplitEnable when ReadBool fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, GetForceSplitEnable_ReadBoolFailed, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    ASSERT_NE(mockRemote, nullptr);
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(okProxy, nullptr);
+
+    bool enable = false;
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    EXPECT_EQ(okProxy->GetForceSplitEnable(enable), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable_ReadInt32Failed
+ * @tc.desc: GetForceSplitEnable when ReadInt32 fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, GetForceSplitEnable_ReadInt32Failed, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    ASSERT_NE(mockRemote, nullptr);
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(okProxy, nullptr);
+
+    bool enable = false;
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    EXPECT_EQ(okProxy->GetForceSplitEnable(enable), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable_Success
+ * @tc.desc: GetForceSplitEnable succeeds
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, GetForceSplitEnable_Success, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    ASSERT_NE(mockRemote, nullptr);
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    ASSERT_NE(okProxy, nullptr);
+
+    bool enable = false;
+    EXPECT_EQ(okProxy->GetForceSplitEnable(enable), WMError::WM_OK);
+    // enable is not asserted because mock ReadBool does not modify its value
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: NotifyExtensionEventAsync
  * @tc.desc: NotifyExtensionEventAsync test
  * @tc.type: FUNC

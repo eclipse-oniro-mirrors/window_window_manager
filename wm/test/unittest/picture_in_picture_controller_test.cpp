@@ -379,7 +379,7 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture02, TestSize.Level
     pipControl->pipOption_->SetNavigationId("");
     auto pipControl1 = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
     auto pipControl2 = sptr<PictureInPictureController>::MakeSptr(option, mw, 200, nullptr);
-    PictureInPictureManager::SetActiveController(pipControl1);
+    PictureInPictureManager::PutPipControllerInfo(300, pipControl1);
     PictureInPictureManager::IsActiveController(pipControl2);
     pipControl->mainWindowId_ = 100;
     PictureInPictureManager::IsAttachedToSameWindow(100);
@@ -389,7 +389,7 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture02, TestSize.Level
     pipControl->pipOption_ = nullptr;
     EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, pipControl->StartPictureInPicture(startType));
     pipControl->pipOption_ = option;
-    PictureInPictureManager::RemoveActiveController(pipControl1);
+    PictureInPictureManager::RemovePipControllerInfo(300);
     PictureInPictureManager::IsActiveController(pipControl);
     pipControl->StartPictureInPicture(startType);
     delete contextPtr;

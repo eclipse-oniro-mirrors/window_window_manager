@@ -46,7 +46,7 @@ ohos_shared_library("floatview_kit") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
-    "../common:wm_napi_util",
+    "../common:dm_napi_common",
     "../floating_ball_napi:floatingball_kit",
   ]
 
@@ -61,6 +61,7 @@ ohos_shared_library("floatview_kit") {
     "image_framework:image",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   innerapi_tags = [ "platformsdk" ]
@@ -70,10 +71,6 @@ ohos_shared_library("floatview_kit") {
   defines = []
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
-  }
-  if (window_manager_feature_support_api_metrics) {
-    external_deps += [ "api_metrics:histogrammanager" ]
-    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
 }
 
@@ -98,7 +95,6 @@ ohos_shared_library("floatview_napi") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
-    "../common:wm_napi_util",
     "../floating_ball_napi:floatingball_kit",
   ]
 
@@ -113,6 +109,7 @@ ohos_shared_library("floatview_napi") {
     "image_framework:image",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   relative_install_dir = "module/window"

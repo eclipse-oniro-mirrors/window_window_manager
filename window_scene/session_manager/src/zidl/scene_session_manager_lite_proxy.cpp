@@ -1107,7 +1107,7 @@ void SceneSessionManagerLiteProxy::GetAllGroupInfo(std::unordered_map<DisplayId,
 }
 
 WMError SceneSessionManagerLiteProxy::RegisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     MessageOption option;
     MessageParcel reply;
@@ -1119,6 +1119,11 @@ WMError SceneSessionManagerLiteProxy::RegisterWindowManagerAgent(WindowManagerAg
 
     if (!data.WriteUint32(static_cast<uint32_t>(type))) {
         WLOGFE("Write type failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        WLOGFE("Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -1147,7 +1152,7 @@ WMError SceneSessionManagerLiteProxy::RegisterWindowManagerAgent(WindowManagerAg
 }
 
 WMError SceneSessionManagerLiteProxy::UnregisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     MessageParcel reply;
     MessageOption option;
@@ -1159,6 +1164,11 @@ WMError SceneSessionManagerLiteProxy::UnregisterWindowManagerAgent(WindowManager
 
     if (!data.WriteUint32(static_cast<uint32_t>(type))) {
         WLOGFE("Write type failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        WLOGFE("Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -2543,7 +2553,7 @@ WMError SceneSessionManagerLiteProxy::ListWindowInfo(const WindowInfoOption& win
 }
 
 WMError SceneSessionManagerLiteProxy::RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     MessageOption option;
     MessageParcel reply;
@@ -2560,6 +2570,11 @@ WMError SceneSessionManagerLiteProxy::RegisterWindowPropertyChangeAgent(WindowIn
 
     if (!data.WriteUint32(interestInfo)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write interestInfo failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -2589,7 +2604,7 @@ WMError SceneSessionManagerLiteProxy::RegisterWindowPropertyChangeAgent(WindowIn
 }
 
 WMError SceneSessionManagerLiteProxy::UnregisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey,
-    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent)
+    uint32_t interestInfo, const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     MessageOption option;
     MessageParcel reply;
@@ -2606,6 +2621,11 @@ WMError SceneSessionManagerLiteProxy::UnregisterWindowPropertyChangeAgent(Window
 
     if (!data.WriteUint32(interestInfo)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write interestInfo failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 

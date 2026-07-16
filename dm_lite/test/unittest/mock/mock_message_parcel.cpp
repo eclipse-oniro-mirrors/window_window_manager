@@ -30,6 +30,7 @@ bool g_setWriteStringErrorFlag = false;
 bool g_setWriteParcelableErrorFlag = false;
 bool g_setWriteInterfaceTokenErrorFlag = false;
 bool g_setWriteRemoteObjectErrorFlag = false;
+bool g_setWriteStringVectorErrorFlag = false;
 bool g_setReadBoolErrorFlag = false;
 bool g_setReadUint32ErrorFlag = false;
 bool g_setReadInt32ErrorFlag = false;
@@ -64,6 +65,7 @@ void MockMessageParcel::ClearAllErrorFlag()
     g_setWriteParcelableErrorFlag = false;
     g_setWriteInterfaceTokenErrorFlag = false;
     g_setWriteRemoteObjectErrorFlag = false;
+    g_setWriteStringVectorErrorFlag = false;
     g_setReadBoolErrorFlag = false;
     g_setReadUint32ErrorFlag = false;
     g_setReadInt32ErrorFlag = false;
@@ -127,6 +129,11 @@ void MockMessageParcel::SetWriteInterfaceTokenErrorFlag(bool flag)
 void MockMessageParcel::SetWriteRemoteObjectErrorFlag(bool flag)
 {
     g_setWriteRemoteObjectErrorFlag = flag;
+}
+
+void MockMessageParcel::SetWriteStringVectorErrorFlag(bool flag)
+{
+    g_setWriteStringVectorErrorFlag = flag;
 }
 
 void MockMessageParcel::SetReadBoolErrorFlag(bool flag)
@@ -337,6 +344,14 @@ bool Parcel::WriteStringVector(const std::vector<std::string>& val)
 {
     (void)val;
     if (val.size() == ERROR_SIZE) {
+        return false;
+    }
+    return true;
+}
+#else
+bool Parcel::WriteStringVector(const std::vector<std::string>& val)
+{
+    if (g_setWriteStringVectorErrorFlag) {
         return false;
     }
     return true;

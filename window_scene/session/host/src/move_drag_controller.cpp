@@ -278,12 +278,73 @@ WSRect GetScreenAvailableRect(ScreenId screenId, const ScreenProperty& prop)
     };
 }
 
+MoveDragController::ScreenChangeListener::ScreenChangeListener(
+    wptr<MoveDragController> controller) : controller_(controller) {}
+
+void MoveDragController::ScreenChangeListener::RegisterIfNeeded()
+{
+    if (isRegistered_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "ScreenChangeListener is already registered.");
+        return;
+    }
+    DMError error = ScreenManager::GetInstance().RegisterScreenListener(this);
+    if (error != DMError::DM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to register ScreenChangeListener, error: %{public}d", error);
+        return;
+    }
+    isRegistered_ = true;
+}
+
+void MoveDragController::ScreenChangeListener::UnregisterIfNeeded()
+{
+    if (!isRegistered_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "ScreenChangeListener is not registered.");
+        return;
+    }
+    DMError error = ScreenManager::GetInstance().UnregisterScreenListener(this);
+    if (error != DMError::DM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to unregister ScreenChangeListener, error: %{public}d", error);
+        return;
+    }
+    isRegistered_ = false;
+}
+
+void MoveDragController::ScreenChangeListener::OnConnect(ScreenId screenId)
+{
+    NotifyController(screenId, "connected");
+}
+
+void MoveDragController::ScreenChangeListener::OnDisconnect(ScreenId screenId)
+{
+    NotifyController(screenId, "disconnected");
+}
+
+void MoveDragController::ScreenChangeListener::OnChange(ScreenId screenId)
+{
+    NotifyController(screenId, "change");
+}
+
+void MoveDragController::ScreenChangeListener::NotifyController(ScreenId screenId, const char* reason)
+{
+    auto controller = controller_.promote();
+    if (controller == nullptr) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to notify controller, the controller is null. Screen %{public}" PRIu64 " %{public}s",
+              screenId, reason);
+        return;
+    }
+    TLOGW(WmsLogTag::WMS_LAYOUT, "Screen %{public}" PRIu64 " %{public}s during move-drag", screenId, reason);
+    controller->SetInterrupted(true);
+}
+
 MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneSession_(sceneSession)
 {
     if (auto session = sceneSession.promote()) {
         persistentId_ = session->GetPersistentId();
         winType_ = session->GetWindowType();
     }
+
+    screenChangeListener_ = sptr<ScreenChangeListener>::MakeSptr(wptr(this));
 
     // Move Resampling System Config
     moveResampleConfig_ = MoveDragController::LoadMoveResampleSystemConfig();
@@ -292,40 +353,31 @@ MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneS
     movingEventThrottleIntervalUs_ = MoveDragController::LoadMovingEventThrottleSystemConfig();
 }
 
-bool MoveDragController::IsWindowCrossScreenOnDragEnd() const
+MoveDragController::~MoveDragController()
 {
-    return moveDragEndDisplayId_ != DISPLAY_ID_INVALID &&
-           moveDragStartDisplayId_ != DISPLAY_ID_INVALID &&
-           moveDragEndDisplayId_ != moveDragStartDisplayId_;
+    screenChangeListener_->UnregisterIfNeeded();
 }
 
 bool MoveDragController::ShouldFlushOnDragEnd() const
 {
-    if (moveDragStartDisplayId_ == DISPLAY_ID_INVALID ||
-        moveDragEndDisplayId_ == DISPLAY_ID_INVALID) {
+    if (startDisplayId_ == DISPLAY_ID_INVALID ||
+        endDisplayId_ == DISPLAY_ID_INVALID) {
         return false;
     }
-    return moveDragEndDisplayId_ == moveDragStartDisplayId_;
+    return endDisplayId_ == startDisplayId_;
 }
 
-void MoveDragController::OnConnect(ScreenId id)
+void MoveDragController::SetInterrupted(bool isInterrupted)
 {
-    TLOGW(WmsLogTag::WMS_LAYOUT, "Moving or dragging is interrupt due to new screen %{public}" PRIu64 " connection.",
-        id);
-    moveDragIsInterrupted_ = true;
+    if (isInterrupted) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Moving or dragging is interrupted, windowId: %{public}d", persistentId_);
+    }
+    isInterrupted_ = isInterrupted;
 }
 
-void MoveDragController::OnDisconnect(ScreenId id)
+bool MoveDragController::IsInterrupted() const
 {
-    TLOGW(WmsLogTag::WMS_LAYOUT, "Moving or dragging is interrupt due to screen %{public}" PRIu64 " disconnection.",
-        id);
-    moveDragIsInterrupted_ = true;
-}
-
-void MoveDragController::OnChange(ScreenId id)
-{
-    TLOGW(WmsLogTag::WMS_LAYOUT, "Moving or dragging is interrupt due to screen %{public}" PRIu64 " change.", id);
-    moveDragIsInterrupted_ = true;
+    return isInterrupted_;
 }
 
 void MoveDragController::NotifyWindowInputPidChange(bool isServerPid)
@@ -385,20 +437,48 @@ bool MoveDragController::GetStartDragFlag() const
     return isStartDrag_;
 }
 
-uint64_t MoveDragController::GetMoveDragStartDisplayId() const
+DisplayId MoveDragController::GetStartDisplayId() const
 {
-    return moveDragStartDisplayId_;
+    return startDisplayId_;
 }
 
-uint64_t MoveDragController::GetMoveDragEndDisplayId() const
+DisplayId MoveDragController::GetEndDisplayId() const
 {
-    return moveDragEndDisplayId_;
+    return endDisplayId_;
 }
 
-std::set<uint64_t> MoveDragController::GetDisplayIdsDuringMoveDrag()
+bool MoveDragController::AddOverlappedDisplayId(DisplayId displayId)
 {
-    std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
-    return displayIdSetDuringMoveDrag_;
+    std::lock_guard<std::mutex> lock(overlappedDisplayIdsMutex_);
+    return overlappedDisplayIds_.insert(displayId).second;
+}
+
+std::set<DisplayId> MoveDragController::GetOverlappedDisplayIds() const
+{
+    std::lock_guard<std::mutex> lock(overlappedDisplayIdsMutex_);
+    return overlappedDisplayIds_;
+}
+
+void MoveDragController::ClearOverlappedDisplayIds()
+{
+    std::lock_guard<std::mutex> lock(overlappedDisplayIdsMutex_);
+    overlappedDisplayIds_.clear();
+}
+
+std::set<DisplayId> MoveDragController::CollectNewOverlappedDisplayIds()
+{
+    std::set<DisplayId> newDisplayIds;
+    const WSRect globalWindowRect = GetTargetRect(TargetRectCoordinate::GLOBAL);
+
+    for (const auto& [displayId, globalDisplayRect] : globalScreenRectMap_) {
+        if (!globalWindowRect.IsOverlap(globalDisplayRect)) {
+            continue;
+        }
+        if (AddOverlappedDisplayId(displayId)) {
+            newDisplayIds.insert(displayId);
+        }
+    }
+    return newDisplayIds;
 }
 
 bool MoveDragController::GetMovable() const
@@ -422,11 +502,11 @@ WSRect MoveDragController::GetTargetRect(TargetRectCoordinate coordinate) const
 {
     switch (coordinate) {
         case TargetRectCoordinate::GLOBAL:
-            return moveDragProperty_.targetRect_.WithOffset(originalDisplayOffsetX_, originalDisplayOffsetY_);
+            return moveDragProperty_.targetRect_.WithOffset(startDisplayOffsetX_, startDisplayOffsetY_);
         case TargetRectCoordinate::RELATED_TO_START_DISPLAY:
             return moveDragProperty_.targetRect_;
         case TargetRectCoordinate::RELATED_TO_END_DISPLAY:
-            return GetTargetRectByDisplayId(moveDragEndDisplayId_);
+            return GetTargetRectByDisplayId(endDisplayId_);
         default:
             return moveDragProperty_.targetRect_;
     }
@@ -443,8 +523,8 @@ WSRect MoveDragController::MapRectFromStartToTarget(const WSRect& relativeStartR
     RETURN_IF_NULL(targetDisplayOffset, relativeStartRect);
 
     auto [targetDisplayOffsetX, targetDisplayOffsetY] = *targetDisplayOffset;
-    int32_t offsetX = originalDisplayOffsetX_ - targetDisplayOffsetX;
-    int32_t offsetY = originalDisplayOffsetY_ - targetDisplayOffsetY;
+    int32_t offsetX = startDisplayOffsetX_ - targetDisplayOffsetX;
+    int32_t offsetY = startDisplayOffsetY_ - targetDisplayOffsetY;
     return relativeStartRect.WithOffset(offsetX, offsetY);
 }
 
@@ -454,8 +534,8 @@ WSRect MoveDragController::MapRectFromTargetToStart(const WSRect& relativeTarget
     RETURN_IF_NULL(targetDisplayOffset, relativeTargetRect);
 
     auto [targetDisplayOffsetX, targetDisplayOffsetY] = *targetDisplayOffset;
-    int32_t offsetX = targetDisplayOffsetX - originalDisplayOffsetX_;
-    int32_t offsetY = targetDisplayOffsetY - originalDisplayOffsetY_;
+    int32_t offsetX = targetDisplayOffsetX - startDisplayOffsetX_;
+    int32_t offsetY = targetDisplayOffsetY - startDisplayOffsetY_;
     return relativeTargetRect.WithOffset(offsetX, offsetY);
 }
 
@@ -499,39 +579,24 @@ void MoveDragController::InitMoveDragProperty()
 
 void MoveDragController::InitCrossDisplayProperty(DisplayId displayId)
 {
-    DMError error = ScreenManager::GetInstance().RegisterScreenListener(this);
-    if (error != DMError::DM_OK) {
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "Failed to register ScreenListener, windowId: %{public}d, error: %{public}d",
-              persistentId_, error);
-    }
-    {
-        std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
-        displayIdSetDuringMoveDrag_.insert(displayId);
-    }
+    screenChangeListener_->RegisterIfNeeded();
+    AddOverlappedDisplayId(displayId);
 }
 
 /** @note @window.drag */
 void MoveDragController::ResetCrossMoveDragProperty()
 {
     moveDragProperty_.Reset();
-    DMError error = ScreenManager::GetInstance().UnregisterScreenListener(this);
-    if (error != DMError::DM_OK) {
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "Failed to unregister ScreenListener, windowId: %{public}d, error: %{public}d",
-              persistentId_, error);
-    }
-    {
-        std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
-        displayIdSetDuringMoveDrag_.clear();
-    }
-    moveDragStartDisplayId_ = DISPLAY_ID_INVALID;
+    screenChangeListener_->UnregisterIfNeeded();
+    startDisplayGroupId_ = DISPLAY_GROUP_ID_DEFAULT;
+    startDisplayId_ = DISPLAY_ID_INVALID;
+    startDisplayOffsetX_ = 0;
+    startDisplayOffsetY_ = 0;
+    endDisplayId_ = DISPLAY_ID_INVALID;
     moveInputBarStartDisplayId_ = DISPLAY_ID_INVALID;
-    moveDragEndDisplayId_ = DISPLAY_ID_INVALID;
-    originalDisplayOffsetX_ = 0;
-    originalDisplayOffsetY_ = 0;
-    moveDragIsInterrupted_ = false;
+    SetInterrupted(false);
     parentRect_ = {0, 0, 0, 0};
+    ClearOverlappedDisplayIds();
     ClearSpecifyMoveStartDisplay();
 }
 
@@ -634,7 +699,7 @@ bool MoveDragController::ShouldThrottleMovingEvent(const std::shared_ptr<MMI::Po
 
 bool MoveDragController::HandleMoving(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
 {
-    if (moveDragIsInterrupted_) {
+    if (IsInterrupted()) {
         MoveDragInterrupted();
         return true;
     }
@@ -645,7 +710,7 @@ bool MoveDragController::HandleMoving(const std::shared_ptr<MMI::PointerEvent>& 
     }
 
     uint32_t oldWindowDragHotAreaType = windowDragHotAreaType_;
-    moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
+    endDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
     DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
     ProcessWindowDragHotAreaFunc(oldWindowDragHotAreaType, lastHotAreaDisplayId, SizeChangeReason::DRAG_MOVE);
@@ -658,13 +723,13 @@ bool MoveDragController::HandleMoveEnd(const std::shared_ptr<MMI::PointerEvent>&
     if (!hasPointDown_) {
         return true;
     }
-    if (moveDragIsInterrupted_) {
+    if (IsInterrupted()) {
         MoveDragInterrupted();
         return true;
     }
     SetStartMoveFlag(false);
     hasPointDown_ = false;
-    moveDragEndDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
+    endDisplayId_ = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
     DisplayId lastHotAreaDisplayId = hotAreaDisplayId_;
     UpdateHotAreaType(pointerEvent);
     ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, lastHotAreaDisplayId, SizeChangeReason::DRAG_END);
@@ -779,10 +844,10 @@ void MoveDragController::UpdateGravityWhenDrag(const std::shared_ptr<MMI::Pointe
 bool MoveDragController::ShouldBlockCrossDisplay(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) const
 {
     const DisplayId targetDisplayId = static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
-    if (targetDisplayId != moveDragStartDisplayId_ && !supportCrossDisplay_) {
+    if (targetDisplayId != startDisplayId_ && !supportCrossDisplay_) {
         TLOGD(WmsLogTag::WMS_LAYOUT,
               "Cross display is not supported, startDisplayId:%{public}" PRIu64 ", targetDisplayId:%{public}" PRIu64,
-              moveDragStartDisplayId_, targetDisplayId);
+              startDisplayId_, targetDisplayId);
         return true;
     }
     return false;
@@ -919,7 +984,7 @@ bool MoveDragController::HandleDragStart(const std::shared_ptr<MMI::PointerEvent
 
 bool MoveDragController::HandleDragging(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
 {
-    if (moveDragIsInterrupted_) {
+    if (IsInterrupted()) {
         MoveDragInterrupted();
         return true;
     }
@@ -935,8 +1000,8 @@ bool MoveDragController::HandleDragEnd(const std::shared_ptr<MMI::PointerEvent>&
         return true;
     }
 
-    const auto screenRect = GetScreenRectById(moveDragStartDisplayId_);
-    if (moveDragIsInterrupted_ || screenRect == WSRect{ -1, -1, -1, -1 }) {
+    const auto screenRect = GetScreenRectById(startDisplayId_);
+    if (IsInterrupted() || screenRect == WSRect{ -1, -1, -1, -1 }) {
         MoveDragInterrupted();
         return true;
     }
@@ -947,8 +1012,8 @@ bool MoveDragController::HandleDragEnd(const std::shared_ptr<MMI::PointerEvent>&
     // Determine final displayId
     const bool isInOriginalDisplay = GetTargetRect(TargetRectCoordinate::GLOBAL).IsOverlap(screenRect);
 
-    moveDragEndDisplayId_ = isInOriginalDisplay ?
-        moveDragStartDisplayId_ : static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
+    endDisplayId_ = isInOriginalDisplay ?
+        startDisplayId_ : static_cast<DisplayId>(pointerEvent->GetTargetDisplayId());
 
     ResSchedReportData(OHOS::ResourceSchedule::ResType::RES_TYPE_RESIZE_WINDOW, false);
     NotifyWindowInputPidChange(isStartDrag_);
@@ -960,7 +1025,8 @@ bool MoveDragController::HandleDragEnd(const std::shared_ptr<MMI::PointerEvent>&
 
 void MoveDragController::MoveDragInterrupted(bool resetPosition)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Screen anomaly, MoveDrag has been interrupted, id:%{public}d", persistentId_);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+          "MoveDrag operation interrupted, id: %{public}d, resetPosition: %{public}d", persistentId_, resetPosition);
     SizeChangeReason reason = SizeChangeReason::DRAG_END;
     hasPointDown_ = false;
     if (GetStartDragFlag()) {
@@ -973,7 +1039,7 @@ void MoveDragController::MoveDragInterrupted(bool resetPosition)
         ProcessWindowDragHotAreaFunc(WINDOW_HOT_AREA_TYPE_UNDEFINED, hotAreaDisplayId_, reason);
     };
     if (resetPosition) {
-        moveDragEndDisplayId_ = moveDragStartDisplayId_;
+        endDisplayId_ = startDisplayId_;
         UpdateTargetRect(reason, moveDragProperty_.originalRect_);
     } else {
         UpdateTargetRect(reason);
@@ -1058,7 +1124,7 @@ void MoveDragController::SetCurrentScreenProperty(DisplayId targetDisplayId)
 
 void MoveDragController::SetScale(float scaleX, float scaleY)
 {
-    if (MathHelper::NearZero(moveDragProperty_.scaleX_) || MathHelper::NearZero(moveDragProperty_.scaleY_)) {
+    if (MathHelper::NearZero(scaleX) || MathHelper::NearZero(scaleY)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "scale ratio is 0");
         moveDragProperty_.scaleX_ = 1.0f;
         moveDragProperty_.scaleY_ = 1.0f;
@@ -1090,8 +1156,8 @@ std::pair<int32_t, int32_t> MoveDragController::ComputeOffsetFromStart(
     const int32_t curUnifiedY = curDisplayOffsetY + pointerItem.GetDisplayY();
 
     // The unified coordinates of the initial pointer
-    const int32_t originUnifiedX = originalDisplayOffsetX_ + moveDragProperty_.originalPointerPosX_;
-    const int32_t originUnifiedY = originalDisplayOffsetY_ + moveDragProperty_.originalPointerPosY_;
+    const int32_t originUnifiedX = startDisplayOffsetX_ + moveDragProperty_.originalPointerPosX_;
+    const int32_t originUnifiedY = startDisplayOffsetY_ + moveDragProperty_.originalPointerPosY_;
 
     // calculate trans in unified coordinates
     int32_t deltaX = curUnifiedX - originUnifiedX;
@@ -1171,8 +1237,8 @@ void MoveDragController::SetInputBarCrossAttr(MoveDirection moveDirection, Displ
         UpdateMoveAvailableArea(targetDisplayId);
     }
     moveInputBarStartDisplayId_ = targetDisplayId;
-    originalDisplayOffsetX_ = static_cast<int32_t>(screenSizeProperty_.currentDisplayStartX);
-    originalDisplayOffsetY_ = static_cast<int32_t>(screenSizeProperty_.currentDisplayStartY);
+    startDisplayOffsetX_ = static_cast<int32_t>(screenSizeProperty_.currentDisplayStartX);
+    startDisplayOffsetY_ = static_cast<int32_t>(screenSizeProperty_.currentDisplayStartY);
     screenSizeProperty_.Reset();
 }
 
@@ -1358,9 +1424,9 @@ void MoveDragController::UpdateTargetRectWithOffset(int32_t offsetX, int32_t off
 
     // Apply the avoid strategy to the target rect before updating, so that the
     // window can dodge the avoid area during movement.
-    auto globalTargetRect = targetRect.WithOffset(originalDisplayOffsetX_, originalDisplayOffsetY_);
+    auto globalTargetRect = targetRect.WithOffset(startDisplayOffsetX_, startDisplayOffsetY_);
     targetRect = AdjustByAvoidStrategy(globalTargetRect)
-        .WithOffset(-originalDisplayOffsetX_, -originalDisplayOffsetY_);
+        .WithOffset(-startDisplayOffsetX_, -startDisplayOffsetY_);
 
     UpdateTargetRect(reason, targetRect);
 }
@@ -1372,27 +1438,37 @@ TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEvent(
         return TargetRectUpdateMode::NONE;
     }
 
+    if (reason == SizeChangeReason::DRAG_END) {
+        return UpdateTargetRectOnMoveEnd(pointerEvent);
+    }
+
+    return UpdateTargetRectOnMoving(pointerEvent, reason);
+}
+
+TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoving(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason)
+{
     const auto [offsetX, offsetY] = ComputeOffsetFromStart(pointerEvent);
 
-    // If move resampling is active and the drag operation has not ended yet,
-    // do not update targetRect immediately. Instead, push the move event into
-    // moveResampler so that the target rect can be updated on the next vsync
-    // using resampled data.
-    //
-    // Note:
-    // - When reason is DRAG_END, it indicates that the drag-move operation
-    //   has finished. In this case, isStartMove_ will be set to false and
-    //   move resampling must be stopped.
-    // - No further events should be pushed into moveResampler after DRAG_END.
-    // - The final position at DRAG_END should be applied to the window
-    //   immediately, without resampling.
-    if (moveDragProperty_.isMoveResampleActive_ && reason != SizeChangeReason::DRAG_END) {
-        const int64_t eventTimeUs = pointerEvent->GetActionTime();
-        moveResampler_.PushEvent(eventTimeUs, offsetX, offsetY);
+    if (moveDragProperty_.isMoveResampleActive_) {
+        moveResampler_.PushEvent(pointerEvent->GetActionTime(), offsetX, offsetY);
         return TargetRectUpdateMode::RESAMPLE_SCHEDULED;
     }
 
     UpdateTargetRectWithOffset(offsetX, offsetY, reason);
+    return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
+}
+
+TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEnd(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (auto sample = moveResampler_.GetLastResampledEvent()) {
+        UpdateTargetRectWithOffset(sample->posX, sample->posY, SizeChangeReason::DRAG_END);
+        return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
+    }
+
+    const auto [offsetX, offsetY] = ComputeOffsetFromStart(pointerEvent);
+    UpdateTargetRectWithOffset(offsetX, offsetY, SizeChangeReason::DRAG_END);
     return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
@@ -1832,7 +1908,7 @@ void MoveDragController::HandleStartMovingWithCoordinate(const MoveCoordinatePro
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "displayId:%{public}" PRIu64 " targetRect: %{public}s",
         property.displayId, targetRect.ToString().c_str());
     UpdateTargetRect(SizeChangeReason::DRAG_MOVE, targetRect);
-    moveDragEndDisplayId_ = property.displayId;
+    endDisplayId_ = property.displayId;
     if (isMovable) {
         OnMoveDragCallback(SizeChangeReason::DRAG_MOVE, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     }
@@ -1907,13 +1983,13 @@ void MoveDragController::UpdateHotAreaType(const std::shared_ptr<MMI::PointerEve
     if (windowDragHotAreaType_ != windowDragHotAreaType) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "window drag hot area is changed, old type:%{public}d, new type:%{public}d",
             windowDragHotAreaType_, windowDragHotAreaType);
+        windowDragHotAreaType_ = windowDragHotAreaType;
     }
     if (hotAreaDisplayId_ != displayId) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "displayId is changed, old: %{public}" PRIu64 ", new: %{public}" PRIu64,
-            moveDragStartDisplayId_, displayId);
+            hotAreaDisplayId_, displayId);
         hotAreaDisplayId_ = displayId;
     }
-    windowDragHotAreaType_ = windowDragHotAreaType;
 }
 
 int32_t MoveDragController::GetOriginalPointerPosX()
@@ -1943,26 +2019,6 @@ void MoveDragController::OnLostFocus()
             "isDrag:%{public}d", persistentId_, isStartMove_, isStartDrag_);
         MoveDragInterrupted(false);
     }
-}
-
-std::set<uint64_t> MoveDragController::GetNewAddedDisplayIdsDuringMoveDrag()
-{
-    std::set<uint64_t> newAddedDisplayIdSet;
-    WSRect windowRect = GetTargetRect(TargetRectCoordinate::GLOBAL);
-    std::map<ScreenId, ScreenProperty> screenProperties =
-        ScreenSessionManagerClient::GetInstance().GetAllScreensProperties();
-    std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
-    for (const auto& [screenId, screenProperty] : screenProperties) {
-        if (displayIdSetDuringMoveDrag_.find(screenId) != displayIdSetDuringMoveDrag_.end()) {
-            continue;
-        }
-        WSRect screenRect = BuildScreenRect(screenProperty);
-        if (windowRect.IsOverlap(screenRect)) {
-            displayIdSetDuringMoveDrag_.insert(screenId);
-            newAddedDisplayIdSet.insert(screenId);
-        }
-    }
-    return newAddedDisplayIdSet;
 }
 
 void MoveDragController::ResSchedReportData(int32_t type, bool onOffTag)
@@ -2093,17 +2149,28 @@ bool MoveDragController::SyncPropertiesFromSceneSession()
     supportCrossDisplay_ = session->IsCrossDisplayDragSupported();
 
     auto property = session->GetSessionProperty();
-    moveDragStartDisplayId_ = property->GetDisplayId();
-    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) =
-        GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_).value_or(std::pair { 0, 0 });
+    startDisplayId_ = property->GetDisplayId();
+
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(startDisplayId_);
+    if (screenSession) {
+        const auto prop = screenSession->GetScreenProperty();
+        startDisplayOffsetX_ = static_cast<int32_t>(prop.GetStartX());
+        startDisplayOffsetY_ = static_cast<int32_t>(prop.GetStartY());
+        startDisplayGroupId_ = prop.GetDisplayGroupId();
+    } else {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Failed to get screen session for displayId: %{public}" PRIu64, startDisplayId_);
+        startDisplayOffsetX_ = 0;
+        startDisplayOffsetY_ = 0;
+        startDisplayGroupId_ = DISPLAY_GROUP_ID_DEFAULT;
+    }
 
     TLOGD(WmsLogTag::WMS_LAYOUT,
         "windowId: %{public}d, aspectRatio: %{public}f, limits: %{public}s, decoration: %{public}s, "
-        "supportCrossDisplay: %{public}d, startDisplayId: %{public}" PRIu64
-        ", originalDisplayOffset: [%{public}d, %{public}d]",
+        "supportCrossDisplay: %{public}d, startDisplayId: %{public}" PRIu64 ", startDisplayGroupId: %{public}" PRIu64
+        ", startDisplayOffset: [%{public}d, %{public}d]",
         persistentId_, aspectRatio_, limits_.ToString().c_str(), decoration_.ToString().c_str(),
-        supportCrossDisplay_, moveDragStartDisplayId_,
-        originalDisplayOffsetX_, originalDisplayOffsetY_);
+        supportCrossDisplay_, startDisplayId_, startDisplayGroupId_,
+        startDisplayOffsetX_, startDisplayOffsetY_);
     return true;
 }
 
@@ -2166,6 +2233,11 @@ void MoveDragController::RefreshGlobalScreenRects()
         ScreenSessionManagerClient::GetInstance().GetAllScreensProperties();
 
     for (const auto& [screenId, screenProp] : screenProperties) {
+        if (screenProp.GetDisplayGroupId() != startDisplayGroupId_) {
+            TLOGD(WmsLogTag::WMS_LAYOUT, "Skip screenId: %{public}" PRIu64 ", displayGroupId: %{public}" PRIu64,
+                  screenId, screenProp.GetDisplayGroupId());
+            continue;
+        }
         const WSRect screenRect = BuildScreenRect(screenProp);
         const WSRect screenAvailableRect = GetScreenAvailableRect(screenId, screenProp);
 
@@ -2189,7 +2261,7 @@ std::optional<WSRect> MoveDragController::GetGlobalScreenRect(ScreenId screenId)
     return iter->second;
 }
 
-std::vector<WSRect> MoveDragController::GetGlobalScreenRects(const ScreenIdSet& screenIds) const
+std::vector<WSRect> MoveDragController::GetGlobalScreenRects(const std::unordered_set<ScreenId>& screenIds) const
 {
     std::vector<WSRect> screenRects;
 
@@ -2213,9 +2285,9 @@ std::optional<WSRect> MoveDragController::GetGlobalAvailableScreenRect(ScreenId 
     return iter->second;
 }
 
-ScreenIdSet MoveDragController::GetOverlapScreenIds(const WSRect& targetRect) const
+std::unordered_set<ScreenId> MoveDragController::GetOverlapScreenIds(const WSRect& targetRect) const
 {
-    ScreenIdSet screenIds;
+    std::unordered_set<ScreenId> screenIds;
     screenIds.reserve(globalScreenRectMap_.size());
 
     for (const auto& [screenId, screenRect] : globalScreenRectMap_) {
@@ -2232,7 +2304,7 @@ WSRect MoveDragController::AdjustByAvoidStrategy(const WSRect& targetRect) const
         return targetRect;
     }
 
-    ScreenIdSet overlapScreenIds = GetOverlapScreenIds(targetRect);
+    std::unordered_set<ScreenId> overlapScreenIds = GetOverlapScreenIds(targetRect);
     if (overlapScreenIds.empty()) {
         return targetRect;
     }
@@ -2255,7 +2327,7 @@ WSRect MoveDragController::AdjustBySingleScreenAvoidStrategy(const WSRect& targe
 }
 
 WSRect MoveDragController::AdjustByCrossScreenAvoidStrategy(
-    const WSRect& targetRect, ScreenIdSet& overlapScreenIds) const
+    const WSRect& targetRect, std::unordered_set<ScreenId>& overlapScreenIds) const
 {
     // In cross-screen mode, the current pointer target display is used as the target screen.
     const ScreenId targetScreenId = lastMoveEventPointerDisplayId_;

@@ -85,6 +85,8 @@ ohos_shared_library("embeddablewindowstageani_kit") {
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
@@ -142,6 +144,8 @@ ohos_shared_library("embeddablewindowstageani_module") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "runtime_core:ani",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   innerapi_tags = [ "platformsdk" ]

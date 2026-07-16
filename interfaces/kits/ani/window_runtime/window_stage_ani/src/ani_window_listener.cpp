@@ -523,6 +523,27 @@ void AniWindowListener::OnApplicationFocusUpdate(bool isFocused)
     eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::HIGH);
 }
 
+void AniWindowListener::OnWindowHoverStateChange(bool hoverState)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]");
+    auto task = [self = weakRef_, vm = vm_, hoverState] {
+        auto thisListener = self.promote();
+        auto aniVm = AniVm(vm);
+        auto eng = aniVm.GetAniEnv();
+        if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI]this listener, eng or callback is nullptr");
+            return;
+        }
+        AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
+            nullptr, thisListener->aniCallback_, ani_boolean(hoverState));
+    };
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "get main event handler failed!");
+        return;
+    }
+    eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::HIGH);
+}
+
 void AniWindowListener::OnWindowStatusChange(WindowStatus windowstatus)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI] windowstatus: %{public}u", windowstatus);
@@ -902,6 +923,31 @@ void AniWindowListener::OnWindowStatusDidChange(WindowStatus status)
         AppExecFwk::EventQueue::Priority::HIGH);
 }
 
+void AniWindowListener::OnFreeWindowModeChange(bool isInFreeWindowMode)
+{
+    TLOGI(WmsLogTag::WMS_PC, "[ANI]");
+    auto task = [self = weakRef_, vm = vm_, isInFreeWindowMode] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || vm == nullptr || thisListener->aniCallback_ == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PC, "[ANI]this listener, vm or callback is nullptr");
+            return;
+        }
+        ani_env* env = nullptr;
+        ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            TLOGNE(WmsLogTag::WMS_PC, "[ANI]get env failed, ret: %{public}u", ret);
+            return;
+        }
+        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
+            nullptr, thisListener->aniCallback_, ani_boolean(isInFreeWindowMode));
+    };
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::WMS_PC, "get main event handler failed!");
+        return;
+    }
+    eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
 void AniWindowListener::OnParentWindowSizeChange(Rect rect)
 {
     TLOGI(WmsLogTag::WMS_LAYOUT, "[ANI] wh: [%{public}u, %{public}u]", rect.width_, rect.height_);
@@ -996,31 +1042,6 @@ void AniWindowListener::OnScreenshotAppEvent(ScreenshotEventType type)
     }
     eventHandler_->PostTask(task, "[ANI] wms:AniWindowListener::OnScreenshotAppEvent", 0,
         AppExecFwk::EventQueue::Priority::IMMEDIATE);
-}
-
-void AniWindowListener::OnFreeWindowModeChange(bool isInFreeWindowMode)
-{
-    TLOGI(WmsLogTag::WMS_PC, "[ANI]");
-    auto task = [self = weakRef_, vm = vm_, isInFreeWindowMode] {
-        auto thisListener = self.promote();
-        if (thisListener == nullptr || vm == nullptr || thisListener->aniCallback_ == nullptr) {
-            TLOGNE(WmsLogTag::WMS_PC, "[ANI]this listener, vm or callback is nullptr");
-            return;
-        }
-        ani_env* env = nullptr;
-        ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
-        if (ret != ANI_OK || env == nullptr) {
-            TLOGNE(WmsLogTag::WMS_PC, "[ANI]get env failed, ret: %{public}u", ret);
-            return;
-        }
-        AniWindowUtils::CallAniFunctionVoid(env, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
-            nullptr, thisListener->aniCallback_, ani_boolean(isInFreeWindowMode));
-    };
-    if (!eventHandler_) {
-        TLOGE(WmsLogTag::WMS_PC, "get main event handler failed!");
-        return;
-    }
-    eventHandler_->PostTask(task, __func__, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 
 void AniWindowListener::OnParentForeground(int32_t windowId)

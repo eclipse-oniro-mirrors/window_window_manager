@@ -206,7 +206,7 @@ HWTEST_F(KeyboardSessionTest6, DisconnectWithAnimationInfo, TestSize.Level1)
     property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     keyboardSession->SetSessionProperty(property);
     keyboardSession->isActive_ = true;
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     WindowAnimationInfo animationInfo;
     CallingWindowInfoData callingWindowInfoData;
     WSRect rect = {0, 0, 0, 0};
@@ -577,7 +577,7 @@ HWTEST_F(KeyboardSessionTest6, OpenKeyboardSyncTransaction01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("OpenSync01", "OpenSync01");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->OpenKeyboardSyncTransaction();
     EXPECT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, true);
 }
@@ -586,7 +586,7 @@ HWTEST_F(KeyboardSessionTest6, OpenKeyboardSyncTransaction02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("OpenSync02", "OpenSync02");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->OpenKeyboardSyncTransaction();
     EXPECT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, true);
 }
@@ -595,7 +595,7 @@ HWTEST_F(KeyboardSessionTest6, CloseKeyboardSyncTransaction01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseSync01", "CloseSync01");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     WSRect rect = {0, 0, 0, 0};
     WindowAnimationInfo animationInfo;
     CallingWindowInfoData callingWindowInfoData;
@@ -608,7 +608,7 @@ HWTEST_F(KeyboardSessionTest6, CloseKeyboardSyncTransaction02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseSync02", "CloseSync02");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     WSRect rect = {100, 200, 500, 300};
     WindowAnimationInfo animationInfo;
     animationInfo.callingId = 10;
@@ -992,7 +992,7 @@ HWTEST_F(KeyboardSessionTest6, CloseRSTransaction01, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseRSTrans01", "CloseRSTrans01");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->CloseRSTransaction();
     EXPECT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 }
@@ -1001,7 +1001,7 @@ HWTEST_F(KeyboardSessionTest6, CloseRSTransaction02, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CloseRSTrans02", "CloseRSTrans02");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->CloseRSTransaction();
     EXPECT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 }
@@ -1055,7 +1055,7 @@ HWTEST_F(KeyboardSessionTest6, GetIsKeyboardSyncTransactionOpen01, TestSize.Leve
 {
     auto keyboardSession = GetKeyboardSession("GetSyncOpen01", "GetSyncOpen01");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     bool result = keyboardSession->GetIsKeyboardSyncTransactionOpen();
     EXPECT_EQ(result, true);
 }
@@ -1064,7 +1064,7 @@ HWTEST_F(KeyboardSessionTest6, GetIsKeyboardSyncTransactionOpen02, TestSize.Leve
 {
     auto keyboardSession = GetKeyboardSession("GetSyncOpen02", "GetSyncOpen02");
     ASSERT_NE(keyboardSession, nullptr);
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     bool result = keyboardSession->GetIsKeyboardSyncTransactionOpen();
     EXPECT_EQ(result, false);
 }

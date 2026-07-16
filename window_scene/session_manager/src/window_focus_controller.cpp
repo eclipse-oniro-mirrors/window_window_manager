@@ -86,7 +86,7 @@ WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, Disp
     {
         std::lock_guard<std::mutex> lock(focusGroupMapMutex_);
         auto iter = focusGroupMap_.find(displayGroupId);
-        if (iter == focusGroupMap_.end()) {
+        if (iter == focusGroupMap_.end() || iter->second == nullptr) {
             sptr<FocusGroup> focusGroup = sptr<FocusGroup>::MakeSptr(displayGroupId);
             focusGroup->displayIds_.insert(displayId);
             focusGroupMap_.insert(std::make_pair(displayGroupId, focusGroup));
@@ -146,10 +146,9 @@ WSError WindowFocusController::RemoveFocusGroup(DisplayGroupId displayGroupId, D
 sptr<FocusGroup> WindowFocusController::GetFocusGroupInner(DisplayId displayId)
 {
     DisplayId displayGroupId = GetDisplayGroupId(displayId);
+    TLOGD(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64 ", displayGroupId: %{public}" PRIu64,
+        displayId, displayGroupId);
     std::lock_guard<std::mutex> lock(focusGroupMapMutex_);
-    if (displayGroupId == DEFAULT_DISPLAY_ID) {
-        return focusGroupMap_[DEFAULT_DISPLAY_ID];
-    }
     auto iter = focusGroupMap_.find(displayGroupId);
     if (iter == focusGroupMap_.end()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Not found focus group with displayId: %{public}" PRIu64, displayId);

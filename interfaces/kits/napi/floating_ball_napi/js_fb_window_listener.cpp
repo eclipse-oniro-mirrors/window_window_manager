@@ -100,5 +100,32 @@ void JsFbWindowListener::OnClickEvent()
     }
 }
 
+void JsFbWindowListener::OnDestroyEvent(const std::string& reason)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "called, destroyEvent, reason: %{public}s", reason.c_str());
+    OnDestroyCallback(reason);
+}
+
+void JsFbWindowListener::OnDestroyCallback(const std::string& reason)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "OnDestroyCallback, reason: %{public}s", reason.c_str());
+    auto napiTask = [jsCallback = jsCallBack_, reason, env = env_]() {
+        if (jsCallback == nullptr) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "js callback is null");
+            return;
+        }
+        napi_value argv[] = {CreateJsValue(env, reason)};
+        CallJsFunction(env, jsCallback->GetNapiValue(), argv, ArraySize(argv));
+    };
+    if (env_ != nullptr) {
+        napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnDestroyCallback");
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to SendEvent");
+        }
+    } else {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "env is nullptr");
+    }
+}
+
 } // namespace Rosen
 } // namespace OHOS

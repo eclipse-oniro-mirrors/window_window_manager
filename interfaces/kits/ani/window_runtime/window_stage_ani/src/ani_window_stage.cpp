@@ -437,16 +437,21 @@ void AniWindowStage::OnDisableWindowDecor(ani_env* env)
 {
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
     auto mainWindow = windowScene->GetMainWindow();
     if (mainWindow == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor.error",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->DisableAppWindowDecor());
     if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.disableWindowDecor.error", ret);
         AniWindowUtils::AniThrowError(env, ret);
         return;
     }
@@ -456,6 +461,7 @@ void AniWindowStage::SetWindowRectAutoSave(ani_env* env, ani_class cls, ani_long
     ani_boolean enabled, bool isSaveBySpecifiedFlag)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     AniWindowStage* aniWindowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
     if (aniWindowStage != nullptr) {
         aniWindowStage->OnSetWindowRectAutoSave(env, enabled, isSaveBySpecifiedFlag);
@@ -466,7 +472,6 @@ void AniWindowStage::SetWindowRectAutoSave(ani_env* env, ani_class cls, ani_long
 
 void AniWindowStage::OnSetWindowRectAutoSave(ani_env* env, ani_boolean enabled, bool isSaveBySpecifiedFlag)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.setWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI]windowScene is nullptr!");
@@ -495,6 +500,7 @@ void AniWindowStage::OnSetWindowRectAutoSave(ani_env* env, ani_boolean enabled, 
 ani_boolean AniWindowStage::IsWindowRectAutoSave(ani_env* env, ani_class cls, ani_long nativeObj)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
+    HISTOGRAM_BOOLEAN("ArkUI.window.isWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     AniWindowStage* aniWindowStage = reinterpret_cast<AniWindowStage*>(nativeObj);
     if (aniWindowStage != nullptr) {
         return aniWindowStage->OnIsWindowRectAutoSave(env);
@@ -506,7 +512,6 @@ ani_boolean AniWindowStage::IsWindowRectAutoSave(ani_env* env, ani_class cls, an
 
 ani_boolean AniWindowStage::OnIsWindowRectAutoSave(ani_env* env)
 {
-    HISTOGRAM_BOOLEAN("ArkUI.window.isWindowRectAutoSave", HISTOGRAM_BOOLEAN_COUNTS);
     auto windowScene = GetWindowScene().lock();
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI]windowScene is nullptr!");

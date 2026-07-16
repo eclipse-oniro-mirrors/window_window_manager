@@ -2340,6 +2340,27 @@ export enum ExtensionWindowAttribute {
 }
 
 /**
+ * Enumerates of window posture mode.
+ *
+ * @syscap SystemCapability.Window.SessionManager
+ * @stagemodelonly
+ * @since 26.0.0 dynamic&static
+ */
+export enum WindowPostureMode {
+ 	/**
+ 	 * Desktop mode, when the following conditions are met:
+ 	 * 1. The fold status of screen is half folded status (FoldStatus.FOLD_STATUS_HALF_FOLDED).
+ 	 * 2. The width of creaseRects obtained via display.getLiveCreaseRegion is greater than its height.
+ 	 * 3. The size of the window is the same as that of the screen.
+ 	 *
+ 	 * @syscap SystemCapability.Window.SessionManager
+ 	 * @stagemodelonly
+ 	 * @since 26.0.0 dynamic&static
+ 	 */
+ 	DESKTOP_MODE = 0
+}
+
+/**
  * Options for system window creation.
  *
  * @interface SystemWindowOptions
@@ -2799,50 +2820,6 @@ export class WindowStageInternal implements WindowStage {
         });
     }
 
-    public setWindowRectAutoSave(enabled: boolean): Promise<void> {
-        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): void => {
-                this.setWindowRectAutoSave(this.nativeObj, enabled, false);
-            }).then((ret: Any) => {
-                resolve(undefined);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public setWindowRectAutoSave(enabled: boolean, isSaveBySpecifiedFlag: boolean): Promise<void> {
-        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): void => {
-                this.setWindowRectAutoSave(this.nativeObj, enabled, isSaveBySpecifiedFlag);
-            }).then((ret: Any) => {
-                resolve(undefined);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public isWindowRectAutoSave(): Promise<boolean> {
-        return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
-            taskpool.execute((): boolean => {
-                return this.isWindowRectAutoSave(this.nativeObj);
-            }).then((ret: Any) => {
-                resolve(ret as boolean);
-            }).catch((err: Any) => {
-                reject(err as BusinessError);
-            });
-        });
-    }
-
-    public onWindowStageClose(callback: WindowStageCloseCallback<void, boolean>): void {
-        this.onSync(this.nativeObj, 'windowStageClose', callback);
-    }
-
-    public offWindowStageClose(callback?: WindowStageCloseCallback<void, boolean>): void {
-        this.offSync(this.nativeObj, 'windowStageClose', callback);
-    }
-
     public getSubWindow(): Promise<Array<Window>> {
       return new Promise<Array<Window>>((resolve: (value: Array<Window>) => void,
         reject: (error: BusinessError) => void) => {
@@ -2886,6 +2863,50 @@ export class WindowStageInternal implements WindowStage {
       this.offSync(this.nativeObj, eventType, callback);
     }
 
+    public setWindowRectAutoSave(enabled: boolean): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+          taskpool.execute((): void => {
+              this.setWindowRectAutoSave(this.nativeObj, enabled, false);
+          }).then((ret: Any) => {
+              resolve(undefined);
+          }).catch((err: Any) => {
+              reject(err as BusinessError);
+          });
+      });
+    }
+
+    public setWindowRectAutoSave(enabled: boolean, isSaveBySpecifiedFlag: boolean): Promise<void> {
+        return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void) => {
+            taskpool.execute((): void => {
+                this.setWindowRectAutoSave(this.nativeObj, enabled, isSaveBySpecifiedFlag);
+            }).then((ret: Any) => {
+                resolve(undefined);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public isWindowRectAutoSave(): Promise<boolean> {
+        return new Promise<boolean>((resolve: (value: boolean) => void, reject: (error: BusinessError) => void) => {
+            taskpool.execute((): boolean => {
+                return this.isWindowRectAutoSave(this.nativeObj);
+            }).then((ret: Any) => {
+                resolve(ret as boolean);
+            }).catch((err: Any) => {
+                reject(err as BusinessError);
+            });
+        });
+    }
+
+    public onWindowStageClose(callback: WindowStageCloseCallback<void, boolean>): void {
+        this.onSync(this.nativeObj, 'windowStageClose', callback);
+    }
+
+    public offWindowStageClose(callback?: WindowStageCloseCallback<void, boolean>): void {
+        this.offSync(this.nativeObj, 'windowStageClose', callback);
+    }
+
     public static transferStatic(input: Any): Object {
       if (!input) {
         throw new BusinessError(WM_ERROR_INVALID_PARAM, new Error('TransferStatic invalid input!'));
@@ -2922,7 +2943,7 @@ export class WindowStageInternal implements WindowStage {
         });
       });
     }
- 
+
     public removeImageForRecent(): Promise<void> {
       return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
         try {
@@ -3215,6 +3236,9 @@ export class WindowInternal implements Window {
     private native setRotationLocked(nativeObj: long, locked: boolean): void;
     private native getRotationLocked(nativeObj: long): boolean;
     private native isInFreeWindowMode(nativeObj: long): boolean;
+    private native isInWindowPostureMode(nativeObj: long, mode: WindowPostureMode): boolean;
+    private native onWindowPostureModeChange(nativeObj: long, mode: WindowPostureMode, callback: Callback<boolean>): void;
+    private native offWindowPostureModeChange(nativeObj: long, mode: WindowPostureMode, callback?: Callback<boolean>): void;
     private native setRelativePositionToParentWindowEnabled(nativeObj: long, enabled: boolean, anchor: WindowAnchor,
       offsetX: int, offsetY: int): void;
     private native setWindowDelayRaiseOnDrag(nativeObj: long, isEnabled: boolean): void;
@@ -4712,8 +4736,9 @@ export class WindowInternal implements Window {
     }
 
     public setWindowShadowEnabled(enable: boolean): Promise<void> {
-      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
-        taskpool.execute((): void => {
+      return new Promise<void>(
+        (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+          taskpool.execute((): void => {
           this.setWindowShadowEnabledSync(this.nativeObj, enable);
         }).then((ret: Any) => {
           resolve(undefined);
@@ -5391,6 +5416,18 @@ export class WindowInternal implements Window {
       this.offSync(this.nativeObj, type, callback);
     }
 
+    public isInWindowPostureMode(mode: WindowPostureMode): boolean {
+      return this.isInWindowPostureMode(this.nativeObj, mode);
+    }
+
+    public onWindowPostureModeChange(mode: WindowPostureMode, callback: Callback<boolean>): void {
+      this.onWindowPostureModeChange(this.nativeObj, mode, callback);
+    }
+
+    public offWindowPostureModeChange(mode: WindowPostureMode, callback?: Callback<boolean>): void {
+      this.offWindowPostureModeChange(this.nativeObj, mode, callback);
+    }
+
     public setRelativePositionToParentWindowEnabled(enabled: boolean, anchor?: WindowAnchor,
       offsetX?: int, offsetY?: int): Promise<void> {
       return new Promise<void>(
@@ -5722,6 +5759,9 @@ export interface Window {
     isInFreeWindowMode(): boolean;
     onFreeWindowModeChange(callback: Callback<boolean>): void;
     offFreeWindowModeChange(callback?: Callback<boolean>): void;
+    isInWindowPostureMode(mode: WindowPostureMode): boolean;
+    onWindowPostureModeChange(mode: WindowPostureMode, callback: Callback<boolean>): void;
+    offWindowPostureModeChange(mode: WindowPostureMode, callback?: Callback<boolean>): void;
     setRelativePositionToParentWindowEnabled(enabled: boolean, anchor?: WindowAnchor,
       offsetX?: int, offsetY?: int): Promise<void>;
     setWindowDelayRaiseOnDrag(isEnabled: boolean): void;
@@ -6461,6 +6501,10 @@ function runWindowStatusDidChangeCallback(cb: object, windowStatus: int): void {
   func(WindowStatusType.fromValue(windowStatus));
 }
 
+function runParentLifecycleEventCallback(cb: object, windowId: int, event: int): void {
+  const func = cb as (windowId: int, event: WindowEventType) => void;
+  func(windowId, WindowEventType.fromValue(event));
+}
 function runParentWindowSizeChangeCallback(cb: object, cbArg: object): void {
   const func = cb as (cbArg: Size) => void;
   func(cbArg as Size);
@@ -6471,10 +6515,6 @@ function runParentWindowStatusChangeCallback(cb: object, windowStatus: int): voi
   func(WindowStatusType.fromValue(windowStatus));
 }
 
-function runParentLifecycleEventCallback(cb: object, windowId: int, event: int): void {
-  const func = cb as (windowId: int, event: WindowEventType) => void;
-  func(windowId, WindowEventType.fromValue(event));
-}
 }
 
 export default window;

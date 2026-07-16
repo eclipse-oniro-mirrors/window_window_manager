@@ -157,6 +157,10 @@ ohos_static_library("libwm_static") {
     "napi:ace_napi",
     "samgr:samgr_proxy",
     "common_event_service:cesfwk_innerkits",
+    "egl:libEGL",
+    "opengles:libGLES",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines = []
@@ -325,6 +329,10 @@ ohos_shared_library("libwm") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "egl:libEGL",
+    "opengles:libGLES",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines = []
@@ -601,6 +609,8 @@ ohos_shared_library("libpip_web") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
@@ -682,6 +692,8 @@ ohos_shared_library("libpip_ndk") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"

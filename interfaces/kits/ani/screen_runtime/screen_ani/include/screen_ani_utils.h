@@ -38,6 +38,8 @@ static ani_status CallAniFunctionVoid(ani_env *env, const char* ns,
 
 static ani_status ConvertScreen(ani_env *env, sptr<Screen> screen, ani_object screenAni);
 
+static void SetScreenBasicFields(ani_env *env, sptr<ScreenInfo> info, ani_object obj);
+
 static void ConvertScreenMode(ani_env* env, sptr<SupportedScreenModes> mode, ani_object obj);
 
 static ani_status ConvertScreens(ani_env *env, std::vector<sptr<Screen>> screen, ani_object& screensAni);
@@ -65,12 +67,6 @@ static ani_status GetScreenIdArrayFromAni(ani_env* env, ani_object mirrorScreen,
     std::vector<ScreenId>& mirrorScreenIds);
 
 static ani_status GetExpandOptionFromAni(ani_env* env, ani_object optionAniObj, ExpandOption& expandOption);
-
-template <typename T>
-static DmErrorCode GetOptionalFieldFromAni(ani_env* env, ani_object obj, T& value, const char* field);
-
-template <typename T>
-static void CastDefinedFieldToValue(ani_env* env, ani_object obj, T& value);
 };
 
 class AniVm {

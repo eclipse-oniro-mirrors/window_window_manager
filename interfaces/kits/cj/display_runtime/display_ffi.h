@@ -47,7 +47,7 @@ FFI_EXPORT float FfiOHOSDisplayGetDensityDPI(int64_t id);
 FFI_EXPORT float FfiOHOSDisplayGetVirtualPixelRatio(int64_t id);
 FFI_EXPORT float FfiOHOSDisplayGetXDPI(int64_t id);
 FFI_EXPORT float FfiOHOSDisplayGetYDPI(int64_t id);
-FFI_EXPORT RetStruct FfiOHOSDisplayGetColorSapces(int64_t id);
+FFI_EXPORT RetStruct FfiOHOSDisplayGetColorSpaces(int64_t id);
 FFI_EXPORT RetStruct FfiOHOSDisplayGetHdrFormats(int64_t id);
 FFI_EXPORT uint32_t FfiOHOSDisplayGetAvailableWidth(int64_t id);
 FFI_EXPORT uint32_t FfiOHOSDisplayGetAvailableHeight(int64_t id);

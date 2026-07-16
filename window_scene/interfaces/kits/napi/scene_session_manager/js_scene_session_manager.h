@@ -109,6 +109,7 @@ public:
     static napi_value UnregisterRssData(napi_env env, napi_callback_info info);
     static napi_value NotifySessionRecoverStatus(napi_env env, napi_callback_info info);
     static napi_value UpdateSessionDisplayId(napi_env env, napi_callback_info info);
+    static napi_value UpdateScreenSupportMultiWindow(napi_env env, napi_callback_info info);
     static napi_value NotifyStackEmpty(napi_env env, napi_callback_info info);
     static napi_value SetSystemAnimatedScenes(napi_env env, napi_callback_info info);
     static napi_value GetSessionSnapshotPixelMap(napi_env env, napi_callback_info info);
@@ -226,6 +227,7 @@ private:
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
     napi_value OnGetRootSceneSession(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSession(napi_env env, napi_callback_info info);
+    napi_value OnKioskModeChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneSessionWant(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionActivation(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionBackground(napi_env env, napi_callback_info info);
@@ -271,6 +273,7 @@ private:
     napi_value OnRegisterRssData(napi_env env, napi_callback_info info);
     napi_value OnUnregisterRssData(napi_env env, napi_callback_info info);
     napi_value OnUpdateSessionDisplayId(napi_env env, napi_callback_info info);
+    napi_value OnUpdateScreenSupportMultiWindow(napi_env env, napi_callback_info info);
     napi_value OnNotifyStackEmpty(napi_env env, napi_callback_info info);
     napi_value OnUpdateTitleInTargetPos(napi_env env, napi_callback_info info);
     napi_value OnSetSystemAnimatedScenes(napi_env env, napi_callback_info info);
@@ -432,6 +435,7 @@ private:
      * Window Lifecycle
      */
     static napi_value RequestSceneSession(napi_env env, napi_callback_info info);
+    static napi_value KioskModeChange(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneSessionWant(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionActivation(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionBackground(napi_env env, napi_callback_info info);
@@ -466,7 +470,7 @@ private:
         bool isFromScreenVirtual, bool isToScreenVirtual);
 
     napi_env env_;
-    std::shared_mutex jsCbMapMutex_;
+    std::mutex jsCbMapMutex_;
     std::map<std::string, std::shared_ptr<NativeReference>> jsCbMap_;
 
     sptr<RootScene> rootScene_;

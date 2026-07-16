@@ -2008,6 +2008,57 @@ HWTEST_F(SceneSessionTest, GetAppForceLandscapeConfig, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetForceSplitEnable01
+ * @tc.desc: GetForceSplitEnable when property is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetForceSplitEnable01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetForceSplitEnable01";
+    info.bundleName_ = "GetForceSplitEnable01";
+    // SetUp is not required; this test intentionally creates a fresh SceneSession to test null-property path
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    // No public API to set property_ to nullptr; direct access is intentional for testing null-property path
+    sceneSession->property_ = nullptr;
+
+    bool enable = false;
+    auto result = sceneSession->GetForceSplitEnable(enable);
+    ASSERT_EQ(result, WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: GetForceSplitEnable02
+ * @tc.desc: GetForceSplitEnable when property is valid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetForceSplitEnable02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetForceSplitEnable02";
+    info.bundleName_ = "GetForceSplitEnable02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sceneSession->SetSessionProperty(property);
+
+    sceneSession->GetSessionProperty()->SetForceSplitEnable(true);
+    bool enable = false;
+    auto result = sceneSession->GetForceSplitEnable(enable);
+    ASSERT_EQ(result, WMError::WM_OK);
+    ASSERT_EQ(enable, true);
+
+    sceneSession->GetSessionProperty()->SetForceSplitEnable(false);
+    enable = true;
+    result = sceneSession->GetForceSplitEnable(enable);
+    ASSERT_EQ(result, WMError::WM_OK);
+    ASSERT_EQ(enable, false);
+}
+
+/**
  * @tc.name: SetDefaultDisplayIdIfNeed
  * @tc.desc: SetDefaultDisplayIdIfNeed
  * @tc.type: FUNC
@@ -2623,6 +2674,56 @@ HWTEST_F(SceneSessionTest, OnSessionEventWithCreateWindowWhenDragging03, TestSiz
     SessionEventParam param;
     auto result = sceneSession->OnSessionEvent(SessionEvent::EVENT_CREATE_WINDOW_WHEN_DRAGGING, param);
     EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition01
+ * @tc.desc: Test GetSessionGlobalPosition with useUIExtension=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition01";
+    info.bundleName_ = "GetSessionGlobalPosition01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    WSRect globalRect = { 100, 200, 300, 400 };
+    sceneSession->SetSessionGlobalRect(globalRect);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(false);
+    EXPECT_EQ(position.x_, 100);
+    EXPECT_EQ(position.y_, 200);
+}
+
+/**
+ * @tc.name: GetSessionGlobalPosition02
+ * @tc.desc: Test GetSessionGlobalPosition with useUIExtension=true and modalUIExtension
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, GetSessionGlobalPosition02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSessionGlobalPosition02";
+    info.bundleName_ = "GetSessionGlobalPosition02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    sceneSession->SetSessionGlobalRect({ 50, 60, 100, 200 });
+    sceneSession->SetScale(0.75f, 0.75f, 0.5f, 0.5f);
+
+    ExtensionWindowEventInfo extensionInfo;
+    extensionInfo.persistentId = 12345;
+    extensionInfo.windowRect = { 100, 120, 200, 300 };
+    sceneSession->AddNormalModalUIExtension(extensionInfo);
+
+    Vector2f position = sceneSession->GetSessionGlobalPosition(true);
+    
+    int32_t expectedX = 100;
+    int32_t expectedY = 120;
+    EXPECT_EQ(position.x_, expectedX);
+    EXPECT_EQ(position.y_, expectedY);
 }
 } // namespace
 } // namespace Rosen

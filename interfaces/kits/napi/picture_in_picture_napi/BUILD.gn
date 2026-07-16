@@ -59,6 +59,7 @@ ohos_shared_library("pipwindow_kit") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   innerapi_tags = [ "platformsdk" ]
@@ -110,6 +111,8 @@ ohos_shared_library("pipwindow_napi") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "image_framework:image_native",
+    "node:node_header_notice",
   ]
 
   relative_install_dir = "module"

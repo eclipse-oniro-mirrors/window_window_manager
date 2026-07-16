@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -250,8 +250,7 @@ public:
     bool OnPointDown(int32_t eventId, int32_t posX, int32_t posY) override;
     WMError SetIntentParam(const std::string& intentParam, const std::function<void()>& loadPageCallback,
         bool isColdStart) override;
-    virtual void SetForceSplitConfigEnable(bool enableForceSplit, bool needUpdateViewport = false,
-        SelectMode selectMode = SelectMode::INVALID_MODE) {};
+    virtual void SetForceSplitConfigEnable(bool needUpdateViewport = false) {};
     void SetForceSplitConfig(const AppForceLandscapeConfig& config);
 
     /*
@@ -705,7 +704,6 @@ public:
      */
     std::shared_ptr<RSUIDirector> GetRSUIDirector() const override;
     std::shared_ptr<RSUIContext> GetRSUIContext() const override;
-
     /*
      * Window LifeCycle
      */
@@ -726,6 +724,15 @@ public:
     static std::string WindowStatusToString(WindowStatus status);
 
     WSError UpdateIsShowDecorInFreeMultiWindow(bool isShow) override;
+
+    /*
+     * window hover state
+     */
+    bool GetWindowHoverState() override;
+    WMError RegisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
+    WMError UnregisterWindowHoverStateChangeListener(const sptr<IWindowHoverStateChangeListener>& listener) override;
+    WSError UpdateLSState(bool isLSState) override;
+    bool GetLSState() const;
 
 protected:
     RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
@@ -843,7 +850,6 @@ protected:
     void ClearSwitchFreeMultiWindowListenersById(int32_t persistentId);
     void NotifySwitchFreeMultiWindow(bool enable);
     virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
-    virtual void PendingUpdateSupportWindowModesWhenSwitchMultiWindow() {}
 
     void ClearVsyncStation();
     void ReleaseSurfaceNode();
@@ -982,7 +988,7 @@ protected:
     bool escKeyHasDown_ { false };
     // Check whether the UIExtensionAbility process is started
     static bool isUIExtensionAbilityProcess_;
-    WSError SwitchFreeMultiWindow(bool enable) override;
+    WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     std::string identityToken_ = { "" };
     void MakeSubOrDialogWindowDragableAndMoveble();
@@ -1073,6 +1079,7 @@ protected:
     void HookWindowSizeByHookWindowInfo(Rect& rect) const;
     void SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo);
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
+    virtual WMError GetForceSplitEnable(bool& enable) { return WMError::WM_OK; }
 
     /*
      * Window Immersive
@@ -1131,9 +1138,11 @@ protected:
     /*
      * Window Rotation
      */
-    int16_t rotationAnimationCount_ { 0 };
-    int16_t sceneAnimationCount_ { 0 };
+    std::atomic<int16_t> rotationAnimationCount_ { 0 };
+    std::atomic<int16_t> sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
+    void StartRotationAnimationTimeoutTask(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
+        std::shared_ptr<std::atomic_bool> rotationAnimationCallBackExecuted);
     mutable std::mutex virtualPixelRatioMutex_;
 
     /*
@@ -1148,6 +1157,7 @@ protected:
     void NotifyTitleChange(bool isShow, int32_t height);
     bool isDecorHiddenByApp_ = false;
     bool isMaximizeInvoked_ = false;
+    bool isTitleShowInFullScreen_ = false;
 
     /*
      * RS Client Multi Instance
@@ -1245,6 +1255,8 @@ private:
     EnableIfSame<T, IFreeWindowModeChangeListener, std::vector<sptr<IFreeWindowModeChangeListener>>> GetListeners();
     template<typename T>
  	EnableIfSame<T, IParentLifecycleEventListener, std::vector<sptr<IParentLifecycleEventListener>>> GetListeners();
+    template<typename T>
+ 	EnableIfSame<T, IWindowHoverStateChangeListener, std::vector<sptr<IWindowHoverStateChangeListener>>> GetListeners();
     void NotifyAfterFocused();
     void NotifyUIContentFocusStatus();
     void NotifyAfterUnfocused(bool needNotifyUiContent = true);
@@ -1344,6 +1356,7 @@ private:
     static std::recursive_mutex windowStatusDidChangeListenerMutex_;
     static std::recursive_mutex parentWindowSizeChangeListenerMutex_;
     static std::recursive_mutex parentWindowStatusChangeListenerMutex_;
+    static std::recursive_mutex windowHoverStateChangeListenerMutex_;
     static std::mutex displayMoveListenerMutex_;
     static std::mutex windowRectChangeListenerMutex_;
     static std::mutex windowTitleChangeListenerMutex_;
@@ -1406,6 +1419,7 @@ private:
     static std::map<int32_t, std::vector<sptr<IWindowRotationChangeListener>>> windowRotationChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IFreeWindowModeChangeListener>>> freeWindowModeChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IParentLifecycleEventListener>>> parentLifecycleEventListeners_;
+    static std::map<int32_t, std::vector<sptr<IWindowHoverStateChangeListener>>> windowHoverStateChangeListeners_;
 
     // FA only
     sptr<IAceAbilityHandler> aceAbilityHandler_;
@@ -1417,7 +1431,6 @@ private:
     std::string subWindowTitle_ = { "" };
     std::string dialogTitle_ = { "" };
     WindowTitleVisibleFlags windowTitleVisibleFlags_;
-
     std::string restoredRouterStack_; // It was set and get in same thread, which is js thread.
 
     /*
@@ -1512,6 +1525,32 @@ private:
     void NotifyRotationChangeResult(RotationChangeResult rotationChangeResult) override;
     void NotifyRotationChangeResultInner(const RotationChangeInfo& rotationChangeInfo);
     DisplayOrientation windowOrientation_ = DisplayOrientation::UNKNOWN;
+
+    /*
+     * window hover state
+     */
+    class FoldStatusListener : public DisplayManager::IFoldStatusListener {
+    public:
+        explicit FoldStatusListener(const sptr<WindowSessionImpl> windowSessionimpl)
+            : windowSessionimpl_(windowSessionimpl) {}
+        ~FoldStatusListener() { windowSessionimpl_ = nullptr; }
+
+        void OnFoldStatusChanged(FoldStatus foldStatus) override;
+    private:
+        sptr<WindowSessionImpl> windowSessionimpl_ = nullptr;
+    };
+    virtual bool CheckWindowCanInHoverState(const Rect& windowRect);
+    void UpdateHoverState(const Rect& windowRect, FoldStatus foldStatus);
+    void NotifyWindowHoverStateChange(bool hoverState);
+    void RegisterFoldStatusListener();
+    void UnregisterFoldStatusListener();
+    bool GetHoverState();
+    void SetHoverState(bool hoverState);
+    mutable std::mutex hoverStateMutex_;
+    mutable std::mutex isLSStateMutex_;
+    bool hoverState_ = false;
+    sptr<DisplayManager::IFoldStatusListener> foldStatusListener_ = nullptr;
+    bool isLSState_ = false;
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -180,6 +180,9 @@ public:
     static napi_value SetWindowGrayScale(napi_env env, napi_callback_info info);
     static napi_value SetRotationLocked(napi_env env, napi_callback_info info);
     static napi_value GetRotationLocked(napi_env env, napi_callback_info info);
+    static napi_value IsInWindowPostureMode(napi_env env, napi_callback_info info);
+    static napi_value OnWindowPostureModeChange(napi_env env, napi_callback_info info);
+    static napi_value OffWindowPostureModeChange(napi_env env, napi_callback_info info);
 
     /*
      * Sub Window
@@ -442,6 +445,10 @@ private:
     napi_value OnStopMoving(napi_env env, napi_callback_info info);
     napi_value OnSetRotationLocked(napi_env env, napi_callback_info info);
     napi_value OnGetRotationLocked(napi_env env, napi_callback_info info);
+    napi_value OnIsInWindowPostureMode(napi_env env, napi_callback_info info);
+    napi_value OnRegisterWindowPostureModeChange(napi_env env, napi_callback_info info);
+    napi_value OnUnregisterWindowPostureModeChange(napi_env env, napi_callback_info info);
+    WmErrorCode ParseWindowPostureMode(napi_env env, napi_value nativeMode, WindowPostureMode& postureMode);
 
     /*
      * Sub Window
@@ -504,10 +511,21 @@ private:
     napi_value OnSetSupportedWindowModes(napi_env env, napi_callback_info info);
 
     std::string windowName_;
+    mutable std::shared_mutex windowTokenMtx_;
     sptr<Window> windowToken_ = nullptr;
     std::unique_ptr<JsWindowRegisterManager> registerManager_ = nullptr;
     std::shared_ptr<NativeReference> jsTransControllerObj_ = nullptr;
     napi_env env_;
+    void SetWindowToken(const sptr<Window>& windowToken)
+    {
+        std::unique_lock<std::shared_mutex> lock(windowTokenMtx_);
+        windowToken_ = windowToken;
+    }
+    sptr<Window> GetWindowToken() const
+    {
+        std::shared_lock<std::shared_mutex> lock(windowTokenMtx_);
+        return windowToken_;
+    }
 
     /*
      * Window Immersive

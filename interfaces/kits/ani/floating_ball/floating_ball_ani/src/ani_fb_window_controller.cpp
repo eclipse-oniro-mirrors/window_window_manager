@@ -766,6 +766,85 @@ WmErrorCode AniFbController::ProcessOnStateChangeListener(sptr<AniFbWindowListen
     return res;
 };
 
+void AniFbController::RegisterFbOnDestroyCallback(ani_env* env,
+                                                  ani_object obj,
+                                                  ani_long nativeObj,
+                                                  ani_ref callback)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[FB]start");
+    // check nullptr
+    AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
+    if (aniFbController == nullptr) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+            "[FB]AniFbController* aniFbController for nativeObj is nullptr");
+        return;
+    }
+    // working
+    aniFbController->OnRegisterFbOnDestroyCallback(env, callback, aniFbController);
+}
+
+void AniFbController::OnRegisterFbOnDestroyCallback(ani_env* env,
+                                                    ani_ref callback,
+                                                    AniFbController*& aniFbController)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[FB]start");
+    // working
+    WmErrorCode ret = aniFbController->RegisterListenerOnDestroy(env, callback);
+    // check result
+    if (ret != WmErrorCode::WM_OK) {
+        AniThrowError(env, ret, "[FB]fbController_->RegisterListener failed");
+        return;
+    }
+}
+
+WmErrorCode AniFbController::RegisterListenerOnDestroy(ani_env* env, ani_ref callback)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[FB]start");
+    if (IsCallbackRegistered(env, FbListenerType::DESTROY_CB, callback)) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]Callback already registered");
+        return WmErrorCode::WM_ERROR_FB_REPEAT_OPERATION;
+    }
+    ani_ref cbRef{};
+    if (env->GlobalReference_Create(callback, &cbRef) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]create global ref fail");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    };
+    ani_vm* vm = nullptr;
+    ani_status aniRet = env->GetVM(&vm);
+    if (aniRet != ANI_OK || vm == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]Get VM failed, ret: %{public}u", aniRet);
+        env->GlobalReference_Delete(cbRef);
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    auto fbControllerListener = sptr<AniFbWindowListener>::MakeSptr(env, vm, cbRef);
+    if (fbControllerListener == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]New AniFbWindowListener failed");
+        env->GlobalReference_Delete(cbRef);
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    fbControllerListener->SetMainEventHandler();
+    WmErrorCode ret = ProcessOnDestroyListener(fbControllerListener);
+    if (ret != WmErrorCode::WM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]ProcessOnDestroyListener failed");
+        env->GlobalReference_Delete(cbRef);
+        return ret;
+    }
+    typeCallbackListenerMap_[FbListenerType::DESTROY_CB][cbRef] = fbControllerListener;
+    TLOGI(WmsLogTag::DEFAULT,
+        "[FB]Register RegisterListenerOnDestroy success! callback map size: %{public}zu",
+        typeCallbackListenerMap_[FbListenerType::DESTROY_CB].size());
+    return WmErrorCode::WM_OK;
+}
+
+WmErrorCode AniFbController::ProcessOnDestroyListener(sptr<AniFbWindowListener>& listener)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[FB]start");
+    WMError ret = WMError::WM_OK;
+    ret = fbController_->RegisterFbDestroyObserver(listener);
+    WmErrorCode res = static_cast<WmErrorCode>(ret);
+    return res;
+};
+
 void AniFbController::UnRegisterFbOnClickCallback(ani_env* env,
                                                   ani_object obj,
                                                   ani_long nativeObj,
@@ -798,6 +877,23 @@ void AniFbController::UnRegisterFbOnStateChangeCallback(ani_env* env,
     }
     // working
     aniFbController->OnUnRegisterCallback(env, FbListenerType::STATE_CHANGE_CB, callback, aniFbController);
+}
+
+void AniFbController::UnRegisterFbOnDestroyCallback(ani_env* env,
+                                                    ani_object obj,
+                                                    ani_long nativeObj,
+                                                    ani_ref callback)
+{
+    TLOGI(WmsLogTag::DEFAULT, "[FB]start");
+    // check nullptr
+    AniFbController* aniFbController = reinterpret_cast<AniFbController*>(nativeObj);
+    if (aniFbController == nullptr) {
+        AniThrowError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR,
+            "[FB]AniFbController* aniFbController for nativeObj is nullptr");
+        return;
+    }
+    // working
+    aniFbController->OnUnRegisterCallback(env, FbListenerType::DESTROY_CB, callback, aniFbController);
 }
 
 void AniFbController::OnUnRegisterCallback(ani_env* env,
@@ -871,6 +967,8 @@ WMError AniFbController::UnRegisterListener(FbListenerType fbListenerType, sptr<
             return fbController_->UnRegisterFbClickObserver(listener);
         case FbListenerType::STATE_CHANGE_CB:
             return fbController_->UnRegisterFbLifecycle(listener);
+        case FbListenerType::DESTROY_CB:
+            return fbController_->UnRegisterFbDestroyObserver(listener);
         default:
             return WMError::WM_ERROR_FB_PARAM_INVALID;
     }
@@ -917,10 +1015,14 @@ ani_status OHOS::Rosen::ANI_Controller_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void*>(AniFbController::RegisterFbOnClickCallback)},
         ani_native_function {"onStateChangeNative", nullptr,
             reinterpret_cast<void*>(AniFbController::RegisterFbOnStateChangeCallback)},
+        ani_native_function {"onDestroyNative", nullptr,
+            reinterpret_cast<void*>(AniFbController::RegisterFbOnDestroyCallback)},
         ani_native_function {"offClickNative", nullptr,
             reinterpret_cast<void*>(AniFbController::UnRegisterFbOnClickCallback)},
         ani_native_function {"offStateChangeNative", nullptr,
             reinterpret_cast<void*>(AniFbController::UnRegisterFbOnStateChangeCallback)},
+        ani_native_function {"offDestroyNative", nullptr,
+            reinterpret_cast<void*>(AniFbController::UnRegisterFbOnDestroyCallback)},
     };
     // Bind each method in the array
     for (const auto& method: methods) {

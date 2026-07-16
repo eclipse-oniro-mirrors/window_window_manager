@@ -19,6 +19,7 @@
 #include "key_event.h"
 #include "oh_window_comm.h"
 #include "pointer_event.h"
+#include "pointer_event_ndk.h"
 #include "window.h"
 #include "window_histogram_management.h"
 #include "window_manager_hilog.h"
@@ -30,13 +31,6 @@ static const std::unordered_map<int32_t, Input_KeyEventAction> keyEventActionMap
     {OHOS::MMI::KeyEvent::KeyEvent::KEY_ACTION_CANCEL,    Input_KeyEventAction::KEY_ACTION_CANCEL },
     {OHOS::MMI::KeyEvent::KeyEvent::KEY_ACTION_DOWN,      Input_KeyEventAction::KEY_ACTION_DOWN   },
     {OHOS::MMI::KeyEvent::KeyEvent::KEY_ACTION_UP,        Input_KeyEventAction::KEY_ACTION_UP     },
-};
-
-static const std::unordered_map<int32_t, Input_TouchEventAction> touchEventActionMap = {
-    {OHOS::MMI::PointerEvent::POINTER_ACTION_CANCEL,    Input_TouchEventAction::TOUCH_ACTION_CANCEL },
-    {OHOS::MMI::PointerEvent::POINTER_ACTION_DOWN,      Input_TouchEventAction::TOUCH_ACTION_DOWN   },
-    {OHOS::MMI::PointerEvent::POINTER_ACTION_MOVE,      Input_TouchEventAction::TOUCH_ACTION_MOVE   },
-    {OHOS::MMI::PointerEvent::POINTER_ACTION_UP,        Input_TouchEventAction::TOUCH_ACTION_UP     },
 };
 
 static const std::unordered_map<int32_t, Input_MouseEventAction> mouseEventActionMap = {
@@ -218,37 +212,11 @@ WindowManager_ErrorCode OH_NativeWindowManager_UnregisterMouseEventFilter(int32_
 TouchEventFilterFunc convert2TouchEventFilterFunc(OH_NativeWindowManager_TouchEventFilter filter)
 {
     return [filter](const OHOS::MMI::PointerEvent& event) {
-        Input_TouchEvent* touchEvent = OH_Input_CreateTouchEvent();
+        auto touchEvent = OH_Input_PointerEventToTouchEvent(event);
         if (touchEvent == nullptr) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "create input touch event fail");
+            TLOGNE(WmsLogTag::WMS_EVENT, "to touch event fail");
             return false;
         }
-        OHOS::MMI::PointerEvent::PointerItem item;
-        if (!event.GetPointerItem(event.GetPointerId(), item)) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "Can not get pointerItem for the pointer event");
-            OH_Input_DestroyTouchEvent(&touchEvent);
-            return false;
-        }
-        auto actionIter = touchEventActionMap.find(event.GetPointerAction());
-        if (actionIter == touchEventActionMap.end()) {
-            TLOGNI(WmsLogTag::WMS_EVENT, "unknown touch type");
-            OH_Input_DestroyTouchEvent(&touchEvent);
-            return false;
-        }
-        OH_Input_SetTouchEventAction(touchEvent, actionIter->second);
-        OH_Input_SetTouchEventFingerId(touchEvent, event.GetPointerId());
-        OH_Input_SetTouchEventDisplayX(touchEvent, item.GetDisplayX());
-        OH_Input_SetTouchEventDisplayY(touchEvent, item.GetDisplayY());
-        OH_Input_SetTouchEventActionTime(touchEvent, event.GetActionTime());
-        OH_Input_SetTouchEventWindowId(touchEvent, event.GetTargetWindowId());
-        OH_Input_SetTouchEventDisplayId(touchEvent, event.GetTargetDisplayId());
-        OH_Input_SetTouchEventGlobalX(touchEvent, item.GetGlobalX());
-        OH_Input_SetTouchEventGlobalY(touchEvent, item.GetGlobalY());
-        OH_Input_SetTouchEventPressure(touchEvent, item.GetPressure());
-        OH_Input_SetTouchEventWindowX(touchEvent, item.GetWindowX());
-        OH_Input_SetTouchEventWindowY(touchEvent, item.GetWindowY());
-        OH_Input_SetTouchEventToolType(touchEvent, static_cast<Input_TouchEventToolType>(item.GetToolType()));
-        OH_Input_SetTouchEventDownTime(touchEvent, item.GetDownTime());
         bool res = filter(touchEvent);
         OH_Input_DestroyTouchEvent(&touchEvent);
         return res;

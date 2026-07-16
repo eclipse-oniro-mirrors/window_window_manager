@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <charconv>
 
 #include "product_config.h"
 #include "dm_common.h"
@@ -56,7 +55,7 @@ bool ProductConfig::IsSecondaryDisplaySuperFoldDevice()
  
 bool ProductConfig::IsLoadDmsExt()
 {
-    return IsSingleDisplaySuperFoldDevice() || IsSecondaryDisplaySuperFoldDevice();
+    return IsSingleDisplaySuperFoldDevice() || IsSecondaryDisplaySuperFoldDevice() || IsSingleDisplayFoldDevice();
 }
 
 std::vector<std::string> ProductConfig::StringSplit(const std::string& str, char delim)

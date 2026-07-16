@@ -114,10 +114,10 @@ private:
         sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo, bool needRecalculateAvoidAreas,
         std::shared_ptr<RSTransaction> rsTransaction);
     bool RaiseCallingSession(const sptr<SceneSession>& callingSession, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
-    bool GetCallingSessionGlobalScaledRect(const sptr<SceneSession>& callingSession,
-        WSRect& callingSessionGlobalScaledRect) const;
     bool CalculateOccupiedArea(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect,
         const WSRect& panelRect, sptr<OccupiedAreaChangeInfo>& occupiedAreaInfo);
+    bool GetCallingSessionGlobalScaledRect(const sptr<SceneSession>& callingSession,
+        WSRect& callingSessionGlobalScaledRect) const;
     void CloseRSTransaction();
     bool GetSkipFlagForCallingSession(const sptr<SceneSession>& callingSession) const;
     bool stateChanged_ = false;
@@ -129,7 +129,7 @@ private:
         WSPropertyChangeAction action) override;
 
     sptr<KeyboardSessionCallback> keyboardCallback_ = nullptr;
-    bool isKeyboardSyncTransactionOpen_ = false;
+    std::atomic<bool> isKeyboardSyncTransactionOpen_ = false;
     NotifyKeyboarEffectOptionChangeFunc changeKeyboardEffectOptionFunc_;
     bool isCalculateOccupiedAreaWaitUntilDragEnd_ = false;
     WMError IsLandscape(uint64_t screenId, bool& isLandscape);
