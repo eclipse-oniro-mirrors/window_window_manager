@@ -212,7 +212,6 @@ void WindowManagerService::InitWithRanderServiceAdded()
     }
     auto rsInterface = rsUICtx->GetRSRenderInterface();
     if (rsInterface == nullptr) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "rsInterface is null");
         return;
     }
     if (rsInterface->RegisterOcclusionChangeCallback(windowVisibilityChangeCb) != WM_OK) {
