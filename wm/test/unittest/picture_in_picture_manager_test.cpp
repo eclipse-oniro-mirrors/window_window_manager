@@ -365,6 +365,44 @@ HWTEST_F(PictureInPictureManagerTest, DoRestore, TestSize.Level1)
 }
 
 /**
+ * @tc.name: DoCloseByMainWindowId
+ * @tc.desc: DoCloseByMainWindowId
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureManagerTest, DoCloseByMainWindowId, TestSize.Level1)
+{
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    auto pipController1 = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    ASSERT_NE(pipController1, nullptr);
+    pipController1->curState_ = PiPWindowState::STATE_STARTED;
+    pipController1->window_ = mw;
+    auto pipController2 = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    ASSERT_NE(pipController2, nullptr);
+    pipController2->curState_ = PiPWindowState::STATE_STARTED;
+    pipController2->window_ = mw;
+    auto mw2 = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw2);
+    auto pipController3 = sptr<PictureInPictureController>::MakeSptr(option, mw2, 200, nullptr);
+    ASSERT_NE(pipController3, nullptr);
+    pipController3->curState_ = PiPWindowState::STATE_STARTED;
+    pipController3->window_ = mw2;
+    PictureInPictureManager::windowToControllerMap_.clear();
+    ASSERT_EQ(false, PictureInPictureManager::HasActiveController());
+    PictureInPictureManager::PutPipControllerInfo(101, pipController1);
+    PictureInPictureManager::PutPipControllerInfo(102, pipController2);
+    PictureInPictureManager::PutPipControllerInfo(103, nullptr);
+    PictureInPictureManager::PutPipControllerInfo(201, pipController3);
+
+    PictureInPictureManager::DoCloseByMainWindowId(100);
+    ASSERT_EQ(pipController1->curState_, PiPWindowState::STATE_STOPPED);
+    ASSERT_EQ(pipController2->curState_, PiPWindowState::STATE_STOPPED);
+    ASSERT_EQ(pipController3->curState_, PiPWindowState::STATE_STARTED);
+}
+
+/**
  * @tc.name: DoClose
  * @tc.desc: DoClose
  * @tc.type: FUNC
