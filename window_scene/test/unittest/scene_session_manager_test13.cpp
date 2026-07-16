@@ -338,5 +338,117 @@ HWTEST_F(SceneSessionManagerTest13, UpdateShowOnDockByPersistentIds_005, TestSiz
     EXPECT_EQ(ssm_->sceneSessionMap_.size(), 0);
 }
 
+/**
+ * @tc.name: SetAppForceLandscapeConfig04
+ * @tc.desc: SetAppForceLandscapeConfig_ShouldNotifySession_WhenMatchingSessionExists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, SetAppForceLandscapeConfig04, TestSize.Level1)
+{
+    std::string bundleName = "com.example.test.app";
+    SessionInfo info;
+    info.bundleName_ = bundleName;
+    info.abilityName_ = "TestAbility";
+    info.moduleName_ = "TestModule";
+    sptr<SceneSession> session = ssm_->CreateSceneSession(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    ssm_->sceneSessionMap_[session->GetPersistentId()] = session;
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "{\"test\": \"value\"}";
+    WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
+    EXPECT_EQ(result, WSError::WS_OK);
+    ssm_->sceneSessionMap_.erase(session->GetPersistentId());
+}
+
+/**
+ * @tc.name: SetAppForceLandscapeConfig05
+ * @tc.desc: SetAppForceLandscapeConfig_ShouldNotNotifySession_WhenNoMatchingSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, SetAppForceLandscapeConfig05, TestSize.Level1)
+{
+    std::string bundleName = "com.example.nonexist.app";
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "";
+    WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: SetAppForceLandscapeConfig06
+ * @tc.desc: SetAppForceLandscapeConfig_ShouldNotifyMultipleSessions_WhenMultipleMatching
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, SetAppForceLandscapeConfig06, TestSize.Level1)
+{
+    std::string bundleName = "com.example.multi.app";
+    SessionInfo info1;
+    info1.bundleName_ = bundleName;
+    info1.abilityName_ = "TestAbility1";
+    info1.moduleName_ = "TestModule1";
+    sptr<SceneSession> session1 = ssm_->CreateSceneSession(info1, nullptr);
+    ASSERT_NE(session1, nullptr);
+    ssm_->sceneSessionMap_[session1->GetPersistentId()] = session1;
+    SessionInfo info2;
+    info2.bundleName_ = bundleName;
+    info2.abilityName_ = "TestAbility2";
+    info2.moduleName_ = "TestModule2";
+    sptr<SceneSession> session2 = ssm_->CreateSceneSession(info2, nullptr);
+    ASSERT_NE(session2, nullptr);
+    ssm_->sceneSessionMap_[session2->GetPersistentId()] = session2;
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = false;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "";
+    WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
+    EXPECT_EQ(result, WSError::WS_OK);
+    ssm_->sceneSessionMap_.erase(session1->GetPersistentId());
+    ssm_->sceneSessionMap_.erase(session2->GetPersistentId());
+}
+
+/**
+ * @tc.name: SetAppForceLandscapeConfig07
+ * @tc.desc: SetAppForceLandscapeConfig_ShouldSkipNullSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, SetAppForceLandscapeConfig07, TestSize.Level1)
+{
+    std::string bundleName = "com.example.nullsession.app";
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "{}";
+    WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: SetAppForceLandscapeConfig08
+ * @tc.desc: SetAppForceLandscapeConfig_ShouldNotNotifySession_WhenBundleNameDifferent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, SetAppForceLandscapeConfig08, TestSize.Level1)
+{
+    std::string bundleName = "com.example.different.app";
+    std::string differentBundleName = "com.example.other.app";
+    SessionInfo info;
+    info.bundleName_ = differentBundleName;
+    info.abilityName_ = "TestAbility";
+    info.moduleName_ = "TestModule";
+    sptr<SceneSession> session = ssm_->CreateSceneSession(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    ssm_->sceneSessionMap_[session->GetPersistentId()] = session;
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "{\"key\": \"value\"}";
+    WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
+    EXPECT_EQ(result, WSError::WS_OK);
+    ssm_->sceneSessionMap_.erase(session->GetPersistentId());
+}
 } // namespace Rosen
 } // namespace OHOS

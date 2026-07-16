@@ -914,7 +914,6 @@ struct AppForceLandscapeConfig : public Parcelable {
     std::string configJsonStr_ = "";
     bool isRouter_ = false;
     bool containsConfig_ = false;
-    bool hasChanged_ = true;
     bool configEnable_ = false;
     AppForceLandscapeConfig() {}
     AppForceLandscapeConfig(const std::string& configJsonStr, bool isRouter, bool containsConfig)
