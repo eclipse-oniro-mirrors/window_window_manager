@@ -288,7 +288,8 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    if (windowScene->GetMainWindow() == nullptr) {
+    auto mainWindow = windowScene->GetMainWindow();
+    if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "mainWindow is null");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
@@ -296,7 +297,7 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
         return AniWindowUtils::CreateAniUndefined(env);
     }
     if ((windowOption->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
-        !windowScene->GetMainWindow()->IsPcOrPadFreeMultiWindowMode()) {
+        !mainWindow->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "device not support");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);

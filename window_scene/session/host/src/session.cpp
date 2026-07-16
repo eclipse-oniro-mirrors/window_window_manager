@@ -6385,8 +6385,13 @@ PrelayoutContext Session::GetPrelayoutContext()
         static_cast<int32_t>(preCalc.height)
     };
 
+    auto sessionProperty = GetSessionProperty();
+    if (sessionProperty == nullptr) {
+        return ctx;
+    }
+    const auto displayId = sessionProperty->GetDisplay();
     auto screenSession = ScreenSessionManagerClient::GetInstance()
-        .GetScreenSession(GetSessionProperty()->GetDisplayId());
+        .GetScreenSession(displayId);
     const float density = screenSession ?
         screenSession->GetScreenProperty().GetDensity() : 1.0f; // 1.0: default density
 
