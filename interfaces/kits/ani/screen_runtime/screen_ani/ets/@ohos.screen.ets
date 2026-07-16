@@ -419,6 +419,8 @@ export interface Screen {
 
     readonly id: long;
 
+    readonly rsId: long;
+
     readonly parent: long;
 
     readonly supportedModeInfo: Array<ScreenModeInfo>;
@@ -429,9 +431,13 @@ export interface Screen {
 
     readonly sourceMode: ScreenSourceMode;
 
-    readonly screenType: ScreenType;
+    readonly screenType?: ScreenType;
 
-    readonly isInUse: boolean;
+    readonly densityDpi?: double;
+
+    readonly isInUse?: boolean;
+
+    readonly serialNumber?: string;
 
     setDensityDpi(densityDpi: double, callback: AsyncCallback<void>): void;
 
@@ -454,10 +460,14 @@ class ScreenImpl implements Screen {
 
     constructor() {
         this.id = -1;
+        this.rsId = -1;
+        this.densityDpi = 0;
         this.supportedModeInfo = new Array<ScreenModeInfo>(SCREEN_MODE_INFO, () => { return new ScreenModeInfoImpl() });
     }
 
     readonly id: long;
+
+    readonly rsId: long;
 
     readonly parent: long;
 
@@ -469,9 +479,13 @@ class ScreenImpl implements Screen {
 
     readonly sourceMode: ScreenSourceMode;
 
-    readonly screenType: ScreenType;
+    readonly screenType?: ScreenType;
 
-    readonly isInUse: boolean;
+    readonly densityDpi?: double;
+
+    readonly isInUse?: boolean;
+
+    readonly serialNumber?: string;
 
     screenNativeObj: long;
 

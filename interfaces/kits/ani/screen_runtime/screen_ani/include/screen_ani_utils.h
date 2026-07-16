@@ -61,6 +61,10 @@ static ani_object CreateDisplayIdVectorAniObject(ani_env* env, std::vector<Displ
 
 static ani_object CreateAniArray(ani_env* env, size_t size);
 
+static ani_object CreateAniDouble(ani_env* env, ani_double value);
+
+static ani_object CreateAniBoolean(ani_env* env, ani_boolean value);
+
 static ani_status GetRectFromAni(ani_env* env, ani_object mainScreenRegionAni, DMRect& mainScreenRegion);
 
 static ani_status GetScreenIdArrayFromAni(ani_env* env, ani_object mirrorScreen,

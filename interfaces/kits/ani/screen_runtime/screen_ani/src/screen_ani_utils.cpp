@@ -68,6 +68,8 @@ void ScreenAniUtils::SetScreenBasicFields(ani_env *env, sptr<ScreenInfo> info, a
 {
     env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("id").c_str(),
         static_cast<ani_long>(info->GetScreenId()));
+    env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("rsId").c_str(),
+        static_cast<ani_long>(static_cast<int64_t>(info->GetRsId())));
     env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("parent").c_str(),
         static_cast<ani_long>(info->GetParentId()));
     env->Object_SetFieldByName_Long(obj, Builder::BuildPropertyName("activeModeIndex").c_str(),
@@ -81,8 +83,18 @@ void ScreenAniUtils::SetScreenBasicFields(ani_env *env, sptr<ScreenInfo> info, a
     env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("screenType").c_str(),
         ScreenAniUtils::CreateAniEnum(env, "@ohos.screen.screen.ScreenType",
         static_cast<ani_int>(info->GetScreenTypeInfo())));
-    env->Object_SetFieldByName_Boolean(obj, Builder::BuildPropertyName("isInUse").c_str(),
-        static_cast<ani_boolean>(info->GetIsInUse()));
+    env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("densityDpi").c_str(),
+        ScreenAniUtils::CreateAniDouble(env,
+        static_cast<ani_double>(static_cast<uint32_t>(info->GetVirtualPixelRatio() * DOT_PER_INCH))));
+    env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("isInUse").c_str(),
+        ScreenAniUtils::CreateAniBoolean(env, static_cast<ani_boolean>(info->GetIsInUse())));
+    ani_string aniSerialNumber;
+    ani_status status = GetAniString(env, info->GetSerialNumber(), &aniSerialNumber);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] GetAniString failed, status: %{public}d", status);
+    } else {
+        env->Object_SetFieldByName_Ref(obj, Builder::BuildPropertyName("serialNumber").c_str(), aniSerialNumber);
+    }
 }
 
 ani_status ScreenAniUtils::ConvertScreen(ani_env *env, sptr<Screen> screen, ani_object obj)
@@ -390,6 +402,50 @@ ani_object ScreenAniUtils::CreateAniArray(ani_env* env, size_t size)
         return CreateAniUndefined(env);
     }
     return arrayObj;
+}
+
+ani_object ScreenAniUtils::CreateAniDouble(ani_env* env, ani_double value)
+{
+    ani_class doubleClass;
+    ani_status ret = env->FindClass("std.core.Double", &doubleClass);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] class not found");
+        return CreateAniUndefined(env);
+    }
+    ani_method aniCtor;
+    ret = env->Class_FindMethod(doubleClass, "<ctor>", "d:", &aniCtor);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] ctor not found");
+        return CreateAniUndefined(env);
+    }
+    ani_object obj{};
+    if (env->Object_New(doubleClass, aniCtor, &obj, value) != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to allocate Int");
+        return CreateAniUndefined(env);
+    }
+    return obj;
+}
+
+ani_object ScreenAniUtils::CreateAniBoolean(ani_env* env, ani_boolean value)
+{
+    ani_class booleanClass;
+    ani_status ret = env->FindClass("std.core.Double", &booleanClass);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] class not found");
+        return CreateAniUndefined(env);
+    }
+    ani_method aniCtor;
+    ret = env->Class_FindMethod(booleanClass, "<ctor>", "z:", &aniCtor);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] ctor not found");
+        return CreateAniUndefined(env);
+    }
+    ani_object obj{};
+    if (env->Object_New(booleanClass, aniCtor, &obj, value) != ANI_OK) {
+        TLOGE(WmsLogTag::DMS, "[ANI] Failed to allocate Int");
+        return CreateAniUndefined(env);
+    }
+    return obj;
 }
 
 ani_status ScreenAniUtils::GetRectFromAni(ani_env* env, ani_object mainScreenRegionAni, DMRect& mainScreenRegion)
