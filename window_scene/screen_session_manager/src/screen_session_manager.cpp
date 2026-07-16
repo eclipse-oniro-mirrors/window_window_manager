@@ -9099,6 +9099,26 @@ std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManager::GetScreenHDR
     return screenshotVec;
 }
 
+bool ScreenSessionManager::checkSavePermission(bool& isUserSave)
+{
+    if (SessionPermission::IsShellCall()) {
+        return true;
+    }
+    if (!Permission::IsSystemCalling()) {
+        return false;
+    }
+    if (Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION)) {
+        TLOGD(WmsLogTag::DMS, "user_grant permission");
+        isUserSave = true;
+        return true;
+    }
+    if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
+        Permission::CheckCallingPermission(CUSTOM_SCREEN_RECORDING_PERMISSION)) {
+        return true;
+    }
+    return false;
+}
+
 std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshot(DisplayId displayId,
     DmErrorCode* errorCode, bool isUseDma, bool isCaptureFullOfScreen)
 {
@@ -9117,10 +9137,14 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshot(Displa
         TLOGNFE(WmsLogTag::DMS, "fake display not exist!");
         return nullptr;
     }
-    if ((Permission::IsSystemCalling() && (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
-        Permission::CheckCallingPermission(CUSTOM_SCREEN_RECORDING_PERMISSION))) || SessionPermission::IsShellCall()) {
+    bool isUserSave = false;
+    if (checkSavePermission(isUserSave)) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetDisplaySnapshot(%" PRIu64")", displayId);
         auto res = GetScreenSnapshot(displayId, isUseDma, isCaptureFullOfScreen);
+        if (isUserSave) {
+            AddPermissionUsedRecord(CUSTOM_SCREEN_CAPTURE_PERMISSION,
+                static_cast<int32_t>(res != nullptr), static_cast<int32_t>(res == nullptr));
+        }
         if (res != nullptr) {
             NotifyScreenshot(displayId);
             if (SessionPermission::IsBetaVersion()) {
@@ -9196,8 +9220,8 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
         *errorCode = DmErrorCode::DM_ERROR_INVALID_SCREEN;
         return nullptr;
     }
-    if ((Permission::IsSystemCalling() && (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
-        Permission::CheckCallingPermission(CUSTOM_SCREEN_RECORDING_PERMISSION))) || SessionPermission::IsShellCall()) {
+    bool isUserSave = false;
+    if (checkSavePermission(isUserSave)) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetDisplaySnapshot(%" PRIu64")", option.displayId_);
         DMRect orgRect = CalcRectsWithRotation(option.displayId_, option.rect);
         Drawing::Rect rect = { static_cast<float>(orgRect.posX_), static_cast<float>(orgRect.posY_),
@@ -9206,6 +9230,10 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
         SnapshotScaleInfo scaleInfo = {option.scaleX_, option.scaleY_, rect};
         auto res = GetScreenSnapshot(option.displayId_, true, option.isCaptureFullOfScreen_, option.surfaceNodesList_,
             scaleInfo);
+        if (isUserSave) {
+            AddPermissionUsedRecord(CUSTOM_SCREEN_CAPTURE_PERMISSION,
+                static_cast<int32_t>(res != nullptr), static_cast<int32_t>(res == nullptr));
+        }
         if (res != nullptr) {
             if (SessionPermission::IsBetaVersion()) {
                 CheckAndSendHiSysEvent("GET_DISPLAY_SNAPSHOT", "hmos.screenshot");
