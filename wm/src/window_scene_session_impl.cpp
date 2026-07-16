@@ -4980,9 +4980,9 @@ void WindowSceneSessionImpl::UpdateWindowModeWhenSupportTypeChange(uint32_t wind
         "onlyFullScreen:%{public}d onlyFloating:%{public}d",
         GetPersistentId(), windowModeSupportType, onlySupportFullScreen, onlySupportFloating);
     bool disableFullScreen = property_->IsFullScreenDisabled();
-    if (onlySupportFullScreen && !property_->IsLayoutFullScreen() && !disableFullScreen) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d IsLayoutFullScreen:%{public}d",
-            onlySupportFullScreen, property_->IsLayoutFullScreen());
+    if (onlySupportFullScreen && !disableFullScreen) {
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "onlySupportFullScreen:%{public}d disableFullScreen:%{public}d",
+            onlySupportFullScreen, disableFullScreen);
         Maximize(MaximizePresentation::ENTER_IMMERSIVE);
         return;
     }
