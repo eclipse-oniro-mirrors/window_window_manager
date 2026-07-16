@@ -87,6 +87,12 @@ void AniPipManager::OnInitXComponentController(ani_env* env, ani_int windowId, a
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pipController");
         return;
     }
+    PiPWindowState curControllerState = pipController->GetControllerState();
+    if (curControllerState == PiPWindowState::STATE_STOPPING || curControllerState == PiPWindowState::STATE_STOPPED) {
+        TLOGE(WmsLogTag::WMS_PIP, "PiPWindowState %{public}u, is STATE_STOPPING or STATE_STOPPED, "
+                                  "not to set xComponentController", curControllerState);
+        return;
+    }
     TLOGI(WmsLogTag::WMS_PIP, "set xComponentController to window: %{public}u", windowId);
     WMError errCode = pipController->SetXComponentController(xComponentControllerResult);
     if (errCode != WMError::WM_OK) {

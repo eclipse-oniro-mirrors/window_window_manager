@@ -122,6 +122,12 @@ napi_value JsPipManager::OnInitXComponentController(napi_env env, napi_callback_
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pictureInPictureController");
         return NapiGetUndefined(env);
     }
+    PiPWindowState curControllerState = pipController->GetControllerState();
+    if (curControllerState == PiPWindowState::STATE_STOPPING || curControllerState == PiPWindowState::STATE_STOPPED) {
+        TLOGE(WmsLogTag::WMS_PIP, "PiPWindowState %{public}u, is STATE_STOPPING or STATE_STOPPED, "
+                                  "not to set xComponentController", curControllerState);
+        return NapiGetUndefined(env);
+    }
     TLOGI(WmsLogTag::WMS_PIP, "set xComponentController to window: %{public}u", windowId);
     WMError errCode = pipController->SetXComponentController(xComponentControllerResult);
     if (errCode != WMError::WM_OK) {
@@ -157,6 +163,12 @@ napi_value JsPipManager::OnInitWebXComponentController(napi_env env, napi_callba
     sptr<PictureInPictureControllerBase> pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get webPictureInPictureController");
+        return NapiGetUndefined(env);
+    }
+    PiPWindowState curControllerState = pipController->GetControllerState();
+    if (curControllerState == PiPWindowState::STATE_STOPPING || curControllerState == PiPWindowState::STATE_STOPPED) {
+        TLOGE(WmsLogTag::WMS_PIP, "PiPWindowState %{public}u, is STATE_STOPPING or STATE_STOPPED, "
+                                  "not to set xComponentController", curControllerState);
         return NapiGetUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_PIP, "set xComponentController to window: %{public}u", windowId);
