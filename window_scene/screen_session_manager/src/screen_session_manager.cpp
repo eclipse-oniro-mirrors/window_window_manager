@@ -14249,7 +14249,6 @@ void ScreenSessionManager::NotifyUnfreezedAttributeAgents(const int32_t& pid, co
         agent->OnDisplayAttributeChange(displayInfo, attributes);
         pidAgentTypeMap_[pid].erase(DisplayManagerAgentType::DISPLAY_ATTRIBUTE_CHANGED_LISTENER);
         std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
-        lastDisplayInfoMap_[displayId] = displayInfo;
     }
 }
 
