@@ -97,7 +97,7 @@ WMError PictureInPictureController::PreparePiPWindowCreation(StartPipType startT
     if (abilityContext && abilityContext->GetApplicationInfo()) {
         SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
     } else {
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        TLOGE(WmsLogTag::WMS_PIP, "abilityContext or GetApplicationInfo is nullptr");
     }
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
