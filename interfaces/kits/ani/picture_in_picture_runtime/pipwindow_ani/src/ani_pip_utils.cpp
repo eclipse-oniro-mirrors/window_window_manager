@@ -231,7 +231,7 @@ bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
                 TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
             }
         }
-    }
+    };
     napi_value value = nativeRef->GetNapiValue();
     if (value == nullptr) {
         TLOGW(WmsLogTag::WMS_PIP, "NativeReference has null napi value");
