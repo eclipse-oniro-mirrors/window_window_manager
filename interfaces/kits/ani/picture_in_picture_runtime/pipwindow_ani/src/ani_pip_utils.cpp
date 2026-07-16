@@ -225,7 +225,7 @@ bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
         return false;
     }
 
-    auto closeScope = [&]() {
+    auto closeScope = [&](bool& napiScopeOpened, napi_env& napiEnv) {
         if (napiScopeOpened) {
             if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
                 TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
