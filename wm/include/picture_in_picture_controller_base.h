@@ -183,10 +183,7 @@ public:
 protected:
     class WindowLifeCycleListener : public IWindowLifeCycle {
     public:
-        explicit WindowLifeCycleListener(uint32_t mainWindowId) : mainWindowId_(mainWindowId) {}
         void AfterDestroyed() override;
-    private:
-        uint32_t mainWindowId_ = 0;
     };
 
     void NotifyOpretationError(WMError errCode, StartPipType startType);

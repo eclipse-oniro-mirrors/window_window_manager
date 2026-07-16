@@ -381,7 +381,6 @@ bool PictureInPictureControllerBase::IsContentSizeChanged(float width, float hei
 void PictureInPictureControllerBase::WindowLifeCycleListener::AfterDestroyed()
 {
     TLOGI(WmsLogTag::WMS_PIP, "stop picture_in_picture when attached window destroy");
-    PictureInPictureManager::DoCloseByMainWindowId(mainWindowId_);
 }
 
 void PictureInPictureControllerBase::DoActionEvent(const std::string& actionName, int32_t status)
