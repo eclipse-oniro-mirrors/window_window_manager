@@ -3353,7 +3353,6 @@ void AniWindow::SetWindowTitleButtonVisible(ani_env* env, ani_object visiblePara
         return;
     }
     if (visibleParam == nullptr) {
-        TLOGE(WmsLogTag::WMS_DECOR, "[ANI] visibleParam is null");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
