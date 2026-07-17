@@ -2010,6 +2010,10 @@ void ScreenSessionManagerStub::ProcGetScreenAreaOfDisplayArea(MessageParcel& dat
 
 void ScreenSessionManagerStub::ProcSetPrimaryDisplaySystemDpi(MessageParcel& data, MessageParcel& reply)
 {
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::DMS, "only support system calling.");
+        return;
+    }
     float dpi = INVALID_DEFAULT_DENSITY;
     if (!data.ReadFloat(dpi)) {
         TLOGE(WmsLogTag::DMS, "Read dpi failed.");

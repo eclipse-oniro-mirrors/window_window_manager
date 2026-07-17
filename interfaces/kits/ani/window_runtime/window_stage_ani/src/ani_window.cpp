@@ -3352,6 +3352,12 @@ void AniWindow::SetWindowTitleButtonVisible(ani_env* env, ani_object visiblePara
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
+    if (visibleParam == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
     ani_boolean isMaximizeButtonVisible = false;
     if (ANI_OK != env->Object_GetPropertyByName_Boolean(visibleParam,
         "isMaximizeButtonVisible", &isMaximizeButtonVisible)) {
@@ -3451,7 +3457,13 @@ void AniWindow::OnCloseDirectly(ani_env* env)
             static_cast<uint32_t>(window->GetType()), window->GetWindowId(), window->GetWindowName().c_str());
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->CloseDirectly());
+    WmErrorCode ret = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+    auto iter = WM_JS_TO_ERROR_CODE_MAP.find(window->CloseDirectly());
+    if (iter != WM_JS_TO_ERROR_CODE_MAP.end()) {
+        ret = iter->second;
+    } else {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI] CloseDirectly error code out of range");
+    }
     TLOGI(WmsLogTag::WMS_PC, "window [%{public}u, %{public}s] ret=%{public}d",
         window->GetWindowId(), window->GetWindowName().c_str(), ret);
     if (ret != WmErrorCode::WM_OK) {
@@ -3796,6 +3808,10 @@ ani_object AniWindow::SetWindowDecorVisible(ani_env* env, bool isVisible)
 
 ani_object AniWindow::SetWindowDecorHeight(ani_env* env, ani_int height)
 {
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowToken_ is nullptr");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+    }
     if (height < MIN_DECOR_HEIGHT || height > MAX_DECOR_HEIGHT) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] height should greater than 37 or smaller than 112");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",

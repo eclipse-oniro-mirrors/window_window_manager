@@ -1200,7 +1200,10 @@ int SessionStageStub::HandleSwitchFreeMultiWindow(MessageParcel& data, MessagePa
         supportMultiWindowScreenSet.insert(static_cast<ScreenId>(data.ReadUint64()));
     }
     WSError errCode = SwitchFreeMultiWindow(enable, supportMultiWindowScreenSet);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "reply write failed");
+        return ERR_INVALID_DATA;
+    }
     return ERR_NONE;
 }
 
