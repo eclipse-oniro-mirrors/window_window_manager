@@ -3458,9 +3458,10 @@ void AniWindow::OnCloseDirectly(ani_env* env)
         return;
     }
     WmErrorCode ret = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
-    try {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->CloseDirectly());
-    } catch (const std::out_of_range& e) {
+    auto iter = WM_JS_TO_ERROR_CODE_MAP.find(window->CloseDirectly());
+    if (iter != WM_JS_TO_ERROR_CODE_MAP.end()) {
+        ret = iter->second;
+    } else {
         TLOGE(WmsLogTag::WMS_PC, "[ANI] CloseDirectly error code out of range");
     }
     TLOGI(WmsLogTag::WMS_PC, "window [%{public}u, %{public}s] ret=%{public}d",
