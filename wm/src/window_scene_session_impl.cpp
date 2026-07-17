@@ -6964,7 +6964,7 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
     } else {
         UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
     }
-    if (enable && IsAnco() && windowSystemConfig_.IsPadWindow()) {
+    if (enable && IsAnco() && windowSystemConfig_.IsPadWindow() && uiContent_ != nullptr) {
         uiContent_->SetContainerModalTitleVisible(false, true);
         uiContent_->EnableContainerModalCustomGesture(true);
     }

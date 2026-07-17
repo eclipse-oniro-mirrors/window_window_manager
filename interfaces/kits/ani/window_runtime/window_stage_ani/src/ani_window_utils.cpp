@@ -582,7 +582,7 @@ ani_status AniWindowUtils::GetBooleanObject(ani_env* env, ani_object boolean_obj
     }
     if (isUndefined) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] CallMeWithOptionalBoolean is undefined");
-        return ANI_OK;
+        return ANI_INVALID_ARGS;
     }
     ani_boolean bool_value;
     ani_status ret = env->Object_CallMethodByName_Boolean(boolean_object, "toBoolean", ":z", &bool_value);
