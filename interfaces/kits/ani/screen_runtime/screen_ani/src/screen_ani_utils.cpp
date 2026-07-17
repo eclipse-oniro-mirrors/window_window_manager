@@ -429,7 +429,7 @@ ani_object ScreenAniUtils::CreateAniDouble(ani_env* env, ani_double value)
 ani_object ScreenAniUtils::CreateAniBoolean(ani_env* env, ani_boolean value)
 {
     ani_class booleanClass;
-    ani_status ret = env->FindClass("std.core.Double", &booleanClass);
+    ani_status ret = env->FindClass("std.core.Boolean", &booleanClass);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DMS, "[ANI] class not found");
         return CreateAniUndefined(env);
