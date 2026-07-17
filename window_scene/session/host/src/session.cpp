@@ -6389,7 +6389,7 @@ PrelayoutContext Session::GetPrelayoutContext()
     if (sessionProperty == nullptr) {
         return ctx;
     }
-    const auto displayId = sessionProperty->GetDisplay();
+    const auto displayId = sessionProperty->GetDisplayId();
     auto screenSession = ScreenSessionManagerClient::GetInstance()
         .GetScreenSession(displayId);
     const float density = screenSession ?
