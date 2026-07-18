@@ -2156,6 +2156,43 @@ HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_WithScreenSet, TestSi
     WSError errCode = static_cast<WSError>(reply.ReadInt32());
     ASSERT_EQ(errCode, WSError::WS_OK);
 }
+
+/**
+ * @tc.name: HandleSwitchFreeMultiWindow_ExceedMaxScreenSize
+ * @tc.desc: HandleSwitchFreeMultiWindow with screenSetSize exceeding MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_ExceedMaxScreenSize, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteBool(true);
+    data.WriteUint32(35); // exceeds MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE (34)
+ 
+    int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_DATA);
+}
+ 
+/**
+ * @tc.name: HandleSwitchFreeMultiWindow_BoundaryScreenSize
+ * @tc.desc: HandleSwitchFreeMultiWindow with screenSetSize at MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE boundary
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_BoundaryScreenSize, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteBool(true);
+    data.WriteUint32(34); // at MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE boundary
+    for (uint32_t i = 0; i < 34; ++i) {
+        data.WriteUint64(i);
+    }
+ 
+    int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
+    WSError errCode = static_cast<WSError>(reply.ReadInt32());
+    ASSERT_EQ(errCode, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
