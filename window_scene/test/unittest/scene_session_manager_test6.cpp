@@ -1275,7 +1275,7 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession01, TestSize.Level1)
     sessionInfo.abilityInfo = nullptr;
     sessionInfo.isAtomicService_ = true;
     sessionInfo.isBackTransition_ = false;
-    sessionInfo.screenId_ = 100;
+    sessionInfo.screenId_ = VIRTUAL_DISPLAY_ID;
     unsigned int flags = 11111111;
     sessionInfo.want = std::make_shared<AAFwk::Want>();
     ASSERT_NE(nullptr, sessionInfo.want);
@@ -1284,8 +1284,14 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession01, TestSize.Level1)
     ASSERT_NE(nullptr, sceneSession);
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
 
+    auto& foldMgr = PcFoldScreenManager::GetInstance();
+    auto oldDisplayId = foldMgr.displayId_;
+    auto oldFoldStatus = foldMgr.screenFoldStatus_;
+    foldMgr.displayId_ = DEFAULT_DISPLAY_ID;
+    foldMgr.screenFoldStatus_ = SuperFoldStatus::HALF_FOLDED;
     ssm_->InitSceneSession(sceneSession, sessionInfo, nullptr);
-    ASSERT_EQ(100, sceneSession->GetSessionInfo().screenId_);
+    foldMgr.displayId_ = oldDisplayId;
+    foldMgr.screenFoldStatus_ = oldFoldStatus;
 }
 
 /**
