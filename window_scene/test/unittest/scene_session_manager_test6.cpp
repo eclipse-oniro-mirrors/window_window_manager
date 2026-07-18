@@ -1275,7 +1275,7 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession01, TestSize.Level1)
     sessionInfo.abilityInfo = nullptr;
     sessionInfo.isAtomicService_ = true;
     sessionInfo.isBackTransition_ = false;
-    sessionInfo.screenId_ = VIRTUAL_DISPLAY_ID;
+    sessionInfo.screenId_ = 999;
     unsigned int flags = 11111111;
     sessionInfo.want = std::make_shared<AAFwk::Want>();
     ASSERT_NE(nullptr, sessionInfo.want);
