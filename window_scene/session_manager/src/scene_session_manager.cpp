@@ -19164,7 +19164,7 @@ bool SceneSessionManager::SetSessionWatermarkForAppProcess(const sptr<SceneSessi
 void SceneSessionManager::SetLeashNodeWatermarkForAppProcess(const sptr<SceneSession>& session)
 {
     taskScheduler_->PostTask([this, weakSession = wptr(session), where = __func__] {
-        sptr<SceneSession> sceneSession = weakSession.promote();
+        auto sceneSession = weakSession.promote();
         if (sceneSession == nullptr) {
             TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
             return;
