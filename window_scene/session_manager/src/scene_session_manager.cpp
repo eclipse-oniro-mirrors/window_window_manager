@@ -11163,7 +11163,8 @@ WSError SceneSessionManager::SetWindowFlags(const sptr<SceneSession>& sceneSessi
     if ((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         sceneSession->OnShowWhenLocked(flags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED));
     }
-    TLOGI(WmsLogTag::DEFAULT, "set flags: %{public}u", flags);
+    TLOGI(WmsLogTag::DEFAULT, "win=[%{public}d, %{public}s], flags=%{public}u",
+        sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), flags);
     return WSError::WS_OK;
 }
 
@@ -11180,6 +11181,8 @@ void SceneSessionManager::CheckAndNotifyWaterMarkChangedResult()
                 static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK);
             bool isExtWindowHasWaterMarkFlag = session->GetCombinedExtWindowFlags().waterMarkFlag;
             if ((hasWaterMark && session->GetRSVisible()) || isExtWindowHasWaterMarkFlag) {
+                TLOGI(WmsLogTag::WMS_ATTRIBUTE, "watermark win=[%{public}d, %{public}s], hasExtWaterFlag=%{public}d",
+                    session->GetWindowId(), session->GetWindowName().c_str(), isExtWindowHasWaterMarkFlag);
                 currentWaterMarkShowState = true;
                 break;
             }
