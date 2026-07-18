@@ -3574,7 +3574,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     const sptr<WindowSessionProperty>& property)
 {
     auto callerSession = GetSceneSession(sessionInfo.callerPersistentId_);
-    DisplayId currDisplayId = DISPLAY_ID_INVALID;
+    DisplayId currDisplayId = DEFAULT_DISPLAY_ID;
     if (sessionInfo.screenId_ != SCREEN_ID_INVALID) {
         currDisplayId = sessionInfo.screenId_;
     } else if (callerSession) {
@@ -3582,7 +3582,10 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     }
     sceneSession->GetSessionProperty()->SetDisplayId(currDisplayId);
     sceneSession->SetScreenId(currDisplayId);
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "synchronous screenId with displayId %{public}" PRIu64, currDisplayId);
+    if (currDisplayId == VIRTUAL_DISPLAY_ID && PcFoldScreenManager::GetInstance().IsHalfFolded(DEFAULT_DISPLAY_ID)) {
+        sceneSession->SetClientDisplayId(currDisplayId);
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "initDisplayId=%{public}" PRIu64, currDisplayId);
 
     sceneSession->SetEventHandler(taskScheduler_->GetEventHandler(), eventHandler_);
     sceneSession->RegisterIsScreenLockedCallback([this] { return IsScreenLocked(); });

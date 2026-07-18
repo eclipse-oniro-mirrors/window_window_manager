@@ -567,6 +567,8 @@ DisplayId Session::GetScreenId() const
 
 void Session::SetScreenId(uint64_t screenId)
 {
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], hasStage=%{public}d, screenId=%{public}" PRIu64,
+        GetPersistentId(), GetWindowName().c_str(), sessionStage_ != nullptr, screenId);
     sessionInfo_.screenId_ = screenId;
     if (sessionStage_) {
         sessionStage_->UpdateDisplayId(screenId);
