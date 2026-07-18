@@ -1315,8 +1315,6 @@ private:
     void GetCastVirtualMirrorSession(sptr<ScreenSession>& virtualSession);
     std::atomic<bool> curResolutionEffectEnable_ = false;
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);
-    void DoSetScreenPowerStatus(ScreenId rsScreenId, ScreenPowerStatus status);
-    void ClearScreenPowerStatus(ScreenId rsScreenId);
     void InitScreenActiveModeRectMap();
     void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
     void ApplyVirtualScreenScale(const sptr<ScreenSession>& screenSession,
@@ -1335,8 +1333,6 @@ private:
     uint32_t customResolutionWidth_ = 0;
     uint32_t customResolutionHeight_ = 0;
 
-    std::map<ScreenId, ScreenPowerStatus> screenPowerStatusMap_;
-    std::mutex screenPowerStatusMapMutex_;
     std::function<void(sptr<ScreenSession>& screenSession,
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;

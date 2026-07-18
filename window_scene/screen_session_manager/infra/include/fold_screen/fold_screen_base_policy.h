@@ -149,6 +149,8 @@ protected:
     FoldScreenBasePolicy();
     virtual ~FoldScreenBasePolicy();
 
+    virtual void PreProcessTP() {};
+
     // Avoid fold to expand process queues private variable
     std::atomic<int> pendingTask_{FOLD_TASK_NUM};
     std::atomic<bool> displayModeChangeRunning_ = false;

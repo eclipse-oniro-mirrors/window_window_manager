@@ -94,6 +94,7 @@
 #include "fold_screen_base_controller.h"
 #include "product_ext_wrapper.h"
 #include "screen_manager/rs_surface_region_config.h"
+#include "screen_power_mgr.h"
 
 namespace OHOS::Rosen {
 namespace {
@@ -2895,7 +2896,7 @@ void ScreenSessionManager::HandleMapWhenScreenDisconnect(ScreenId screenId)
         physicalScreenSessionMap_.erase(screenId);
     }
 
-    ClearScreenPowerStatus(screenId);
+    DMS::ScreenPowerMgr::GetInstance().ClearScreenPowerStatus(screenId);
 }
 
 void ScreenSessionManager::HandlePCScreenDisconnect(sptr<ScreenSession>& screenSession)
@@ -6143,18 +6144,9 @@ bool ScreenSessionManager::DealMultiScreenOff(ScreenId screenId, ScreenPowerStat
         }
         auto session = GetScreenSession(sid);
         if (session && session->GetScreenProperty().GetScreenType() == ScreenType::REAL) {
-            std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
-            auto it = screenPowerStatusMap_.find(sid);
-            if (it != screenPowerStatusMap_.end()) {
-                auto powerStatus = it->second;
-                TLOGNFI(WmsLogTag::DMS, "[UL_POWER]screenId: %{public}" PRIu64 " powerStatus:%{public}u",
-                    sid, powerStatus);
-                if (it->second == ScreenPowerStatus::POWER_STATUS_ON) {
-                    hasOtherScreenPowerOn = true;
-                    break;
-                }
-            } else {
-                TLOGNFI(WmsLogTag::DMS, "[UL_POWER]cannot find screenPowerStatusMap_ id: %{public}" PRIu64, sid);
+            if (DMS::ScreenPowerMgr::GetInstance().IsScreenPowerOn(sid)) {
+                hasOtherScreenPowerOn = true;
+                break;
             }
         }
     }
@@ -16319,7 +16311,7 @@ bool ScreenSessionManager::SetRSScreenPowerStatusExt(ScreenId screenId, ScreenPo
             rsScreenId = screenId;
        }
     }
-    DoSetScreenPowerStatus(rsScreenId, status);
+    DMS::ScreenPowerMgr::GetInstance().DoSetScreenPowerStatus(rsScreenId, status);
     if (status == ScreenPowerStatus::POWER_STATUS_ON) {
 #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         int32_t ret = DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().NotifyBrightnessManagerScreenPowerStatus(
@@ -16352,8 +16344,8 @@ void ScreenSessionManager::CheckAnotherScreenStatus(ScreenId screenId, ScreenPow
                 return;
             }
             TLOGNFI(WmsLogTag::DMS, "Another screen status is on, do on and off");
-            DoSetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_ON);
-            DoSetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_OFF);
+            DMS::ScreenPowerMgr::GetInstance().DoSetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_ON);
+            DMS::ScreenPowerMgr::GetInstance().DoSetScreenPowerStatus(secondScreenId, ScreenPowerStatus::POWER_STATUS_OFF);
         } else {
             TLOGNFI(WmsLogTag::DMS, "Another screen status is not on, set screen power status directly");
         }
@@ -17668,38 +17660,6 @@ bool ScreenSessionManager::GetScreenLcdStatus(ScreenId screenId, PanelPowerStatu
     }
     status = rsInterface_.GetPanelPowerStatus(rsScreenId);
     return true;
-}
-
-void ScreenSessionManager::DoSetScreenPowerStatus(ScreenId rsScreenId, ScreenPowerStatus status)
-{
-    bool setAdvancedOffFlag = false;
-    {
-        std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
-        auto it = screenPowerStatusMap_.find(rsScreenId);
-        if (it != screenPowerStatusMap_.end() && it->second == ScreenPowerStatus::POWER_STATUS_ON_ADVANCED &&
-            status == ScreenPowerStatus::POWER_STATUS_OFF) {
-            setAdvancedOffFlag = true;
-        }
-    }
-
-    // when the power status is ON_ADVANCED and need to be set to OFF，first set the status to OFF_ADVANCED.
-    if (setAdvancedOffFlag) {
-        TLOGNFW(WmsLogTag::DMS,
-        "set the power status to OFF_ADVANCED first, screenId: %{public}" PRIu64 ", status: %{public}d.", rsScreenId,
-        status);
-        status = ScreenPowerStatus::POWER_STATUS_OFF_ADVANCED;
-    }
-    rsInterface_.SetScreenPowerStatus(rsScreenId, status);
-    {
-        std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
-        screenPowerStatusMap_[rsScreenId] = status;
-    }
-}
-
-void ScreenSessionManager::ClearScreenPowerStatus(ScreenId rsScreenId)
-{
-    std::lock_guard<std::mutex> lock(screenPowerStatusMapMutex_);
-    screenPowerStatusMap_.erase(rsScreenId);
 }
 
 void ScreenSessionManager::UpdateSwitchUser(bool userSwitching)
