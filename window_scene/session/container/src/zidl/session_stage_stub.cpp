@@ -31,6 +31,7 @@ constexpr size_t RESERVED_SPACE = 4 * 1024; // 4k
 constexpr uint32_t MAX_FV_LIMITS = 10;
 // An application can have at most 256 windows, so the upper limit of attached limits is 256
 constexpr uint32_t MAX_ATTACHED_LIMITS_COUNT = 256;
+// An application can have at most 34 phycical and virtual screen
 constexpr uint32_t MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE = 34;
 
 bool CalculateDumpInfoSize(const std::vector<std::string>& infos)
