@@ -3573,6 +3573,10 @@ sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& s
 void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, const SessionInfo& sessionInfo,
     const sptr<WindowSessionProperty>& property)
 {
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "sceneSession is nullptr!");
+        return;
+    }
     auto callerSession = GetSceneSession(sessionInfo.callerPersistentId_);
     DisplayId currDisplayId = DEFAULT_DISPLAY_ID;
     if (sessionInfo.screenId_ != SCREEN_ID_INVALID) {
@@ -3580,13 +3584,17 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
     } else if (callerSession) {
         currDisplayId = callerSession->GetSessionProperty()->GetDisplayId();
     }
-    sceneSession->GetSessionProperty()->SetDisplayId(currDisplayId);
-    sceneSession->SetScreenId(currDisplayId);
+    bool isVirtualDisplayId = false;
     if (currDisplayId == VIRTUAL_DISPLAY_ID && PcFoldScreenManager::GetInstance().IsHalfFolded(DEFAULT_DISPLAY_ID)) {
         sceneSession->SetClientDisplayId(currDisplayId);
+        currDisplayId = DEFAULT_DISPLAY_ID;
+        isVirtualDisplayId = true;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "initDisplayId=%{public}" PRIu64, currDisplayId);
-
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "win=[%{public}d, %{public}s], isVirtualDisplayId=%{public}d, displayId=%{public}" PRIu64,
+        sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), isVirtualDisplayId, currDisplayId);
+    sceneSession->GetSessionProperty()->SetDisplayId(currDisplayId);
+    sceneSession->SetScreenId(currDisplayId);
     sceneSession->SetEventHandler(taskScheduler_->GetEventHandler(), eventHandler_);
     sceneSession->RegisterIsScreenLockedCallback([this] { return IsScreenLocked(); });
     if (sessionInfo.isSystem_) {

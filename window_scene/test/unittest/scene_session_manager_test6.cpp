@@ -1284,6 +1284,8 @@ HWTEST_F(SceneSessionManagerTest6, InitSceneSession01, TestSize.Level1)
     ASSERT_NE(nullptr, sceneSession);
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
 
+    sptr<SceneSession> nullSession = nullptr;
+    ssm_->InitSceneSession(nullSession, sessionInfo, nullptr);
     auto& foldMgr = PcFoldScreenManager::GetInstance();
     auto oldDisplayId = foldMgr.displayId_;
     auto oldFoldStatus = foldMgr.screenFoldStatus_;
