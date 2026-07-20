@@ -7319,9 +7319,11 @@ WMError WindowSessionImpl::GetFloatingBallWindowId(uint32_t& windowId)
 
 WSError WindowSessionImpl::SendFvActionEvent(const std::string& action, const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s, reason: %{public}s", action.c_str(), reason.c_str());
-    auto task = [action, reason]() {
-        FloatViewManager::DoActionEvent(action, reason);
+    auto windowId = GetWindowId();
+    TLOGI(WmsLogTag::WMS_SYSTEM, "SendFvActionEvent, windowId: %{public}u, action: %{public}s, reason: %{public}s",
+        windowId, action.c_str(), reason.c_str());
+    auto task = [windowId, action, reason]() {
+        FloatViewManager::DoActionEvent(windowId, action, reason);
     };
     handler_->PostTask(task, "WMS_WindowSessionImpl_SendFvActionEvent");
     return WSError::WS_OK;
