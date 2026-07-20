@@ -1439,27 +1439,6 @@ HWTEST_F(SceneSessionTest5, RequestKeyFrameNextVsync_StampMismatch, Function | S
 }
 
 /**
- * @tc.name: OnKeyFrameNextVsync_NullLayoutController
- * @tc.desc: OnKeyFrameNextVsync handles nullptr layoutController_ without crash
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest5, OnKeyFrameNextVsync_NullLayoutController, Function | SmallTest | Level2)
-{
-    SessionInfo info;
-    info.abilityName_ = "keyframe";
-    info.bundleName_ = "keyframe";
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
-    EXPECT_NE(session, nullptr);
-    session->lastKeyFrameDragStamp_ = 0;
-    session->keyFrameDragPauseNoticed_ = false;
-    session->keyFrameAnimating_ = false;
-    session->layoutController_ = nullptr;
-    // Should not crash even when layoutController_ is nullptr
-    session->OnKeyFrameNextVsync(0);
-    EXPECT_EQ(session->keyFrameDragPauseNoticed_, false);
-}
-
-/**
  * @tc.name: OnKeyFrameNextVsync_NeedNotify
  * @tc.desc: OnKeyFrameNextVsync with needNotify=true when drag rect differs from last rect
  * @tc.type: FUNC

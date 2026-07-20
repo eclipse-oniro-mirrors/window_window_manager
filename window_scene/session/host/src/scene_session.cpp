@@ -5353,7 +5353,7 @@ void SceneSession::OnKeyFrameNextVsync(uint64_t count)
         std::lock_guard<std::mutex> lock(keyFrameMutex_);
         uint64_t duration = nowTimeStamp - lastKeyFrameDragStamp_;
         const uint64_t minDelay = 100;
-        if (!keyFrameDragPauseNoticed_ && !keyFrameAnimating_ && duration >= minDelay && layoutController_) {
+        if (!keyFrameDragPauseNoticed_ && !keyFrameAnimating_ && duration >= minDelay) {
             bool isToNotice = true;
             if (KeyFrameRectAlmostSame(lastKeyFrameRect_, lastKeyFrameDragRect_)) {
                 isToNotice = false;
