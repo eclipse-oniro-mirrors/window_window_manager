@@ -65,6 +65,7 @@
             OHOS::Rosen::SceneSession::SetIsSystemKeyboard*;
             OHOS::Rosen::SceneSession::SetUniqueDensityDpi*;
             OHOS::Rosen::SceneSession::SetWatermarkEnabled*;
+            OHOS::Rosen::SceneSession::SetLeashNodeWatermarkEnabled*;
             OHOS::Rosen::SceneSession::ActivateDragBySystem*;
             OHOS::Rosen::SceneSession::MarkAvoidAreaAsDirty*;
             OHOS::Rosen::SceneSession::NotifyOcclusionState*;
