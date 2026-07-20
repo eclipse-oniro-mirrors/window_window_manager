@@ -2591,9 +2591,9 @@ bool AniWindowUtils::ParseWindowMaskInnerValue(ani_env* env, ani_array innerArra
 bool AniWindowUtils::GetUint8ArrayBufferData(ani_env* env, ani_object uint8Array, void*& data, ani_size& byteLength)
 {
     ani_class clsUint8Array = nullptr;
-    ani_status aniRet = env->FindClass("std.core.Uint8Array", &clsUint8Array);
+    ani_status aniRet = env->FindClass("escompat.Uint8Array", &clsUint8Array);
     if (aniRet != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Find class std.core.Uint8Array failed: %{public}u", aniRet);
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Find class escompat.Uint8Array failed: %{public}u", aniRet);
         return false;
     }
 
