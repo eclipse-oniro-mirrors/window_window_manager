@@ -261,6 +261,7 @@ bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
     if (!hybridgref_delete_from_napi(napiEnv, ref)) {
         TLOGW(WmsLogTag::WMS_PIP, "hybridgref_delete_from_napi failed");
         env->GlobalReference_Delete(aniRef);
+        closeScope(napiScopeOpened, napiEnv);
         return false;
     }
     closeScope(napiScopeOpened, napiEnv);
