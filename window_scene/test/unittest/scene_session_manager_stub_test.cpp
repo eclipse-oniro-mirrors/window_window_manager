@@ -19,7 +19,6 @@
 
 #include "iremote_object_mocker.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
-#include "motion_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/zidl/scene_session_manager_interface.h"
 #include "session/container/include/window_event_channel.h"
@@ -3244,7 +3243,6 @@ HWTEST_F(SceneSessionManagerStubTest,
     int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
 }
-
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

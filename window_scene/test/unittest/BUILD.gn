@@ -109,7 +109,6 @@ group("unittest") {
       ":ws_session_manager_lite_test",
       ":ws_session_manager_service_recover_proxy_test",
       ":ws_session_manager_test",
-      ":ws_session_manager_motion_test",
       ":ws_session_sensor_plugin_test",
       ":ws_motion_manager_test",
       ":ws_session_proxy_immersive_test",
@@ -1064,26 +1063,6 @@ ohos_unittest("ws_scene_session_manager_motion_test") {
   external_deps = test_external_deps
 
   defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
-}
-
-ohos_unittest("ws_session_manager_motion_test") {
-  module_out_path = module_out_path
-
-  sources = [
-    "session_manager_motion_test.cpp",
-    "mock/session_sensor_plugin_mock.cpp",
-  ]
-
-  deps = [
-    ":ws_unittest_common",
-    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
-  ]
-
-  external_deps = test_external_deps
-  external_deps += [
-    "ability_base:session_info",
-    "init:libbegetutil",
-  ]
 }
 
 ohos_unittest("ws_session_sensor_plugin_test") {

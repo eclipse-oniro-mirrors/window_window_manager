@@ -22,7 +22,6 @@
 #include "mock/mock_ui_effect_controller_client_stub.h"
 #include "mock/mock_ui_effect_controller_stub.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
-#include "motion_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session_manager/include/zidl/scene_session_manager_interface.h"
 #include "session_manager/include/zidl/scene_session_manager_proxy.h"
@@ -3103,7 +3102,6 @@ HWTEST_F(sceneSessionManagerProxyTest, GetAppWindowShowingInfosByBundleName01, T
     ret = proxy->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
     EXPECT_EQ(ret, WMError::WM_OK);
 }
-
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -301,7 +301,6 @@ void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation)
     HandleMotionEvent(motionType, rotation);
 }
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 bool MotionSubscriberWrapper::SubscribeMotionSensor(MotionType motionType)
 {
     return MotionManager::GetInstance().SubscribeMotionSensor(motionType);
@@ -311,7 +310,6 @@ bool MotionSubscriberWrapper::UnsubscribeMotionSensor(MotionType motionType)
 {
     return MotionManager::GetInstance().UnsubscribeMotionSensor(motionType);
 }
-#endif
 
 } // namespace Rosen
 } // namespace OHOS
