@@ -140,9 +140,12 @@ HWTEST_F(SceneSessionManagerMotionTest, RegisterMotionSensor_InitMotionManager, 
 {
     MotionManager::GetInstance().Reset();
     EXPECT_FALSE(MotionManager::GetInstance().IsInitialized());
-    SceneSessionManager::GetInstance().RegisterMotionSensor(
-        static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    MotionManager::GetInstance().Init();
     EXPECT_TRUE(MotionManager::GetInstance().IsInitialized());
+    bool ret = SceneSessionManager::GetInstance().RegisterMotionSensor(
+        static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
+    EXPECT_TRUE(ret);
+    EXPECT_TRUE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
 }
 
 HWTEST_F(SceneSessionManagerMotionTest, OnMotionRotationChanged01, TestSize.Level1)

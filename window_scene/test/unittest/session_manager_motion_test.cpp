@@ -63,41 +63,5 @@ void SessionManagerMotionTest::TearDown()
     OHOS::system::SetParameter("persist.dms.concurrentuser", isConcurrentuser_);
     usleep(SLEEP_TIME_US);
 }
-
-HWTEST_F(SessionManagerMotionTest, RegisterMotionSensor01, TestSize.Level1)
-{
-    ASSERT_NE(sm_, nullptr);
-    bool ret = sm_->RegisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
-    EXPECT_TRUE(ret);
-}
-
-HWTEST_F(SessionManagerMotionTest, RegisterMotionSensor02, TestSize.Level1)
-{
-    ASSERT_NE(sm_, nullptr);
-    bool ret = sm_->RegisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
-    EXPECT_TRUE(ret);
-}
-
-HWTEST_F(SessionManagerMotionTest, RegisterMotionSensor03, TestSize.Level1)
-{
-    ASSERT_NE(sm_, nullptr);
-    bool ret = sm_->RegisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE));
-    EXPECT_TRUE(ret);
-}
-
-HWTEST_F(SessionManagerMotionTest, UnregisterMotionSensor01, TestSize.Level1)
-{
-    ASSERT_NE(sm_, nullptr);
-    bool ret = sm_->UnregisterMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
-    EXPECT_TRUE(ret);
-}
-
-HWTEST_F(SessionManagerMotionTest, UnregisterMotionSensor02, TestSize.Level1)
-{
-    ASSERT_NE(sm_, nullptr);
-    bool ret = sm_->UnregisterMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
-    EXPECT_TRUE(ret);
-}
-
 }
 }

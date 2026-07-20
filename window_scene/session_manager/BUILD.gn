@@ -172,15 +172,14 @@ ohos_static_library("scene_session_manager_static") {
   ]
 
   defines = []
-  if (window_manager_feature_support_dmsfwk) {
-    sources +=[ "src/distributed_client.cpp" ]
-    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
-  }
-
   if (window_manager_feature_subscribe_motion) {
     if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
       defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
     }
+  }
+  if (window_manager_feature_support_dmsfwk) {
+    sources +=[ "src/distributed_client.cpp" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
   }
 
   if (defined(global_parts_info) &&
@@ -267,15 +266,14 @@ ohos_shared_library("scene_session_manager") {
   version_script = "libscene_session_manager.map"
 
   defines = []
-  if (window_manager_feature_support_dmsfwk) {
-    sources +=[ "src/distributed_client.cpp" ]
-    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
-  }
-
   if (window_manager_feature_subscribe_motion) {
     if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
       defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
     }
+  }
+  if (window_manager_feature_support_dmsfwk) {
+    sources +=[ "src/distributed_client.cpp" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
   }
 
   if (defined(global_parts_info) &&

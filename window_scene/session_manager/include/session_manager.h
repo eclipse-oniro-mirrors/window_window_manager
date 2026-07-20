@@ -96,11 +96,6 @@ public:
      */
     void NotifySetSpecificWindowZIndex();
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    bool RegisterMotionSensor(int32_t motionType);
-    bool UnregisterMotionSensor(int32_t motionType);
-#endif
-
 private:
     friend class sptr<SessionManager>;
     ~SessionManager() override;

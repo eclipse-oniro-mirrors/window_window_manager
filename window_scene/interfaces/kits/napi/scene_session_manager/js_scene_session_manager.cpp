@@ -91,10 +91,8 @@ const std::string SCENE_SESSION_TRANSFER_TO_TARGET_SCREEN_CB = "sceneSessionTran
 const std::string UPDATE_KIOSK_APP_LIST_CB = "updateKioskAppList";
 const std::string KIOSK_MODE_CHANGE_CB = "kioskModeChange";
 const std::string NOTIFY_SUPPORT_ROTATION_REGISTERED_CB = "notifySupportRotationRegistered";
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 const std::string SENSOR_ROTATION_CHANGE_CB = "sensorRotationChange";
 const std::string SMART_SENSOR_ROTATION_CHANGE_CB = "sensorSmartRotationChange";
-#endif
 const std::string UI_EFFECT_SET_PARAMS_CB = "uiEffectSetParams";
 const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
@@ -125,10 +123,8 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {UPDATE_KIOSK_APP_LIST_CB,     ListenerFunctionType::UPDATE_KIOSK_APP_LIST_CB},
     {KIOSK_MODE_CHANGE_CB,         ListenerFunctionType::KIOSK_MODE_CHANGE_CB},
     {NOTIFY_SUPPORT_ROTATION_REGISTERED_CB, ListenerFunctionType::NOTIFY_SUPPORT_ROTATION_REGISTERED_CB},
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     {SENSOR_ROTATION_CHANGE_CB, ListenerFunctionType::SENSOR_ROTATION_CHANGE_CB},
     {SMART_SENSOR_ROTATION_CHANGE_CB, ListenerFunctionType::SMART_SENSOR_ROTATION_CHANGE_CB},
-#endif
     {UI_EFFECT_SET_PARAMS_CB,       ListenerFunctionType::UI_EFFECT_SET_PARAMS_CB},
     {UI_EFFECT_ANIMATE_TO_CB,      ListenerFunctionType::UI_EFFECT_ANIMATE_TO_CB},
     {VIRTUAL_DENSITY_CHANGE_CB,   ListenerFunctionType::VIRTUAL_DENSITY_CHANGE_CB},
@@ -355,12 +351,10 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::NotifyRotationChange);
     BindNativeFunction(env, exportObj, "notifyRotationBegin", moduleName,
         JsSceneSessionManager::NotifyRotationBegin);
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     BindNativeFunction(env, exportObj, "registerMotionSensor", moduleName,
         JsSceneSessionManager::RegisterMotionSensor);
     BindNativeFunction(env, exportObj, "unregisterMotionSensor", moduleName,
         JsSceneSessionManager::UnregisterMotionSensor);
-#endif
     BindNativeFunction(env, exportObj, "supportFollowParentWindowLayout", moduleName,
         JsSceneSessionManager::SupportFollowParentWindowLayout);
     BindNativeFunction(env, exportObj, "supportFollowRelativePositionToParent", moduleName,
@@ -731,7 +725,6 @@ void JsSceneSessionManager::OnSupportRotationRegistered()
     taskScheduler_->PostMainThreadTask(task, __func__);
 }
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 void JsSceneSessionManager::OnSensorRotationChange(float sensorRotation)
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI] sensorRotation: %{public}f", sensorRotation);
@@ -759,7 +752,6 @@ void JsSceneSessionManager::OnSmartSensorRotationChange(float sensorRotation)
     };
     taskScheduler_->PostMainThreadTask(task, __func__);
 }
-#endif
 
 void JsSceneSessionManager::ProcessCreateSystemSessionRegister()
 {
@@ -988,7 +980,6 @@ void JsSceneSessionManager::ProcessSupportRotationRegister()
     });
 }
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 void JsSceneSessionManager::ProcessSensorRotationRegister()
 {
     SceneSessionManager::GetInstance().SetSensorRotationChangeListener([this](float sensorRotation) {
@@ -1004,7 +995,6 @@ void JsSceneSessionManager::ProcessSmartSensorRotationRegister()
         this->OnSmartSensorRotationChange(sensorRotation);
     });
 }
-#endif
 
 napi_value JsSceneSessionManager::SetBehindWindowFilterEnabled(napi_env env, napi_callback_info info)
 {
@@ -1774,7 +1764,6 @@ napi_value JsSceneSessionManager::NotifyRotationBegin(napi_env env, napi_callbac
     return (me != nullptr) ? me->OnNotifyRotationBegin(env, info) : nullptr;
 }
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 napi_value JsSceneSessionManager::RegisterMotionSensor(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI]");
@@ -1788,7 +1777,6 @@ napi_value JsSceneSessionManager::UnregisterMotionSensor(napi_env env, napi_call
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnUnregisterMotionSensor(env, info) : nullptr;
 }
-#endif
 
 napi_value JsSceneSessionManager::SupportZLevel(napi_env env, napi_callback_info info)
 {
@@ -2008,14 +1996,12 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
         case ListenerFunctionType::NOTIFY_SUPPORT_ROTATION_REGISTERED_CB:
             ProcessSupportRotationRegister();
             break;
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
         case ListenerFunctionType::SENSOR_ROTATION_CHANGE_CB:
             ProcessSensorRotationRegister();
             break;
         case ListenerFunctionType::SMART_SENSOR_ROTATION_CHANGE_CB:
             ProcessSmartSensorRotationRegister();
             break;
-#endif
         case ListenerFunctionType::MINIMIZE_ALL_CB:
             RegisterMinimizeAllCallback();
             break;
@@ -6102,7 +6088,6 @@ napi_value JsSceneSessionManager::OnNotifyRotationBegin(napi_env env, napi_callb
     return NapiGetUndefined(env);
 }
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 napi_value JsSceneSessionManager::OnRegisterMotionSensor(napi_env env, napi_callback_info info)
 {
     size_t argc = ARGC_ONE;
@@ -6160,7 +6145,6 @@ napi_value JsSceneSessionManager::OnUnregisterMotionSensor(napi_env env, napi_ca
     napi_get_boolean(env, ret, &result);
     return result;
 }
-#endif
 
 void JsSceneSessionManager::RegisterUIEffectSetParamsCallback()
 {

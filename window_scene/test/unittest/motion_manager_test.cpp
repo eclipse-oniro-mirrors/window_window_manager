@@ -122,7 +122,6 @@ HWTEST_F(MotionManagerTest, SubscribeMotionSensor02, TestSize.Level1)
  */
 HWTEST_F(MotionManagerTest, SubscribeMotionSensor03, TestSize.Level1)
 {
-    MotionManager::GetInstance().SetScreenOnState(false);
     MotionManager::GetInstance().SubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     ASSERT_TRUE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
 }
@@ -150,28 +149,6 @@ HWTEST_F(MotionManagerTest, UnsubscribeMotionSensor02, TestSize.Level1)
     MotionManager::GetInstance().UnsubscribeMotionSensor(MotionType::DEVICE_MOTION_TYPE);
     ASSERT_FALSE(MotionManager::GetInstance().IsMotionSensorSubscribed(MotionType::DEVICE_MOTION_TYPE));
     usleep(SLEEP_TIME_US);
-}
-
-/**
- * @tc.name: OnScreenOn01
- * @tc.desc: test function : OnScreenOn
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, OnScreenOn01, TestSize.Level1)
-{
-    MotionManager::GetInstance().OnScreenOn();
-    ASSERT_TRUE(MotionManager::GetInstance().IsScreenOn());
-}
-
-/**
- * @tc.name: OnScreenOff01
- * @tc.desc: test function : OnScreenOff
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, OnScreenOff01, TestSize.Level1)
-{
-    MotionManager::GetInstance().OnScreenOff();
-    ASSERT_FALSE(MotionManager::GetInstance().IsScreenOn());
 }
 
 /**
@@ -205,7 +182,7 @@ HWTEST_F(MotionManagerTest, HandleMotionEvent01, TestSize.Level1)
 {
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, 90.0f);
     float rotation = MotionManager::GetInstance().GetLastMotionRotation();
-    ASSERT_EQ(rotation, -1);
+    ASSERT_EQ(rotation, 90);
 }
 
 /**
@@ -217,7 +194,7 @@ HWTEST_F(MotionManagerTest, HandleMotionEvent02, TestSize.Level1)
 {
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE, 180.0f);
     float rotation = MotionManager::GetInstance().GetLastSmartMotionRotation();
-    ASSERT_EQ(rotation, -1);
+    ASSERT_EQ(rotation, 180);
 }
 
 /**
@@ -346,28 +323,6 @@ HWTEST_F(MotionManagerTest, IsMotionSensorSubscribed01, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsScreenOn01
- * @tc.desc: test function : IsScreenOn
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, IsScreenOn01, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetScreenOnState(true);
-    ASSERT_TRUE(MotionManager::GetInstance().IsScreenOn());
-}
-
-/**
- * @tc.name: IsScreenOn02
- * @tc.desc: test function : IsScreenOn false
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, IsScreenOn02, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetScreenOnState(false);
-    ASSERT_FALSE(MotionManager::GetInstance().IsScreenOn());
-}
-
-/**
  * @tc.name: IsInitialized01
  * @tc.desc: test function : IsInitialized
  * @tc.type: FUNC
@@ -376,28 +331,6 @@ HWTEST_F(MotionManagerTest, IsInitialized01, TestSize.Level1)
 {
     MotionManager::GetInstance().Reset();
     ASSERT_FALSE(MotionManager::GetInstance().IsInitialized());
-}
-
-/**
- * @tc.name: IsDefaultSmartMotionEnabled01
- * @tc.desc: test function : IsDefaultSmartMotionEnabled
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, IsDefaultSmartMotionEnabled01, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetDefaultSmartMotionEnabled(false);
-    ASSERT_FALSE(MotionManager::GetInstance().IsDefaultSmartMotionEnabled());
-}
-
-/**
- * @tc.name: IsDefaultSmartMotionEnabled02
- * @tc.desc: test function : IsDefaultSmartMotionEnabled true
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, IsDefaultSmartMotionEnabled02, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetDefaultSmartMotionEnabled(true);
-    ASSERT_TRUE(MotionManager::GetInstance().IsDefaultSmartMotionEnabled());
 }
 
 /**
@@ -413,33 +346,6 @@ HWTEST_F(MotionManagerTest, Reset01, TestSize.Level1)
     ASSERT_FALSE(MotionManager::GetInstance().IsInitialized());
     ASSERT_EQ(MotionManager::GetInstance().GetLastMotionRotation(), -1.0f);
 }
-
-/**
- * @tc.name: SetScreenOnState01
- * @tc.desc: test function : SetScreenOnState
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, SetScreenOnState01, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetScreenOnState(true);
-    ASSERT_TRUE(MotionManager::GetInstance().IsScreenOn());
-    MotionManager::GetInstance().SetScreenOnState(false);
-    ASSERT_FALSE(MotionManager::GetInstance().IsScreenOn());
-}
-
-/**
- * @tc.name: SetDefaultSmartMotionEnabled01
- * @tc.desc: test function : SetDefaultSmartMotionEnabled
- * @tc.type: FUNC
- */
-HWTEST_F(MotionManagerTest, SetDefaultSmartMotionEnabled01, TestSize.Level1)
-{
-    MotionManager::GetInstance().SetDefaultSmartMotionEnabled(true);
-    ASSERT_TRUE(MotionManager::GetInstance().IsDefaultSmartMotionEnabled());
-    MotionManager::GetInstance().SetDefaultSmartMotionEnabled(false);
-    ASSERT_FALSE(MotionManager::GetInstance().IsDefaultSmartMotionEnabled());
-}
-
 }
 }
 }

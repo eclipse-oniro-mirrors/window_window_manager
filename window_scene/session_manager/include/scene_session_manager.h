@@ -46,9 +46,7 @@
 #include "scene_session_converter.h"
 #include "screen_fold_data.h"
 #include "screen_session_manager_client.h"
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 #include "motion_manager.h"
-#endif
 #include "session/host/include/keyboard_session.h"
 #include "session/host/include/session.h"
 #include "session/host/include/root_scene_session.h"
@@ -162,10 +160,8 @@ using NotifyAppUseControlListFunc =
 using NotifyRootSceneAvoidAreaChangeFunc = std::function<void(const sptr<AvoidArea>& avoidArea, AvoidAreaType type,
     const sptr<OccupiedAreaChangeInfo>& info)>;
 using NotifySupportRotationRegisteredFunc = std::function<void()>;
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 using NotifySensorRotationChangeFunc = std::function<void(float sensorRotation)>;
 using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation)>;
-#endif
 using NotifyWatchGestureConsumeResultFunc = std::function<void(int32_t keyCode, bool isConsumed)>;
 using NotifyWatchFocusActiveChangeFunc = std::function<void(bool isActive)>;
 using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(const std::string& id)>;
@@ -234,11 +230,7 @@ private:
     NotifyAppProcessDiedFunc procDiedCallback_;
 };
 
-class SceneSessionManager : public SceneSessionManagerStub
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    , public IMotionEventListener
-#endif
-{
+class SceneSessionManager : public SceneSessionManagerStub, public IMotionEventListener {
 WM_DECLARE_SINGLE_INSTANCE_BASE(SceneSessionManager)
 public:
     friend class AnomalyDetection;
@@ -998,8 +990,8 @@ public:
     WMError NotifySupportRotationRegistered() override;
 
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    bool RegisterMotionSensor(int32_t motionType) override;
-    bool UnregisterMotionSensor(int32_t motionType) override;
+    bool RegisterMotionSensor(int32_t motionType);
+    bool UnregisterMotionSensor(int32_t motionType);
     void OnMotionRotationChanged(float sensorRotation) override;
     void OnMotionSmartRotationChanged(float sensorRotation) override;
 #endif
@@ -1575,10 +1567,8 @@ private:
      */
     RotateAnimationConfig rotateAnimationConfig_;
     NotifySupportRotationRegisteredFunc supportRotationRegisteredListener_;
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     NotifySensorRotationChangeFunc sensorRotationChangeListener_;
     NotifySmartSensorRotationChangeFunc smartSensorRotationChangeListener_;
-#endif
 
     /*
      * PiP Window

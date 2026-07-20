@@ -62,11 +62,6 @@ void MotionManager::Init()
     if (!SessionLoadMotionSensor()) {
         TLOGE(WmsLogTag::WMS_ROTATION, "load motion plugin failed");
     }
-    int32_t smartRotationEnabled = OHOS::system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
-        DISABLED_SMART_ROTATION);
-    isDefaultSmartMotionEnabled_ = (smartRotationEnabled == ENABLED_SMART_ROTATION);
-    TLOGI(WmsLogTag::WMS_ROTATION, "default_rotation_sensor: %{public}d, smartMotionEnabled: %{public}d",
-        smartRotationEnabled, isDefaultSmartMotionEnabled_);
 #endif
     
     isInitialized_ = true;
@@ -290,11 +285,6 @@ bool MotionManager::IsInitialized() const
     return isInitialized_;
 }
 
-bool MotionManager::IsDefaultSmartMotionEnabled() const
-{
-    return isDefaultSmartMotionEnabled_;
-}
-
 void MotionManager::Reset()
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -304,13 +294,6 @@ void MotionManager::Reset()
     motionEventListener_ = nullptr;
     isInitialized_ = false;
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager reset");
-}
-
-void MotionManager::SetDefaultSmartMotionEnabled(bool enabled)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    isDefaultSmartMotionEnabled_ = enabled;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Set default smart motion enabled: %{public}d", enabled);
 }
 
 void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation)

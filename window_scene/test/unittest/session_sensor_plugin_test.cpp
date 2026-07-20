@@ -23,11 +23,16 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace Rosen {
-namespace {
-constexpr uint32_t SLEEP_TIME_US = 100000;
 
 bool IsSessionMotionSensorLoaded();
 bool IsSessionMotionSensorSubscribed(int32_t motionType);
+
+namespace {
+constexpr uint32_t SLEEP_TIME_US = 100000;
+
+static void CallbackFunc1(const SessionMotionSensorEvent&) {}
+static void CallbackFunc2(const SessionMotionSensorEvent&) { volatile int dummy = 1; }
+static void CallbackFunc3(const SessionMotionSensorEvent&) { volatile int dummy = 2; }
 
 class MockMotionEventListener : public IMotionEventListener {
 public:
@@ -186,10 +191,8 @@ HWTEST_F(SessionSensorPluginTest, UnsubscribeCallback_NotSubscribed, TestSize.Le
 HWTEST_F(SessionSensorPluginTest, UnsubscribeCallback_DifferentCallback, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback1 = [](const SessionMotionSensorEvent&) {};
-    auto callback2 = [](const SessionMotionSensorEvent&) {};
-    SessionSubscribeCallback(700, callback1);
-    bool ret = SessionUnsubscribeCallback(700, callback2);
+    SessionSubscribeCallback(700, CallbackFunc1);
+    bool ret = SessionUnsubscribeCallback(700, CallbackFunc2);
     EXPECT_FALSE(ret);
     EXPECT_TRUE(IsSessionMotionSensorSubscribed(700));
 }
@@ -321,6 +324,7 @@ HWTEST_F(MotionManagerListenerTest, ReplaceListener, TestSize.Level1)
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, 90.0f);
     EXPECT_TRUE(listener_.rotationCalled_);
 
+    listener_.Reset();
     MockMotionEventListener newListener;
     MotionManager::GetInstance().SetMotionEventListener(&newListener);
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, 180.0f);

@@ -178,10 +178,6 @@ private:
     int HandleGetCrossProcessWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetFloatViewLimits(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    int HandleRegisterMotionSensor(MessageParcel& data, MessageParcel& reply);
-    int HandleUnregisterMotionSensor(MessageParcel& data, MessageParcel& reply);
-#endif
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_STUB_H

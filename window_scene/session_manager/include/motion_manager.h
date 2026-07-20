@@ -24,10 +24,8 @@
 #include "session_sensor_plugin.h"
 #include "window_manager_hilog.h"
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 constexpr int32_t DISABLED_SMART_ROTATION = 0;
 constexpr int32_t ENABLED_SMART_ROTATION = 1;
-#endif
 
 namespace OHOS {
 namespace Rosen {
@@ -67,9 +65,7 @@ public:
     
     bool IsMotionSensorSubscribed(MotionType motionType) const;
     bool IsInitialized() const;
-    bool IsDefaultSmartMotionEnabled() const;
     void Reset();
-    void SetDefaultSmartMotionEnabled(bool enabled);
     
     void TestHandleMotionEvent(MotionType motionType, float rotation);
     
@@ -97,12 +93,9 @@ private:
     std::map<MotionType, bool> subscribedMotionTypes_;
     float lastMotionRotation_ = -1.0f;
     float lastSmartMotionRotation_ = -1.0f;
-    
-    bool isDefaultSmartMotionEnabled_ = false;
     bool isInitialized_ = false;
 };
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 class MotionSubscriberWrapper {
 friend MotionManager;
 public:
@@ -114,7 +107,6 @@ private:
     
     static std::map<MotionType, bool> isMotionSubscribedMap_;
 };
-#endif
 
 } // namespace Rosen
 } // namespace OHOS

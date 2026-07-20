@@ -606,6 +606,8 @@ void SceneSessionManager::Init()
 
     // Initialize locale indexing configuration
     OHOS::Rosen::TextConfig::SetLocaleTextBreakEnabled(true);
+
+    MotionManager::GetInstance().Init();
 }
 
 void SceneSessionManager::RegisterBrightnessDataChangeListener()
@@ -21991,29 +21993,17 @@ WMError SceneSessionManager::NotifySupportRotationRegistered()
 
 bool SceneSessionManager::RegisterMotionSensor(int32_t motionType)
 {
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d", motionType);
-    MotionManager::GetInstance().Init();
     MotionManager::GetInstance().SetMotionEventListener(this);
     return MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
-#else
-    TLOGW(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor: WM_SUBSCRIBE_MOTION_ENABLE not defined");
-    return false;
-#endif
 }
 
 bool SceneSessionManager::UnregisterMotionSensor(int32_t motionType)
 {
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor motionType: %{public}d", motionType);
     return MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
-#else
-    TLOGW(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor: WM_SUBSCRIBE_MOTION_ENABLE not defined");
-    return false;
-#endif
 }
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
@@ -22043,7 +22033,6 @@ void SceneSessionManager::SetSmartSensorRotationChangeListener(NotifySmartSensor
         smartSensorRotationChangeListener_ = std::move(func);
     }, __func__);
 }
-#endif
 
 WMError SceneSessionManager::GetAllJsonProfile(AppExecFwk::ProfileType profileType, int32_t userId,
     std::vector<AppExecFwk::JsonProfileInfo>& jsonProfileInfos)
