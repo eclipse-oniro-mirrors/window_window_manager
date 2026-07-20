@@ -5164,7 +5164,7 @@ WSError SceneSession::UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNo
         return WSError::WS_ERROR_NULLPTR;
     }
     {
-        std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+        std::lock_guard<std::mutex> lock(keyFrameMutex_);
         if (keyFrameCloneNode_) {
             TLOGW(WmsLogTag::WMS_LAYOUT_PC, "keyFrameCloneNode_ already exist");
             return WSError::WS_ERROR_REPEAT_OPERATION;
@@ -5189,13 +5189,13 @@ WSError SceneSession::UpdateKeyFrameCloneNode(std::shared_ptr<RSWindowKeyFrameNo
 
 KeyFramePolicy SceneSession::GetKeyFramePolicy() const
 {
-    std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+    std::lock_guard<std::mutex> lock(keyFrameMutex_);
     return keyFramePolicy_;
 }
 
 void SceneSession::UpdateKeyFramePolicy(bool running, bool stopping)
 {
-    std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+    std::lock_guard<std::mutex> lock(keyFrameMutex_);
     keyFramePolicy_.running_ = running;
     keyFramePolicy_.stopping_ = stopping;
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "update keyframe policy: %{public}s", keyFramePolicy_.ToString().c_str());
@@ -5206,7 +5206,7 @@ WSError SceneSession::SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "set keyframe policy from outside: %{public}s", keyFramePolicy.ToString().c_str());
     bool shouldInit = false;
     {
-        std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+        std::lock_guard<std::mutex> lock(keyFrameMutex_);
         bool running = keyFramePolicy_.running_;
         if (!running && keyFramePolicy.enabled() &&
             moveDragController_ != nullptr && moveDragController_->GetStartDragFlag() &&
@@ -5239,10 +5239,9 @@ void SceneSession::UpdateKeyFrameState(SizeChangeReason reason, const WSRect& re
     if (reason == SizeChangeReason::DRAG_START && moveDragController_->GetStartDragFlag()) {
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "key frame start check");
         {
-            std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
-            auto keyFramePolicy = GetKeyFramePolicy();
-            if (!keyFramePolicy.enabled() || GetAppDragResizeType() == DragResizeType::RESIZE_WHEN_DRAG_END) {
-                UpdateKeyFramePolicy(false, keyFramePolicy.stopping_);
+            std::lock_guard<std::mutex> lock(keyFrameMutex_);
+            if (!keyFramePolicy_.enabled() || GetAppDragResizeType() == DragResizeType::RESIZE_WHEN_DRAG_END) {
+                keyFramePolicy_.running_ = false;
                 return;
             }
         }
@@ -5252,8 +5251,8 @@ void SceneSession::UpdateKeyFrameState(SizeChangeReason reason, const WSRect& re
     KeyFramePolicy policy;
     bool needSetPolicy = false;
     {
-        std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
-        if (!GetKeyFramePolicy().running_) {
+        std::lock_guard<std::mutex> lock(keyFrameMutex_);
+        if (!keyFramePolicy_.running_) {
             TLOGD(WmsLogTag::WMS_LAYOUT_PC, "key frame not start");
             return;
         }
@@ -5261,8 +5260,9 @@ void SceneSession::UpdateKeyFrameState(SizeChangeReason reason, const WSRect& re
             cloneNode = UpdateKeyFrameDragState(rect);
         } else if (reason == SizeChangeReason::DRAG_END) {
             TLOGI(WmsLogTag::WMS_LAYOUT_PC, "key frame stopping");
-            UpdateKeyFramePolicy(false, true);
-            policy = GetKeyFramePolicy();
+            keyFramePolicy_.running_ = false;
+            keyFramePolicy_.stopping_ = true;
+            policy = keyFramePolicy_;
             needSetPolicy = true;
             keyFrameCloneNode_ = nullptr;
         }
@@ -5300,9 +5300,10 @@ void SceneSession::InitKeyFrameState(const WSRect& rect)
     KeyFramePolicy policy;
     uint64_t requestStamp = 0;
     {
-        std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+        std::lock_guard<std::mutex> lock(keyFrameMutex_);
         keyFrameCloneNode_ = nullptr;
-        UpdateKeyFramePolicy(true, false);
+        keyFramePolicy_.running_ = true;
+        keyFramePolicy_.stopping_ = false;
         keyFrameAnimating_ = false;
         lastKeyFrameStamp_ = timeStamp;
         lastKeyFrameRect_ = rect;
@@ -5310,7 +5311,7 @@ void SceneSession::InitKeyFrameState(const WSRect& rect)
         keyFrameVsyncRequestStamp_ = timeStamp;
         lastKeyFrameDragStamp_ = timeStamp;
         keyFrameDragPauseNoticed_ = false;
-        policy = GetKeyFramePolicy();
+        policy = keyFramePolicy_;
         requestStamp = keyFrameVsyncRequestStamp_;
     }
     sessionStage_->SetStageKeyFramePolicy(policy);
@@ -5319,12 +5320,16 @@ void SceneSession::InitKeyFrameState(const WSRect& rect)
 
 void SceneSession::RequestKeyFrameNextVsync(uint64_t requestStamp, uint64_t count)
 {
-    std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
-    if (count == UINT64_MAX) {
-        TLOGW(WmsLogTag::WMS_LAYOUT, "stop: exceed max vsync count");
-        return;
+    bool shouldSchedule = false;
+    {
+        std::lock_guard<std::mutex> lock(keyFrameMutex_);
+        if (count == UINT64_MAX) {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "stop: exceed max vsync count");
+            return;
+        }
+        shouldSchedule = keyFramePolicy_.running_ && requestStamp == keyFrameVsyncRequestStamp_;
     }
-    if (keyFramePolicy_.running_ && requestStamp == keyFrameVsyncRequestStamp_) {
+    if (shouldSchedule) {
         RunOnNextVsync([weakThis = wptr(this), requestStamp, count, where = __func__](int64_t, int64_t) {
             auto session = weakThis.promote();
             RETURN_IF_NULL_IMPL(session, WmsLogTag::WMS_LAYOUT, where);
@@ -5345,7 +5350,7 @@ void SceneSession::OnKeyFrameNextVsync(uint64_t count)
     bool needSetRect = false;
     bool needNotify = false;
     {
-        std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+        std::lock_guard<std::mutex> lock(keyFrameMutex_);
         uint64_t duration = nowTimeStamp - lastKeyFrameDragStamp_;
         const uint64_t minDelay = 100;
         if (!keyFrameDragPauseNoticed_ && !keyFrameAnimating_ && duration >= minDelay && layoutController_) {
@@ -5373,7 +5378,7 @@ void SceneSession::OnKeyFrameNextVsync(uint64_t count)
 
 bool SceneSession::KeyFrameNotifyFilter(const WSRect& rect, SizeChangeReason reason)
 {
-    std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+    std::lock_guard<std::mutex> lock(keyFrameMutex_);
     if (!keyFramePolicy_.running_) {
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "skip filter for not running");
         return false;
@@ -5432,7 +5437,7 @@ bool SceneSession::KeyFrameRectAlmostSame(const WSRect& rect1, const WSRect& rec
 
 WSError SceneSession::KeyFrameAnimateEnd()
 {
-    std::lock_guard<std::recursive_mutex> lock(keyFrameMutex_);
+    std::lock_guard<std::mutex> lock(keyFrameMutex_);
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");
     keyFrameAnimating_ = false;
     return WSError::WS_OK;

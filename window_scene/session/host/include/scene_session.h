@@ -1720,7 +1720,7 @@ private:
     KeyFramePolicy GetKeyFramePolicy() const;
     void UpdateKeyFramePolicy(bool running, bool stopping);
     std::shared_ptr<RSWindowKeyFrameNode> UpdateKeyFrameDragState(const WSRect& rect);
-    mutable std::recursive_mutex keyFrameMutex_;
+    mutable std::mutex keyFrameMutex_;
     KeyFramePolicy keyFramePolicy_;
     std::shared_ptr<RSWindowKeyFrameNode> keyFrameCloneNode_ = nullptr;
     bool keyFrameAnimating_ = false;
