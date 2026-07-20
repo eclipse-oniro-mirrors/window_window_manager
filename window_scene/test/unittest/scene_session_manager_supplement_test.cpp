@@ -1788,6 +1788,11 @@ HWTEST_F(SceneSessionManagerSupplementTest, GetFocusWindowInfo, TestSize.Level1)
     ssm_->NotifySessionForCallback(sceneSession, true);
     property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::APP_WINDOW_BASE);
+    sceneSession->SetSessionProperty(property);
+    ssm_->NotifySessionForCallback(sceneSession, true);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ssm_->NotifySessionForCallback(sceneSession, true);
     property->SetBrightness(1.f);
     auto ret = ssm_->SetBrightness(sceneSession, 1.f);
     ASSERT_EQ(ret, WSError::WS_OK);
