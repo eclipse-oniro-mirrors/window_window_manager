@@ -575,7 +575,7 @@ HWTEST_F(SceneSessionManagerAttributeTest, SetLeashNodeWatermarkForAppProcess001
     sceneSession->SetLeashWinSurfaceNode(surfaceNode);
     ssm_->sceneSessionMap_.insert(std::make_pair(100, sceneSession));
     ssm_->SetLeashNodeWatermarkForAppProcess(nullptr);
-    EXPECT_EQ(ssm_->NotifyVisibleChange(sceneSession), true);
+    EXPECT_EQ(ssm_->NotifyVisibleChange(100), true);
     ssm_->processWatermarkPidMap_.clear();
     ssm_->processWatermarkPidMap_ = oldProcessWatermarkPidMap;
     ssm_->sceneSessionMap_.clear();
