@@ -226,6 +226,7 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateAppHookWindowInfo, TestSize.
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
     auto res = window->UpdateAppHookWindowInfo(hookWindowInfo);
     EXPECT_EQ(res, WSError::WS_OK);
 
@@ -369,6 +370,7 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged05, TestSiz
     window->hostSession_ = session;
 
     EXPECT_CALL(*session, NotifySplitRatioChanged(1.0f / 3.0f)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
     auto ret = window->NotifySplitRatioChanged(1.0f / 3.0f);
     EXPECT_EQ(ret, WMError::WM_OK);
 
@@ -401,6 +403,7 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged06, TestSiz
     window->hostSession_ = session;
 
     EXPECT_CALL(*session, NotifySplitRatioChanged(1.0f / 2.0f)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
     auto ret = window->NotifySplitRatioChanged(1.0f / 2.0f);
     EXPECT_EQ(ret, WMError::WM_OK);
 
@@ -433,6 +436,7 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged07, TestSiz
     window->hostSession_ = session;
 
     EXPECT_CALL(*session, NotifySplitRatioChanged(2.0f / 3.0f)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
     auto ret = window->NotifySplitRatioChanged(2.0f / 3.0f);
     EXPECT_EQ(ret, WMError::WM_OK);
 
@@ -465,12 +469,270 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, NotifySplitRatioChanged08, TestSiz
     window->hostSession_ = session;
 
     EXPECT_CALL(*session, NotifySplitRatioChanged(1.0f / 2.0f)).WillOnce(Return(WMError::WM_ERROR_INVALID_OPERATION));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
     auto ret = window->NotifySplitRatioChanged(1.0f / 2.0f);
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION);
 
     auto hookInfo = window->property_->GetHookWindowInfo();
     EXPECT_FLOAT_EQ(hookInfo.widthHookRatio, 1.0f);
     GTEST_LOG_(INFO) << "CompatibleModeWindowSessionImplTest: NotifySplitRatioChanged08 end";
+}
+
+/**
+ * @tc.name: CompatibleStyleModeValueTest
+ * @tc.desc: Verify LANDSCAPE_SCALE_VERTICAL_FULL enum value equals 23
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, CompatibleStyleModeValueTest, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CompatibleStyleModeValueTest test start";
+    EXPECT_EQ(static_cast<uint32_t>(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL), 23u);
+    GTEST_LOG_(INFO) << "CompatibleStyleModeValueTest test end";
+}
+
+/**
+ * @tc.name: UpdateCompatibleStyleModeWithVerticalFullScreenNullSession
+ * @tc.desc: UpdateCompatibleStyleMode with LANDSCAPE_SCALE_VERTICAL_FULL and null session
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateCompatibleStyleModeWithVerticalFullScreenNullSession,
+    TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeWithVerticalFullScreenNullSession test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    auto ret = window->UpdateCompatibleStyleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeWithVerticalFullScreenNullSession test end";
+}
+
+/**
+ * @tc.name: UpdateCompatibleStyleModeVerticalFullScreen
+ * @tc.desc: UpdateCompatibleStyleMode with LANDSCAPE_SCALE_VERTICAL_FULL successfully
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateCompatibleStyleModeVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeVerticalFullScreen test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    auto ret = window->UpdateCompatibleStyleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeVerticalFullScreen test end";
+}
+
+/**
+ * @tc.name: SwitchCompatibleModeVerticalFullScreen
+ * @tc.desc: SwitchCompatibleMode with LANDSCAPE_SCALE_VERTICAL_FULL on main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, SwitchCompatibleModeVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreen test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SwitchCompatibleModeVerticalFullScreen");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(100);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_SWITCH_COMPATIBLE_MODE, _))
+        .WillOnce(Return(WSError::WS_OK));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SwitchCompatibleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreen test end";
+}
+
+/**
+ * @tc.name: SwitchCompatibleModeVerticalFullScreenNotMain
+ * @tc.desc: SwitchCompatibleMode with LANDSCAPE_SCALE_VERTICAL_FULL on non-main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, SwitchCompatibleModeVerticalFullScreenNotMain, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreenNotMain test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SwitchCompatibleModeVerticalFullScreenNotMain");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(101);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
+    auto ret = window->SwitchCompatibleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreenNotMain test end";
+}
+
+/**
+ * @tc.name: PageCompatibleModeVerticalFullScreen
+ * @tc.desc: SetPageCompatibleMode/GetPageCompatibleMode round-trip with LANDSCAPE_SCALE_VERTICAL_FULL
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, PageCompatibleModeVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "PageCompatibleModeVerticalFullScreen test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPageCompatibleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    auto mode = window->property_->GetPageCompatibleMode();
+    EXPECT_EQ(mode, CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    GTEST_LOG_(INFO) << "PageCompatibleModeVerticalFullScreen test end";
+}
+
+/**
+ * @tc.name: SwitchCompatibleModeVerticalFullScreenInvalidSession
+ * @tc.desc: SwitchCompatibleMode with LANDSCAPE_SCALE_VERTICAL_FULL on invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, SwitchCompatibleModeVerticalFullScreenInvalidSession,
+    TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreenInvalidSession test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SwitchCompatibleModeVerticalFullScreenInvalidSession");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    // persistentId remains INVALID_SESSION_ID, state_ is not STATE_SHOWN -> IsWindowSessionInvalid returns true
+    auto ret = window->SwitchCompatibleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreenInvalidSession test end";
+}
+
+/**
+ * @tc.name: SwitchCompatibleModeVerticalFullScreenNullHostSession
+ * @tc.desc: SwitchCompatibleMode with LANDSCAPE_SCALE_VERTICAL_FULL when hostSession is null,
+ *           IsWindowSessionInvalid catches it first and returns WM_ERROR_INVALID_WINDOW
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, SwitchCompatibleModeVerticalFullScreenNullHostSession,
+    TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreenNullHostSession test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SwitchCompatibleModeVerticalFullScreenNullHostSession");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(102);
+    // hostSession_ is nullptr -> IsWindowSessionInvalid() returns true first
+    auto ret = window->SwitchCompatibleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+    GTEST_LOG_(INFO) << "SwitchCompatibleModeVerticalFullScreenNullHostSession test end";
+}
+
+/**
+ * @tc.name: RecoverForCompatibleModeVerticalFullScreen
+ * @tc.desc: RecoverForCompatibleMode on main window with LANDSCAPE_SCALE_VERTICAL_FULL
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, RecoverForCompatibleModeVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "RecoverForCompatibleModeVerticalFullScreen test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverForCompatibleModeVerticalFullScreen");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(103);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    EXPECT_CALL(*session, OnSessionEvent(SessionEvent::EVENT_COMPATIBLE_TO_RECOVER, _))
+        .WillOnce(Return(WSError::WS_OK));
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
+    auto ret = window->RecoverForCompatibleMode();
+    EXPECT_EQ(ret, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "RecoverForCompatibleModeVerticalFullScreen test end";
+}
+
+/**
+ * @tc.name: RecoverForCompatibleModeNotMain
+ * @tc.desc: RecoverForCompatibleMode on non-main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, RecoverForCompatibleModeNotMain, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "RecoverForCompatibleModeNotMain test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RecoverForCompatibleModeNotMain");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(104);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    EXPECT_CALL(*session, Disconnect(_, _, _)).WillOnce(Return(WSError::WS_OK));
+    auto ret = window->RecoverForCompatibleMode();
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+    GTEST_LOG_(INFO) << "RecoverForCompatibleModeNotMain test end";
+}
+
+/**
+ * @tc.name: UpdateCompatibleStyleModeVerticalFullNotifyCallback
+ * @tc.desc: UpdateCompatibleStyleMode with LANDSCAPE_SCALE_VERTICAL_FULL verifies SetPageCompatibleMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, UpdateCompatibleStyleModeVerticalFullNotifyCallback,
+    TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeVerticalFullNotifyCallback test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    auto ret = window->UpdateCompatibleStyleMode(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(window->property_->GetPageCompatibleMode(), CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    GTEST_LOG_(INFO) << "UpdateCompatibleStyleModeVerticalFullNotifyCallback test end";
+}
+
+/**
+ * @tc.name: PageCompatibleModeDefaultIsInvalidValue
+ * @tc.desc: Verify default PageCompatibleMode is INVALID_VALUE
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, PageCompatibleModeDefaultIsInvalidValue, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "PageCompatibleModeDefaultIsInvalidValue test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    auto mode = window->property_->GetPageCompatibleMode();
+    EXPECT_EQ(mode, CompatibleStyleMode::INVALID_VALUE);
+    GTEST_LOG_(INFO) << "PageCompatibleModeDefaultIsInvalidValue test end";
+}
+
+/**
+ * @tc.name: PageCompatibleModeAllEnumValuesRoundTrip
+ * @tc.desc: Verify SetPageCompatibleMode/GetPageCompatibleMode round-trip for all enum values
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeWindowSessionImplTest, PageCompatibleModeAllEnumValuesRoundTrip, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "PageCompatibleModeAllEnumValuesRoundTrip test start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    std::vector<CompatibleStyleMode> modes = {
+        CompatibleStyleMode::LANDSCAPE_DEFAULT,
+        CompatibleStyleMode::LANDSCAPE_18_9,
+        CompatibleStyleMode::LANDSCAPE_1_1,
+        CompatibleStyleMode::LANDSCAPE_2_3,
+        CompatibleStyleMode::LANDSCAPE_SPLIT,
+        CompatibleStyleMode::LANDSCAPE_3_2,
+        CompatibleStyleMode::LANDSCAPE_4_3,
+        CompatibleStyleMode::LANDSCAPE_16_9,
+        CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL,
+    };
+    for (auto mode : modes) {
+        window->property_->SetPageCompatibleMode(mode);
+        EXPECT_EQ(window->property_->GetPageCompatibleMode(), mode);
+    }
+    GTEST_LOG_(INFO) << "PageCompatibleModeAllEnumValuesRoundTrip test end";
 }
 } // namespace
 } // namespace Rosen

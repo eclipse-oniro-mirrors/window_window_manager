@@ -116,6 +116,75 @@ HWTEST_F(CompatibleModeMainSessionTest, NotifyCompatibleModeChangeWithNotNullCal
     ASSERT_EQ(ret, WSError::WS_OK);
     GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithNotNullCallback test end";
 }
+
+/**
++ * @tc.name: NotifyCompatibleModeChangeWithVerticalFullScreen
++ * @tc.desc: NotifyCompatibleModeChange with LANDSCAPE_SCALE_VERTICAL_FULL
++ * @tc.type: FUNC
++ */
+HWTEST_F(CompatibleModeMainSessionTest, NotifyCompatibleModeChangeWithVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    CompatibleStyleMode receivedMode = CompatibleStyleMode::INVALID_VALUE;
+    session->RegisterCompatibleModeChangeCallback([&receivedMode](CompatibleStyleMode mode) {
+        receivedMode = mode;
+    });
+    auto ret = session->NotifyCompatibleModeChange(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(receivedMode, CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test end";
+}
+
+
+/**
+ * @tc.name: NotifyCompatibleModeChangeWithVerticalFullScreen
+ * @tc.desc: NotifyCompatibleModeChange with LANDSCAPE_SCALE_VERTICAL_FULL
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, NotifyCompatibleModeChangeWithVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    CompatibleStyleMode receivedMode = CompatibleStyleMode::INVALID_VALUE;
+    session->RegisterCompatibleModeChangeCallback([&receivedMode](CompatibleStyleMode mode) {
+        receivedMode = mode;
+    });
+    auto ret = session->NotifyCompatibleModeChange(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(receivedMode, CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test end";
+}
+
+
+/**
+ * @tc.name: HandleNotifyCompatibleModeChangeWithVerticalFullScreen
+ * @tc.desc: HandleNotifyCompatibleModeChange with LANDSCAPE_SCALE_VERTICAL_FULL (23)
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeSessionStubTest, HandleNotifyCompatibleModeChangeWithVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "HandleNotifyCompatibleModeChangeWithVerticalFullScreen test start";
+    sptr<SessionStubMocker> session = sptr<SessionStubMocker>::MakeSptr();
+    uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_COMPATIBLE_MODE_CHANGE);
+    MessageParcel data;
+    int32_t mode = static_cast<int32_t>(CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL);
+    data.WriteInt32(mode);
+    MessageParcel reply;
+    MessageOption option;
+    MockMessageParcel::AddInt32Cache(mode);
+    int ret = session->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ret, ERR_NONE);
+    GTEST_LOG_(INFO) << "HandleNotifyCompatibleModeChangeWithVerticalFullScreen test end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

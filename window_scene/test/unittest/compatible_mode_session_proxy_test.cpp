@@ -128,19 +128,19 @@ HWTEST_F(CompatibleModeSessionProxyTest, NotifyCompatibleModeChangeWithFailSendR
 }
 
 /**
- * @tc.name: NotifyCompatibleModeChange
- * @tc.desc: NotifyCompatibleModeChangeWithReturnOK
+ * @tc.name: NotifyCompatibleModeChangeWithVerticalFullScreen
+ * @tc.desc: NotifyCompatibleModeChange IPC with LANDSCAPE_SCALE_VERTICAL_FULL
  * @tc.type: FUNC
  */
-HWTEST_F(CompatibleModeSessionProxyTest, NotifyCompatibleModeChangeWithReturnOK, TestSize.Level1)
+HWTEST_F(CompatibleModeSessionProxyTest, NotifyCompatibleModeChangeWithVerticalFullScreen, TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithReturnOK test start";
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test start";
     auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
     auto sessionProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    CompatibleStyleMode mode = CompatibleStyleMode::LANDSCAPE_18_9;
+    CompatibleStyleMode mode = CompatibleStyleMode::LANDSCAPE_SCALE_VERTICAL_FULL;
     auto ret = sessionProxy->NotifyCompatibleModeChange(mode);
     EXPECT_EQ(WSError::WS_OK, ret);
-    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithReturnOK test end";
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test end";
 }
 } // namespace
 } // namespace Rosen
