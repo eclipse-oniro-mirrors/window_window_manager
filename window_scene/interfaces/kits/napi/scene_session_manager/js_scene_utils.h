@@ -170,6 +170,7 @@ void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
 bool ConvertSessionResultFromJsValue(
     napi_env env, napi_value jsResult, uint32_t& resultCode, std::string& resultMessage);
 napi_value CreateJsExceptionInfo(napi_env env, const ExceptionInfo& exceptionInfo);
+napi_value CreateJsMotionType(napi_env env);
 napi_value CreateSupportWindowModes(napi_env env,
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes);
 napi_value CreateJsAtomicServiceInfo(napi_env env, const AtomicServiceInfo& atomicServiceInfo);
