@@ -26,7 +26,6 @@
 #include "window_manager_hilog.h"
 #include "zidl/screen_session_manager_interface.h"
 #include "dms_global_mutex.h"
-#include "ffrt.h"
 namespace OHOS::Rosen {
 WM_IMPLEMENT_SINGLE_INSTANCE(DisplayManagerAdapter)
 WM_IMPLEMENT_SINGLE_INSTANCE(ScreenManagerAdapter)
@@ -870,16 +869,9 @@ bool DisplayManagerAdapter::SetFreeze(std::vector<DisplayId> displayIds, bool is
     displayManagerServiceProxy_->SetFreeze(displayIds, isFreeze, isSucc);
     return isSucc;
 }
-class BaseAdapter::Impl {
-public:
-    ffrt::recursive_mutex mutex_;
-};
-
-BaseAdapter::BaseAdapter() : pImpl_(std::make_unique<Impl>()) {}
-
 bool BaseAdapter::InitDMSProxy()
 {
-    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (isProxyValid_) {
         return true;
     }
@@ -979,7 +971,7 @@ void DMSDeathRecipient::OnRemoteDied(const wptr<IRemoteObject>& wptrDeath)
 BaseAdapter::~BaseAdapter()
 {
     TLOGI(WmsLogTag::DMS, "destroy!");
-    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     Clear();
     screenSessionManagerServiceProxy_ = nullptr;
     displayManagerServiceProxy_ = nullptr;
@@ -989,7 +981,7 @@ BaseAdapter::~BaseAdapter()
 void BaseAdapter::Clear()
 {
     TLOGD(WmsLogTag::DMS, "Clear!");
-    std::lock_guard<ffrt::recursive_mutex> lock(pImpl_->mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if ((screenSessionManagerServiceProxy_ != nullptr) && (screenSessionManagerServiceProxy_->AsObject() != nullptr)) {
         screenSessionManagerServiceProxy_->AsObject()->RemoveDeathRecipient(dmsDeath_);
     }
