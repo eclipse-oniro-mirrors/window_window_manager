@@ -345,17 +345,11 @@ public:
     float GetOriginalPositionZ() const { return originalPositionZ_; }
 
     /**
-     * @brief Decide whether RS commands should be flushed to RS process on drag end.
+     * @brief Check whether the drag operation ends on the same display where it started.
      *
-     * - Cross-screen: no flush. RS commands will be submitted together with the
-     *   ArkUI relayout on the next vsync.
-     * - Not cross-screen: flush immediately to ensure pending RS commands are
-     *   committed, avoiding impact on subsequent drag operations.
-     * - Invalid display IDs: return false.
-     *
-     * @return true if RS commands need to be flushed; false otherwise.
+     * @return true if the drag starts and ends on the same display; false otherwise.
      */
-    bool ShouldFlushOnDragEnd() const;
+    bool IsDragEndedOnSameDisplay() const;
 
     /**
      * @brief Set whether the current move-drag operation is interrupted.

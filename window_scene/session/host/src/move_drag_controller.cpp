@@ -358,7 +358,7 @@ MoveDragController::~MoveDragController()
     screenChangeListener_->UnregisterIfNeeded();
 }
 
-bool MoveDragController::ShouldFlushOnDragEnd() const
+bool MoveDragController::IsDragEndedOnSameDisplay() const
 {
     if (startDisplayId_ == DISPLAY_ID_INVALID ||
         endDisplayId_ == DISPLAY_ID_INVALID) {

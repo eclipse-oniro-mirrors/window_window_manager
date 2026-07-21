@@ -517,6 +517,8 @@ void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
 {
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+    SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
+    SetScreenIsInUse(SCREEN_ID_MAIN, true);
     auto taskCoordination = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on full screenId");
         if (!isScreenOn) {
@@ -525,8 +527,6 @@ void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on main screenId");
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
-        SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
-        SetScreenIsInUse(SCREEN_ID_MAIN, true);
         SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::ON);
         SetdisplayModeChangeStatus(false);
     };

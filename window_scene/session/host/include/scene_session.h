@@ -1719,6 +1719,7 @@ private:
     bool KeyFrameRectAlmostSame(const WSRect& rect1, const WSRect& rect2);
     KeyFramePolicy GetKeyFramePolicy() const;
     void UpdateKeyFramePolicy(bool running, bool stopping);
+    std::shared_ptr<RSWindowKeyFrameNode> UpdateKeyFrameDragState(const WSRect& rect);
     mutable std::mutex keyFrameMutex_;
     KeyFramePolicy keyFramePolicy_;
     std::shared_ptr<RSWindowKeyFrameNode> keyFrameCloneNode_ = nullptr;

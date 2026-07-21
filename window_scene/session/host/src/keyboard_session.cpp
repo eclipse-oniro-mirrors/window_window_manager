@@ -1043,16 +1043,6 @@ void KeyboardSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool n
     auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
     RETURN_IF_NULL(keyboardPanelSurfaceNode);
 
-    // When drag ends (needFlush == false) and the window is crossing screens,
-    // surface node property changes will be committed together with the ArkUI
-    // relayout triggered on the next vsync, so no explicit flush is required here.
-    // If the window is NOT crossing screens, the changes should be flushed
-    // immediately to avoid affecting the next drag operation.
-    if (!needFlush && moveDragController_) {
-        needFlush = moveDragController_->ShouldFlushOnDragEnd();
-        TLOGD(WmsLogTag::WMS_KEYBOARD, "On drag end, needFlush: %{public}d", needFlush);
-    }
-
     {
         AutoRSTransaction trans(keyboardPanelSurfaceNode, needFlush);
         keyboardPanelSurfaceNode->SetGlobalPositionEnabled(isGlobal);

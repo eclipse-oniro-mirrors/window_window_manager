@@ -81,6 +81,11 @@ void FloatViewController::UpdateMainWindow(const sptr<Window>& mainWindow)
     mainWindowId_ = mainWindow_->GetWindowId();
 }
 
+uint32_t FloatViewController::GetMainWindowId() const
+{
+    return mainWindowId_;
+}
+
 FvWindowState FloatViewController::GetCurState()
 {
     std::lock_guard<std::mutex> lock(controllerMutex_);
@@ -228,7 +233,7 @@ WMError FloatViewController::StartFloatViewInner()
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (mainWindow_ != nullptr) {
-        mainWindowLifeCycleListener_ = sptr<FloatViewController::WindowLifeCycleListener>::MakeSptr();
+        mainWindowLifeCycleListener_ = sptr<FloatViewController::WindowLifeCycleListener>::MakeSptr(mainWindowId_);
         mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     }
     return WMError::WM_OK;
@@ -272,6 +277,7 @@ WMError FloatViewController::CreateFloatViewWindow()
         return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_SYSTEM_ABNORMALLY;
     }
     window_ = window;
+    FloatViewManager::AddController(window_->GetWindowId(), weakRef_);
     return WMError::WM_OK;
 }
 
@@ -286,7 +292,7 @@ WMError FloatViewController::SetFloatViewContext()
 void FloatViewController::WindowLifeCycleListener::AfterDestroyed()
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "float view AfterDestroyed");
-    FloatViewManager::DoActionClose("AppMainWindowStop");
+    FloatViewManager::DoActionCloseByMainWindow(mainWindowId_, "AppMainWindowStop");
 }
 
 WMError FloatViewController::StopFloatViewFromClient()
@@ -396,6 +402,7 @@ WMError FloatViewController::DestroyFloatViewWindow(const std::string& reason)
         mainWindow_->UnregisterLifeCycleListener(mainWindowLifeCycleListener_);
         mainWindowLifeCycleListener_ = nullptr;
     }
+    FloatViewManager::RemoveController(window_->GetWindowId());
     window_ = nullptr;
     stopFromClient_ = false;
     bindWindowId_ = INVALID_WINDOW_ID;

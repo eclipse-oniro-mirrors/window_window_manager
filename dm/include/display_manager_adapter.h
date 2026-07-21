@@ -50,7 +50,6 @@ public:
 
 class BaseAdapter {
 public:
-    BaseAdapter();
     virtual ~BaseAdapter();
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type);
@@ -60,8 +59,7 @@ public:
 protected:
     virtual bool InitDMSProxy();
     virtual bool RegisterClientDeathListener();
-    class Impl;
-    std::unique_ptr<Impl> pImpl_;
+    std::recursive_mutex mutex_;
     sptr<IScreenSessionManager> screenSessionManagerServiceProxy_ = nullptr;
     sptr<IDisplayManager> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;

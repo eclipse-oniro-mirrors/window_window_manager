@@ -31,6 +31,8 @@ constexpr size_t RESERVED_SPACE = 4 * 1024; // 4k
 constexpr uint32_t MAX_FV_LIMITS = 10;
 // An application can have at most 256 windows, so the upper limit of attached limits is 256
 constexpr uint32_t MAX_ATTACHED_LIMITS_COUNT = 256;
+// An application can have at most 34 phycical and virtual screen
+constexpr uint32_t MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE = 34;
 
 bool CalculateDumpInfoSize(const std::vector<std::string>& infos)
 {
@@ -1196,6 +1198,11 @@ int SessionStageStub::HandleSwitchFreeMultiWindow(MessageParcel& data, MessagePa
     bool enable = data.ReadBool();
     std::set<ScreenId> supportMultiWindowScreenSet;
     uint32_t screenSetSize = data.ReadUint32();
+    if (screenSetSize > MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "screenSetSize %{public}u exceed max %{public}u",
+            screenSetSize, MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE);
+        return ERR_INVALID_DATA;
+    }
     for (uint32_t i = 0; i < screenSetSize; ++i) {
         supportMultiWindowScreenSet.insert(static_cast<ScreenId>(data.ReadUint64()));
     }

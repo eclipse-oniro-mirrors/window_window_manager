@@ -130,8 +130,8 @@ WMError WebPictureInPictureControllerInterface::Create(const PiPConfig& pipConfi
 WMError WebPictureInPictureControllerInterface::StartPip(uint32_t controllerId)
 {
     if (auto pipController = sptrWebPipController_) {
-        sptrWebPipController_->SetControllerId(controllerId);
-        auto res = sptrWebPipController_->StartPictureInPicture(StartPipType::NATIVE_START);
+        pipController->SetControllerId(controllerId);
+        auto res = pipController->StartPictureInPicture(StartPipType::NATIVE_START);
         if (res == WMError::WM_OK) {
             isStarted_ = true;
         }

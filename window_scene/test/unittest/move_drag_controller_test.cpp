@@ -2274,31 +2274,31 @@ HWTEST_F(MoveDragControllerTest, TestSyncPropertiesFromSceneSessionFallback, Tes
 }
 
 /**
- * @tc.name: TestShouldFlushOnDragEnd
- * @tc.desc: Verify flush decision for invalid, same-display and cross-display end states
+ * @tc.name: TestIsDragEndedOnSameDisplay
+ * @tc.desc: Verify the IsDragEndedOnSameDisplay logic for various start/end display ID combinations
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, TestShouldFlushOnDragEnd, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestIsDragEndedOnSameDisplay, TestSize.Level1)
 {
     moveDragController->startDisplayId_ = DISPLAY_ID_INVALID;
     moveDragController->endDisplayId_ = DISPLAY_ID_INVALID;
-    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+    EXPECT_FALSE(moveDragController->IsDragEndedOnSameDisplay());
 
     moveDragController->startDisplayId_ = DISPLAY_ID_INVALID;
     moveDragController->endDisplayId_ = 1;
-    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+    EXPECT_FALSE(moveDragController->IsDragEndedOnSameDisplay());
 
     moveDragController->startDisplayId_ = 1;
     moveDragController->endDisplayId_ = DISPLAY_ID_INVALID;
-    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+    EXPECT_FALSE(moveDragController->IsDragEndedOnSameDisplay());
 
     moveDragController->startDisplayId_ = 1;
     moveDragController->endDisplayId_ = 1;
-    EXPECT_TRUE(moveDragController->ShouldFlushOnDragEnd());
+    EXPECT_TRUE(moveDragController->IsDragEndedOnSameDisplay());
 
     moveDragController->startDisplayId_ = 1;
     moveDragController->endDisplayId_ = 2;
-    EXPECT_FALSE(moveDragController->ShouldFlushOnDragEnd());
+    EXPECT_FALSE(moveDragController->IsDragEndedOnSameDisplay());
 }
 
 /**
