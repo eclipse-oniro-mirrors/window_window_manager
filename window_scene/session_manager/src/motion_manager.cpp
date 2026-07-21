@@ -16,21 +16,16 @@
 #include "motion_manager.h"
 #include <parameters.h>
 #include <securec.h>
-
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 #include "session_sensor_plugin.h"
-#endif
 
 namespace OHOS {
 namespace Rosen {
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 std::map<MotionType, bool> MotionSubscriberWrapper::isMotionSubscribedMap_ = {
     {MotionType::DEVICE_MOTION_TYPE, false},
     {MotionType::SMART_MOTION_TYPE, false},
     {MotionType::SMART_MOTION_ENHANCE_TYPE, false},
-};
-#endif
+}; 
 
 MotionManager& MotionManager::GetInstance()
 {

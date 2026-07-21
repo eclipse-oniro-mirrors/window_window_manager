@@ -3197,5 +3197,4 @@ int SceneSessionManagerStub::HandleGetAppWindowShowingInfosByBundleName(MessageP
     }
     return ERR_NONE;
 }
-
 } // namespace OHOS::Rosen

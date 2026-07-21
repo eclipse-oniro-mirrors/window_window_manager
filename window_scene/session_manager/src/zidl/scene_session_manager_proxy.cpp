@@ -1809,7 +1809,6 @@ WSError SceneSessionManagerProxy::GetSessionDumpInfo(const std::vector<std::stri
         WLOGFE("WriteInterfaceToken failed");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
-
     if (!data.WriteStringVector(params)) {
         WLOGFE("Write params failed");
         return WSError::WS_ERROR_IPC_FAILED;

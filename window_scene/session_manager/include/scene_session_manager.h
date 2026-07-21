@@ -764,10 +764,8 @@ public:
      * Window Rotation
      */
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     void SetSensorRotationChangeListener(NotifySensorRotationChangeFunc&& func);
     void SetSmartSensorRotationChangeListener(NotifySmartSensorRotationChangeFunc&& func);
-#endif
     WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
     /*
@@ -989,12 +987,10 @@ public:
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
     WMError NotifySupportRotationRegistered() override;
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     bool RegisterMotionSensor(int32_t motionType);
     bool UnregisterMotionSensor(int32_t motionType);
     void OnMotionRotationChanged(float sensorRotation) override;
     void OnMotionSmartRotationChanged(float sensorRotation) override;
-#endif
 
     std::vector<sptr<SceneSession>> GetSceneSessions(ScreenId screenId);
     WMError UpdateScreenLockState(int32_t persistentId);
