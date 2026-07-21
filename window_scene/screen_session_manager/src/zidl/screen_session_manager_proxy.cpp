@@ -4973,7 +4973,7 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenMaxRefreshRate(ScreenId id, u
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option{ MessageOption::TF_IMAGE };
+    MessageOption option;
 
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
@@ -5043,7 +5043,7 @@ sptr<DisplayInfo> ScreenSessionManagerProxy::GetPrimaryDisplayInfo()
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return nullptr;
