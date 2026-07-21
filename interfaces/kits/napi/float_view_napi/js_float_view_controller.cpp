@@ -373,12 +373,16 @@ napi_value JsFloatViewController::OnSetWindowSize(napi_env env, napi_callback_in
     napi_has_named_property(env, jsSize, "width", &hasProperty);
     if (hasProperty) {
         napi_get_named_property(env, jsSize, "width", &jsWidth);
-        ConvertFromJsValue(env, jsWidth, width);
+        if (!ConvertFromJsValue(env, jsWidth, width)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "ConvertFromJsValue width is false;");
+        }
     }
     napi_has_named_property(env, jsSize, "height", &hasProperty);
     if (hasProperty) {
         napi_get_named_property(env, jsSize, "height", &jsHeight);
-        ConvertFromJsValue(env, jsHeight, height);
+        if (!ConvertFromJsValue(env, jsHeight, height)) {
+            TLOGE(WmsLogTag::WMS_SYSTEM, "ConvertFromJsValue height is false;");
+        }
     }
     return OnSetWindowSizeTask(env, width, height);
 }

@@ -42,11 +42,12 @@ ani_status AniFbWindow::Init(ani_env* env, ani_namespace nsp)
         return ret;
     }
     std::unique_ptr<AniFbWindow> aniFbWindow = std::make_unique<AniFbWindow>();
-    ret = env->Function_Call_Void(setObjFunc, aniFbWindow.release());
+    ret = env->Function_Call_Void(setObjFunc, aniFbWindow.get());
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]call setNativeObj func failed %{public}u", ret);
         return ret;
     }
+    aniFbWindow.release();
     return ret;
 }
 
