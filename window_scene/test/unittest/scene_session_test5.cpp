@@ -4064,6 +4064,122 @@ HWTEST_F(SceneSessionTest5, IsCrossAxisOfLayout_Polymorphism, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateUIParam_ZOrder_WhenNotPcScenePanel
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenNotPcScenePanel, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanel";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanel";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = false;
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
+}
+
+/**
+ * @tc.name: UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is true and IsPcWindow() returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = true;
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
+}
+
+/**
+ * @tc.name: UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow
+ * @tc.desc: Verify ZOrder is not updated when isPcScenePanel_ is true and IsPcWindow() returns true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow";
+    info.bundleName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = true;
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_FALSE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 0u);
+}
+
+/**
+ * @tc.name: UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is false and IsPcWindow() returns true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = false;
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
+}
+
+/**
  * @tc.name: TransferPointerEventInner_SubWindowDrag
  * @tc.desc: Test TransferPointerEventInner with sub window drag to cover RaiseToAppTopForPointDown branch
  * @tc.type: FUNC
