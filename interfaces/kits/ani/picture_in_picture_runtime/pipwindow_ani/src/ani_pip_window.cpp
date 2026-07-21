@@ -610,6 +610,11 @@ ani_object AniPiPWindow::NativeTransferStatic(ani_env* aniEnv, ani_class cls, an
 
     // get PictureInPictureController
     sptr<PictureInPictureController> pipController = jsPipController->GetController();
+    if (pipController == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipController is nullptr");
+        AniPipUtils::AniThrowError(aniEnv, WMError::WM_ERROR_INVALID_PARAM);
+        return AniPipUtils::AniGetUndefined(aniEnv);
+    }
 
     // get PipOption and transfer it to PipOptionAni
     sptr<PipOption> pipOption = pipController->GetPipOption();
@@ -651,6 +656,11 @@ ani_object AniPiPWindow::NativeTransferDynamic(ani_env* aniEnv, ani_class cls, a
 
     // PictureInPictureControllerAni
     sptr<PictureInPictureControllerAni> pipControllerAni = aniPipController->GetController();
+    if (pipControllerAni == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipControllerAni is nullptr");
+        AniPipUtils::AniThrowError(aniEnv, WMError::WM_ERROR_INVALID_PARAM);
+        return AniPipUtils::AniGetUndefined(aniEnv);
+    }
 
     // get PipOptionAni and transfer it to PipOption
     sptr<PipOptionAni> pipOptionAni = pipControllerAni->GetPipOptionAni();
