@@ -306,6 +306,17 @@ int32_t GetPid()
     return pid;
 }
 
+void ReportMainWindowStateChange(const sptr<SceneSession>& sceneSession ,int32_t userId, int32_t value)
+{
+    std::unordered_map<std::string, std::string> payload = {
+        { "bundleName", sceneSession->GetSessionInfo().bundleName_ },
+        { "windowId", std::to_string(sceneSession->GetPersistentId()) },
+        { "userId", std::to_string(userId) },
+    };
+    OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(
+        OHOS::ResourceSchedule::ResType::RES_TYPE_REPORT_WINDOW_STATE, value, payload);
+}
+
 bool GetEnableRemoveStartingWindowFromBMS(const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo)
 {
     auto& metadata = abilityInfo->metadata;
@@ -4141,13 +4152,7 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         sceneSession->ResetIsActive();
         sceneSession->UpdatePrivacyModeControlInfo();
         TLOGI(WmsLogTag::WMS_MAIN, "[windowId: %{public}d]main window create", sceneSession->GetPersistentId());
-        std::unordered_map<std::string, std::string> payload = {
-            { "bundleName", sceneSession->GetSessionInfo().bundleName_ },
-            { "windowId", std::to_string(sceneSession->GetPersistentId()) },
-            { "userId", std::to_string(currentUserId_) },
-        };
-        OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(
-            OHOS::ResourceSchedule::ResType::RES_TYPE_REPORT_WINDOW_STATE, MAIN_WINDOW_CREATE, payload);
+        ReportMainWindowStateChange(sceneSession, currentUserId_, MAIN_WINDOW_CREATE);
     }
     return WSError::WS_OK;
 }
@@ -8351,13 +8356,7 @@ void SceneSessionManager::NotifySessionForCallback(const sptr<SceneSession>& sce
     }
     if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
         TLOGI(WmsLogTag::DEFAULT, "windowId: %{public}d main window destory", sceneSession->GetPersistentId());
-        std::unordered_map<std::string, std::string> payload = {
-            { "bundleName", sceneSession->GetSessionInfo().bundleName_ },
-            { "windowId", std::to_string(sceneSession->GetPersistentId()) },
-            { "userId", std::to_string(currentUserId_) },
-        };
-        OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(
-        OHOS::ResourceSchedule::ResType::RES_TYPE_REPORT_WINDOW_STATE, MAIN_WINDOW_DESTORY, payload);
+        ReportMainWindowStateChange(sceneSession, currentUserId_, MAIN_WINDOW_DESTORY);
     }
     TLOGI(WmsLogTag::DEFAULT, "id: %{public}d, needRemoveSession: %{public}u", sceneSession->GetPersistentId(),
         static_cast<uint32_t>(needRemoveSession));
