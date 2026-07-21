@@ -1796,6 +1796,13 @@ void Session::InitSessionPropertyWhenConnect(const sptr<WindowSessionProperty>& 
     }
     SetSessionProperty(property);
     GetSessionProperty()->SetIsNeedUpdateWindowMode(false);
+    DisplayId screenId = GetSessionProperty()->GetDisplayId();
+    if (screenId == DEFAULT_DISPLAY_ID && PcFoldScreenManager::GetInstance().IsHalfFolded(screenId)) {
+        property->SetDisplayId(GetClientDisplayId());
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "win=[%{public}d, %{public}s], screenId=%{public}" PRIu64 ", clientScreenId=%{public}" PRIu64,
+        GetWindowId(), GetWindowName().c_str(), screenId, property->GetDisplayId());
 }
 
 void Session::InitSystemSessionDragEnable(const sptr<WindowSessionProperty>& property)
