@@ -138,6 +138,9 @@ public:
     void SetVirtualScreenUser(sptr<ScreenSession> screenSession, int32_t userId);
     ScreenId GetAssociatedScreenId();
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
+        const DMRect& surfaceRegion) override;
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
     DMError AddVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError RemoveVirtualScreenBlockList(const std::vector<int32_t>& persistentIds) override;
     DMError AddVirtualScreenWhiteList(ScreenId screenId, const std::vector<uint64_t>& missionIds) override;
@@ -441,6 +444,7 @@ public:
         ScreenPropertyChangeType screenPropertyChangeType, const RRect& bounds) override;
     uint32_t GetCurvedCompressionArea() override;
     ScreenProperty GetPhyScreenProperty(ScreenId screenId) override;
+    ScreenProperty GetPhyScreenPropertyInner(ScreenId screenId);
     void SetScreenPrivacyState(bool hasPrivate) override;
     void SetPrivacyStateByDisplayId(std::unordered_map<DisplayId, bool>& privacyBundleDisplayId) override;
     bool CheckNeedNotify(const std::vector<DisplayId>& displayIds,
@@ -1196,7 +1200,7 @@ private:
     void RegisterSettingWiredScreenGamutObserver();
     void SetWiredScreenGamut();
     void SetBorderingAreaPercent();
-    bool HandleSwitchPcMode();
+    bool HandleSwitchPcMode(bool isTargetPcMode);
     void ChangeWatchDogTimeInterval(const std::string& name, uint64_t interval);
     void SwitchModeHandleExternalScreen(bool isSwitchToPcMode);
     void SetScreenNameWhenSwitchMode(const sptr<ScreenSession>& screenSession, bool isSwitchToPcMode);
@@ -1284,7 +1288,7 @@ private:
     void SetInternalScreenResolutionEffect(const sptr<ScreenSession>& internalSession, DMRect& toRect);
     void SetExternalScreenResolutionEffect(const sptr<ScreenSession>& externalSession, DMRect& toRect);
     void GetCastVirtualMirrorSession(sptr<ScreenSession>& virtualSession);
-    void HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation);
+    void HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation, ScreenId screenId);
     void CalculateTargetResolution(const sptr<ScreenSession>& internalSession,
         const sptr<ScreenSession>& externalSession, const bool& effectFlag,
         uint32_t& targetWidth, uint32_t& targetHeight);
@@ -1295,13 +1299,14 @@ private:
     void ClearScreenPowerStatus(ScreenId rsScreenId);
     void InitScreenActiveModeRectMap();
     void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
+    void ApplyVirtualScreenScale(const sptr<ScreenSession>& screenSession,
+        uint32_t width, uint32_t height, uint32_t renderWidth, uint32_t renderHeight);
 
     // custom resolution
     void RegisterSettingCustomResolutionObserver();
     void HandleCustomResolutionChange();
     void SetCustomResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height);
     void RecoveryCustomResolutionEffect();
-    bool HasExternalScreen();
     void RestoreCustomResolution();
     uint32_t customResolutionWidth_ = 0;
     uint32_t customResolutionHeight_ = 0;
@@ -1312,6 +1317,11 @@ private:
         SuperFoldStatusChangeEvents changeEvent)> propertyChangedCallback_;
     std::mutex callbackMutex_;
     bool isSupportCapture_ = false;
+    struct UserDisplayInfo {
+        bool isPcDevice;
+    };
+    std::map<int32_t, UserDisplayInfo> userIdDisplayInfoMap_;
+    std::mutex userIdDisplayInfoMapMutex_;
     std::atomic<FoldDisplayMode> foldDisplayModeAfterRotation_ = FoldDisplayMode::UNKNOWN;
     std::atomic<bool> onBootAnimation_ = false;
     bool isBoot_ = false;

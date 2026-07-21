@@ -36,8 +36,10 @@
 #include "scene_persistent_storage.h"
 #include "scene_session.h"
 #include "screen_session_manager_client.h"
+#include "session/host/include/pc_fold_screen_manager.h"
 #include "session_helper.h"
 #include "session_utils.h"
+#include "string_util.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "wm_common_inner.h"
@@ -58,6 +60,11 @@ namespace {
 constexpr const char* MOVE_RESAMPLE_ENABLE_PARAM_KEY = "persist.windowlayout.moveresample.enable";
 constexpr const char* MOVE_RESAMPLE_MIN_FPS_PARAM_KEY = "persist.windowlayout.moveresample.minfps";
 constexpr const char* MOVE_RESAMPLE_MAX_FPS_PARAM_KEY = "persist.windowlayout.moveresample.maxfps";
+constexpr const char* MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY = "persist.windowlayout.moveresample.pointertypes";
+constexpr const char* MOVE_RESAMPLE_SECONDARY_PHASE_ENABLE_PARAM_KEY =
+    "persist.windowlayout.moveresample.secondaryphase.enable";
+constexpr const char* MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY =
+    "persist.windowlayout.moveresample.secondaryphase.leadtimems";
 
 // The system parameter key for moving event throttle interval configuration.
 constexpr const char* MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY = "persist.windowlayout.movingevent.throttleinterval";
@@ -86,17 +93,46 @@ const std::map<AreaType, Gravity> DRAG_GRAVITY_MAP = {
 };
 
 /**
- * @brief Get the display's offset in the legacy global coordinate system
+ * @brief Get the display offset in the legacy global coordinate system
  *        (also known as the unified coordinate system).
  *
- * In this coordinate system, (0, 0) corresponds to the top-left corner of the
- * minimum bounding rectangle that covers all displays. The returned offset
- * represents the display's top-left position within this unified coordinate space.
+ * The legacy global coordinate system uses the top-left corner of the minimum
+ * bounding rectangle of all displays as the origin. This differs from the
+ * current global coordinate system, whose origin is always the top-left corner
+ * of the main display.
+ *
+ * For example, when an extended display (1600x900) is positioned at the upper-left
+ * of the main display without overlap:
+ *
+ *  1. Legacy global coordinate system
+ *
+ *      (0, 0)
+ *        +----------------------+
+ *        |                      |
+ *        |   Extended Display   |
+ *        |                      | (1600, 900)
+ *        +----------------------+----------------------+
+ *                               |                      |
+ *                               |     Main Display     |
+ *                               |                      |
+ *                               +----------------------+
+ *
+ *  2. Current global coordinate system
+ *
+ *    (-1600, -900)
+ *        +----------------------+
+ *        |                      |
+ *        |   Extended Display   |
+ *        |                      | (0, 0)
+ *        +----------------------+----------------------+
+ *                               |                      |
+ *                               |     Main Display     |
+ *                               |                      |
+ *                               +----------------------+
  *
  * @param displayId The ID of the display whose offset is requested.
- * @return std::optional<std::pair<int32_t, int32_t>>
- *         (x, y) offset of the display in the legacy global coordinate system,
- *         or std::nullopt if the display session is unavailable.
+ * @return The display offset in legacy global coordinates, or std::nullopt if
+ *         the display session is unavailable.
  */
 std::optional<std::pair<int32_t, int32_t>> GetLegacyGlobalDisplayOffset(DisplayId displayId)
 {
@@ -177,14 +213,63 @@ WSRect BuildScreenRect(const ScreenProperty& prop)
 }
 
 /**
- * @brief Build the available screen rectangle in the legacy global coordinate system.
+ * @brief Get the available screen rectangle used by moving avoidance.
  *
- * @param prop The screen property containing position and available area information.
- * @return The available screen rectangle in the legacy global coordinate system.
+ * @param screenId The target screen id.
+ * @param prop The cached screen property.
+ * @return The available rectangle in the legacy global coordinate system.
  */
-WSRect BuildScreenAvailableRect(const ScreenProperty& prop)
+WSRect GetScreenAvailableRect(ScreenId screenId, const ScreenProperty& prop)
 {
+    // Use ScreenProperty as the default fallback value.
+    //
+    // Do not directly rely on ScreenProperty::GetAvailableArea() currently.
+    // Due to DMS synchronization issues, the available area is not always
+    // correctly synced from DMS server to client(ScreenSessionManagerClient).
+    //
+    // Known issues:
+    // - Before any external display is connected, dock area may not be excluded
+    //   and full screen is incorrectly returned as available area.
+    // - Foldable PC may still report upper-half available area after unfolding.
+    //
+    // Therefore, we temporarily query DMS through IPC to obtain the latest
+    // available area. After DMS fixes the synchronization issue, this logic
+    // can be simplified to directly use ScreenProperty::GetAvailableArea().
     DMRect availableArea = prop.GetAvailableArea();
+
+    // Half-folded PC has legacy behavior:
+    // both ScreenProperty::GetAvailableArea() and
+    // Display::GetAvailableArea() only return the upper-half area.
+    //
+    // In this case, GetExpandAvailableArea() must be used to obtain
+    // the complete available area of the full screen.
+    if (PcFoldScreenManager::GetInstance().IsHalfFolded(screenId)) {
+        DMRect expandArea;
+        const DMError ret = DisplayManager::GetInstance().GetExpandAvailableArea(screenId, expandArea);
+        if (ret == DMError::DM_OK) {
+            availableArea = expandArea;
+        } else {
+            TLOGW(WmsLogTag::WMS_LAYOUT,
+                  "Failed to get expanded available area, screenId: %{public}" PRIu64 ", ret: %{public}d",
+                  screenId, static_cast<int32_t>(ret));
+        }
+    } else {
+        // Query latest available area from DMS server through IPC.
+        sptr<Display> display = DisplayManager::GetInstance().GetDisplayById(screenId);
+        if (display == nullptr) {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "Display is null, screenId: %{public}" PRIu64, screenId);
+        } else {
+            DMRect latestArea;
+            const DMError ret = display->GetAvailableArea(latestArea);
+            if (ret == DMError::DM_OK) {
+                availableArea = latestArea;
+            } else {
+                TLOGW(WmsLogTag::WMS_LAYOUT,
+                      "Failed to get available area, screenId: %{public}" PRIu64 ", ret: %{public}d",
+                      screenId, static_cast<int32_t>(ret));
+            }
+        }
+    }
     return WSRect{
         .posX_ = availableArea.posX_ + static_cast<int32_t>(prop.GetStartX()),
         .posY_ = availableArea.posY_ + static_cast<int32_t>(prop.GetStartY()),
@@ -201,8 +286,7 @@ MoveDragController::MoveDragController(wptr<SceneSession> sceneSession) : sceneS
     }
 
     // Move Resampling System Config
-    std::tie(enableMoveResample_, resampleMinFps_, resampleMaxFps_) =
-        MoveDragController::LoadMoveResampleSystemConfig();
+    moveResampleConfig_ = MoveDragController::LoadMoveResampleSystemConfig();
 
     // Moving Event Throttle System Config
     movingEventThrottleIntervalUs_ = MoveDragController::LoadMovingEventThrottleSystemConfig();
@@ -425,13 +509,6 @@ void MoveDragController::InitCrossDisplayProperty(DisplayId displayId)
         std::lock_guard<std::mutex> lock(displayIdSetDuringMoveDragMutex_);
         displayIdSetDuringMoveDrag_.insert(displayId);
     }
-    moveDragStartDisplayId_ = displayId;
-    auto offset = GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_);
-    RETURN_IF_NULL(offset);
-    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) = *offset;
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-          "moveDragStartDisplayId: %{public}" PRIu64 ", originalDisplayOffset: [%{public}d, %{public}d]",
-          moveDragStartDisplayId_, originalDisplayOffsetX_, originalDisplayOffsetY_);
 }
 
 /** @note @window.drag */
@@ -1319,7 +1396,7 @@ TargetRectUpdateMode MoveDragController::UpdateTargetRectOnMoveEvent(
     return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
-std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOnVsync(int64_t vsyncTimeUs)
+std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectAt(int64_t sampleTimeUs)
 {
     if (!GetStartMoveFlag()) {
         TLOGW(WmsLogTag::WMS_LAYOUT, "Not in moving state, skip resampled targetRect update.");
@@ -1335,8 +1412,17 @@ std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOn
         return { TargetRectUpdateMode::NONE, WSRect::EMPTY_RECT };
     }
 
-    // Compute pointer position at this vsync via resampling.
-    auto sample = moveResampler_.ResampleAt(vsyncTimeUs);
+    if (sampleTimeUs <= moveDragProperty_.lastResampledTimeUs_) {
+        TLOGD(WmsLogTag::WMS_LAYOUT,
+              "Skip move resample task with outdated sample time, sampleTimeUs: %{public}" PRId64,
+              sampleTimeUs);
+        return { TargetRectUpdateMode::RESAMPLE_SCHEDULED, WSRect::EMPTY_RECT };
+    }
+    moveDragProperty_.lastResampledTimeUs_ = sampleTimeUs;
+
+    // Resample on the requested frame time so adjacent vsync intervals advance
+    // evenly even when input events are not delivered at a stable cadence.
+    auto sample = moveResampler_.ResampleAt(sampleTimeUs);
 
     // Update internal targetRect_ using the resampled offset.
     UpdateTargetRectWithOffset(sample.posX, sample.posY, moveDragProperty_.targetRectChangeReason_);
@@ -1345,6 +1431,19 @@ std::pair<TargetRectUpdateMode, WSRect> MoveDragController::ResampleTargetRectOn
     // expressed in the legacy global (unified) coordinate system.
     auto rect = GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
     return { TargetRectUpdateMode::UPDATED_IMMEDIATELY, rect };
+}
+
+std::optional<int64_t> MoveDragController::GetSecondaryPhaseResamplingDelayMs() const
+{
+    if (!moveResampleConfig_.secondaryPhaseEnable) {
+        return std::nullopt;
+    }
+
+    const auto vsyncPeriodNs = CallSceneSession(&SceneSession::GetVSyncPeriod, 0);
+    constexpr int64_t NS_PER_MS = 1000'000;
+    const int64_t vsyncPeriodMs = vsyncPeriodNs / NS_PER_MS;
+    const int64_t delayMs = vsyncPeriodMs - moveResampleConfig_.secondaryPhaseLeadTimeMs;
+    return delayMs > 0 ? std::make_optional(delayMs) : std::nullopt;
 }
 
 /** @note @window.drag */
@@ -1624,6 +1723,9 @@ bool MoveDragController::InitMainAxis(AreaType type, int32_t tranX, int32_t tran
 
 int32_t MoveDragController::ConvertByAreaType(int32_t tran) const
 {
+    constexpr int32_t POSITIVE_CORRELATION = 1;
+    constexpr int32_t NEGATIVE_CORRELATION = -1;
+
     const static std::map<AreaType, int32_t> areaTypeMap = {
         { AreaType::LEFT, NEGATIVE_CORRELATION },
         { AreaType::RIGHT, POSITIVE_CORRELATION },
@@ -1762,19 +1864,21 @@ void MoveDragController::CalcFirstMoveTargetRect(const WSRect& windowRect, bool 
     int32_t offsetY = moveTempProperty_.lastMovePointerPosY_ - moveTempProperty_.lastDownPointerPosY_;
     WSRect targetRect = originalRect.WithOffset(offsetX, offsetY);
     bool isSpecifyMoveStart = false;
+    DisplayId specifyMoveStartDisplayId = DISPLAY_ID_INVALID;
     {
         std::lock_guard<std::mutex> lock(specifyMoveStartMutex_);
         isSpecifyMoveStart = isSpecifyMoveStart_;
+        specifyMoveStartDisplayId = specifyMoveStartDisplayId_;
     }
     if (isSpecifyMoveStart) {
-        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "specify start display:%{public}" PRIu64, specifyMoveStartDisplayId_);
+        TLOGI(WmsLogTag::WMS_LAYOUT_PC, "specify start display:%{public}" PRIu64, specifyMoveStartDisplayId);
         moveDragProperty_.originalRect_.posX_ = moveTempProperty_.lastDownPointerPosX_ -
             moveTempProperty_.lastDownPointerWindowX_ - parentRect_.posX_;
         moveDragProperty_.originalRect_.posY_ = moveTempProperty_.lastDownPointerPosY_ -
             moveTempProperty_.lastDownPointerWindowY_ - parentRect_.posY_;
         targetRect.posX_ = moveDragProperty_.originalRect_.posX_ + offsetX;
         targetRect.posY_ = moveDragProperty_.originalRect_.posY_ + offsetY;
-        targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId_);
+        targetRect = MapRectFromTargetToStart(targetRect, specifyMoveStartDisplayId);
     }
     UpdateTargetRect(SizeChangeReason::DRAG_MOVE, targetRect);
     isAdaptToProportionalScale_ = useWindowRect;
@@ -1917,37 +2021,50 @@ std::optional<T> GetOptionalNumericParameter(const char* key)
     return value;
 }
 
-void MoveDragController::SaveMoveResampleSystemConfig(
-    bool enable, std::optional<uint32_t> minFps, std::optional<uint32_t> maxFps)
+void MoveDragController::SaveMoveResampleSystemConfig(const MoveResampleConfig& config)
 {
-    system::SetParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, enable ? "true" : "false");
-    std::string minFpsStr = minFps ? std::to_string(*minFps) : ""; // empty value means unlimited
-    std::string maxFpsStr = maxFps ? std::to_string(*maxFps) : "";
+    system::SetParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, config.enable ? "true" : "false");
+
+    std::string minFpsStr = config.minFps ? std::to_string(*config.minFps) : ""; // empty value means unlimited
     system::SetParameter(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY, minFpsStr);
+
+    std::string maxFpsStr = config.maxFps ? std::to_string(*config.maxFps) : "";
     system::SetParameter(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY, maxFpsStr);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "enable: %{public}d, minFps: %{public}s, maxFps: %{public}s",
-          enable, minFpsStr.c_str(), maxFpsStr.c_str());
+
+    std::string pointerTypesStr = StringUtil::JoinValueSet(config.pointerTypes);
+    system::SetParameter(MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY, pointerTypesStr);
+
+    system::SetParameter(MOVE_RESAMPLE_SECONDARY_PHASE_ENABLE_PARAM_KEY,
+                         config.secondaryPhaseEnable ? "true" : "false");
+    system::SetParameter(MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY,
+                         std::to_string(config.secondaryPhaseLeadTimeMs));
+
+    TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
 }
 
-std::tuple<bool, std::optional<uint32_t>, std::optional<uint32_t>> MoveDragController::LoadMoveResampleSystemConfig()
+MoveResampleConfig MoveDragController::LoadMoveResampleSystemConfig()
 {
-    bool enable = system::GetBoolParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, false);
-    auto minFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY);
-    auto maxFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY);
+    MoveResampleConfig config;
+    config.enable = system::GetBoolParameter(MOVE_RESAMPLE_ENABLE_PARAM_KEY, false);
+    config.minFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MIN_FPS_PARAM_KEY);
+    config.maxFps = GetOptionalNumericParameter<uint32_t>(MOVE_RESAMPLE_MAX_FPS_PARAM_KEY);
 
-    TLOGD(WmsLogTag::WMS_LAYOUT,
-          "enable: %{public}d, minFps: %{public}s, maxFps: %{public}s",
-          enable,
-          minFps ? std::to_string(*minFps).c_str() : "unlimited",
-          maxFps ? std::to_string(*maxFps).c_str() : "unlimited");
+    std::string pointerTypesStr = system::GetParameter(MOVE_RESAMPLE_POINTER_TYPES_PARAM_KEY, "");
+    config.pointerTypes = StringUtil::ParseValueSet<int32_t>(pointerTypesStr);
+    config.secondaryPhaseEnable = system::GetBoolParameter(MOVE_RESAMPLE_SECONDARY_PHASE_ENABLE_PARAM_KEY, false);
 
-    return { enable, minFps, maxFps };
+    config.secondaryPhaseLeadTimeMs =
+        GetOptionalNumericParameter<int32_t>(MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY)
+            .value_or(2); // 2: default lead time
+
+    TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
+    return config;
 }
 
 void MoveDragController::SaveMovingEventThrottleSystemConfig(uint32_t throttleIntervalUs)
 {
     system::SetParameter(MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY, std::to_string(throttleIntervalUs));
-    TLOGI(WmsLogTag::WMS_LAYOUT, "throttleIntervalUs: %{public}u", throttleIntervalUs);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "throttleIntervalUs: %{public}u", throttleIntervalUs);
 }
 
 uint32_t MoveDragController::LoadMovingEventThrottleSystemConfig()
@@ -1974,30 +2091,30 @@ bool MoveDragController::SyncPropertiesFromSceneSession()
     limits_ = session->GetWindowLimits();
     decoration_ = session->GetWindowDecoration();
     supportCrossDisplay_ = session->IsCrossDisplayDragSupported();
+
+    auto property = session->GetSessionProperty();
+    moveDragStartDisplayId_ = property->GetDisplayId();
+    std::tie(originalDisplayOffsetX_, originalDisplayOffsetY_) =
+        GetLegacyGlobalDisplayOffset(moveDragStartDisplayId_).value_or(std::pair { 0, 0 });
+
     TLOGD(WmsLogTag::WMS_LAYOUT,
-          "windowId: %{public}d, aspectRatio: %{public}f, "
-          "limits: %{public}s, decoration: %{public}s, "
-          "supportCrossDisplay: %{public}d",
-          persistentId_, aspectRatio_,
-          limits_.ToString().c_str(), decoration_.ToString().c_str(),
-          supportCrossDisplay_);
+        "windowId: %{public}d, aspectRatio: %{public}f, limits: %{public}s, decoration: %{public}s, "
+        "supportCrossDisplay: %{public}d, startDisplayId: %{public}" PRIu64
+        ", originalDisplayOffset: [%{public}d, %{public}d]",
+        persistentId_, aspectRatio_, limits_.ToString().c_str(), decoration_.ToString().c_str(),
+        supportCrossDisplay_, moveDragStartDisplayId_,
+        originalDisplayOffsetX_, originalDisplayOffsetY_);
     return true;
 }
 
 bool MoveDragController::ShouldOpenMoveResample(int32_t pointerType) const
 {
     // Global enable switch
-    if (!enableMoveResample_) {
+    if (!moveResampleConfig_.enable) {
         return false;
     }
 
-    // Only touchscreen events support move resampling.
-    // For other pointer types (e.g. mouse input), we prefer immediate
-    // responsiveness over additional smoothing. Mouse events are typically
-    // delivered at high frequency with fine-grained movement, and applying
-    // resampling may introduce unnecessary latency and reduce perceived
-    // precision.
-    if (pointerType != MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
+    if (!moveResampleConfig_.IsPointerTypeAllowed(pointerType)) {
         return false;
     }
 
@@ -2031,22 +2148,13 @@ void MoveDragController::UpdateResampleActivationByFps()
         return;
     }
 
-    if ((resampleMinFps_ && *curFps < *resampleMinFps_) || (resampleMaxFps_ && *curFps > *resampleMaxFps_)) {
+    if (!moveResampleConfig_.IsFpsInRange(*curFps)) {
         moveDragProperty_.isMoveResampleActive_ = false;
-        TLOGI(WmsLogTag::WMS_LAYOUT,
-              "Current FPS %{public}u is outside resample range [%{public}s, %{public}s], "
-              "disabling move resampling.",
-              *curFps,
-              resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
-              resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Current FPS %{public}u is outside resample range, disabling move resampling.",
+              *curFps);
         return;
     }
-    TLOGI(WmsLogTag::WMS_LAYOUT,
-          "Current FPS %{public}u is within resample range [%{public}s, %{public}s], "
-          "keeping move resampling active.",
-          *curFps,
-          resampleMinFps_ ? std::to_string(*resampleMinFps_).c_str() : "unlimited",
-          resampleMaxFps_ ? std::to_string(*resampleMaxFps_).c_str() : "unlimited");
 }
 
 void MoveDragController::RefreshGlobalScreenRects()
@@ -2059,7 +2167,7 @@ void MoveDragController::RefreshGlobalScreenRects()
 
     for (const auto& [screenId, screenProp] : screenProperties) {
         const WSRect screenRect = BuildScreenRect(screenProp);
-        const WSRect screenAvailableRect = BuildScreenAvailableRect(screenProp);
+        const WSRect screenAvailableRect = GetScreenAvailableRect(screenId, screenProp);
 
         globalScreenRectMap_.emplace(screenId, screenRect);
         globalAvailableScreenRectMap_.emplace(screenId, screenAvailableRect);

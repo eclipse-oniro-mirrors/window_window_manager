@@ -232,7 +232,7 @@ WMError WindowAdapter::UnregisterWindowManagerAgent(WindowManagerAgentType type,
         auto it = windowManagerAgentFaultMap_.find(type);
         if (it != windowManagerAgentFaultMap_.end()) {
             it->second.erase(windowManagerAgent);
-            TLOGD(WmsLogTag::DEFAULT, "earse fault agent,  type=%{public}d", type);
+            TLOGD(WmsLogTag::DEFAULT, "erase fault agent,  type=%{public}d", type);
             if (it->second.empty()) {
                 windowManagerAgentFaultMap_.erase(it);
             }
@@ -1225,6 +1225,14 @@ WMError WindowAdapter::GetWindowStateSnapshot(int32_t persistentId, std::string&
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_DO_NOTHING);
     return wmsProxy->GetWindowStateSnapshot(persistentId, winStateSnapshotJsonStr);
+}
+
+WSError WindowAdapter::NotifySurfaceNodeAlphaUpdate(int32_t persistentId, float alpha)
+{
+    INIT_PROXY_CHECK_RETURN(WSError::WS_DO_NOTHING);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WSError::WS_DO_NOTHING);
+    return wmsProxy->NotifySurfaceNodeAlphaUpdate(persistentId, alpha);
 }
 
 WMError WindowAdapter::ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId)

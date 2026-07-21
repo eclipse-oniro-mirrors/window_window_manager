@@ -65,6 +65,15 @@ constexpr double MIN_GRAY_SCALE = 0.0;
 constexpr double MAX_GRAY_SCALE = 1.0;
 constexpr uint32_t DEFAULT_WINDOW_MAX_WIDTH = 3840;
 constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
+constexpr DisplayId VIRTUAL_DISPLAY_ID_MIN = 500;
+constexpr DisplayId VIRTUAL_DISPLAY_ID_MAX = 900;
+constexpr DisplayId VIRTUAL_DISPLAY_ID_EXT_MIN = 1000;
+
+static bool IsVirtualDisplay(DisplayId displayId)
+{
+    return (displayId >= VIRTUAL_DISPLAY_ID_MIN && displayId <= VIRTUAL_DISPLAY_ID_MAX) ||
+           (displayId >= VIRTUAL_DISPLAY_ID_EXT_MIN);
+}
 }
 
 static thread_local std::map<std::string, std::shared_ptr<NativeReference>> g_jsWindowMap;
@@ -2259,6 +2268,9 @@ napi_value JsWindow::OnMoveWindowToAsync(napi_env env, napi_callback_info info)
             return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                 "[window][moveWindowToAsync]msg: Failed to convert parameter to moveConfiguration");
         }
+        if (IsVirtualDisplay(moveConfiguration.displayId)) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", WmErrorCode::WM_OK);
+        }
     }
     NapiAsyncTask::ExecuteCallback execute;
     NapiAsyncTask::CompleteCallback complete;
@@ -2352,6 +2364,9 @@ napi_value JsWindow::OnMoveWindowToGlobal(napi_env env, napi_callback_info info)
                 WmErrorCode::WM_ERROR_INVALID_PARAM);
             return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                 "[window][moveWindowToGlobal]msg: Failed to convert parameter to moveConfiguration");
+        }
+        if (IsVirtualDisplay(moveConfiguration.displayId)) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToGlobal", WmErrorCode::WM_OK);
         }
     }
     NapiAsyncTask::ExecuteCallback execute;

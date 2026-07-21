@@ -16,6 +16,7 @@
 #include "ani_extension_window.h"
 
 #include <ani_signature_builder.h>
+#include <mutex>
 #include "ani.h"
 #include "ani_extension_window_register_manager.h"
 #include "ani_window.h"
@@ -33,11 +34,62 @@ namespace Rosen {
 using namespace arkts::ani_signature;
 namespace {
 static std::map<ani_ref, AniExtensionWindow*> localObjs;
+static std::map<int32_t, ani_ref> g_aniExtensionWindowMap;
+static std::map<ani_ref, int32_t> g_extensionWindowIdMap;
+static std::mutex g_extensionMutex;
 constexpr const char* ETS_UIEXTENSION_HOST_CLASS_DESCRIPTOR =
     "@ohos.uiExtensionHost.uiExtensionHost.UIExtensionHostInternal";
 constexpr const char* ETS_UIEXTENSION_CLASS_DESCRIPTOR =
     "@ohos.arkui.uiExtension.uiExtension.UIExtensionInternal";
+
+void AddAniExtensionWindow(int32_t id, ani_ref ref)
+{
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    g_aniExtensionWindowMap[id] = ref;
+    g_extensionWindowIdMap[ref] = id;
 }
+}
+
+ani_ref FindAniExtensionWindow(ani_env* env, const sptr<Rosen::Window>& window)
+{
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] window is nullptr");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed.");
+    }
+    int32_t id = window->GetWindowPersistentId();
+
+    {
+        std::lock_guard<std::mutex> lock(g_extensionMutex);
+        auto iter = g_aniExtensionWindowMap.find(id);
+        if (iter != g_aniExtensionWindowMap.end()) {
+            if (iter->second == nullptr) {
+                TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] aniExtensionWindowRef is nullptr, id: %{public}d", id);
+                return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    "The extensionWindow is destroyed.");
+            }
+            return iter->second;
+        }
+    }
+
+    ani_object obj = AniExtensionWindow::CreateAniExtensionWindow(
+        env, window, window->GetHostWindowId(), false);
+    if (obj == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] Create extensionWindow failed");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Create extensionWindow failed.");
+    }
+
+    std::lock_guard<std::mutex> lock(g_extensionMutex);
+    auto iter = g_aniExtensionWindowMap.find(id);
+    if (iter == g_aniExtensionWindowMap.end() || iter->second == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] get extension window failed, id: %{public}d", id);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "The extensionWindow is destroyed.");
+    }
+    return iter->second;
+}
+
 AniExtensionWindow::AniExtensionWindow(
     const std::shared_ptr<Rosen::ExtensionWindow> extensionWindow, int32_t hostWindowId)
     :extensionWindow_(extensionWindow),
@@ -61,12 +113,19 @@ void AniExtensionWindow::Finalizer(ani_env* env, ani_long nativeObj)
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindow* extensionWindow = reinterpret_cast<AniExtensionWindow*>(nativeObj);
     if (extensionWindow != nullptr) {
-        auto obj = localObjs.find(reinterpret_cast<ani_ref>(extensionWindow->GetAniRef()));
+        ani_ref aniRef = extensionWindow->GetAniRef();
+        auto obj = localObjs.find(aniRef);
         if (obj != localObjs.end()) {
+            std::lock_guard<std::mutex> lock(g_extensionMutex);
+            auto idIt = g_extensionWindowIdMap.find(aniRef);
+            if (idIt != g_extensionWindowIdMap.end()) {
+                g_aniExtensionWindowMap.erase(idIt->second);
+                g_extensionWindowIdMap.erase(idIt);
+            }
             delete obj->second;
             localObjs.erase(obj);
         }
-        if (env->GlobalReference_Delete(extensionWindow->GetAniRef()) != ANI_OK) {
+        if (env->GlobalReference_Delete(aniRef) != ANI_OK) {
             TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] GlobalReference_Delete failed");
         }
     } else {
@@ -124,6 +183,8 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
     if (env->GlobalReference_Create(obj, &ref) == ANI_OK) {
         aniExtensionWindow->SetAniRef(ref);
         localObjs.insert(std::pair(ref, aniExtensionWindow.release()));
+        int32_t windowId = window->GetWindowPersistentId();
+        AddAniExtensionWindow(windowId, ref);
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] create global ref fail");
     }
@@ -328,6 +389,10 @@ ani_object AniExtensionWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_st
     if (!AniWindowUtils::ParseSubWindowOptions(env, subWindowOptions, option)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Get invalid options param");
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+    }
+    if (option->IsSubWindowZLevelAboveParentLoosened()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Get invalid options param zLevelAboveParentLoosened");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_FORBID_SUBWINDOW);
     }
     if ((option->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_APPLICATION_MODAL)) &&
         !extensionWindow_->IsPcOrPadFreeMultiWindowMode()) {

@@ -1046,6 +1046,51 @@ HWTEST_F(WindowManagerAgentProxyTest, NotifySupportRotationChange03, TestSize.Le
 
     windowManagerAgentProxy->NotifySupportRotationChange(supportRotationInfo);
 }
+
+/**
+ * @tc.name: NotifySessionSaveSnapShotComplete01
+ * @tc.desc: test NotifySessionSaveSnapShotComplete write token failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAgentProxyTest, NotifySessionSaveSnapShotComplete01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    windowManagerAgentProxy->NotifySessionSaveSnapShotComplete(1001);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: NotifySessionSaveSnapShotComplete02
+ * @tc.desc: test NotifySessionSaveSnapShotComplete write persistentId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAgentProxyTest, NotifySessionSaveSnapShotComplete02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    windowManagerAgentProxy->NotifySessionSaveSnapShotComplete(1001);
+    EXPECT_TRUE(g_logMsg.find("Write persistentId failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: NotifySessionSaveSnapShotComplete03
+ * @tc.desc: test NotifySessionSaveSnapShotComplete success path
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerAgentProxyTest, NotifySessionSaveSnapShotComplete03, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    windowManagerAgentProxy->NotifySessionSaveSnapShotComplete(1001);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

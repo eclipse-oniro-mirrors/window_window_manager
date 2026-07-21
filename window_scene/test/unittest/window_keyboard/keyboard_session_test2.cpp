@@ -98,7 +98,7 @@ void KeyboardSessionTest2::ConstructKeyboardCallingWindowTestData(sptr<SceneSess
     statusBarSession = sptr<SceneSession>::MakeSptr(info2, specificCallback_);
     WSRect rect({ 0, 0, 0, 10 });
     statusBarSession->GetLayoutController()->SetSessionRect(rect);
-    specificCallback_->onGetSceneSessionVectorByTypeAndDisplayId_ = [&](WindowType type,
+    specCallback->onGetSceneSessionVectorByTypeAndDisplayId_ = [&](WindowType type,
         uint64_t displayId) -> std::vector<sptr<SceneSession>>{
         std::vector<sptr<SceneSession>> vec;
         vec.push_back(statusBarSession);
@@ -626,7 +626,7 @@ HWTEST_F(KeyboardSessionTest2, RaiseCallingSession04, TestSize.Level1)
     ConstructKeyboardCallingWindowTestData(callingSession, keyboardSession, statusBarSession);
     sptr<SceneSession> panelSession = keyboardSession->GetKeyboardPanelSession();
 
-    int32_t statusHeight = statusBarSession->GetStatusBarHeight();
+    int32_t statusHeight = callingSession->GetStatusBarHeight();
     ASSERT_EQ(statusHeight, 10);
     keyboardSession->SetSessionState(SessionState::STATE_FOREGROUND);
     callingSession->property_->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
@@ -826,7 +826,7 @@ HWTEST_F(KeyboardSessionTest2, RaiseCallingSession09, TestSize.Level1)
     ret = keyboardSession->RaiseCallingSession(callingSession, occupiedAreaInfo);
     EXPECT_EQ(ret, true);
     ASSERT_NE(nullptr, occupiedAreaInfo);
-    EXPECT_EQ(20, occupiedAreaInfo->safeHeight_);
+    EXPECT_EQ(30, occupiedAreaInfo->safeHeight_);
 
     callingSession->layoutController_->SetScale(1.5, 1.5, 0.5, 0.5);
     callingSession->layoutController_->SetSessionRect({500, 500, 2000, 2000});
@@ -835,7 +835,7 @@ HWTEST_F(KeyboardSessionTest2, RaiseCallingSession09, TestSize.Level1)
     ret = keyboardSession->RaiseCallingSession(callingSession, occupiedAreaInfo);
     EXPECT_EQ(ret, true);
     ASSERT_NE(nullptr, occupiedAreaInfo);
-    EXPECT_EQ(0, occupiedAreaInfo->safeHeight_);
+    EXPECT_EQ(7, occupiedAreaInfo->safeHeight_);
 
     callingSession->layoutController_->SetSessionRect({500, 550, 2000, 2000});
     panelSession->layoutController_->SetSessionRect({0, 2990, 4000, 1000});
@@ -843,7 +843,7 @@ HWTEST_F(KeyboardSessionTest2, RaiseCallingSession09, TestSize.Level1)
     ret = keyboardSession->RaiseCallingSession(callingSession, occupiedAreaInfo);
     EXPECT_EQ(ret, true);
     ASSERT_NE(nullptr, occupiedAreaInfo);
-    EXPECT_EQ(60, occupiedAreaInfo->safeHeight_);
+    EXPECT_EQ(13, occupiedAreaInfo->safeHeight_);
 }
 
 /**

@@ -59,9 +59,11 @@ public:
     bool SetAndCheckFoldStatus(FoldStatus foldStatus);
     FoldStatus GetPhyFoldStatus();
     void LockDisplayMode(bool isLock);
+    FoldStatus GetFoldStatus();
  
 private:
     void NotifyFoldStatus(ScreenClosedState screenClosedState);
+    void SetScreenCombination(ScreenId screenId, ScreenCombination screenCombination);
     std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::mutex currentScreenIdMutex_;
     ScreenId currentScreenId_ = { SCREEN_ID_INVALID };
@@ -72,7 +74,7 @@ private:
     std::atomic<bool> onBootAnimation_ = true;
     std::chrono::steady_clock::time_point startTimePoint_ = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point endTimePoint_ = std::chrono::steady_clock::now();
-    std::mutex phyFoldStatusMutex_;
+    std::mutex foldStatusMutex_;
     FoldStatus phyFoldStatus_ = FoldStatus::UNKNOWN;
     FoldStatus lastFoldStatus_ = FoldStatus::UNKNOWN;
     std::atomic<bool> isLockDisplayMode_ = false;

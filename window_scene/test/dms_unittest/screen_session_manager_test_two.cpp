@@ -2756,16 +2756,16 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectChangeWhenRotate, TestS
     screenSession->SetScreenType(ScreenType::REAL);
     screenSession->isInternal_ = true;
 
-    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_END, 0);
+    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_END, 0, 0);
     EXPECT_TRUE(g_errLog.find("Internal Session null") != std::string::npos);
     g_errLog.clear();
 
     ssm_->screenSessionMap_[51] = screenSession;
-    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_BEGIN, 0);
+    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_BEGIN, 0, 0);
     EXPECT_TRUE(g_errLog.find("recovery") != std::string::npos);
     g_errLog.clear();
 
-    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_END, 90);
+    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_END, 90, 0);
     EXPECT_TRUE(g_errLog.find("start") != std::string::npos);
     g_errLog.clear();
     ssm_->screenSessionMap_.erase(51);
@@ -4037,52 +4037,6 @@ HWTEST_F(ScreenSessionManagerTest, RecoveryCustomResolutionEffect02, TestSize.Le
     ssm_->RecoveryCustomResolutionEffect();
 
     LOG_SetCallback(nullptr);
-}
-
-/**
- * @tc.name: HasExternalScreen
- * @tc.desc: HasExternalScreen when no external screen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, HasExternalScreen, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-
-    ssm_->screenSessionMap_.clear();
-
-    bool result = ssm_->HasExternalScreen();
-    EXPECT_FALSE(result);
-}
-
-/**
- * @tc.name: HasExternalScreen02
- * @tc.desc: HasExternalScreen with wired external screen
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, HasExternalScreen02, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-
-    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
-    ASSERT_NE(nullptr, screenSession1);
-    screenSession1->SetIsCurrentInUse(true);
-    screenSession1->SetScreenType(ScreenType::REAL);
-    screenSession1->isInternal_ = true;
-
-    sptr<ScreenSession> screenSession2 = new ScreenSession(52, ScreenProperty(), 0);
-    ASSERT_NE(nullptr, screenSession2);
-    screenSession2->SetIsCurrentInUse(true);
-    screenSession2->SetScreenType(ScreenType::REAL);
-    screenSession2->isInternal_ = false;
-
-    ssm_->screenSessionMap_[51] = screenSession1;
-    ssm_->screenSessionMap_[52] = screenSession2;
-
-    bool result = ssm_->HasExternalScreen();
-    EXPECT_TRUE(result);
-
-    ssm_->screenSessionMap_.erase(51);
-    ssm_->screenSessionMap_.erase(52);
 }
 
 /**

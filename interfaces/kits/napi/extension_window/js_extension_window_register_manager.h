@@ -43,7 +43,7 @@ public:
 private:
     enum class ListenerType : uint32_t {
         WINDOW_SIZE_CHANGE_CB,
-        WINDOW_RECT_CHANGE_CB,
+        COMPONENT_RECT_CHANGE_CB,
         AVOID_AREA_CHANGE_CB,
         WINDOW_EVENT_CB,
         WINDOW_STAGE_EVENT_CB,
@@ -55,6 +55,8 @@ private:
         KEYBOARD_DID_HIDE_CB,
         KEYBOARD_HEIGHT_CHANGE_CB,
         WINDOW_STATUS_CHANGE_CB,
+        TOUCH_OUTSIDE_CB,
+        WINDOW_RECT_CHANGE_CB
     };
 
     bool IsCallbackRegistered(napi_env env, std::string type, napi_value jsListenerObject);
@@ -62,7 +64,7 @@ private:
         CaseType caseType, napi_env env, napi_value value);
     WmErrorCode ProcessWindowChangeRegister(sptr<JsExtensionWindowListener> listener,
         sptr<Window> window, bool isRegister);
-    WmErrorCode ProcessWindowRectChangeRegister(const sptr<JsExtensionWindowListener>& listener,
+    WmErrorCode ProcessComponentRectChangeRegister(const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, bool isRegister);
     WmErrorCode ProcessAvoidAreaChangeRegister(sptr<JsExtensionWindowListener> listener,
         sptr<Window> window, bool isRegister);
@@ -83,6 +85,10 @@ private:
     WmErrorCode ProcessOccupiedAreaChangeRegister(const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, bool isRegister);
     WmErrorCode ProcessWindowStatusChangeRegister(const sptr<JsExtensionWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister);
+    WmErrorCode ProcessTouchOutsideRegister(const sptr<JsExtensionWindowListener>& listener,
+        const sptr<Window>& window, bool isRegister);
+    WmErrorCode ProcessWindowRectChangeRegister(const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, bool isRegister);
     WmErrorCode ProcessRegister(CaseType caseType, const sptr<JsExtensionWindowListener>& listener,
         const sptr<Window>& window, const std::string& type, bool isRegister);

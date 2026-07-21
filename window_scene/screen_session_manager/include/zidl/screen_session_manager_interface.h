@@ -59,6 +59,16 @@ public:
         return DMError::DM_OK;
     }
 
+    virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
+        const DMRect& surfaceRegion)
+    {
+        return DMError::DM_OK;
+    }
+    virtual DMError RemoveVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
+    {
+        return DMError::DM_OK;
+    }
+
     virtual DMError AddVirtualScreenBlockList(const std::vector<int32_t> &persistentIds)
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;

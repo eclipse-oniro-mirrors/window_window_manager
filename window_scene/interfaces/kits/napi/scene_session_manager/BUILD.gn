@@ -82,6 +82,13 @@ ohos_shared_library("scenesessionmanager_napi") {
   ]
 
   defines = []
+    if (win_compatibility_config_center_enabled) {
+    defines += [ "COMPATIBILITY_CONFIG_CENTER_ENABLE" ]
+    external_deps += [
+      "compatibility_config_center:compconfigclient" 
+    ]
+  }
+  
   if (defined(global_parts_info) &&
       defined(global_parts_info.resourceschedule_soc_perf)) {
     external_deps += [ "soc_perf:socperf_client" ]

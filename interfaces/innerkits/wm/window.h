@@ -1179,14 +1179,6 @@ public:
         const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode);
 
     /**
-     * @brief Check if any window matches the given state
-     *
-     * @param state The state to match
-     * @return True if any window matches the given state, false otherwise
-     */
-    static bool IsAnyWindowMatchState(const WindowState& state);
-
-    /**
      * @brief Get surface node from RS
      *
      * @return Surface node from RS
@@ -1285,6 +1277,21 @@ public:
     }
 
     /**
+     * @brief Get original event position information.
+     *
+     * @param eventPositionInfo Input event position information.
+     *        If a field in eventPositionInfo is invalid value (INVALID_INT32 or INVALID_DOUBLE),
+     *        it will not be processed and remain invalid in the output.
+     * @param originalEventPositionInfo [out] Output original event position information.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError GetEventOriginalPosition(const EventPositionInfo& eventPositionInfo,
+        EventPositionInfo& originalEventPositionInfo) const
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Get the window type
      *
      * @return Type of window
@@ -1297,6 +1304,13 @@ public:
      * @return Mode of window.
      */
     virtual WindowMode GetWindowMode() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
+
+    /**
+     * @brief Get the compatible window mode.
+     *
+     * @return Compatible WindowMode of window.
+     */
+    virtual WindowMode GetWindowModeCompat() const { return WindowMode::WINDOW_MODE_UNDEFINED; }
 
     /**
      * @brief Get the window mode info.

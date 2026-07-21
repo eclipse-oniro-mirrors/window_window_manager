@@ -18,11 +18,13 @@
 
 #include "js_runtime_utils.h"
 #include "window.h"
+#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
 napi_value NapiGetUndefined(napi_env env);
-napi_value NapiThrowInvalidParam(napi_env env, std::string msg = "");
+napi_value NapiThrowInvalidParam(napi_env env, std::string msg = "", const char* enumerationName = "",
+    const char* boolName = "");
 bool NapiIsCallable(napi_env env, napi_value value);
 napi_status InitEnums(napi_env env, napi_value exports);
 napi_valuetype GetType(napi_env env, napi_value value);

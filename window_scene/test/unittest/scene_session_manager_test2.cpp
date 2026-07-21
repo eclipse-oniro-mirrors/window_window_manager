@@ -17,6 +17,7 @@
 #include <regex>
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
+#include "pointer_event.h"
 #include "interfaces/include/ws_common.h"
 #include "iremote_object_mocker.h"
 #include "libxml/parser.h"
@@ -293,7 +294,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleWithInvalidConfig, TestSize
 
 /**
  * @tc.name: ConfigMoveResampleFpsRangeFallback
- * @tc.desc: Verify invalid fpsRange falls back to default
+ * @tc.desc: Verify invalid fpsRange leaves fps range unlimited
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.Level1)
@@ -301,7 +302,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.
     ConfigItem enableProp;
     enableProp.SetValue(true);
 
-    // Case 1: resampleFpsRange INVALID TYPE → fallback to default (nullopt/nullopt), return true
+    // Case 1: resampleFpsRange INVALID TYPE → leave fps range unlimited, return true
     {
         ConfigItem fpsRange;
         fpsRange.SetValue(std::string("not an int array"));
@@ -312,13 +313,13 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.
 
         EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
 
-        auto [enable, minFps, maxFps] = MoveDragController::LoadMoveResampleSystemConfig();
-        EXPECT_TRUE(enable);
-        EXPECT_FALSE(minFps.has_value());
-        EXPECT_FALSE(maxFps.has_value());
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.enable);
+        EXPECT_FALSE(config.minFps.has_value());
+        EXPECT_FALSE(config.maxFps.has_value());
     }
 
-    // Case 2: resampleFpsRange SIZE != 2 → fallback to default (nullopt/nullopt), return true
+    // Case 2: resampleFpsRange SIZE != 2 → leave fps range unlimited, return true
     {
         ConfigItem fpsRange;
         fpsRange.SetValue(std::vector<int>{60, 120, 144});
@@ -329,10 +330,10 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeFallback, TestSize.
 
         EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
 
-        auto [enable, minFps, maxFps] = MoveDragController::LoadMoveResampleSystemConfig();
-        EXPECT_TRUE(enable);
-        EXPECT_FALSE(minFps.has_value());
-        EXPECT_FALSE(maxFps.has_value());
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.enable);
+        EXPECT_FALSE(config.minFps.has_value());
+        EXPECT_FALSE(config.maxFps.has_value());
     }
 }
 
@@ -356,12 +357,132 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleFpsRangeValid, TestSize.Lev
 
     EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
 
-    auto [enable, minFps, maxFps] = MoveDragController::LoadMoveResampleSystemConfig();
-    EXPECT_TRUE(enable);
-    ASSERT_TRUE(minFps.has_value());
-    ASSERT_TRUE(maxFps.has_value());
-    EXPECT_EQ(*minFps, 60);
-    EXPECT_EQ(*maxFps, 120);
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_TRUE(config.enable);
+    ASSERT_TRUE(config.minFps.has_value());
+    ASSERT_TRUE(config.maxFps.has_value());
+    EXPECT_EQ(*config.minFps, 60);
+    EXPECT_EQ(*config.maxFps, 120);
+}
+
+/**
+ * @tc.name: ConfigMoveResamplePointerTypesValid
+ * @tc.desc: Verify valid pointerTypes is applied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResamplePointerTypesValid, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    ConfigItem fpsRange;
+    fpsRange.SetValue(std::vector<int>{60, 120});
+    ConfigItem pointerTypes;
+    pointerTypes.SetValue(std::vector<int>{
+        MMI::PointerEvent::SOURCE_TYPE_MOUSE,
+        MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN,
+        MMI::PointerEvent::SOURCE_TYPE_MOUSE,
+    });
+
+    ConfigItem moveResample;
+    moveResample.SetProperty({ { "enable", enableProp } });
+    moveResample.SetValue({ { "resampleFpsRange", fpsRange }, { "resamplePointerTypes", pointerTypes } });
+
+    EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_EQ(config.pointerTypes.size(), 2);
+    EXPECT_TRUE(config.pointerTypes.find(MMI::PointerEvent::SOURCE_TYPE_MOUSE) != config.pointerTypes.end());
+    EXPECT_TRUE(config.pointerTypes.find(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) != config.pointerTypes.end());
+}
+
+/**
+ * @tc.name: ConfigMoveResampleSecondaryPhaseValid
+ * @tc.desc: Verify secondary phase enable and lead time are applied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleSecondaryPhaseValid, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+    ConfigItem secondaryEnableProp;
+    secondaryEnableProp.SetValue(true);
+    ConfigItem leadTime;
+    leadTime.SetValue(std::vector<int>{2});
+
+    ConfigItem secondaryPhase;
+    secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+    secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+
+    ConfigItem moveResample;
+    moveResample.SetProperty({ { "enable", enableProp } });
+    moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+    EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+
+    auto config = MoveDragController::LoadMoveResampleSystemConfig();
+    EXPECT_TRUE(config.secondaryPhaseEnable);
+    EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 2);
+}
+
+/**
+ * @tc.name: ConfigMoveResampleSecondaryPhaseFallback
+ * @tc.desc: Verify invalid secondary phase fields keep default values
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigMoveResampleSecondaryPhaseFallback, TestSize.Level1)
+{
+    ConfigItem enableProp;
+    enableProp.SetValue(true);
+
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::string("invalid"));
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_FALSE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+
+    ConfigItem secondaryEnableProp;
+    secondaryEnableProp.SetValue(true);
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::vector<int>{ -1 });
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
+
+    {
+        ConfigItem leadTime;
+        leadTime.SetValue(std::vector<int>{ 1, 2 });
+        ConfigItem secondaryPhase;
+        secondaryPhase.SetProperty({ { "enable", secondaryEnableProp } });
+        secondaryPhase.SetValue({ { "leadTimeMs", leadTime } });
+        ConfigItem moveResample;
+        moveResample.SetProperty({ { "enable", enableProp } });
+        moveResample.SetValue({ { "secondaryPhase", secondaryPhase } });
+
+        EXPECT_TRUE(ssm_->ConfigMoveResample(moveResample));
+        auto config = MoveDragController::LoadMoveResampleSystemConfig();
+        EXPECT_TRUE(config.secondaryPhaseEnable);
+        EXPECT_EQ(config.secondaryPhaseLeadTimeMs, 0);
+    }
 }
 
 /**
@@ -2991,26 +3112,6 @@ HWTEST_F(SceneSessionManagerTest2, ClosePipWindowIfExist, TestSize.Level1)
 }
 
 /**
- * @tc.name: RecoverAndConnectSpecificSession
- * @tc.desc: RecoverAndConnectSpecificSession
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, RecoverAndConnectSpecificSession, TestSize.Level1)
-{
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetParentId(1);
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    auto result =
-        ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
-}
-
-/**
  * @tc.name: UpdateGestureBackEnabled
  * @tc.desc: UpdateGestureBackEnabled
  * @tc.type: FUNC
@@ -3086,33 +3187,6 @@ HWTEST_F(SceneSessionManagerTest2, UpdateGestureBackEnabled, TestSize.Level1)
 
     ssm_->sceneSessionMap_.erase(1);
     ssm_->sceneSessionMap_.erase(2);
-}
-
-/**
- * @tc.name: RecoverAndConnectSpecificSession02
- * @tc.desc: RecoverAndConnectSpecificSession02
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, RecoverAndConnectSpecificSession02, TestSize.Level1)
-{
-    SessionInfo sessionInfo;
-    sessionInfo.abilityName_ = "RecoverAndConnectSpecificSession02";
-    sessionInfo.bundleName_ = "SceneSessionManagerTest2";
-    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::APP_MAIN_WINDOW_END);
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    ASSERT_NE(property, nullptr);
-    property->SetSessionInfo(sessionInfo);
-    property->SetPersistentId(1);
-    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    sptr<ISessionStage> sessionStage;
-    sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> surfaceNode;
-    sptr<ISession> session;
-    sptr<IRemoteObject> token;
-    ASSERT_NE(ssm_, nullptr);
-    auto result =
-        ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
 }
 
 /**

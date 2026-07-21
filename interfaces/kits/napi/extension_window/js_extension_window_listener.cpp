@@ -28,7 +28,7 @@ namespace Rosen {
 using namespace AbilityRuntime;
 namespace {
 const std::string WINDOW_SIZE_CHANGE_CB = "windowSizeChange";
-const std::string WINDOW_RECT_CHANGE_CB = "rectChange";
+const std::string COMPONENT_RECT_CHANGE_CB = "rectChange";
 const std::string SYSTEM_AVOID_AREA_CHANGE_CB = "systemAvoidAreaChange";
 const std::string AVOID_AREA_CHANGE_CB = "avoidAreaChange";
 const std::string LIFECYCLE_EVENT_CB = "lifeCycleEvent";
@@ -40,6 +40,7 @@ const std::string EXTENSION_SECURE_LIMIT_CHANGE_CB = "uiExtensionSecureLimitChan
 const std::string KEYBOARD_DID_SHOW_CB = "keyboardDidShow";
 const std::string KEYBOARD_DID_HIDE_CB = "keyboardDidHide";
 const std::string WINDOW_STATUS_CHANGE_CB = "windowStatusChange";
+const std::string TOUCH_OUTSIDE_CB = "touchOutside";
 }
 
 JsExtensionWindowListener::~JsExtensionWindowListener()
@@ -155,7 +156,7 @@ void JsExtensionWindowListener::OnRectChange(Rect rect, WindowSizeChangeReason r
         napi_set_named_property(env, objValue, "reason", CreateJsValue(env,
             ComponentRectChangeReason::HOST_WINDOW_RECT_CHANGE));
         napi_value argv[] = { objValue };
-        thisListener->CallJsMethod(WINDOW_RECT_CHANGE_CB.c_str(), argv, ArraySize(argv));
+        thisListener->CallJsMethod(COMPONENT_RECT_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
     if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnRectChange") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_UIEXT, "send event failed");
@@ -367,6 +368,22 @@ void JsExtensionWindowListener::OnKeyboardDidHide(const KeyboardPanelInfo& keybo
     };
     if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnKeyboardDidHide") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Failed to send event");
+    }
+}
+
+void JsExtensionWindowListener::OnTouchOutside() const
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "[NAPI]");
+    auto jsCallback = [self = weakRef_] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr) {
+            TLOGNE(WmsLogTag::WMS_UIEXT, "this listener is nullptr");
+            return;
+        }
+        thisListener->CallJsMethod(TOUCH_OUTSIDE_CB.c_str(), nullptr, 0);
+    };
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnTouchOutside") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Failed to send event");
     }
 }
 

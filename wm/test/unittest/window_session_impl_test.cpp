@@ -3372,6 +3372,82 @@ HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported05, TestSize.Level1)
 
     GTEST_LOG_(INFO) << "WindowSessionImplTest: IsSubWindowMaximizeSupported05 end";
 }
+
+/**
+ * @tc.name: UpdateTitleButtonVisibility01
+ * @tc.desc: UpdateTitleButtonVisibility - subWindow with onlySupportFullScreen,
+ *           cover HideWindowTitleButton(true, true, false, false) branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateTitleButtonVisibility01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateTitleButtonVisibility01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetWindowModeSupportType(WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN);
+    window->property_->SetZLevelAboveParentLoosened(false);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->UpdateTitleButtonVisibility();
+}
+
+/**
+ * @tc.name: UpdateTitleButtonVisibility02
+ * @tc.desc: UpdateTitleButtonVisibility - subWindow not onlySupportFullScreen,
+ *           cover HideWindowTitleButton(true, !IsSubWindowMaximizeSupported(), true, false) branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateTitleButtonVisibility02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateTitleButtonVisibility02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetSubWindowMaximizeSupported(false);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN | WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    window->property_->SetZLevelAboveParentLoosened(false);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->haveSetSupportedWindowModes_ = false;
+    window->UpdateTitleButtonVisibility();
+}
+
+/**
+ * @tc.name: UpdateTitleButtonVisibility03
+ * @tc.desc: UpdateTitleButtonVisibility - IsZLevelAboveParentLoosened returns true,
+ *           cover hideMaximizeButton || !IsSubWindowMaximizeSupported() branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UpdateTitleButtonVisibility03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateTitleButtonVisibility03");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetSubWindowMaximizeSupported(false);
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetWindowModeSupportType(
+        WindowModeSupport::WINDOW_MODE_SUPPORT_FULLSCREEN | WindowModeSupport::WINDOW_MODE_SUPPORT_FLOATING);
+    window->property_->SetZLevelAboveParentLoosened(true);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->haveSetSupportedWindowModes_ = false;
+
+    window->UpdateTitleButtonVisibility();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

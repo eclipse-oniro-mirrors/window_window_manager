@@ -297,7 +297,7 @@ enum class FocusChangeReason {
     SCB_SESSION_REQUEST_UNFOCUS,
 
     /**
-     * focus change for client requerst.10
+     * focus change for client request.10
      */
     CLIENT_REQUEST,
 
@@ -327,7 +327,7 @@ enum class FocusChangeReason {
     SCB_START_APP,
 
     /**
-     * focus for setting focuable.
+     * focus for setting focusable.
      */
     FOCUSABLE,
 
@@ -355,6 +355,26 @@ enum class FocusChangeReason {
      * focus change when pressing alt+tab or dock click
      */
     REQUEST_WITH_CHECK_SUB_WINDOW,
+
+    /**
+     * focus change for force
+     */
+    FORCE_FOCUSED,
+
+    /**
+     * focus change for midScene
+     */
+    MID_SCENE,
+
+    /**
+     * focus change for opening action menu
+     */
+    CLICK_MENU,
+
+    /**
+     * focus change when back gesture from big luoShu
+     */
+    BACK_FROM_LUOSHU,
 
     /**
      * focus change max.
@@ -551,6 +571,7 @@ struct SessionInfo {
     std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
     WindowSizeLimits windowSizeLimits;
     bool isFollowParentMultiScreenPolicy = false;
+    bool isStartInFMWindowModeDisabled = false;
 
     /*
      * Window Rotation
@@ -565,7 +586,6 @@ struct SessionInfo {
     /*
      * Compatible Mode
      */
-    std::string pageConfig = "";
     std::vector<std::string> combinedCompatibleConfig;
 
     /**
@@ -1330,6 +1350,7 @@ struct AppWindowSceneConfig {
     StartingWindowAnimationConfig startingWindowAnimationConfig_;
     SystemUIStatusBarConfig systemUIStatusBarConfig_;
     WindowImmersive windowImmersive_;
+    std::string deviceType_ = "unknown";
 };
 
 struct SingleHandCompatibleModeConfig {
@@ -1340,7 +1361,7 @@ struct SingleHandCompatibleModeConfig {
 };
 
 struct SingleHandScreenInfo {
-    int32_t scaleRatio = DEFAULT_SCALE_RATIO;
+    float scaleRatio = DEFAULT_SCALE_RATIO;
     int32_t scalePivotX = 0;
     int32_t scalePivotY = 0;
     SingleHandMode mode = SingleHandMode::MIDDLE;

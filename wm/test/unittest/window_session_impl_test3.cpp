@@ -176,7 +176,14 @@ HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig, TestSize.Level1)
     window_ = GetTestWindowImpl("SetForceSplitConfig");
     ASSERT_NE(window_, nullptr);
 
-    AppForceLandscapeConfig config = { {}, {}, {}, false, false, false, false };
+    AppForceLandscapeConfig config = {};
+    window_->SetForceSplitConfig(config);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    config.hasChanged_ = false;
+    window_->SetForceSplitConfig(config);
+    config.hasChanged_ = true;
+    window_->SetForceSplitConfig(config);
+    config.containsConfig_ = true;
     window_->SetForceSplitConfig(config);
     EXPECT_TRUE(logMsg.find("uiContent is null!") != std::string::npos);
     LOG_SetCallback(nullptr);
@@ -1884,33 +1891,6 @@ HWTEST_F(WindowSessionImplTest3, SyncFvLimits, TestSize.Level1)
     limit.maxHeight_ = 1;
     limitsInfo.emplace(0, limit);
     EXPECT_EQ(WSError::WS_OK, window->SyncFvLimits(limitsInfo));
-}
-
-/**
- * @tc.name: IsAnyWindowMatchState
- * @tc.desc: IsAnyWindowMatchState test
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, IsAnyWindowMatchState, TestSize.Level1)
-{
-    WindowSessionImpl::windowSessionMap_.clear();
-    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-
-    WindowSessionImpl::windowSessionMap_.insert(std::make_pair("test",
-        std::pair<uint64_t, sptr<WindowSessionImpl>>(1, nullptr)));
-    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-
-    WindowSessionImpl::windowSessionMap_.clear();
-    sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
-    windowOption->SetWindowName("IsAnyWindowMatchState");
-    sptr<WindowSessionImpl> windowSession = sptr<WindowSessionImpl>::MakeSptr(windowOption);
-    WindowSessionImpl::windowSessionMap_.insert(std::make_pair("test",
-        std::pair<uint64_t, sptr<WindowSessionImpl>>(1, windowSession)));
-    windowSession->state_ = WindowState::STATE_CREATED;
-    EXPECT_FALSE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
-
-    windowSession->state_ = WindowState::STATE_SHOWN;
-    EXPECT_TRUE(WindowSessionImpl::IsAnyWindowMatchState(WindowState::STATE_SHOWN));
 }
 } // namespace
 } // namespace Rosen

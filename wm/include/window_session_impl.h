@@ -99,7 +99,6 @@ public:
     static sptr<Window> Find(const std::string& name);
     static std::vector<sptr<Window>> GetSubWindow(int parentId);
     static sptr<WindowSessionImpl> GetWindowWithId(uint32_t windowId);
-    static bool IsAnyWindowMatchState(const WindowState &state);
 
     virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession,
@@ -375,6 +374,10 @@ public:
         const AAFwk::Want& data);
     virtual WMError HandleUIExtUnregisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data);
+    virtual WMError HandleUIExtRegisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
+    virtual WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
 
     WMError SetBackgroundColor(const std::string& color) override;
     virtual Orientation GetRequestedOrientation() override;
@@ -443,7 +446,7 @@ public:
     WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
         const std::shared_ptr<Media::PixelMap>& icon) override;
     void NotifyPrepareCloseFloatingBall() override;
-    WSError SendFbActionEvent(const std::string& action) override;
+    WSError SendFbActionEvent(const std::string& action, const std::string& reason) override;
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override;
 
     WMError GetFloatingBallWindowId(uint32_t& windowId) override;
@@ -907,8 +910,10 @@ protected:
     std::unordered_set<int32_t> keyboardDidShowUIExtListenerIds_;
     std::unordered_set<int32_t> keyboardDidHideUIExtListenerIds_;
     std::unordered_set<int32_t> rectChangeInGlobalDisplayUIExtListenerIds_;
+    std::unordered_set<int32_t> touchOutsideUIExtListenerIds_;
     std::unordered_map<int32_t, sptr<IKeyboardDidShowListener>> keyboardDidShowUIExtListeners_;
     std::unordered_map<int32_t, sptr<IKeyboardDidHideListener>> keyboardDidHideUIExtListeners_;
+    std::unordered_map<int32_t, sptr<ITouchOutsideListener>> touchOutsideUIExtListeners_;
     bool followCreatorLifecycle_ = false;
     bool isHiddenFollowingUIExtension_ = false;
     void WriteKeyboardInfoToWant(AAFwk::Want& want, const KeyboardPanelInfo& keyboardPanelInfo) const;
@@ -921,6 +926,7 @@ protected:
     bool IsHiddenFollowingUIExtension() { return isHiddenFollowingUIExtension_; }
     std::mutex hostWindowRectChangeListenerMutex_;
     std::mutex hostRectChangeInGlobalDisplayListenerMutex_;
+    void NotifyUIExtTouchOutside();
 
     /*
      * Sub Window
@@ -1109,6 +1115,8 @@ protected:
     WSError NotifyWindowDensityChange(float density);
     void RegisterWindowInspectorCallback();
     uint32_t GetTargetAPIVersionByApplicationInfo() const;
+    void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
+    void NotifySurfaceNodeAlphaUpdate(float alpha);
 
     /*
      * Window Input Event
@@ -1116,11 +1124,12 @@ protected:
     bool GetWatchGestureConsumed() const;
     void SetWatchGestureConsumed(bool isWatchGestureConsumed);
     bool dialogSessionBackGestureEnabled_ = false;
-
+    static std::map<int32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     /*
      * Window Rotation
      */
     int16_t rotationAnimationCount_ { 0 };
+    int16_t sceneAnimationCount_ { 0 };
     void NotifyRotationAnimationEnd();
     mutable std::mutex virtualPixelRatioMutex_;
 
@@ -1372,7 +1381,6 @@ private:
     static std::map<int32_t, std::vector<sptr<IScreenshotListener>>> screenshotListeners_;
     static std::recursive_mutex screenshotAppEventListenerMutex_;
     static std::unordered_map<int32_t, std::vector<IScreenshotAppEventListenerSptr>> screenshotAppEventListeners_;
-    static std::map<int32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     static std::map<int32_t, std::vector<IWindowVisibilityListenerSptr>> windowVisibilityChangeListeners_;
     static std::mutex displayIdChangeListenerMutex_;
     static std::map<int32_t, std::vector<IDisplayIdChangeListenerSptr>> displayIdChangeListeners_;

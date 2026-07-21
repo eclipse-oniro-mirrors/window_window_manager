@@ -586,7 +586,10 @@ int SessionStub::HandleConnect(MessageParcel& data, MessageParcel& reply)
         bool needUpdate = property->GetIsNeedUpdateWindowMode();
         reply.WriteBool(needUpdate);
         if (needUpdate) {
-            reply.WriteUint32(static_cast<uint32_t>(property->GetWindowMode()));
+            auto windowModeInfo = property->GetWindowModeInfo();
+            reply.WriteUint32(static_cast<uint32_t>(windowModeInfo.windowMode));
+            reply.WriteInt32(static_cast<int32_t>(windowModeInfo.splitStyle));
+            reply.WriteInt32(windowModeInfo.splitIndex);
         }
         property->SetIsNeedUpdateWindowMode(false);
         Rect winRect = property->GetWindowRect();
@@ -1953,7 +1956,6 @@ int SessionStub::HandleGetFloatingBallWindowId(MessageParcel& data, MessageParce
     }
     return ERR_NONE;
 }
-// LCOV_EXCL_STOP
 
 int SessionStub::HandleStopFloatView(MessageParcel& data, MessageParcel& reply)
 {
@@ -1965,6 +1967,7 @@ int SessionStub::HandleStopFloatView(MessageParcel& data, MessageParcel& reply)
     }
     return ERR_NONE;
 }
+// LCOV_EXCL_STOP
 
 int SessionStub::HandleUpdateFloatView(MessageParcel& data, MessageParcel& reply)
 {

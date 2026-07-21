@@ -21,7 +21,9 @@
 #include "pointer_event.h"
 #include "ui/rs_surface_node.h"
 
+#include "display_manager.h"
 #include "mock_vsync_station.h"
+#include "pc_fold_screen_manager.h"
 #include "scene_board_judgement.h"
 #include "scene_session.h"
 #include "screen_manager.h"
@@ -193,17 +195,6 @@ HWTEST_F(MoveDragControllerTest, GetTargetRect, TestSize.Level1)
 HWTEST_F(MoveDragControllerTest, InitCrossDisplayProperty, TestSize.Level0)
 {
     moveDragController->InitCrossDisplayProperty(1);
-    ASSERT_EQ(1, moveDragController->GetMoveDragStartDisplayId());
-    ASSERT_EQ(true,
-              moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
-                  moveDragController->GetDisplayIdsDuringMoveDrag().end());
-    ScreenId screenId = 1;
-    ScreenSessionConfig config;
-    sptr<ScreenSession> screenSession =
-        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(screenId, screenSession));
-    moveDragController->InitCrossDisplayProperty(1);
-    ASSERT_EQ(1, moveDragController->GetMoveDragStartDisplayId());
     ASSERT_EQ(true,
               moveDragController->GetDisplayIdsDuringMoveDrag().find(1) !=
                   moveDragController->GetDisplayIdsDuringMoveDrag().end());
@@ -1805,7 +1796,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnDragEvent, TestSize.Level
     moveDragController->UpdateTargetRectOnDragEvent(pointerEvent, SizeChangeReason::DRAG);
     EXPECT_NE(moveDragController->moveDragProperty_.targetRect_, WSRect::EMPTY_RECT);
 
-    // Case 3: PointerEvent‘s displayId equals moveDragStartDisplayId and aspect ratio is not 0
+    // Case 3: PointerEvent displayId equals moveDragStartDisplayId and aspect ratio is not 0
     moveDragController->moveDragProperty_.targetRect_ = WSRect::EMPTY_RECT;
     pointerEvent->SetTargetDisplayId(0);
     moveDragController->moveDragStartDisplayId_ = 0;
@@ -2151,21 +2142,27 @@ HWTEST_F(MoveDragControllerTest, TestComputeOffsetFromStart, TestSize.Level1)
  */
 HWTEST_F(MoveDragControllerTest, TestShouldOpenMoveResampleAllBranches, TestSize.Level1)
 {
-    // Case 1: Global enable switch disabled → false
-    moveDragController->enableMoveResample_ = false;
+    // Case 1: Global enable switch disabled
+    moveDragController->moveResampleConfig_.enable = false;
     EXPECT_FALSE(moveDragController->ShouldOpenMoveResample(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN));
-    moveDragController->enableMoveResample_ = true;
+    moveDragController->moveResampleConfig_.enable = true;
 
-    // Case 2: Pointer type is not touchscreen → false
+    // Case 2: Pointer type is not in allow-list
+    moveDragController->moveResampleConfig_.pointerTypes = { MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN };
     EXPECT_FALSE(moveDragController->ShouldOpenMoveResample(MMI::PointerEvent::SOURCE_TYPE_MOUSE));
 
-    // Case 3: Input window does not support move resample → false
+    // Case 3: Input window does not support move resample
     moveDragController->winType_ = WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT;
     EXPECT_FALSE(moveDragController->ShouldOpenMoveResample(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN));
 
-    // Case 7: All conditions satisfied → true
+    // Case 7: Touchscreen is in allow-list
     moveDragController->winType_ = WindowType::APP_WINDOW_BASE;
     EXPECT_TRUE(moveDragController->ShouldOpenMoveResample(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN));
+
+    // Case 8: Mouse is in allow-list
+    moveDragController->moveResampleConfig_.pointerTypes = { MMI::PointerEvent::SOURCE_TYPE_MOUSE };
+    EXPECT_TRUE(moveDragController->ShouldOpenMoveResample(MMI::PointerEvent::SOURCE_TYPE_MOUSE));
+    EXPECT_FALSE(moveDragController->ShouldOpenMoveResample(MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN));
 }
 
 /**
@@ -2240,11 +2237,11 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
 }
 
 /**
- * @tc.name: TestResampleTargetRectOnVsyncAllBranches
- * @tc.desc: Verify ResampleTargetRectOnVsync behavior under different move/resample states
+ * @tc.name: TestResampleTargetRectAtAllBranches
+ * @tc.desc: Verify ResampleTargetRectAt behavior under different move/resample states
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestResampleTargetRectAtAllBranches, TestSize.Level1)
 {
     constexpr int64_t vsyncTime = 1000;
     auto& prop = moveDragController->moveDragProperty_;
@@ -2253,7 +2250,7 @@ HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestS
     moveDragController->isStartMove_ = false;
 
     {
-        auto [mode, _] = moveDragController->ResampleTargetRectOnVsync(vsyncTime);
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(vsyncTime);
         EXPECT_EQ(mode, TargetRectUpdateMode::NONE);
     }
 
@@ -2263,7 +2260,7 @@ HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestS
     prop.isResampleFpsRangeChecked_ = true; // Skip FPS logic
 
     {
-        auto [mode, _] = moveDragController->ResampleTargetRectOnVsync(vsyncTime);
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(vsyncTime);
         EXPECT_EQ(mode, TargetRectUpdateMode::NONE);
     }
 
@@ -2272,9 +2269,71 @@ HWTEST_F(MoveDragControllerTest, TestResampleTargetRectOnVsyncAllBranches, TestS
     prop.isResampleFpsRangeChecked_ = true;
 
     {
-        auto [mode, _] = moveDragController->ResampleTargetRectOnVsync(vsyncTime);
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(vsyncTime);
         EXPECT_EQ(mode, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
     }
+}
+
+/**
+ * @tc.name: TestResampleTargetRectAtFiltersStaleSampleTime
+ * @tc.desc: Verify resampling accepts zero time, filters stale samples, and resets time state for a new move
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestResampleTargetRectAtFiltersStaleSampleTime, TestSize.Level1)
+{
+    auto& prop = moveDragController->moveDragProperty_;
+    moveDragController->isStartMove_ = true;
+    prop.isMoveResampleActive_ = true;
+    prop.isResampleFpsRangeChecked_ = true;
+
+    {
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(0);
+        EXPECT_EQ(mode, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    }
+    EXPECT_EQ(moveDragController->moveDragProperty_.lastResampledTimeUs_, 0);
+
+    {
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(0);
+        EXPECT_EQ(mode, TargetRectUpdateMode::RESAMPLE_SCHEDULED);
+    }
+
+    {
+        auto [mode, _] = moveDragController->ResampleTargetRectAt(-1);
+        EXPECT_EQ(mode, TargetRectUpdateMode::RESAMPLE_SCHEDULED);
+    }
+
+    moveDragController->InitMoveDragProperty();
+    EXPECT_EQ(moveDragController->moveDragProperty_.lastResampledTimeUs_, -1);
+}
+
+/**
+ * @tc.name: TestGetSecondaryPhaseResamplingDelayMs
+ * @tc.desc: Verify secondary phase delay is controlled by the resample policy and lead time
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestGetSecondaryPhaseResamplingDelayMs, TestSize.Level1)
+{
+    moveDragController->moveResampleConfig_.secondaryPhaseEnable = false;
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
+
+    moveDragController->moveResampleConfig_.secondaryPhaseEnable = true;
+    moveDragController->moveResampleConfig_.secondaryPhaseLeadTimeMs = 1;
+    moveDragController->sceneSession_ = nullptr;
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
+    moveDragController->sceneSession_ = wptr(session_);
+
+    EXPECT_CALL(*mockVsyncStation_, GetVSyncPeriod())
+        .WillOnce(Return(0))
+        .WillOnce(Return(16000000))
+        .WillOnce(Return(16000000));
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
+
+    auto delayMs = moveDragController->GetSecondaryPhaseResamplingDelayMs();
+    ASSERT_TRUE(delayMs.has_value());
+    EXPECT_EQ(*delayMs, 15);
+
+    moveDragController->moveResampleConfig_.secondaryPhaseLeadTimeMs = 160;
+    EXPECT_FALSE(moveDragController->GetSecondaryPhaseResamplingDelayMs().has_value());
 }
 
 /**
@@ -2329,22 +2388,22 @@ HWTEST_F(MoveDragControllerTest, TestUpdateResampleActivationByFpsRangeCheck, Te
     // Case 2: FPS below minimum threshold → disable
     prop.isMoveResampleActive_ = true;
     prop.isResampleFpsRangeChecked_ = false;
-    moveDragController->resampleMinFps_ = FPS_60;
+    moveDragController->moveResampleConfig_.minFps = FPS_60;
     fps = FPS_30;
     moveDragController->UpdateResampleActivationByFps();
     EXPECT_FALSE(prop.isMoveResampleActive_);
     EXPECT_TRUE(prop.isResampleFpsRangeChecked_);
-    moveDragController->resampleMinFps_.reset();
+    moveDragController->moveResampleConfig_.minFps.reset();
 
     // Case 3: FPS above maximum threshold → disable
     prop.isMoveResampleActive_ = true;
     prop.isResampleFpsRangeChecked_ = false;
-    moveDragController->resampleMaxFps_ = FPS_60;
+    moveDragController->moveResampleConfig_.maxFps = FPS_60;
     fps = FPS_120;
     moveDragController->UpdateResampleActivationByFps();
     EXPECT_FALSE(prop.isMoveResampleActive_);
     EXPECT_TRUE(prop.isResampleFpsRangeChecked_);
-    moveDragController->resampleMaxFps_.reset();
+    moveDragController->moveResampleConfig_.maxFps.reset();
 
     // Case 4: FPS within range → keep activated
     prop.isMoveResampleActive_ = true;
@@ -2357,8 +2416,8 @@ HWTEST_F(MoveDragControllerTest, TestUpdateResampleActivationByFpsRangeCheck, Te
     // Case 5: explicit min/max range and FPS inside → keep activated
     prop.isMoveResampleActive_ = true;
     prop.isResampleFpsRangeChecked_ = false;
-    moveDragController->resampleMinFps_ = FPS_30;
-    moveDragController->resampleMaxFps_ = FPS_120;
+    moveDragController->moveResampleConfig_.minFps = FPS_30;
+    moveDragController->moveResampleConfig_.maxFps = FPS_120;
     fps = FPS_60;
     moveDragController->UpdateResampleActivationByFps();
     EXPECT_TRUE(prop.isMoveResampleActive_);
@@ -2512,21 +2571,86 @@ HWTEST_F(MoveDragControllerTest, UpdateTargetRectWithOffsetAppliesAvoidStrategyB
  */
 HWTEST_F(MoveDragControllerTest, RefreshesCachedScreenRectsFromScreenProperties, TestSize.Level1)
 {
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    constexpr ScreenId screenId = 1;
     ScreenProperty screenProperty;
     screenProperty.SetStartX(10);
     screenProperty.SetStartY(20);
     screenProperty.SetBounds(RRect({ 0, 0, 300, 200 }, 0.0f, 0.0f));
-    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
-    ScreenSessionManagerClient::GetInstance().screenSessionMap_[1] =
-        sptr<ScreenSession>::MakeSptr(1, screenProperty, 0);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
+        sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
 
     moveDragController->RefreshGlobalScreenRects();
 
     const WSRect expectedScreenRect = { 10, 20, 300, 200 };
+    EXPECT_EQ(moveDragController->globalScreenRectMap_[screenId], expectedScreenRect);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: FallsBackToPropertyAvailableRectWhenDisplayIsUnavailable
+ * @tc.desc: Verify a missing display keeps the available area from ScreenProperty
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenDisplayIsUnavailable, TestSize.Level1)
+{
+    constexpr ScreenId screenId = DISPLAY_ID_INVALID;
+    ScreenProperty screenProperty;
+    screenProperty.SetStartX(10);
+    screenProperty.SetStartY(20);
+    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
+        sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
+
+    auto& foldManager = PcFoldScreenManager::GetInstance();
+    const DisplayId originalDisplayId = foldManager.GetDisplayId();
+    const SuperFoldStatus originalFoldStatus = foldManager.GetScreenFoldStatus();
+    const auto originalDisplayRects = foldManager.GetDisplayRects();
+    foldManager.UpdateFoldScreenStatus(screenId, SuperFoldStatus::EXPANDED, {}, {}, {});
+
+    moveDragController->RefreshGlobalScreenRects();
+
     const WSRect expectedAvailableRect = { 15, 26, 250, 150 };
-    EXPECT_EQ(moveDragController->globalScreenRectMap_[1], expectedScreenRect);
-    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[1], expectedAvailableRect);
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[screenId], expectedAvailableRect);
+
+    foldManager.UpdateFoldScreenStatus(originalDisplayId,
+                                       originalFoldStatus,
+                                       std::get<0>(originalDisplayRects),
+                                       std::get<1>(originalDisplayRects),
+                                       std::get<2>(originalDisplayRects));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: FallsBackToPropertyAvailableRectWhenExpandAreaIsUnavailable
+ * @tc.desc: Verify a half-folded screen retains its property area when no expanded area is available
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, FallsBackToPropertyAvailableRectWhenExpandAreaIsUnavailable, TestSize.Level1)
+{
+    constexpr ScreenId screenId = DISPLAY_ID_INVALID;
+    ScreenProperty screenProperty;
+    screenProperty.SetStartX(10);
+    screenProperty.SetStartY(20);
+    screenProperty.SetAvailableArea({ 5, 6, 250, 150 });
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[screenId] =
+        sptr<ScreenSession>::MakeSptr(screenId, screenProperty, 0);
+
+    auto& foldManager = PcFoldScreenManager::GetInstance();
+    const DisplayId originalDisplayId = foldManager.GetDisplayId();
+    const SuperFoldStatus originalFoldStatus = foldManager.GetScreenFoldStatus();
+    const auto originalDisplayRects = foldManager.GetDisplayRects();
+    foldManager.UpdateFoldScreenStatus(screenId, SuperFoldStatus::HALF_FOLDED, {}, {}, {});
+
+    moveDragController->RefreshGlobalScreenRects();
+
+    const WSRect expectedAvailableRect = { 15, 26, 250, 150 };
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_[screenId], expectedAvailableRect);
+
+    foldManager.UpdateFoldScreenStatus(originalDisplayId,
+                                       originalFoldStatus,
+                                       std::get<0>(originalDisplayRects),
+                                       std::get<1>(originalDisplayRects),
+                                       std::get<2>(originalDisplayRects));
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
 }
 

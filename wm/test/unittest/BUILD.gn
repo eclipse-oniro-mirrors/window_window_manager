@@ -97,6 +97,7 @@ group("unittest") {
       "layout:wm_layout_test",
       "pattern:window_scene_session_impl_pattern_test",
       "special_window:window_scene_session_impl_special_window_test",
+      "ui_extension:wm_atomic_touchOutside_rectChange_test",
       "ui_extension:wm_extension_window_impl_test",
       "ui_extension:wm_window_extension_session_impl_test",
       "ui_extension:wm_window_scene_session_impl_uiextension_test",
@@ -528,6 +529,7 @@ ohos_unittest("wm_window_scene_session_impl_test4") {
   deps = [
     ":wm_unittest_common",
     "${window_base_path}/test/common/utils:libtestutil",
+    "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
   ]
 
   external_deps = test_external_deps

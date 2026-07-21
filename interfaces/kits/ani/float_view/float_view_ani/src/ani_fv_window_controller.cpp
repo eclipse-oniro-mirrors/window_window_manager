@@ -174,10 +174,25 @@ void AniFvController::SetUIContextAni(ani_env* env, ani_object obj, ani_long nat
             "Float view controller is not available.");
         return;
     }
-    aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage);
+    aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage, false);
 }
 
-void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani_object contentStorage)
+void AniFvController::SetUIContextByNameAni(ani_env* env, ani_object obj, ani_long nativeObj,
+    ani_string contextUrl, ani_object contentStorage)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContextByNameAni start");
+    AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
+    if (aniFvController == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
+        return;
+    }
+    aniFvController->OnSetUIContextAni(env, contextUrl, contentStorage, true);
+}
+
+void AniFvController::OnSetUIContextAni(ani_env* env,
+    ani_string contextUrl, ani_object contentStorage, bool isLoadByName)
 {
     if (fvController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
@@ -196,8 +211,15 @@ void AniFvController::OnSetUIContextAni(ani_env* env, ani_string contextUrl, ani
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "The ui path is empty.");
         return;
     }
-    WMError errCode = fvController_->SetUIContext(url, contentStorage);
+    ani_ref ref {};
+    if (env->GlobalReference_Create(contentStorage, &ref) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]create storage ref failed");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Unexpected internal error.");
+        return;
+    }
+    WMError errCode = fvController_->SetUIContext(url, ref, isLoadByName);
     if (errCode != WMError::WM_OK) {
+        env->GlobalReference_Delete(ref);
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContext failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set UI content.");
         return;
@@ -272,6 +294,54 @@ void AniFvController::OnSetWindowSizeAni(ani_env* env, ani_object sizeObj)
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetWindowSize failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set window size.");
+        return;
+    }
+}
+
+void AniFvController::SwitchTemplateAni(ani_env* env, ani_object obj, ani_long nativeObj, ani_object object)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]SwitchTemplateAni start");
+    AniFvController* aniFvController = reinterpret_cast<AniFvController*>(nativeObj);
+    if (aniFvController == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]aniFvController is nullptr");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
+        return;
+    }
+    aniFvController->OnSwitchTemplateAni(env, object);
+}
+
+void AniFvController::OnSwitchTemplateAni(ani_env* env, ani_object object)
+{
+    if (fvController_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]fvController_ is nullptr");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "Float view controller is not available.");
+        return;
+    }
+    if (object == nullptr) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]object is nullptr");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "TemplateProperty is not available.");
+        return;
+    }
+    std::string errorMsg = "";
+    WmErrorCode errorCode = WmErrorCode::WM_OK;
+    auto templateProperty = AniFvUtils::ParseTemplateProperty(env, object, errorMsg, errorCode);
+    if (!templateProperty) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]template type is invalid");
+        AniFvUtils::AniThrowError(env, errorCode, errorMsg);
+        return;
+    }
+
+    if (!templateProperty->CheckLegal()) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]check legal failed, size or template illegal");
+        AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "Template type or size is illegal.");
+        return;
+    }
+    WMError errCode = fvController_->SetTemplateTypeAndSize(templateProperty);
+    if (errCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetTemplateType failed");
+        AniFvUtils::AniThrowError(env, errCode, "Failed to set template type.");
         return;
     }
 }
@@ -617,10 +687,14 @@ auto GetNativeMethod()
             reinterpret_cast<void*>(AniFvController::StopFloatViewAni)},
         ani_native_function{"setUIContextNative", nullptr,
             reinterpret_cast<void*>(AniFvController::SetUIContextAni)},
+        ani_native_function{"setUIContextByNameNative", nullptr,
+            reinterpret_cast<void*>(AniFvController::SetUIContextByNameAni)},
         ani_native_function{"setFloatViewVisibilityInAppNative", nullptr,
             reinterpret_cast<void*>(AniFvController::SetFloatViewVisibilityInAppAni)},
         ani_native_function{"setWindowSizeNative", nullptr,
             reinterpret_cast<void*>(AniFvController::SetWindowSizeAni)},
+        ani_native_function{"switchTemplateNative", nullptr,
+            reinterpret_cast<void*>(AniFvController::SwitchTemplateAni)},
         ani_native_function{"getWindowPropertiesNative", nullptr,
             reinterpret_cast<void*>(AniFvController::GetWindowPropertiesAni)},
         ani_native_function{"restoreMainWindowNative", nullptr,

@@ -23,6 +23,7 @@ ohos_unittest("wm_layout_test") {
 
   sources = [
     "window_scene_session_impl_layout_test.cpp",
+    "window_scene_session_impl_layout_test2.cpp",
     "window_session_impl_layout_test.cpp",
   ]
 

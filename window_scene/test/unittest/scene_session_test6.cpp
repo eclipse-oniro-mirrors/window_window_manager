@@ -34,7 +34,6 @@
 #include <ui/rs_surface_node.h>
 #include "wm_common.h"
 #include "dm_common.h"
-#include "parameters.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -1216,27 +1215,6 @@ HWTEST_F(SceneSessionTest6, RegisterUpdateAppUseControlCallbackHasPrivacyModeCon
 }
 
 /**
- * @tc.name: GetScreenWidthAndHeightFromClient
- * @tc.desc: GetScreenWidthAndHeightFromClient
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionTest6, GetScreenWidthAndHeightFromClient, Function | SmallTest | Level3)
-{
-    SessionInfo info;
-    info.bundleName_ = "GetScreenWidthAndHeightFromClient";
-    info.abilityName_ = "GetScreenWidthAndHeightFromClient";
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
-    uint32_t screenWidth = 0;
-    uint32_t screenHeight = 0;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
-
-    sceneSession->SetIsSystemKeyboard(true);
-    EXPECT_EQ(sceneSession->IsSystemKeyboard(), true);
-    EXPECT_EQ(sceneSession->GetScreenWidthAndHeightFromClient(property, screenWidth, screenHeight), true);
-}
-
-/**
  * @tc.name: SetFrameRectForPartialZoomIn
  * @tc.desc: SetFrameRectForPartialZoomIn
  * @tc.type: FUNC
@@ -1900,6 +1878,59 @@ HWTEST_F(SceneSessionTest6, TestRequestMoveResampleOnNextVsyncResampleActive, Te
     session->RequestMoveResampleOnNextVsync();
 
     EXPECT_GE(vsyncCount, 2);
+}
+
+/**
+ * @tc.name: TestGetVSyncPeriod
+ * @tc.desc: Return no period without a station and forward the station period when available
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestGetVSyncPeriod, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_EQ(session->GetVSyncPeriod(), 0);
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+    EXPECT_CALL(*mockVsyncStation, GetVSyncPeriod()).WillOnce(Return(16000000));
+    EXPECT_EQ(session->GetVSyncPeriod(), 16000000);
+}
+
+/**
+ * @tc.name: TestRequestMoveResampleOnNextVsyncSecondaryPhase
+ * @tc.desc: Perform the immediate and secondary-phase samples within one vsync period
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, TestRequestMoveResampleOnNextVsyncSecondaryPhase, TestSize.Level1)
+{
+    SessionInfo info;
+    auto session = sptr<SceneSessionMocker>::MakeSptr(info, nullptr);
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->isStartMove_ = true;
+    session->moveDragController_->moveDragProperty_.isMoveResampleActive_ = true;
+    session->moveDragController_->moveDragProperty_.isResampleFpsRangeChecked_ = true;
+    session->moveDragController_->moveResampleConfig_.secondaryPhaseEnable = true;
+    session->moveDragController_->moveResampleConfig_.secondaryPhaseLeadTimeMs = 1;
+
+    auto mockVsyncStation = std::make_shared<MockVsyncStation>();
+    session->SetVsyncStation(mockVsyncStation);
+    session->handler_ = nullptr;
+
+    int vsyncCount = 0;
+    EXPECT_CALL(*mockVsyncStation, RequestVsync(_))
+        .WillRepeatedly(Invoke([&](const std::shared_ptr<VsyncCallback>& cb) {
+            ASSERT_NE(cb, nullptr);
+            if (++vsyncCount == 1) {
+                cb->onCallback(1000000, 0);
+            }
+        }));
+    EXPECT_CALL(*mockVsyncStation, GetVSyncPeriod()).WillOnce(Return(16000000));
+    EXPECT_CALL(*session, SetSurfaceBounds(_, true, true)).Times(2);
+
+    session->RequestMoveResampleOnNextVsync();
+
+    EXPECT_EQ(vsyncCount, 2);
 }
 
 /**

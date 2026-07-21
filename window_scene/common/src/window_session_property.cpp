@@ -685,7 +685,7 @@ WindowLimits WindowSessionProperty::GetWindowLimitsVP() const
 void WindowSessionProperty::SetWindowMode(WindowMode mode)
 {
     windowMode_ = mode;
-    windowModeInfo_ = {mode, SplitStyle::TWO_WINDOW_HORIZONTAL, SPLIT_INDEX_PRIMARY};
+    windowModeInfo_ = {mode, windowModeInfo_.splitStyle, windowModeInfo_.splitIndex};
 }
 
 WindowMode WindowSessionProperty::GetWindowMode() const
@@ -806,6 +806,8 @@ bool WindowSessionProperty::IsDecorEnable()
 
 void WindowSessionProperty::SetWindowModeSupportType(uint32_t windowModeSupportType)
 {
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, old:%{public}u, new:%{public}u",
+        persistentId_, windowModeSupportType_, windowModeSupportType);
     windowModeSupportType_ = windowModeSupportType;
 }
 
@@ -1672,6 +1674,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isAppBufferReady_) &&
         parcel.WriteBool(isFollowParentLayout_) &&
         parcel.WriteBool(isCrossProcessWindow_) &&
+        parcel.WriteFloat(GetSurfaceNodeAlpha()) &&
         MarshallingFvTemplateInfo(parcel);
 }
 
@@ -1802,6 +1805,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetAppBufferReady(parcel.ReadBool());
     property->SetFollowParentLayout(parcel.ReadBool());
     property->SetIsCrossProcessWindow(parcel.ReadBool());
+    property->SetSurfaceNodeAlpha(parcel.ReadFloat());
     UnmarshallingFvTemplateInfo(parcel, property);
     return property;
 }
@@ -1845,6 +1849,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     accessTokenId_ = property->accessTokenId_;
     maximizeMode_ = property->maximizeMode_;
     windowMode_ = property->windowMode_;
+    windowModeInfo_ = property->windowModeInfo_;
     windowState_ = property->windowState_;
     limits_ = property->limits_;
     limitsVP_ = property->limitsVP_;
@@ -1922,6 +1927,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
         missionInfo_ = property->missionInfo_;
     }
     isRotationLock_ = property->isRotationLock_;
+    SetSurfaceNodeAlpha(property->GetSurfaceNodeAlpha());
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
@@ -2607,105 +2613,122 @@ bool WindowSessionProperty::GetIsAbilityHook() const
 
 sptr<CompatibleModeProperty> WindowSessionProperty::GetCompatibleModeProperty() const
 {
-    std::lock_guard lock(compatibleModeMutex_);
+    std::shared_lock<std::shared_mutex> lock(compatibleModePropertyMutex_);
     return compatibleModeProperty_;
 }
 
 void WindowSessionProperty::SetCompatibleModeProperty(const sptr<CompatibleModeProperty> property)
 {
-    std::lock_guard lock(compatibleModeMutex_);
+    std::unique_lock<std::shared_mutex> lock(compatibleModePropertyMutex_);
     compatibleModeProperty_ = property;
 }
 
 bool WindowSessionProperty::IsAdaptToImmersive() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToImmersive();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToImmersive();
 }
 
 bool WindowSessionProperty::IsAdaptToEventMapping() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToEventMapping();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToEventMapping();
 }
 
 bool WindowSessionProperty::IsAdaptToProportionalScale() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToProportionalScale();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToProportionalScale();
 }
 
 bool WindowSessionProperty::IsAdaptToBackButton() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToBackButton();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToBackButton();
 }
 
 bool WindowSessionProperty::IsAdaptToDragScale() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToDragScale();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToDragScale();
 }
 
 bool WindowSessionProperty::IsDragResizeDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsDragResizeDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsDragResizeDisabled();
 }
 
 bool WindowSessionProperty::IsResizeWithDpiDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsResizeWithDpiDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsResizeWithDpiDisabled();
 }
 
 bool WindowSessionProperty::IsFullScreenDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsFullScreenDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsFullScreenDisabled();
 }
 
 bool WindowSessionProperty::IsSplitDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsSplitDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsSplitDisabled();
 }
 
 bool WindowSessionProperty::IsWindowLimitDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsWindowLimitDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsWindowLimitDisabled();
 }
 
 bool WindowSessionProperty::IsDecorFullscreenDisabled() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsDecorFullscreenDisabled();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsDecorFullscreenDisabled();
 }
 
 bool WindowSessionProperty::IsFullScreenStart() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsFullScreenStart();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsFullScreenStart();
 }
 
 bool WindowSessionProperty::IsSupportRotateFullScreen() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsSupportRotateFullScreen();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsSupportRotateFullScreen();
 }
 
 bool WindowSessionProperty::IsAdaptToSubWindow() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToSubWindow();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToSubWindow();
 }
 
 bool WindowSessionProperty::IsAdaptToSimulationScale() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToSimulationScale();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToSimulationScale();
 }
 
 bool WindowSessionProperty::IsAdaptToCompatibleDevice() const
 {
-    return compatibleModeProperty_ && compatibleModeProperty_->IsAdaptToCompatibleDevice();
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    return compatibleModeProperty && compatibleModeProperty->IsAdaptToCompatibleDevice();
 }
 
 RealTimeSwitchInfo WindowSessionProperty::GetRealTimeSwitchInfo() const
 {
-    if (!compatibleModeProperty_) {
+    sptr<CompatibleModeProperty> compatibleModeProperty = GetCompatibleModeProperty();
+    if (!compatibleModeProperty) {
         RealTimeSwitchInfo switchInfo;
         switchInfo.isNeedChange_ = false;
         switchInfo.showTypes_ = 0;
         return switchInfo;
     }
-    return compatibleModeProperty_->GetRealTimeSwitchInfo();
+    return compatibleModeProperty->GetRealTimeSwitchInfo();
 }
 
 void WindowSessionProperty::SetIsFullScreenInForceSplitMode(bool isFullScreenInForceSplitMode)
@@ -2780,6 +2803,12 @@ HookWindowInfo WindowSessionProperty::GetHookWindowInfo() const
 {
     std::lock_guard<std::mutex> lock(hookWindowInfoMutex_);
     return hookWindowInfo_;
+}
+
+void WindowSessionProperty::SetWidthHookRatio(float ratio)
+{
+    std::lock_guard<std::mutex> lock(hookWindowInfoMutex_);
+    hookWindowInfo_.widthHookRatio = ratio;
 }
 
 bool WindowSessionProperty::GetPcAppInpadCompatibleMode() const
@@ -3128,6 +3157,11 @@ void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& 
 void SystemSessionConfig::ConvertSupportCreateFloatView(const std::string& itemValue)
 {
     supportCreateFloatView_ = StringUtil::ConvertStringToBool(itemValue);
+}
+
+void SystemSessionConfig::ConvertSupportCreateFloatingBall(const std::string& itemValue)
+{
+    supportCreateFloatingBall_ = StringUtil::ConvertStringToBool(itemValue);
 }
 
 void WindowSessionProperty::SetPrelaunch(bool isPrelaunch)

@@ -66,10 +66,13 @@ public:
     WMError UnregisterKeyboardDidShowListener(const sptr<IKeyboardDidShowListener>& listener) override;
     WMError RegisterKeyboardDidHideListener(const sptr<IKeyboardDidHideListener>& listener) override;
     WMError UnregisterKeyboardDidHideListener(const sptr<IKeyboardDidHideListener>& listener) override;
+    WMError RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
+    WMError UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
     void TriggerBindModalUIExtension() override;
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     WindowMode GetWindowMode() const override;
+    WindowMode GetWindowModeCompat() const override;
     WMError SetWindowMode(WindowMode mode) override;
 
     /*
@@ -176,6 +179,7 @@ public:
     int32_t GetRealParentId() const override;
     int32_t GetHostWindowId() const override;
     WindowType GetParentWindowType() const override;
+    WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize) override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
@@ -213,6 +217,10 @@ public:
     WMError HandleRegisterHostRectChangeInGlobalDisplayListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
     WMError HandleUnregisterHostRectChangeInGlobalDisplayListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
+    WMError HandleUIExtRegisterTouchOutsideListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
+    WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
     uint32_t GetHostStatusBarContentColor() const override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
@@ -267,6 +275,7 @@ private:
     WMError OnHostRectChangeInGlobalDisplay(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnRecover(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError OnHostWindowStatusChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
+    WMError OnTouchOutside(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
 
     /*
      * Compatible Mode
@@ -296,6 +305,7 @@ private:
     std::mutex keyboardDidShowListenerMutex_;
     std::mutex keyboardDidHideListenerMutex_;
     std::mutex occupiedAreaChangeListenerMutex_;
+    std::mutex touchOutsideListenerMutex_;
     std::vector<sptr<IWindowRectChangeListener>> hostWindowRectChangeListener_;
     std::vector<sptr<IKeyboardDidShowListener>> keyboardDidShowListenerList_;
     std::vector<sptr<IKeyboardDidHideListener>> keyboardDidHideListenerList_;

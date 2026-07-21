@@ -74,5 +74,8 @@ group("fuzztest") {
     "windoweventchstubpoint_fuzzer:fuzztest",
     "windowextensionclstub_fuzzer:fuzztest",
     "windowextensionstub_fuzzer:fuzztest",
+    "scenesessionmgrstubfv_fuzzer:fuzztest",
+    "sessionstagestubfv_fuzzer:fuzztest",
+    "sessionstubfloatview_fuzzer:fuzztest",
   ]
 }

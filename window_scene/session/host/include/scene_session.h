@@ -19,9 +19,11 @@
 #include <animation/rs_animation_timing_curve.h>
 #include <animation/rs_animation_timing_protocol.h>
 #include <animation/rs_symbol_animation.h>
+#include <atomic>
 #include <chrono>
 #include <feature/window_keyframe/rs_window_keyframe_node.h>
 #include <modifier/rs_property.h>
+#include <optional>
 #include <pipeline/rs_node_map.h>
 #include <unordered_set>
 
@@ -47,6 +49,7 @@ constexpr const char* const PARAM_MISSION_AFFINITY_KEY = "ohos.anco.param.missio
 constexpr const char* const PARAM_DMS_CONTINUE_SESSION_ID_KEY = "ohos.dms.continueSessionId";
 constexpr const char* const PARAM_DMS_PERSISTENT_ID_KEY = "ohos.dms.persistentId";
 }
+class MoveDragBoundsApplier;
 class SceneSession;
 class ScreenSession;
 
@@ -166,10 +169,14 @@ using NotifyAnimateToFunc = std::function<void(const WindowAnimationProperty& an
 using GetAllAppUseControlMapFunc =
     std::function<std::unordered_map<std::string, std::unordered_map<ControlAppType, ControlInfo>>&()>;
 using GetFbPanelWindowIdFunc =  std::function<WMError(uint32_t& windowId)>;
+using ReportWindowRssFunc =  std::function<void(const bool isForeground,
+ 	                                             const WindowType& type,
+ 	                                             const sptr<SceneSession>& session)>;
 using FindScenePanelRsNodeByZOrderFunc = std::function<std::shared_ptr<Rosen::RSNode>(DisplayId displayId,
     uint32_t targetZOrder)>;
 using ForceSplitFullScreenChangeCallback = std::function<void(uint32_t uid, bool isFullScreen)>;
 using CompatibleModeChangeCallback = std::function<void(CompatibleStyleMode mode)>;
+using SplitRatioChangeCallback = std::function<void(float newRatio)>;
 using NotifyRotationLockChangeFunc = std::function<void(bool locked)>;
 using NotifySnapshotSkipChangeFunc = std::function<void(bool isSkip)>;
 using GetIsRecentStateFunc = std::function<bool()>;
@@ -426,7 +433,7 @@ public:
     WSError StopFloatingBall() override { return WSError::WS_OK; };
     WMError GetFloatingBallWindowId(uint32_t& windowId) override { return WMError::WM_OK; };
     WMError RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& want) override { return WMError::WM_OK; };
-    virtual WSError SendFbActionEvent(const std::string& action) { return WSError::WS_OK; };
+    virtual WSError SendFbActionEvent(const std::string& action, const std::string& reason) { return WSError::WS_OK; };
     virtual FloatingBallTemplateInfo GetFbTemplateInfo() const { return fbTemplateInfo_; };
     virtual void SetFbTemplateInfo(const FloatingBallTemplateInfo& fbTemplateInfo) {};
     virtual uint32_t GetFbWindowId() const { return 0; };
@@ -434,6 +441,7 @@ public:
     virtual void SetFloatingBallStopCallback(NotifyStopFloatingBallFunc&& func) {};
     virtual void SetFloatingBallRestoreMainWindowCallback(NotifyRestoreFloatingBallMainWindowFunc&& func) {};
     virtual void RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& func) {};
+    virtual void RegisterReportWindowRssFunc(ReportWindowRssFunc&& func) {};
 
     /**
      * Float view
@@ -446,6 +454,7 @@ public:
         const std::string& reason){ return WSError::WS_OK; };
     WMError UpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) override { return WMError::WM_OK; };
     virtual void SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func) {};
+    virtual void SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func) {};
     virtual WSError SyncFloatViewLimits(const std::map<uint32_t, FloatViewLimits>& limits) { return WSError::WS_OK; };
 
     /*
@@ -517,6 +526,7 @@ public:
     virtual void RegisterCompatibleModeChangeCallback(CompatibleModeChangeCallback&& callback) {}
     virtual void RegisterPageEnableCallback(PageEnableCallback&& callback) {}
     virtual void RegisterSetSelectModeCallback(SetSelectModeCallback&& callback) {}
+    virtual void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) {}
 
     /*
      * PC Window
@@ -571,6 +581,7 @@ public:
      */
     virtual WSError HideSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
     virtual WSError ShowSubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
+    virtual WSError DestroySubWindowZLevelAboveParentLoosened() { return WSError::WS_OK; }
 
     /*
      * Window Event
@@ -980,25 +991,6 @@ public:
     void OnNextVsyncReceivedWhenDrag(
         const WSRect& globalRect, bool isGlobal, bool needFlush, bool needSetBoundsNextVsync);
 
-    /**
-     * @brief Request a move resampling operation to run on the next vsync.
-     *
-     * This registers a vsync callback and posts the resample work to the
-     * SSM thread, forming one iteration of the move resampling loop.
-     */
-    void RequestMoveResampleOnNextVsync();
-
-    /**
-     * @brief Perform one move resampling iteration for the given vsync timestamp.
-     *
-     * This method resamples the moving position at the specified vsync moment,
-     * updates the target rectangle, applies the new surface bounds, and then
-     * schedules the next resample iteration.
-     *
-     * @param vsyncTimeUs Vsync timestamp in microseconds.
-     */
-    void PerformMoveResampleOnVsync(int64_t vsyncTimeUs);
-
     void RegisterLayoutFullScreenChangeCallback(NotifyLayoutFullScreenChangeFunc&& callback);
     bool SetFrameGravity(Gravity gravity);
     void RegisterSessionEventCallback(NotifySessionEventFunc&& callback);
@@ -1271,6 +1263,7 @@ protected:
 
     friend class MoveDragController;
     sptr<MoveDragController> moveDragController_ = nullptr;
+    std::shared_ptr<MoveDragBoundsApplier> moveDragBoundsApplier_;
 
     std::mutex displayIdSetDuringMoveToMutex_;
     std::set<uint64_t> displayIdSetDuringMoveTo_;
@@ -1315,6 +1308,7 @@ protected:
      */
     virtual void NotifyStopFloatView() {};
     virtual void NotifyUpdateFloatView(const FloatViewTemplateInfo& fvTemplateInfo) {};
+    virtual void NotifyClickFloatView() {};
     FloatViewTemplateInfo fvTemplateInfo_ = {};
     mutable std::mutex fvTemplateMutex_;
 
@@ -1440,6 +1434,13 @@ private:
      * @return Optional FPS value; std::nullopt if unavailable.
      */
     std::optional<uint32_t> GetFpsFromVsync() const;
+
+    /**
+     * @brief Get the current vsync period for this session.
+     *
+     * @return Vsync period in nanoseconds;
+     */
+    int64_t GetVSyncPeriod() const;
 
     /**
      * @brief Run the given callback on the next vsync.
@@ -1620,25 +1621,29 @@ private:
         bool oldIsIntersectedWidthLimit, bool oldIsIntersectedHeightLimit, bool& isDetaching);
 
     /**
-     * @brief Set surface bounds via the original surface node.
-     *
-     * This method is used for normal transaction commit together with ArkUI relayout.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
+     * @brief Request the next vsync-driven move resampling iteration.
      */
-    void SetSurfaceBoundsWithOriginalNode(const WSRect& rect, bool isGlobal);
+    void RequestMoveResampleOnNextVsync();
 
     /**
-     * @brief Set surface bounds via the shadow surface node.
+     * @brief Schedule a move-resample task on the SSM thread.
      *
-     * This method is used for immediate RS commit to avoid flushing other pending
-     * SurfaceNode updates in the current transaction.
-     *
-     * @param rect     Window bounds to be applied.
-     * @param isGlobal Indicates whether global positioning is enabled.
+     * @param vsyncTimeUs Vsync timestamp in microseconds.
+     * @param delayMs Delay in milliseconds before running the task.
+     * @param needRequestNextVsync Whether to request the next resampling vsync after this task.
      */
-    void SetSurfaceBoundsWithShadowNode(const WSRect& rect, bool isGlobal);
+    void ScheduleMoveResampleTask(int64_t vsyncTimeUs, int64_t delayMs, bool needRequestNextVsync);
+
+    /**
+     * @brief Perform one move resampling iteration at the given sample timestamp.
+     *
+     * Resamples the target rectangle at sampleTimeUs, applies surface bounds,
+     * and optionally continues the vsync resampling loop.
+     *
+     * @param sampleTimeUs Sample timestamp in microseconds.
+     * @param shouldRequestNextVsync Whether to continue the resampling loop.
+     */
+    void PerformMoveResampleAt(int64_t sampleTimeUs, bool shouldRequestNextVsync = true);
 
     /*
      * Window Decor

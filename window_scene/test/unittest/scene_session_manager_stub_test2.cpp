@@ -424,6 +424,48 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleGetWindowStateSnapshot, TestSize.Le
 }
 
 /**
+ * @tc.name: HandleNotifySurfaceNodeAlphaUpdate
+ * @tc.desc: HandleNotifySurfaceNodeAlphaUpdate test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest2, HandleNotifySurfaceNodeAlphaUpdate, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    float alpha = 0.5f;
+    data.WriteInt32(1);
+    data.WriteFloat(alpha);
+    MockMessageParcel::ClearAllErrorFlag();
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_NOTIFY_SURFACE_NODE_ALPHA_UPDATE);
+    auto res = stub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_NE(res, ERR_NULL_OBJECT);
+
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    res = stub_->HandleNotifySurfaceNodeAlphaUpdate(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+
+    MessageParcel data2;
+    data2.WriteInt32(2);
+    MockMessageParcel::SetReadFloatErrorFlag(true);
+    res = stub_->HandleNotifySurfaceNodeAlphaUpdate(data2, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetReadFloatErrorFlag(false);
+
+    MessageParcel data3;
+    MessageParcel reply3;
+    data3.WriteInt32(1);
+    data3.WriteFloat(alpha);
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    res = stub_->HandleNotifySurfaceNodeAlphaUpdate(data3, reply3);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: HandleGetRootUIContentRemoteObj01
  * @tc.desc: test HandleGetRootUIContentRemoteObj
  * @tc.type: FUNC
@@ -592,4 +634,3 @@ HWTEST_F(SceneSessionManagerStubTest2, HandleGetFloatViewLimits, Function | Smal
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
-

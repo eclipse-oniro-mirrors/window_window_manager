@@ -24,7 +24,6 @@
 #include "window_manager_agent_lite.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "parameters.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -247,6 +246,7 @@ void WindowManagerLite::Impl::NotifyWindowVisibilityInfoChanged(
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         visibilityChangeListeners.assign(windowVisibilityListeners_.begin(), windowVisibilityListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(visibilityChangeListeners.size()));
     for (auto& listener : visibilityChangeListeners) {
         if (listener == nullptr) {
             continue;
@@ -258,13 +258,13 @@ void WindowManagerLite::Impl::NotifyWindowVisibilityInfoChanged(
 void WindowManagerLite::Impl::NotifyWindowVisibilityStateChanged(
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "in");
     std::vector<sptr<IWindowInfoChangedListener>> windowVisibilityStateListeners;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowVisibilityStateListeners.assign(
             windowVisibilityStateListeners_.begin(), windowVisibilityStateListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowVisibilityStateListeners.size()));
     for (auto& listener : windowVisibilityStateListeners) {
         if (listener == nullptr) {
             TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
@@ -286,6 +286,7 @@ void WindowManagerLite::Impl::NotifyMidSceneStatusChange(const WindowInfoList& w
         midSceneStatusChangeListeners.assign(
             midSceneStatusChangeListeners_.begin(), midSceneStatusChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(midSceneStatusChangeListeners.size()));
     for (auto& listener : midSceneStatusChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -317,6 +318,7 @@ void WindowManagerLite::Impl::NotifyWindowModeInfoChangeForPropertyChange(const 
         windowModeInfoChangeListeners.assign(windowModeInfoChangeListeners_.begin(),
             windowModeInfoChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowModeInfoChangeListeners.size()));
     for (auto& listener : windowModeInfoChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -333,6 +335,7 @@ void WindowManagerLite::Impl::NotifyDisplayIdChange(const WindowInfoList& window
         windowDisplayIdChangeListeners.assign(
             windowDisplayIdChangeListeners_.begin(), windowDisplayIdChangeListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowDisplayIdChangeListeners.size()));
     for (auto& listener : windowDisplayIdChangeListeners) {
         WindowInfoList windowInfoListForNotify = GetWindowInfoListByInterestWindowIds(listener, windowInfoList);
         if (listener != nullptr && !windowInfoListForNotify.empty()) {
@@ -363,7 +366,6 @@ WindowInfoList WindowManagerLite::Impl::GetWindowInfoListByInterestWindowIds(
     }
     return windowInfoListForNotify;
 }
-
 void WindowManagerLite::Impl::PackWindowChangeInfo(const std::unordered_set<WindowInfoKey>& interestInfo,
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos, WindowInfoList& windowChangeInfos)
 {
@@ -407,13 +409,13 @@ void WindowManagerLite::Impl::NotifyWindowDrawingContentInfoChanged(
 
 void WindowManagerLite::Impl::NotifyWindowModeChange(WindowModeType type)
 {
-    TLOGI(WmsLogTag::WMS_MAIN, "WindowManager::Impl UpdateWindowModeTypeInfo type: %{public}d",
-          static_cast<uint8_t>(type));
     std::vector<sptr<IWindowModeChangedListener>> windowModeListeners;
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowModeListeners.assign(windowModeListeners_.begin(), windowModeListeners_.end());
     }
+    TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
+        static_cast<uint8_t>(type), static_cast<uint32_t>(windowModeListeners.size()));
     for (auto &listener : windowModeListeners) {
         listener->OnWindowModeUpdate(type);
     }
@@ -449,6 +451,7 @@ void WindowManagerLite::Impl::NotifyAccessibilityWindowInfo(const std::vector<sp
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowUpdateListeners.assign(windowUpdateListeners_.begin(), windowUpdateListeners_.end());
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowUpdateListeners.size()));
     for (auto& listener : windowUpdateListeners) {
         listener->OnWindowUpdate(infos, type);
     }
@@ -546,7 +549,7 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
         return GetInstance();
     }
 
-    if (!WindowManagerLite::IsMultiInstanceEnabled()) {
+    if (!IsMultiInstanceEnabled()) {
         TLOGD(WmsLogTag::WMS_MULTI_USER, "get default instance in multi, userId: %{public}d", userId);
         return GetInstance();
     }
@@ -569,8 +572,8 @@ WindowManagerLite& WindowManagerLite::GetInstance(const int32_t userId)
     auto instance = sptr<WindowManagerLite>::MakeSptr(userId);
     windowManagerLiteMap_.insert({ userId, instance });
     TLOGI(WmsLogTag::WMS_MULTI_USER,
-        "After insert, map size: %{public}zu, userId: %{public}d, instance ptr: %{public}p",
-        windowManagerLiteMap_.size(), userId, instance.GetRefPtr());
+        "After insert, map size: %{public}zu, userId: %{public}d",
+        windowManagerLiteMap_.size(), userId);
     return *instance;
 }
 
@@ -580,16 +583,6 @@ WMError WindowManagerLite::RemoveInstanceByUserId(const int32_t userId)
     std::unique_lock<std::shared_mutex> lock(windowManagerLiteMapMutex_);
     windowManagerLiteMap_.erase(userId);
     return WMError::WM_OK;
-}
-
-bool WindowManagerLite::IsMultiInstanceEnabled()
-{
-    static bool enabled = [] {
-        bool isConcurrentUser = system::GetBoolParameter("persist.dms.concurrentuser", true);
-        TLOGNI(WmsLogTag::WMS_SCB, "isConcurrentUser: %{public}d", isConcurrentUser);
-        return isConcurrentUser;
-    }();
-    return enabled;
 }
 
 WMError WindowManagerLite::ActiveFaultAgentReregister(const WindowManagerAgentType type,
@@ -1922,6 +1915,7 @@ WMError WindowManagerLite::RegisterWindowInfoChangeCallback(const std::unordered
             listener->AddInterestInfo(info);
         }
         ret = ProcessRegisterWindowInfoChangeCallback(info, listener);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: infoKey=%{public}d, ret=%{public}d", info, ret);
         if (ret != WMError::WM_OK) {
             observedInfoForLog << "failed";
             break;
@@ -1947,6 +1941,7 @@ WMError WindowManagerLite::UnregisterWindowInfoChangeCallback(const std::unorder
             listener->AddInterestInfo(info);
         }
         ret = ProcessUnregisterWindowInfoChangeCallback(info, listener);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: infoKey=%{public}d, ret=%{public}d", info, ret);
         if (ret != WMError::WM_OK) {
             observedInfoForLog << "failed";
             break;

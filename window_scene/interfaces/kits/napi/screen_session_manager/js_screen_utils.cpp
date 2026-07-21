@@ -195,12 +195,12 @@ napi_value JsScreenUtils::CreateJsScreenClosedState(napi_env env)
         return NapiGetUndefined(env);
     }
 
+    napi_set_named_property(env, objValue, "UNKNOWN", CreateJsValue(env,
+        static_cast<int32_t>(ScreenClosedState::UNKNOWN)));
     napi_set_named_property(env, objValue, "CLOSE", CreateJsValue(env,
         static_cast<int32_t>(ScreenClosedState::CLOSE)));
     napi_set_named_property(env, objValue, "OPEN", CreateJsValue(env,
         static_cast<int32_t>(ScreenClosedState::OPEN)));
-    napi_set_named_property(env, objValue, "UNKNOWN", CreateJsValue(env,
-        static_cast<int32_t>(ScreenClosedState::UNKNOWN)));
     return objValue;
 }
 

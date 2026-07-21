@@ -99,7 +99,7 @@ WSError SystemSession::Show(sptr<WindowSessionProperty> property)
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
     }
-    PostTask([weakThis = wptr(this), property]() {
+    PostTask([weakThis = wptr(this), property, type]() {
         auto session = weakThis.promote();
         if (!session) {
             WLOGFE("session is null");
@@ -114,6 +114,9 @@ WSError SystemSession::Show(sptr<WindowSessionProperty> property)
         session->UpdateCameraWindowStatus(true);
         session->UpdatePiPWindowStateChanged(true);
         auto ret = session->SceneSession::Foreground(property);
+        if (session->reportWindowRssFunc_) {
+            session->reportWindowRssFunc_(true, type, session);
+        }
         return ret;
     }, "Show");
     return WSError::WS_OK;
@@ -133,7 +136,7 @@ WSError SystemSession::Hide()
             return WSError::WS_ERROR_INVALID_PERMISSION;
         }
     }
-    PostTask([weakThis = wptr(this)]() {
+    PostTask([weakThis = wptr(this), type]() {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_LIFE, "session is null");
@@ -150,11 +153,17 @@ WSError SystemSession::Hide()
         if (sessionProperty &&
             sessionProperty->GetAnimationFlag() == static_cast<uint32_t>(WindowAnimation::CUSTOM)) {
             session->NotifyIsCustomAnimationPlaying(true);
+            if (session->reportWindowRssFunc_) {
+                session->reportWindowRssFunc_(false, type, session);
+            }
             return WSError::WS_OK;
         }
         session->UpdateCameraWindowStatus(false);
         session->UpdatePiPWindowStateChanged(false);
         ret = session->SceneSession::Background();
+        if (session->reportWindowRssFunc_) {
+            session->reportWindowRssFunc_(false, type, session);
+        }
         return ret;
     }, "Hide");
     return WSError::WS_OK;
@@ -162,7 +171,8 @@ WSError SystemSession::Hide()
 
 WSError SystemSession::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
-    PostTask([weakThis = wptr(this), isFromClient]() {
+    auto type = GetWindowType();
+    PostTask([weakThis = wptr(this), isFromClient, type]() {
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_LIFE, "session is null");
@@ -172,6 +182,9 @@ WSError SystemSession::Disconnect(bool isFromClient, const std::string& identity
         session->SceneSession::Disconnect(isFromClient);
         session->UpdateCameraWindowStatus(false);
         session->UpdatePiPWindowStateChanged(false);
+        if (session->reportWindowRssFunc_) {
+            session->reportWindowRssFunc_(false, type, session);
+        }
         return WSError::WS_OK;
     }, "Disconnect");
     return WSError::WS_OK;
@@ -511,7 +524,7 @@ WMError SystemSession::RestoreFbMainWindow(const std::shared_ptr<AAFwk::Want>& w
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
     bool canAutoRestore =
-        SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_FLOATING_BALL_AUTO_RESTORE);
+ 	    SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_FLOATING_BALL_AUTO_RESTORE);
     int32_t callingPid = IPCSkeleton::GetCallingPid();
     return PostSyncTask([weakThis = wptr(this), &want, callingPid, canAutoRestore, where = __func__]() {
         auto session = weakThis.promote();
@@ -598,9 +611,9 @@ void SystemSession::NotifyRestoreFloatingBallMainWindow(const std::shared_ptr<AA
     }, __func__);
 }
 
-WSError SystemSession::SendFbActionEvent(const std::string& action)
+WSError SystemSession::SendFbActionEvent(const std::string& action, const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s", action.c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "action: %{public}s, reason: %{public}s", action.c_str(), reason.c_str());
     if (!sessionStage_) {
         return WSError::WS_ERROR_NULLPTR;
     }
@@ -610,7 +623,7 @@ WSError SystemSession::SendFbActionEvent(const std::string& action)
             ++fbClickCnt_;
         }
     }
-    return sessionStage_->SendFbActionEvent(action);
+    return sessionStage_->SendFbActionEvent(action, reason);
 }
 
 FloatingBallTemplateInfo SystemSession::GetFbTemplateInfo() const
@@ -769,6 +782,11 @@ void SystemSession::NotifyRestoreFloatMainWindow(const std::shared_ptr<AAFwk::Wa
 void SystemSession::RegisterGetIsRecentStateFunc(GetIsRecentStateFunc&& callback)
 {
     getIsRecentStateFunc_ = std::move(callback);
+}
+
+void SystemSession::RegisterReportWindowRssFunc(ReportWindowRssFunc&& callback)
+{
+    reportWindowRssFunc_ = std::move(callback);
 }
 
 void SystemSession::RegisterGetFbPanelWindowIdFunc(GetFbPanelWindowIdFunc&& callback)
@@ -969,6 +987,34 @@ void SystemSession::SetFloatViewUpdateCallback(NotifyUpdateFloatViewFunc&& func)
             session->updateFloatViewFunc_(session->GetFvTemplateInfo());
             session->needUpdateFv_ = false;
         }
+    };
+    PostTask(std::move(task), __func__);
+}
+
+void SystemSession::NotifyClickFloatView()
+{
+    auto task = [weakThis = wptr(this), where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s session is null", where);
+            return;
+        }
+        if (session->clickFloatViewFunc_) {
+            session->clickFloatViewFunc_();
+        }
+    };
+    PostTask(std::move(task), __func__);
+}
+
+void SystemSession::SetFloatViewClickCallback(NotifyClickFloatViewFunc&& func)
+{
+    auto task = [weakThis = wptr(this), func = std::move(func), where = __func__] {
+        auto session = weakThis.promote();
+        if (!session || !func) {
+            TLOGNE(WmsLogTag::WMS_SYSTEM, "%{public}s update float view func is null", where);
+            return;
+        }
+        session->clickFloatViewFunc_ = std::move(func);
     };
     PostTask(std::move(task), __func__);
 }

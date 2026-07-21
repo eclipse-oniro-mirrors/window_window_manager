@@ -110,6 +110,7 @@ public:
     virtual Rect GetRequestRect() const override;
     virtual WindowType GetType() const override;
     virtual WindowMode GetWindowMode() const override;
+    virtual WindowMode GetWindowModeCompat() const override;
     virtual float GetAlpha() const override;
     virtual WindowState GetWindowState() const override;
     virtual WMError SetFocusable(bool isFocusable) override;
@@ -294,6 +295,7 @@ public:
     void NotifyTouchDialogTarget(int32_t posX = 0, int32_t posY = 0) override;
     void NotifyDestroy();
     void NotifyForeground();
+    void NotifyMainWindowDidForeground(uint32_t reason);
     void NotifyBackground();
     void UpdateZoomTransform(const Transform& trans, bool isDisplayZoomOn);
     void PerformBack() override;

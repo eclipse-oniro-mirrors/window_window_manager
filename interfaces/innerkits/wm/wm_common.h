@@ -17,6 +17,7 @@
 #define OHOS_ROSEN_WM_COMMON_H
 
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -926,6 +927,23 @@ struct PointInfo {
 };
 
 /**
+ * @struct EventPositionInfo.
+ *
+ * @brief Event position information for window coordinate conversion.
+ */
+struct EventPositionInfo {
+    static constexpr int32_t INVALID_INT32 = std::numeric_limits<int32_t>::min();
+    static constexpr double INVALID_DOUBLE = std::numeric_limits<double>::lowest();
+
+    int32_t displayX = INVALID_INT32;
+    int32_t displayY = INVALID_INT32;
+    double displayXPos = INVALID_DOUBLE;
+    double displayYPos = INVALID_DOUBLE;
+    double globalX = INVALID_DOUBLE;
+    double globalY = INVALID_DOUBLE;
+};
+
+/**
  * @struct MainWindowInfo.
  *
  * @brief topN main window info.
@@ -1068,6 +1086,7 @@ constexpr int32_t INVALID_USER_ID = -1;
 constexpr int32_t SYSTEM_USERID = 0;
 constexpr int32_t BASE_USER_RANGE = 200000;
 constexpr int32_t DEFAULT_SCREEN_ID = 0;
+constexpr int32_t INVALID_SCREEN_ID_INT32 = -1;
 constexpr int32_t ZERO_CIRCLE_DEGREE = 0;
 constexpr int32_t FULL_CIRCLE_DEGREE = 360;
 constexpr int32_t ONE_FOURTH_FULL_CIRCLE_DEGREE = 90;
@@ -2279,7 +2298,8 @@ enum class FloatViewState : uint32_t {
  */
 enum class FloatViewTemplate : uint32_t {
     ROUNDED_RECTANGLE = 0,
-    END = 1,
+    HORIZONTAL_BAR = 1,
+    END,
 };
 
 /**
@@ -4164,6 +4184,7 @@ enum class WindowManagerAgentType : uint32_t {
     WINDOW_MANAGER_AGENT_STATUS_BAR_PROPERTY,
     WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
     WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
+    WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
     WINDOW_MANAGER_AGENT_TYPE_END,
 };
 
@@ -4218,6 +4239,8 @@ struct StartMovingOptions {
         return oss.str();
     }
 };
+
+bool IsMultiInstanceEnabled();
 }
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

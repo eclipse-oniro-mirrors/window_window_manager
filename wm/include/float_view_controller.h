@@ -20,6 +20,7 @@
 
 #include "float_view_option.h"
 #include "float_view_interface.h"
+#include "float_view_model.h"
 
 #include <refbase.h>
 #include "window.h"
@@ -38,16 +39,20 @@ public:
     FloatViewController(const FvOption &option, napi_env env);
     FloatViewController(const FvOption &option, ani_env* env);
     virtual ~FloatViewController();
+    void UpdateMainWindow(const sptr<Window>& mainWindow);
     WMError StartFloatView();
     WMError StartFloatViewSingle(bool showWhenCreate = true);
     WMError StopFloatViewFromClient();
     WMError StopFloatViewFromClientSingle(bool isForceStop = false);
     WMError StopFloatView(const std::string& reason);
     WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams);
-    WMError SetUIContext(const std::string &contextUrl, const std::shared_ptr<NativeReference>& contentStorage);
-    WMError SetUIContext(const std::string &contextUrl, const ani_object& contentStorage);
+    WMError SetUIContext(const std::string &contextUrl,
+        const std::shared_ptr<NativeReference>& contentStorage, bool isLoadByName);
+    WMError SetUIContext(const std::string &contextUrl,
+        const ani_ref& contentStorage, bool isLoadByName);
     WMError SetVisibilityInApp(bool visibleInApp);
     WMError SetWindowSize(const Rect &rect);
+    WMError SetTemplateTypeAndSize(const std::shared_ptr<TemplateProperty>& templateProperty);
     void SyncWindowInfo(uint32_t windowId, const FloatViewWindowInfo& windowInfo, const std::string& reason);
     void SyncLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& fvLimits);
     FloatViewWindowInfo GetWindowInfo() const;
@@ -73,7 +78,8 @@ private:
     WMError CreateFloatViewWindow();
     WMError SetFloatViewContext();
     WMError DestroyFloatViewWindow(const std::string& reason);
-    WMError SetUIContextInner();
+    WMError SetUIContextInner(bool isLoadByName);
+    WMError UpdateFloatView();
     ani_env* GetEnv() const;
 
     std::mutex listenerMutex_;

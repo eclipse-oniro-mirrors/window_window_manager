@@ -35,6 +35,17 @@ using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
 constexpr int WAIT_ASYNC_US = 1000000;
+
+class MockSystemSession : public SystemSession {
+public:
+    MockSystemSession(const SessionInfo& info, const sptr<SystemSession::SpecificSessionCallback>& specificCallback)
+        : SystemSession(info, specificCallback) {}
+    ~MockSystemSession() {}
+
+    MOCK_METHOD1(NeedSystemPermission, bool(WindowType type));
+    MOCK_METHOD1(SetActive, WSError(bool isActive));
+};
+
 class SystemSessionTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -1142,15 +1153,15 @@ HWTEST_F(SystemSessionTest, SendFbActionEvent, Function | SmallTest | Level2)
     sptr<SystemSession> systemSession = sptr<SystemSession>::MakeSptr(info, nullptr);
 
     systemSession_->sessionStage_ = nullptr;
-    EXPECT_EQ(systemSession->SendFbActionEvent(""), WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(systemSession->SendFbActionEvent("", ""), WSError::WS_ERROR_NULLPTR);
 
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     systemSession_->sessionStage_ = mockSessionStage;
-    auto ret = systemSession_->SendFbActionEvent("click");
+    auto ret = systemSession_->SendFbActionEvent("click", "");
     ASSERT_EQ(WSError::WS_OK, ret);
 
-    ret = systemSession_->SendFbActionEvent("on");
+    ret = systemSession_->SendFbActionEvent("on", "");
     ASSERT_EQ(WSError::WS_OK, ret);
 }
 
@@ -1504,6 +1515,178 @@ HWTEST_F(SystemSessionTest, SyncFloatViewLimits, Function | SmallTest | Level2)
     systemSession->sessionStage_ = mockSessionStage;
     auto ret = systemSession->SyncFloatViewLimits(limits);
     ASSERT_EQ(WSError::WS_OK, ret);
+}
+
+/**
+ * @tc.name: ShowWithReportWindowRssFunc
+ * @tc.desc: Show with/without ReportWindowRssFunc callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, ShowWithReportWindowRssFunc, TestSize.Level1)
+{
+    auto sysSession = GetSystemSession("ShowWithReportWindowRssFunc");
+    ASSERT_NE(sysSession, nullptr);
+
+    bool callbackCalled = false;
+    bool isForeground = false;
+    auto func = [&callbackCalled, &isForeground](bool fg, WindowType type, sptr<SceneSession> session) {
+        callbackCalled = true;
+        isForeground = fg;
+    };
+    // for CheckPermissionWithPropertyAnimation;
+    auto windowProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(windowProperty, nullptr);
+    windowProperty->animationFlag_ = static_cast<uint32_t>(WindowAnimation::CUSTOM);
+    // for TOAST or FLOAT permission
+    sysSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    // Show without ReportWindowRssFunc callback
+    sysSession->Show(windowProperty);
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(callbackCalled, false);
+    ASSERT_EQ(isForeground, false);
+
+    // Show with ReportWindowRssFunc callback
+    sysSession->RegisterReportWindowRssFunc(std::move(func));
+    sysSession->Show(windowProperty);
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(callbackCalled, true);
+    ASSERT_EQ(isForeground, true);
+}
+
+/**
+ * @tc.name: HideWithReportWindowRssFunc1
+ * @tc.desc: Hide with/without ReportWindowRssFunc callback、WindowAnimation::CUSTOM
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, HideWithReportWindowRssFunc1, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testHideWithReportWindowRssFunc";
+    info.moduleName_ = "testHideWithReportWindowRssFunc";
+    info.bundleName_ = "testHideWithReportWindowRssFunc";
+    sptr<MockSystemSession> sysSession = sptr<MockSystemSession>::MakeSptr(info, specificCallback);
+    EXPECT_NE(nullptr, sysSession);
+
+    // Set methods to always return true
+    EXPECT_CALL(*sysSession, SetActive(_)).WillRepeatedly(Return(WSError::WS_OK));
+
+    bool callbackCalled = false;
+    bool isForeground = true;
+    auto func = [&callbackCalled, &isForeground](bool fg, WindowType type, sptr<SceneSession> session) {
+        callbackCalled = true;
+        isForeground = fg;
+    };
+
+    // for CheckPermissionWithPropertyAnimation;
+    auto windowProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(windowProperty, nullptr);
+    windowProperty->animationFlag_ = static_cast<uint32_t>(WindowAnimation::CUSTOM);
+    sysSession->property_ = windowProperty;
+    // for TOAST or FLOAT permission
+    sysSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_FLOAT);
+    // for IsSessionValid
+    sysSession->sessionInfo_.isSystem_ = false;
+    sysSession->state_ = SessionState::STATE_CONNECT;
+    sysSession->isActive_ = true;
+
+    // Hide without ReportWindowRssFunc callback
+    auto ret = sysSession->Hide();
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(callbackCalled, false);
+    ASSERT_EQ(isForeground, true);
+
+    // Hide with ReportWindowRssFunc callback
+    sysSession->RegisterReportWindowRssFunc(std::move(func));
+    ret = sysSession->Hide();
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(callbackCalled, true);
+    ASSERT_EQ(isForeground, false);
+}
+
+/**
+ * @tc.name: HideWithReportWindowRssFunc2
+ * @tc.desc: Hide with/without ReportWindowRssFunc callback、WindowAnimation::NONE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, HideWithReportWindowRssFunc2, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "testHideWithReportWindowRssFunc";
+    info.moduleName_ = "testHideWithReportWindowRssFunc";
+    info.bundleName_ = "testHideWithReportWindowRssFunc";
+    sptr<MockSystemSession> sysSession = sptr<MockSystemSession>::MakeSptr(info, specificCallback);
+    EXPECT_NE(nullptr, sysSession);
+
+    // Set methods to always return true
+    EXPECT_CALL(*sysSession, SetActive(_)).WillRepeatedly(Return(WSError::WS_OK));
+
+    bool callbackCalled = false;
+    bool isForeground = true;
+    auto func = [&callbackCalled, &isForeground](bool fg, WindowType type, sptr<SceneSession> session) {
+        callbackCalled = true;
+        isForeground = fg;
+    };
+
+    // for CheckPermissionWithPropertyAnimation;
+    auto windowProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(windowProperty, nullptr);
+    windowProperty->animationFlag_ = static_cast<uint32_t>(WindowAnimation::NONE);
+    sysSession->property_ = windowProperty;
+    // for TOAST or FLOAT permission
+    sysSession->property_->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_FLOAT);
+    // for IsSessionValid
+    sysSession->sessionInfo_.isSystem_ = false;
+    sysSession->state_ = SessionState::STATE_CONNECT;
+    sysSession->isActive_ = true;
+
+    // Hide without ReportWindowRssFunc callback
+    auto ret = sysSession->Hide();
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(callbackCalled, false);
+    ASSERT_EQ(isForeground, true);
+
+    // Hide with ReportWindowRssFunc callback
+    sysSession->RegisterReportWindowRssFunc(std::move(func));
+    ret = sysSession->Hide();
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    ASSERT_EQ(callbackCalled, true);
+    ASSERT_EQ(isForeground, false);
+}
+
+/**
+ * @tc.name: DisconnectWithReportWindowRssFunc
+ * @tc.desc: Disconnect with ReportWindowRssFunc callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SystemSessionTest, DisconnectWithReportWindowRssFunc, TestSize.Level1)
+{
+    auto sysSession = GetSystemSession("DisconnectWithReportWindowRssFunc");
+    ASSERT_NE(sysSession, nullptr);
+
+    bool callbackCalled = false;
+    bool isForeground = true;
+    auto func = [&callbackCalled, &isForeground](bool fg, WindowType type, sptr<SceneSession> session) {
+        callbackCalled = true;
+        isForeground = fg;
+    };
+
+    //  Disconnect without ReportWindowRssFunc
+    sysSession->Disconnect(true);
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(callbackCalled, false);
+    ASSERT_EQ(isForeground, true);
+
+    //  Disconnect with ReportWindowRssFunc
+    sysSession->RegisterReportWindowRssFunc(std::move(func));
+    sysSession->Disconnect(true);
+    usleep(WAIT_ASYNC_US);
+    ASSERT_EQ(callbackCalled, true);
+    ASSERT_EQ(isForeground, false);
 }
 } // namespace
 } // namespace Rosen
