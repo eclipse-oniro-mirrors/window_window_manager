@@ -222,7 +222,8 @@ public:
      * Window LifeCycle
      */
     virtual WSError ConnectInner(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") REQUIRES(SCENE_GUARD);
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
@@ -335,6 +336,7 @@ public:
 
     int32_t GetPersistentId() const;
     int32_t GetCurrentRotation() const;
+    std::shared_ptr<RSSurfaceNode> CreateSurfaceNode(uint64_t nodeId, sptr<WindowSessionProperty> property);
     void SetSurfaceNode(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const;
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode(bool isUpdateContextBeforeGet);
@@ -387,7 +389,7 @@ public:
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
         std::shared_ptr<Media::PixelMap> persistentPixelMap = nullptr, bool updateSnapshot = false,
-        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT, bool windowSync = true);
+        LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT, bool windowSync = false);
     void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowKey);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;
@@ -729,11 +731,11 @@ public:
     virtual void SetFloatingScale(float floatingScale);
     float GetFloatingScale() const;
     virtual void SetScale(float scaleX, float scaleY, float pivotX, float pivotY);
-    void SetRsScale(float rsScaleX, float rsScaleY);
+    void SetIgnoreRotateScale(float ignoreRotateScaleX, float ignoreRotateScaleY);
     float GetScaleX() const;
     float GetScaleY() const;
-    float GetRsScaleX() const;
-    float GetRsScaleY() const;
+    float GetIgnoreRotateScaleX() const;
+    float GetIgnoreRotateScaleY() const;
     float GetPivotX() const;
     float GetPivotY() const;
     void SetSCBKeepKeyboard(bool scbKeepKeyboardFlag);
@@ -810,6 +812,7 @@ public:
     std::string GetWindowDetectTaskName() const;
     void RemoveWindowDetectTask();
     WSError SwitchFreeMultiWindow(const SystemSessionConfig& config);
+    bool haveSetSupportedWindowModes_ = false;
 
     virtual bool CheckGetAvoidAreaAvailable(AvoidAreaType type) { return true; }
 
@@ -826,6 +829,7 @@ public:
     void SetAppInstanceKey(const std::string& appInstanceKey);
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
+    virtual void NotifyWindowSceneDetach() {};
     bool GetNeedBackgroundAfterConnect() const;
     void SetNeedBackgroundAfterConnect(bool isNeed);
     void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
@@ -857,7 +861,6 @@ public:
     std::shared_ptr<AppExecFwk::EventHandler> GetEventHandler() const;
     WSError UpdateClientDisplayId(DisplayId displayId);
     DisplayId TransformGlobalRectToRelativeRect(WSRect& rect) const;
-    void TransformRelativeRectToGlobalRect(WSRect& rect) const;
     void UpdateClientRectPosYAndDisplayId(WSRect& rect);
     bool IsDragAccessible() const;
     void SetSingleHandTransform(const SingleHandTransform& transform);
@@ -1017,6 +1020,11 @@ public:
     virtual void SetPrelaunch() {};
     virtual bool IsPrelaunch() const { return false; }
 
+    /*
+     * update luoshu state
+     */
+    WSError UpdateLSStateInfo(bool isLSState);
+
 protected:
     void GeneratePersistentId(bool isExtension, int32_t persistentId);
     virtual void UpdateSessionState(SessionState state);
@@ -1144,6 +1152,7 @@ protected:
     NotifySessionGetTargetOrientationConfigInfoFunc sessionGetTargetOrientationConfigInfoFunc_;
     NotifyClearSubSessionFunc clearSubSessionFunc_;
     NotifyRestartAppFunc restartAppFunc_;
+    bool isAlreadyDisconnect_ = false;
 
     /*
      * Window Rotate Animation

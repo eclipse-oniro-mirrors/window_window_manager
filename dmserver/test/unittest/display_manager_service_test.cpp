@@ -274,7 +274,7 @@ HWTEST_F(DisplayManagerServiceTest, VirtualScreen, TestSize.Level1)
     ASSERT_EQ(-1, dms_->CreateVirtualScreen(option, nullptr));
 
     ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, dms_->SetVirtualScreenSurface(-1, nullptr));
-    ASSERT_EQ(DMError::DM_ERROR_RENDER_SERVICE_FAILED, dms_->SetVirtualScreenSurface(0, nullptr));
+    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, dms_->SetVirtualScreenSurface(0, nullptr));
 
     std::vector<ScreenId> screens;
     dms_->RemoveVirtualScreenFromGroup(screens);

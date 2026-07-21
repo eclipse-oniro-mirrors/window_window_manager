@@ -40,6 +40,7 @@ enum class WindowStateChangeReason : uint32_t {
     USER_SWITCH,
     ABILITY_CALL,
     ABILITY_HOOK,
+    PC_APP_IN_PAD,
 };
 
 enum class WindowUpdateReason : uint32_t {

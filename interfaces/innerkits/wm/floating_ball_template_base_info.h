@@ -24,18 +24,16 @@ public:
     FloatingBallTemplateBaseInfo() = default;
     FloatingBallTemplateBaseInfo(const uint32_t& templateType, const std::string& title,
         const std::string& content, const std::string& backgroundColor, const std::string& titleColor,
- 	    const std::string& contentColor, const bool isVisibleInApp,
-        uint32_t textUpdateAnimationType, bool isBind, uint32_t bindWindowId, bool showWhenCreate,
-        const std::string &id) : template_(templateType),
-        title_(title), content_(content), backgroundColor_(backgroundColor),
-        titleColor_(titleColor), contentColor_(contentColor), isVisibleInApp_(isVisibleInApp),
-        textUpdateAnimationType_(textUpdateAnimationType), isBind_(isBind),
-        bindWindowId_(bindWindowId), showWhenCreate_(showWhenCreate),
-        id_(id) {};
-    virtual ~FloatingBallTemplateBaseInfo() = default;
+        const std::string& contentColor, bool isVisibleInApp, uint32_t textUpdateAnimationType, bool isBind,
+        uint32_t bindWindowId, bool showWhenCreate, const std::string &id)
+        : template_(templateType), title_(title), content_(content), backgroundColor_(backgroundColor),
+          titleColor_(titleColor), contentColor_(contentColor), isVisibleInApp_(isVisibleInApp),
+          textUpdateAnimationType_(textUpdateAnimationType), isBind_(isBind), bindWindowId_(bindWindowId),
+          showWhenCreate_(showWhenCreate), id_(id) {};
 
-    FloatingBallTemplateBaseInfo(const FloatingBallTemplateBaseInfo& other) =  default;
-    FloatingBallTemplateBaseInfo& operator =(const FloatingBallTemplateBaseInfo& other) =  default;
+    FloatingBallTemplateBaseInfo(const FloatingBallTemplateBaseInfo& other) = default;
+    FloatingBallTemplateBaseInfo& operator=(const FloatingBallTemplateBaseInfo& other) = default;
+    virtual ~FloatingBallTemplateBaseInfo() = default;
 
     uint32_t template_ {};
     std::string title_ {};
@@ -44,12 +42,12 @@ public:
     std::string titleColor_ {};
     std::string contentColor_ {};
     bool isVisibleInApp_ = true;
+    uint32_t updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::DEFAULT);
     uint32_t textUpdateAnimationType_ {};
     bool isBind_ {false};
     uint32_t bindWindowId_ {INVALID_WINDOW_ID};
     bool showWhenCreate_ { true };
     std::string id_ {};
-    uint32_t updateMode_ = static_cast<uint32_t>(FloatingBallUpdateMode::DEFAULT);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_FLOATING_BALL_TEMPLATE_BASE_INFO_H

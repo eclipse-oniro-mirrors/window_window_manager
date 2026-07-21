@@ -38,6 +38,16 @@ typedef struct __ani_env ani_env;
 typedef const struct __ani_interaction_api *ani_env;
 #endif
 
+/**
+ * For save C API native filter callback.
+ */
+struct Input_KeyEvent;
+struct Input_MouseEvent;
+struct Input_TouchEvent;
+using NativeKeyEventFilter = bool(*)(Input_KeyEvent* keyEvent);
+using NativeMouseEventFilter = bool(*)(Input_MouseEvent* mouseEvent);
+using NativeTouchEventFilter = bool(*)(Input_TouchEvent* touchEvent);
+
 namespace OHOS::MMI {
 class PointerEvent;
 class KeyEvent;
@@ -92,6 +102,7 @@ using NotifyTransferComponentDataForResultFunc = std::function<AAFwk::WantParams
 using KeyEventFilterFunc = std::function<bool(const MMI::KeyEvent&)>;
 using MouseEventFilterFunc = std::function<bool(const MMI::PointerEvent&)>;
 using TouchEventFilterFunc = std::function<bool(const MMI::PointerEvent&)>;
+
 class RSSurfaceNode;
 class RSTransaction;
 class RSUIContext;
@@ -1031,6 +1042,21 @@ public:
     virtual void OnUIContentCreate(std::weak_ptr<Ace::UIContent> uiContent) {}
 };
 
+/**
+ * @class IWindowHoverStateChangeListener
+ *
+ * @brief IWindowHoverStateChangeListener is used to observe the window hover state.
+ */
+class IWindowHoverStateChangeListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when window hover state change.
+     *
+     * @param hoverState The current window hover state.
+     */
+    virtual void OnWindowHoverStateChange(bool hoverState) {}
+};
+
 static WMError DefaultCreateErrCode = WMError::WM_OK;
 class Window : virtual public RefBase {
 public:
@@ -1059,10 +1085,10 @@ public:
      */
     static sptr<Window> Create(sptr<WindowOption>& option,
                                const std::shared_ptr<AbilityRuntime::Context>& context,
-                               const sptr<IRemoteObject>& iSession, WMError& errCode = DefaultCreateErrCode,
+                               const sptr<IRemoteObject>& iSession,
+                               WMError& errCode = DefaultCreateErrCode,
                                const std::string& identityToken = "", 
-                               bool isModuleAbilityHookEnd = false,
-                               sptr<IRemoteObject> renderSession = nullptr);
+                               bool isModuleAbilityHookEnd = false);
 
     /**
      * @brief get and verify windowType, include sub_window/system_window
@@ -1686,6 +1712,7 @@ public:
     /**
      * @brief destroy window
      *
+     * @param reason Reason for window state change.
      * @return WMError
      */
     virtual WMError Destroy(uint32_t reason = 0, bool isFromInnerkits = false) { return WMError::WM_OK; }
@@ -2585,6 +2612,7 @@ public:
     {
         return WMError::WM_OK;
     }
+    
     virtual WMError AniSetUIContent(const std::string& contentInfo, ani_env* env, ani_object storage,
         BackupAndRestoreType type = BackupAndRestoreType::NONE, sptr<IRemoteObject> token = nullptr,
         AppExecFwk::Ability* ability = nullptr)
@@ -2995,6 +3023,12 @@ public:
     virtual void NotifyRotationChangeResult(RotationChangeResult rotationChangeResult) {}
 
     /**
+     * @brief notify windowStage create finished.
+     * It is called by Ability Manager Service when onWindowStageCreate finished.
+     */
+    virtual void NotifyWindowStageCreateFinished() {}
+
+    /**
      * @brief start move main window. It is called by ACE when title is moved.
      *
      */
@@ -3234,10 +3268,7 @@ public:
      * @param targetId Indicates the id of the target main window.
      * @return WM_OK means raise success, others means raise failed.
      */
-    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+    virtual WMError RaiseMainWindowAboveTarget(int32_t targetId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
      * @brief Hide non-system floating windows.
@@ -4221,7 +4252,7 @@ public:
     /**
      * @brief Clear the window mask of window.
      *
-     * @return WM_OK means set success, others means failed.
+     * @return WM_OK means clear success, others means failed.
      */
     virtual WMError ClearWindowMask()
     {
@@ -4332,6 +4363,90 @@ public:
      * @return WMError
      */
     virtual WMError ClearTouchEventFilter() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Save native key event filter pointer.
+     *
+     * @param nativeFilter Native key event filter pointer.
+     * @return WMError
+     */
+    virtual WMError SaveNativeKeyEventFilter(NativeKeyEventFilter nativeFilter)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get native key event filter pointer.
+     *
+     * @return NativeKeyEventFilter Native key event filter pointer, nullptr if not set.
+     */
+    virtual NativeKeyEventFilter GetNativeKeyEventFilter() const { return nullptr; }
+
+    /**
+     * @brief Clear native key event filter pointer.
+     *
+     * @return WMError
+     */
+    virtual WMError ClearNativeKeyEventFilter()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Save native mouse event filter pointer.
+     *
+     * @param nativeFilter Native mouse event filter pointer.
+     * @return WMError
+     */
+    virtual WMError SaveNativeMouseEventFilter(NativeMouseEventFilter nativeFilter)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get native mouse event filter pointer.
+     *
+     * @return NativeMouseEventFilter Native mouse event filter pointer, nullptr if not set.
+     */
+    virtual NativeMouseEventFilter GetNativeMouseEventFilter() const { return nullptr; }
+
+    /**
+     * @brief Clear native mouse event filter pointer.
+     *
+     * @return WMError
+     */
+    virtual WMError ClearNativeMouseEventFilter()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Save native touch event filter pointer.
+     *
+     * @param nativeFilter Native touch event filter pointer.
+     * @return WMError
+     */
+    virtual WMError SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get native touch event filter pointer.
+     *
+     * @return NativeTouchEventFilter Native touch event filter pointer, nullptr if not set.
+     */
+    virtual NativeTouchEventFilter GetNativeTouchEventFilter() const { return nullptr; }
+
+    /**
+     * @brief Clear native touch event filter pointer.
+     *
+     * @return WMError
+     */
+    virtual WMError ClearNativeTouchEventFilter()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Register window rect change listener.
@@ -4656,11 +4771,11 @@ public:
     virtual WMError OnContainerModalEvent(const std::string& eventName,
         const std::string& value) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-    /**
+    /*
      * @brief Determine whether the window spans multiple screens and displays in full screen mode.
      *
      * @param isAcrossDisplays the value true means to span multiple screens, and false means the opposite.
-     * @return WM_OK means success, others means failed.
+     * @return WM_OK means window show success, others means failed.
      */
     virtual WMError IsMainWindowFullScreenAcrossDisplays(
         bool& isAcrossDisplays) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
@@ -5229,7 +5344,7 @@ public:
     /**
      * @brief update the floating ball window instance.
      *
-     * @param fbTemplateInfo the template info of the floating-ball.
+     * @param fbTemplateBaseInfo the template info of the floating-ball.
      * @param icon the icon of the floating-ball.
      */
     virtual WMError UpdateFloatingBall(const FloatingBallTemplateBaseInfo& fbTemplateBaseInfo,
@@ -5628,6 +5743,40 @@ public:
      * @param showWhenCreate show when create for float view or floating ball.
      */
     virtual WMError UpdateFloatShowWhenCreate(const bool showWhenCreate)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Get window hover state
+     *
+     * @return True means window state hovered, false means window not int hovered.
+     */
+    virtual bool GetWindowHoverState()
+    {
+        return false;
+    }
+
+    /**
+     * @brief Register window hover state change listener
+     *
+     * @param listener IWindowHoverStateChangeListener.
+     * @return WM_OK means register success, others means register failed
+     */
+    virtual WMError RegisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister window hover state change listener
+     *
+     * @param listener IWindowHoverStateChangeListener.
+     * @return WM_OK means register success, others means unregister failed
+     */
+    virtual WMError UnregisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
     {
         return WMError::WM_OK;
     }

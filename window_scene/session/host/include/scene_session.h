@@ -191,6 +191,7 @@ struct UIExtensionTokenInfo {
     uint32_t callingTokenId { 0 };
     sptr<IRemoteObject> abilityToken;
     int32_t pid;
+    int32_t persistentId;
 };
 
 struct FullInfoForMMI {
@@ -250,11 +251,13 @@ public:
         return SessionType::SceneSession;
     }
     WSError Connect(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") override;
     WSError ConnectInner(const sptr<ISessionStage>& sessionStage, const sptr<IWindowEventChannel>& eventChannel,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode, SystemSessionConfig& systemConfig,
+        uint64_t nodeId, SystemSessionConfig& systemConfig,
+        sptr<IRemoteObject>& renderSession, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
@@ -397,6 +400,7 @@ public:
      * PiP Window
      */
     PiPTemplateInfo GetPiPTemplateInfo() const;
+    int64_t GetSessionCreateTimestamp() const;
     void SetPiPTemplateInfo(const PiPTemplateInfo& pipTemplateInfo);
     WSError UpdatePiPRect(const Rect& rect, SizeChangeReason reason) override;
     WSError UpdatePiPControlStatus(WsPiPControlType controlType, WsPiPControlStatus status) override;
@@ -830,6 +834,7 @@ public:
     ExtensionWindowFlags GetCombinedExtWindowFlags();
     void RemoveExtWindowFlags(int32_t extPersistentId);
     void ClearExtWindowFlags();
+    std::vector<UIExtensionTokenInfo> GetExtInfoWithHideNonSecureWindowFlag();
     void NotifyDisplayMove(DisplayId from, DisplayId to);
     void NotifySessionFullScreen(bool fullScreen);
     void SetDefaultDisplayIdIfNeed();
@@ -893,7 +898,7 @@ public:
         return systemConfig_.IsFreeMultiWindowMode();
     }
     WMError GetAppForceLandscapeConfig(AppForceLandscapeConfig& config) override;
-
+    WMError GetForceSplitEnable(bool& enable) override;
     bool IsPcOrPadEnableActivation() const;
     void UnregisterSessionChangeListeners() override;
 
@@ -1151,6 +1156,8 @@ public:
         const TransitionAnimation& animation) override;
     void SetTransitionAnimationCallback(UpdateTransitionAnimationFunc&& func);
 
+    WSError NotifyClientToUpdateLSState(bool isLSState);
+
 protected:
     void NotifyIsCustomAnimationPlaying(bool isPlaying);
     std::string GetRatioPreferenceKey();
@@ -1185,7 +1192,8 @@ protected:
     bool PipelineNeedNotifyClientToUpdateRect() const;
     bool UpdateRectInner(const SessionUIParam& uiParam, SizeChangeReason reason);
     bool NotifyServerToUpdateRect(const SessionUIParam& uiParam, SizeChangeReason reason);
-    bool UpdateScaleInner(float scaleX, float scaleY, float rsScaleX, float rsScaleY, float pivotX, float pivotY);
+    bool UpdateScaleInner(float scaleX, float scaleY,
+        float ignoreRotateScaleX, float ignoreRotateScaleY, float pivotX, float pivotY);
     bool UpdateZOrderInner(uint32_t zOrder);
 
     /*
@@ -1255,6 +1263,7 @@ protected:
      */
     NotifyPrepareClosePiPSessionFunc onPrepareClosePiPSession_;
     std::atomic<bool> pipActiveStatus_{true};
+    int64_t createTimestamp_ = 0;
 
     /*
      * Window Layout
@@ -1357,6 +1366,7 @@ protected:
     bool keyboardAvoidAreaActive_ = true;
 
 private:
+    bool ShouldNotifyTouchOutside() const;
     void NotifyAccessibilityVisibilityChange();
     void CalculateCombinedExtWindowFlags();
     WSError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo,
@@ -1417,8 +1427,11 @@ private:
     bool IsCompatibilityModeScale(float scaleX, float scaleY);
     void CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isScale);
     void ThrowSlipToFullScreen(WSRect& endRect, WSRect& rect, int32_t statusBarHeight, int32_t dockHeight);
+    void HandleFullScreenWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
+    void HandleFloatingWindowInThrowSlip(std::function<void()>& finishCallback, WSRect& rect);
     bool MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeReason reason);
     void NotifyFullScreenAfterThrowSlip(const WSRect& rect);
+    void NotifyCompatibleFloatAfterThrowSlip(const WSRect& rect);
     void SetDragResizeTypeDuringDrag(DragResizeType dragResizeType) { dragResizeTypeDuringDrag_ = dragResizeType; }
     DragResizeType GetDragResizeTypeDuringDrag() const { return dragResizeTypeDuringDrag_; }
     void HandleSessionDragEvent(SessionEvent event);
@@ -1706,6 +1719,7 @@ private:
     bool KeyFrameRectAlmostSame(const WSRect& rect1, const WSRect& rect2);
     KeyFramePolicy GetKeyFramePolicy() const;
     void UpdateKeyFramePolicy(bool running, bool stopping);
+    std::shared_ptr<RSWindowKeyFrameNode> UpdateKeyFrameDragState(const WSRect& rect);
     mutable std::mutex keyFrameMutex_;
     KeyFramePolicy keyFramePolicy_;
     std::shared_ptr<RSWindowKeyFrameNode> keyFrameCloneNode_ = nullptr;

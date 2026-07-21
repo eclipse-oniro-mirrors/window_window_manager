@@ -145,6 +145,8 @@ enum class AceSourceTool : int32_t {
     MOUSE = 7,
     LENS = 8,
     TOUCHPAD = 9,
+
+    // Note: at present, JOYSTICK does not have a corresponding toolType in the MMI.
     JOYSTICK = 10,
 };
 const int32_t UNKNOWN_JS_SOURCE_TOOL = -1;
@@ -269,7 +271,6 @@ bool ParseJsValue(napi_env env, napi_value jsObject, const std::string& name, T&
     return false;
 }
 
-bool ProcessAllTouchPointsFromJs(napi_env env, napi_value jsObject, int32_t toolType, MMI::PointerEvent& pointerEvent);
 template<typename T>
 bool GetPropertyFromJs(napi_env env, napi_value obj, const char* prop, T& value)
 {
@@ -286,6 +287,7 @@ bool GetPropertyFromJs(napi_env env, napi_value obj, const char* prop, T& value)
     return true;
 }
 
+bool ProcessAllTouchPointsFromJs(napi_env env, napi_value jsObject, int32_t toolType, MMI::PointerEvent& pointerEvent);
 bool ConvertCompatibleModePropertyFromJs(napi_env env, napi_value value, CompatibleModeProperty& property);
 WSError GetIntValueFromString(const std::string& str, uint32_t& value);
 constexpr size_t ARGC_ONE = 1;

@@ -37,7 +37,7 @@ constexpr DisplayId DISPLAY_ID_INVALID = -1ULL;
 constexpr ScreenId SCREEN_ID_INVALID = -1ULL;
 constexpr int DOT_PER_INCH = 160;
 const static std::string DEFAULT_SCREEN_NAME = "buildIn";
-constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 1000;
+constexpr int DOT_PER_INCH_MAXIMUM_VALUE = 640;
 constexpr int DOT_PER_INCH_MINIMUM_VALUE = 80;
 constexpr uint32_t BASELINE_DENSITY = 160;
 constexpr int32_t DEFAULT_USE_LOGIC_CAMERA = 0;
@@ -122,6 +122,7 @@ enum class DisplayEvent : uint32_t {
  * @brief Enumerates DMError.
  */
 enum class DMError : int32_t {
+    DM_ERROR_UNKNOWN = -1,
     DM_OK = 0,
     DM_ERROR_INIT_DMS_PROXY_LOCKED = 100,
     DM_ERROR_IPC_FAILED = 101,
@@ -137,8 +138,13 @@ enum class DMError : int32_t {
     DM_ERROR_INVALID_CALLING = 200,
     DM_ERROR_INVALID_PERMISSION = 201,
     DM_ERROR_NOT_SYSTEM_APP = 202,
+    DM_ERROR_DISPLAY_MODE_SWITCH_PENDING = 210,
     DM_ERROR_DEVICE_NOT_SUPPORT = 801,
-    DM_ERROR_UNKNOWN = -1,
+    DM_ERROR_NOT_SUPPORT_COOR_WHEN_WIRED_CASTING = 100001,
+    DM_ERROR_NOT_SUPPORT_COOR_WHEN_WIRLESS_CASTING = 100002,
+    DM_ERROR_NOT_SUPPORT_COOR_WHEN_RECORDING = 100003,
+    DM_ERROR_NOT_SUPPORT_COOR_WHEN_TENTMODE = 100004,
+    DM_ERROR_ILLEGAL_PARAM = 1400004,
 };
 
 /**
@@ -153,6 +159,7 @@ enum class DmErrorCode : int32_t {
     DM_ERROR_INVALID_SCREEN = 1400001,
     DM_ERROR_INVALID_CALLING = 1400002,
     DM_ERROR_SYSTEM_INNORMAL = 1400003,
+    DM_ERROR_ILLEGAL_PARAM = 1400004,
 };
 
 /**
@@ -371,15 +378,6 @@ struct RotationCorrectionWhiteConfig {
     }
 };
 // LCOV_EXCL_STOP
-
-/**
- * @brief Enumerates TentMode.
- */
-enum class TentMode : uint32_t {
-    UNKNOWN,
-    TENT_MODE,
-    HOVER,
-};
 
 /**
  * @brief displayRect

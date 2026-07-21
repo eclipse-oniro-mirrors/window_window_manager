@@ -17,7 +17,6 @@
 
 #include <chrono>
 #include <securec.h>
-#include "dms_global_mutex.h"
 #include "display_manager_service_inner.h"
 
 namespace OHOS {
@@ -242,7 +241,6 @@ void RotationMotionEventCallback(const MotionSensorEvent& motionData)
             break;
         }
     }
-    DmUtils::HoldLock callbackLock;
     ScreenRotationController::HandleSensorEventInput(motionRotation);
 }
 #endif

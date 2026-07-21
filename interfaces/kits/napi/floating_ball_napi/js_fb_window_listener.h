@@ -26,7 +26,8 @@
 namespace OHOS {
 namespace Rosen {
 class JsFbWindowListener : public IFbLifeCycle,
-                           public IFbClickObserver {
+                             public IFbClickObserver,
+                             public IFbDestroyObserver {
 public:
     JsFbWindowListener(napi_env env, const std::shared_ptr<NativeReference>& callback)
         : env_(env), jsCallBack_(callback) {}
@@ -36,9 +37,11 @@ public:
     void OnFloatingBallStop() override;
 
     void OnClickEvent() override;
+    void OnDestroyEvent(const std::string& reason) override;
 
 private:
     void OnFbListenerCallback(const FloatingBallState& state);
+    void OnDestroyCallback(const std::string& reason);
     napi_env env_ = nullptr;
     std::shared_ptr<NativeReference> jsCallBack_ = nullptr;
 };

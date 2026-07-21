@@ -50,10 +50,11 @@ static napi_value CreateJsNumber(napi_env env, uint64_t value)
     napi_create_int64(env, static_cast<int64_t>(value), &result);
     return result;
 }
-constexpr std::array<DefaultSpecificZIndex, 3> DefaultSpecificZIndexList = {
+constexpr std::array<DefaultSpecificZIndex, 4> DefaultSpecificZIndexList = {
     DefaultSpecificZIndex::MUTISCREEN_COLLABORATION,
     DefaultSpecificZIndex::SUPER_PRIVACY_ANIMATION,
-    DefaultSpecificZIndex::BANNER_LIVE_SHARE
+    DefaultSpecificZIndex::BANNER_LIVE_SHARE,
+    DefaultSpecificZIndex::VIRTUAL_TOUCH_PAD,
 };
 }
 
@@ -212,6 +213,7 @@ const std::map<WindowSizeChangeReason, RectChangeReason> JS_SIZE_CHANGE_REASON {
     { WindowSizeChangeReason::SCREEN_RELATIVE_POSITION_CHANGE, RectChangeReason::UNDEFINED  },
     { WindowSizeChangeReason::SNAPSHOT_ROTATION,               RectChangeReason::UNDEFINED  },
     { WindowSizeChangeReason::LS_STATE_CHANGE,                 RectChangeReason::UNDEFINED  },
+    { WindowSizeChangeReason::SPLIT_ENABLE_CHANGE,             RectChangeReason::UNDEFINED  },
     { WindowSizeChangeReason::END,                             RectChangeReason::UNDEFINED  },
 };
 
@@ -835,7 +837,6 @@ napi_value CreateJsWindowAnimationConfigObject(napi_env env, const KeyboardAnima
 
 napi_value CreateJsWindowPropertiesObject(napi_env env, const WindowPropertyInfo& windowPropertyInfo)
 {
-    WLOGD("CreateJsWindowPropertiesObject");
     napi_value objValue = nullptr;
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
 
@@ -1342,6 +1343,7 @@ WmErrorCode ParseTouchableAreas(napi_env env, napi_callback_info info,
             touchableAreas.emplace_back(touchableArea);
         } else {
             errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+            TLOGE(WmsLogTag::WMS_EVENT, "Failed to check the window rect");
             break;
         }
     }
@@ -1818,6 +1820,23 @@ napi_value ExtensionWindowAttributeInit(napi_env env)
     return objValue;
 }
 
+napi_value WindowPostureModeInit(napi_env env)
+{
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "env is nullptr");
+        return nullptr;
+    }
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to create object");
+        return nullptr;
+    }
+    napi_set_named_property(env, objValue, "DESKTOP_MODE",
+        CreateJsValue(env, static_cast<int32_t>(WindowPostureMode::DESKTOP_MODE)));
+    return objValue;
+}
+
 std::unique_ptr<NapiAsyncTask> CreateAsyncTask(napi_env env, napi_value lastParam,
     std::unique_ptr<NapiAsyncTask::ExecuteCallback>&& execute,
     std::unique_ptr<NapiAsyncTask::CompleteCallback>&& complete, napi_value* result)
@@ -1929,8 +1948,6 @@ napi_value WindowTransitionTypeInit(napi_env env)
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
     napi_set_named_property(env, objValue, "DESTROY",
         CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::DESTROY)));
-    napi_set_named_property(env, objValue, "START",
-        CreateJsValue(env, static_cast<uint32_t>(WindowTransitionType::START)));
     return objValue;
 }
 

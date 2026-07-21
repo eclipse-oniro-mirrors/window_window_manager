@@ -26,7 +26,6 @@
 #include "window_manager_hilog.h"
 #include "zidl/screen_session_manager_interface.h"
 #include "dms_global_mutex.h"
-
 namespace OHOS::Rosen {
 WM_IMPLEMENT_SINGLE_INSTANCE(DisplayManagerAdapter)
 WM_IMPLEMENT_SINGLE_INSTANCE(ScreenManagerAdapter)
@@ -387,7 +386,6 @@ ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
         TLOGE(WmsLogTag::DMS, "displayManagerAgent is nullptr");
         return SCREEN_ID_INVALID;
     }
-
     TLOGI(WmsLogTag::DMS, "enter");
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->CreateVirtualScreen(option, displayManagerAgent->AsObject());
@@ -706,7 +704,7 @@ DMError BaseAdapter::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAge
     return ConvertToDMError(errCode, dmError);
 }
 
-DMError DisplayManagerAdapter::RegisterDisplayAttributeAgent(std::vector<std::string>& attributes,
+DMError DisplayManagerAdapter::RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
     const sptr<IDisplayManagerAgent> displayManagerAgent)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
@@ -871,7 +869,6 @@ bool DisplayManagerAdapter::SetFreeze(std::vector<DisplayId> displayIds, bool is
     displayManagerServiceProxy_->SetFreeze(displayIds, isFreeze, isSucc);
     return isSucc;
 }
-
 bool BaseAdapter::InitDMSProxy()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -915,9 +912,33 @@ bool BaseAdapter::InitDMSProxy()
         TLOGE(WmsLogTag::DMS, "Failed to add death recipient");
         return false;
     }
+    RegisterClientDeathListener();
 
     isProxyValid_ = true;
     return true;
+}
+
+bool BaseAdapter::RegisterClientDeathListener()
+{
+    return true;
+}
+
+bool DisplayManagerAdapter::RegisterClientDeathListener()
+{
+    if (reverseDeathStub_) {
+        return true;
+    }
+    if (screenSessionManagerServiceProxy_ != nullptr) {
+        TLOGW(WmsLogTag::DMS, "regis reverse death");
+        reverseDeathStub_ = sptr<ReverseDeathStub>::MakeSptr();
+        if (reverseDeathStub_ != nullptr && screenSessionManagerServiceProxy_ ->
+            RegisterClientDeathListener(reverseDeathStub_ -> AsObject()) == false) {
+            reverseDeathStub_ = nullptr;
+            return false;
+        }
+        return true;
+    }
+    return false;
 }
 
 DMSDeathRecipient::DMSDeathRecipient(BaseAdapter& adapter) : adapter_(adapter)
@@ -954,6 +975,7 @@ BaseAdapter::~BaseAdapter()
     Clear();
     screenSessionManagerServiceProxy_ = nullptr;
     displayManagerServiceProxy_ = nullptr;
+    reverseDeathStub_ = nullptr;
 }
 
 void BaseAdapter::Clear()
@@ -1215,6 +1237,7 @@ sptr<CutoutInfo> DisplayManagerAdapter::GetCutoutInfo(DisplayId displayId, int32
 
 void PushRoundedCorner(std::vector<RoundedCorner>& roundedCorner, int32_t width, int32_t height, int radius)
 {
+    TLOGI(WmsLogTag::DMS, "roundedCorner w=%{public}d, h=%{public}d, r=%{public}d", width, height, radius);
     RoundedCorner topLeftCorner {CornerType::TOP_LEFT, {radius, radius}, radius};
     RoundedCorner topRightCorner {CornerType::TOP_RIGHT, {width - radius, radius}, radius};
     RoundedCorner bottomRightCorner {CornerType::BOTTOM_RIGHT, {width - radius, height - radius}, radius};
@@ -1228,7 +1251,7 @@ void PushRoundedCorner(std::vector<RoundedCorner>& roundedCorner, int32_t width,
 DMError DisplayManagerAdapter::GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner,
     DisplayId displayId, int32_t width, int32_t height)
 {
-    TLOGD(WmsLogTag::DMS, "enter");
+    TLOGI(WmsLogTag::DMS, "enter");
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
     if (screenSessionManagerServiceProxy_) {
         int radius = 0;
@@ -1340,15 +1363,6 @@ void DisplayManagerAdapter::SetFoldDisplayMode(const FoldDisplayMode mode)
 
     if (screenSessionManagerServiceProxy_) {
         screenSessionManagerServiceProxy_->SetFoldDisplayMode(mode);
-    }
-}
-
-void DisplayManagerAdapter::SetFoldDisplayModeAsync(const FoldDisplayMode mode)
-{
-    INIT_PROXY_CHECK_RETURN();
-
-    if (screenSessionManagerServiceProxy_) {
-        screenSessionManagerServiceProxy_->SetFoldDisplayModeAsync(mode);
     }
 }
 
@@ -1887,6 +1901,7 @@ DMError DisplayManagerAdapter::GetScreenAreaOfDisplayArea(DisplayId displayId, c
         return screenSessionManagerServiceProxy_->GetScreenAreaOfDisplayArea(displayId, displayArea, screenId,
             screenArea);
     }
+
     return DMError::DM_OK;
 }
 
@@ -1896,6 +1911,7 @@ DMError DisplayManagerAdapter::GetBrightnessInfo(DisplayId displayId, ScreenBrig
     if (screenSessionManagerServiceProxy_) {
         return screenSessionManagerServiceProxy_->GetBrightnessInfo(displayId, brightnessInfo);
     }
+    
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 

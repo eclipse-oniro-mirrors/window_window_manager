@@ -36,9 +36,11 @@ export default namespace floatingBall {
     restoreMainWindow(want: Want): Promise<void>;
     onClick(callback: Callback<void>): void;
     onStateChange(callback: Callback<FloatingBallState>): void;
+    onDestroy(callback: Callback<string>): void;
     offClick(callback?: Callback<void>): void;
     offStateChange(callback?: Callback<FloatingBallState>): void;
     setFloatingBallVisibilityInApp(params: boolean): Promise<void>;
+    offDestroy(callback?: Callback<string>): void;
   }
 
   export interface FloatingBallWindowInfo {
@@ -88,6 +90,11 @@ export default namespace floatingBall {
   function runOnStateChangeEvent(cb: object, cbArg: int): void {
     const func = cb as (cbArg: FloatingBallState) => void;
     func(FloatingBallState.fromValue(cbArg));
+  }
+
+  function runOnDestroyEvent(cb: object, cbArg: string): void {
+      const func = cb as (cbArg: string) => void;
+      func(cbArg);
   }
 
   // nativeObj : the address of AniFbController
@@ -217,6 +224,14 @@ export default namespace floatingBall {
       this.onStateChangeNative(this.nativeObj, callback);
     }
 
+    native onDestroyNative(nativeObj: long, callback: Object): void;
+    public onDestroy(callback: Callback<string>): void {
+      if (!this.nativeObj || !callback) {
+        return;
+      }
+      this.onDestroyNative(this.nativeObj, callback);
+    }
+
     native offClickNative(nativeObj: long, callback?: Object): void;
     public offClick(callback?: Callback<void>): void {
       if (!this.nativeObj) {
@@ -231,6 +246,14 @@ export default namespace floatingBall {
         return;
       }
       this.offStateChangeNative(this.nativeObj, callback);
+    }
+
+    native offDestroyNative(nativeObj: long, callback?: Object): void;
+    public offDestroy(callback?: Callback<string>): void {
+      if (!this.nativeObj) {
+        return;
+      }
+      this.offDestroyNative(this.nativeObj, callback);
     }
   }  // class FbControllerInternal
 }  // namespace floatingBall

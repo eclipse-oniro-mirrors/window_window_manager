@@ -178,37 +178,6 @@ HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChange01, TestSize.Le
 }
 
 /**
- * @tc.name: ProcessVirtualPixelRatioChangeByDpiChange
- * @tc.desc: ProcessVirtualPixelRatioChange when display DPI changes
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChangeByDpiChange, TestSize.Level1)
-{
-    DisplayId defaultDisplayId = 0;
-    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    std::map<DisplayId, sptr<DisplayInfo>> displayInfoMap;
-    bool isCallbackCalled = false;
-    constexpr float virtualPixelRatio = 2.0f;
-
-    ASSERT_NE(nullptr, displayInfo);
-    ASSERT_NE(nullptr, ssm_);
-    displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
-    displayInfo->SetDensityInCurResolution(virtualPixelRatio);
-    ProcessVirtualPixelRatioChangeFunc func = [&isCallbackCalled](
-        float ratio, const OHOS::Rosen::Rect& rect) {
-        isCallbackCalled = true;
-        EXPECT_FLOAT_EQ(ratio, virtualPixelRatio);
-    };
-    ssm_->SetVirtualPixelRatioChangeListener(func);
-
-    ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap,
-        DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE);
-
-    EXPECT_TRUE(isCallbackCalled);
-    ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
-}
-
-/**
  * @tc.name: ProcessUpdateRotationChange
  * @tc.desc: ProcessUpdateRotationChange
  * @tc.type: FUNC
@@ -411,10 +380,10 @@ HWTEST_F(SceneSessionManagerTest7, RegisterIAbilityManagerCollaborator01, TestSi
     MockAccesstokenKit::MockIsSystemApp(true);
     MockAccesstokenKit::VerifyCallingPermission(true);
     auto ret = ssm_->RegisterIAbilityManagerCollaborator(type, nullptr);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
 
     ret = ssm_->RegisterIAbilityManagerCollaborator(type, collaborator);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
     EXPECT_TRUE(ssm_->collaboratorMap_.size() == 0);
     EXPECT_TRUE(ssm_->collaboratorDeathRecipientMap_.size() == 0);
 }
@@ -470,23 +439,23 @@ HWTEST_F(SceneSessionManagerTest7, ProcessBackEvent, TestSize.Level1)
     focusGroup->SetFocusedSessionId(1);
     ssm_->needBlockNotifyFocusStatusUntilForeground_ = true;
     auto ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     ssm_->needBlockNotifyFocusStatusUntilForeground_ = false;
     sessionInfo.isSystem_ = true;
     ssm_->rootSceneProcessBackEventFunc_ = nullptr;
     ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     RootSceneProcessBackEventFunc func = []() {};
     ssm_->rootSceneProcessBackEventFunc_ = func;
     ASSERT_NE(nullptr, ssm_->rootSceneProcessBackEventFunc_);
     ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     sessionInfo.isSystem_ = false;
     ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     ssm_->rootSceneProcessBackEventFunc_ = nullptr;
     ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -532,7 +501,7 @@ HWTEST_F(SceneSessionManagerTest7, DestroyAndDisconnectSpecificSessionWithDetach
     ASSERT_NE(nullptr, ssm_);
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_PERMISSION);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
 /**
@@ -559,10 +528,10 @@ HWTEST_F(SceneSessionManagerTest7, DestroyAndDisconnectSpecificSessionInner, Tes
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession1));
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     sceneSession1 = nullptr;
     ret = ssm_->DestroyAndDisconnectSpecificSessionInner(2);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -589,10 +558,10 @@ HWTEST_F(SceneSessionManagerTest7, DestroyAndDisconnectSpecificSessionInner01, T
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession1));
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     sceneSession1 = nullptr;
     ret = ssm_->DestroyAndDisconnectSpecificSessionInner(2);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -619,10 +588,10 @@ HWTEST_F(SceneSessionManagerTest7, DestroyAndDisconnectSpecificSessionInner02, T
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     ssm_->sceneSessionMap_.insert(std::make_pair(2, sceneSession1));
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     sceneSession1 = nullptr;
     ret = ssm_->DestroyAndDisconnectSpecificSessionInner(2);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -647,10 +616,10 @@ HWTEST_F(SceneSessionManagerTest7, DestroyAndDisconnectSpecificSessionInner03, T
     ssm_->sceneSessionMap_.insert(std::make_pair(1, floatSession));
     ssm_->sceneSessionMap_.insert(std::make_pair(2, subSession));
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
     EXPECT_EQ(ssm_->sceneSessionMap_.find(2), ssm_->sceneSessionMap_.end());
     ret = ssm_->DestroyAndDisconnectSpecificSessionInner(2);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**
@@ -1037,7 +1006,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessBackEvent01, TestSize.Level1)
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
     ssm_->needBlockNotifyFocusStatusUntilForeground_ = true;
     auto ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -1060,7 +1029,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessBackEvent02, TestSize.Level1)
     ssm_->needBlockNotifyFocusStatusUntilForeground_ = false;
     ssm_->rootSceneProcessBackEventFunc_ = nullptr;
     auto ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -1085,7 +1054,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessBackEvent03, TestSize.Level1)
     ssm_->rootSceneProcessBackEventFunc_ = func;
     ASSERT_NE(nullptr, ssm_->rootSceneProcessBackEventFunc_);
     auto ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -1108,7 +1077,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessBackEvent04, TestSize.Level1)
     ssm_->needBlockNotifyFocusStatusUntilForeground_ = false;
     ssm_->rootSceneProcessBackEventFunc_ = nullptr;
     auto ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -1133,7 +1102,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessBackEvent05, TestSize.Level1)
     ssm_->rootSceneProcessBackEventFunc_ = func;
     ASSERT_NE(nullptr, ssm_->rootSceneProcessBackEventFunc_);
     auto ret = ssm_->ProcessBackEvent();
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**

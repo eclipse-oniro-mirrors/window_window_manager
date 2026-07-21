@@ -72,17 +72,17 @@ HWTEST_F(FloatingBallManagerTest, activeController, TestSize.Level1)
     EXPECT_EQ(false, FloatingBallManager::HasActiveController());
     std::string clickAction = "click";
     std::string closeAction = "close";
-    FloatingBallManager::DoFbActionEvent("on");
-    FloatingBallManager::DoFbActionEvent(clickAction);
-    FloatingBallManager::DoFbActionEvent(closeAction);
+    FloatingBallManager::DoFbActionEvent("on", "");
+    FloatingBallManager::DoFbActionEvent(clickAction, "");
+    FloatingBallManager::DoFbActionEvent(closeAction, "");
     FloatingBallManager::DoDestroy();
 
     // has fbController
     FloatingBallManager::SetActiveController(fbController);
     EXPECT_EQ(true, FloatingBallManager::IsActiveController(fbController));
     EXPECT_EQ(true, FloatingBallManager::HasActiveController());
-    FloatingBallManager::DoFbActionEvent(clickAction);
-    FloatingBallManager::DoFbActionEvent(closeAction);
+    FloatingBallManager::DoFbActionEvent(clickAction, "");
+    FloatingBallManager::DoFbActionEvent(closeAction, "");
     FloatingBallManager::DoDestroy();
     auto fbController1 = sptr<FloatingBallController>::MakeSptr(mw, 102, nullptr);
     FloatingBallManager::RemoveActiveController(fbController1);

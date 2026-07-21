@@ -19,6 +19,9 @@
 #include <map>
 #include <mutex>
 
+#include <iremote_stub.h>
+#include <iremote_proxy.h>
+#include <iremote_object.h>
 #include "display_lite.h"
 #include "display_manager_lite_proxy.h"
 #include "dm_common.h"
@@ -26,6 +29,20 @@
 #include "zidl/idisplay_manager_agent.h"
 
 namespace OHOS::Rosen {
+
+class IReverseDeathAgent : public IRemoteBroker {
+public:
+    DECLARE_INTERFACE_DESCRIPTOR(u"ReverseDeathAgent");
+};
+
+class ReverseDeathStub : public IRemoteStub<IReverseDeathAgent> {
+public:
+};
+
+class ReverseDeathProxy : public IRemoteProxy<IReverseDeathAgent> {
+public:
+};
+
 class BaseAdapterLite {
 public:
     virtual ~BaseAdapterLite();
@@ -36,11 +53,13 @@ public:
     virtual void Clear();
     virtual bool IsScreenLessDevice();
 protected:
-    bool InitDMSProxy();
+    virtual bool InitDMSProxy();
+    virtual bool RegisterClientDeathListener();
     std::recursive_mutex mutex_;
     sptr<DisplayManagerLiteProxy> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;
     bool isProxyValid_ { false };
+    sptr<ReverseDeathStub> reverseDeathStub_ = nullptr;
 };
 
 class DMSDeathRecipientLite : public IRemoteObject::DeathRecipient {
@@ -60,7 +79,6 @@ public:
     virtual FoldStatus GetFoldStatus();
     virtual FoldDisplayMode GetFoldDisplayMode();
     virtual void SetFoldDisplayMode(const FoldDisplayMode);
-    virtual void SetFoldDisplayModeAsync(const FoldDisplayMode);
     virtual sptr<DisplayInfo> GetDisplayInfo(DisplayId displayId);
     virtual sptr<CutoutInfo> GetCutoutInfo(DisplayId displayId);
     virtual VirtualScreenFlag GetVirtualScreenFlag(ScreenId screenId);
@@ -78,12 +96,20 @@ public:
     virtual bool SetDisplayState(DisplayState state);
     virtual DisplayState GetDisplayState(DisplayId displayId);
     virtual bool TryToCancelScreenOff();
+    virtual void NotifyBootAnimationFinished();
     virtual bool SetScreenBrightness(const DmsScreenBrightnessData& brightnessData);
     virtual uint32_t GetScreenBrightness(uint64_t screenId);
     virtual DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
     virtual DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
+    virtual DMError RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent);
+    virtual DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
+        const sptr<IDisplayManagerAgent>& displayManagerAgent);
+    virtual sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
+protected:
+    bool RegisterClientDeathListener() override;
 };
 
 class ScreenManagerAdapterLite : public BaseAdapterLite {

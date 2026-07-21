@@ -123,6 +123,7 @@ enum class ListenerFuncType : uint32_t {
     COMPATIBLE_MODE_CHANGE_CB,
     RECOVER_WINDOW_EFFECT_CB,
     PRE_CALC_WINDOW_PROPERTY_CB,
+    FLOAT_VIEW_CLICK_CB,
     FLOAT_VIEW_STOP_CB,
     FLOAT_VIEW_UPDATE_CB,
     SPLIT_RATIO_CHANGE_CB,
@@ -509,7 +510,9 @@ private:
     void ProcessFloatViewStopRegister();
     void OnFloatViewStop(const std::string& reason);
     void ProcessFloatViewUpdateRegister();
+    void ProcessFloatViewClickRegister();
     void OnFloatViewUpdate(const FloatViewTemplateInfo& fvTemplateInfo);
+    void OnFloatViewClick();
 
     /*
      * Window Property

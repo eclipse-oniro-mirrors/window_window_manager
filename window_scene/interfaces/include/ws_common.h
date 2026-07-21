@@ -118,6 +118,14 @@ enum class WSError : int32_t {
     WS_ERROR_EDM_CONTROLLED = 2097215, // enterprise limit
 };
 
+/**
+ * @brief Error result structure for window scene operations.
+ */
+struct WSErrorResult {
+    WSError errCode = WSError::WS_OK;
+    std::string errMsg = "";
+};
+
 enum class WSErrorCode : int32_t {
     WS_OK = 0,
     WS_ERROR_NO_PERMISSION = 201,
@@ -151,6 +159,11 @@ enum class WSErrorReason : int32_t {
     WS_REASON_WINDOW_ANCO_SESSION_CREATE_ERR,
     WS_REASON_WINDOW_ANCO_MOVE_SESSION_FOREGROUND_ERR,
     WS_REASON_WINDOW_ANCO_CLEAR_SESSION_ERR,
+};
+
+enum class ScreenSupportMultiWindowReason : int32_t {
+    ADD = 1,
+    DELETE = 2,
 };
 
 extern const std::map<WSError, WSErrorCode> WS_JS_TO_ERROR_CODE_MAP;
@@ -434,7 +447,7 @@ struct AtomicServiceInfo {
 };
 
 struct PendingSessionActivationConfig {
-    // is compulsion open
+    // is forced start App
     bool forceStart = false;
     // is execute new want callback
     bool forceNewWant = true;
@@ -487,7 +500,6 @@ struct SessionInfo {
     int32_t collaboratorType_ = CollaboratorType::DEFAULT_TYPE;
     SessionState sessionState_ = SessionState::STATE_DISCONNECT;
     uint32_t requestOrientation_ = 0;
-    int32_t specificSessionRequestOrientation_ = -1;
     bool isRotable_ = false;
     bool isSetPointerAreas_ = false;
     bool isCastSession_ = false;
@@ -674,6 +686,7 @@ enum class SizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SPLIT_ENABLE_CHANGE,
     SWITCH_WINDOW_DISPLAY,
     END,
 };
@@ -703,6 +716,7 @@ enum class SessionEvent : uint32_t {
     EVENT_COMPATIBLE_TO_MAXIMIZE,
     EVENT_COMPATIBLE_TO_RECOVER,
     EVENT_MAXIMIZE_FULLSCREEN,
+    EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP,
     EVENT_SWITCH_COMPATIBLE_MODE = 200,
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
     EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
@@ -1376,6 +1390,7 @@ struct SingleHandBackgroundTextConfig {
     int32_t minFontSize = 0;
     int32_t maxLines = -1;
     int32_t textAlign = 1;
+    int32_t marginBottom = -1;
     std::string maxFontScale = "";
 };
 
@@ -1561,8 +1576,8 @@ struct SessionUIParam {
     WSRect rect_;
     float scaleX_ { 1.0f };
     float scaleY_ { 1.0f };
-    float rsScaleX_ { 1.0f };
-    float rsScaleY_ { 1.0f };
+    float ignoreRotateScaleX_ { 1.0f };
+    float ignoreRotateScaleY_ { 1.0f };
     float pivotX_ { 1.0f };
     float pivotY_ { 1.0f };
     float transX_ { 0.0f }; // global translateX

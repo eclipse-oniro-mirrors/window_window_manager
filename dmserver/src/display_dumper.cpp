@@ -144,10 +144,10 @@ DMError DisplayDumper::DumpInfo(const std::vector<std::string>& args, std::strin
     } else if (args[0] == ARG_DUMP_DISPLAY && args[1] == ARG_DUMP_ALL) {
         return DumpAllDisplayInfo(dumpInfo);
     } else if (args[0] == ARG_DUMP_SCREEN && IsValidDigitString(args[1])) {
-        ScreenId screenId = strtoll(args[1].c_str(), nullptr, DECIMAL_NUM);
+        ScreenId screenId = strtoull(args[1].c_str(), nullptr, DECIMAL_NUM);
         return DumpSpecifiedScreenInfo(screenId, dumpInfo);
     } else if (args[0] == ARG_DUMP_DISPLAY && IsValidDigitString(args[1])) {
-        DisplayId displayId = strtoll(args[1].c_str(), nullptr, DECIMAL_NUM);
+        DisplayId displayId = strtoull(args[1].c_str(), nullptr, DECIMAL_NUM);
         return DumpSpecifiedDisplayInfo(displayId, dumpInfo);
     } else {
         return DMError::DM_ERROR_INVALID_PARAM;

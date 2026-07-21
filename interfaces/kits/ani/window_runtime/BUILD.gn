@@ -98,6 +98,7 @@ ohos_shared_library("windowstageani_kit") {
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
   ]
 
   defines = []
@@ -110,6 +111,11 @@ ohos_shared_library("windowstageani_kit") {
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 }
 
 # lib generate
@@ -162,6 +168,7 @@ ohos_shared_library("windowstageani_module") {
     "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
+    "node:node_header_notice",
   ]
 
   defines = []
@@ -173,6 +180,11 @@ ohos_shared_library("windowstageani_module") {
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
+  defines = []
+  if (window_manager_feature_support_api_metrics) {
+    external_deps += [ "api_metrics:histogrammanager" ]
+    defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
+  }
 }
 
 group("window_stage_ani_pack") {

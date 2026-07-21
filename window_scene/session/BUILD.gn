@@ -66,6 +66,8 @@ ohos_source_set("ui_effect_controller_client") {
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
     ]
   public_configs = [ ":ui_effect_public_config" ]
   deps = [ "${window_base_path}/utils:ui_effect_controller_common" ]
@@ -94,6 +96,8 @@ ohos_source_set("ui_effect_controller") {
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
     ]
   deps = [
     "${window_base_path}/utils:ui_effect_controller_common",
@@ -351,6 +355,8 @@ ohos_shared_library("scene_session") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "zlib:shared_libz",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   if (!(host_os == "linux" && host_cpu == "arm64")) {
@@ -482,7 +488,6 @@ ohos_shared_library("screen_session") {
   sources = screen_session_sources
   deps = screen_session_deps
   external_deps = screen_session_external_deps
-  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 
   defines = []
   if (window_manager_feature_screen_color_gamut) {

@@ -133,7 +133,7 @@ ani_status CreateBusinessError(ani_env* env, int32_t error, std::string message,
         return status;
     }
     ani_method aniCtor = nullptr;
-    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{std.core.ErrorOptions}:", &aniCtor);
+    status = env->Class_FindMethod(aniClass, "<ctor>", "C{std.core.String}C{escompat.ErrorOptions}:", &aniCtor);
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[FB]ctor not found, status:%{public}d", static_cast<int32_t>(status));
         return status;
@@ -296,6 +296,33 @@ ani_status CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, con
     va_end(args);
     if (ret != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[FB]cannot run callback");
+        return ret;
+    }
+    return ret;
+}
+
+ani_status CallAniFunctionVoidWithString(ani_env *env, const AniFunctionIdentifier& funcId, ani_ref callback,
+                                         const std::string& strParam)
+{
+    ani_status ret = ANI_OK;
+    ani_namespace aniNamespace{};
+    if ((ret = env->FindNamespace(funcId.funNamespace, &aniNamespace)) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]cannot find namespace");
+        return ret;
+    }
+    ani_function func{};
+    if ((ret = env->Namespace_FindFunction(aniNamespace, funcId.functionName, funcId.signature, &func)) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]cannot find callback");
+        return ret;
+    }
+    ani_string aniStr;
+    if ((ret = GetAniString(env, strParam, &aniStr)) != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]cannot create ani string");
+        return ret;
+    }
+    ret = env->Function_Call_Void(func, callback, aniStr);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]cannot run callback with string");
         return ret;
     }
     return ret;

@@ -470,13 +470,11 @@ napi_value JsFloatViewController::OnSwitchTemplateTask(napi_env env, std::shared
         }
         auto fvController = weakController.promote();
         if (fvController == nullptr) {
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_SETTEMPLATETYPE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
         if (!templateProperty->CheckLegal()) {
             *errCodePtr = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_SETTEMPLATETYPE, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return;
         }
         *errCodePtr = ConvertErrorToCode(fvController->SetTemplateTypeAndSize(templateProperty));

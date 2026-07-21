@@ -84,6 +84,12 @@ void AniFbWindowListener::OnFloatingBallStart() {OnFbListenerCallback(FloatingBa
 
 void AniFbWindowListener::OnFloatingBallStop() {OnFbListenerCallback(FloatingBallState::STOPPED);}
 
+void AniFbWindowListener::OnDestroyEvent(const std::string& reason)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]called, onDestroyEvent, reason: %{public}s", reason.c_str());
+    OnDestroyCallback(reason);
+}
+
 void AniFbWindowListener::OnFbListenerCallback(const FloatingBallState& state)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]called, onStateChangeEvent");
@@ -111,6 +117,36 @@ void AniFbWindowListener::OnFbListenerCallback(const FloatingBallState& state)
         return;
     }
     eventHandler_->PostTask(task, "AniFbWindowListener::onStateChangeEvent", 0,
+                            AppExecFwk::EventQueue::Priority::IMMEDIATE);
+}
+
+void AniFbWindowListener::OnDestroyCallback(const std::string& reason)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]called, onDestroyCallback, reason: %{public}s", reason.c_str());
+    auto task = [self = weakRef_, vm = vm_, reason] () {
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "[FB]AniFbWindowListener::onDestroyEvent");
+        // check Listener
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || vm == nullptr) {
+            TLOGE(WmsLogTag::DEFAULT, "[FB]this listener or vm is nullptr");
+            return;
+        }
+        // get env
+        ani_env* env = nullptr;
+        ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            TLOGE(WmsLogTag::DEFAULT, "[FB]Get env failed, ret:%{public}u", ret);
+            return;
+        }
+        // working
+        CallAniFunctionVoidWithString(env, {"@ohos.window.floatingBall.floatingBall", "runOnDestroyEvent", nullptr},
+            thisListener->aniCallback_, reason);
+    };
+    if (!eventHandler_) {
+        TLOGE(WmsLogTag::DEFAULT, "[FB]get main event handler failed!");
+        return;
+    }
+    eventHandler_->PostTask(task, "AniFbWindowListener::onDestroyEvent", 0,
                             AppExecFwk::EventQueue::Priority::IMMEDIATE);
 }
 } // namespace Rosen

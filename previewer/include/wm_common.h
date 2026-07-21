@@ -334,6 +334,7 @@ enum class WMError : int32_t {
     WM_ERROR_FV_RESTORE_MAIN_WINDOW_FAILED,
     WM_ERROR_FV_START_FAILED,
     WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,
+    WM_ERROR_FORBID_SUBWINDOW,
 };
 
 /**
@@ -345,7 +346,6 @@ enum class WmErrorCode : int32_t {
     WM_ERROR_NOT_SYSTEM_APP = 202,
     WM_ERROR_INVALID_PARAM = 401,
     WM_ERROR_DEVICE_NOT_SUPPORT = 801,
-
     WM_ERROR_REPEAT_OPERATION = 1300001,
     WM_ERROR_STATE_ABNORMALLY = 1300002,
     WM_ERROR_SYSTEM_ABNORMALLY = 1300003,
@@ -536,6 +536,7 @@ enum class WindowSizeChangeReason : uint32_t {
     SNAPSHOT_ROTATION = 37,
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
+    SPLIT_ENABLE_CHANGE,
     END
 };
 
@@ -1641,6 +1642,17 @@ enum WindowVisibilityState : uint32_t {
 };
 
 /**
+ * @enum WindowPostureMode
+ *
+ * @brief Posture mode of a window
+ */
+enum class WindowPostureMode : uint32_t {
+    START = 0,
+    DESKTOP_MODE = START,
+    END,
+};
+
+/**
  * @struct WindowUIInfo
  *
  * @brief Window UI info
@@ -2095,6 +2107,7 @@ enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
     BANNER_LIVE_SHARE = 2210,
+    VIRTUAL_TOUCH_PAD = 8010,
 };
 
 /**

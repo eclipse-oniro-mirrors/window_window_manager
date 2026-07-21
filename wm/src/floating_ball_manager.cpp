@@ -27,7 +27,7 @@ namespace {
 const std::string ACTION_CLICK = "click";
 const std::string ACTION_CLOSE = "close";
 
-const std::map<std::string, std::function<void()>> FB_ACTION_MAP {
+const std::map<std::string, std::function<void(const std::string&)>> FB_ACTION_MAP {
     {ACTION_CLICK, FloatingBallManager::DoActionClick},
     {ACTION_CLOSE, FloatingBallManager::DoActionClose},
 };
@@ -66,19 +66,19 @@ void FloatingBallManager::RemoveActiveController(const wptr<FloatingBallControll
 }
 
 // LCOV_EXCL_START
-void FloatingBallManager::DoActionClick()
+void FloatingBallManager::DoActionClick(const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "click in");
+    TLOGI(WmsLogTag::WMS_SYSTEM, "click in, reason %{public}s", reason.c_str());
     if (auto controller = GetActiveController()) {
         controller->OnFloatingBallClick();
     }
 }
 
-void FloatingBallManager::DoActionClose()
+void FloatingBallManager::DoActionClose(const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "close in");
+    TLOGI(WmsLogTag::WMS_SYSTEM, "close in, reason %{public}s", reason.c_str());
     if (auto controller = GetActiveController()) {
-        controller->StopFloatingBall();
+        controller->StopFloatingBall(reason);
     }
 }
 
@@ -86,19 +86,19 @@ void FloatingBallManager::DoDestroy()
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "in");
     if (auto controller = GetActiveController()) {
-        controller->DestroyFloatingBallWindow();
+        controller->DestroyFloatingBallWindow("DoDestroy");
     }
 }
 
-void FloatingBallManager::DoFbActionEvent(const std::string& actionName)
+void FloatingBallManager::DoFbActionEvent(const std::string& actionName, const std::string& reason)
 {
-    TLOGI(WmsLogTag::WMS_SYSTEM, "in, actionName %{public}s", actionName.c_str());
+    TLOGI(WmsLogTag::WMS_SYSTEM, "in, actionName %{public}s, reason %{public}s", actionName.c_str(), reason.c_str());
     auto func = FB_ACTION_MAP.find(actionName);
     if (func == FB_ACTION_MAP.end()) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "no func to process");
         return;
     }
-    func->second();
+    func->second(reason);
 }
 
 // LCOV_EXCL_STOP

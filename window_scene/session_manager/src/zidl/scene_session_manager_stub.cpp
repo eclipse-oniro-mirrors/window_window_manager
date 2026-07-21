@@ -331,16 +331,18 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     sptr<ISessionStage> sessionStage = iface_cast<ISessionStage>(sessionStageObject);
     sptr<IRemoteObject> eventChannelObject = data.ReadRemoteObject();
     sptr<IWindowEventChannel> eventChannel = iface_cast<IWindowEventChannel>(eventChannelObject);
-    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Unmarshalling(data);
-    TLOGD(WmsLogTag::WMS_SCB, "Unmarshalling RSSurfaceNode: %{public}s",
-          RSAdapterUtil::RSNodeToStr(surfaceNode).c_str());
-    if (sessionStage == nullptr || eventChannel == nullptr || surfaceNode == nullptr) {
+    uint64_t surfaceNodeId = data.ReadUint64();
+    if (sessionStage == nullptr || eventChannel == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
+        reply.WriteInt32(static_cast<uint32_t>(WSError::WS_ERROR_IPC_FAILED));
+        reply.WriteString("Failed to read scene session stage object or event channel object!");
         return ERR_INVALID_DATA;
     }
     sptr<WindowSessionProperty> property = data.ReadStrongParcelable<WindowSessionProperty>();
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");
+        reply.WriteInt32(static_cast<uint32_t>(WSError::WS_ERROR_IPC_FAILED));
+        reply.WriteString("property is nullptr");
         return ERR_INVALID_DATA;
     }
 
@@ -355,20 +357,28 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     sptr<ISession> sceneSession;
     SystemSessionConfig systemConfig;
     sptr<IRemoteObject> renderSession;
-    CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode,
-        property, persistentId, sceneSession, systemConfig, renderSession, token);
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    WSErrorResult result = CreateAndConnectSpecificSession(sessionStage, eventChannel, surfaceNodeId,
+        property, persistentId, sceneSession, systemConfig, renderSession, surfaceNode, token);
     if (sceneSession== nullptr) {
+        reply.WriteInt32(static_cast<uint32_t>(result.errCode));
+        reply.WriteString(result.errMsg);
         return ERR_INVALID_STATE;
     }
+    reply.WriteInt32(static_cast<uint32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     reply.WriteInt32(persistentId);
     reply.WriteRemoteObject(sceneSession->AsObject());
     reply.WriteParcelable(&systemConfig);
     reply.WriteRemoteObject(renderSession);
+    if (surfaceNode == nullptr || !surfaceNode->Marshalling(reply)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write surfaceNode to reply failed.");
+        return ERR_INVALID_DATA;
+    }
     reply.WriteUint32(property->GetSubWindowLevel());
     reply.WriteUint64(property->GetDisplayId());
     reply.WriteUint32(static_cast<uint32_t>(property->GetWindowType()));
     reply.WriteBool(property->GetSystemCalling());
-    reply.WriteUint32(static_cast<uint32_t>(WSError::WS_OK));
     return ERR_NONE;
 }
 
@@ -462,8 +472,9 @@ int SceneSessionManagerStub::HandleDestroyAndDisconnectSpcificSession(MessagePar
         return ERR_TRANSACTION_FAILED;
     }
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d", persistentId);
-    WSError ret = DestroyAndDisconnectSpecificSession(persistentId);
-    reply.WriteUint32(static_cast<uint32_t>(ret));
+    WSErrorResult ret = DestroyAndDisconnectSpecificSession(persistentId);
+    reply.WriteInt32(static_cast<uint32_t>(ret.errCode));
+    reply.WriteString(ret.errMsg);
     return ERR_NONE;
 }
 
@@ -477,8 +488,9 @@ int SceneSessionManagerStub::HandleDestroyAndDisconnectSpcificSessionWithDetachC
     }
     TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d", persistentId);
     sptr<IRemoteObject> callback = data.ReadRemoteObject();
-    const WSError ret = DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
-    reply.WriteUint32(static_cast<uint32_t>(ret));
+    WSErrorResult ret = DestroyAndDisconnectSpecificSessionWithDetachCallback(persistentId, callback);
+    reply.WriteInt32(static_cast<uint32_t>(ret.errCode));
+    reply.WriteString(ret.errMsg);
     return ERR_NONE;
 }
 
@@ -560,11 +572,11 @@ int SceneSessionManagerStub::HandleRegisterWindowManagerAgent(MessageParcel& dat
         return ERR_INVALID_DATA;
     }
     WindowManagerAgentType type = static_cast<WindowManagerAgentType>(typeId);
-    TLOGD(WmsLogTag::DEFAULT, "type=%{public}u", typeId);
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
         iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy);
+    WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -578,11 +590,11 @@ int SceneSessionManagerStub::HandleUnregisterWindowManagerAgent(MessageParcel& d
         return ERR_INVALID_DATA;
     }
     WindowManagerAgentType type = static_cast<WindowManagerAgentType>(typeId);
-    TLOGD(WmsLogTag::DEFAULT, "type=%{public}u", typeId);
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
         iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy);
+    WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -626,10 +638,12 @@ int SceneSessionManagerStub::HandleRegisterWindowPropertyChangeAgent(MessageParc
     }
 
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
         iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgentProxy);
+    WMError errCode = RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -650,10 +664,12 @@ int SceneSessionManagerStub::HandleUnregisterWindowPropertyChangeAgent(MessagePa
     }
 
     WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
         iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
-    WMError errCode = UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgentProxy);
+    WMError errCode = UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo,
+        windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }

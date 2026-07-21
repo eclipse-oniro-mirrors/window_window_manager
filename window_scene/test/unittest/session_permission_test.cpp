@@ -157,17 +157,6 @@ HWTEST_F(SessionPermissionTest, IsShellCall, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsStartByHdcd
- * @tc.desc: test function : IsStartByHdcd
- * @tc.type: FUNC
- */
-HWTEST_F(SessionPermissionTest, IsStartByHdcd, TestSize.Level1)
-{
-    bool result = SessionPermission::IsStartByHdcd();
-    ASSERT_EQ(true, result);
-}
-
-/**
  * @tc.name: IsStartedByInputMethod
  * @tc.desc: test function : IsStartedByInputMethod
  * @tc.type: FUNC

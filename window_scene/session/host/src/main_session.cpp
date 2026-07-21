@@ -724,10 +724,19 @@ WSError MainSession::NotifyCompatibleModeChange(CompatibleStyleMode mode)
 
 WSError MainSession::UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo)
 {
-    if (!sessionStage_) {
-        return WSError::WS_ERROR_NULLPTR;
-    }
-    return sessionStage_->UpdateAppHookWindowInfo(hookWindowInfo);
+    PostTask([weakThis = wptr(this), hookWindowInfo]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "session is null");
+            return;
+        }
+        if (!session->sessionStage_) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is nullptr!");
+            return;
+        }
+        session->sessionStage_->UpdateAppHookWindowInfo(hookWindowInfo);
+    }, "UpdateAppHookWindowInfo");
+    return WSError::WS_OK;
 }
 
 WSError MainSession::UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo)
@@ -768,26 +777,33 @@ WSError MainSession::SetForceSplitEnable(bool isForceSplitEnabled, bool needUpda
 {
     TLOGI(WmsLogTag::WMS_COMPAT, "isForceSplitEnabled: %{public}d, needUpdateViewport: %{public}d, "
         "selectMode: %{public}u", isForceSplitEnabled, needUpdateViewport, selectMode);
-    if (!setSelectModeCallback_) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "setSelectModeCallback_ is nullptr");
-        return WSError::WS_ERROR_NULLPTR;
-    }
-    setSelectModeCallback_(selectMode);
-    auto property = GetSessionProperty();
-    if (property == nullptr) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "id: %{public}d property is nullptr", persistentId_);
-        return WSError::WS_ERROR_NULLPTR;
-    }
-    property->SetForceSplitEnable(isForceSplitEnabled);
-    if (!sessionStage_) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is nullptr!");
-        return WSError::WS_ERROR_NULLPTR;
-    }
-    auto ret = sessionStage_->SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
-    if (ret != WSError::WS_OK) {
-        TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage SetForceSplitEnable failed, ret: %{public}d", ret);
-        return ret;
-    }
+    PostTask([weakThis = wptr(this), isForceSplitEnabled, needUpdateViewport, selectMode]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "session is null");
+            return;
+        }
+        if (!session->setSelectModeCallback_) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "setSelectModeCallback_ is nullptr");
+            return;
+        }
+        session->setSelectModeCallback_(selectMode);
+        auto property = session->GetSessionProperty();
+        if (property == nullptr) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "id: %{public}d property is nullptr", session->persistentId_);
+            return;
+        }
+        property->SetForceSplitEnable(isForceSplitEnabled);
+        if (!session->sessionStage_) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage_ is nullptr!");
+            return;
+        }
+        auto ret = session->sessionStage_->SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, selectMode);
+        if (ret != WSError::WS_OK) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "sessionStage SetForceSplitEnable failed, ret: %{public}d", ret);
+            return;
+        }
+    }, "SetForceSplitEnable");
     return WSError::WS_OK;
 }
 

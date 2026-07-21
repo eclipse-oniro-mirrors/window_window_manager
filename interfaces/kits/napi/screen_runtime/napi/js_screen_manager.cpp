@@ -1112,13 +1112,6 @@ DmErrorCode GetVirtualScreenOptionFromJs(napi_env env, napi_value optionObject, 
     if (!ConvertFromJsValue(env, supportsFocus, option.supportsFocus_)) {
         TLOGE(WmsLogTag::DMS, "No supportsFocus parameter to convert");
     }
-    napi_value userIdNapiValue = nullptr;
-    if (napi_get_named_property(env, optionObject, "userId", &userIdNapiValue) == napi_ok) {
-        if (!ConvertFromJsValue(env, userIdNapiValue, option.userId_)) {
-            TLOGE(WmsLogTag::DMS, "No userId parameter to convert");
-            return DmErrorCode::DM_ERROR_INVALID_PARAM;
-        }
-    }
     return DmErrorCode::DM_OK;
 }
 
@@ -1576,6 +1569,31 @@ napi_value InitDisplayError(napi_env env)
     return objValue;
 }
 
+napi_value InitScreenType(napi_env env)
+{
+    TLOGD(WmsLogTag::DMS, "called");
+
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::DMS, "env is nullptr");
+        return nullptr;
+    }
+
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Failed to get object");
+        return nullptr;
+    }
+
+    napi_set_named_property(env, objValue, "BUILT_IN",
+        CreateJsValue(env, static_cast<uint32_t>(ScreenTypeInfo::BUILT_IN)));
+    napi_set_named_property(env, objValue, "EXTERNAL",
+        CreateJsValue(env, static_cast<uint32_t>(ScreenTypeInfo::EXTERNAL)));
+    napi_set_named_property(env, objValue, "VIRTUAL",
+        CreateJsValue(env, static_cast<uint32_t>(ScreenTypeInfo::VIRTUAL)));
+    return objValue;
+}
+
 napi_value JsScreenManagerInit(napi_env env, napi_value exportObj)
 {
     TLOGD(WmsLogTag::DMS, "called");
@@ -1589,6 +1607,7 @@ napi_value JsScreenManagerInit(napi_env env, napi_value exportObj)
     napi_wrap(env, exportObj, jsScreenManager.release(), JsScreenManager::Finalizer, nullptr, nullptr);
     napi_set_named_property(env, exportObj, "Orientation", InitScreenOrientation(env));
     napi_set_named_property(env, exportObj, "ScreenSourceMode", InitScreenSourceMode(env));
+    napi_set_named_property(env, exportObj, "ScreenType", InitScreenType(env));
     napi_set_named_property(env, exportObj, "DmErrorCode", InitDisplayErrorCode(env));
     napi_set_named_property(env, exportObj, "DMError", InitDisplayError(env));
     napi_set_named_property(env, exportObj, "MultiScreenMode", InitMultiScreenMode(env));

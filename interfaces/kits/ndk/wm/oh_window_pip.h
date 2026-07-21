@@ -586,6 +586,26 @@ int32_t OH_PictureInPicture_UnregisterResizeListener(uint32_t controllerId, WebP
  */
 int32_t OH_PictureInPicture_UnregisterAllResizeListeners(uint32_t controllerId);
 
+/**
+ * @brief Sets whether to automatically start a PiP window when the user returns to the home screen.
+ * By default, no PiP window is started.
+ *
+ * @param controllerId ID of the PiP controller. The value is a non-negative integer.
+ * @param enabled Whether to automatically start a PiP window when the user returns to the home screen.
+ *     **true** to start, **false** otherwise. If the PiP feature under **Settings** > **System** > **Multi-window**
+ *     is disabled, the PiP window will not be automatically started when the user returns to the home screen even
+ *     if this parameter is set to **true**.
+ * @return Return the result code. <ul>
+ *         <li>{@link OK} the function call is successful. </li>
+ *         <li>{@link WINDOW_MANAGER_ERRORCODE_INCORRECT_PARAM} parameter error. Possible cause:
+ *             Can not find the PiP controller corresponding to the controllerId ID.</li>
+ *         <li>{@link WINDOW_MANAGER_ERRORCODE_PIP_INTERNAL_ERROR} pip internal error. Possible cause:
+ *             The PiP controller has been destroyed.</li>
+ *         </ul>
+ * @since 26.0.0
+ */
+int32_t OH_PictureInPicture_SetAutoStartEnabled(uint32_t controllerId, bool enabled);
+
 #ifdef __cplusplus
 }
 #endif

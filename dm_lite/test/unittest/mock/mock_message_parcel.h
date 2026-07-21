@@ -34,6 +34,7 @@ public:
     static void SetWriteParcelableErrorFlag(bool flag);
     static void SetWriteInterfaceTokenErrorFlag(bool flag);
     static void SetWriteRemoteObjectErrorFlag(bool flag);
+    static void SetWriteStringVectorErrorFlag(bool flag);
     static void SetReadBoolErrorFlag(bool flag);
     static void SetReadUint32ErrorFlag(bool flag);
     static void SetReadInt32ErrorFlag(bool flag);

@@ -27,8 +27,6 @@
 #include "window_manager_hilog.h"
 #include "wm_common.h"
 #include "floating_ball_template_info.h"
-#include "transaction/rs_interfaces.h"
-#include <ui/rs_ui_context.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -39,16 +37,16 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "Window"
 static sptr<Window> CreateWindowWithSession(sptr<WindowOption>& option,
     const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode,
     sptr<ISession> iSession = nullptr, const std::string& identityToken = "", bool isModuleAbilityHookEnd = false,
-    const std::shared_ptr<RSUIContext>& rsUiContext = nullptr, sptr<IRemoteObject> renderSession = nullptr)
+    const std::shared_ptr<RSUIContext>& rsUiContext = nullptr)
 {
     WLOGFD("in");
     sptr<WindowSessionImpl> windowSessionImpl = nullptr;
     auto sessionType = option->GetWindowSessionType();
     if (sessionType == WindowSessionType::SCENE_SESSION) {
-        windowSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option, rsUiContext, renderSession);
+        windowSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option, rsUiContext);
     } else if (sessionType == WindowSessionType::EXTENSION_SESSION) {
         option->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
-        windowSessionImpl = sptr<WindowExtensionSessionImpl>::MakeSptr(option, renderSession);
+        windowSessionImpl = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
     }
     if (windowSessionImpl == nullptr) {
         WLOGFE("malloc windowSessionImpl failed");
@@ -113,7 +111,7 @@ sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& o
 
 sptr<Window> Window::Create(sptr<WindowOption>& option, const std::shared_ptr<OHOS::AbilityRuntime::Context>& context,
     const sptr<IRemoteObject>& iSession, WMError& errCode, const std::string& identityToken,
-    bool isModuleAbilityHookEnd, sptr<IRemoteObject> renderSession)
+    bool isModuleAbilityHookEnd)
 {
     // create from ability mgr service
     if (!iSession || !option) {
@@ -140,7 +138,7 @@ sptr<Window> Window::Create(sptr<WindowOption>& option, const std::shared_ptr<OH
         return nullptr;
     }
     return CreateWindowWithSession(option, context, errCode,
-        iface_cast<Rosen::ISession>(iSession), identityToken, isModuleAbilityHookEnd, nullptr, renderSession);
+        iface_cast<Rosen::ISession>(iSession), identityToken, isModuleAbilityHookEnd);
 }
 
 WMError Window::GetAndVerifyWindowTypeForArkUI(uint32_t parentId, const std::string& windowName,

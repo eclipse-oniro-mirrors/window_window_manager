@@ -58,6 +58,7 @@
             OHOS::Rosen::CreateJsWindowPropertiesObject*;
             OHOS::Rosen::CreateRotationChangeInfoObject*;
             OHOS::Rosen::ExtensionWindowAttributeInit*;
+            OHOS::Rosen::WindowPostureModeInit*;
             OHOS::Rosen::FindJsWindowObject*;
             OHOS::Rosen::GetAPI7Ability*;
             OHOS::Rosen::GetMoveConfigurationFromJsValue*;
@@ -403,6 +404,7 @@
             OHOS::Rosen::FRAME_METRICS_MEASURED_CHANGE_CB;
             OHOS::Rosen::FREE_WINDOW_MODE_CHANGE_CB;
             OHOS::Rosen::PARENT_LIFECYCLE_EVENT_CB;
+            OHOS::Rosen::WINDOW_POSTURE_CHANGE_CB;
             OHOS::Rosen::GESTURE_NAVIGATION_ENABLED_CHANGE_CB;
             OHOS::Rosen::JS_SIZE_CHANGE_REASON;
             OHOS::Rosen::JS_TO_NATIVE_ORIENTATION_MAP;

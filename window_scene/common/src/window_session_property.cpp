@@ -19,11 +19,70 @@
 #include "wm_common.h"
 #include "window_helper.h"
 
+#include <nlohmann/json.hpp>
+#include <unordered_set>
+
 namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr uint32_t TOUCH_HOT_AREA_MAX_NUM = 50;
 constexpr uint32_t TRANSITION_ANIMATION_MAP_SIZE_MAX_NUM = 100;
+
+bool IsValidPiPTemplateType(uint32_t type)
+{
+    return type < static_cast<uint32_t>(PiPTemplateType::END);
+}
+
+bool IsValidPiPMultiConfig(const PiPMultiConfig& config)
+{
+    if (config.groups.empty()) {
+        return false;
+    }
+    std::unordered_set<uint32_t> allTypes;
+    for (const auto& group : config.groups) {
+        if (group.maxCount < 1 || group.types.empty()) {
+            return false;
+        }
+        for (auto type : group.types) {
+            auto typeValue = static_cast<uint32_t>(type);
+            if (!IsValidPiPTemplateType(typeValue)) {
+                return false;
+            }
+            if (!allTypes.insert(typeValue).second) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+PiPMultiConfig ParsePiPMultiConfig(const std::string& itemValue)
+{
+    PiPMultiConfig config;
+    if (itemValue.empty()) {
+        return config;
+    }
+    nlohmann::json root = nlohmann::json::parse(itemValue, nullptr, false);
+    if (root.is_discarded() || !root.contains("groups") || !root["groups"].is_array()) {
+        return config;
+    }
+    std::vector<PiPGroupConfig> groups;
+    for (auto& group : root["groups"]) {
+        PiPGroupConfig groupConfig;
+        groupConfig.groupId = group.value("groupId", 0u);
+        groupConfig.maxCount = group.value("maxCount", 1u);
+        if (group.contains("types") && group["types"].is_array()) {
+            for (auto& type : group["types"]) {
+                groupConfig.types.push_back(static_cast<PiPTemplateType>(type.get<uint32_t>()));
+            }
+        }
+        groups.push_back(groupConfig);
+    }
+    if (!groups.empty()) {
+        config.groups = std::move(groups);
+    }
+    return config;
+}
 }
 
 const std::map<uint64_t, HandlWritePropertyFunc> WindowSessionProperty::writeFuncMap_ {
@@ -283,11 +342,6 @@ void WindowSessionProperty::SetUserRequestedOrientation(Orientation orientation)
     userRequestedOrientation_ = orientation;
 }
 
-void WindowSessionProperty::SetIsSpecificSessionRequestOrientation(bool isSpecificSessionRequestOrientation)
-{
-    isSpecificSessionRequestOrientation_ = isSpecificSessionRequestOrientation;
-}
-
 void WindowSessionProperty::SetPrivacyMode(bool isPrivate)
 {
     isPrivacyMode_ = isPrivate;
@@ -441,11 +495,6 @@ Orientation WindowSessionProperty::GetDefaultRequestedOrientation() const
 Orientation WindowSessionProperty::GetUserRequestedOrientation() const
 {
     return userRequestedOrientation_;
-}
-
-bool WindowSessionProperty::GetIsSpecificSessionRequestOrientation() const
-{
-    return isSpecificSessionRequestOrientation_;
 }
 
 bool WindowSessionProperty::GetPrivacyMode() const
@@ -806,9 +855,11 @@ bool WindowSessionProperty::IsDecorEnable()
 
 void WindowSessionProperty::SetWindowModeSupportType(uint32_t windowModeSupportType)
 {
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, old:%{public}u, new:%{public}u",
-        persistentId_, windowModeSupportType_, windowModeSupportType);
-    windowModeSupportType_ = windowModeSupportType;
+    if (windowModeSupportType_ != windowModeSupportType) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, old:%{public}u, new:%{public}u",
+            persistentId_, windowModeSupportType_, windowModeSupportType);
+        windowModeSupportType_ = windowModeSupportType;
+    }
 }
 
 uint32_t WindowSessionProperty::GetWindowModeSupportType() const
@@ -820,6 +871,10 @@ void WindowSessionProperty::SetSupportedWindowModes(
     const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes)
 {
     std::lock_guard<std::mutex> lock(supportWindowModesMutex_);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}d, old:%{public}u, new:%{public}u",
+        persistentId_,
+        WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes_),
+        WindowHelper::ConvertSupportModesToSupportType(supportedWindowModes));
     supportedWindowModes_ = supportedWindowModes;
 }
 
@@ -1615,7 +1670,6 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteUint32(static_cast<uint32_t>(requestedOrientation_)) &&
         parcel.WriteBool(needRotateAnimation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(userRequestedOrientation_)) &&
-        parcel.WriteBool(isSpecificSessionRequestOrientation_) &&
         parcel.WriteUint32(static_cast<uint32_t>(windowMode_)) &&
         parcel.WriteUint32(flags_) && parcel.WriteBool(raiseEnabled_) &&
         parcel.WriteBool(topmost_) && parcel.WriteBool(mainWindowTopmost_) &&
@@ -1719,7 +1773,6 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetMaximizeMode(static_cast<MaximizeMode>(parcel.ReadUint32()));
     property->SetRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()), parcel.ReadBool());
     property->SetUserRequestedOrientation(static_cast<Orientation>(parcel.ReadUint32()));
-    property->SetIsSpecificSessionRequestOrientation(parcel.ReadBool());
     property->SetWindowMode(static_cast<WindowMode>(parcel.ReadUint32()));
     property->SetWindowFlags(parcel.ReadUint32());
     property->SetRaiseEnabled(parcel.ReadBool());
@@ -1931,6 +1984,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
+    SetWidthHookRatio(property->GetHookWindowInfo().widthHookRatio);
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
@@ -2811,6 +2865,18 @@ void WindowSessionProperty::SetWidthHookRatio(float ratio)
     hookWindowInfo_.widthHookRatio = ratio;
 }
 
+void WindowSessionProperty::SetSelectMode(SelectMode selectMode)
+{
+    std::lock_guard<std::mutex> lock(selectModeMutex_);
+    selectMode_ = selectMode;
+}
+
+SelectMode WindowSessionProperty::GetSelectMode() const
+{
+    std::lock_guard<std::mutex> lock(selectModeMutex_);
+    return selectMode_;
+}
+
 bool WindowSessionProperty::GetPcAppInpadCompatibleMode() const
 {
     return isPcAppInpadCompatibleMode_;
@@ -3129,6 +3195,16 @@ bool WindowSessionProperty::GetIsShowDecorInFreeMultiWindow() const
     return isShowDecorInFreeMultiWindow_;
 }
 
+void WindowSessionProperty::SetIsNeedUpdateShowDecor(bool isNeed)
+{
+    isNeedUpdateShowDecor_ = isNeed;
+}
+
+bool WindowSessionProperty::GetIsNeedUpdateShowDecor() const
+{
+    return isNeedUpdateShowDecor_;
+}
+
 void WindowSessionProperty::SetAspectRatio(float ratio)
 {
     aspectRatio_ = ratio;
@@ -3152,6 +3228,17 @@ int32_t WindowSessionProperty::GetStatusBarHeightInImmersive() const
 void SystemSessionConfig::ConvertSupportUIExtensionSubWindow(const std::string& itemValue)
 {
     supportUIExtensionSubWindow_ = StringUtil::ConvertStringToBool(itemValue);
+}
+
+void SystemSessionConfig::ConvertPipMultiConfig(const std::string& itemValue)
+{
+    PiPMultiConfig config = ParsePiPMultiConfig(itemValue);
+    if (!IsValidPiPMultiConfig(config)) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipMultiConfig parse failed, use default config");
+        pipMultiConfig_ = GetDefaultPiPMultiConfig();
+        return;
+    }
+    pipMultiConfig_ = std::move(config);
 }
 
 void SystemSessionConfig::ConvertSupportCreateFloatView(const std::string& itemValue)

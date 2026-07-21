@@ -24,6 +24,7 @@
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
 #include "mock/mock_ibundle_mgr.h"
+#include "parameters.h"
 #include "pointer_event.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
@@ -488,6 +489,10 @@ HWTEST_F(SceneSessionManagerAttributeTest, RecoverScreenWatermarkImage001, TestS
     ASSERT_NE(nullptr, ssm_);
     auto oldScreenWatermarkBundleName = ssm_->screenWatermarkBundleName_;
     auto oldScreenWatermarkPriority = ssm_->screenWatermarkPriority_;
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    EXPECT_EQ(ssm_->RecoverScreenWatermarkImage("", 1), WMError::WM_ERROR_NOT_SYSTEM_APP);
+    MockAccesstokenKit::MockIsSACalling(true);
     ssm_->screenWatermarkBundleName_ = "";
     ssm_->screenWatermarkPriority_ = 0;
     EXPECT_EQ(ssm_->RecoverScreenWatermarkImage("", 1), WMError::WM_OK);
@@ -556,6 +561,10 @@ HWTEST_F(SceneSessionManagerAttributeTest, RecoverProcessWatermark001, TestSize.
     ASSERT_NE(nullptr, ssm_);
     auto ret = ssm_->RecoverProcessWatermark(123, "RecoverProcessWatermarkName");
     EXPECT_EQ(ret, WMError::WM_OK);
+    MockAccesstokenKit::MockIsSACalling(false);
+    ret = ssm_->RecoverProcessWatermark(123, "RecoverProcessWatermarkName");
+    EXPECT_NE(ret, WMError::WM_ERROR_NOT_SYSTEM_APP);
+    MockAccesstokenKit::ChangeMockStateToInit();
 }
 
 /**
@@ -665,6 +674,83 @@ HWTEST_F(SceneSessionManagerAttributeTest, FilterForGetAllWindowLayoutInfo004, T
     EXPECT_EQ(filteredSessions.size(), 0);
     ssm_->sceneSessionMap_.clear();
     ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
+
+/**
+ * @tc.name: ShouldProcessVirtualPixelRatioChange
+ * @tc.desc: ShouldProcessVirtualPixelRatioChange when displayInfo is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ShouldProcessVirtualPixelRatioChange, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto shouldProcess =
+        ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE, nullptr);
+    EXPECT_FALSE(shouldProcess);
+}
+
+/**
+ * @tc.name: ShouldProcessVirtualPixelRatioChange001
+ * @tc.desc: ShouldProcessVirtualPixelRatioChange when rootSceneSession_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ShouldProcessVirtualPixelRatioChange001, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    auto oldRootSceneSession = ssm_->rootSceneSession_;
+    ssm_->rootSceneSession_ = nullptr;
+    auto shouldProcess =
+        ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE, displayInfo);
+    EXPECT_FALSE(shouldProcess);
+    ssm_->rootSceneSession_ = oldRootSceneSession;
+}
+
+/**
+ * @tc.name: ShouldProcessVirtualPixelRatioChange002
+ * @tc.desc: ShouldProcessVirtualPixelRatioChange when type RESOLUTION_CHANGE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ShouldProcessVirtualPixelRatioChange002, TestSize.Level1)
+{
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    constexpr float virtualPixelRatio = 2.0f;
+    displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
+    displayInfo->SetDensityInCurResolution(virtualPixelRatio);
+
+    ProcessVirtualPixelRatioChangeFunc func = [](float ratio, const OHOS::Rosen::Rect& rect) {};
+    ssm_->SetVirtualPixelRatioChangeListener(func);
+
+    ASSERT_NE(nullptr, ssm_);
+    auto shouldProcess =
+        ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::RESOLUTION_CHANGE, displayInfo);
+    EXPECT_TRUE(shouldProcess);
+    ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
+}
+
+/**
+ * @tc.name: ShouldProcessVirtualPixelRatioChange003
+ * @tc.desc: ShouldProcessVirtualPixelRatioChange when type VIRTUAL_PIXEL_RATIO_CHANGE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ShouldProcessVirtualPixelRatioChange003, TestSize.Level1)
+{
+    DisplayId defaultDisplayId = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    constexpr float virtualPixelRatio = 2.0f;
+    displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
+    displayInfo->SetDensityInCurResolution(virtualPixelRatio);
+    displayInfo->SetDisplayId(defaultDisplayId);
+    system::SetParameter("const.product.has_buildin_screen", "0");
+
+    ProcessVirtualPixelRatioChangeFunc func = [](float ratio, const OHOS::Rosen::Rect& rect) {};
+    ssm_->SetVirtualPixelRatioChangeListener(func);
+
+    ASSERT_NE(nullptr, ssm_);
+    auto shouldProcess =
+        ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE, displayInfo);
+    EXPECT_TRUE(shouldProcess);
+    ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
 }
 } // namespace
 } // namespace Rosen

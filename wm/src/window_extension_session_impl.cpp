@@ -54,6 +54,7 @@ constexpr int64_t DISPATCH_KEY_EVENT_TIMEOUT_TIME_MS = 1000;
 #endif // IMF_ENABLE
 constexpr int32_t UIEXTENTION_ROTATION_ANIMATION_TIME = 400;
 constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
+constexpr uint64_t INVALID_NODE_ID = 0;
 }
 
 #define CHECK_HOST_SESSION_RETURN_IF_NULL(hostSession)                         \
@@ -73,8 +74,7 @@ constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
     } while (false)
 
 WindowExtensionSessionImpl::WindowExtensionSessionImpl(
-    const sptr<WindowOption>& option, sptr<IRemoteObject> renderSession)
-    : WindowSessionImpl(option, nullptr, renderSession)
+    const sptr<WindowOption>& option) : WindowSessionImpl(option, nullptr)
 {
     if (property_->GetUIExtensionUsage() == UIExtensionUsage::MODAL ||
         SessionHelper::IsSecureUIExtension(property_->GetUIExtensionUsage())) {
@@ -171,13 +171,13 @@ void WindowExtensionSessionImpl::AddExtensionWindowStageToSCB(bool isConstrained
         TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
         return;
     }
-    if (surfaceNode_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "surfaceNode_ is nullptr");
+    if (nodeId_ == INVALID_NODE_ID) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "nodeId_ is invalid");
         return;
     }
 
     SingletonContainer::Get<WindowAdapter>().AddExtensionWindowStageToSCB(sptr<ISessionStage>(this), abilityToken_,
-        surfaceNode_->GetId(), startModalExtensionTimeStamp_, isConstrainedModal);
+        nodeId_, startModalExtensionTimeStamp_, isConstrainedModal);
 }
 
 void WindowExtensionSessionImpl::RemoveExtensionWindowStageFromSCB(bool isConstrainedModal)
@@ -1059,20 +1059,25 @@ void WindowExtensionSessionImpl::UpdateRectForRotation(const Rect& wmRect, const
             rsTransaction->Begin();
         }
         window->rotationAnimationCount_++;
+        auto rotationAnimationCallBackExecuted = std::make_shared<std::atomic_bool>(false);
+        auto handler = window->handler_;
         RSAnimationTimingProtocol protocol;
         protocol.SetDuration(duration);
         // animation curve: cubic [0.2, 0.0, 0.2, 1.0]
         auto curve = RSAnimationTimingCurve::CreateCubicCurve(0.2, 0.0, 0.2, 1.0);
-        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak]() {
+        RSNode::OpenImplicitAnimation(rsUIContext, protocol, curve, [weak, rotationAnimationCallBackExecuted]() {
             auto window = weak.promote();
             if (!window) {
                 return;
             }
+            rotationAnimationCallBackExecuted->store(true);
             window->rotationAnimationCount_--;
             if (window->rotationAnimationCount_ == 0) {
                 window->NotifyRotationAnimationEnd();
             }
         });
+        // Delayed task to compensate if callback fails
+        window->StartRotationAnimationTimeoutTask(handler, rotationAnimationCallBackExecuted);
         if (wmRect != preRect) {
             window->NotifySizeChange(wmRect, wmReason);
         }

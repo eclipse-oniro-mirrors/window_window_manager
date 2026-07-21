@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include "window_manager_hilog.h"
 #include "screenshot_info.h"
 
 namespace OHOS::Rosen {
@@ -26,12 +25,10 @@ ScreenshotInfo *ScreenshotInfo::Unmarshalling(Parcel &parcel)
 {
     ScreenshotInfo *info = new(std::nothrow) ScreenshotInfo();
     if (info == nullptr) {
-        TLOGE(WmsLogTag::DMS, "failed to allocate memory");
         return nullptr;
     }
     bool res = parcel.ReadString(info->trigger_) && parcel.ReadUint64(info->displayId_);
     if (!res) {
-        TLOGE(WmsLogTag::DMS, "failed to read data from parcel");
         delete info;
         return nullptr;
     }

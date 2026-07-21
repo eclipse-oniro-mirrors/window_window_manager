@@ -3499,19 +3499,6 @@ HWTEST_F(ScreenSessionManagerStubTest, ProcSetPrimaryDisplaySystemDpi, Function 
 }
 
 /**
- * @tc.name: GetIPCPriority
- * @tc.desc: normal function
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerStubTest, GetIPCPriorityTest, TestSize.Level1)
-{
-    IPCPriority IPCPriority = stub_->GetIPCPriority(0);
-    EXPECT_EQ(IPCPriority, IPCPriority::VIP);
-    IPCPriority = stub_->GetIPCPriority(1000);
-    EXPECT_EQ(IPCPriority, IPCPriority::LOW);
-}
-
-/**
  * @tc.name: GetPhysicalScreenIds
  * @tc.desc: normal function, GetPhysicalScreenIds test
  * @tc.type: FUNC
@@ -3929,6 +3916,24 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_GetScreenCapability, Test
     EXPECT_EQ(res, ERR_NONE);
     DMError ret = static_cast<DMError>(reply.ReadInt32());
     EXPECT_EQ(ret, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_NotifyBootAnimationFinished
+ * @tc.desc: TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED normal test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequest_NotifyBootAnimationFinished, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
 }
 
 /**

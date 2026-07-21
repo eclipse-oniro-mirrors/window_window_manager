@@ -123,6 +123,10 @@ class IWindowTitleButtonRectChangedListener : virtual public RefBase {
 };
 class IWindowVisibilityChangedListener : virtual public RefBase {
 };
+class IWindowHoverStateChangeListener : virtual public RefBase {
+public:
+    virtual void OnWindowHoverStateChange(bool hoverState) {}
+};
 
 using WindowVisibilityListenerSptr = sptr<IWindowVisibilityChangedListener>;
 
@@ -312,9 +316,7 @@ public:
     virtual WMError SetShadowOffsetX(float offsetX) = 0;
     virtual WMError SetShadowOffsetY(float offsetY) = 0;
     virtual WMError SyncShadowsToComponent(const ShadowsInfo& shadowsInfo)
-    {
-        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
-    }
+        { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetBlur(float radius) = 0;
     virtual WMError SetBackdropBlur(float radius) = 0;
     virtual WMError SetBackdropBlurStyle(WindowBlurStyle blurStyle) = 0;
@@ -397,6 +399,20 @@ public:
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     virtual void NotifyPreferredOrientationChange(Orientation orientation) = 0;
+    virtual bool GetWindowHoverState()
+    {
+        return false;
+    }
+    virtual WMError RegisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+    virtual WMError UnregisterWindowHoverStateChangeListener(
+        const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
     virtual void SetUserRequestedOrientation(Orientation orientation) = 0;
     virtual Orientation GetRequestedOrientation() = 0;
     virtual WMError ConvertOrientationAndRotation(const RotationInfoType from, const RotationInfoType to,
@@ -469,6 +485,7 @@ public:
         std::shared_ptr<Media::PixelMap>& pixelMap) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SnapshotIgnorePrivacy(std::shared_ptr<Media::PixelMap>& pixelMap) = 0;
     virtual WMError NotifyMemoryLevel(int32_t level) = 0;
+    virtual void NotifyWindowStageCreateFinished() {}
     virtual bool IsAllowHaveSystemSubWindow() = 0;
     virtual WMError SetAspectRatio(float ratio) = 0;
 
@@ -692,7 +709,7 @@ public:
     /**
      * @brief Clear the window mask of window.
      *
-     * @return WM_OK means set success, others means failed.
+     * @return WM_OK means clear success, others means failed.
      */
     virtual WMError ClearWindowMask()
     {

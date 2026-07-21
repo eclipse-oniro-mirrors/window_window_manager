@@ -942,6 +942,37 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowEffect08, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConfigWindowEffect09
+ * @tc.desc: call ConfigWindowEffect radius.size is not 1
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigWindowEffect09, TestSize.Level1)
+{
+    std::string xmlStr = "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+            "<windowEffect>"
+                "<appWindows>"
+                
+                "</appWindows>"
+            "</windowEffect>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    const auto& config = WindowSceneConfig::GetConfig();
+    WindowSceneConfig::ConfigItem item = config["windowEffect"];
+    ssm_->ConfigWindowEffect(item, ssm_->appWindowSceneConfig_);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.radius_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.alpha_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.offsetX_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.offsetY_, 0);
+    EXPECT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.color_, "#00000000");
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.radius_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.alpha_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetX_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetY_, 0);
+    EXPECT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.color_, "#00000000");
+}
+
+/**
  * @tc.name: ConfigDecor
  * @tc.desc: call ConfigDecor fullscreen
  * @tc.type: FUNC
@@ -2002,6 +2033,63 @@ HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest, TestSize.Level
 }
 
 /**
+ * @tc.name: LoadFreeMultiWindowConfigTest02
+ * @tc.desc: call LoadFreeMultiWindowConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, LoadFreeMultiWindowConfigTest02, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowConfig_.defaultDragResizeType_ = DragResizeType::RESIZE_TYPE_UNDEFINED;
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<windowEffect>"
+        "<appWindows>"
+        "</appWindows>"
+        "</windowEffect>"
+        "<freeMultiWindow enable=\"true\">"
+        "<windowEffect>"
+        "<appWindows>"
+        "<shadow>"
+        "<focused>"
+        "<elevation>0</elevation>"
+        "<color>#F0900CE2</color>"
+        "<alpha>0</alpha>"
+        "<offsetX>3</offsetX>"
+        "<offsetY>3</offsetY>"
+        "<radius>0.5</radius>"
+        "</focused>"
+        "<unfocused>"
+        "<elevation>0</elevation>"
+        "<color>#F0E2BE0C</color>"
+        "<offsetX>3</offsetX>"
+        "<offsetY>3</offsetY>"
+        "<alpha>0</alpha>"
+        "<radius>0.5</radius>"
+        "</unfocused>"
+        "</shadow>"
+        "</appWindows>"
+        "</windowEffect>"
+        "</freeMultiWindow>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigFreeMultiWindow();
+    ASSERT_EQ(ssm_->systemConfig_.freeMultiWindowSupport_, true);
+    // load windowEffect
+    ssm_->LoadFreeMultiWindowConfig(false);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.alpha_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.offsetX_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.offsetY_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.radius_, 0);
+    EXPECT_EQ(ssm_->appWindowSceneConfig_.focusedShadow_.color_, "#00000000");
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.radius_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.alpha_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetX_, 0);
+    ASSERT_FLOAT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.offsetY_, 0);
+    EXPECT_EQ(ssm_->appWindowSceneConfig_.unfocusedShadow_.color_, "#00000000");
+}
+
+/**
  * @tc.name: ConfigSingleHandBackgroundLayout01
  * @tc.desc: call ConfigSingleHandBackgroundLayout
  * @tc.type: FUNC
@@ -2028,6 +2116,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
                     "<minFontSize>12</minFontSize>"
                     "<maxLines>1</maxLines>"
                     "<textAlign>0</textAlign>"
+                    "<marginBottom>10</marginBottom>"
                     "<maxFontScale>default:1.15,fr:1.0</maxFontScale>"
                 "</singleHandBackgroundTitle>"
                 "<singleHandBackgroundContent>"
@@ -2039,6 +2128,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
                     "<minFontSize>12</minFontSize>"
                     "<maxLines>2</maxLines>"
                     "<textAlign>0</textAlign>"
+                    "<marginBottom>10</marginBottom>"
                     "<maxFontScale>default:1.15,es:1.0</maxFontScale>"
                 "</singleHandBackgroundContent>"
                 "<singleHandBackgroundIssueText>"
@@ -2050,6 +2140,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
                     "<minFontSize>12</minFontSize>"
                     "<maxLines>1</maxLines>"
                     "<textAlign>0</textAlign>"
+                    "<marginBottom>10</marginBottom>"
                     "<maxFontScale>default:1.0,zh-Hans:1.45</maxFontScale>"
                 "</singleHandBackgroundIssueText>"
             "</singleHandBackgroundLayout>"
@@ -2071,6 +2162,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.minFontSize, 12);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.maxLines, 1);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.textAlign, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.marginBottom, 10);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.title.maxFontScale, "default:1.15,fr:1.0");
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.posX, 0);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.posY, 39);
@@ -2080,6 +2172,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.minFontSize, 12);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.maxLines, 2);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.textAlign, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.marginBottom, 10);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.content.maxFontScale, "default:1.15,es:1.0");
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.posX, 0);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.posY, 31);
@@ -2089,6 +2182,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout01, TestSize.
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 12);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 1);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.textAlign, 0);
+    ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.marginBottom, 10);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
 }
 
@@ -2120,6 +2214,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout02, TestSize.
                     "<minFontSize>12.3</minFontSize>"
                     "<maxLines>2.6</maxLines>"
                     "<textAlign>2.5</textAlign>"
+                    "<marginBottom>10.5</marginBottom>"
                 "</singleHandBackgroundContent>"
                 "<singleHandBackgroundIssueText>"
                     "<posX>5 5</posX>"
@@ -2130,6 +2225,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout02, TestSize.
                     "<minFontSize>15 15</minFontSize>"
                     "<maxLines>3 3</maxLines>"
                     "<textAlign>2 2</textAlign>"
+                    "<marginBottom>11 11</marginBottom>"
                     "<maxFontScale>default:1.0,zh-Hans:1.45</maxFontScale>"
                 "</singleHandBackgroundIssueText>"
             "</singleHandBackgroundLayout>"
@@ -2151,6 +2247,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout02, TestSize.
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.minFontSize, 12.3);
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.maxLines, 2.6);
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.textAlign, 2.5);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.marginBottom, 10.5);
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.content.maxFontScale, "1");
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.posX, 5);
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.posY, 35);
@@ -2160,6 +2257,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSingleHandBackgroundLayout02, TestSize.
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.minFontSize, 15);
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxLines, 3);
     ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.textAlign, 2);
+    ASSERT_NE(ssm_->singleHandBackgroundLayoutConfig_.issueText.marginBottom, 11);
     ASSERT_EQ(ssm_->singleHandBackgroundLayoutConfig_.issueText.maxFontScale, "default:1.0,zh-Hans:1.45");
 }
 
@@ -3093,18 +3191,15 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSystemUIStatusBar02, TestSize.Level1)
 }
 
 /**
- * @tc.name: ClosePipWindowIfExist
- * @tc.desc: ClosePipWindowIfExist
+ * @tc.name: IsEnablePiPCreatePipWindowMode
+ * @tc.desc: IsEnablePiPCreate when window mode is PiP
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerTest2, ClosePipWindowIfExist, TestSize.Level1)
+HWTEST_F(SceneSessionManagerTest2, IsEnablePiPCreatePipWindowMode, TestSize.Level1)
 {
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
-    ssm_->ClosePipWindowIfExist(WindowType::WINDOW_TYPE_PIP);
 
-    SessionInfo info;
-    info.sessionState_ = { 1 };
     Rect reqRect = { 0, 0, 10, 10 };
     property->SetRequestRect(reqRect);
     property->SetWindowMode(WindowMode::WINDOW_MODE_PIP);

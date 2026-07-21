@@ -16,6 +16,7 @@
 #include "web_picture_in_picture_controller_interface.h"
 
 #include "native_pip_window_listener.h"
+#include "picture_in_picture_manager.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS {
@@ -47,11 +48,13 @@ namespace {
         PiPControlGroup::VIDEO_PLAY_PAUSE,
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
+    const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
     };
 }
 
@@ -127,8 +130,8 @@ WMError WebPictureInPictureControllerInterface::Create(const PiPConfig& pipConfi
 WMError WebPictureInPictureControllerInterface::StartPip(uint32_t controllerId)
 {
     if (auto pipController = sptrWebPipController_) {
-        sptrWebPipController_->SetControllerId(controllerId);
-        auto res = sptrWebPipController_->StartPictureInPicture(StartPipType::NATIVE_START);
+        pipController->SetControllerId(controllerId);
+        auto res = pipController->StartPictureInPicture(StartPipType::NATIVE_START);
         if (res == WMError::WM_OK) {
             isStarted_ = true;
         }
@@ -700,5 +703,15 @@ WMError WebPictureInPictureControllerInterface::ProcessPipStartUnregister(
     return WMError::WM_ERROR_INVALID_PARAM;
 }
 
+WMError WebPictureInPictureControllerInterface::SetPipAutoStartEnabled(bool enabled)
+{
+    if (auto pipController = sptrWebPipController_) {
+        pipController->SetAutoStartEnabled(enabled);
+        return WMError::WM_OK;
+    } else {
+        TLOGE(WmsLogTag::WMS_PIP, "webPipController is nullptr");
+        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+    }
+}
 } // namespace Rosen
 } // namespace OHOS

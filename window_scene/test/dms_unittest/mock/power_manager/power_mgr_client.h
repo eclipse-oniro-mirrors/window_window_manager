@@ -74,6 +74,29 @@ enum class WakeupDeviceType : uint32_t {
     WAKEUP_DEVICE_MAX
 };
 
+enum class SuspendDeviceType : uint32_t {
+    SUSPEND_DEVICE_REASON_MIN = 0,
+    SUSPEND_DEVICE_REASON_APPLICATION = SUSPEND_DEVICE_REASON_MIN,
+    SUSPEND_DEVICE_REASON_DEVICE_ADMIN = 1,
+    SUSPEND_DEVICE_REASON_TIMEOUT = 2,
+    SUSPEND_DEVICE_REASON_LID = 3,
+    SUSPEND_DEVICE_REASON_POWER_KEY = 4,
+    SUSPEND_DEVICE_REASON_HDMI = 5,
+    SUSPEND_DEVICE_REASON_SLEEP_KEY = 6,
+    SUSPEND_DEVICE_REASON_ACCESSIBILITY = 7,
+    SUSPEND_DEVICE_REASON_FORCE_SUSPEND = 8,
+    SUSPEND_DEVICE_REASON_STR = 9,
+    SUSPEND_DEVICE_REASON_SWITCH = 10,
+    SUSPEND_DEVICE_LOW_CAPACITY = 11,
+    SUSPEND_DEVICE_REASON_TP_COVER = 12,
+    SUSPEND_DEVICE_REASON_EX_SCREEN_INIT = 13,
+    SUSPEND_DEVICE_SWITCH_SENSORHUB = 14,
+    SUSPEND_DEVICE_ROLLBACK_HIBERNATE = 15,
+    SUSPEND_DEVICE_START_DREAM = 16,
+    SUSPEND_DEVICE_REASON_PEOPLE_LEAVING = 17,
+    SUSPEND_DEVICE_REASON_MAX
+};
+
 class PowerMgrClient final {
 public:
     static PowerMgrClient& GetInstance()
@@ -92,6 +115,13 @@ public:
                            const std::string& detail = std::string("app call"))
     {
     }
+
+    PowerErrors SuspendDevice(SuspendDeviceType reason = SuspendDeviceType::SUSPEND_DEVICE_REASON_APPLICATION,
+        bool suspendImmed = false, const std::string& apiVersion = "-1")
+    {
+        return PowerErrors::ERR_OK;
+    }
+
     bool RefreshActivity()
     {
         return true;

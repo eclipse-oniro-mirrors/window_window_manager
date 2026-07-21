@@ -283,7 +283,7 @@ WMError WindowManagerProxy::GetWindowStateSnapshot(int32_t persistentId, std::st
 }
 
 WMError WindowManagerProxy::RegisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -295,6 +295,11 @@ WMError WindowManagerProxy::RegisterWindowManagerAgent(WindowManagerAgentType ty
 
     if (!data.WriteUint32(static_cast<uint32_t>(type))) {
         WLOGFE("Write type failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        WLOGFE("Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -318,7 +323,7 @@ WMError WindowManagerProxy::RegisterWindowManagerAgent(WindowManagerAgentType ty
 }
 
 WMError WindowManagerProxy::UnregisterWindowManagerAgent(WindowManagerAgentType type,
-    const sptr<IWindowManagerAgent>& windowManagerAgent)
+    const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -330,6 +335,11 @@ WMError WindowManagerProxy::UnregisterWindowManagerAgent(WindowManagerAgentType 
 
     if (!data.WriteUint32(static_cast<uint32_t>(type))) {
         WLOGFE("Write type failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        WLOGFE("Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 

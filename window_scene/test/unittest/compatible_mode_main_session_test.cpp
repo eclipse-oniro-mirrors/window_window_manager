@@ -19,6 +19,7 @@
 #include "session_manager/include/scene_session_manager.h"
 #include "wm_common.h"
 #include "window_manager_hilog.h"
+#include "mock/mock_session_stage.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -115,6 +116,132 @@ HWTEST_F(CompatibleModeMainSessionTest, NotifyCompatibleModeChangeWithNotNullCal
     auto ret = session->NotifyCompatibleModeChange(CompatibleStyleMode::LANDSCAPE_DEFAULT);
     ASSERT_EQ(ret, WSError::WS_OK);
     GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithNotNullCallback test end";
+}
+
+/**
+ * @tc.name: UpdateAppHookWindowInfo01
+ * @tc.desc: UpdateAppHookWindowInfo with valid sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, UpdateAppHookWindowInfo01, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo01 test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    session->sessionStage_ = sessionStage;
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    EXPECT_CALL(*sessionStage, UpdateAppHookWindowInfo(_)).WillOnce(Return(WSError::WS_OK));
+    WSError ret = session->UpdateAppHookWindowInfo(hookWindowInfo);
+    usleep(WAIT_SYNC_IN_NS);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo01 test end";
+}
+
+/**
+ * @tc.name: UpdateAppHookWindowInfo02
+ * @tc.desc: UpdateAppHookWindowInfo with null sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, UpdateAppHookWindowInfo02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo02 test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    WSError ret = session->UpdateAppHookWindowInfo(hookWindowInfo);
+    usleep(WAIT_SYNC_IN_NS);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo02 test end";
+}
+
+/**
+ * @tc.name: UpdateAppHookWindowInfo03
+ * @tc.desc: UpdateAppHookWindowInfo with default HookWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, UpdateAppHookWindowInfo03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo03 test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    session->sessionStage_ = sessionStage;
+    HookWindowInfo hookWindowInfo = {};
+    EXPECT_CALL(*sessionStage, UpdateAppHookWindowInfo(_)).WillOnce(Return(WSError::WS_OK));
+    WSError ret = session->UpdateAppHookWindowInfo(hookWindowInfo);
+    usleep(WAIT_SYNC_IN_NS);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo03 test end";
+}
+
+/**
+ * @tc.name: UpdateAppHookWindowInfo04
+ * @tc.desc: UpdateAppHookWindowInfo with enableHookWindow false
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, UpdateAppHookWindowInfo04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo04 test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    session->sessionStage_ = sessionStage;
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = false;
+    hookWindowInfo.widthHookRatio = 0.0f;
+    EXPECT_CALL(*sessionStage, UpdateAppHookWindowInfo(_)).WillOnce(Return(WSError::WS_OK));
+    WSError ret = session->UpdateAppHookWindowInfo(hookWindowInfo);
+    usleep(WAIT_SYNC_IN_NS);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo04 test end";
+}
+
+/**
+ * @tc.name: NotifyCompatibleModeChangeWithVerticalFullScreen
+ * @tc.desc: NotifyCompatibleModeChange with LANDSCAPE_VERTICAL_FULL_SCALE
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, NotifyCompatibleModeChangeWithVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    CompatibleStyleMode receivedMode = CompatibleStyleMode::INVALID_VALUE;
+    session->RegisterCompatibleModeChangeCallback([&receivedMode](CompatibleStyleMode mode) {
+        receivedMode = mode;
+    });
+    auto ret = session->NotifyCompatibleModeChange(CompatibleStyleMode::LANDSCAPE_VERTICAL_FULL_SCALE);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(receivedMode, CompatibleStyleMode::LANDSCAPE_VERTICAL_FULL_SCALE);
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test end";
 }
 } // namespace
 } // namespace Rosen

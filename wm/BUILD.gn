@@ -157,6 +157,10 @@ ohos_static_library("libwm_static") {
     "napi:ace_napi",
     "samgr:samgr_proxy",
     "common_event_service:cesfwk_innerkits",
+    "egl:libEGL",
+    "opengles:libGLES",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines = []
@@ -325,6 +329,10 @@ ohos_shared_library("libwm") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "egl:libEGL",
+    "opengles:libGLES",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines = []
@@ -386,6 +394,14 @@ ohos_shared_library("libwm") {
 
 ## Build libwm_lite.so
 ohos_shared_library("libwm_lite") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
   defines = [ "USE_ADAPTER_LITE" ]
   include_dirs = [
     "../interfaces/innerkits/wm",
@@ -601,6 +617,8 @@ ohos_shared_library("libpip_web") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
@@ -682,6 +700,8 @@ ohos_shared_library("libpip_ndk") {
     "ipc:ipc_single",
     "napi:ace_napi",
     "samgr:samgr_proxy",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"

@@ -179,15 +179,88 @@ HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig, TestSize.Level1)
     AppForceLandscapeConfig config = {};
     window_->SetForceSplitConfig(config);
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
-    config.hasChanged_ = false;
-    window_->SetForceSplitConfig(config);
-    config.hasChanged_ = true;
     window_->SetForceSplitConfig(config);
     config.containsConfig_ = true;
     window_->SetForceSplitConfig(config);
     EXPECT_TRUE(logMsg.find("uiContent is null!") != std::string::npos);
     LOG_SetCallback(nullptr);
     GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig02
+ * @tc.desc: SetForceSplitConfig with containsConfig true and isRouter true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig02, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig02 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig02");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "{\"split\": \"half\"}";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig02 end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig03
+ * @tc.desc: SetForceSplitConfig with containsConfig true and isRouter false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig03, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig03 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig03");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "{\"mode\": \"default\"}";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig03 end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig04
+ * @tc.desc: SetForceSplitConfig with containsConfig false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig04, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig04 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig04");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = false;
+    config.isRouter_ = false;
+    config.configJsonStr_ = "";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig04 end";
+}
+
+/**
+ * @tc.name: SetForceSplitConfig05
+ * @tc.desc: SetForceSplitConfig with containsConfig true and empty configJsonStr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetForceSplitConfig05, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig05 start";
+    window_ = GetTestWindowImpl("SetForceSplitConfig05");
+    ASSERT_NE(window_, nullptr);
+    window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    AppForceLandscapeConfig config;
+    config.containsConfig_ = true;
+    config.isRouter_ = true;
+    config.configJsonStr_ = "";
+    window_->SetForceSplitConfig(config);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest3: SetForceSplitConfig05 end";
 }
 
 /**
@@ -1135,143 +1208,6 @@ HWTEST_F(WindowSessionImplTest3, IsAppWindow, TestSize.Level1)
     window->property_->SetWindowType(WindowType::APP_WINDOW_BASE);
     bool res = window->IsAppWindow();
     ASSERT_EQ(res, true);
-}
-
-/**
- * @tc.name: SetMouseEventFilter
- * @tc.desc: SetMouseEventFilter
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, SetMouseEventFilter, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetMouseEventFilter");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-    WMError res = window->SetMouseEventFilter([](const OHOS::MMI::PointerEvent& event) {
-        return true;
-    });
-    ASSERT_EQ(res, WMError::WM_OK);
-}
-
-/**
- * @tc.name: ClearMouseEventFilter
- * @tc.desc: ClearMouseEventFilter
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, ClearMouseEventFilter, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("ClearMouseEventFilter");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-    WMError res = window->ClearMouseEventFilter();
-    ASSERT_EQ(res, WMError::WM_OK);
-}
-
-/**
- * @tc.name: SetTouchEventFilter
- * @tc.desc: SetTouchEventFilter
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, SetTouchEventFilter, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetTouchEventFilter");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-    WMError res = window->SetTouchEventFilter([](const OHOS::MMI::PointerEvent& event) {
-        return true;
-    });
-    ASSERT_EQ(res, WMError::WM_OK);
-}
-
-/**
- * @tc.name: ClearTouchEventFilter
- * @tc.desc: ClearTouchEventFilter
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, ClearTouchEventFilter, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("ClearTouchEventFilter");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-    WMError res = window->ClearTouchEventFilter();
-    ASSERT_EQ(res, WMError::WM_OK);
-}
-
-/**
- * @tc.name: FilterPointerEvent
- * @tc.desc: FilterPointerEvent
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, FilterPointerEvent, TestSize.Level1)
-{
-    logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("FilterPointerEvent");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-
-    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
-    pointerEvent->SetSourceType(OHOS::MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN);
-    pointerEvent->SetPointerAction(OHOS::MMI::PointerEvent::POINTER_ACTION_MOVE);
-    window->touchEventFilter_ = nullptr;
-    auto ret = window->FilterPointerEvent(pointerEvent);
-    ASSERT_EQ(false, ret);
-
-    window->SetTouchEventFilter([](const OHOS::MMI::PointerEvent& event) {
-        return true;
-    });
-    ret = window->FilterPointerEvent(pointerEvent);
-    ASSERT_EQ(true, ret);
-
-    pointerEvent->SetPointerAction(OHOS::MMI::PointerEvent::POINTER_ACTION_MOVE);
-    EXPECT_TRUE(logMsg.find("id") != std::string::npos);
-    logMsg.clear();
-    LOG_SetCallback(nullptr);
-}
-
-/**
- * @tc.name: FilterPointerEvent01
- * @tc.desc: FilterPointerEvent
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest3, FilterPointerEvent01, TestSize.Level1)
-{
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("FilterPointerEvent01");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-
-    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
-    pointerEvent->SetSourceType(OHOS::MMI::PointerEvent::SOURCE_TYPE_MOUSE);
-    pointerEvent->SetPointerAction(OHOS::MMI::PointerEvent::POINTER_ACTION_BUTTON_UP);
-    window->mouseEventFilter_ = nullptr;
-    auto ret = window->FilterPointerEvent(pointerEvent);
-    ASSERT_EQ(false, ret);
-
-    window->SetMouseEventFilter([](const OHOS::MMI::PointerEvent& event) {
-        return true;
-    });
-    ret = window->FilterPointerEvent(pointerEvent);
-    ASSERT_EQ(true, ret);
 }
 
 /**

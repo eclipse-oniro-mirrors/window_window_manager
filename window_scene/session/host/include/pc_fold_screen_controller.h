@@ -59,7 +59,6 @@ public:
     void UnregisterFullScreenWaterfallModeChangeCallback();
     void UpdateSupportEnterWaterfallMode();
     void MaskSupportEnterWaterfallMode();
-    void UpdateSupportEnterWaterfallMode(bool isSupportEnterWaterfallMode);
 
 private:
     int32_t GetPersistentId() const;
@@ -85,6 +84,7 @@ private:
     bool isStartFullScreen_ { false };
     bool isStartWaterfallMode_ { false };
     RectRecordsVector movingRectRecords_;
+    std::chrono::time_point<std::chrono::high_resolution_clock> startMoveTime_;
     ThrowSlipMode startThrowSlipMode_ { ThrowSlipMode::INVALID };
     WSRectF startVelocity_;
     // Above guarded by moveMutex_
@@ -92,7 +92,7 @@ private:
     std::shared_ptr<FoldScreenStatusChangeCallback> onFoldScreenStatusChangeCallback_;
     std::shared_ptr<SystemKeyboardStatusChangeCallback> onSystemKeyboardStatusChangeCallback_;
 
-    /*
+    /**
      * Waterfall Mode
      * accessed on SSM thread
      */

@@ -158,7 +158,6 @@ void InputTransferStation::LoadTouchPredictor()
     if (isTouchPredictorLoaded_) {
         return;
     }
-    TLOGI(WmsLogTag::WMS_EVENT, "in");
     isTouchPredictorLoaded_ = true;
     void* handle = dlopen(TOUCH_PREDICTOR_SO_PATH.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (handle) {
@@ -171,7 +170,6 @@ void InputTransferStation::LoadTouchPredictor()
 
 void InputTransferStation::LoadGameController()
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "in");
     isGameControllerLoaded_ = true;
     void* handle = dlopen(GAME_CONTROLLER_SO_PATH.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (handle) {
@@ -184,6 +182,11 @@ void InputTransferStation::LoadGameController()
 
 void InputTransferStation::AddInputWindow(const sptr<Window>& window)
 {
+    if (IsRegisterToMMI()) {
+        TLOGI(WmsLogTag::WMS_EVENT, "Add input window, already registered to MMI");
+        return;
+    }
+    
     uint32_t windowId = window->GetWindowId();
     TLOGD(WmsLogTag::WMS_EVENT, "Add input window, windowId: %{public}u", windowId);
 

@@ -101,10 +101,15 @@ ani_ref AniFvWindow::OnCreate(ani_env* env, ani_object floatViewConfigurations)
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM,
             "Invalid parameters in config, please check if templateType is null");
     }
-    return CreateFvController(env, contextPtr, templateType);
+    bool isCloseConfirm = false;
+    if (AniFvUtils::GetIsConfirmOnClose(env, floatViewConfigurations, isCloseConfirm) == ANI_ERROR) {
+        return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_INVALID_PARAM,
+            "Invalid parameters in config, please check if isConfirmOnClose is not boolean");
+    }
+    return CreateFvController(env, contextPtr, templateType, isCloseConfirm);
 }
 
-ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t templateType)
+ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t templateType, bool isCloseConfirm)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]start");
 
@@ -135,6 +140,7 @@ ani_ref AniFvWindow::CreateFvController(ani_env* env, void* contextPtr, uint32_t
     FvOption option;
     option.SetContext(contextPtr);
     option.SetTemplate(templateType);
+    option.SetCloseConfirm(isCloseConfirm);
     sptr<FloatViewController> fvController = sptr<FloatViewController>::MakeSptr(option, env);
     fvController->UpdateMainWindow(mainWindow);
     return CreateAniFvControllerObject(env, fvController);

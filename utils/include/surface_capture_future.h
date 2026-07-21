@@ -32,6 +32,7 @@ public:
         hdrPixelMap_ = nullptr;
         FutureCall(pixelmap);
     }
+
     void OnSurfaceCaptureHDR(std::shared_ptr<Media::PixelMap> pixelmap,
         std::shared_ptr<Media::PixelMap> hdrPixelmap) override
     {

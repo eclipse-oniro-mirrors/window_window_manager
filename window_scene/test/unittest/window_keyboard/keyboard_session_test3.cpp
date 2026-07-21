@@ -693,7 +693,7 @@ HWTEST_F(KeyboardSessionTest3, PostKeyboardAnimationSyncTimeoutTask, Function | 
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
     EXPECT_EQ(false, keyboardSession->isKeyboardSyncTransactionOpen_);
 
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->PostKeyboardAnimationSyncTimeoutTask();
     EXPECT_NE(false, keyboardSession->isKeyboardSyncTransactionOpen_);
 }
@@ -706,11 +706,11 @@ HWTEST_F(KeyboardSessionTest3, PostKeyboardAnimationSyncTimeoutTask, Function | 
 HWTEST_F(KeyboardSessionTest3, CloseRSTransaction, Function | SmallTest | Level0)
 {
     auto keyboardSession = GetKeyboardSession("CloseRSTransaction", "CloseRSTransaction");
-    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
     keyboardSession->CloseRSTransaction();
     ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->CloseRSTransaction();
     ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 }
@@ -730,7 +730,7 @@ HWTEST_F(KeyboardSessionTest3, ProcessKeyboardOccupiedAreaInfo, Function | Small
 
     bool needRecalculateAvoidAreas = true;
     bool needCheckRSTransaction = true;
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->ProcessKeyboardOccupiedAreaInfo(0, needRecalculateAvoidAreas, needCheckRSTransaction);
     ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 
@@ -742,18 +742,18 @@ HWTEST_F(KeyboardSessionTest3, ProcessKeyboardOccupiedAreaInfo, Function | Small
         return sceneSession;
     };
 
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     keyboardSession->ProcessKeyboardOccupiedAreaInfo(0, needRecalculateAvoidAreas, needCheckRSTransaction);
     ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);
 
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     needCheckRSTransaction = false;
     keyboardSession->ProcessKeyboardOccupiedAreaInfo(0, needRecalculateAvoidAreas, needCheckRSTransaction);
 
     keyboardSession->keyboardCallback_->onGetSceneSession = [&](uint32_t persistentId) {
         return sceneSession;
     };
-    keyboardSession->isKeyboardSyncTransactionOpen_ = true;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
     needCheckRSTransaction = true;
     keyboardSession->ProcessKeyboardOccupiedAreaInfo(0, needRecalculateAvoidAreas, needCheckRSTransaction);
     ASSERT_EQ(keyboardSession->isKeyboardSyncTransactionOpen_, false);

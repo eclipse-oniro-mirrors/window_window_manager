@@ -140,6 +140,9 @@ scene_session_manager_external_deps = [
   "access_token:libaccesstoken_sdk",
   "access_token:libprivacy_sdk",
   "access_token:libtokenid_sdk",
+  "egl:libEGL",
+  "opengles:libGLES",
+  "node:node_header_notice",
 ]
 
 ## Build libscene_session_manager_static.a
@@ -161,6 +164,8 @@ ohos_static_library("scene_session_manager_static") {
     "c_utils:utils",
     "graphic_2d:window_animation",
     "input:libmmi-napi",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   defines = []
@@ -365,6 +370,8 @@ ohos_static_library("session_manager_static") {
     "input:libmmi-napi",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "egl:libEGL",
+    "opengles:libGLES",
   ]
 
   part_name = "window_manager"

@@ -67,14 +67,13 @@ public:
      * @param identityToken identity token of sceneSession
      * @return the error code of window
      */
-    WMError Init(DisplayId displayId, 
+    WMError Init(DisplayId displayId,
                  const std::shared_ptr<AbilityRuntime::Context>& context,
                  sptr<IWindowLifeCycle>& listener,
                  sptr<WindowOption> option,
                  const sptr<IRemoteObject>& iSession,
                  const std::string& identityToken = "",
                  bool isModuleAbilityHookEnd = false,
-                 sptr<IRemoteObject> renderSession = nullptr,
                  int32_t requestId = INVALID_REQUEST_ID,
                  int32_t scbRequestId = INVALID_REQUEST_ID);
 
@@ -164,6 +163,12 @@ public:
      * @return the error code of window
      */
     WMError RequestFocus() const;
+
+    /**
+     * Notify windowStage create finished.
+     * It is called by Ability Manager Service when onWindowStageCreate finished.
+     */
+    void NotifyWindowStageCreateFinished() const;
 
     /**
      * Update ability configuration.

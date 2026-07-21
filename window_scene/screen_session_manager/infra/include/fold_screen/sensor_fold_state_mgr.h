@@ -19,10 +19,9 @@
 #include <vector>
 #include "iapplication_state_observer.h"
 #include "fold_screen_common.h"
-#include "task_scheduler.h"
+
 namespace OHOS {
 namespace Rosen {
-class TaskSequenceProcess;
 namespace DMS {
 enum class ReportTentModeStatus : int32_t {
     NORMAL_EXIT_TENT_MODE = 0,
@@ -39,15 +38,13 @@ public:
     void HandleSensorEvent(const SensorStatus& sensorStatus);
     void RegisterApplicationStateObserver();
     bool IsTentMode();
-    void FinishTaskSequence();
-    void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
 
 protected:
     SensorFoldStateMgr();
     virtual ~SensorFoldStateMgr();
     FoldStatus GetNextFoldStatus(const SensorStatus& sensorStatus);
     virtual FoldStatus GetNextFoldStatusByAxis(
-        const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy);
+        const ScreenAxis& axis, FoldStatus currentStatus, int32_t algorithmStrategy, size_t axisIndex);
     virtual FoldStatus GetNextGlobalFoldStatus(const std::vector<FoldStatus>& foldStatus);
     virtual sptr<AppExecFwk::IApplicationStateObserver> GetAppStateObserver();
     virtual void HandleTentChange(const SensorStatus& sensorStatus);
@@ -78,7 +75,6 @@ private:
     std::vector<int32_t> foldAlgorithmStrategy_;
     class Impl;
     std::unique_ptr<Impl> pImpl_;
-    TaskSequenceProcess* taskProcess_;
 };
 
 }  // namespace DMS

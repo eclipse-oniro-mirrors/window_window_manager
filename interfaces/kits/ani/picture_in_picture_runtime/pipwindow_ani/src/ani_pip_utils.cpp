@@ -178,7 +178,7 @@ void* AniPipUtils::GetAbilityContext(ani_env *env, ani_object aniObj)
         TLOGE(WmsLogTag::WMS_PIP,  "get field fail, status : %{public}d", status);
         return nullptr;
     }
-    return reinterpret_cast<void*>(nativeContextLong);
+    return (void*)nativeContextLong;
 }
 
 ani_status AniPipUtils::CallAniFunctionVoid(ani_env *env, const char* ns, const char* fn, const char* signature, ...)
@@ -220,46 +220,51 @@ bool AniPipUtils::convertNativeRefToAniRef(ani_env* env,
     }
     napi_env napiEnv = nullptr;
     bool napiScopeOpened = arkts_napi_scope_open(env, &napiEnv);
-    if (!napiScopeOpened) {
+    if (!napiScopeOpened || napiEnv == nullptr) {
         TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_open failed");
         return false;
     }
-    if (napiEnv == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "cannot open napi scope");
-        return false;
-    }
+
+    auto closeScope = [&](bool& napiScopeOpened, napi_env& napiEnv) {
+        if (napiScopeOpened) {
+            if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
+                TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
+            }
+        }
+    };
     napi_value value = nativeRef->GetNapiValue();
     if (value == nullptr) {
         TLOGW(WmsLogTag::WMS_PIP, "NativeReference has null napi value");
+        closeScope(napiScopeOpened, napiEnv);
         return true;
     }
     hybridgref ref {};
     if (!hybridgref_create_from_napi(napiEnv, value, &ref)) {
         TLOGE(WmsLogTag::WMS_PIP, "hybridgref_create_from_napi failed");
+        closeScope(napiScopeOpened, napiEnv);
         return false;
     }
     ani_object esValue = nullptr;
     if (!hybridgref_get_esvalue(env, ref, &esValue)) {
         TLOGE(WmsLogTag::WMS_PIP, "hybridgref_get_esvalue failed");
         hybridgref_delete_from_napi(napiEnv, ref);
+        closeScope(napiScopeOpened, napiEnv);
         return false;
     }
     ani_status st = env->GlobalReference_Create(esValue, &aniRef);
     if (st != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "GlobalReference_Create failed: %{public}d", static_cast<int32_t>(st));
         hybridgref_delete_from_napi(napiEnv, ref);
+        closeScope(napiScopeOpened, napiEnv);
         return false;
     }
     if (!hybridgref_delete_from_napi(napiEnv, ref)) {
         TLOGW(WmsLogTag::WMS_PIP, "hybridgref_delete_from_napi failed");
         env->GlobalReference_Delete(aniRef);
+        closeScope(napiScopeOpened, napiEnv);
         return false;
     }
-    if (napiScopeOpened) {
-        if (!arkts_napi_scope_close_n(napiEnv, 0, nullptr, nullptr)) {
-            TLOGW(WmsLogTag::WMS_PIP, "arkts_napi_scope_close_n failed");
-        }
-    }
+    closeScope(napiScopeOpened, napiEnv);
     return true;
 }
 

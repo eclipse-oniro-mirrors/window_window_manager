@@ -529,7 +529,7 @@ HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_RegisterFailed
     g_logMsg.clear();
 
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _))
         .Times(1)
         .WillOnce(Return(WMError::WM_ERROR_SAMGR));
 
@@ -557,7 +557,7 @@ HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_RegisterSucces
     g_logMsg.clear();
 
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _))
         .WillRepeatedly(Return(WMError::WM_OK));
 
     auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
@@ -581,7 +581,7 @@ HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_MultipleAgents
     g_logMsg.clear();
 
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _))
         .Times(2)
         .WillOnce(Return(WMError::WM_ERROR_SAMGR))
         .WillOnce(Return(WMError::WM_OK));
@@ -608,7 +608,7 @@ HWTEST_F(WindowAdapterLiteTest, ReregisterWindowManagerFaultAgent_EmptyFaultMap,
     ASSERT_NE(nullptr, instance_);
 
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, RegisterWindowManagerAgent(_, _, _))
         .Times(0);
 
     auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
@@ -643,7 +643,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent01, TestSize.Level1)
 HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent02, TestSize.Level1)
 {
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _))
         .Times(1)
         .WillOnce(Return(WMError::WM_OK));
     
@@ -668,7 +668,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent02, TestSize.Level1)
 HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent03, TestSize.Level1)
 {
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _))
         .Times(1)
         .WillOnce(Return(WMError::WM_OK));
     
@@ -695,7 +695,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent03, TestSize.Level1)
 HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent04, TestSize.Level1)
 {
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _))
         .Times(1)
         .WillOnce(Return(WMError::WM_OK));
     
@@ -721,7 +721,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent04, TestSize.Level1)
 HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent05, TestSize.Level1)
 {
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _)).Times(1).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
 
     auto wmsProxy = iface_cast<IWindowManagerLite>(remoteObject);
     instance_->windowManagerServiceProxy_ = wmsProxy;
@@ -747,7 +747,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent05, TestSize.Level1)
 HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent06, TestSize.Level1)
 {
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _))
         .Times(1)
         .WillOnce(Return(WMError::WM_OK));
     
@@ -776,7 +776,7 @@ HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent06, TestSize.Level1)
 HWTEST_F(WindowAdapterLiteTest, UnregisterWindowManagerAgent07, TestSize.Level1)
 {
     auto remoteObject = sptr<WindowManagerLiteServiceMocker>::MakeSptr();
-    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _))
+    EXPECT_CALL(*remoteObject, UnregisterWindowManagerAgent(_, _, _))
         .Times(1)
         .WillOnce(Return(WMError::WM_OK));
     

@@ -611,44 +611,46 @@ HWTEST_F(SceneSessionManagerTest12, CreateAndConnectSpecificSession03, TestSize.
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     ASSERT_NE(ssm_, nullptr);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_UI_EXTENSION);
     auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res.errCode);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     property->SetTopmost(true);
     uint32_t flags = property->GetWindowFlags() & (~(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_MODAL)));
     property->SetWindowFlags(flags);
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res.errCode);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetFloatingWindowAppType(true);
     ssm_->shouldHideNonSecureFloatingWindows_.store(true);
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res.errCode);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_ALARM_WINDOW);
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, res.errCode);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_PIP);
     ssm_->isScreenLocked_ = true;
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_DO_NOTHING, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_DO_NOTHING, res.errCode);
 }
 
 /**
@@ -660,10 +662,12 @@ HWTEST_F(SceneSessionManagerTest12, CreateAndConnectSpecificSession04, TestSize.
 {
     sptr<ISessionStage> sessionStage;
     sptr<IWindowEventChannel> eventChannel;
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     ASSERT_NE(ssm_, nullptr);
@@ -680,29 +684,29 @@ HWTEST_F(SceneSessionManagerTest12, CreateAndConnectSpecificSession04, TestSize.
     property->SetParentPersistentId(parentSession->GetPersistentId());
     property->SetIsUIExtFirstSubWindow(true);
     ssm_->systemConfig_.supportUIExtensionSubWindow_ = true;
-    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
-        systemConfig, token);
+    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
+        systemConfig, renderSession, surfaceNode, token);
     EXPECT_EQ(property->GetWindowType(), WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
 
     // Create UI_EXTENSION_SUB_WINDOW failed
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     ssm_->systemConfig_.supportUIExtensionSubWindow_ = false;
-    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
-        systemConfig, token);
+    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
+        systemConfig, renderSession, surfaceNode, token);
     EXPECT_NE(property->GetWindowType(), WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
 
     // Create UI_EXTENSION_SUB_WINDOW failed
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetIsUIExtFirstSubWindow(false);
-    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
-        systemConfig, token);
+    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
+        systemConfig, renderSession, surfaceNode, token);
     EXPECT_NE(property->GetWindowType(), WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
 
     // Create UI_EXTENSION_SUB_WINDOW failed
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     parentSession->GetSessionProperty()->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, node, property, id, session,
-        systemConfig, token);
+    ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property, id, session,
+        systemConfig, renderSession, surfaceNode, token);
     EXPECT_NE(property->GetWindowType(), WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
 
     // Test WINDOW_TYPE_FV with valid parent session
@@ -710,15 +714,15 @@ HWTEST_F(SceneSessionManagerTest12, CreateAndConnectSpecificSession04, TestSize.
     property->SetParentPersistentId(parentSession->GetPersistentId());
     property->SetSystemCalling(true);
     auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_OK, res.errCode);
 
     // Test WINDOW_TYPE_FV with invalid parent session (background state)
     property->SetWindowType(WindowType::WINDOW_TYPE_FV);
     property->SetParentPersistentId(parentSession->GetPersistentId());
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_PARENT, res.errCode);
 }
 
 /**
@@ -772,7 +776,7 @@ HWTEST_F(SceneSessionManagerTest12, DestroyAndDisconnectSpecificSessionInner02, 
     ssm_->SetAlivePersistentIds(recoveredPersistentIds);
     property->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(ret.errCode, WSError::WS_OK);
 }
 
 /**
@@ -877,14 +881,14 @@ HWTEST_F(SceneSessionManagerTest12, DestroyAndDisconnectSpecificSessionInner, Te
     ProcessShiftFocusFunc shiftFocusFunc_;
     property->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     auto ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
     property->SetPersistentId(1);
     ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_TOAST);
     ret = ssm_->DestroyAndDisconnectSpecificSessionInner(1);
-    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ret.errCode, WSError::WS_ERROR_NULLPTR);
 }
 
 /**

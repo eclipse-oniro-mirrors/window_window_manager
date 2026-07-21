@@ -291,6 +291,24 @@ HWTEST_F(SceneSessionTest5, NotifyOutsideDownEvent, TestSize.Level1)
     info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::TRANSMIT_ALL);
     sptr<SceneSession> session1 = sptr<SceneSession>::MakeSptr(info, nullptr);
     session1->NotifyOutsideDownEvent(pointerEvent);
+
+    info.bundleName_ = "NormalApp";
+    info.windowInputType_ = static_cast<uint32_t>(MMI::WindowInputType::NORMAL);
+    sptr<SceneSession> session2 = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session2->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session2->specificCallback_->onSessionTouchOutside_ = [](int32_t id, DisplayId displayId) {};
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = nullptr;
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = [](int32_t id, DisplayId displayId) {};
+    session2->sessionInfo_.bundleName_ = "SCBGestureBack";
+    session2->NotifyOutsideDownEvent(pointerEvent);
+
+    session2->specificCallback_->onSessionTouchOutside_ = nullptr;
+    session2->NotifyOutsideDownEvent(pointerEvent);
 }
 
 /**
@@ -1084,13 +1102,14 @@ HWTEST_F(SceneSessionTest5, UpdateKeyFrameCloneNode, Function | SmallTest | Leve
     std::shared_ptr<RSTransaction> rsTransactionNull = nullptr;
 
     session->keyFrameCloneNode_ = rsKeyFrameNode;
-    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_OK);
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_NULLPTR);
     session->keyFrameCloneNode_ = nullptr;
     EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNodeNull, rsTransaction), WSError::WS_ERROR_NULLPTR);
     EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_NULLPTR);
     session->sessionStage_ = sessionStage;
     EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransactionNull), WSError::WS_OK);
-    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_OK);
+    EXPECT_NE(session->keyFrameCloneNode_, nullptr);
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_REPEAT_OPERATION);
 }
 
 /**
@@ -1311,6 +1330,236 @@ HWTEST_F(SceneSessionTest5, KeyFrameAnimateEnd, Function | SmallTest | Level2)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(session, nullptr);
     EXPECT_EQ(session->KeyFrameAnimateEnd(), WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameCloneNode_NullptrCheck
+ * @tc.desc: UpdateKeyFrameCloneNode returns WS_ERROR_NULLPTR when rsKeyFrameNode is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameCloneNode_NullptrCheck, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    std::shared_ptr<RSWindowKeyFrameNode> rsKeyFrameNodeNull = nullptr;
+    auto rsTransaction = std::make_shared<RSTransaction>();
+    // rsKeyFrameNode is nullptr
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNodeNull, rsTransaction), WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameCloneNode_AlreadyExist
+ * @tc.desc: UpdateKeyFrameCloneNode returns WS_ERROR_REPEAT_OPERATION when keyFrameCloneNode_ already exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameCloneNode_AlreadyExist, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+    auto rsKeyFrameNode = RSWindowKeyFrameNode::Create();
+    auto rsTransaction = std::make_shared<RSTransaction>();
+    // First call succeeds
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_OK);
+    EXPECT_NE(session->keyFrameCloneNode_, nullptr);
+    // Second call returns REPEAT_OPERATION
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_REPEAT_OPERATION);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameState_DragEndNullCloneNode
+ * @tc.desc: UpdateKeyFrameState DRAG_END stops keyframe even keyFrameCloneNode_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameState_DragEndNullCloneNode, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->moveDragController_ = moveDragController;
+    session->sessionStage_ = sessionStage;
+    // keyFrameCloneNode_ is nullptr, DRAG_END still stop keyframe
+    session->keyFrameCloneNode_ = nullptr;
+    session->keyFramePolicy_.running_ = true;
+    WSRect rect = { 0, 0, 100, 100 };
+    session->UpdateKeyFrameState(SizeChangeReason::DRAG_END, rect);
+    EXPECT_EQ(session->keyFramePolicy_.running_, false);
+    EXPECT_EQ(session->keyFramePolicy_.stopping_, true);
+}
+
+/**
+ * @tc.name: RequestKeyFrameNextVsync_MaxCount
+ * @tc.desc: RequestKeyFrameNextVsync stops when count reaches UINT64_MAX
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, RequestKeyFrameNextVsync_MaxCount, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    session->keyFramePolicy_.running_ = true;
+    session->keyFrameVsyncRequestStamp_ = 0;
+    // count == UINT64_MAX should stop without scheduling vsync
+    session->RequestKeyFrameNextVsync(0, UINT64_MAX);
+    // running_ remains true, just log and return
+    EXPECT_EQ(session->keyFramePolicy_.running_, true);
+}
+
+/**
+ * @tc.name: RequestKeyFrameNextVsync_StampMismatch
+ * @tc.desc: RequestKeyFrameNextVsync stops when requestStamp != keyFrameVsyncRequestStamp_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, RequestKeyFrameNextVsync_StampMismatch, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    session->keyFramePolicy_.running_ = true;
+    session->keyFrameVsyncRequestStamp_ = 12345;
+    // stamp mismatch, should stop (not schedule vsync)
+    session->RequestKeyFrameNextVsync(99999, 0);
+    // running_ should remain true (not modified by stop path)
+    EXPECT_EQ(session->keyFramePolicy_.running_, true);
+}
+
+/**
+ * @tc.name: OnKeyFrameNextVsync_NeedNotify
+ * @tc.desc: OnKeyFrameNextVsync with needNotify=true when drag rect differs from last rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnKeyFrameNextVsync_NeedNotify, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+    // Set conditions: dragPauseNoticed=false, animating=false, duration>=100, layoutController!=null
+    session->lastKeyFrameDragStamp_ = 0;
+    session->keyFrameDragPauseNoticed_ = false;
+    session->keyFrameAnimating_ = false;
+    // lastKeyFrameRect_ and lastKeyFrameDragRect_ differ (>3px threshold) => isToNotice=true => needNotify=true
+    session->lastKeyFrameRect_ = { 0, 0, 100, 100 };
+    session->lastKeyFrameDragRect_ = { 0, 0, 200, 200 };
+    session->OnKeyFrameNextVsync(0);
+    EXPECT_EQ(session->keyFrameDragPauseNoticed_, true);
+    EXPECT_EQ(session->lastKeyFrameRect_.width_, 200);
+    EXPECT_EQ(session->lastKeyFrameRect_.height_, 200);
+}
+
+/**
+ * @tc.name: KeyFrameAnimateEnd_ResetsAnimating
+ * @tc.desc: KeyFrameAnimateEnd sets keyFrameAnimating_ to false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, KeyFrameAnimateEnd_ResetsAnimating, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    session->keyFrameAnimating_ = true;
+    EXPECT_EQ(session->KeyFrameAnimateEnd(), WSError::WS_OK);
+    EXPECT_EQ(session->keyFrameAnimating_, false);
+}
+
+/**
+ * @tc.name: InitKeyFrameState_ResetsAllState
+ * @tc.desc: InitKeyFrameState resets all keyframe state and sets running to true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, InitKeyFrameState_ResetsAllState, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+    // Set some non-default state
+    session->keyFrameCloneNode_ = RSWindowKeyFrameNode::Create();
+    session->keyFrameAnimating_ = true;
+    session->keyFrameDragPauseNoticed_ = true;
+    WSRect rect = { 10, 20, 100, 200 };
+    session->InitKeyFrameState(rect);
+    // Verify state is reset
+    EXPECT_EQ(session->keyFrameCloneNode_, nullptr);
+    EXPECT_EQ(session->keyFramePolicy_.running_, true);
+    EXPECT_EQ(session->keyFramePolicy_.stopping_, false);
+    EXPECT_EQ(session->keyFrameAnimating_, false);
+    EXPECT_EQ(session->keyFrameDragPauseNoticed_, false);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameState_NotRunning
+ * @tc.desc: UpdateKeyFrameState returns early when running_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameState_NotRunning, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->moveDragController_ = moveDragController;
+    session->sessionStage_ = sessionStage;
+    session->keyFramePolicy_.running_ = false;
+    WSRect rect = { 0, 0, 100, 100 };
+    // DRAG with running_=false should return early, not access cloneNode
+    session->UpdateKeyFrameState(SizeChangeReason::DRAG, rect);
+    EXPECT_EQ(session->keyFramePolicy_.running_, false);
+    EXPECT_EQ(session->lastKeyFrameDragRect_, WSRect());
+}
+
+/**
+ * @tc.name: UpdateKeyFrameDragState_PauseNoticed
+ * @tc.desc: UpdateKeyFrameDragState updates lastKeyFrameStamp_ when keyFrameDragPauseNoticed_ is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameDragState_PauseNoticed, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->moveDragController_ = moveDragController;
+    session->sessionStage_ = sessionStage;
+    auto rsKeyFrameNode = RSWindowKeyFrameNode::Create();
+    session->keyFrameCloneNode_ = rsKeyFrameNode;
+    session->keyFramePolicy_.running_ = true;
+    session->keyFrameDragPauseNoticed_ = true;
+    session->lastKeyFrameStamp_ = 0;
+    WSRect rect = { 0, 0, 100, 100 };
+    session->UpdateKeyFrameState(SizeChangeReason::DRAG, rect);
+    // lastKeyFrameStamp_ should be updated when keyFrameDragPauseNoticed_ is true
+    EXPECT_NE(session->lastKeyFrameStamp_, 0);
+    EXPECT_EQ(session->keyFrameDragPauseNoticed_, false);
 }
 
 /**
@@ -2178,7 +2427,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     EXPECT_NE(sceneSession, nullptr);
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     EXPECT_NE(sceneSession->moveDragController_, nullptr);
-    sceneSession->moveDragController_->moveDragStartDisplayId_ = 0;
+    sceneSession->moveDragController_->startDisplayId_ = 0;
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     // create surfacenode
     struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
@@ -2187,8 +2436,8 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, rsSurfaceNodeType);
     sceneSession->SetSurfaceNode(surfaceNode);
     // set displayId to moveDrag map
-    sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(0);
-    sceneSession->moveDragController_->displayIdSetDuringMoveDrag_.insert(1001);
+    sceneSession->moveDragController_->overlappedDisplayIds_.insert(0);
+    sceneSession->moveDragController_->overlappedDisplayIds_.insert(1001);
     // register FindScenePanelRsNodeByZOrderFunc to get drag mounted node
     sceneSession->SetFindScenePanelRsNodeByZOrderFunc([this](uint64_t screenId, uint32_t targetZOrder) {
         return CreateRSSurfaceNode();
@@ -2208,7 +2457,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     // set original position Z
     sceneSession->moveDragController_->originalPositionZ_ = 100;
     // set same screen
-    sceneSession->moveDragController_->moveDragEndDisplayId_ = 0;
+    sceneSession->moveDragController_->endDisplayId_ = 0;
     // test func
     sceneSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
     EXPECT_EQ(surfaceNode->GetStagingProperties().GetPositionZ(), 100);
@@ -2216,7 +2465,7 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     // set original position Z
     sceneSession->moveDragController_->originalPositionZ_ = 200;
     // set different screen
-    sceneSession->moveDragController_->moveDragEndDisplayId_ = 1001;
+    sceneSession->moveDragController_->endDisplayId_ = 1001;
     // test func
     sceneSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
     EXPECT_EQ(surfaceNode->GetStagingProperties().GetPositionZ(), 200);
@@ -2630,6 +2879,269 @@ HWTEST_F(SceneSessionTest5, ThrowSlipDirectly, TestSize.Level1)
     mainSession->GetLayoutController()->SetSessionRect(rect);
     mainSession->ThrowSlipDirectly(ThrowSlipMode::THREE_FINGERS_SWIPE, WSRectF{ 0.0f, 0.0f, 0.0f, 0.0f });
     EXPECT_EQ(mainSession->GetSessionRect(), rect);
+}
+
+/**
+ * @tc.name: NotifyCompatibleFloatAfterThrowSlip
+ * @tc.desc: NotifyCompatibleFloatAfterThrowSlip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlip, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlip";
+    info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlip";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    WSRect rect = { 100, 100, 400, 400 };
+    mainSession->GetLayoutController()->SetSessionRect(rect);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    int32_t callbackEventId = -1;
+    SessionEventParam callbackParam = { 0, 0, 0, 0 };
+    mainSession->onSessionEvent_ = [&callbackEventId, &callbackParam](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+        callbackParam = param;
+    };
+    mainSession->NotifyCompatibleFloatAfterThrowSlip(rect);
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, static_cast<int32_t>(SessionEvent::EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP));
+    EXPECT_EQ(callbackParam.pointerX_, rect.posX_);
+    EXPECT_EQ(callbackParam.pointerY_, rect.posY_);
+    EXPECT_EQ(callbackParam.sessionWidth_, rect.width_);
+    EXPECT_EQ(callbackParam.sessionHeight_, rect.height_);
+}
+
+/**
+ * @tc.name: NotifyCompatibleFloatAfterThrowSlipBackground
+ * @tc.desc: NotifyCompatibleFloatAfterThrowSlip when session is in background
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlipBackground, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlipBackground";
+    info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlipBackground";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    WSRect rect = { 100, 100, 400, 400 };
+    mainSession->GetLayoutController()->SetSessionRect(rect);
+    mainSession->SetSessionState(SessionState::STATE_BACKGROUND);
+    bool callbackCalled = false;
+    mainSession->onSessionEvent_ = [&callbackCalled](int32_t eventId, SessionEventParam param) {
+        callbackCalled = true;
+    };
+    mainSession->NotifyCompatibleFloatAfterThrowSlip(rect);
+    EXPECT_FALSE(callbackCalled);
+}
+
+/**
+ * @tc.name: NotifyCompatibleFloatAfterThrowSlipNullCallback
+ * @tc.desc: NotifyCompatibleFloatAfterThrowSlip when onSessionEvent_ is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, NotifyCompatibleFloatAfterThrowSlipNullCallback, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyCompatibleFloatAfterThrowSlipNullCallback";
+    info.bundleName_ = "NotifyCompatibleFloatAfterThrowSlipNullCallback";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    WSRect rect = { 100, 100, 400, 400 };
+    mainSession->GetLayoutController()->SetSessionRect(rect);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    bool callbackShouldNotBeCalled = false;
+    mainSession->onSessionEvent_ = [&callbackShouldNotBeCalled](int32_t eventId, SessionEventParam param) {
+        callbackShouldNotBeCalled = true;
+    };
+    mainSession->onSessionEvent_ = nullptr;
+    mainSession->NotifyCompatibleFloatAfterThrowSlip(rect);
+    EXPECT_FALSE(callbackShouldNotBeCalled);
+}
+
+/**
+ * @tc.name: HandleFullScreenWindowInThrowSlip
+ * @tc.desc: test HandleFullScreenWindowInThrowSlip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFullScreenWindowInThrowSlip, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFullScreenWindowInThrowSlip";
+    info.bundleName_ = "HandleFullScreenWindowInThrowSlip";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->throwSlipToFullScreenAnimCount_.fetch_add(1);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    SessionEventParam callbackParam = { 0, 0, 0, 0 };
+    mainSession->onSessionEvent_ = [&callbackEventId, &callbackParam](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+        callbackParam = param;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFullScreenWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, static_cast<int32_t>(SessionEvent::EVENT_MAXIMIZE_WITHOUT_ANIMATION));
+}
+
+/**
+ * @tc.name: HandleFullScreenWindowInThrowSlipSessionNull
+ * @tc.desc: test HandleFullScreenWindowInThrowSlip when session is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFullScreenWindowInThrowSlipSessionNull, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFullScreenWindowInThrowSlipSessionNull";
+    info.bundleName_ = "HandleFullScreenWindowInThrowSlipSessionNull";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    WSRect rect = { 100, 100, 400, 400 };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFullScreenWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlip
+ * @tc.desc: test HandleFloatingWindowInThrowSlip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlip, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlip";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlip";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    ASSERT_NE(compatibleModeProperty, nullptr);
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    SessionEventParam callbackParam = { 0, 0, 0, 0 };
+    mainSession->onSessionEvent_ = [&callbackEventId, &callbackParam](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+        callbackParam = param;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, static_cast<int32_t>(SessionEvent::EVENT_COMPATIBLE_FLOAT_AFTER_THROW_SLIP));
+    EXPECT_EQ(callbackParam.pointerX_, rect.posX_);
+    EXPECT_EQ(callbackParam.pointerY_, rect.posY_);
+    EXPECT_EQ(callbackParam.sessionWidth_, rect.width_);
+    EXPECT_EQ(callbackParam.sessionHeight_, rect.height_);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlipNotFloatingMode
+ * @tc.desc: test HandleFloatingWindowInThrowSlip when window mode is not floating
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNotFloatingMode, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlipNotFloatingMode";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlipNotFloatingMode";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    ASSERT_NE(compatibleModeProperty, nullptr);
+    compatibleModeProperty->SetIsAdaptToDragScale(true);
+    mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    mainSession->onSessionEvent_ = [&callbackEventId](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, -1);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlipNotAdaptToDragScale
+ * @tc.desc: test HandleFloatingWindowInThrowSlip when not adapt to drag scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNotAdaptToDragScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlipNotAdaptToDragScale";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlipNotAdaptToDragScale";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    ASSERT_NE(compatibleModeProperty, nullptr);
+    compatibleModeProperty->SetIsAdaptToDragScale(false);
+    mainSession->GetSessionProperty()->SetCompatibleModeProperty(compatibleModeProperty);
+    WSRect rect = { 100, 100, 400, 400 };
+    int32_t callbackEventId = -1;
+    mainSession->onSessionEvent_ = [&callbackEventId](int32_t eventId, SessionEventParam param) {
+        callbackEventId = eventId;
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    finishCallback();
+    usleep(10000);
+    EXPECT_EQ(callbackEventId, -1);
+}
+
+/**
+ * @tc.name: HandleFloatingWindowInThrowSlipNullSession
+ * @tc.desc: test HandleFloatingWindowInThrowSlip when session is null (weak pointer expired)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, HandleFloatingWindowInThrowSlipNullSession, TestSize.Level1)
+{
+    WSRect rect = { 100, 100, 400, 400 };
+    SessionInfo info;
+    info.abilityName_ = "HandleFloatingWindowInThrowSlipNullSession";
+    info.bundleName_ = "HandleFloatingWindowInThrowSlipNullSession";
+    info.screenId_ = 0;
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    mainSession->isVisible_ = true;
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    mainSession->onSessionEvent_ = [](int32_t eventId, SessionEventParam param) {
+    };
+    std::function<void()> finishCallback = nullptr;
+    mainSession->HandleFloatingWindowInThrowSlip(finishCallback, rect);
+    ASSERT_NE(finishCallback, nullptr);
+    usleep(10000);
 }
 
 /**
@@ -3549,6 +4061,122 @@ HWTEST_F(SceneSessionTest5, IsCrossAxisOfLayout_Polymorphism, TestSize.Level1)
 
     // Should return true through base class pointer (polymorphism)
     EXPECT_EQ(baseSession->IsCrossAxisOfLayout(), true);
+}
+
+/**
+ * @tc.name: UpdateUIParam_ZOrder_WhenNotPcScenePanel
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenNotPcScenePanel, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanel";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanel";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = false;
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
+}
+
+/**
+ * @tc.name: UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is true and IsPcWindow() returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenPcScenePanelAndNotPcWindow";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = true;
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
+}
+
+/**
+ * @tc.name: UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow
+ * @tc.desc: Verify ZOrder is not updated when isPcScenePanel_ is true and IsPcWindow() returns true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow";
+    info.bundleName_ = "UpdateUIParam_NoZOrder_WhenPcScenePanelAndPcWindow";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = true;
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_FALSE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 0u);
+}
+
+/**
+ * @tc.name: UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow
+ * @tc.desc: Verify ZOrder is updated when isPcScenePanel_ is false and IsPcWindow() returns true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow";
+    info.bundleName_ = "UpdateUIParam_ZOrder_WhenNotPcScenePanelAndPcWindow";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+
+    session->isPcScenePanel_ = false;
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->zOrder_ = 0;
+    session->dirtyFlags_ = 0;
+
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 10;
+
+    uint32_t result = session->UpdateUIParam(uiParam);
+
+    EXPECT_TRUE(result & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+    EXPECT_EQ(session->zOrder_, 10u);
 }
 
 /**

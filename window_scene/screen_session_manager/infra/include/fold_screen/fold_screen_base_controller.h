@@ -33,6 +33,7 @@ public:
 
     virtual void BootAnimationFinishPowerInit();
     virtual void SetDisplayMode(const FoldDisplayMode displayMode);
+    virtual void RecoverDisplayModeFromCacheMode(const FoldDisplayMode displayMode);
     virtual void RecoverDisplayMode();
     virtual FoldDisplayMode GetDisplayMode();
     virtual FoldDisplayMode GetCurrentDisplayMode() const;

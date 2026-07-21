@@ -1134,9 +1134,11 @@ HWTEST_F(SceneSessionManagerTest5, CreateAndConnectSpecificSession_forToastSubWi
 
     sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
@@ -1145,13 +1147,13 @@ HWTEST_F(SceneSessionManagerTest5, CreateAndConnectSpecificSession_forToastSubWi
     property->SetParentId(sceneSession->GetPersistentId());
 
     auto res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_WINDOW, res.errCode);
 
     property->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_TOAST);
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    EXPECT_EQ(WSError::WS_OK, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(WSError::WS_OK, res.errCode);
 }
 
 /**
@@ -1166,42 +1168,44 @@ HWTEST_F(SceneSessionManagerTest5, CreateAndConnectSpecificSession02, TestSize.L
     ASSERT_NE(sessionStage, nullptr);
     sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannelMocker>::MakeSptr(sessionStage);
     ASSERT_NE(eventChannel, nullptr);
-    std::shared_ptr<RSSurfaceNode> node = nullptr;
+    uint64_t nodeId = 0;
     sptr<ISession> session;
     SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
     sptr<IRemoteObject> token;
     int32_t id = 0;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     property->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     property->SetWindowFlags(123);
-    WSError res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    ASSERT_EQ(WSError::WS_ERROR_NULLPTR, res); // create main window, property must be nullptr
+    WSErrorResult res = ssm_->CreateAndConnectSpecificSession(
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    ASSERT_EQ(WSError::WS_ERROR_NULLPTR, res.errCode); // create main window, property must be nullptr
 
     sessionStage = sptr<SessionStageMocker>::MakeSptr();
     property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     property->SetWindowFlags(123);
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    ASSERT_EQ(WSError::WS_OK, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    ASSERT_EQ(WSError::WS_OK, res.errCode);
 
     sessionStage = sptr<SessionStageMocker>::MakeSptr();
     property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetWindowFlags(123);
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res.errCode);
 
     property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     property->SetFloatingWindowAppType(true);
     ssm_->shouldHideNonSecureFloatingWindows_.store(true);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     res = ssm_->CreateAndConnectSpecificSession(
-        sessionStage, eventChannel, node, property, id, session, systemConfig, token);
-    ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res);
+        sessionStage, eventChannel, nodeId, property, id, session, systemConfig, renderSession, surfaceNode, token);
+    ASSERT_EQ(WSError::WS_ERROR_NOT_SYSTEM_APP, res.errCode);
     ssm_->shouldHideNonSecureFloatingWindows_.store(false);
     ssm_->systemConfig_.windowUIType_ = WindowUIType::INVALID_WINDOW;
 }

@@ -242,6 +242,13 @@ public:
     MoveEvent ResampleAt(int64_t targetTimeUs);
 
     /**
+     * @brief Gets the latest resampled position.
+     *
+     * @return The latest resampled event if one exists; std::nullopt otherwise.
+     */
+    std::optional<MoveEvent> GetLastResampledEvent() const;
+
+    /**
      * @brief Resets the resampler state, clearing all buffered events and filter states.
      */
     void Reset();
@@ -317,13 +324,18 @@ private:
     void CleanupOldEvents(int64_t currentTimeUs);
 
     /**
+     * @brief Last resampled pointer event.
+     *
+     * When no buffered input event is available, this value is returned directly
+     * without resampling or filtering to keep the window position stable.
+     */
+    std::optional<MoveEvent> lastResampledEvent_;
+
+    /**
      * @brief Last raw pointer event (non-resampled and unfiltered).
      *
-     * When the pointer stops moving but remains down, maybe no new events
-     * will arrive, and the buffered events would be cleared by time pruning.
-     * This stored raw event preserves the true last position to avoid jumps
-     * during resampling. Using the raw value prevents recursive filtering
-     * and keeps the state stable during idle periods.
+     * This is used as a fallback only before any resampled output has been
+     * produced.
      */
     MoveEvent lastRawEvent_;
 

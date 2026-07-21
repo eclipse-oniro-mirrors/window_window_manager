@@ -59,7 +59,8 @@ ani_status AniPipManager::Init(ani_env* env, ani_namespace nsp)
 AniPipManager::AniPipManager(){TLOGI(WmsLogTag::WMS_PIP, "AniPipManager");}
 AniPipManager::~AniPipManager(){TLOGI(WmsLogTag::WMS_PIP, "~AniPipManager");}
 
-void AniPipManager::InitXComponentController(ani_env* env, ani_long nativeObj, ani_object xComponentController)
+void AniPipManager::InitXComponentController(ani_env* env, ani_long nativeObj,
+    ani_int windowId, ani_object xComponentController)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
@@ -67,10 +68,10 @@ void AniPipManager::InitXComponentController(ani_env* env, ani_long nativeObj, a
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
-    me->OnInitXComponentController(env, xComponentController);
+    me->OnInitXComponentController(env, windowId, xComponentController);
 }
 
-void AniPipManager::OnInitXComponentController(ani_env* env, ani_object xComponentController)
+void AniPipManager::OnInitXComponentController(ani_env* env, ani_int windowId, ani_object xComponentController)
 {
     TLOGD(WmsLogTag::WMS_PIP, "start");
     std::shared_ptr<XComponentController> xComponentControllerResult =
@@ -80,10 +81,16 @@ void AniPipManager::OnInitXComponentController(ani_env* env, ani_object xCompone
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return;
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
-    auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
+    int32_t pipWindowId = static_cast<int32_t>(windowId);
+    auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pipController");
+        return;
+    }
+    PiPWindowState curControllerState = pipController->GetControllerState();
+    if (curControllerState == PiPWindowState::STATE_STOPPING || curControllerState == PiPWindowState::STATE_STOPPED) {
+        TLOGE(WmsLogTag::WMS_PIP, "PiPWindowState %{public}u, is STATE_STOPPING or STATE_STOPPED, "
+                                  "not to set xComponentController", curControllerState);
         return;
     }
     TLOGI(WmsLogTag::WMS_PIP, "set xComponentController to window: %{public}u", windowId);
@@ -94,17 +101,17 @@ void AniPipManager::OnInitXComponentController(ani_env* env, ani_object xCompone
     }
 }
 
-ani_ref AniPipManager::GetCustomUIController(ani_env* env, ani_long nativeObj)
+ani_ref AniPipManager::GetCustomUIController(ani_env* env, ani_long nativeObj, ani_int windowId)
 {
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
     if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return nullptr;
     }
-    return me->OnGetCustomUIController(env);
+    return me->OnGetCustomUIController(env, windowId);
 }
 
-ani_ref AniPipManager::OnGetCustomUIController(ani_env* env)
+ani_ref AniPipManager::OnGetCustomUIController(ani_env* env, ani_int windowId)
 {
     TLOGI(WmsLogTag::WMS_PIP, "OnGetCustomUIController");
     sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
@@ -112,9 +119,9 @@ ani_ref AniPipManager::OnGetCustomUIController(ani_env* env)
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return AniPipUtils::AniGetUndefined(env);
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
-    TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
-    auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
+    int32_t pipWindowId = static_cast<int32_t>(windowId);
+    TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", pipWindowId);
+    auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pipController");
         return AniPipUtils::AniGetUndefined(env);
@@ -127,17 +134,17 @@ ani_ref AniPipManager::OnGetCustomUIController(ani_env* env)
     return ref;
 }
 
-ani_ref AniPipManager::GetTypeNode(ani_env* env, ani_long nativeObj)
+ani_ref AniPipManager::GetTypeNode(ani_env* env, ani_long nativeObj, ani_int windowId)
 {
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
     if (me == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return nullptr;
     }
-    return me->OnGetTypeNode(env);
+    return me->OnGetTypeNode(env, windowId);
 }
 
-ani_object AniPipManager::OnGetTypeNode(ani_env* env)
+ani_object AniPipManager::OnGetTypeNode(ani_env* env, ani_int windowId)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
@@ -145,9 +152,9 @@ ani_object AniPipManager::OnGetTypeNode(ani_env* env)
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return AniPipUtils::AniGetUndefined(env);
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
-    TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
-    auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
+    int32_t pipWindowId = static_cast<int32_t>(windowId);
+    TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", pipWindowId);
+    auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pipController");
         return AniPipUtils::AniGetUndefined(env);
@@ -160,7 +167,7 @@ ani_object AniPipManager::OnGetTypeNode(ani_env* env)
     return static_cast<ani_object>(ref);
 }
 
-void AniPipManager::SetTypeNodeEnabled(ani_env* env, ani_long nativeObj)
+void AniPipManager::SetTypeNodeEnabled(ani_env* env, ani_long nativeObj, ani_int windowId)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
@@ -168,10 +175,10 @@ void AniPipManager::SetTypeNodeEnabled(ani_env* env, ani_long nativeObj)
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
-    return me->OnSetTypeNodeEnabled(env);
+    return me->OnSetTypeNodeEnabled(env, windowId);
 }
 
-void AniPipManager::OnSetTypeNodeEnabled(ani_env* env)
+void AniPipManager::OnSetTypeNodeEnabled(ani_env* env, ani_int windowId)
 {
     TLOGD(WmsLogTag::WMS_PIP, "start");
     sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
@@ -179,9 +186,9 @@ void AniPipManager::OnSetTypeNodeEnabled(ani_env* env)
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return;
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
-    TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", windowId);
-    auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
+    int32_t pipWindowId = static_cast<int32_t>(windowId);
+    TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", pipWindowId);
+    auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get PictureInPictureControllerBase");
         return;
@@ -216,7 +223,8 @@ void AniPipManager::OnSetPipNodeType(ani_env* env, ani_object typeNode, ani_bool
         static_cast<uint32_t>(ret), static_cast<uint32_t>(markPip));
 }
 
-void AniPipManager::RegisterCallback(ani_env* env, ani_long nativeObj, ani_string type, ani_ref callback)
+void AniPipManager::RegisterCallback(ani_env* env, ani_long nativeObj,
+    ani_int windowId, ani_string type, ani_ref callback)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
@@ -224,10 +232,10 @@ void AniPipManager::RegisterCallback(ani_env* env, ani_long nativeObj, ani_strin
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
-    me->OnRegisterCallback(env, type, callback);
+    me->OnRegisterCallback(env, windowId, type, callback);
 }
 
-void AniPipManager::OnRegisterCallback(ani_env* env, ani_string type, ani_ref callback)
+void AniPipManager::OnRegisterCallback(ani_env* env, ani_int windowId, ani_string type, ani_ref callback)
 {
     std::string cbType;
     AniPipUtils::GetStdString(env, type, cbType);
@@ -249,13 +257,13 @@ void AniPipManager::OnRegisterCallback(ani_env* env, ani_string type, ani_ref ca
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return;
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
-    auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
+    int32_t pipWindowId = static_cast<int32_t>(windowId);
+    auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (!pipController) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get PictureInPictureControllerBase");
         return;
     }
-    TLOGI(WmsLogTag::WMS_PIP, "OnRegisterCallback to window:%{public}d", windowId);
+    TLOGI(WmsLogTag::WMS_PIP, "OnRegisterCallback to window:%{public}d", pipWindowId);
     WMError errCode = pipController->RegisterPipContentListenerWithType(cbType, fnRef);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to registerCallback");
@@ -264,7 +272,7 @@ void AniPipManager::OnRegisterCallback(ani_env* env, ani_string type, ani_ref ca
     TLOGI(WmsLogTag::WMS_PIP, "Register type %{public}s success!", cbType.c_str());
 }
 
-void AniPipManager::UnregisterCallback(ani_env* env, ani_long nativeObj, ani_string type)
+void AniPipManager::UnregisterCallback(ani_env* env, ani_long nativeObj, ani_int windowId, ani_string type)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipManager* me = reinterpret_cast<AniPipManager*>(nativeObj);
@@ -272,10 +280,10 @@ void AniPipManager::UnregisterCallback(ani_env* env, ani_long nativeObj, ani_str
         TLOGE(WmsLogTag::WMS_PIP, "AniPipManager is nullptr");
         return;
     }
-    me->OnUnregisterCallback(env, type);
+    me->OnUnregisterCallback(env, windowId, type);
 }
 
-void AniPipManager::OnUnregisterCallback(ani_env* env, ani_string type)
+void AniPipManager::OnUnregisterCallback(ani_env* env, ani_int windowId, ani_string type)
 {
     std::string cbType;
     AniPipUtils::GetStdString(env, type, cbType);
@@ -290,13 +298,13 @@ void AniPipManager::OnUnregisterCallback(ani_env* env, ani_string type)
         TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return;
     }
-    int32_t windowId = static_cast<int32_t>(pipWindow->GetWindowId());
-    auto pipController = PictureInPictureManager::GetPipControllerInfo(windowId);
+    int32_t pipWindowId = static_cast<int32_t>(windowId);
+    auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (pipController == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to get pictureInPictureController");
         return;
     }
-    TLOGI(WmsLogTag::WMS_PIP, "UnRegisterPipContentListenerWithType to window:%{public}d", windowId);
+    TLOGI(WmsLogTag::WMS_PIP, "UnRegisterPipContentListenerWithType to window:%{public}d", pipWindowId);
     WMError errCode = pipController->UnRegisterPipContentListenerWithType(cbType);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to set UnRegisterPipContentListenerWithType");
@@ -330,9 +338,8 @@ ani_status OHOS::Rosen::ANI_Manager_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void*>(AniPipManager::GetCustomUIController)},
         ani_native_function{"GetTypeNode", nullptr, reinterpret_cast<void*>(AniPipManager::GetTypeNode)},
         ani_native_function{"RegisterCallback", nullptr, reinterpret_cast<void*>(AniPipManager::RegisterCallback)},
-        ani_native_function{"UnregisterCallback", "lC{std.core.String}:",
-            reinterpret_cast<void*>(AniPipManager::UnregisterCallback)},
-        ani_native_function{"SetTypeNodeEnabled", "l:", reinterpret_cast<void*>(AniPipManager::SetTypeNodeEnabled)},
+        ani_native_function{"UnregisterCallback", nullptr, reinterpret_cast<void*>(AniPipManager::UnregisterCallback)},
+        ani_native_function{"SetTypeNodeEnabled", nullptr, reinterpret_cast<void*>(AniPipManager::SetTypeNodeEnabled)},
         ani_native_function{"SetPipNodeType", nullptr, reinterpret_cast<void*>(AniPipManager::SetPipNodeType)},
     };
 

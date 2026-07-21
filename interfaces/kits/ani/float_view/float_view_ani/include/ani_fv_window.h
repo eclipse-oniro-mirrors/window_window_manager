@@ -44,7 +44,7 @@ private:
     static inline std::mutex mtxLocalObjs_;
 
     ani_ref OnCreate(ani_env* env, ani_object floatViewConfigurations);
-    ani_ref CreateFvController(ani_env* env, void* contextPtr, uint32_t templateType);
+    ani_ref CreateFvController(ani_env* env, void* contextPtr, uint32_t templateType, bool isCloseConfirm);
     ani_ref aniRef_ = nullptr;
 };  // class AniFvWindow
 }  // namespace Rosen

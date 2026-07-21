@@ -314,21 +314,6 @@ HWTEST_F(SensorFoldStateMgrTest, HandleSensorEventTest10, TestSize.Level1)
 }
 
 /**
- * @tc.name: FinishTaskSequence
- * @tc.desc: FinishTaskSequence
- * @tc.type: FUNC
- */
-HWTEST_F(SensorFoldStateMgrTest, FinishTaskSequence, TestSize.Level0)
-{
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-    SensorFoldStateMgr::GetInstance().FinishTaskSequence();
-    EXPECT_TRUE(g_logMsg.find("TaskSequenceProcess") != std::string::npos);
-    LOG_SetCallback(nullptr);
-    g_logMsg.clear();
-}
-
-/**
  * @tc.name: HandleTentChangeTest01
  * @tc.desc: test function : HandleTentChange with empty axis
  * @tc.type: FUNC

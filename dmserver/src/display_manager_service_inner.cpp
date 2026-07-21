@@ -28,7 +28,7 @@ DisplayId DisplayManagerServiceInner::GetDefaultDisplayId() const
 {
     auto defaultDisplayInfo = DisplayManagerService::GetInstance().GetDefaultDisplayInfo();
     if (defaultDisplayInfo == nullptr) {
-        TLOGE(WmsLogTag::DMS, "defaultDisplayInfo is nullptr.");
+        TLOGE(WmsLogTag::DMS, "GetDefaultDisplayId, defaultDisplayInfo is nullptr.");
         return DISPLAY_ID_INVALID;
     }
     return defaultDisplayInfo->GetDisplayId();

@@ -57,7 +57,6 @@ private:
     static napi_value UpdateSuperFoldAvailableArea(napi_env env, napi_callback_info info);
     static napi_value UpdateSuperFoldExpandAvailableArea(napi_env env, napi_callback_info info);
     static napi_value SetScreenOffDelayTime(napi_env env, napi_callback_info info);
-    static napi_value SetScreenOnDelayTime(napi_env env, napi_callback_info info);
     static napi_value SetForceCloseHdr(napi_env env, napi_callback_info info);
     static napi_value NotifyFoldToExpandCompletion(napi_env env, napi_callback_info info);
     static napi_value NotifyScreenConnectCompletion(napi_env env, napi_callback_info info);
@@ -72,6 +71,7 @@ private:
     static napi_value SetLandscapeLockStatus(napi_env env, napi_callback_info info);
     static napi_value GetScreenSnapshot(napi_env env, napi_callback_info info);
     static napi_value GetDeviceScreenConfig(napi_env env, napi_callback_info info);
+    static napi_value SetScreenOnDelayTime(napi_env env, napi_callback_info info);
     static napi_value GetExtendScreenConnectStatus(napi_env env, napi_callback_info info);
     static napi_value SetDefaultMultiScreenModeWhenSwitchUser(napi_env env, napi_callback_info info);
     static napi_value NotifyExtendScreenCreateFinish(napi_env env, napi_callback_info info);
@@ -84,11 +84,13 @@ private:
     static napi_value GetScreenSnapshotWithAllWindows(napi_env env, napi_callback_info info);
     static napi_value NotifySwitchUserAnimationFinish(napi_env env, napi_callback_info info);
     static napi_value RegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
+    static napi_value UnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
 
     napi_value OnRegisterCallback(napi_env env, const napi_callback_info info);
     napi_value OnUnRegisterCallback(napi_env env, const napi_callback_info info);
     void RegisterScreenConnectionCallback(napi_env env, napi_ref& callbackRef);
     void RegisterTentModeCallback(napi_env env, napi_ref& callbackRef);
+    void UnRegisterTentModeCallback(napi_env env, const napi_ref& callback);
     void RegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callbackRef);
     void UnRegisterScreenClosedStateChangeCallback(napi_env env, napi_ref& callbackRef);
     void RegisterTransRSEventCallback(napi_env env, napi_ref& callback, RSExposedEventType type);
@@ -105,7 +107,6 @@ private:
     napi_value OnUpdateSuperFoldAvailableArea(napi_env env, const napi_callback_info info);
     napi_value OnUpdateSuperFoldExpandAvailableArea(napi_env env, const napi_callback_info info);
     napi_value OnSetScreenOffDelayTime(napi_env env, const napi_callback_info info);
-    napi_value OnSetScreenOnDelayTime(napi_env env, const napi_callback_info info);
     napi_value OnSetCameraStatus(napi_env env, napi_callback_info info);
     napi_value OnSetForceCloseHdr(napi_env env, const napi_callback_info info);
     napi_value OnNotifyFoldToExpandCompletion(napi_env env, const napi_callback_info info);
@@ -120,10 +121,11 @@ private:
     napi_value OnSetLandscapeLockStatus(napi_env env, const napi_callback_info info);
     napi_value OnGetScreenSnapshot(napi_env env, const napi_callback_info info);
     napi_value OnGetDeviceScreenConfig(napi_env env, const napi_callback_info info);
+    napi_value OnSetScreenOnDelayTime(napi_env env, const napi_callback_info info);
     napi_value OnGetExtendScreenConnectStatus(napi_env env, napi_callback_info info);
     napi_value OnSetDefaultMultiScreenModeWhenSwitchUser(napi_env env, napi_callback_info info);
     napi_value OnNotifyExtendScreenCreateFinish(napi_env env, const napi_callback_info info);
-    napi_value OnNotifyExtendScreenDestroyFinish(napi_env env, napi_callback_info info);
+    napi_value OnNotifyExtendScreenDestroyFinish(napi_env env, const napi_callback_info info);
     napi_value OnNotifyScreenMaskAppear(napi_env env, napi_callback_info info);
     napi_value OnSetPrimaryDisplaySystemDpi(napi_env env, napi_callback_info info);
     napi_value OnGetPrimaryDisplaySystemDpi(napi_env env, napi_callback_info info);
@@ -133,12 +135,13 @@ private:
     napi_value OnNotifySwitchUserAnimationFinish(napi_env env, napi_callback_info info);
 
     napi_value OnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
+    napi_value OnUnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
     bool ObtainCallBackInfo(napi_env env, const napi_callback_info info,
         std::string& callbackType, napi_ref& callbackRef);
     bool CheckAndTransState(ScbScreenPowerState state, ScreenPowerState& screenState);
 
     std::shared_ptr<NativeReference> screenConnectionCallback_;
-    std::vector<std::shared_ptr<NativeReference>> tentModeChangeCallback_;
+    std::vector<NativeReference*> tentModeChangeCallback_;
     std::vector<std::shared_ptr<NativeReference>> screenClosedStateChangeCallback_;
     std::shared_ptr<NativeReference> shutdownCallback_;
     napi_env env_;

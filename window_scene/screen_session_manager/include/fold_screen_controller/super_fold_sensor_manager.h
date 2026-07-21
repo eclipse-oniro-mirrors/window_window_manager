@@ -61,6 +61,7 @@ public:
     void SetStateMachineToActived();
     void HandleFoldStatusLockedToExpand();
     void HandleFoldStatusUnlocked();
+    void HandleOnehopDeviceDown();
     void SetTaskScheduler(std::shared_ptr<TaskScheduler> scheduler);
 
 private:
@@ -77,7 +78,7 @@ private:
  
     void NotifyFoldAngleChanged(float foldAngle);
  
-    void NotifyHallChanged(uint16_t hall);
+    void NotifyHallChanged(uint16_t hall, float foldAngle, bool isHallEvent = false);
 
     void NotifySoftKeyboardChanged();
  
@@ -86,6 +87,14 @@ private:
     ~SuperFoldSensorManager();
 
     std::shared_ptr<TaskScheduler> taskScheduler_ = nullptr;
+
+    std::mutex oneHopDeviceDownMutex_;
+
+    std::condition_variable oneHopDeviceDownEventCV_;
+
+    std::chrono::steady_clock::time_point oneHopDeviceDownTime_ = std::chrono::steady_clock::now();
+
+    uint32_t waitMilliSeconds_ = 250;
 };
 }
 }
