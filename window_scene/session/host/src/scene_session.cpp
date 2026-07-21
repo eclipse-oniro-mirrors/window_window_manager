@@ -4600,20 +4600,21 @@ void SceneSession::HandleMoveDragSurfaceBounds(
     throwSlipToFullScreenAnimCount_.store(0);
     UpdateSizeChangeReason(reason);
 
+    const WSRect& targetRect = isGlobal ? globalRect : rect;
     const bool isTouchDrag = moveDragController_ &&
                              moveDragController_->GetPointerType() == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
     const bool allowThrowSlip = pcFoldScreenController_ && pcFoldScreenController_->IsAllowThrowSlip(GetScreenId());
     const bool isDragMoveOrEnd = reason == SizeChangeReason::DRAG_MOVE || reason == SizeChangeReason::DRAG_END;
 
     if (isTouchDrag && allowThrowSlip && isDragMoveOrEnd) {
-        SetSurfaceBounds(globalRect, isGlobal, needFlush);
+        SetSurfaceBounds(targetRect, isGlobal, needFlush);
         pcFoldScreenController_->RecordMoveRects(rect);
     } else if (reason == SizeChangeReason::DRAG_START) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Drag-start event doesn't set surface bounds");
     } else {
         if (mode != TargetRectUpdateMode::RESAMPLE_SCHEDULED &&
             (reason != SizeChangeReason::DRAG || GetKeyFramePolicy().running_)) {
-            SetSurfaceBounds(globalRect, isGlobal, needFlush);
+            SetSurfaceBounds(targetRect, isGlobal, needFlush);
         } else {
             needSetBoundsNextVsync = true;
         }
@@ -4621,7 +4622,7 @@ void SceneSession::HandleMoveDragSurfaceBounds(
 
     if (reason != SizeChangeReason::DRAG_MOVE && !KeyFrameNotifyFilter(rect, reason)) {
         UpdateRectForDrag(rect);
-        RequestNextVsyncWhenDrag(globalRect, isGlobal, needFlush, needSetBoundsNextVsync);
+        RequestNextVsyncWhenDrag(targetRect, isGlobal, needFlush, needSetBoundsNextVsync);
     }
 
     // Request resample on next vsync if needed.
@@ -5065,9 +5066,7 @@ void SceneSession::OnMoveDragCallback(SizeChangeReason reason, TargetRectUpdateM
     WSRect relativeRect = moveDragController_->GetTargetRect(isRelatedToEndDisplay ?
         MoveDragController::TargetRectCoordinate::RELATED_TO_END_DISPLAY :
         MoveDragController::TargetRectCoordinate::RELATED_TO_START_DISPLAY);
-    WSRect globalRect = moveDragController_->GetTargetRect(isRelatedToEndDisplay ?
-        MoveDragController::TargetRectCoordinate::RELATED_TO_END_DISPLAY :
-        MoveDragController::TargetRectCoordinate::GLOBAL);
+    WSRect globalRect = moveDragController_->GetTargetRect(MoveDragController::TargetRectCoordinate::GLOBAL);
     HandleMoveDragSurfaceNode(reason);
     HandleMoveDragSurfaceBounds(relativeRect, globalRect, reason, mode);
     if (reason == SizeChangeReason::DRAG_END) {
@@ -5537,7 +5536,7 @@ void SceneSession::HandleMoveDragSurfaceNode(SizeChangeReason reason)
             // When the drag-to-move or drag-to-scale operation ends, if the window's current screen
             // is the same as the starting screen, the cloned node is removed immediately. Otherwise,
             // the removal of the cloned node is submitted along with the vsync refresh.
-            if (moveDragController_->ShouldFlushOnDragEnd()) {
+            if (moveDragController_->IsDragEndedOnSameDisplay()) {
                 TLOGD(WmsLogTag::WMS_LAYOUT, "Cloned node removed immediately");
                 RSTransactionAdapter::FlushImplicitTransaction({ targetSurfaceNode, dragMoveMountedNode });
             }
@@ -5670,16 +5669,6 @@ void SceneSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool need
 
     NotifySubAndDialogFollowRectChange(rect, isGlobal, needFlush);
     SetSubWindowBoundsDuringCross(rect, isGlobal, needFlush);
-
-    // When drag ends (needFlush == false) and the window is crossing screens,
-    // surface node property changes will be committed together with the ArkUI
-    // relayout triggered on the next vsync, so no explicit flush is required here.
-    // If the window is NOT crossing screens, the changes should be flushed
-    // immediately to avoid affecting the next drag operation.
-    if (!needFlush && moveDragController_) {
-        needFlush = moveDragController_->ShouldFlushOnDragEnd();
-        TLOGD(WmsLogTag::WMS_LAYOUT, "On drag end, needFlush: %{public}d", needFlush);
-    }
 
     moveDragBoundsApplier_->Apply(rect, isGlobal, needFlush);
 }
