@@ -41,6 +41,7 @@ const char* WINDOW_UICONTENT_TIMEOUT_CHECK_NAME = "Window UIContent timeout chec
 const char* WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK_NAME = "Window UIExt destroy timeout check";
 const char* WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK_NAME = "Window keyboard anim timeout check";
 const char* WINDOW_WALLPAPER_ZORDER_CHECK_NAME = "Window wallpaper z-order check";
+const char* WINDOW_MODAL_SYSTEM_USE_JSONSTRING_NAME = "Window modal system uses json string";
 
 const std::map<WindowDFXHelperType, const char*> WM_CHECK_TYPE_TO_CHECK_NAME_MAP {
     {WindowDFXHelperType::WINDOW_RECT_CHECK,                         WINDOW_RECT_CHECK_NAME             },
@@ -59,6 +60,7 @@ const std::map<WindowDFXHelperType, const char*> WM_CHECK_TYPE_TO_CHECK_NAME_MAP
     {WindowDFXHelperType::WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK,        WINDOW_UIEXT_DESTROY_TIMEOUT_CHECK_NAME       },
     {WindowDFXHelperType::WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK,        WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK_NAME       },
     {WindowDFXHelperType::WINDOW_WALLPAPER_ZORDER_CHECK,             WINDOW_WALLPAPER_ZORDER_CHECK_NAME            },
+    {WindowDFXHelperType::WINDOW_MODAL_SYSTEM_USE_JSONSTRING,        WINDOW_MODAL_SYSTEM_USE_JSONSTRING_NAME       },
 };
 
 const std::map<KeyboardLifeCycleException, std::string> KEYBOARD_LIFE_CYCLE_EXCEPTION_MAP = {

@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include "iremote_object_mocker.h"
 #include "mock_message_parcel.h"
@@ -58,14 +59,29 @@ HWTEST_F(ModalSystemUiExtensionTest, ModalSystemUiExtensionConnection01, TestSiz
 
 /**
  * @tc.name: ToString
- * @tc.desc: ToString
+ * @tc.desc: ToString with various params
  * @tc.type: FUNC
  */
 HWTEST_F(ModalSystemUiExtensionTest, ToString, TestSize.Level1)
 {
-    AAFwk::WantParams wantParams;
-    std::string ret = ModalSystemUiExtension::ToString(wantParams);
-    ASSERT_EQ("{}", ret);
+    AAFwk::Want want;
+    want.SetParam("normalString", "value");
+    nlohmann::json innerJson;
+    innerJson["key"] = "innerValue";
+    want.SetParam("jsonString", innerJson.dump());
+    want.SetParam("invalidJson", "{invalid}");
+    want.SetParam("intParam", 123);
+    want.SetParam("boolParam", true);
+    auto connection = sptr<ModalSystemUiExtension::DialogAbilityConnection>::MakeSptr(want);
+    ASSERT_NE(connection, nullptr);
+    std::string ret = connection->ToString(want);
+    nlohmann::json parsed = nlohmann::json::parse(ret);
+    ASSERT_EQ(parsed["normalString"], "value");
+    ASSERT_TRUE(parsed["jsonString"].is_object());
+    ASSERT_EQ(parsed["jsonString"]["key"], "innerValue");
+    ASSERT_EQ(parsed["invalidJson"], "{invalid}");
+    ASSERT_EQ(parsed["intParam"], 123);
+    ASSERT_EQ(parsed["boolParam"], true);
 }
 
 /**

@@ -70,6 +70,7 @@ ohos_systemtest("modal_system_ui_extension_test") {
     "hilog:libhilog",
     "input:libmmi-client",
     "ipc:ipc_single",
+    "json:nlohmann_json_static",
   ]
 }
 

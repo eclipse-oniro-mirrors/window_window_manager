@@ -43,7 +43,9 @@ ohos_shared_library("libmodal_system_ui_extension_client") {
   public_configs = [ ":libmodal_system_ui_extension_client_public_config" ]
 
   deps = [
+    "../../utils:libwmutil",
     "../../utils:libwmutil_base",
+    "../../window_scene/common:window_scene_common",
     "../../window_scene/session:scene_session",
     "../../wm:libwm",
   ]
