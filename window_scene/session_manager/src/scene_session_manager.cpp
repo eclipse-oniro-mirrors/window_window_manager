@@ -4151,7 +4151,6 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         sceneSession->ResetSessionConnectState();
         sceneSession->ResetIsActive();
         sceneSession->UpdatePrivacyModeControlInfo();
-        TLOGI(WmsLogTag::WMS_MAIN, "[windowId: %{public}d]main window create", sceneSession->GetPersistentId());
         ReportMainWindowStateChange(sceneSession, currentUserId_, MAIN_WINDOW_CREATE);
     }
     return WSError::WS_OK;
