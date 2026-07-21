@@ -226,7 +226,6 @@ bool AniPiPWindow::GetControlGroupFromJs(ani_env* env, ani_ref controlGroup, std
     ani_status aniRet = env->Array_GetLength(array, &length);
     if (aniRet != ANI_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "Array_GetLength is not ANI_OK.");
-        return false;
     }
 
     for (size_t i = 0; i < length; i++) {
@@ -234,13 +233,11 @@ bool AniPiPWindow::GetControlGroupFromJs(ani_env* env, ani_ref controlGroup, std
         ani_status arrayGetStatus = env->Array_Get(array, i, &getElementValue);
         if (arrayGetStatus != ANI_OK) {
             TLOGE(WmsLogTag::WMS_PIP, "Array_Get is not ANI_OK.");
-            return false;
         }
         ani_int ret;
         ani_status enumItemStatus = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(getElementValue), &ret);
         if (enumItemStatus != ANI_OK) {
             TLOGE(WmsLogTag::WMS_PIP, "EnumItem_GetValue_Int is not ANI_OK.");
-            return false;
         }
         uint32_t controlType = static_cast<uint32_t>(ret);
 
