@@ -193,6 +193,8 @@ const std::string STARTUP_PHASE_KEY = "ohos.ability.startupPhase";
 const std::string STARTUP_PHASE_PRE_WINDOW = "pre_window";
 const std::string STARTUP_PHASE_PRE_FOREGROUND = "pre_foreground";
 const std::string TRUE_VALUE = "true";
+constexpr int32_t MAIN_WINDOW_CREATE = 3;
+constexpr int32_t MAIN_WINDOW_DESTORY = 4;
 
 /*
  * sessionexception reason
@@ -302,6 +304,17 @@ int32_t GetPid()
 {
     static int32_t pid = static_cast<int32_t>(getpid());
     return pid;
+}
+
+void ReportMainWindowStateChange(const sptr<SceneSession>& sceneSession ,int32_t userId, int32_t value)
+{
+    std::unordered_map<std::string, std::string> payload = {
+        { "bundleName", sceneSession->GetSessionInfo().bundleName_ },
+        { "windowId", std::to_string(sceneSession->GetPersistentId()) },
+        { "userId", std::to_string(userId) },
+    };
+    OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(
+        OHOS::ResourceSchedule::ResType::RES_TYPE_REPORT_WINDOW_STATE, value, payload);
 }
 
 bool GetEnableRemoveStartingWindowFromBMS(const std::shared_ptr<AppExecFwk::AbilityInfo>& abilityInfo)
@@ -4138,6 +4151,7 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         sceneSession->ResetSessionConnectState();
         sceneSession->ResetIsActive();
         sceneSession->UpdatePrivacyModeControlInfo();
+        ReportMainWindowStateChange(sceneSession, currentUserId_, MAIN_WINDOW_CREATE);
     }
     return WSError::WS_OK;
 }
@@ -8338,6 +8352,10 @@ void SceneSessionManager::NotifySessionForCallback(const sptr<SceneSession>& sce
     if (sceneSession->GetSessionInfo().isSystem_) {
         TLOGW(WmsLogTag::DEFAULT, "id: %{public}d is system", sceneSession->GetPersistentId());
         return;
+    }
+    if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
+        TLOGI(WmsLogTag::DEFAULT, "windowId: %{public}d main window destory", sceneSession->GetPersistentId());
+        ReportMainWindowStateChange(sceneSession, currentUserId_, MAIN_WINDOW_DESTORY);
     }
     TLOGI(WmsLogTag::DEFAULT, "id: %{public}d, needRemoveSession: %{public}u", sceneSession->GetPersistentId(),
         static_cast<uint32_t>(needRemoveSession));
