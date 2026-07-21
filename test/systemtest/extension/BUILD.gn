@@ -56,6 +56,7 @@ ohos_systemtest("modal_system_ui_extension_test") {
   deps = [
     "${window_base_path}/dm:libdm",
     "${window_base_path}/extension/modal_system_ui_extension:libmodal_system_ui_extension_client",
+    "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 

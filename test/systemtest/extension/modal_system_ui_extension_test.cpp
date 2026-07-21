@@ -58,18 +58,18 @@ HWTEST_F(ModalSystemUiExtensionTest, ModalSystemUiExtensionConnection01, TestSiz
 }
 
 /**
- * @tc.name: ToString
- * @tc.desc: ToString with various params
+ * @tc.name: DialogAbilityConnectionToString
+ * @tc.desc: DialogAbilityConnectionToString
  * @tc.type: FUNC
  */
-HWTEST_F(ModalSystemUiExtensionTest, ToString, TestSize.Level1)
+HWTEST_F(ModalSystemUiExtensionTest, DialogAbilityConnectionToString, TestSize.Level1)
 {
     AAFwk::Want want;
-    want.SetParam("normalString", "value");
+    want.SetParam("normalString", std::string("value"));
     nlohmann::json innerJson;
     innerJson["key"] = "innerValue";
     want.SetParam("jsonString", innerJson.dump());
-    want.SetParam("invalidJson", "{invalid}");
+    want.SetParam("invalidJson", std::string("{invalid}"));
     want.SetParam("intParam", 123);
     want.SetParam("boolParam", true);
     auto connection = sptr<ModalSystemUiExtension::DialogAbilityConnection>::MakeSptr(want);
