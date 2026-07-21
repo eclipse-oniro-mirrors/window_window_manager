@@ -203,7 +203,7 @@ enum class WindowType : uint32_t {
 
     WINDOW_TYPE_UI_EXTENSION = 3000
 };
- 
+
 /**
  * @struct RealTimeSwitchInfo.
  *
@@ -2396,7 +2396,7 @@ enum class FloatingBallState : uint32_t {
     STOPPED = 2,
     ERROR = 3,
 };
- 
+
 /**
  * @brief Enumerates floating ball template.
  */
@@ -3336,7 +3336,7 @@ struct KeyboardLayoutParams : public Parcelable {
         return LandscapeKeyboardRect_.IsUninitializedRect() && PortraitKeyboardRect_.IsUninitializedRect() &&
                LandscapePanelRect_.IsUninitializedRect() && PortraitPanelRect_.IsUninitializedRect();
     }
-    
+
     bool isValidAvoidHeight() const
     {
         return landscapeAvoidHeight_ >= 0 && portraitAvoidHeight_ >= 0;
@@ -4332,6 +4332,8 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_4_3 = 21,
     // 16:9 aspect ratio
     LANDSCAPE_16_9 = 22,
+    // keep vertical aspect ratio and scale to landscape
+    LANDSCAPE_VERTICAL_FULL_SCALE = 23,
 };
 
 enum class WindowManagerAgentType : uint32_t {
