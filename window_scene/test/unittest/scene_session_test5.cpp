@@ -1102,13 +1102,14 @@ HWTEST_F(SceneSessionTest5, UpdateKeyFrameCloneNode, Function | SmallTest | Leve
     std::shared_ptr<RSTransaction> rsTransactionNull = nullptr;
 
     session->keyFrameCloneNode_ = rsKeyFrameNode;
-    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_OK);
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_NULLPTR);
     session->keyFrameCloneNode_ = nullptr;
     EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNodeNull, rsTransaction), WSError::WS_ERROR_NULLPTR);
     EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_NULLPTR);
     session->sessionStage_ = sessionStage;
     EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransactionNull), WSError::WS_OK);
-    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_OK);
+    EXPECT_NE(session->keyFrameCloneNode_, nullptr);
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_REPEAT_OPERATION);
 }
 
 /**
@@ -1329,6 +1330,236 @@ HWTEST_F(SceneSessionTest5, KeyFrameAnimateEnd, Function | SmallTest | Level2)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(session, nullptr);
     EXPECT_EQ(session->KeyFrameAnimateEnd(), WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameCloneNode_NullptrCheck
+ * @tc.desc: UpdateKeyFrameCloneNode returns WS_ERROR_NULLPTR when rsKeyFrameNode is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameCloneNode_NullptrCheck, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    std::shared_ptr<RSWindowKeyFrameNode> rsKeyFrameNodeNull = nullptr;
+    auto rsTransaction = std::make_shared<RSTransaction>();
+    // rsKeyFrameNode is nullptr
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNodeNull, rsTransaction), WSError::WS_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameCloneNode_AlreadyExist
+ * @tc.desc: UpdateKeyFrameCloneNode returns WS_ERROR_REPEAT_OPERATION when keyFrameCloneNode_ already exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameCloneNode_AlreadyExist, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+    auto rsKeyFrameNode = RSWindowKeyFrameNode::Create();
+    auto rsTransaction = std::make_shared<RSTransaction>();
+    // First call succeeds
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_OK);
+    EXPECT_NE(session->keyFrameCloneNode_, nullptr);
+    // Second call returns REPEAT_OPERATION
+    EXPECT_EQ(session->UpdateKeyFrameCloneNode(rsKeyFrameNode, rsTransaction), WSError::WS_ERROR_REPEAT_OPERATION);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameState_DragEndNullCloneNode
+ * @tc.desc: UpdateKeyFrameState DRAG_END stops keyframe even keyFrameCloneNode_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameState_DragEndNullCloneNode, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->moveDragController_ = moveDragController;
+    session->sessionStage_ = sessionStage;
+    // keyFrameCloneNode_ is nullptr, DRAG_END still stop keyframe
+    session->keyFrameCloneNode_ = nullptr;
+    session->keyFramePolicy_.running_ = true;
+    WSRect rect = { 0, 0, 100, 100 };
+    session->UpdateKeyFrameState(SizeChangeReason::DRAG_END, rect);
+    EXPECT_EQ(session->keyFramePolicy_.running_, false);
+    EXPECT_EQ(session->keyFramePolicy_.stopping_, true);
+}
+
+/**
+ * @tc.name: RequestKeyFrameNextVsync_MaxCount
+ * @tc.desc: RequestKeyFrameNextVsync stops when count reaches UINT64_MAX
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, RequestKeyFrameNextVsync_MaxCount, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    session->keyFramePolicy_.running_ = true;
+    session->keyFrameVsyncRequestStamp_ = 0;
+    // count == UINT64_MAX should stop without scheduling vsync
+    session->RequestKeyFrameNextVsync(0, UINT64_MAX);
+    // running_ remains true, just log and return
+    EXPECT_EQ(session->keyFramePolicy_.running_, true);
+}
+
+/**
+ * @tc.name: RequestKeyFrameNextVsync_StampMismatch
+ * @tc.desc: RequestKeyFrameNextVsync stops when requestStamp != keyFrameVsyncRequestStamp_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, RequestKeyFrameNextVsync_StampMismatch, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    session->keyFramePolicy_.running_ = true;
+    session->keyFrameVsyncRequestStamp_ = 12345;
+    // stamp mismatch, should stop (not schedule vsync)
+    session->RequestKeyFrameNextVsync(99999, 0);
+    // running_ should remain true (not modified by stop path)
+    EXPECT_EQ(session->keyFramePolicy_.running_, true);
+}
+
+/**
+ * @tc.name: OnKeyFrameNextVsync_NeedNotify
+ * @tc.desc: OnKeyFrameNextVsync with needNotify=true when drag rect differs from last rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnKeyFrameNextVsync_NeedNotify, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+    // Set conditions: dragPauseNoticed=false, animating=false, duration>=100, layoutController!=null
+    session->lastKeyFrameDragStamp_ = 0;
+    session->keyFrameDragPauseNoticed_ = false;
+    session->keyFrameAnimating_ = false;
+    // lastKeyFrameRect_ and lastKeyFrameDragRect_ differ (>3px threshold) => isToNotice=true => needNotify=true
+    session->lastKeyFrameRect_ = { 0, 0, 100, 100 };
+    session->lastKeyFrameDragRect_ = { 0, 0, 200, 200 };
+    session->OnKeyFrameNextVsync(0);
+    EXPECT_EQ(session->keyFrameDragPauseNoticed_, true);
+    EXPECT_EQ(session->lastKeyFrameRect_.width_, 200);
+    EXPECT_EQ(session->lastKeyFrameRect_.height_, 200);
+}
+
+/**
+ * @tc.name: KeyFrameAnimateEnd_ResetsAnimating
+ * @tc.desc: KeyFrameAnimateEnd sets keyFrameAnimating_ to false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, KeyFrameAnimateEnd_ResetsAnimating, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    session->keyFrameAnimating_ = true;
+    EXPECT_EQ(session->KeyFrameAnimateEnd(), WSError::WS_OK);
+    EXPECT_EQ(session->keyFrameAnimating_, false);
+}
+
+/**
+ * @tc.name: InitKeyFrameState_ResetsAllState
+ * @tc.desc: InitKeyFrameState resets all keyframe state and sets running to true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, InitKeyFrameState_ResetsAllState, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStage;
+    // Set some non-default state
+    session->keyFrameCloneNode_ = RSWindowKeyFrameNode::Create();
+    session->keyFrameAnimating_ = true;
+    session->keyFrameDragPauseNoticed_ = true;
+    WSRect rect = { 10, 20, 100, 200 };
+    session->InitKeyFrameState(rect);
+    // Verify state is reset
+    EXPECT_EQ(session->keyFrameCloneNode_, nullptr);
+    EXPECT_EQ(session->keyFramePolicy_.running_, true);
+    EXPECT_EQ(session->keyFramePolicy_.stopping_, false);
+    EXPECT_EQ(session->keyFrameAnimating_, false);
+    EXPECT_EQ(session->keyFrameDragPauseNoticed_, false);
+}
+
+/**
+ * @tc.name: UpdateKeyFrameState_NotRunning
+ * @tc.desc: UpdateKeyFrameState returns early when running_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameState_NotRunning, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->moveDragController_ = moveDragController;
+    session->sessionStage_ = sessionStage;
+    session->keyFramePolicy_.running_ = false;
+    WSRect rect = { 0, 0, 100, 100 };
+    // DRAG with running_=false should return early, not access cloneNode
+    session->UpdateKeyFrameState(SizeChangeReason::DRAG, rect);
+    EXPECT_EQ(session->keyFramePolicy_.running_, false);
+    EXPECT_EQ(session->lastKeyFrameDragRect_, WSRect());
+}
+
+/**
+ * @tc.name: UpdateKeyFrameDragState_PauseNoticed
+ * @tc.desc: UpdateKeyFrameDragState updates lastKeyFrameStamp_ when keyFrameDragPauseNoticed_ is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateKeyFrameDragState_PauseNoticed, Function | SmallTest | Level2)
+{
+    SessionInfo info;
+    info.abilityName_ = "keyframe";
+    info.bundleName_ = "keyframe";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    auto sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    session->moveDragController_ = moveDragController;
+    session->sessionStage_ = sessionStage;
+    auto rsKeyFrameNode = RSWindowKeyFrameNode::Create();
+    session->keyFrameCloneNode_ = rsKeyFrameNode;
+    session->keyFramePolicy_.running_ = true;
+    session->keyFrameDragPauseNoticed_ = true;
+    session->lastKeyFrameStamp_ = 0;
+    WSRect rect = { 0, 0, 100, 100 };
+    session->UpdateKeyFrameState(SizeChangeReason::DRAG, rect);
+    // lastKeyFrameStamp_ should be updated when keyFrameDragPauseNoticed_ is true
+    EXPECT_NE(session->lastKeyFrameStamp_, 0);
+    EXPECT_EQ(session->keyFrameDragPauseNoticed_, false);
 }
 
 /**
