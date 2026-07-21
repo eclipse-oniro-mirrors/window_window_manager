@@ -169,6 +169,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "WindowAnchor", CreateWindowAnchorType(env));
     napi_set_named_property(env, exportObj, "PixelUnit", CreatePixelUnitType(env));
     napi_set_named_property(env, exportObj, "AnimationType", AnimationTypeInit(env));
+    napi_set_named_property(env, exportObj, "MotionType", CreateJsMotionType(env));
     napi_set_named_property(env, exportObj, "WindowTransitionType", WindowTransitionTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowAnimationCurve", WindowAnimationCurveInit(env));
     napi_set_named_property(env, exportObj, "SupportFunctionType", CreateSupportType(env));

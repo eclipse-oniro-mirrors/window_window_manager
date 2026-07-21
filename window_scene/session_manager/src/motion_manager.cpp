@@ -148,13 +148,11 @@ bool MotionManager::UnsubscribeMotionSensor(MotionType motionType)
 
 void MotionManager::UnsubscribeAllMotionSensors()
 {
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
     for (auto& pair : subscribedMotionTypes_) {
         if (pair.second) {
             UnsubscribeMotionSensorInternal(pair.first);
         }
     }
-#endif
 }
 
 DeviceRotation MotionManager::ConvertMotionActionToDeviceRotation(int32_t motionAction)

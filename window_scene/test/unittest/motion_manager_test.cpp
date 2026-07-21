@@ -16,6 +16,7 @@
 #include <chrono>
 #include <gtest/gtest.h>
 #include "window_manager_hilog.h"
+#include "screen_session_manager.h"
 #include "motion_manager.h"
 
 using namespace testing;

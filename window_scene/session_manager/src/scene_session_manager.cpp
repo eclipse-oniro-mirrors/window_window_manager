@@ -74,9 +74,7 @@
 #include "scene_screen_change_listener.h"
 #include "scene_system_ability_listener.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 #include "motion_manager.h"
-#endif
 #include "session/host/include/ability_info_manager.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_controller.h"
