@@ -231,7 +231,8 @@ const std::string FAULT_SUGGESTION = "542003014";
 constexpr uint32_t COMMON_EVENT_SERVICE_ID = 3299;
 const bool IS_SUPPORT_PC_MODE = system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
 const std::set<std::string> INDIVIDUAL_SCREEN_GROUP_SET = {
-    "CeliaView", "DevEcoViewer", "Cooperation-multi", "HwCast_AppModeDisplay", "HiCar", "SuperLauncher"};
+    "CeliaView", "DevEcoViewer", "Cooperation-multi", "HwCast_AppModeDisplay", "HiCar", "SuperLauncher",
+    "MultiScreenInteract"};
 const long GET_HDR_PIXELMAP_TIMEOUT = 2000;
 const int32_t CV_WAIT_UPDATE_AVAILABLE_MS = 500;
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
