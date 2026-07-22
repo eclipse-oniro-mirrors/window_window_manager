@@ -79,6 +79,7 @@ std::string ModalSystemUiExtension::DialogAbilityConnection::ToString(const AAFw
 {
     nlohmann::json wantParamsJson;
     AAFwk::to_json(wantParamsJson, want.GetParams());
+    bool needReport = false;
     for (auto it = wantParamsJson.begin(); it != wantParamsJson.end(); ++it) {
         if (!(it->is_string())) {
             continue;
@@ -90,9 +91,12 @@ std::string ModalSystemUiExtension::DialogAbilityConnection::ToString(const AAFw
                 TLOGI(WmsLogTag::WMS_UIEXT, "json parse failed");
             } else {
                 it.value() = parsed;
-                ReportJsonStringParamsUsage(want.GetElement().GetBundleName(), want.GetElement().GetAbilityName());
+                needReport = true;
             }
         }
+    }
+    if (needReport) {
+        ReportJsonStringParamsUsage(want.GetElement().GetBundleName(), want.GetElement().GetAbilityName());
     }
     return wantParamsJson.dump();
 }
