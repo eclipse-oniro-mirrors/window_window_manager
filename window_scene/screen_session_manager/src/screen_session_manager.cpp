@@ -15706,7 +15706,7 @@ SessionOption ScreenSessionManager::GetSessionOption(sptr<ScreenSession> screenS
         .rotationCorrectionMap_ = screenSession->GetRotationCorrectionMap(),
         .supportsFocus_ = screenSession->GetSupportsFocus(),
         .isBooting_ = IsOnBootAnimation(),
-        .connectToRenderToken_ = screenSession->GetRenderSession(),
+        .renderSession_ = screenSession->GetRenderSession(),
     };
     return option;
 }
@@ -15726,7 +15726,8 @@ SessionOption ScreenSessionManager::GetSessionOption(sptr<ScreenSession> screenS
         .isRotationLocked_ = rotationOptions.isRotationLocked_,
         .rotation_ = rotationOptions.rotation_,
         .rotationOrientationMap_ = rotationOptions.rotationOrientationMap_,
-        .isBooting_ = IsOnBootAnimation()
+        .isBooting_ = IsOnBootAnimation(),
+        .renderSession_ = screenSession->GetRenderSession(),
     };
     return option;
 }

@@ -21,7 +21,6 @@
 
 #include "display_info.h"
 #include "session/screen/include/screen_property.h"
-#include "session_option.h"
 #include "rs_event_data_manager.h"
 
 namespace OHOS::Rosen {

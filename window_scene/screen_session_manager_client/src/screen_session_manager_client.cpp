@@ -1258,7 +1258,7 @@ bool ScreenSessionManagerClient::HandleScreenConnection(SessionOption option)
         .rsId = option.rsId_,
         .name = option.name_,
         .innerName = option.innerName_,
-        .renderSession = option.connectToRenderToken_,
+        .renderSession = option.renderSession_,
     };
     config.property = screenSessionManager_->GetScreenProperty(option.screenId_);
     TLOGW(WmsLogTag::DMS, "width:%{public}f, height=%{public}f",
