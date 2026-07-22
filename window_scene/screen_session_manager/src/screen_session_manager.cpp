@@ -1122,7 +1122,7 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
 DMError ScreenSessionManager::RegisterDisplayAttributeAgent(const std::vector<std::string>& attributes,
     const sptr<IDisplayManagerAgent>& displayManagerAgent)
 {
-    TLOGNFI(WmsLogTag::DMS, "called");
+    TLOGD(WmsLogTag::DMS, "called");
     if ((displayManagerAgent == nullptr) || (displayManagerAgent->AsObject() == nullptr)) {
         TLOGE(WmsLogTag::DMS, "displayManagerAgent invalid");
         return DMError::DM_ERROR_NULLPTR;
@@ -7475,7 +7475,7 @@ DisplayState ScreenSessionManager::GetDisplayState(DisplayId displayId)
 
 void ScreenSessionManager::NotifyDisplayEvent(DisplayEvent event)
 {
-    TLOGNFI(WmsLogTag::DMS, "[UL_POWER] receive keyguardDrawnDone");
+    TLOGD(WmsLogTag::DMS, "[UL_POWER] receive keyguardDrawnDone");
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied! calling: %{public}s, pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
@@ -8907,7 +8907,7 @@ DMError ScreenSessionManager::IsOnboardDisplay(DisplayId displayId, bool& isOnbo
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
-    TLOGI(WmsLogTag::DMS, "displayID is %{public}" PRIu64, displayId);
+    TLOGD(WmsLogTag::DMS, "displayID is %{public}" PRIu64, displayId);
 #ifdef FOLD_ABILITY_ENABLE
     ScreenId boardId;
     auto displayInfo = GetDisplayInfoById(displayId);
@@ -8923,7 +8923,7 @@ DMError ScreenSessionManager::IsOnboardDisplay(DisplayId displayId, bool& isOnbo
     } else {
         boardId = displayInfo->GetScreenId();
     }
-    TLOGI(WmsLogTag::DMS, "boardId %{public}" PRIu64, boardId);
+    TLOGD(WmsLogTag::DMS, "boardId %{public}" PRIu64, boardId);
     const auto& boardList = DMS::ProductConfig::GetInstance().GetBoardList();
     bool isBoardListExist = (std::find(boardList.begin(), boardList.end(), boardId) != boardList.end());
     isOnboardDisplay = isBoardListExist;
@@ -8932,7 +8932,7 @@ DMError ScreenSessionManager::IsOnboardDisplay(DisplayId displayId, bool& isOnbo
     for (auto val : boardList) {
         oss << val << " ";
     }
-    TLOGI(WmsLogTag::DMS, "boardList [%{public}s], isBoardListExist %{public}s", oss.str().c_str(),
+    TLOGD(WmsLogTag::DMS, "boardList [%{public}s], isBoardListExist %{public}s", oss.str().c_str(),
         isBoardListExist ? "true" : "false");
     return DMError::DM_OK;
 #endif
@@ -11119,7 +11119,7 @@ DMError ScreenSessionManager::HasPrivateWindow(DisplayId id, bool& hasPrivateWin
             hasPrivateWindow = false;
         }
     }
-    TLOGI_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "id: %{public}" PRIu64" privW: %{public}u",
+    TLOGD(WmsLogTag::DMS, "id: %{public}" PRIu64" privW: %{public}u",
         id, static_cast<uint32_t>(hasPrivateWindow));
     return DMError::DM_OK;
 }

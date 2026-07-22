@@ -197,7 +197,7 @@ bool ScreenSessionManagerAdapter::NotifyDisplayPowerEvent(DisplayPowerEvent even
         TLOGE(WmsLogTag::DMS, "agent is null");
         return false;
     }
-    TLOGNFI(WmsLogTag::DMS, "Received Display Power Event: %{public}d", static_cast<int>(event));
+    TLOGD(WmsLogTag::DMS, "Received Display Power Event: %{public}d", static_cast<int>(event));
     for (auto& agent : agents) {
         agent->NotifyDisplayPowerEvent(event, status);
     }

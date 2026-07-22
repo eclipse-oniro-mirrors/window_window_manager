@@ -1225,7 +1225,7 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
 
 bool ScreenSessionManagerProxy::RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject)
 {
-    TLOGI(WmsLogTag::DMS, "ENTER");
+    TLOGD(WmsLogTag::DMS, "ENTER");
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGW(WmsLogTag::DMS, "remote is nullptr");

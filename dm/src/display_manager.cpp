@@ -2433,7 +2433,7 @@ void DisplayManager::Impl::NotifyScreenshot(sptr<ScreenshotInfo> info)
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         screenshotListeners = screenshotListeners_;
     }
-    TLOGNI(WmsLogTag::DMS, "trigger:[%{public}s] displayId:%{public}" PRIu64" size:%{public}zu",
+    TLOGD(WmsLogTag::DMS, "trigger:[%{public}s] displayId:%{public}" PRIu64" size:%{public}zu",
         info->GetTrigger().c_str(), info->GetDisplayId(), screenshotListeners.size());
     for (auto& listener : screenshotListeners) {
         listener->OnScreenshot(*info);

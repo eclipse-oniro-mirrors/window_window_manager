@@ -124,7 +124,7 @@ bool ScreenStateMachine::HandlePowerStateChange(ScreenPowerEvent event, const Sc
 
 bool ScreenStateMachine::DoWakeUpBegin(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    TLOGD(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     auto* params = std::get_if<PowerStateChangeReason>(&type);
     if (!params) {
         TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] invalid params");
@@ -135,7 +135,7 @@ bool ScreenStateMachine::DoWakeUpBegin(ScreenPowerEvent event, const ScreenPower
 
 bool ScreenStateMachine::DoSuspendBegin(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    TLOGD(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     auto* params = std::get_if<PowerStateChangeReason>(&type);
     if (!params) {
         TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] invalid params");
@@ -146,7 +146,7 @@ bool ScreenStateMachine::DoSuspendBegin(ScreenPowerEvent event, const ScreenPowe
 
 bool ScreenStateMachine::DoSetDisplayState(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    TLOGD(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     auto* params = std::get_if<DisplayState>(&type);
     if (!params) {
         TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] invalid params");
@@ -183,13 +183,13 @@ bool ScreenStateMachine::DoSetScreenPower(ScreenPowerEvent event, const ScreenPo
 
 bool ScreenStateMachine::DoRecordTransNormal(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    TLOGD(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     return true;
 }
 
 bool ScreenStateMachine::DoSetScreenPowerForAll(ScreenPowerEvent event, const ScreenPowerInfoType& type)
 {
-    TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
+    TLOGD(WmsLogTag::DMS, "[ScreenPower FSM] event: %{public}u", event);
     auto* params = std::get_if<std::pair<ScreenPowerState, PowerStateChangeReason>>(&type);
     if (!params) {
         TLOGI(WmsLogTag::DMS, "[ScreenPower FSM] invalid params");
