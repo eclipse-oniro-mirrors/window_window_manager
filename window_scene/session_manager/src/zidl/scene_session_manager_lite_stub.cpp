@@ -885,10 +885,13 @@ int SceneSessionManagerLiteStub::HandleRegisterWindowManagerAgent(MessageParcel&
         return ERR_INVALID_DATA;
     }
     WindowManagerAgentType type = static_cast<WindowManagerAgentType>(typeId);
-    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
             iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
+    int32_t instanceUserId = INVALID_USER_ID;
+    if (!data.ReadInt32(instanceUserId)) {
+        instanceUserId = INVALID_USER_ID;
+    }
     WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
@@ -903,10 +906,13 @@ int SceneSessionManagerLiteStub::HandleUnregisterWindowManagerAgent(MessageParce
         return ERR_INVALID_DATA;
     }
     WindowManagerAgentType type = static_cast<WindowManagerAgentType>(typeId);
-    int32_t instanceUserId = data.ReadInt32();
     sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
     sptr<IWindowManagerAgent> windowManagerAgentProxy =
             iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
+    int32_t instanceUserId = INVALID_USER_ID;
+    if (!data.ReadInt32(instanceUserId)) {
+        instanceUserId = INVALID_USER_ID;
+    }
     WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
