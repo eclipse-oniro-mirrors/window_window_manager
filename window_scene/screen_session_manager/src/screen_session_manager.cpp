@@ -6922,8 +6922,8 @@ void ScreenSessionManager::HandlerSensor(ScreenPowerStatus status, PowerStateCha
         return;
     }
     if (status == ScreenPowerStatus::POWER_STATUS_ON) {
-        DmsXcollie dmsXcollie("DMS:SubscribeRotationSensor", XCOLLIE_TIMEOUT_10S); 
-        TLOGNFI(WmsLogTag::DMS, "subscribe sensor when power on"); 
+        DmsXcollie dmsXcollie("DMS:SubscribeRotationSensor", XCOLLIE_TIMEOUT_10S);
+        TLOGNFI(WmsLogTag::DMS, "subscribe sensor when power on");
         ScreenSensorConnector::SubscribeRotationSensor();
 #if defined(SENSOR_ENABLE) && defined(FOLD_ABILITY_ENABLE)
         if (g_foldScreenFlag && reason != PowerStateChangeReason::STATE_CHANGE_REASON_DISPLAY_SWITCH) {
@@ -6953,8 +6953,8 @@ void ScreenSessionManager::UnregisterInHandlerSensorWithPowerOff(PowerStateChang
     if (isMultiScreenCollaboration_) {
         TLOGNFI(WmsLogTag::DMS, "[UL_POWER]MultiScreenCollaboration, not unsubscribe rotation sensor");
     } else { 
-        DmsXcollie dmsXcollie("DMS:UnsubscribeRotationSensor", XCOLLIE_TIMEOUT_10S); 
-        ScreenSensorConnector::UnsubscribeRotationSensor(); 
+        DmsXcollie dmsXcollie("DMS:UnsubscribeRotationSensor", XCOLLIE_TIMEOUT_10S);
+        ScreenSensorConnector::UnsubscribeRotationSensor();
     }
 #if defined(SENSOR_ENABLE) && defined(FOLD_ABILITY_ENABLE)
     if (g_foldScreenFlag && reason != PowerStateChangeReason::STATE_CHANGE_REASON_DISPLAY_SWITCH &&
@@ -12673,16 +12673,16 @@ void ScreenSessionManager::OnPowerStatusChange(DisplayPowerEvent event, EventSta
     clientProxy->OnPowerStatusChanged(event, status, reason);
 }
 
-void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) 
- { 
-     TLOGD(WmsLogTag::WMS_ROTATION, "screenId: %{public}" PRIu64 " sensorRotation: %{public}f", screenId, sensorRotation); 
-     auto clientProxy = GetClientProxy(); 
-     if (!clientProxy) { 
-         TLOGNFI(WmsLogTag::WMS_ROTATION, "clientProxy_ is null"); 
-         return; 
-     } 
-     clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser); 
- }
+void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser)
+{
+    TLOGD(WmsLogTag::WMS_ROTATION, "screenId: %{public}" PRIu64 " sensorRotation: %{public}f", screenId, sensorRotation);
+    auto clientProxy = GetClientProxy();
+    if (!clientProxy) {
+        TLOGNFI(WmsLogTag::WMS_ROTATION, "clientProxy_ is null");
+        return;
+    }
+    clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
+}
 
 void ScreenSessionManager::OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId)
 {

@@ -653,7 +653,7 @@ void JsScreenSession::OnSensorRotationChange(float sensorRotation, ScreenId scre
         napi_value argv[] = { CreateJsValue(env, sensorRotation), CreateJsValue(env, isSwitchUser) };
         napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
     };
- 
+
     if (env_ != nullptr) {
         napi_status ret = napi_send_event(env_, napiTask, napi_eprio_immediate, "OnSensorRotationChange");
         if (ret != napi_status::napi_ok) {
