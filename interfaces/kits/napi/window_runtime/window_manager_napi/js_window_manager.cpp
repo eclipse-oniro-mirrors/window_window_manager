@@ -969,6 +969,8 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnMinimizeAll") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY, "failed to send event"));
     }
     return result;
 }
@@ -2448,6 +2450,7 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
         if (context == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s context is nullptr", where);
+            napi_delete_reference(env, callbackRef);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
                 "[window][CreateSubWindowAndBindParent]msg: Context is nullptr"));
             return;
@@ -2455,6 +2458,7 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         sptr<WindowOption> windowOption = sptr<WindowOption>::MakeSptr();
         if (windowOption == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s new window option failed", where);
+            napi_delete_reference(env, callbackRef);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
                 "[window][CreateSubWindowAndBindParent]msg: New window option failed"));
             return;
@@ -2470,6 +2474,7 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         sptr<Window> subWindow = Window::Create(windowName, windowOption, context->lock(), wmError);
         if (subWindow == nullptr || wmError != WMError::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s create window failed", where);
+            napi_delete_reference(env, callbackRef);
             task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(wmError),
                 "[window][CreateSubWindowAndBindParent]msg: Create window failed"));
             return;
@@ -2481,6 +2486,8 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
             CaseType::CASE_WINDOW, env, callbackValue);
         if (registerResult != WmErrorCode::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s register listener failed", where);
+            napi_delete_reference(env, callbackRef);
+            subWindow->Destroy();
             task->Reject(env, JsErrUtils::CreateJsError(env, registerResult,
                 "[window][CreateSubWindowAndBindParent]msg: Create window failed"));
             return;
@@ -2493,6 +2500,7 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
     };
     if (napi_send_event(env, asyncTask, napi_eprio_vip, "OnCreateSubWindowAndBindParent") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napi_delete_reference(env, callbackRef);
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][OnCreateSubWindowAndBindParent]msg: Send event failed."));
     }

@@ -221,7 +221,8 @@ ani_object AniWindowManager::OnGetMainWindowSnapshot(
     sptr<GetSnapshotCallback> getSnapshotCallback = sptr<GetSnapshotCallback>::MakeSptr();
     auto pixelMaps = std::make_shared<std::vector<std::shared_ptr<Media::PixelMap>>>();
     std::shared_ptr<WMError> errCode = std::make_shared<WMError>(WMError::WM_OK);
-    getSnapshotCallback->RegisterFunc([env, errCode, pixelMaps, getSnapshotCallback]
+    wptr<GetSnapshotCallback> weakCallback = getSnapshotCallback;
+    getSnapshotCallback->RegisterFunc([env, errCode, pixelMaps, weakCallback]
         (WMError errCodeResult, const std::vector<std::shared_ptr<Media::PixelMap>>& pixelMapResult) {
             TLOGI(WmsLogTag::WMS_LIFE, "getSnapshotCallback errCodeResult: %{public}d",
                 static_cast<int32_t>(errCodeResult));
@@ -229,7 +230,10 @@ ani_object AniWindowManager::OnGetMainWindowSnapshot(
                 *errCode = errCodeResult;
             }
             *pixelMaps = pixelMapResult;
-            getSnapshotCallback->OnNotifyResult();
+            auto callback = weakCallback.promote();
+            if (callback != nullptr) {
+                callback->OnNotifyResult();
+            }
         });
     std::vector<int32_t> windowIdList;
     WindowSnapshotConfiguration windowSnapshotConfiguration;
