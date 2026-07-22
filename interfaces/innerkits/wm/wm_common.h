@@ -1937,8 +1937,14 @@ enum class PiPTemplateType : uint32_t {
     VIDEO_MEETING = 2,
     VIDEO_LIVE = 3,
     VIDEO_DRIVE = 4,
+    VIDEO_NAVIGATION = 5,
     END,
 };
+
+inline bool IsSystemOnlyPiPTemplateType(PiPTemplateType type)
+{
+    return type == PiPTemplateType::VIDEO_DRIVE || type == PiPTemplateType::VIDEO_NAVIGATION;
+}
 
 struct PiPGroupConfig {
     uint32_t groupId = 0;

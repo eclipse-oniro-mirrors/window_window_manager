@@ -249,14 +249,25 @@ HWTEST_F(PictureInPictureOptionTest, CornerAdsorptionEnabled, TestSize.Level1)
 HWTEST_F(PictureInPictureOptionTest, GetPiPTemplateInfo, TestSize.Level1)
 {
     sptr<PipOption> option = new PipOption();
-    uint32_t pipTypeTemplate = 5;
-    uint32_t testValue = 0;
-    ASSERT_EQ(testValue, option->GetPipPriority(pipTypeTemplate));
-    ASSERT_EQ(testValue, option->GetPipPriority(pipTypeTemplate = 3));
-    ASSERT_EQ(testValue, option->GetPipPriority(pipTypeTemplate = 0));
-    ASSERT_EQ(testValue = 1, option->GetPipPriority(pipTypeTemplate = 1));
+    constexpr uint32_t PIP_LOW_PRIORITY = 0;
+    constexpr uint32_t PIP_HIGH_PRIORITY = 1;
+    constexpr uint32_t PIP_TOP_PRIORITY = 2;
+    ASSERT_EQ(PIP_LOW_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::END)));
+    ASSERT_EQ(PIP_LOW_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::VIDEO_LIVE)));
+    ASSERT_EQ(PIP_LOW_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::VIDEO_PLAY)));
+    ASSERT_EQ(PIP_HIGH_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::VIDEO_CALL)));
+    ASSERT_EQ(PIP_HIGH_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::VIDEO_MEETING)));
+    ASSERT_EQ(PIP_TOP_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE)));
+    ASSERT_EQ(PIP_TOP_PRIORITY, option->GetPipPriority(static_cast<uint32_t>(PiPTemplateType::VIDEO_NAVIGATION)));
+    EXPECT_TRUE(IsSystemOnlyPiPTemplateType(PiPTemplateType::VIDEO_DRIVE));
+    EXPECT_TRUE(IsSystemOnlyPiPTemplateType(PiPTemplateType::VIDEO_NAVIGATION));
+    EXPECT_FALSE(IsSystemOnlyPiPTemplateType(PiPTemplateType::VIDEO_PLAY));
+    EXPECT_FALSE(IsSystemOnlyPiPTemplateType(PiPTemplateType::VIDEO_CALL));
+    EXPECT_FALSE(IsSystemOnlyPiPTemplateType(PiPTemplateType::VIDEO_MEETING));
+    EXPECT_FALSE(IsSystemOnlyPiPTemplateType(PiPTemplateType::VIDEO_LIVE));
     PiPTemplateInfo pipTemplateInfo;
-    option->SetDefaultWindowSizeType(testValue = 2);
+    uint32_t testValue = 2;
+    option->SetDefaultWindowSizeType(testValue);
     option->GetPiPTemplateInfo(pipTemplateInfo);
     ASSERT_EQ(testValue, pipTemplateInfo.defaultWindowSizeType);
 }

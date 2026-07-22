@@ -5024,14 +5024,9 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
         }
         const auto type = property->GetWindowType();
         if (type == WindowType::WINDOW_TYPE_PIP) {
-            auto checkResult = CheckPiPCreate(property, type);
-            if (checkResult == WSError::WS_ERROR_INVALID_PERMISSION) {
-                TLOGNE(WmsLogTag::WMS_PIP, "forbid pip window creation.");
-            } else if (checkResult == WSError::WS_DO_NOTHING) {
-                TLOGNE(WmsLogTag::WMS_PIP, "pip window is not enabled to create.");
-            }
-            if (checkResult != WSError::WS_OK) {
-                return WSErrorResult{checkResult, "pip window check error"};
+            auto result = CheckPiPCreateAndLog(property, type);
+            if (result.errCode != WSError::WS_OK) {
+                return result;
             }
         }
         // create specific session
@@ -5348,6 +5343,26 @@ WSError SceneSessionManager::CheckPiPCreate(const sptr<WindowSessionProperty>& p
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
     return WSError::WS_OK;
+}
+
+WSErrorResult SceneSessionManager::CheckPiPCreateAndLog(const sptr<WindowSessionProperty>& property,
+    const WindowType& type)
+{
+    auto pipTemplateType = static_cast<PiPTemplateType>(property->GetPiPTemplateInfo().pipTemplateType);
+    if (!SessionPermission::IsSystemCalling() && IsSystemOnlyPiPTemplateType(pipTemplateType)) {
+        TLOGI(WmsLogTag::WMS_PIP, "non-system app cannot create pip templateType %{public}u",
+            property->GetPiPTemplateInfo().pipTemplateType);
+        return WSErrorResult{WSError::WS_DO_NOTHING, "pip template requires system app"};
+    }
+    auto checkResult = CheckPiPCreate(property, type);
+    if (checkResult == WSError::WS_ERROR_INVALID_PERMISSION) {
+        TLOGNE(WmsLogTag::WMS_PIP, "forbid pip window creation.");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PERMISSION, "forbid pip window creation."};
+    } else if (checkResult == WSError::WS_DO_NOTHING) {
+        TLOGNE(WmsLogTag::WMS_PIP, "pip window is not enabled to create.");
+        return WSErrorResult{WSError::WS_DO_NOTHING, "pip window is not enabled to create."};
+    }
+    return WSErrorResult{WSError::WS_OK, "pip window check success"};
 }
 
 void SceneSessionManager::UpdatePipGroupCount(const PiPTemplateInfo& pipTemplateInfo, bool increase)

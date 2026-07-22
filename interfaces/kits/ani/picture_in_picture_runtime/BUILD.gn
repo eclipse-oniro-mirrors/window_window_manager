@@ -62,6 +62,7 @@ ohos_shared_library("pipwindowani_kit") {
     "${window_base_path}/wm:libwm",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "../../../../interfaces/kits/napi/picture_in_picture_napi:pipwindow_kit",
+    "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
   ]
 
