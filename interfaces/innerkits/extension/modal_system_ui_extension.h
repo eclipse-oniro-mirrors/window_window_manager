@@ -23,6 +23,7 @@
 
 namespace OHOS {
 namespace Rosen {
+class TaskScheduler;
 class ModalSystemUiExtension {
 public:
     ModalSystemUiExtension();
