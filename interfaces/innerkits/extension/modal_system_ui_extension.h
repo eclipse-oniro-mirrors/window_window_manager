@@ -20,7 +20,6 @@
 #include <element_name.h>
 #include <ability_connect_callback_interface.h>
 #include <ability_connect_callback_stub.h>
-#include "common/include/task_scheduler.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -35,7 +34,7 @@ public:
 private:
     class DialogAbilityConnection : public OHOS::AAFwk::AbilityConnectionStub {
     public:
-        explicit DialogAbilityConnection(const AAFwk::Want& want) : want_(want) {}
+        explicit DialogAbilityConnection(const AAFwk::Want& want);
         virtual ~DialogAbilityConnection() = default;
 
         void OnAbilityConnectDone(const AppExecFwk::ElementName& element, const sptr<IRemoteObject>& remoteObject,
@@ -44,7 +43,7 @@ private:
 
     private:
         AAFwk::Want want_;
-        std::shared_ptr<TaskScheduler> taskScheduler_ = std::make_shared<TaskScheduler>("OS_ModalSystemUiExtension");
+        std::shared_ptr<TaskScheduler> taskScheduler_;
         bool SendWant(const sptr<IRemoteObject>& remoteObject);
         std::string ToString(const AAFwk::Want& want);
         void ReportJsonStringParamsUsage(const std::string& bundleName, const std::string& abilityName);

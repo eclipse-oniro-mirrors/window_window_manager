@@ -22,6 +22,7 @@
 #include <iremote_object.h>
 #include <message_parcel.h>
 
+#include "common/include/task_scheduler.h"
 #include "perform_reporter.h"
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
@@ -67,6 +68,11 @@ bool ModalSystemUiExtension::CreateModalUIExtension(const AAFwk::Want& want, con
     }
     TLOGI(WmsLogTag::WMS_UIEXT, "ConnectAbility success");
     return true;
+}
+
+ModalSystemUiExtension::DialogAbilityConnection::DialogAbilityConnection(const AAFwk::Want& want) : want_(want)
+{
+    taskScheduler_ = std::make_shared<TaskScheduler>("OS_ModalSystemUiExtension");
 }
 
 std::string ModalSystemUiExtension::DialogAbilityConnection::ToString(const AAFwk::Want& want)
