@@ -88,7 +88,7 @@ ani_status AniWindowManager::AniWindowManagerInit(ani_env* env, ani_namespace wi
             reinterpret_cast<void *>(AniWindowManager::NotifyScreenshotEvent)},
         ani_native_function {"setSpecificSystemWindowZIndexSync", "lC{@ohos.window.window.WindowType}i:",
             reinterpret_cast<void *>(AniWindowManager::SetSpecificSystemWindowZIndex)},
-        ani_native_function {"moveMainWindowToTargetDisplaySync", "lli:",
+        ani_native_function {"moveMainWindowToTargetDisplaySync", "llii:",
             reinterpret_cast<void *>(AniWindowManager::MoveMainWindowToTargetDisplay)},
         ani_native_function {"getAllWindowLayoutInfo", "llC{@ohos.window.window.WindowInfoOptions}:C{std.core.Array}",
             reinterpret_cast<void *>(AniWindowManager::GetAllWindowLayoutInfo)},
@@ -1313,17 +1313,18 @@ ani_object AniWindowManager::OnGetWindowsByCoordinate(ani_env* env, ani_object g
 }
 
 void AniWindowManager::MoveMainWindowToTargetDisplay(ani_env* env, ani_long nativeObj,
-    ani_long displayId, ani_int windowId)
+    ani_long displayId, ani_int windowId, ani_int userId)
 {
     AniWindowManager* aniWindowManager = reinterpret_cast<AniWindowManager*>(nativeObj);
     if (aniWindowManager != nullptr) {
-        aniWindowManager->OnMoveMainWindowToTargetDisplay(env, displayId, windowId);
+        aniWindowManager->OnMoveMainWindowToTargetDisplay(env, displayId, windowId, userId);
     } else {
         TLOGE(WmsLogTag::WMS_LIFE, "[ANI] aniWindowManager is nullptr");
     }
 }
 
-void AniWindowManager::OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long displayId, ani_int windowId)
+void AniWindowManager::OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long displayId, ani_int windowId,
+    ani_int userId)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");
     if (static_cast<int64_t>(displayId) < 0) {
@@ -1332,8 +1333,15 @@ void AniWindowManager::OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long di
             "[window][moveMainWindowToTargetDisplay]msg: parameter verfication failed");
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
-        MoveMainWindowToTargetDisplay(displayId, windowId));
+    WMError err = WindowManager::GetInstance(userId).
+        MoveMainWindowToTargetDisplay(displayId, windowId);
+    if (err == WMError::WM_DO_NOTHING) {
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][moveMainWindowToTargetDisplay]msg: Parameter error. "
+            "Possible cause: 1. The userId is not exist.");
+        return;
+    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(err);
     if (ret != WmErrorCode::WM_OK) {
         AniWindowUtils::AniThrowError(env, ret, "[window][moveMainWindowToTargetDisplay]msg:set failed");
     }

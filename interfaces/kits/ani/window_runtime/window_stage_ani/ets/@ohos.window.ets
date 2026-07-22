@@ -5823,7 +5823,7 @@ native function toggleShownStateForAllAppWindowsSync(nativeObj: long): void;
 native function setSpecificSystemWindowZIndexSync(nativeObj: long, windowType: WindowType, zIndex: int): void;
 native function createSubWindowAndBindParentSync(nativeObj: long, name: string,
   parentId: int, ctx: BaseContext, parentWindowEventListener: WindowEventListener): Window;
-native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int): void;
+native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int, userId: int): void;
 
 export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
   parentWindowEventListener: WindowEventListener): Promise<Window> {
@@ -6290,10 +6290,10 @@ export function getMainWindowSnapshot(windowId: Array<number>, config: WindowSna
   });
 }
 
-export function moveMainWindowToTargetDisplay(displayId: long, windowId: int): Promise<void> {
+export function moveMainWindowToTargetDisplay(displayId: long, windowId: int, userId?: int): Promise<void> {
   return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
       taskpool.execute((): void => {
-          return moveMainWindowToTargetDisplaySync(nativeObj, displayId, windowId);
+          return moveMainWindowToTargetDisplaySync(nativeObj, displayId, windowId, userId ?? -1);
       }).then((ret: Any) => {
           resolve(undefined);
       }).catch((err: Any) => {

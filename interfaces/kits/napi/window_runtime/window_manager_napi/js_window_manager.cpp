@@ -2512,7 +2512,7 @@ napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_c
     size_t argc = ARGC_THREE;
     napi_value argv[ARGC_THREE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARGC_TWO || argc > ARGC_THREE) {
+    if (argc != ARGC_TWO && argc != ARGC_THREE) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
@@ -2544,13 +2544,20 @@ napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_c
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [displayId, windowId, userId, env, task = napiAsyncTask] {
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(WindowManager::GetInstance(userId).
-            MoveMainWindowToTargetDisplay(static_cast<DisplayId>(displayId), windowId));
-        if (ret == WmErrorCode::WM_OK) {
-            task->Resolve(env, NapiGetUndefined(env));
+        WMError err = WindowManager::GetInstance(userId).
+            MoveMainWindowToTargetDisplay(static_cast<DisplayId>(displayId), windowId);
+        if (err == WMError::WM_DO_NOTHING) {
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                "[window][moveMainWindowToTargetDisplay]msg: Parameter error. "
+                "Possible cause: 1. The userId is not exist."));
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][moveMainWindowToTargetDisplay]msg: move failed"));
+            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(err);
+            if (ret == WmErrorCode::WM_OK) {
+                task->Resolve(env, NapiGetUndefined(env));
+            } else {
+                task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                    "[window][moveMainWindowToTargetDisplay]msg: move failed"));
+            }
         }
     };
     napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnMoveMainWindowToTargetDisplay");
