@@ -22,6 +22,9 @@
 #include <iremote_object.h>
 #include <message_parcel.h>
 
+#include "common/include/task_scheduler.h"
+#include "perform_reporter.h"
+#include "singleton_container.h"
 #include "window_manager_hilog.h"
 
 using namespace OHOS::AAFwk;
@@ -67,28 +70,50 @@ bool ModalSystemUiExtension::CreateModalUIExtension(const AAFwk::Want& want, con
     return true;
 }
 
-std::string ModalSystemUiExtension::ToString(const AAFwk::WantParams& wantParams)
+ModalSystemUiExtension::DialogAbilityConnection::DialogAbilityConnection(const AAFwk::Want& want) : want_(want)
 {
-    std::string result;
-    if (wantParams.Size() != 0) {
-        result += "{";
-        for (auto it : wantParams.GetParams()) {
-            int typeId = AAFwk::WantParams::GetDataType(it.second);
-            result += "\"" + it.first + "\":";
-            if (typeId == VALUE_TYPE_STRING && AAFwk::WantParams::GetStringByType(it.second, typeId)[0] != '{') {
-                result += "\"" + AAFwk::WantParams::GetStringByType(it.second, typeId) + "\"";
+    taskScheduler_ = std::make_shared<TaskScheduler>("OS_ModalSystemUiExtension");
+}
+
+std::string ModalSystemUiExtension::DialogAbilityConnection::ToString(const AAFwk::Want& want)
+{
+    nlohmann::json wantParamsJson;
+    AAFwk::to_json(wantParamsJson, want.GetParams());
+    bool needReport = false;
+    for (auto it = wantParamsJson.begin(); it != wantParamsJson.end(); ++it) {
+        if (!(it->is_string())) {
+            continue;
+        }
+        std::string str = it->get<std::string>();
+        if (!str.empty() && str[0] == '{') {
+            auto parsed = nlohmann::json::parse(str, nullptr, false);
+            if (parsed.is_discarded()) {
+                TLOGI(WmsLogTag::WMS_UIEXT, "json parse failed");
             } else {
-                result += AAFwk::WantParams::GetStringByType(it.second, typeId);
-            }
-            if (it != *wantParams.GetParams().rbegin()) {
-                result += ",";
+                it.value() = parsed;
+                needReport = true;
             }
         }
-        result += "}";
-    } else {
-        result += "{}";
     }
-    return result;
+    if (needReport) {
+        ReportJsonStringParamsUsage(want.GetElement().GetBundleName(), want.GetElement().GetAbilityName());
+    }
+    return wantParamsJson.dump();
+}
+
+void ModalSystemUiExtension::DialogAbilityConnection::ReportJsonStringParamsUsage(const std::string& bundleName,
+                                                                                  const std::string& abilityName)
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "Report json string params usage, bundleName:%{public}s, abilityName:%{public}s",
+        bundleName.c_str(), abilityName.c_str());
+    taskScheduler_->PostAsyncTask([bundleName, abilityName]() {
+        std::ostringstream oss;
+        oss << "The uiextensionAbility is started by the modal system and uses the json string to transfer parameters";
+        oss << ", bundleName: " << bundleName;
+        oss << ", abilityName: " << abilityName;
+        SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
+            static_cast<int32_t>(WindowDFXHelperType::WINDOW_MODAL_SYSTEM_USE_JSONSTRING), getpid(), oss.str());
+    }, __func__);
 }
 
 bool ModalSystemUiExtension::DialogAbilityConnection::SendWant(const sptr<IRemoteObject>& remoteObject)
@@ -109,7 +134,7 @@ bool ModalSystemUiExtension::DialogAbilityConnection::SendWant(const sptr<IRemot
         return false;
     }
     if (!data.WriteString16(u"parameters") ||
-        !data.WriteString16(Str8ToStr16(ModalSystemUiExtension::ToString(want_.GetParams())))) {
+        !data.WriteString16(Str8ToStr16(ToString(want_)))) {
         TLOGE(WmsLogTag::WMS_UIEXT, "write parameters failed");
         return false;
     }

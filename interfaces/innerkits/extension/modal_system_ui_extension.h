@@ -23,6 +23,7 @@
 
 namespace OHOS {
 namespace Rosen {
+class TaskScheduler;
 class ModalSystemUiExtension {
 public:
     ModalSystemUiExtension();
@@ -30,12 +31,11 @@ public:
 
     bool CreateModalUIExtension(const AAFwk::Want& want);
     bool CreateModalUIExtension(const AAFwk::Want& want, const int32_t userId);
-    static std::string ToString(const AAFwk::WantParams& wantParams);
 
 private:
     class DialogAbilityConnection : public OHOS::AAFwk::AbilityConnectionStub {
     public:
-        explicit DialogAbilityConnection(const AAFwk::Want& want) : want_(want) {}
+        explicit DialogAbilityConnection(const AAFwk::Want& want);
         virtual ~DialogAbilityConnection() = default;
 
         void OnAbilityConnectDone(const AppExecFwk::ElementName& element, const sptr<IRemoteObject>& remoteObject,
@@ -44,7 +44,10 @@ private:
 
     private:
         AAFwk::Want want_;
+        std::shared_ptr<TaskScheduler> taskScheduler_;
         bool SendWant(const sptr<IRemoteObject>& remoteObject);
+        std::string ToString(const AAFwk::Want& want);
+        void ReportJsonStringParamsUsage(const std::string& bundleName, const std::string& abilityName);
     };
 
     sptr<OHOS::AAFwk::IAbilityConnection> dialogConnectionCallback_{ nullptr };
