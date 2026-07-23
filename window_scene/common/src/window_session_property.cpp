@@ -1335,6 +1335,7 @@ bool WindowSessionProperty::MarshallingSessionInfo(Parcel& parcel) const
 {
     if (!parcel.WriteString(sessionInfo_.bundleName_) || !parcel.WriteString(sessionInfo_.moduleName_) ||
         !parcel.WriteString(sessionInfo_.abilityName_) || !parcel.WriteInt32(sessionInfo_.currentRotation_) ||
+        !parcel.WriteInt32(sessionInfo_.appIndex_) ||
         !parcel.WriteInt32(static_cast<int32_t>(sessionInfo_.continueState))) {
         return false;
     }
@@ -1380,6 +1381,12 @@ bool WindowSessionProperty::UnmarshallingSessionInfo(Parcel& parcel, WindowSessi
         return false;
     }
     info.currentRotation_ = currentRotation;
+    int32_t appIndex;
+    if (!parcel.ReadInt32(appIndex)) {
+        TLOGE(WmsLogTag::DEFAULT, "Failed to read appIndex!");
+        return false;
+    }
+    info.appIndex_ = appIndex;
     int32_t continueState;
     if (!parcel.ReadInt32(continueState)) {
         TLOGE(WmsLogTag::DEFAULT, "Failed to read continueState!");

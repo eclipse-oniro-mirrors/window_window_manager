@@ -445,6 +445,7 @@ static void AdjustPropertySessionInfo(const std::shared_ptr<AbilityRuntime::Cont
     if (abilityContext && abilityContext->GetAbilityInfo()) {
         info.abilityName_ = abilityContext->GetAbilityInfo()->name;
         info.bundleName_ = abilityContext->GetAbilityInfo()->bundleName;
+        info.appIndex_ = abilityContext->GetAbilityInfo()->appIndex;
     } else {
         info.bundleName_ = context->GetBundleName();
     }
@@ -465,6 +466,9 @@ WMError WindowSceneSessionImpl::CreateAndConnectSpecificSession()
     AdjustPropertySessionInfo(context, property_->EditSessionInfo());
 
     const WindowType type = GetType();
+    TLOGI(WmsLogTag::WMS_LIFE, "AdjustPropertySessionInfo after, appIndex:%{public}d, WindowType:%{public}u",
+        property_->GetSessionInfo().appIndex_, GetType());
+
     bool hasToastFlag = property_->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_IS_TOAST);
     WMErrorResult result;
     if (WindowHelper::IsSubWindow(type) && (property_->GetIsUIExtFirstSubWindow() ||
