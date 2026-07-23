@@ -104,9 +104,9 @@ std::string ModalSystemUiExtension::DialogAbilityConnection::ToString(const AAFw
 void ModalSystemUiExtension::DialogAbilityConnection::ReportJsonStringParamsUsage(const std::string& bundleName,
                                                                                   const std::string& abilityName)
 {
+    TLOGI(WmsLogTag::WMS_UIEXT, "Report json string params usage, bundleName:%{public}s, abilityName:%{public}s",
+        bundleName.c_str(), abilityName.c_str());
     taskScheduler_->PostAsyncTask([bundleName, abilityName]() {
-        TLOGNI(WmsLogTag::WMS_UIEXT, "Report json string params usage, bundleName:%{public}s, abilityName:%{public}s",
-            bundleName.c_str(), abilityName.c_str());
         std::ostringstream oss;
         oss << "The uiextensionAbility is started by the modal system and uses the json string to transfer parameters";
         oss << ", bundleName: " << bundleName;
