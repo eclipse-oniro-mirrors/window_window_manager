@@ -638,7 +638,10 @@ ohos_unittest("wm_web_picture_in_picture_controller_interface_test") {
 
   include_dirs = [ "${window_base_path}/interfaces/innerkits/wm/" ]
 
-  sources = [ "web_picture_in_picture_controller_interface_test.cpp" ]
+  sources = [
+    "web_picture_in_picture_controller_interface_test.cpp",
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+  ]
 
   deps = [
     ":wm_unittest_common",

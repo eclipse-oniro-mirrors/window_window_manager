@@ -54,11 +54,15 @@ namespace {
         PiPControlGroup::VIDEO_PLAY_PAUSE,
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
+    const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
+    const std::set<PiPControlGroup> VIDEO_NAVIGATION_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_NAVIGATION, VIDEO_NAVIGATION_CONTROLS},
     };
 }
 
@@ -201,6 +205,12 @@ bool AniPiPWindow::checkOptionParams(PipOptionAni& option)
         return false;
     }
     uint32_t pipTemplateType = option.GetPipTemplate();
+    if (IsSystemOnlyPiPTemplateType(static_cast<PiPTemplateType>(pipTemplateType)) &&
+        !Permission::IsSystemCalling(true)) {
+        TLOGE(WmsLogTag::WMS_PIP, "PipOptionAni param error, templateType %{public}u requires system app",
+            pipTemplateType);
+        return false;
+    }
     if (TEMPLATE_CONTROL_MAP.find(static_cast<PiPTemplateType>(pipTemplateType)) ==
         TEMPLATE_CONTROL_MAP.end()) {
         TLOGE(WmsLogTag::WMS_PIP, "PipOptionAni param error, pipTemplateType not exists.");

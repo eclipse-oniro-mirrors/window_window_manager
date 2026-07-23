@@ -1403,6 +1403,7 @@ private:
     void UpdatePrivateStateAndNotifyForAllScreens();
 
     WSError CheckPiPCreate(const sptr<WindowSessionProperty>& property, const WindowType& type);
+    WSErrorResult CheckPiPCreateAndLog(const sptr<WindowSessionProperty>& property, const WindowType& type);
     void UpdatePipGroupCount(const PiPTemplateInfo& pipTemplateInfo, bool increase);
     std::vector<PiPGroupConfig> ParsePipMultiConfig();
     bool FindTargetGroup(const std::vector<PiPGroupConfig>& groupConfigs, const PiPTemplateInfo& pipTemplateInfo,

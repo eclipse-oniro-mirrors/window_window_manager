@@ -762,6 +762,46 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSession_07, Test
 }
 
 /**
+ * @tc.name: TestCreateAndConnectSessionPipSystemTemplate
+ * @tc.desc: non-system app cannot create VIDEO_DRIVE/VIDEO_NAVIGATION pip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, TestCreateAndConnectSessionPipSystemTemplate, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+
+    sptr<ISessionStage> sessionStage;
+    sptr<IWindowEventChannel> eventChannel;
+    uint64_t nodeId = 0;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<ISession> session;
+    SystemSessionConfig systemConfig;
+    sptr<IRemoteObject> token;
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    int32_t id = 0;
+    property->SetWindowType(WindowType::WINDOW_TYPE_PIP);
+    property->SetRequestRect({ 0, 0, 10, 10 });
+
+    PiPTemplateInfo pipTemplateInfo = {};
+    pipTemplateInfo.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE);
+    property->SetPiPTemplateInfo(pipTemplateInfo);
+    auto res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(res.errCode, WSError::WS_DO_NOTHING);
+
+    pipTemplateInfo.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_NAVIGATION);
+    property->SetPiPTemplateInfo(pipTemplateInfo);
+    res = ssm_->CreateAndConnectSpecificSession(sessionStage, eventChannel, nodeId, property,
+        id, session, systemConfig, renderSession, surfaceNode, token);
+    EXPECT_EQ(res.errCode, WSError::WS_DO_NOTHING);
+
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
+
+/**
  * @tc.name: TestCreateAndConnectSession_08
  * @tc.desc: Test for CreateAndConnectSpecificSession with WindowType is WINDOW_TYPE_MUTISCREEN_COLLABORATION
  * @tc.type: FUNC
