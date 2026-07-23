@@ -21,9 +21,16 @@
 #include "permission.h"
 #include "pixel_map_napi.h"
 #include "window_histogram_management.h"
+#include "fold_screen_state_internel.h"
 
 namespace OHOS {
 namespace Rosen {
+constexpr ScreenId SCREEN_ID_MAIN = 5;
+
+static bool IsSpnOuterScreen(DisplayId displayId)
+{
+    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && displayId == SCREEN_ID_MAIN;
+}
 // methods of filling the image in recent
 enum class ImageFit {
         FILL,
@@ -708,6 +715,10 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
             "[window][setWindowModal]msg: Invalid main window"));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
+        return NapiGetUndefined(env);
+    }
+    if (IsSpnOuterScreen(window->GetDisplayId())) {
+        TLOGI(WmsLogTag::WMS_MAIN, "SetWindowModal is not allowed on SPN outer screen");
         return NapiGetUndefined(env);
     }
     if (window->IsPadAndNotFreeMultiWindowCompatibleMode()) {

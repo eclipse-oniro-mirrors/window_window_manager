@@ -41,6 +41,7 @@
 #include "request_info.h"
 #include "ui_content.h"
 #include "window_histogram_management.h"
+#include "fold_screen_state_internel.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -68,11 +69,17 @@ constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_MIN = 500;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_MAX = 900;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_EXT_MIN = 1000;
+constexpr ScreenId SCREEN_ID_MAIN = 5;
 
 static bool IsVirtualDisplay(DisplayId displayId)
 {
     return (displayId >= VIRTUAL_DISPLAY_ID_MIN && displayId <= VIRTUAL_DISPLAY_ID_MAX) ||
            (displayId >= VIRTUAL_DISPLAY_ID_EXT_MIN);
+}
+
+static bool IsSpnOuterScreen(DisplayId displayId)
+{
+    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && displayId == SCREEN_ID_MAIN;
 }
 }
 
@@ -5240,6 +5247,10 @@ napi_value JsWindow::OnSetTopmost(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
+    if (IsSpnOuterScreen(windowToken_->GetDisplayId())) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "SetTopmost is not allowed on SPN outer screen");
+        return NapiGetUndefined(env);
+    }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "SetTopmost is not allowed since window is not main window");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost", WmErrorCode::WM_ERROR_INVALID_CALLING);
@@ -5301,6 +5312,10 @@ napi_value JsWindow::OnSetWindowTopmost(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setWindowTopmost]msg: WindowToken is nullptr");
+    }
+    if (IsSpnOuterScreen(windowToken_->GetDisplayId())) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "SetWindowTopmost is not allowed on SPN outer screen");
+        return NapiGetUndefined(env);
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "This is PcAppInPad, not support");
@@ -6313,6 +6328,10 @@ WmErrorCode JsWindow::CheckRaiseMainWindowParams(napi_env env, size_t argc, napi
 
 napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_info info)
 {
+    if (windowToken_ != nullptr && IsSpnOuterScreen(windowToken_->GetDisplayId())) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "RaiseMainWindowAboveTarget is not allowed on SPN outer screen");
+        return NapiGetUndefined(env);
+    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     if (!Permission::IsSystemCallingOrStartByHdcd(true)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, require system application");
@@ -9186,6 +9205,10 @@ napi_value JsWindow::OnSetWindowTitleMoveEnabled(napi_env env, napi_callback_inf
 
 napi_value JsWindow::OnSetSubWindowModal(napi_env env, napi_callback_info info)
 {
+    if (windowToken_ != nullptr && IsSpnOuterScreen(windowToken_->GetDisplayId())) {
+        TLOGI(WmsLogTag::WMS_SUB, "SetSubWindowModal is not allowed on SPN outer screen");
+        return NapiGetUndefined(env);
+    }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
