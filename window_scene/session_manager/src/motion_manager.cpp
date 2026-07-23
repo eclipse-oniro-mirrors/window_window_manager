@@ -25,7 +25,7 @@ std::map<MotionType, bool> MotionSubscriberWrapper::isMotionSubscribedMap_ = {
     {MotionType::DEVICE_MOTION_TYPE, false},
     {MotionType::SMART_MOTION_TYPE, false},
     {MotionType::SMART_MOTION_ENHANCE_TYPE, false},
-}; 
+};
 
 MotionManager& MotionManager::GetInstance()
 {
@@ -245,9 +245,6 @@ void MotionManager::HandleDeviceSensorRotation(float rotation)
 void MotionManager::HandleSmartSensorRotation(float rotation)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "HandleSmartSensorRotation rotation: %{public}f", rotation);
-    if (lastSmartMotionRotation_ == rotation) {
-        return;
-    }
     lastSmartMotionRotation_ = rotation;
     if (motionEventListener_ != nullptr) {
         motionEventListener_->OnMotionSmartRotationChanged(rotation);
