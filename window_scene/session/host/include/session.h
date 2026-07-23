@@ -210,10 +210,6 @@ public:
     };
     explicit Session(const SessionInfo& info);
     virtual ~Session();
-    virtual SessionType GetSessionType() const
-    {
-        return SessionType::Session;
-    };
     bool isKeyboardPanelEnabled_ = false;
     virtual void SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler = nullptr);
