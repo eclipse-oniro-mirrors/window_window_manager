@@ -126,23 +126,25 @@ void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
     TLOGI(WmsLogTag::DMS,
         "[DPNODE]config screenId: %{public}" PRIu64", mirrorNodeId: %{public}" PRIu64", isMirrored: %{public}d",
         config.screenId, config.mirrorNodeId, config.isMirrored);
-    std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-    displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
-    TLOGD(WmsLogTag::WMS_SCB, "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
-    if (displayNode_ == nullptr) {
-        TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
-        return;
-    }
-    RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
-    const auto& rect = property_.GetBounds().rect_;
-    displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
-    displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
-    if (config.isMirrored) {
-        EnableMirrorScreenRegion();
-    }
-    if (property_.GetNeedCastScale()) {
-        displayNode_->SetPivot(0.0F, 0.0F);
-        displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+    {
+        std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
+        displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
+        TLOGD(WmsLogTag::WMS_SCB, "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
+        if (displayNode_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
+            return;
+        }
+        RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
+        const auto& rect = property_.GetBounds().rect_;
+        displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
+        displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
+        if (config.isMirrored) {
+            EnableMirrorScreenRegion();
+        }
+        if (property_.GetNeedCastScale()) {
+            displayNode_->SetPivot(0.0F, 0.0F);
+            displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+        }
     }
     RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
 }
