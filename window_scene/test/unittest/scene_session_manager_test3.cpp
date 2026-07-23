@@ -552,6 +552,314 @@ HWTEST_F(SceneSessionManagerTest3, GetWindowLimits, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetWindowLimitsWithTargetDensity01
+ * @tc.desc: Invalid targetDensity (negative / zero) returns stored limits unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits;
+    limits.maxWidth_ = 1000;
+    limits.maxHeight_ = 1000;
+    limits.minWidth_ = 200;
+    limits.minHeight_ = 200;
+    limits.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 2;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+
+    // Negative and zero targetDensity: original behaviour, return stored limits as-is.
+    auto ret = ssm_->GetWindowLimits(windowId, out, -1.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 1000u);
+
+    ret = ssm_->GetWindowLimits(windowId, out, 0.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 1000u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity02
+ * @tc.desc: Valid targetDensity, PX-user, no attached limits: recalc returns stored PX limits.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits;
+    limits.maxWidth_ = 1000;
+    limits.maxHeight_ = 1000;
+    limits.minWidth_ = 200;
+    limits.minHeight_ = 200;
+    limits.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 3;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // PX-user, no attached limits: PX is density-invariant, returned equals stored PX.
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 1000u);
+    EXPECT_EQ(out.minHeight_, 200u);
+    EXPECT_EQ(out.maxHeight_, 1000u);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::PX);
+    EXPECT_FLOAT_EQ(out.vpRatio_, 2.0f);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity03
+ * @tc.desc: Valid targetDensity, VP-user, no attached limits: recalc returns stored VP limits.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits;
+    limits.maxWidth_ = 500;
+    limits.maxHeight_ = 500;
+    limits.minWidth_ = 100;
+    limits.minHeight_ = 100;
+    limits.pixelUnit_ = PixelUnit::VP;
+    sceneSession->property_->SetWindowLimitsVP(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 4;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // VP-user: VP is density-invariant, returned equals stored VP.
+    EXPECT_EQ(out.minWidth_, 100u);
+    EXPECT_EQ(out.maxWidth_, 500u);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_FLOAT_EQ(out.vpRatio_, 2.0f);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity04
+ * @tc.desc: Valid targetDensity with attached intersected limits in PC mode: recalc applies intersection.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    // PX-user base: min 200 / max 1000.
+    WindowLimits base;
+    base.maxWidth_ = 1000;
+    base.maxHeight_ = 1000;
+    base.minWidth_ = 200;
+    base.minHeight_ = 200;
+    base.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // Attached source window (PX): min 300 / max 800.
+    WindowLimits attached;
+    attached.maxWidth_ = 800;
+    attached.maxHeight_ = 800;
+    attached.minWidth_ = 300;
+    attached.minHeight_ = 300;
+    attached.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetAttachedWindowLimits(5, attached);
+    AttachLimitOptions options { true, true }; // intersect height & width
+    sceneSession->property_->SetAttachedLimitOptions(5, options);
+    // Mark the window's display as free-multi-window so the recalc runs the intersection path.
+    const uint64_t displayId = 100;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 6;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // Intersection of [200,1000] and [300,800] -> min 300 / max 800 on both axes.
+    EXPECT_EQ(out.minWidth_, 300u);
+    EXPECT_EQ(out.maxWidth_, 800u);
+    EXPECT_EQ(out.minHeight_, 300u);
+    EXPECT_EQ(out.maxHeight_, 800u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity05
+ * @tc.desc: Multi-source intersection: VP-unit attached (CalcSingleIntersect VP branch), height-only,
+ *           width-only, and a no-flag source (skip). PX-user, free-multi.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // PX [200,1000,200,1000]
+    base.maxWidth_ = 1000; base.maxHeight_ = 1000; base.minWidth_ = 200; base.minHeight_ = 200;
+    base.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src 10: VP-unit, height-only intersect.
+    WindowLimits attachedVp; // VP [100,500,300,800]
+    attachedVp.maxWidth_ = 500; attachedVp.maxHeight_ = 800; attachedVp.minWidth_ = 100; attachedVp.minHeight_ = 300;
+    attachedVp.pixelUnit_ = PixelUnit::VP;
+    sceneSession->property_->SetAttachedWindowLimits(10, attachedVp);
+    sceneSession->property_->SetAttachedLimitOptions(10, AttachLimitOptions { true, false }); // h only
+    // src 20: PX-unit, width-only intersect.
+    WindowLimits attachedPx2; // PX [400,900,200,1000]
+    attachedPx2.maxWidth_ = 900;
+    attachedPx2.maxHeight_ = 1000;
+    attachedPx2.minWidth_ = 400;
+    attachedPx2.minHeight_ = 200;
+    attachedPx2.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetAttachedWindowLimits(20, attachedPx2);
+    sceneSession->property_->SetAttachedLimitOptions(20, AttachLimitOptions { false, true }); // w only
+    // src 30: no intersect flags -> skipped.
+    sceneSession->property_->SetAttachedWindowLimits(30, attachedPx2);
+    sceneSession->property_->SetAttachedLimitOptions(30, AttachLimitOptions { false, false });
+    const uint64_t displayId = 101;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 7;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    // src10 narrows height (minH 200->600), src20 narrows width (minW 200->400, maxW 1000->900), src30 skipped.
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 400u);
+    EXPECT_EQ(out.maxWidth_, 900u);
+    EXPECT_EQ(out.minHeight_, 600u);
+    EXPECT_EQ(out.maxHeight_, 1000u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity06
+ * @tc.desc: Invalid intersection (attached min > current max) -> not committed, base unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // PX [200,1000,200,1000]
+    base.maxWidth_ = 1000; base.maxHeight_ = 1000; base.minWidth_ = 200; base.minHeight_ = 200;
+    base.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src: width min 2000 > current max 1000 -> pxValid/vpValid false -> not committed.
+    WindowLimits attached;
+    attached.maxWidth_ = 3000; attached.maxHeight_ = 1000; attached.minWidth_ = 2000; attached.minHeight_ = 200;
+    attached.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetAttachedWindowLimits(40, attached);
+    sceneSession->property_->SetAttachedLimitOptions(40, AttachLimitOptions { false, true });
+    const uint64_t displayId = 102;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 8;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // Not committed -> base unchanged.
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 1000u);
+    EXPECT_EQ(out.minHeight_, 200u);
+    EXPECT_EQ(out.maxHeight_, 1000u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity07
+ * @tc.desc: hasIntersected true (via options) but attachedWindowLimitsList empty -> IntersectAttachedLimits
+ *           returns early, base returned unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // PX [200,1000,200,1000]
+    base.maxWidth_ = 1000; base.maxHeight_ = 1000; base.minWidth_ = 200; base.minHeight_ = 200;
+    base.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // Options entry with intersect flags (-> hasIntersected true) but NO attached limits entry
+    // (-> attachedWindowLimitsList empty).
+    sceneSession->property_->SetAttachedLimitOptions(99, AttachLimitOptions { true, true });
+    const uint64_t displayId = 103;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 9;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 1000u);
+    EXPECT_EQ(out.minHeight_, 200u);
+    EXPECT_EQ(out.maxHeight_, 1000u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
  * @tc.name: CheckWindowId
  * @tc.desc: CheckWindowId
  * @tc.type: FUNC
