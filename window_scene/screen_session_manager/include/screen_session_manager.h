@@ -841,7 +841,7 @@ private:
     void SetPhysicalRotationClientInner(ScreenId screenId, int rotation);
     void ExitOuterOnlyMode(ScreenId mainScreenId, ScreenId secondaryScreenId, MultiScreenMode screenMode);
 
-    bool checkSavePermission(bool& isUserSave);
+    bool CheckSavePermission(bool& isUserSave);
     void NotifyDisplayStateChange(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
         const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type);
     void NotifyCaptureStatusChanged();

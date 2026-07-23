@@ -10533,7 +10533,7 @@ std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManager::GetScreenHDR
     return screenshotVec;
 }
 
-bool ScreenSessionManager::checkSavePermission(bool& isUserSave)
+bool ScreenSessionManager::CheckSavePermission(bool& isUserSave)
 {
     if (SessionPermission::IsShellCall()) {
         return true;
@@ -10572,7 +10572,7 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshot(Displa
         return nullptr;
     }
     bool isUserSave = false;
-    if (checkSavePermission(isUserSave)) {
+    if (CheckSavePermission(isUserSave)) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetDisplaySnapshot(%" PRIu64")", displayId);
         auto res = GetScreenSnapshot(displayId, isUseDma, isCaptureFullOfScreen);
         if (isUserSave) {
@@ -10655,7 +10655,7 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
         return nullptr;
     }
     bool isUserSave = false;
-    if (checkSavePermission(isUserSave)) {
+    if (CheckSavePermission(isUserSave)) {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:GetDisplaySnapshot(%" PRIu64")", option.displayId_);
         DMRect orgRect = CalcRectsWithRotation(option.displayId_, option.rect);
         Drawing::Rect rect = { static_cast<float>(orgRect.posX_), static_cast<float>(orgRect.posY_),
