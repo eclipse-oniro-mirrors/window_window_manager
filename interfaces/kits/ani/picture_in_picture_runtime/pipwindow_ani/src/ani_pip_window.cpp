@@ -233,13 +233,22 @@ bool AniPiPWindow::GetControlGroupFromJs(ani_env* env, ani_ref controlGroup, std
 
     ani_size length = 0;
     auto array = static_cast<ani_array>(controlGroup);
-    env->Array_GetLength(array, &length);
+    ani_status aniRet = env->Array_GetLength(array, &length);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "Array_GetLength is not ANI_OK.");
+    }
 
     for (size_t i = 0; i < length; i++) {
         ani_ref getElementValue = nullptr;
-        env->Array_Get(array, i, &getElementValue);
+        ani_status arrayGetStatus = env->Array_Get(array, i, &getElementValue);
+        if (arrayGetStatus != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_PIP, "Array_Get is not ANI_OK.");
+        }
         ani_int ret;
-        env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(getElementValue), &ret);
+        ani_status enumItemStatus = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(getElementValue), &ret);
+        if (enumItemStatus != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_PIP, "EnumItem_GetValue_Int is not ANI_OK.");
+        }
         uint32_t controlType = static_cast<uint32_t>(ret);
 
         auto iter = std::find(controls.begin(), controls.end(), controlType);

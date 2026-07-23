@@ -110,7 +110,11 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     pipTemplateInfo.createTimestamp = createTimestamp_;
     auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOption_->GetContext());
     const std::shared_ptr<AbilityRuntime::Context>& abilityContext = context->lock();
-    SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
+    if (abilityContext && abilityContext->GetApplicationInfo()) {
+        SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(abilityContext->GetApplicationInfo()->name);
+    } else {
+        TLOGE(WmsLogTag::WMS_PIP, "abilityContext or GetApplicationInfo is nullptr");
+    }
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
