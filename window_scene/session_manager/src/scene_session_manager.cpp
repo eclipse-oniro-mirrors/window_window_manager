@@ -7826,6 +7826,9 @@ bool SceneSessionManager::NotifyVisibleChange(int32_t persistentId)
                        sceneSession->keepScreenLock_);
     HandleKeepScreenOn(sceneSession, sceneSession->IsViewKeepScreenOn(), VIEW_SCREEN_LOCK_PREFIX,
                        sceneSession->viewKeepScreenLock_);
+    if (sceneSession->IsVisible()) {
+        SetLeashNodeWatermarkForAppProcess(sceneSession);
+    }
     return true;
 }
 
@@ -11323,7 +11326,8 @@ WSError SceneSessionManager::SetWindowFlags(const sptr<SceneSession>& sceneSessi
     if ((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         sceneSession->OnShowWhenLocked(flags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED));
     }
-    TLOGI(WmsLogTag::DEFAULT, "set flags: %{public}u", flags);
+    TLOGI(WmsLogTag::DEFAULT, "win=[%{public}d, %{public}s], flags=%{public}u",
+        sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), flags);
     return WSError::WS_OK;
 }
 
@@ -11340,6 +11344,8 @@ void SceneSessionManager::CheckAndNotifyWaterMarkChangedResult()
                 static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK);
             bool isExtWindowHasWaterMarkFlag = session->GetCombinedExtWindowFlags().waterMarkFlag;
             if ((hasWaterMark && session->GetRSVisible()) || isExtWindowHasWaterMarkFlag) {
+                TLOGI(WmsLogTag::WMS_ATTRIBUTE, "watermark win=[%{public}d, %{public}s], hasExtWaterFlag=%{public}d",
+                    session->GetWindowId(), session->GetWindowName().c_str(), isExtWindowHasWaterMarkFlag);
                 currentWaterMarkShowState = true;
                 break;
             }
@@ -19379,6 +19385,21 @@ bool SceneSessionManager::SetSessionWatermarkForAppProcess(const sptr<SceneSessi
         return true;
     }
     return false;
+}
+
+void SceneSessionManager::SetLeashNodeWatermarkForAppProcess(const sptr<SceneSession>& session)
+{
+    taskScheduler_->PostTask([this, weakSession = wptr(session), where = __func__] {
+        auto sceneSession = weakSession.promote();
+        if (sceneSession == nullptr) {
+            TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+            return;
+        }
+        auto iter = processWatermarkPidMap_.find(sceneSession->GetCallingPid());
+        if (iter != processWatermarkPidMap_.end()) {
+            sceneSession->SetLeashNodeWatermarkEnabled(iter->second, true);
+        }
+    }, __func__);
 }
 
 std::string SceneSessionManager::MakeScreenWatermarkOwnerName(int32_t pid, uint32_t tokenId)

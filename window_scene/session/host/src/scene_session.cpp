@@ -6029,6 +6029,16 @@ void SceneSession::SetWatermarkEnabled(const std::string& watermarkName, bool is
     }
 }
 
+void SceneSession::SetLeashNodeWatermarkEnabled(const std::string& watermarkName, bool isEnabled)
+{
+    if (auto leashWinSurfaceNode = GetLeashWinShadowSurfaceNode()) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "watermarkName:%{public}s, isEnabled:%{public}d, win=[%{public}d, %{public}s]",
+            watermarkName.c_str(), isEnabled, GetPersistentId(), GetWindowName().c_str());
+        AutoRSTransaction leashTrans(GetRSLeashWinShadowContext());
+        leashWinSurfaceNode->SetWatermarkEnabled(watermarkName, isEnabled);
+    }
+}
+
 void SceneSession::SetPiPTemplateInfo(const PiPTemplateInfo& pipTemplateInfo)
 {
     pipTemplateInfo_ = pipTemplateInfo;
