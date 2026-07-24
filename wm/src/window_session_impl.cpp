@@ -642,6 +642,11 @@ uint64_t WindowSessionImpl::GetDisplayId() const
     return property_->GetDisplayId();
 }
 
+bool WindowSessionImpl::IsSpnOuterScreen() const
+{
+    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
+}
+
 int32_t WindowSessionImpl::GetParentId() const
 {
     // 0xffffffff: to get low 32 bits

@@ -34,19 +34,12 @@
 #include "js_window_stage.h"
 #include "ani_extension_window_config.h"
 #include "window_histogram_management.h"
-#include "fold_screen_state_internel.h"
 
 using OHOS::Rosen::WindowScene;
 
 namespace OHOS {
 namespace Rosen {
 namespace {
-constexpr ScreenId SCREEN_ID_MAIN = 5;
-
-static bool IsSpnOuterScreen(DisplayId displayId)
-{
-    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && displayId == SCREEN_ID_MAIN;
-}
 
 static std::map<ani_object, AniWindowStage*> localObjs;
 const uint32_t MIN_RESOURCE_ID = 0x1000000;
@@ -624,8 +617,10 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
             "[window][setWindowModal]msg: windowScene is nullptr");
         return;
     }
-    if (IsSpnOuterScreen(window->GetDisplayId())) {
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetWindowModal is not allowed on SPN outer screen");
+    bool isSpnOuterScreen = window->IsSpnOuterScreen();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+        isSpnOuterScreen, window->GetDisplayId());
+    if (isSpnOuterScreen) {
         return;
     }
     if (!window->IsPcOrPadFreeMultiWindowMode()) {

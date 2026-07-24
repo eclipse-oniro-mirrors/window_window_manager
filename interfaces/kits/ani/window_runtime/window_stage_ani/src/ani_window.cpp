@@ -44,7 +44,6 @@
 #include "wm_math.h"
 #include "window_histogram_management.h"
 #include "permission.h"
-#include "fold_screen_state_internel.h"
 
 using OHOS::Rosen::WindowScene;
 
@@ -68,17 +67,11 @@ constexpr double MAX_GRAY_SCALE = 1.0;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_MIN = 500;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_MAX = 900;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_EXT_MIN = 1000;
-constexpr ScreenId SCREEN_ID_MAIN = 5;
 
 static bool IsVirtualDisplay(DisplayId displayId)
 {
     return (displayId >= VIRTUAL_DISPLAY_ID_MIN && displayId <= VIRTUAL_DISPLAY_ID_MAX) ||
            (displayId >= VIRTUAL_DISPLAY_ID_EXT_MIN);
-}
-
-static bool IsSpnOuterScreen(DisplayId displayId)
-{
-    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && displayId == SCREEN_ID_MAIN;
 }
 } // namespace
 static std::mutex g_aniWindowMap_mutex;
@@ -1512,8 +1505,10 @@ void AniWindow::OnSetTopmost(ani_env* env, ani_boolean isTopmost)
             "[window][setTopmost]msg:Window is nullptr");
         return;
     }
-    if (IsSpnOuterScreen(window->GetDisplayId())) {
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetTopmost is not allowed on SPN outer screen");
+    bool isSpnOuterScreen = window->IsSpnOuterScreen();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+        isSpnOuterScreen, window->GetDisplayId());
+    if (isSpnOuterScreen) {
         return;
     }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
@@ -1678,8 +1673,10 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
             "[window][raiseMainWindowAboveTarget]msg: Window is nullptr");
         return;
     }
-    if (IsSpnOuterScreen(window->GetDisplayId())) {
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] RaiseMainWindowAboveTarget is not allowed on SPN outer screen");
+    bool isSpnOuterScreen = window->IsSpnOuterScreen();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+        isSpnOuterScreen, window->GetDisplayId());
+    if (isSpnOuterScreen) {
         return;
     }
     if (!Permission::IsSystemCallingOrStartByHdcd(true)) {
@@ -1708,8 +1705,10 @@ void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
             "[window][setWindowTopmost]msg: Window is null");
         return;
     }
-    if (IsSpnOuterScreen(windowToken_->GetDisplayId())) {
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetWindowTopmost is not allowed on SPN outer screen");
+    bool isSpnOuterScreen = windowToken_->IsSpnOuterScreen();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetWindowTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+        isSpnOuterScreen, windowToken_->GetDisplayId());
+    if (isSpnOuterScreen) {
         return;
     }
     if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
@@ -1884,8 +1883,10 @@ void AniWindow::OnSetSubWindowModal(ani_env* env, ani_boolean isModal)
             "[window][setSubWindowModal]msg: invalid window");
         return;
     }
-    if (IsSpnOuterScreen(window->GetDisplayId())) {
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetSubWindowModal is not allowed on SPN outer screen");
+    bool isSpnOuterScreen = window->IsSpnOuterScreen();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetSubWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+        isSpnOuterScreen, window->GetDisplayId());
+    if (isSpnOuterScreen) {
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSubWindowModal(isModal));
@@ -1924,8 +1925,10 @@ void AniWindow::OnSetSubWindowModalType(ani_env* env, ani_boolean isModal, ani_i
             "[window][setSubWindowModal]msg: invalid window");
         return;
     }
-    if (IsSpnOuterScreen(window->GetDisplayId())) {
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetSubWindowModalType is not allowed on SPN outer screen");
+    bool isSpnOuterScreen = window->IsSpnOuterScreen();
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetSubWindowModalType: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+        isSpnOuterScreen, window->GetDisplayId());
+    if (isSpnOuterScreen) {
         return;
     }
     if (!isModal) {

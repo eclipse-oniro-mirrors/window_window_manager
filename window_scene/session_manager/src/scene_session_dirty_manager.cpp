@@ -24,13 +24,7 @@
 
 namespace OHOS::Rosen {
 namespace {
-constexpr ScreenId SCREEN_ID_MAIN = 5;
 constexpr float DIRECTION0 = 0;
-
-static bool IsSpnOuterScreen(DisplayId displayId)
-{
-    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && displayId == SCREEN_ID_MAIN;
-}
 constexpr float DIRECTION90 = 90;
 constexpr float DIRECTION180 = 180;
 constexpr float DIRECTION270 = 270;
@@ -556,7 +550,7 @@ std::map<int32_t, sptr<SceneSession>> SceneSessionDirtyManager::GetDialogSession
         }
         AddDialogSessionMapItem(session, dialogMap);
         AddCallingPidMapItem(session, callingPidMap);
-        if (session->IsApplicationModal() && !IsSpnOuterScreen(session->GetDisplayId())) {
+        if (session->IsApplicationModal() && !session->IsSpnOuterScreen()) {
             hasModalApplication = true;
         }
     }
