@@ -1674,7 +1674,8 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
         return;
     }
     bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "[ANI] RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
         isSpnOuterScreen, window->GetDisplayId());
     if (isSpnOuterScreen) {
         return;
@@ -1706,7 +1707,8 @@ void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
         return;
     }
     bool isSpnOuterScreen = windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetWindowTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "[ANI] SetWindowTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
         isSpnOuterScreen, windowToken_->GetDisplayId());
     if (isSpnOuterScreen) {
         return;
@@ -1884,7 +1886,8 @@ void AniWindow::OnSetSubWindowModal(ani_env* env, ani_boolean isModal)
         return;
     }
     bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetSubWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "[ANI] SetSubWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
         isSpnOuterScreen, window->GetDisplayId());
     if (isSpnOuterScreen) {
         return;
@@ -1926,7 +1929,8 @@ void AniWindow::OnSetSubWindowModalType(ani_env* env, ani_boolean isModal, ani_i
         return;
     }
     bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetSubWindowModalType: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "[ANI] SetSubWindowModalType: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
         isSpnOuterScreen, window->GetDisplayId());
     if (isSpnOuterScreen) {
         return;

@@ -6326,7 +6326,8 @@ WmErrorCode JsWindow::CheckRaiseMainWindowParams(napi_env env, size_t argc, napi
 napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_info info)
 {
     bool isSpnOuterScreen = windowToken_ != nullptr && windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
         isSpnOuterScreen, windowToken_ != nullptr ? windowToken_->GetDisplayId() : 0);
     if (isSpnOuterScreen) {
         return NapiGetUndefined(env);
