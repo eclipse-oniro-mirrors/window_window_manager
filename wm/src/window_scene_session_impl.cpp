@@ -3485,6 +3485,14 @@ WMError WindowSceneSessionImpl::RaiseAboveTarget(int32_t subWindowId)
 WMError WindowSceneSessionImpl::RaiseMainWindowAboveTarget(int32_t targetId)
 {
     TLOGI(WmsLogTag::WMS_HIERARCHY, "source id: %{public}u, target id: %{public}u", GetWindowId(), targetId);
+    bool isSpnDevice = FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice();
+    DisplayId displayId = GetDisplayId();
+    TLOGI(WmsLogTag::WMS_HIERARCHY,
+        "RaiseMainWindowAboveTarget: isSpnDevice=%{public}d, displayId=%{public}" PRIu64,
+        isSpnDevice, displayId);
+    if (isSpnDevice && displayId == SCREEN_ID_MAIN) {
+        return WMError::WM_OK;
+    }
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "device type not supported");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;

@@ -507,6 +507,8 @@ public:
     WSRect GetLayoutRect() const;
     bool GetSkipSelfWhenShowOnVirtualScreen() const;
     DisplayId GetDisplayId() const { return GetSessionProperty()->GetDisplayId(); }
+    bool IsSpnOuterScreen() const;
+    static constexpr ScreenId SCREEN_ID_MAIN = 5;
     void SetRestartApp(bool restartApp);
     bool GetRestartApp() const;
     void SetRestartInSameProcess(bool restartInSameProcess);
