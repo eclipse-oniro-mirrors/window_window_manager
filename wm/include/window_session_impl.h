@@ -92,8 +92,6 @@ using IKBWillHideListener = IKeyboardWillHideListener;
 
 class WindowSessionImpl : public Window, public virtual SessionStageStub {
 public:
-    static constexpr ScreenId SCREEN_ID_MAIN = 5;
-
     explicit WindowSessionImpl(const sptr<WindowOption>& option,
         const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
     ~WindowSessionImpl();
@@ -230,7 +228,6 @@ public:
     bool GetTouchable() const override;
     uint32_t GetWindowId() const override;
     uint64_t GetDisplayId() const override;
-    bool IsSpnOuterScreen() const;
     Rect GetRect() const override;
     Rect GetRect(bool useHookedSize) const override;
     bool GetFocusable() const override;
