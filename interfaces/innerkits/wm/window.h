@@ -1378,13 +1378,6 @@ public:
     virtual uint64_t GetDisplayId() const { return DISPLAY_ID_INVALID; }
 
     /**
-     * @brief Check if window is on SPN outer screen.
-     *
-     * @return True if window is on SPN outer screen, false otherwise.
-     */
-    virtual bool IsSpnOuterScreen() const { return false; }
-
-    /**
      * @brief Get flag of window.
      *
      * @return Flag of window.

@@ -40,7 +40,7 @@ using OHOS::Rosen::WindowScene;
 namespace OHOS {
 namespace Rosen {
 namespace {
-
+/* used for free, ani has no destructor right now, only free when aniObj freed */
 static std::map<ani_object, AniWindowStage*> localObjs;
 const uint32_t MIN_RESOURCE_ID = 0x1000000;
 const uint32_t MAX_RESOURCE_ID = 0xffffffff;
@@ -615,12 +615,6 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setWindowModal]msg: windowScene is nullptr");
-        return;
-    }
-    bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, window->GetDisplayId());
-    if (isSpnOuterScreen) {
         return;
     }
     if (!window->IsPcOrPadFreeMultiWindowMode()) {

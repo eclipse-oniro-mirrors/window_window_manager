@@ -1505,12 +1505,6 @@ void AniWindow::OnSetTopmost(ani_env* env, ani_boolean isTopmost)
             "[window][setTopmost]msg:Window is nullptr");
         return;
     }
-    bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI] SetTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, window->GetDisplayId());
-    if (isSpnOuterScreen) {
-        return;
-    }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] OnSetTopmost fail, not main window");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost",
@@ -1673,13 +1667,6 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
             "[window][raiseMainWindowAboveTarget]msg: Window is nullptr");
         return;
     }
-    bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "[ANI] RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, window->GetDisplayId());
-    if (isSpnOuterScreen) {
-        return;
-    }
     if (!Permission::IsSystemCallingOrStartByHdcd(true)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, require system application");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget",
@@ -1704,13 +1691,6 @@ void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setWindowTopmost]msg: Window is null");
-        return;
-    }
-    bool isSpnOuterScreen = windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "[ANI] SetWindowTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, windowToken_->GetDisplayId());
-    if (isSpnOuterScreen) {
         return;
     }
     if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
@@ -1885,13 +1865,6 @@ void AniWindow::OnSetSubWindowModal(ani_env* env, ani_boolean isModal)
             "[window][setSubWindowModal]msg: invalid window");
         return;
     }
-    bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "[ANI] SetSubWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, window->GetDisplayId());
-    if (isSpnOuterScreen) {
-        return;
-    }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSubWindowModal(isModal));
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal", ret);
@@ -1926,13 +1899,6 @@ void AniWindow::OnSetSubWindowModalType(ani_env* env, ani_boolean isModal, ani_i
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setSubWindowModal]msg: invalid window");
-        return;
-    }
-    bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "[ANI] SetSubWindowModalType: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, window->GetDisplayId());
-    if (isSpnOuterScreen) {
         return;
     }
     if (!isModal) {
@@ -3386,12 +3352,6 @@ void AniWindow::SetWindowTitleButtonVisible(ani_env* env, ani_object visiblePara
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    if (visibleParam == nullptr) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return;
-    }
     ani_boolean isMaximizeButtonVisible = false;
     if (ANI_OK != env->Object_GetPropertyByName_Boolean(visibleParam,
         "isMaximizeButtonVisible", &isMaximizeButtonVisible)) {
@@ -3491,13 +3451,7 @@ void AniWindow::OnCloseDirectly(ani_env* env)
             static_cast<uint32_t>(window->GetType()), window->GetWindowId(), window->GetWindowName().c_str());
         return;
     }
-    WmErrorCode ret = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
-    auto iter = WM_JS_TO_ERROR_CODE_MAP.find(window->CloseDirectly());
-    if (iter != WM_JS_TO_ERROR_CODE_MAP.end()) {
-        ret = iter->second;
-    } else {
-        TLOGE(WmsLogTag::WMS_PC, "[ANI] CloseDirectly error code out of range");
-    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->CloseDirectly());
     TLOGI(WmsLogTag::WMS_PC, "window [%{public}u, %{public}s] ret=%{public}d",
         window->GetWindowId(), window->GetWindowName().c_str(), ret);
     if (ret != WmErrorCode::WM_OK) {
@@ -3842,10 +3796,6 @@ ani_object AniWindow::SetWindowDecorVisible(ani_env* env, bool isVisible)
 
 ani_object AniWindow::SetWindowDecorHeight(ani_env* env, ani_int height)
 {
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowToken_ is nullptr");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
     if (height < MIN_DECOR_HEIGHT || height > MAX_DECOR_HEIGHT) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] height should greater than 37 or smaller than 112");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",
@@ -8000,7 +7950,7 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::SetDialogBackGestureEnabled)},
         ani_native_function {"setWindowMaskSync", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetWindowMask)},
-        ani_native_function {"setWindowMaskWithAlphaSync", "lC{escompat.Uint8Array}ii:",
+        ani_native_function {"setWindowMaskWithAlphaSync", "lC{std.core.Uint8Array}ii:",
             reinterpret_cast<void *>(AniWindow::SetWindowMaskWithAlpha)},
         ani_native_function {"clearWindowMaskSync", "l:", reinterpret_cast<void *>(AniWindow::ClearWindowMask)},
         ani_native_function {"setTouchableAreas", "lC{std.core.Array}:",

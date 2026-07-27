@@ -710,12 +710,6 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return NapiGetUndefined(env);
     }
-    bool isSpnOuterScreen = window->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_MAIN, "SetWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, window->GetDisplayId());
-    if (isSpnOuterScreen) {
-        return NapiGetUndefined(env);
-    }
     if (window->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_MAIN, "This is PcAppInPad, not support");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);

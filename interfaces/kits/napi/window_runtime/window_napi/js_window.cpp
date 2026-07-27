@@ -5240,12 +5240,6 @@ napi_value JsWindow::OnSetTopmost(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
-    bool isSpnOuterScreen = windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "SetTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, windowToken_->GetDisplayId());
-    if (isSpnOuterScreen) {
-        return NapiGetUndefined(env);
-    }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "SetTopmost is not allowed since window is not main window");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost", WmErrorCode::WM_ERROR_INVALID_CALLING);
@@ -5307,12 +5301,6 @@ napi_value JsWindow::OnSetWindowTopmost(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             "[window][setWindowTopmost]msg: WindowToken is nullptr");
-    }
-    bool isSpnOuterScreen = windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "SetWindowTopmost: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, windowToken_->GetDisplayId());
-    if (isSpnOuterScreen) {
-        return NapiGetUndefined(env);
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "This is PcAppInPad, not support");
@@ -6325,13 +6313,6 @@ WmErrorCode JsWindow::CheckRaiseMainWindowParams(napi_env env, size_t argc, napi
 
 napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_info info)
 {
-    bool isSpnOuterScreen = windowToken_ != nullptr && windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "RaiseMainWindowAboveTarget: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, windowToken_ != nullptr ? windowToken_->GetDisplayId() : 0);
-    if (isSpnOuterScreen) {
-        return NapiGetUndefined(env);
-    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     if (!Permission::IsSystemCallingOrStartByHdcd(true)) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, require system application");
@@ -9205,12 +9186,6 @@ napi_value JsWindow::OnSetWindowTitleMoveEnabled(napi_env env, napi_callback_inf
 
 napi_value JsWindow::OnSetSubWindowModal(napi_env env, napi_callback_info info)
 {
-    bool isSpnOuterScreen = windowToken_ != nullptr && windowToken_->IsSpnOuterScreen();
-    TLOGI(WmsLogTag::WMS_SUB, "SetSubWindowModal: isSpnOuterScreen=%{public}d, displayId=%{public}" PRIu64,
-        isSpnOuterScreen, windowToken_ != nullptr ? windowToken_->GetDisplayId() : 0);
-    if (isSpnOuterScreen) {
-        return NapiGetUndefined(env);
-    }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
