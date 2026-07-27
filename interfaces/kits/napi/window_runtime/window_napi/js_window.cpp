@@ -98,6 +98,7 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
         SetWindowToken(nullptr);
+        isDestroyed_ = true;
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in js window", windowName.c_str());
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
@@ -3112,7 +3113,7 @@ napi_value JsWindow::OnRegisterWindowCallback(napi_env env, napi_callback_info i
 
 napi_value JsWindow::OnUnregisterWindowCallback(napi_env env, napi_callback_info info)
 {
-    if (windowToken_ == nullptr) {
+    if (windowToken_ == nullptr && !isDestroyed_) {
         WLOGFE("Window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
