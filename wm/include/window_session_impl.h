@@ -230,7 +230,7 @@ public:
     bool GetTouchable() const override;
     uint32_t GetWindowId() const override;
     uint64_t GetDisplayId() const override;
-    bool IsSpnOuterScreen() const;
+    bool IsSpnOuterScreen() const override;
     Rect GetRect() const override;
     Rect GetRect(bool useHookedSize) const override;
     bool GetFocusable() const override;
