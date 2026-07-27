@@ -40,6 +40,7 @@ public:
     MOCK_METHOD0(Hide, WSError());
     MOCK_METHOD0(DrawingCompleted, WSError());
     MOCK_METHOD0(RemoveStartingWindow, WSError());
+    MOCK_METHOD1(RemoveStartingWindow,  WSError(std::string& errMsg));
     MOCK_METHOD4(OnRemoteRequest, int(uint32_t code, MessageParcel& data,
         MessageParcel& reply, MessageOption& option));
 };

@@ -139,7 +139,11 @@ public:
     Rect GetRequestRect() const override;
     Rect GetGlobalDisplayRect(bool useHookedSize = false) const override;
     WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition) const override;
+    WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const override;
     WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const override;
+    WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const override;
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
     WindowType GetType() const override;
     const std::string& GetWindowName() const override;
@@ -162,6 +166,7 @@ public:
     WMError RaiseToAppTopOnDrag();
 
     WMError SetResizeByDragEnabled(bool dragEnabled) override;
+    WMError SetResizeByDragEnabled(bool dragEnabled, std::string& errMsg) override;
     WMError SetRaiseByClickEnabled(bool raiseEnabled) override;
     WMError SetMainWindowRaiseByClickEnabled(bool raiseEnabled) override;
     WMError HideNonSystemFloatingWindows(bool shouldHide) override;
@@ -554,6 +559,7 @@ public:
      * Window Layout
      */
     WMError EnableDrag(bool enableDrag) override;
+    WMError EnableDrag(bool enableDrag, std::string& errMsg) override;
     WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetEnableDragBySystem(bool enableDrag) override;
     bool IsWindowDraggable();

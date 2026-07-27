@@ -838,6 +838,7 @@ public:
      * Starting Window
      */
     WSError RemoveStartingWindow() override;
+    WSError RemoveStartingWindow(std::string& errMsg) override;
     void SetEnableRemoveStartingWindow(bool enableRemoveStartingWindow);
     bool GetEnableRemoveStartingWindow() const;
     void SetAppBufferReady(bool appBufferReady);

@@ -190,6 +190,21 @@ public:
     }
 
     /**
+     * @brief Convert a position from client (window-relative) coordinates to global coordinates with error message.
+     *
+     * @param inPosition The position relative to the window.
+     * @param outPosition [out] The corresponding position in global coordinates.
+     * @param errMsg [out] The error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const
+    {
+        errMsg.clear();
+        return ClientToGlobalDisplay(inPosition, outPosition);
+    }
+
+    /**
      * @brief Convert a position from global coordinates to client (window-relative) coordinates.
      *
      * @param inPosition The position in global coordinates.
@@ -199,6 +214,21 @@ public:
     virtual WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Convert a position from global coordinates to client (window-relative) coordinates with error message.
+     *
+     * @param inPosition The position in global coordinates.
+     * @param outPosition [out] The corresponding position relative to the window.
+     * @param errMsg [out] The error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const
+    {
+        errMsg.clear();
+        return GlobalDisplayToClient(inPosition, outPosition);
     }
 
     virtual WindowType GetType() const = 0;
@@ -265,8 +295,16 @@ public:
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) = 0;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) = 0;
+    virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
+        MoveConfiguration moveConfiguration = {}, std::string& errMsg) = 0;
     virtual WMError MoveToAsync(int32_t x, int32_t y,
         MoveConfiguration moveConfiguration = {}) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError MoveToAsync(int32_t x, int32_t y,
+        MoveConfiguration moveConfiguration, std::string& errMsg)
+    {
+        errMsg.clear();
+        return MoveToAsync(x, y, moveConfiguration);
+    }
     virtual WMError MoveWindowToGlobal(int32_t x, int32_t y,
         MoveConfiguration moveConfiguration) { return WMError::WM_OK; }
 
@@ -287,8 +325,21 @@ public:
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
+
+    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize, std::string& errMsg)
+    {
+        errMsg.clear();
+        return GetGlobalScaledRect(globalScaledRect, useHookedSize);
+    }
+
     virtual WMError Resize(uint32_t width, uint32_t height) = 0;
+    virtual WMError Resize(uint32_t width, uint32_t height, std::string& errMsg) = 0;
     virtual WMError ResizeAsync(uint32_t width, uint32_t height) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError ResizeAsync(uint32_t width, uint32_t height, std::string& errMsg)
+    {
+        errMsg.clear();
+        return ResizeAsync(width, height);
+    }
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) = 0;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) = 0;
     virtual bool IsKeepScreenOn() const = 0;
@@ -431,6 +482,13 @@ public:
     virtual WMError Minimize() = 0;
     virtual WMError Maximize() = 0;
     virtual WMError Recover() = 0;
+
+    virtual WMError Recover(std::string& errMsg)
+    {
+        errMsg.clear();
+        return Recover();
+    }
+
     virtual WMError Restore() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams)
     {
@@ -459,6 +517,11 @@ public:
     virtual WMError SetFollowParentMultiScreenPolicy(bool enabled) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual void StartMove() = 0;
     virtual WmErrorCode StartMoveWindow() { return WmErrorCode::WM_OK; }
+    virtual WmErrorCode StartMoveWindow(std::string& errMsg)
+    {
+        errMsg.clear();
+        return StartMoveWindow();
+    }
 
     /**
      * @brief Start moving window with options.
@@ -473,7 +536,17 @@ public:
 
     virtual WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX,
         int32_t offsetY) { return WmErrorCode::WM_OK; }
+    virtual WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY, std::string& errMsg)
+    {
+        errMsg.clear();
+        return StartMoveWindowWithCoordinate(offsetX, offsetY);
+    }
     virtual WmErrorCode StopMoveWindow() { return WmErrorCode::WM_OK; }
+    virtual WmErrorCode StopMoveWindow(std::string& errMsg)
+    {
+        errMsg.clear();
+        return StopMoveWindow();
+    }
     virtual WMError Close() = 0;
     virtual void SetNeedRemoveWindowInputChannel(bool needRemoveWindowInputChannel) = 0;
     virtual bool IsSupportWideGamut() = 0;
@@ -655,7 +728,13 @@ public:
     }
 
     virtual WMError Recover(uint32_t reason = 0) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
-    
+
+    virtual WMError Recover(uint32_t reason, std::string& errMsg)
+    {
+        errMsg.clear();
+        return Recover(reason);
+    }
+
     /**
      * @brief Recovery the main window with snapshot animation config.
      *
@@ -666,6 +745,13 @@ public:
     virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+        std::string& errMsg)
+    {
+        errMsg.clear();
+        return Recover(reason, snapshotAnimationConfig);
     }
 
     virtual WMError Maximize(MaximizePresentation present) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
@@ -889,6 +975,19 @@ public:
     virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Set window anchor info with error message.
+     *
+     * @param windowAnchorInfo the windowAnchorInfo of subWindow.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success.
+     */
+    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetWindowAnchorInfo(windowAnchorInfo);
     }
 
     /**

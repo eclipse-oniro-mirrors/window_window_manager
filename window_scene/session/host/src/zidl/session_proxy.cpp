@@ -472,22 +472,35 @@ WSError SessionProxy::DrawingCompleted()
 
 WSError SessionProxy::RemoveStartingWindow()
 {
+    std::string errMsg;
+    return RemoveStartingWindow(errMsg);
+}
+
+WSError SessionProxy::RemoveStartingWindow(std::string& errMsg)
+{
+    errMsg.clear();
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "WriteInterfaceToken failed");
+        errMsg = "WriteInterfaceToken failed";
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "remote is null");
+        errMsg = "remote is null";
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_APP_REMOVE_STARTING_WINDOW),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "SendRequest failed");
+        errMsg = "SendRequest failed";
         return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!reply.ReadString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "Read errMsg failed");
     }
     return static_cast<WSError>(reply.ReadInt32());
 }

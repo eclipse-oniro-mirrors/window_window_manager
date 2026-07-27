@@ -185,7 +185,10 @@ public:
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
+    virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+        MoveConfiguration moveConfiguration, std::string& errMsg) override;
     virtual WMError Resize(uint32_t width, uint32_t height) override;
+    virtual WMError Resize(uint32_t width, uint32_t height, std::string& errMsg) override;
     float GetVirtualPixelRatio() override;
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) override;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) override;
@@ -205,7 +208,9 @@ public:
     virtual WMError BindDialogTarget(sptr<IRemoteObject> targetToken) override;
     WMError RaiseToAppTop() override;
     virtual WMError SetAspectRatio(float ratio) override;
+    virtual WMError SetAspectRatio(float ratio, std::string& errMsg) override;
     virtual WMError ResetAspectRatio() override;
+    virtual WMError ResetAspectRatio(std::string& errMsg) override;
     virtual WMError SetSnapshotSkip(bool isSkip) override;
     // window effect
     virtual WMError SetCornerRadius(float cornerRadius) override;
@@ -219,9 +224,14 @@ public:
 
     virtual bool IsDecorEnable() const override;
     virtual WMError Maximize() override;
+    virtual WMError Maximize(std::string& errMsg) override;
     virtual WMError MaximizeFloating() override;
     virtual WMError Minimize() override;
     virtual WMError Recover() override;
+    virtual WMError Recover(std::string& errMsg) override;
+    virtual WMError Recover(uint32_t reason, std::string& errMsg) override;
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+        std::string& errMsg) override;
     virtual WMError Close() override;
     virtual void StartMove() override;
     virtual WMError SetGlobalMaximizeMode(MaximizeMode mode) override;
