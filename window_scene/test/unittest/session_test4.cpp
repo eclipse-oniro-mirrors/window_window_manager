@@ -1952,6 +1952,18 @@ HWTEST_F(WindowSessionTest4, TestHandleHookDisplayNormal, TestSize.Level1)
     EXPECT_TRUE(capturedInfo.enableHookRotation_);
     EXPECT_TRUE(capturedEnable);
 }
+
+/**
+ * @tc.name: IsSpnOuterScreen
+ * @tc.desc: Test Session::IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, IsSpnOuterScreen, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->property_->SetDisplayId(0);
+    EXPECT_FALSE(session_->IsSpnOuterScreen());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

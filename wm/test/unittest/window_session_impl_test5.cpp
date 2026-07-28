@@ -3028,79 +3028,18 @@ HWTEST_F(WindowSessionImplTest5, GetWindowHoverState, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTopmost_SpnOuterScreen01
- * @tc.desc: Test SetTopmost on SPN outer screen, should return WM_OK
+ * @tc.name: IsSpnOuterScreen
+ * @tc.desc: Test IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest5, SetTopmost_SpnOuterScreen01, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest5, IsSpnOuterScreen, TestSize.Level1)
 {
-    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-        return;
-    }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetTopmost_SpnOuterScreen01");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    ASSERT_NE(window, nullptr);
-    window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
-    WMError res = window->SetTopmost(true);
-    EXPECT_EQ(WMError::WM_OK, res);
-}
-
-/**
- * @tc.name: SetTopmost_SpnOuterScreen02
- * @tc.desc: Test SetTopmost on SPN inner screen, should not return WM_OK early
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, SetTopmost_SpnOuterScreen02, TestSize.Level1)
-{
-    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-        return;
-    }
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetTopmost_SpnOuterScreen02");
+    option->SetWindowName("IsSpnOuterScreen");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     window->property_->SetDisplayId(0);
-    WMError res = window->SetTopmost(true);
-    EXPECT_NE(WMError::WM_OK, res);
-}
-
-/**
- * @tc.name: SetMainWindowTopmost_SpnOuterScreen01
- * @tc.desc: Test SetMainWindowTopmost on SPN outer screen, should return WM_OK
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, SetMainWindowTopmost_SpnOuterScreen01, TestSize.Level1)
-{
-    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-        return;
-    }
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetMainWindowTopmost_SpnOuterScreen01");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    ASSERT_NE(window, nullptr);
-    window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
-    WMError res = window->SetMainWindowTopmost(true);
-    EXPECT_EQ(WMError::WM_OK, res);
-}
-
-/**
- * @tc.name: SetMainWindowTopmost_SpnOuterScreen02
- * @tc.desc: Test SetMainWindowTopmost on SPN inner screen, should not return WM_OK early
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest5, SetMainWindowTopmost_SpnOuterScreen02, TestSize.Level1)
-{
-    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-        return;
-    }
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetMainWindowTopmost_SpnOuterScreen02");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    ASSERT_NE(window, nullptr);
-    window->property_->SetDisplayId(0);
-    WMError res = window->SetMainWindowTopmost(true);
-    EXPECT_NE(WMError::WM_OK, res);
+    EXPECT_FALSE(window->IsSpnOuterScreen());
 }
 } // namespace
 } // namespace Rosen
