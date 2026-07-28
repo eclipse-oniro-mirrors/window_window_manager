@@ -439,7 +439,12 @@ int SessionStub::HandleForeground(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    const WSError errCode = Foreground(property, isFromClient, identityToken);
+    bool isAlreadyShown = false;
+    if (!data.ReadBool(isAlreadyShown)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isAlreadyShown failed.");
+        return ERR_INVALID_DATA;
+    }
+    const WSError errCode = Foreground(property, isFromClient, identityToken, isAlreadyShown);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }

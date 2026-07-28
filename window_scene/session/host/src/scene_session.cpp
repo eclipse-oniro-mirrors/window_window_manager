@@ -489,7 +489,7 @@ void SceneSession::CloseExtensionSync(const UIExtensionTokenInfo& tokenInfo)
 }
 
 WSError SceneSession::Foreground(
-    sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken)
+    sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken, bool isAlreadyShown)
 {
     if (!CheckPermissionWithPropertyAnimation(property)) {
         return WSError::WS_ERROR_NOT_SYSTEM_APP;
@@ -528,16 +528,20 @@ WSError SceneSession::Foreground(
             return WSError::WS_OK;
         }
     }
-    return ForegroundTask(property);
+    return ForegroundTask(property, isAlreadyShown);
 }
 
-WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property)
+WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property, bool isAlreadyShown)
 {
-    PostTask([weakThis = wptr(this), property, where = __func__] {
+    PostTask([weakThis = wptr(this), property, isAlreadyShown, where = __func__] {
         auto session = weakThis.promote();
         if (!session) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
+        }
+        if (isAlreadyShown && !session->IsForegroundPreState()) {
+            TLOGI(WmsLogTag::WMS_LIFE, "%{public}s Current state is not a pre-state of foreground, skip", where);
+            return WSError::WS_OK;
         }
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {

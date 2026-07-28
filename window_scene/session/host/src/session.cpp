@@ -1256,6 +1256,13 @@ bool Session::IsLifecycleForeground() const
     return state_ == SessionState::STATE_FOREGROUND || state_ == SessionState::STATE_ACTIVE;
 }
 
+bool Session::IsForegroundPreState() const
+{
+    return state_ == SessionState::STATE_CONNECT ||
+        state_ == SessionState::STATE_BACKGROUND ||
+        state_ == SessionState::STATE_INACTIVE;
+}
+
 bool Session::IsSessionNotBackground() const
 {
     return state_ >= SessionState::STATE_DISCONNECT && state_ <= SessionState::STATE_ACTIVE;
@@ -1854,7 +1861,8 @@ WSError Session::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<I
     return WSError::WS_OK;
 }
 
-WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken)
+WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken,
+    bool isAlreadyShown)
 {
     HandleDialogForeground();
     SessionState state = GetSessionState();
@@ -1865,8 +1873,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
         TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
         RecordLifecycleSessionStateError(SessionState::STATE_FOREGROUND, state);
     }
-    if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
-        state != SessionState::STATE_INACTIVE) {
+    if (!IsForegroundPreState()) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
         SetNeedBackgroundAfterConnect(false);
         return WSError::WS_ERROR_INVALID_SESSION;

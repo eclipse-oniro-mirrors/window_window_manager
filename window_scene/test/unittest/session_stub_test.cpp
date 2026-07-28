@@ -1578,10 +1578,18 @@ HWTEST_F(SessionStubTest, HandleForeground, Function | SmallTest | Level2)
     data.WriteBool(true);
     data.WriteString("HandleForegroundTest");
     result = session_->HandleForeground(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_DATA);
+    data.WriteBool(true);
+    data.WriteParcelable(propertyTest);
+    data.WriteBool(true);
+    data.WriteString("HandleForegroundTest");
+    data.WriteBool(false);
+    result = session_->HandleForeground(data, reply);
     ASSERT_EQ(result, ERR_NONE);
     data.WriteBool(false);
     data.WriteBool(true);
     data.WriteString("HandleForegroundTest");
+    data.WriteBool(false);
     result = session_->HandleForeground(data, reply);
     ASSERT_EQ(result, ERR_NONE);
 }
