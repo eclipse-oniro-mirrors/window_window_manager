@@ -2601,14 +2601,30 @@ HWTEST_F(WindowSceneSessionImplTest2, SetFullScreen, TestSize.Level0)
 }
 
 /**
- * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen
+ * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen01
+ * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    EXPECT_EQ(sourceSession->IsSpnOuterScreen(), FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice());
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen02
  * @tc.desc: Test IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen, TestSize.Level1)
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen02, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen");
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen02");
     option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(sourceSession, nullptr);

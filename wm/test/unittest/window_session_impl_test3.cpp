@@ -1831,14 +1831,29 @@ HWTEST_F(WindowSessionImplTest3, SyncFvLimits, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetSubWindowModal_SpnOuterScreen
+ * @tc.name: SetSubWindowModal_SpnOuterScreen01
+ * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnOuterScreen01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSubWindowModal_SpnOuterScreen01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    EXPECT_EQ(window->IsSpnOuterScreen(), FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice());
+}
+
+/**
+ * @tc.name: SetSubWindowModal_SpnOuterScreen02
  * @tc.desc: Test IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnOuterScreen, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnOuterScreen02, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetSubWindowModal_SpnOuterScreen");
+    option->SetWindowName("SetSubWindowModal_SpnOuterScreen02");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     window->property_->SetDisplayId(0);
@@ -1846,14 +1861,29 @@ HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnOuterScreen, TestSize.Leve
 }
 
 /**
- * @tc.name: SetWindowModal_SpnOuterScreen
+ * @tc.name: SetWindowModal_SpnOuterScreen01
+ * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetWindowModal_SpnOuterScreen01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowModal_SpnOuterScreen01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    EXPECT_EQ(window->IsSpnOuterScreen(), FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice());
+}
+
+/**
+ * @tc.name: SetWindowModal_SpnOuterScreen02
  * @tc.desc: Test IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest3, SetWindowModal_SpnOuterScreen, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest3, SetWindowModal_SpnOuterScreen02, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetWindowModal_SpnOuterScreen");
+    option->SetWindowName("SetWindowModal_SpnOuterScreen02");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     window->property_->SetDisplayId(0);
