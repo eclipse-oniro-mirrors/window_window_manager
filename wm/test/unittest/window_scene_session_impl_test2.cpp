@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include <parameters.h>
 #include "ability_context_impl.h"
+#include "common/include/fold_screen_state_internel.h"
 #include "display_info.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
@@ -2597,6 +2598,52 @@ HWTEST_F(WindowSceneSessionImplTest2, SetFullScreen, TestSize.Level0)
     compatibleModeProperty->SetDisableFullScreen(true);
     window->property_->SetCompatibleModeProperty(compatibleModeProperty);
     ASSERT_EQ(WMError::WM_OK, window->SetFullScreen(true));
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen01
+ * @tc.desc: Test RaiseMainWindowAboveTarget on SPN outer screen, should return WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen01, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        return;
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    sourceSession->property_->SetPersistentId(201);
+    sourceSession->state_ = WindowState::STATE_SHOWN;
+    sourceSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    WMError ret = sourceSession->RaiseMainWindowAboveTarget(202);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen02
+ * @tc.desc: Test RaiseMainWindowAboveTarget on SPN inner screen, should not return WM_OK early
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen02, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        return;
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(0);
+    sourceSession->property_->SetPersistentId(203);
+    sourceSession->state_ = WindowState::STATE_SHOWN;
+    sourceSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    WMError ret = sourceSession->RaiseMainWindowAboveTarget(204);
+    EXPECT_NE(WMError::WM_OK, ret);
 }
 }
 } // namespace

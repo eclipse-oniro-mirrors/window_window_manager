@@ -3487,11 +3487,7 @@ WMError WindowSessionImpl::SetTouchable(bool isTouchable)
 WMError WindowSessionImpl::SetTopmost(bool topmost)
 {
     TLOGD(WmsLogTag::WMS_HIERARCHY, "%{public}d", topmost);
-    bool isSpnDevice = FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice();
-    DisplayId displayId = GetDisplayId();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "SetTopmost: isSpnDevice=%{public}d, displayId=%{public}" PRIu64, isSpnDevice, displayId);
-    if (isSpnDevice && displayId == SCREEN_ID_MAIN) {
+    if (IsSpnOuterScreen()) {
         return WMError::WM_OK;
     }
     if (!IsPcOrPadFreeMultiWindowMode()) {
@@ -3513,11 +3509,7 @@ bool WindowSessionImpl::IsTopmost() const
 /** @note @window.hierarchy */
 WMError WindowSessionImpl::SetMainWindowTopmost(bool isTopmost)
 {
-    bool isSpnDevice = FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice();
-    DisplayId displayId = GetDisplayId();
-    TLOGI(WmsLogTag::WMS_HIERARCHY,
-        "SetMainWindowTopmost: isSpnDevice=%{public}d, displayId=%{public}" PRIu64, isSpnDevice, displayId);
-    if (isSpnDevice && displayId == SCREEN_ID_MAIN) {
+    if (IsSpnOuterScreen()) {
         return WMError::WM_OK;
     }
     if (IsWindowSessionInvalid()) {
@@ -4640,11 +4632,7 @@ WMError WindowSessionImpl::SetWindowTitleMoveEnabled(bool enable)
 
 WMError WindowSessionImpl::SetSubWindowModal(bool isModal, ModalityType modalityType)
 {
-    bool isSpnDevice = FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice();
-    DisplayId displayId = GetDisplayId();
-    TLOGI(WmsLogTag::WMS_SUB,
-        "SetSubWindowModal: isSpnDevice=%{public}d, displayId=%{public}" PRIu64, isSpnDevice, displayId);
-    if (isSpnDevice && displayId == SCREEN_ID_MAIN) {
+    if (IsSpnOuterScreen()) {
         return WMError::WM_OK;
     }
     if (IsWindowSessionInvalid()) {
@@ -4694,11 +4682,7 @@ WMError WindowSessionImpl::SetSubWindowModal(bool isModal, ModalityType modality
 
 WMError WindowSessionImpl::SetWindowModal(bool isModal)
 {
-    bool isSpnDevice = FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice();
-    DisplayId displayId = GetDisplayId();
-    TLOGI(WmsLogTag::WMS_MAIN,
-        "SetWindowModal: isSpnDevice=%{public}d, displayId=%{public}" PRIu64, isSpnDevice, displayId);
-    if (isSpnDevice && displayId == SCREEN_ID_MAIN) {
+    if (IsSpnOuterScreen()) {
         return WMError::WM_OK;
     }
     if (IsWindowSessionInvalid()) {
