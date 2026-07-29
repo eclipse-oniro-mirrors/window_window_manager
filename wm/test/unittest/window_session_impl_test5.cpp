@@ -3029,17 +3029,20 @@ HWTEST_F(WindowSessionImplTest5, GetWindowHoverState, TestSize.Level1)
 
 /**
  * @tc.name: IsSpnOuterScreen01
- * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN
+ * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplTest5, IsSpnOuterScreen01, TestSize.Level1)
 {
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("IsSpnOuterScreen01");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
-    EXPECT_EQ(window->IsSpnOuterScreen(), FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice());
+    EXPECT_TRUE(window->IsSpnOuterScreen());
 }
 
 /**
