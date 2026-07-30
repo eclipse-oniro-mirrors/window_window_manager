@@ -209,6 +209,10 @@ void JsExtensionWindowListener::OnAvoidAreaChanged(const AvoidArea avoidArea, Av
 void JsExtensionWindowListener::OnSizeChange(const sptr<OccupiedAreaChangeInfo>& info,
                                              const std::shared_ptr<RSTransaction>& rsTransaction)
 {
+    if (info == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "info is nullptr");
+        return;
+    }
     TLOGI(WmsLogTag::WMS_UIEXT,
         "OccupiedAreaChangeInfo, type: %{public}d, input rect:[%{public}d, %{public}d, %{public}d, %{public}d]",
         static_cast<uint32_t>(info->type_), info->rect_.posX_, info->rect_.posY_, info->rect_.width_,

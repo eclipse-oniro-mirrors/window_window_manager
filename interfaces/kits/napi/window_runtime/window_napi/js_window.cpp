@@ -8475,10 +8475,19 @@ __attribute__((no_sanitize("cfi")))
     }
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi object");
+        return nullptr;
+    }
 
     WLOGI("CreateJsWindow %{public}s", windowName.c_str());
     std::unique_ptr<JsWindow> jsWindow = std::make_unique<JsWindow>(window, env);
-    napi_wrap(env, objValue, jsWindow.release(), JsWindow::Finalizer, nullptr, nullptr);
+    auto jsWindowPtr = jsWindow.release();
+    if (napi_wrap(env, objValue, jsWindowPtr, JsWindow::Finalizer, nullptr, nullptr) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to wrap jsWindow");
+        delete jsWindowPtr;
+        return nullptr;
+    }
 
     BindFunctions(env, objValue, "JsWindow");
 

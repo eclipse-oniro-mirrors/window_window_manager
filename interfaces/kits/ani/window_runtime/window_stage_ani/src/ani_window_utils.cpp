@@ -418,6 +418,10 @@ ani_status AniWindowUtils::GetPropertyDoubleObject(ani_env* env, const char* pro
 ani_status AniWindowUtils::GetPropertyBoolObject(ani_env* env, const char* propertyName,
     ani_object object, bool& result)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return ANI_ERROR;
+    }
     ani_ref bool_ref;
     ani_status ret = env->Object_GetPropertyByName_Ref(object, propertyName, &bool_ref);
     if (ret != ANI_OK) {
