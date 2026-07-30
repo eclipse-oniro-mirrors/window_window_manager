@@ -93,12 +93,10 @@ public:
     virtual void SetIsClearingBootAnimation(bool isClearingBootAnimation);
     virtual void BootAnimationFinishPowerInit() {};
     //fold or expand
-    bool CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce,
-        DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
-    void ChangeScreenDisplayMode(FoldDisplayMode displayMode, bool isForce,
-        DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
+    bool CheckDisplayModeChange(FoldDisplayMode displayMode,
+        DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT, bool isForce = false);
     virtual void ChangeScreenDisplayMode(FoldDisplayMode displayMode,
-        DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT);
+        DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT, bool isForce = false);
     void SendSensorResult(FoldStatus foldStatus);
     void UpdateDeviceStatus(FoldDisplayMode displayMode);
     virtual void ChangeScreenDisplayModeInner(FoldDisplayMode displayMode, DisplayModeChangeReason reason);

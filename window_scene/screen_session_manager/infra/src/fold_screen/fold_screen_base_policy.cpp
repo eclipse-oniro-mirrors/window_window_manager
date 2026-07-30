@@ -512,7 +512,7 @@ void FoldScreenBasePolicy::RecoverWhenBootAnimationExit()
 {
     TLOGI(WmsLogTag::DMS, "CurrentScreen(%{public}" PRIu64 ")", screenId_);
     FoldDisplayMode displayMode = GetModeMatchStatus();
-    ChangeScreenDisplayMode(displayMode, true);
+    ChangeScreenDisplayMode(displayMode, DisplayModeChangeReason::DEFAULT, true);
 }
 
 void FoldScreenBasePolicy::UpdateForPhyScreenPropertyChange()
@@ -566,8 +566,8 @@ void FoldScreenBasePolicy::SetIsClearingBootAnimation(bool isClearingBootAnimati
 /**
   * fold or expand start
   */
-bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, bool isForce,
-    DisplayModeChangeReason reason)
+bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, 
+    DisplayModeChangeReason reason, bool isForce)
 {
     if (isForce) {
         TLOGI(WmsLogTag::DMS, "force change displayMode");
@@ -606,9 +606,10 @@ bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, b
     return true;
 }
 
-void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason)
+void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,
+    DisplayModeChangeReason reason, bool isForce)
 {
-    if (!CheckDisplayModeChange(displayMode, false, reason)) {
+    if (!CheckDisplayModeChange(displayMode, reason, isForce)) {
         return;
     }
     TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, reason: %{public}d}", displayMode, reason);
@@ -616,7 +617,6 @@ void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, 
     UpdateDeviceStatus(displayMode);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
     ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
-    return;
 }
 
 void FoldScreenBasePolicy::UpdateDeviceStatus(FoldDisplayMode displayMode)
@@ -629,18 +629,6 @@ void FoldScreenBasePolicy::UpdateDeviceStatus(FoldDisplayMode displayMode)
     TLOGI(WmsLogTag::DMS, "Set device status to: %{public}u", deviceStatus);
     SetDeviceStatus(static_cast<uint32_t>(deviceStatus));
     system::SetParameter("persist.dms.device.status", std::to_string(static_cast<uint32_t>(deviceStatus)));
-}
-
-void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, bool isForce,
-    DisplayModeChangeReason reason)
-{
-    if (!CheckDisplayModeChange(displayMode, isForce)) {
-        return;
-    }
-    ChangeScreenDisplayModeInner(displayMode, reason);
-    UpdateDeviceStatus(displayMode);
-    ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
-    ScreenSessionManager::GetInstance().SwitchScrollParam(displayMode);
 }
 
 void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMode,
