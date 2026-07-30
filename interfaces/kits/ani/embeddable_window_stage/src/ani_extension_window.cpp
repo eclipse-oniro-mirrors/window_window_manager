@@ -152,14 +152,17 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find class failed, ret: %{public}u", ret);
         return cls;
     }
+
     std::shared_ptr<ExtensionWindow> extensionWindow = std::make_shared<ExtensionWindowImpl>(window);
     std::unique_ptr<AniExtensionWindow> aniExtensionWindow =
         std::make_unique<AniExtensionWindow>(extensionWindow, hostWindowId);
+
     ani_field contextField;
     if ((ret = env->Class_FindField(cls, "nativeObj", &contextField)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find field failed, ret: %{public}u", ret);
         return nullptr;
     }
+
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find ctor method failed, ret: %{public}u", ret);
@@ -183,12 +186,10 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(obj, &ref) == ANI_OK) {
         aniExtensionWindow->SetAniRef(ref);
-        {
-            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
-            localObjs.insert(std::pair(ref, aniExtensionWindow.release()));
-        }
         int32_t windowId = window->GetWindowPersistentId();
         AddAniExtensionWindow(windowId, ref);
+        std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
+        localObjs.insert(std::pair(ref, aniExtensionWindow.release()));
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] create global ref fail");
     }
