@@ -102,7 +102,7 @@ public:
         const std::function<void(const std::shared_ptr<AppExecFwk::Configuration>&)>& callback);
     void SetFrameLayoutFinishCallback(std::function<void()>&& callback);
 
-    void SetDisplayDensity(float density) { density_ = density; }
+    void SetDisplayDensity(float density, DisplayId displayId = DEFAULT_DISPLAY_ID);
 
     void SetDisplayId(DisplayId displayId) { displayId_ = displayId; }
 
@@ -110,7 +110,7 @@ public:
 
     void SetDisplayOrientation(int32_t orientation);
 
-    float GetDisplayDensity() { return density_; }
+    float GetDisplayDensity(DisplayId displayId = DEFAULT_DISPLAY_ID);
 
     WindowState GetWindowState() const override { return WindowState::STATE_SHOWN; }
 
@@ -163,7 +163,8 @@ private:
     std::mutex rootSceneMapMutex_;
     std::shared_ptr<AppExecFwk::EventHandler> eventHandler_;
     sptr<AppExecFwk::LauncherService> launcherService_;
-    float density_ = 1.0f;
+    mutable std::shared_mutex displayDpiMapMutex_;
+    std::unordered_map<DisplayId, float> displayDpiMap_;
     DisplayId displayId_ = DISPLAY_ID_INVALID;
     int32_t orientation_ = 0;
     WindowType type_ = WindowType::WINDOW_TYPE_SCENE_BOARD;

@@ -285,7 +285,7 @@ public:
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
     sptr<IRemoteObject> GetRenderSession(ScreenId screenId) override;
-
+    void SetHoverBlockList(const std::vector<std::string>& hoverBlockList) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerProxy> delegator_;
 };

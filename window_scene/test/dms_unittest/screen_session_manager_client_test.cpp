@@ -3109,6 +3109,30 @@ HWTEST_F(ScreenSessionManagerClientTest, UnRegisterSwitchUserAnimationNotificati
     EXPECT_TRUE(logMsg.find("not find") != std::string::npos);
 
     logMsg.clear();
+}
+
+/**
+  * @tc.name: SetHoverBlockList
+  * @tc.desc: SetHoverBlockList test
+  * @tc.type: FUNC
+  */
+HWTEST_F(ScreenSessionManagerClientTest, SetHoverBlockList, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->screenSessionManager_ = nullptr;
+    screenSessionManagerClient_->SetHoverBlockList({"11", "22"});
+    EXPECT_TRUE(logMsg.find("screenSessionManager is null") != std::string::npos);
+    logMsg.clear();
+
+    sptr<IRemoteObject> iRemoteObjectMocker = new IRemoteObjectMocker();
+    screenSessionManagerClient_->screenSessionManager_ = new ScreenSessionManagerProxy(iRemoteObjectMocker);
+    EXPECT_NE(screenSessionManagerClient_->screenSessionManager_, nullptr);
+    screenSessionManagerClient_->SetHoverBlockList({"11", "22"});
+    EXPECT_FALSE(logMsg.find("screenSessionManager is null") != std::string::npos);
+    logMsg.clear();
+    screenSessionManagerClient_->screenSessionManager_ = nullptr;
     LOG_SetCallback(nullptr);
 }
 } // namespace Rosen

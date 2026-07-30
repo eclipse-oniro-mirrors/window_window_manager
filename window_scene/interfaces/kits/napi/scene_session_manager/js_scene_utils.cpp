@@ -1236,7 +1236,9 @@ bool ConvertHookWindowInfoFromJs(napi_env env, napi_value jsObject, HookWindowIn
 
 bool ConvertPointerItemFromJs(napi_env env, napi_value touchObject, int32_t toolType, MMI::PointerEvent& pointerEvent)
 {
-    auto vpr = RootScene::staticRootScene_->GetDisplayDensity();
+    auto vpr = RootScene::staticRootScene_->GetDisplayDensity(
+        static_cast<DisplayId>(pointerEvent.GetTargetDisplayId()));
+    TLOGD(WmsLogTag::WMS_EVENT, "density=%{public}f", vpr);
     MMI::PointerEvent::PointerItem pointerItem;
 
     int32_t id;

@@ -141,11 +141,13 @@ public:
     virtual void ChangeScreenPowerOnFold(const std::vector<std::pair<ScreenId,
         ScreenPowerStatus>>& screenPowerTaskList);
     virtual float GetSpecialVirtualPixelRatio();
+    void SetHoverBlockList(const std::vector<std::string>& hoverBlockList);
+    bool IsHoverBlockApp();
+    bool IsHoverBlockPid(const int32_t agentPid);
     bool GetLockDisplayStatus() const;
     virtual void PowerkeySetScreenActiveRect() {};
     const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap() const;
     void SetDeviceStatusAndParam(uint32_t deviceStatus);
-
 protected:
     FoldScreenBasePolicy();
     virtual ~FoldScreenBasePolicy();
@@ -171,6 +173,7 @@ protected:
     ScreenProperty screenProperty_;
     mutable std::recursive_mutex displayModeMutex_;
     mutable std::mutex liveCreaseRegionMutex_;
+    mutable std::mutex hoverBlockListMutex_;
     FoldDisplayMode currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
     FoldStatus currentFoldStatus_ = FoldStatus::UNKNOWN;
     FoldDisplayMode lastDisplayMode_ = FoldDisplayMode::UNKNOWN;
@@ -182,6 +185,8 @@ protected:
     std::atomic<bool> isClearingBootAnimation_ = false;
     bool isFirstFrameCommitReported_ = false;
     std::map<FoldDisplayMode, RRect> screenActiveModeRectMap_ = {};
+    std::vector<uint32_t> screenParams_ = {};
+    std::vector<std::string> hoverBlockList_ = {};
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H

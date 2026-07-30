@@ -5626,4 +5626,29 @@ sptr<IRemoteObject> ScreenSessionManagerProxy::GetRenderSession(ScreenId screenI
     }
     return reply.ReadRemoteObject();
 }
+
+void ScreenSessionManagerProxy::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Remote is nullptr");
+        return;
+    }
+    MessageParcel reply;
+    MessageParcel data;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteStringVector(hoverBlockList)) {
+        TLOGE(WmsLogTag::DMS, "Write hoverBlockList failed");
+        return;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_HOVER_BLOCK_LIST),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
+}
 } // namespace OHOS::Rosen

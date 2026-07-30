@@ -124,7 +124,9 @@ JsScreenSession::JsScreenSession(napi_env env, const sptr<ScreenSession>& screen
         bool isRealScreen = screenSession_->GetIsRealScreen();
         float densityInCurResolution = screenSession_->GetDensityInCurResolution();
         SetScreenSceneDpiFunc func = [this, isRealScreen, densityInCurResolution](float density) {
-            TLOGI(WmsLogTag::DMS, "Screen Scene Dpi change, new density = %{public}f", density);
+            TLOGI(WmsLogTag::DMS,
+                "Screen Scene Dpi change, dpi=%{public}f, isRealScreen=%{public}d, dpiInResolution=%{public}f",
+                density, isRealScreen, densityInCurResolution);
             if (!screenScene_ || !screenSession_) {
                 TLOGE(WmsLogTag::DMS, "[NAPI]screenScene or screenSession is nullptr");
                 return;

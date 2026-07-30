@@ -171,6 +171,7 @@ public:
     std::shared_ptr<RSUIContext> GetRSUIContext(ScreenId screenId);
     sptr<IRemoteObject> GetRenderSessionToken();
     bool GetSupportsFocus(DisplayId displayId);
+    void SetHoverBlockList(const std::vector<std::string>& hoverBlockList);
 
 protected:
     ScreenSessionManagerClient() = default;

@@ -106,6 +106,8 @@ uint32_t ScreenSceneConfig::curvedAreaInLandscape_ = 0;
 uint32_t ScreenSceneConfig::offScreenPPIThreshold_ = 0;
 uint64_t ScreenSceneConfig::bootTimeThreshold_ =
     system::GetIntParameter<int32_t>("persist.window.boot.threshold", 60); // default 60s
+static const std::string FOUNDATION_CRASH_REBOOT_KEY = "dms.foundation.restart";
+static const std::string FOUNDATION_CRASH_REBOOT_FLAG = "1";
 int32_t ScreenSceneConfig::rogDpi_ = 0;
 RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 0, 0, 0, 0 };
 std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
@@ -573,8 +575,7 @@ void ScreenSceneConfig::SetRogResolution(const RogResolution& rogResolution)
 RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t height)
 {
     if (rogResolution_.notInit) {
-        bool isBoot = (GetUptimeSeconds() <= bootTimeThreshold_);
-        if (isBoot) {
+        if (GetIsBoot()) {
             bool apsUserset = (system::GetIntParameter<int32_t>("persist.aps.rog.userset", 0) > 0);
             bool apsSupport = (system::GetIntParameter<int32_t>("persist.aps.rog.support", 0) > 0);
             uint32_t apsWidth = system::GetIntParameter<int32_t>("persist.aps.rog.width", 0);
@@ -929,5 +930,10 @@ uint32_t ScreenSceneConfig::GetNumberConfigValue(const std::string& name, const 
     }
     TLOGNFI(WmsLogTag::DMS, "default %{public}s = %{public}u", name.c_str(), default_value);
     return default_value;
+}
+
+bool ScreenSceneConfig::GetIsBoot()
+{
+    return (OHOS::system::GetParameter(FOUNDATION_CRASH_REBOOT_KEY, "0") != FOUNDATION_CRASH_REBOOT_FLAG);
 }
 } // namespace OHOS::Rosen

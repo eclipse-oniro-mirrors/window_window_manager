@@ -702,6 +702,8 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
             }
             sceneSession->NotifyIsFullScreenInForceSplitMode(property->IsFullScreenInForceSplitMode());
             sceneSession->NotifyModeSwitchInfo();
+            RecoverSupportedWindowModes(sceneSession, property);
+            sessionInfo = property->GetSessionInfo();
             if (SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
                 sceneSession->SetRecovered(true);
                 recoverSceneSessionFunc_(sceneSession, sessionInfo);
@@ -851,18 +853,29 @@ void SceneSessionManager::RegisterAppListener()
 void SceneSessionManager::LoadWindowParameter()
 {
     const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "HandsetSmartWindow");
-    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
     if (multiWindowUIType == "HandsetSmartWindow") {
         systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    } else if (multiWindowUIType == "FreeFormMultiWindow" || isPcMode) {
+    } else if (multiWindowUIType == "FreeFormMultiWindow") {
         systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+        FixWindowUITypeInSupportModeChange();
     } else if (multiWindowUIType == "TabletSmartWindow") {
         systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+        FixWindowUITypeInSupportModeChange();
     } else {
         TLOGE(WmsLogTag::DEFAULT, "unknown multiWindowUIType:%{public}s.", multiWindowUIType.c_str());
     }
     appWindowSceneConfig_.multiWindowUIType_ = multiWindowUIType;
     appWindowSceneConfig_.deviceType_ = system::GetParameter("const.product.devicetype", "unknown");
+}
+
+void SceneSessionManager::FixWindowUITypeInSupportModeChange()
+{
+    if (!system::GetBoolParameter("const.window.support_window_pcmode_switch", false)) {
+        return;
+    }
+    const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
+    systemConfig_.windowUIType_ = isPcMode ? WindowUIType::PC_WINDOW : WindowUIType::PAD_WINDOW;
+    TLOGI(WmsLogTag::DEFAULT, "windowUIType_: %{public}hhu.", systemConfig_.windowUIType_);
 }
 
 void SceneSessionManager::LoadWindowSceneXml()
@@ -5017,7 +5030,6 @@ WSError SceneSessionManager::RequestSceneSessionDestructionInner(sptr<SceneSessi
         ResetWantInfo(sceneSession);
         sceneSession->ResetSessionInfoResultCode();
         sceneSession->EditSessionInfo().isSetStartWindowType_ = false;
-        sceneSession->SetNeedBackgroundAfterConnect(false);
     }
     ClearRequestTaskInfo(persistentId);
     NotifySessionForCallback(sceneSession, needRemoveSession, reason);
@@ -5704,8 +5716,6 @@ void SceneSessionManager::RecoverSessionInfo(const sptr<WindowSessionProperty>& 
     sessionInfo.appIndex_ = property->GetAppIndex();
     sessionInfo.screenId_ = property->GetDisplayId();
     sessionInfo.isAbilityHook_ = property->GetIsAbilityHook();
-    sessionInfo.supportedWindowModes =
-        WindowHelper::ConvertSupportTypeToSupportModes(property->GetWindowModeSupportType());
     TLOGI(WmsLogTag::WMS_RECOVER,
         "Recover and reconnect session with: bundleName=%{public}s, moduleName=%{public}s, "
         "abilityName=%{public}s, windowMode=%{public}d, windowType=%{public}u, persistentId=%{public}d, "
@@ -5715,6 +5725,20 @@ void SceneSessionManager::RecoverSessionInfo(const sptr<WindowSessionProperty>& 
         sessionInfo.windowMode, sessionInfo.windowType_, sessionInfo.persistentId_, sessionInfo.sessionState_,
         sessionInfo.appInstanceKey_.c_str(), sessionInfo.appIndex_, sessionInfo.isFollowParentMultiScreenPolicy,
         sessionInfo.screenId_, sessionInfo.isAbilityHook_);
+}
+
+void SceneSessionManager::RecoverSupportedWindowModes(const sptr<SceneSession>& sceneSession,
+                                                      const sptr<WindowSessionProperty>& property)
+{
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    property->GetSupportedWindowModes(supportedWindowModes);
+    auto size = supportedWindowModes.size();
+    TLOGI(WmsLogTag::WMS_RECOVER, "size=%{public}zu, ispcWindow=%{public}d", size, systemConfig_.IsPcWindow());
+    if (!(systemConfig_.IsPcWindow() && size > 0 && size <= WINDOW_SUPPORT_MODE_MAX_SIZE)) {
+        supportedWindowModes = ExtractSupportWindowModeFromMetaData(sceneSession->GetSessionInfo().abilityInfo);
+    }
+    sceneSession->SetSessionInfoSupportedWindowModes(supportedWindowModes);
+    property->EditSessionInfo().supportedWindowModes = supportedWindowModes;
 }
 
 void SceneSessionManager::SetAlivePersistentIds(const std::vector<int32_t>& alivePersistentIds)
@@ -15151,6 +15175,12 @@ void SceneSessionManager::SetVirtualPixelRatioChangeListener(const ProcessVirtua
     TLOGI(WmsLogTag::DEFAULT, "end");
 }
 
+void SceneSessionManager::SetUpdateDisplayDpiChangeCallback(const UpdateDisplayDpiChangeFunc& func)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in");
+    updateDisplayDpiChangeFunc_ = func;
+}
+
 bool SceneSessionManager::ShouldProcessVirtualPixelRatioChange(
     DisplayStateChangeType type, sptr<DisplayInfo> displayInfo)
 {
@@ -15187,6 +15217,10 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
         return;
     }
     taskScheduler_->PostSyncTask([this, displayInfo, type, where = __func__]() {
+        if (updateDisplayDpiChangeFunc_ != nullptr) {
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s in", where);
+            updateDisplayDpiChangeFunc_(displayInfo->GetDisplayId(), displayInfo->GetVirtualPixelRatio());
+        }
         if (ShouldProcessVirtualPixelRatioChange(type, displayInfo)) {
             Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
                           displayInfo->GetWidth(), displayInfo->GetHeight() };

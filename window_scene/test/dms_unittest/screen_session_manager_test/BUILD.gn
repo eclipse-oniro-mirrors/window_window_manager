@@ -97,6 +97,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/setting_provider.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/zidl/screen_session_manager_stub.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager_adapter.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/bundle_info_helper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/dual_display_fold_policy.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_controller.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_policy.cpp",

@@ -3003,6 +3003,77 @@ HWTEST_F(ScreenSessionManagerProxyTest, ResizeVirtualScreen, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetHoverBlockListTestMockSendRequestFail
+ * @tc.desc: mock
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest2, SetHoverBlockListTestMockSendRequestFail, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->SetHoverBlockList({"11", "22"});
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") != std::string::npos);
+    // all success
+    g_logMsg.clear();
+    remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_NE(proxy, nullptr);
+    proxy->SetHoverBlockList({"11", "22"});
+
+    g_logMsg.clear();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    proxy->SetHoverBlockList({"11", "22"});
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetHoverBlockListTestMockWriteParamFail
+ * @tc.desc: mock write string vector param fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest2, SetHoverBlockListTestMockWriteParamFail, TestSize.Level1)
+{
+    #define ENABLE_MOCK_WRITE_STRING_VECTOR true
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    // Write state failed
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetReadStringVectorErrorFlag(true);
+    proxy->SetHoverBlockList({});
+    EXPECT_TRUE(g_logMsg.find("Write hoverBlockList failed") != std::string::npos);
+    LOG_SetCallback(nullptr);
+    #undef ENABLE_MOCK_WRITE_STRING_VECTOR
+}
+
+/**
+ * @tc.name: SetHoverBlockListTestMockRemoteNullptr
+ * @tc.desc: mock remote nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest2, SetHoverBlockListTestMockRemoteNullptr, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    sptr<MockIRemoteObject> remoteMocker = nullptr;
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    proxy->SetHoverBlockList({"11", "22"});
+    EXPECT_TRUE(g_logMsg.find("Remote is nullptr") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: IsCapturedByBundleNameList001
  * @tc.desc: IsCapturedByBundleNameList with remote is nullptr
  * @tc.type: FUNC

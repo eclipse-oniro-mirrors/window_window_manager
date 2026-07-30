@@ -133,13 +133,38 @@ void RootScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason re
         TLOGD(WmsLogTag::DEFAULT, "uiContent_ is nullptr!");
         return;
     }
+    auto density = GetDisplayDensity();
     Ace::ViewportConfig config;
     config.SetSize(rect.width_, rect.height_);
     config.SetPosition(rect.posX_, rect.posY_);
-    config.SetDensity(density_);
+    config.SetDensity(density);
     config.SetOrientation(orientation_);
     config.SetDisplayId(GetDisplayId());
     uiContent_->UpdateViewportConfig(config, reason);
+}
+
+void RootScene::SetDisplayDensity(float density, DisplayId displayId)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "root: dpi=%{public}f, display=%{public}" PRIu64, density, displayId);
+    std::unique_lock<std::shared_mutex> lock(displayDpiMapMutex_);
+    displayDpiMap_[displayId] = density;
+}
+
+float RootScene::GetDisplayDensity(DisplayId displayId)
+{
+    float density = 1.0f;
+    bool found = false;
+    {
+        std::shared_lock<std::shared_mutex> lock(displayDpiMapMutex_);
+        auto it = displayDpiMap_.find(displayId);
+        if (it != displayDpiMap_.end()) {
+            density = it->second;
+            found = true;
+        }
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "root: found=%{public}d, dpi=%{public}f, display=%{public}" PRIu64,
+        found, density, displayId);
+    return density;
 }
 
 void RootScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration)
@@ -566,6 +591,10 @@ void RootScene::AddRootScene(DisplayId displayId, wptr<Window> window)
 
 void RootScene::RemoveRootScene(DisplayId displayId)
 {
+    {
+        std::unique_lock<std::shared_mutex> lock(displayDpiMapMutex_);
+        displayDpiMap_.erase(displayId);
+    }
     std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
     TLOGI(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64, displayId);
     auto iter = rootSceneMap_.find(displayId);

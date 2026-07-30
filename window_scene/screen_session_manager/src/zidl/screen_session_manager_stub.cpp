@@ -1776,6 +1776,15 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             NotifyBootAnimationFinished();
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_HOVER_BLOCK_LIST: {
+            std::vector<std::string> hoverBlockList;
+            if (!data.ReadStringVector(&hoverBlockList)) {
+                TLOGE(WmsLogTag::DMS, "Read hoverBlockList failed");
+                return ERR_INVALID_DATA;
+            }
+            SetHoverBlockList(hoverBlockList);
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

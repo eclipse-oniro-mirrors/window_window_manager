@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "parameters.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "session/host/include/scene_session.h"
 #include "session_info.h"
@@ -449,6 +450,33 @@ HWTEST_F(SceneSessionManagerTest13, SetAppForceLandscapeConfig08, TestSize.Level
     WSError result = ssm_->SetAppForceLandscapeConfig(bundleName, config);
     EXPECT_EQ(result, WSError::WS_OK);
     ssm_->sceneSessionMap_.erase(session->GetPersistentId());
+}
+
+/**
+ * @tc.name: FixWindowUITypeInSupportModeChange
+ * @tc.desc: FixWindowUITypeInSupportModeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, FixWindowUITypeInSupportModeChange, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    const bool isSupportSwitch = OHOS::system::GetBoolParameter("const.window.support_window_pcmode_switch", false);
+    if (!isSupportSwitch) {
+        GTEST_SKIP();
+    }
+    const auto oldIsPcMode = OHOS::system::GetParameter("persist.sceneboard.ispcmode", "false");
+    const auto oldWindowUIType = ssm_->systemConfig_.windowUIType_;
+
+    OHOS::system::SetParameter("persist.sceneboard.ispcmode", "false");
+    ssm_->FixWindowUITypeInSupportModeChange();
+    EXPECT_EQ(ssm_->systemConfig_.windowUIType_, WindowUIType::PAD_WINDOW);
+
+    OHOS::system::SetParameter("persist.sceneboard.ispcmode", "true");
+    ssm_->FixWindowUITypeInSupportModeChange();
+    EXPECT_EQ(ssm_->systemConfig_.windowUIType_, WindowUIType::PC_WINDOW);
+
+    OHOS::system::SetParameter("persist.sceneboard.ispcmode", oldIsPcMode);
+    ssm_->systemConfig_.windowUIType_ = oldWindowUIType;
 }
 } // namespace Rosen
 } // namespace OHOS

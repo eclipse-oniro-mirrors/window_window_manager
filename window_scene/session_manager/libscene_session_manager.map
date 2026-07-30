@@ -195,6 +195,7 @@
             OHOS::Rosen::SceneSessionManager::SetTrayAppList*;
             OHOS::Rosen::SceneSessionManager::SetUserAuthPassed*;
             OHOS::Rosen::SceneSessionManager::SetVirtualPixelRatioChangeListener*;
+            OHOS::Rosen::SceneSessionManager::SetUpdateDisplayDpiChangeCallback*;
             OHOS::Rosen::SceneSessionManager::SetVmaCacheStatus*;
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;

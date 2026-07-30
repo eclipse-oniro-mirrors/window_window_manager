@@ -643,6 +643,19 @@ HWTEST_F(RootSceneTest, GetStatusBarHeight, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetDisplayDensity
+ * @tc.desc: GetDisplayDensity Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(RootSceneTest, GetDisplayDensity, TestSize.Level1)
+{
+    sptr<RootScene> rootScene = sptr<RootScene>::MakeSptr();
+    float density = 1.5f;
+    rootScene->SetDisplayDensity(density, 0);
+    EXPECT_EQ(rootScene->GetDisplayDensity(0), density);
+}
+
+/**
  * @tc.name: AddRootScene
  * @tc.desc: For AddRootScene Test
  * @tc.type: FUNC

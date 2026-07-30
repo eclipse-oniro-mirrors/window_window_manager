@@ -461,4 +461,35 @@ bool ConvertDMRectFromJs(napi_env env, napi_value jsObject, DMRect& rect)
     }
     return true;
 }
+
+bool ParseArrayStringValue(napi_env env, napi_value array, std::vector<std::string>& vector)
+{
+    if (array == nullptr) {
+        TLOGE(WmsLogTag::DMS, "array is nullptr!");
+        return false;
+    }
+    bool isArray = false;
+    if (napi_is_array(env, array, &isArray) != napi_ok || isArray == false) {
+        TLOGE(WmsLogTag::DMS, "not array!");
+        return false;
+    }
+
+    uint32_t arrayLen = 0;
+    napi_get_array_length(env, array, &arrayLen);
+    if (arrayLen == 0) {
+        return true;
+    }
+    vector.reserve(arrayLen);
+    for (uint32_t i = 0; i < arrayLen; i++) {
+        std::string strItem;
+        napi_value jsValue = nullptr;
+        napi_get_element(env, array, i, &jsValue);
+        if (!ConvertFromJsValue(env, jsValue, strItem)) {
+            TLOGW(WmsLogTag::DMS, "Failed to ConvertFromJsValue, index: %{public}u", i);
+            continue;
+        }
+        vector.emplace_back(std::move(strItem));
+    }
+    return true;
+}
 } // namespace OHOS::Rosen

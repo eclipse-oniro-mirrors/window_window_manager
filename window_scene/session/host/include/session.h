@@ -829,8 +829,6 @@ public:
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
     virtual void NotifyWindowSceneDetach() {};
-    bool GetNeedBackgroundAfterConnect() const;
-    void SetNeedBackgroundAfterConnect(bool isNeed);
     void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
@@ -1389,7 +1387,6 @@ private:
 
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
-    bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window

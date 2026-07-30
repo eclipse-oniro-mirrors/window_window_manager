@@ -766,12 +766,15 @@ public:
         uint32_t winFrameW = static_cast<uint32_t>(WINDOW_FRAME_WIDTH * vpr) * 2; // 2 mean double decor width
         uint32_t winFrameH = static_cast<uint32_t>(WINDOW_FRAME_WIDTH * vpr) +
             static_cast<uint32_t>(WINDOW_TITLE_BAR_HEIGHT * vpr); // decor height
-        uint32_t maxWidth = sizeLimits.maxWidth_ - winFrameW;
-        uint32_t minWidth = sizeLimits.minWidth_ - winFrameW;
-        uint32_t maxHeight = sizeLimits.maxHeight_ - winFrameH;
-        uint32_t minHeight = sizeLimits.minHeight_ - winFrameH;
-        float maxRatio = static_cast<float>(maxWidth) / static_cast<float>(minHeight);
-        float minRatio = static_cast<float>(minWidth) / static_cast<float>(maxHeight);
+        WindowLimits adjustedLimits = sizeLimits;
+        adjustedLimits.Clip(winFrameW, winFrameH);
+        if (adjustedLimits.maxWidth_ == 0 || adjustedLimits.maxHeight_ == 0) {
+            return false;
+        }
+        float maxRatio = (adjustedLimits.minHeight_ == 0)
+            ? std::numeric_limits<float>::infinity()
+            : static_cast<float>(adjustedLimits.maxWidth_) / static_cast<float>(adjustedLimits.minHeight_);
+        float minRatio = static_cast<float>(adjustedLimits.minWidth_) / static_cast<float>(adjustedLimits.maxHeight_);
         if (maxRatio < ratio || ratio < minRatio) {
             return false;
         }

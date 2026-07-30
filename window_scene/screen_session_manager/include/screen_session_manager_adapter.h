@@ -33,7 +33,7 @@ public:
     DMError UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type);
 
-    void NotifyFoldStatusChanged(FoldStatus foldStatus);
+    void NotifyFoldStatusChanged(FoldStatus foldStatus, FoldStatus lastStatus = FoldStatus::UNKNOWN);
     void OnScreenGroupChange(const std::string&, const sptr<ScreenInfo>&, ScreenGroupChangeEvent);
     void OnScreenGroupChange(const std::string&, const std::vector<sptr<ScreenInfo>>&, ScreenGroupChangeEvent);
     void OnScreenDisconnect(ScreenId);

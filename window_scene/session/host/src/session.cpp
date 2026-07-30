@@ -608,18 +608,6 @@ SessionInfo& Session::EditSessionInfo()
     return sessionInfo_;
 }
 
-bool Session::GetNeedBackgroundAfterConnect() const
-{
-    return needBackgroundAfterConnect_;
-}
-
-void Session::SetNeedBackgroundAfterConnect(bool isNeed)
-{
-    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, need background after connect:%{public}d",
-        GetPersistentId(), isNeed);
-    needBackgroundAfterConnect_ = isNeed;
-}
-
 void Session::RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const
 {
     std::ostringstream oss;
@@ -1875,7 +1863,6 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
     }
     if (!IsForegroundPreState()) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
-        SetNeedBackgroundAfterConnect(false);
         return WSError::WS_ERROR_INVALID_SESSION;
     }
 
@@ -1961,9 +1948,6 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken,
     if (state != SessionState::STATE_INACTIVE) {
         TLOGW(WmsLogTag::WMS_LIFE, "[id: %{public}d] Background state invalid! state: %{public}u",
             GetPersistentId(), state);
-        if (state == SessionState::STATE_DISCONNECT && systemConfig_.IsPcWindow()) {
-            SetNeedBackgroundAfterConnect(true);
-        }
         return WSError::WS_ERROR_INVALID_SESSION;
     }
     UpdateSessionState(SessionState::STATE_BACKGROUND);

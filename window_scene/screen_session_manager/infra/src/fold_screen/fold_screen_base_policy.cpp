@@ -29,6 +29,7 @@
 #include "sensor_agent.h"
 #include "sensor_agent_type.h"
 #include "product_ext_wrapper.h"
+#include "bundle_info_helper.h"
 
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
@@ -183,10 +184,11 @@ void FoldScreenBasePolicy::LockDisplayStatus(bool locked)
 
 FoldStatus FoldScreenBasePolicy::GetFoldStatus()
 {
-    if (!GetPhysicalFoldLockFlag()) {
-        return lastFoldStatus_;
+    FoldStatus status = GetPhysicalFoldLockFlag() ? GetForcedFoldStatus() : lastFoldStatus_;
+    if (IsHoverBlockApp() && status == FoldStatus::HALF_FOLD) {
+        status = FoldStatus::EXPAND;
     }
-    return GetForcedFoldStatus();
+    return status;
 }
 
 void FoldScreenBasePolicy::SetFoldStatus(FoldStatus foldStatus)
@@ -1065,5 +1067,45 @@ FoldDisplayMode FoldScreenBasePolicy::GetCurrentDisplayMode() const
 const std::map<FoldDisplayMode, RRect>& FoldScreenBasePolicy::GetScreenActiveModeRectMap() const
 {
     return screenActiveModeRectMap_;
+}
+
+void FoldScreenBasePolicy::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+    TLOGI(WmsLogTag::DMS, "hoverBlockList acquired, list size before: %{public}zu, list size after: %{public}zu",
+        hoverBlockList_.size(), hoverBlockList.size());
+    hoverBlockList_ = hoverBlockList;
+}
+
+bool FoldScreenBasePolicy::IsHoverBlockApp()
+{
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        if (hoverBlockList_.empty()) {
+            return false;
+        }
+    }
+    std::string bundleName = BundleInfoHelper::GetCurBundleName();
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        auto it = std::find(hoverBlockList_.begin(), hoverBlockList_.end(), bundleName);
+        return it != hoverBlockList_.end();
+    }
+}
+
+bool FoldScreenBasePolicy::IsHoverBlockPid(const int32_t agentPid)
+{
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        if (hoverBlockList_.empty()) {
+            return false;
+        }
+    }
+    std::string bundleName = BundleInfoHelper::GetBundleNameByPid(agentPid);
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        auto it = std::find(hoverBlockList_.begin(), hoverBlockList_.end(), bundleName);
+        return it != hoverBlockList_.end();
+    }
 }
 } // namespace OHOS::Rosen

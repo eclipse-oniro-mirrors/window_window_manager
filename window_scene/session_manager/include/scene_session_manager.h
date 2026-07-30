@@ -146,6 +146,7 @@ using NotifySCBAfterUpdateFocusFunc = std::function<void(DisplayId displayId)>;
 using NotifyDiffSCBAfterUpdateFocusFunc = std::function<void(DisplayId prevDisplayId, DisplayId currDisplayId)>;
 using FlushWindowInfoTask = std::function<void()>;
 using ProcessVirtualPixelRatioChangeFunc = std::function<void(float density, const Rect& rect)>;
+using UpdateDisplayDpiChangeFunc = std::function<void(DisplayId displayId, float density)>;
 using DumpUITreeFunc = std::function<void(std::string& dumpInfo)>;
 using RootSceneProcessBackEventFunc = std::function<void()>;
 using ProcessCloseTargetFloatWindowFunc = std::function<void(const std::string& bundleName)>;
@@ -487,6 +488,7 @@ public:
     void NotifyDumpInfoResult(const std::vector<std::string>& info) override;
     void SetVirtualPixelRatioChangeListener(const ProcessVirtualPixelRatioChangeFunc& func);
     bool ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType type, sptr<DisplayInfo> displayInfo);
+    void SetUpdateDisplayDpiChangeCallback(const UpdateDisplayDpiChangeFunc& func);
     void ProcessVirtualPixelRatioChange(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
         const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type);
     void ProcessUpdateRotationChange(DisplayId defaultDisplayId, sptr<DisplayInfo> displayInfo,
@@ -1029,6 +1031,7 @@ private:
     void ConfigDecor(const WindowSceneConfig::ConfigItem& decorConfig, bool mainConfig = true);
     void ConfigWindowAnimation(const WindowSceneConfig::ConfigItem& windowAnimationConfig);
     void ConfigStartingWindowAnimation(const WindowSceneConfig::ConfigItem& startingWindowConfig);
+    void FixWindowUITypeInSupportModeChange();
     WSErrorResult CleanupSessionByType(const sptr<SceneSession>& sceneSession);
     WSErrorResult FinalizeSessionDestruction(const int32_t persistentId);
     /**
@@ -1464,6 +1467,8 @@ private:
     void RemoveFailRecoveredSession();
     void ClearUnrecoveredSessions(const std::vector<int32_t>& recoveredPersistentIds) REQUIRES(SCENE_GUARD);
     void RecoverSessionInfo(const sptr<WindowSessionProperty>& property);
+    void RecoverSupportedWindowModes(const sptr<SceneSession>& sceneSession,
+        const sptr<WindowSessionProperty>& property);
     bool IsNeedRecover(const int32_t persistentId);
     WSError CheckSessionPropertyOnRecovery(const sptr<WindowSessionProperty>& property, bool isSpecificSession);
     void UpdateRecoverPropertyForSuperFold(const sptr<WindowSessionProperty>& property);
@@ -1528,6 +1533,7 @@ private:
     DumpRootSceneElementInfoFunc dumpRootSceneFunc_;
     DumpUITreeFunc dumpUITreeFunc_;
     ProcessVirtualPixelRatioChangeFunc processVirtualPixelRatioChangeFunc_ = nullptr;
+    UpdateDisplayDpiChangeFunc updateDisplayDpiChangeFunc_ = nullptr;
     ProcessCloseTargetFloatWindowFunc closeTargetFloatWindowFunc_;
     SetForegroundWindowNumFunc setForegroundWindowNumFunc_;
     MinimizeByWindowIdFunc minimizeByWindowIdFunc_;

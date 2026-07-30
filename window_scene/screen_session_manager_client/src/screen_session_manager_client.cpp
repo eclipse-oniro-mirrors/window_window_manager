@@ -1866,4 +1866,12 @@ void ScreenSessionManagerClient::OnTransRSEvent(const sptr<RSEventDataBase>& dat
         }
     }
 }
+void ScreenSessionManagerClient::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    if (!screenSessionManager_) {
+        TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
+        return;
+    }
+    return screenSessionManager_->SetHoverBlockList(hoverBlockList);
+}
 } // namespace OHOS::Rosen
