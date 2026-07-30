@@ -46,6 +46,7 @@ enum class WindowDFXHelperType : uint32_t {
     WINDOW_KEYBOARD_ANIM_TIMEOUT_CHECK,
     WINDOW_WALLPAPER_ZORDER_CHECK,
     WINDOW_PIP_CHECK,
+    WINDOW_MODAL_SYSTEM_USE_JSONSTRING,
 };
 
 struct WindowProfileInfo {
