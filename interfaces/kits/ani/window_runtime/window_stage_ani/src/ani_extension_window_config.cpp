@@ -22,7 +22,7 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 static std::map<ani_ref, AniExtensionWindowConfig*> localObjs;
-static std::mutex localObjsMutex;
+static std::mutex g_localObjsMutex;
 
 const std::map<ApiWindowType, std::string> API_TO_ANI_STRING_TYPE_MAP {
     {ApiWindowType::TYPE_BASE,                 "TYPE_APP"                  },
@@ -129,7 +129,7 @@ ani_object CreatAniSubWindowOptions(ani_env* env, const std::shared_ptr<Extensio
     if (env->GlobalReference_Create(aniOptions, &ref) == ANI_OK) {
         config->SetAniRef(ref);
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             localObjs.insert(std::pair(ref, config.release()));
         }
     } else {
@@ -213,7 +213,7 @@ ani_object CreatAniSystemWindowOptions(ani_env* env,
     if (env->GlobalReference_Create(aniOptions, &ref) == ANI_OK) {
         config->SetAniRef(ref);
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             localObjs.insert(std::pair(ref, config.release()));
         }
     } else {
@@ -281,7 +281,7 @@ ani_object CreatAniRect(ani_env* env, const std::shared_ptr<ExtensionWindowConfi
     if (env->GlobalReference_Create(aniRect, &ref) == ANI_OK) {
         config->SetAniRef(ref);
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             localObjs.insert(std::pair(ref, config.release()));
         }
     } else {
@@ -329,7 +329,7 @@ ani_object CreateAniExtensionWindowConfig(ani_env* env,
     if (env->GlobalReference_Create(aniConfig, &ref) == ANI_OK) {
         config->SetAniRef(ref);
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             localObjs.insert(std::pair(ref, config.release()));
         }
     } else {
@@ -352,7 +352,7 @@ void AniExtensionWindowConfig::Finalizer(ani_env* env, ani_long nativeObj)
     AniExtensionWindowConfig* config = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (config != nullptr) {
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             auto obj = localObjs.find(reinterpret_cast<ani_ref>(config->GetAniRef()));
             if (obj != localObjs.end()) {
                 delete obj->second;

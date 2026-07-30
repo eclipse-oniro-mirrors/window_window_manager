@@ -34,7 +34,7 @@ namespace Rosen {
 using namespace arkts::ani_signature;
 namespace {
 static std::map<ani_ref, AniExtensionWindow*> localObjs;
-static std::mutex localObjsMutex;
+static std::mutex g_localObjsMutex;
 static std::map<int32_t, ani_ref> g_aniExtensionWindowMap;
 static std::map<ani_ref, int32_t> g_extensionWindowIdMap;
 static std::mutex g_extensionMutex;
@@ -116,7 +116,7 @@ void AniExtensionWindow::Finalizer(ani_env* env, ani_long nativeObj)
     if (extensionWindow != nullptr) {
         ani_ref aniRef = extensionWindow->GetAniRef();
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             auto obj = localObjs.find(aniRef);
             if (obj != localObjs.end()) {
                 std::lock_guard<std::mutex> lock(g_extensionMutex);
@@ -152,17 +152,14 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find class failed, ret: %{public}u", ret);
         return cls;
     }
-
     std::shared_ptr<ExtensionWindow> extensionWindow = std::make_shared<ExtensionWindowImpl>(window);
     std::unique_ptr<AniExtensionWindow> aniExtensionWindow =
         std::make_unique<AniExtensionWindow>(extensionWindow, hostWindowId);
-
     ani_field contextField;
     if ((ret = env->Class_FindField(cls, "nativeObj", &contextField)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find field failed, ret: %{public}u", ret);
         return nullptr;
     }
-
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Find ctor method failed, ret: %{public}u", ret);
@@ -187,7 +184,7 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
     if (env->GlobalReference_Create(obj, &ref) == ANI_OK) {
         aniExtensionWindow->SetAniRef(ref);
         {
-            std::lock_guard<std::mutex> localObjsLock(localObjsMutex);
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
             localObjs.insert(std::pair(ref, aniExtensionWindow.release()));
         }
         int32_t windowId = window->GetWindowPersistentId();
