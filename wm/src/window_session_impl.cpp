@@ -1243,7 +1243,7 @@ void WindowSessionImpl::DestroySubWindow()
         std::lock_guard<std::recursive_mutex> lock(subWindowSessionMutex_);
         auto subIter = subWindowSessionMap_.find(parentPersistentId);
         if (subIter != subWindowSessionMap_.end() && property_->GetIsUIExtFirstSubWindow() &&
-            subWindowSessionMap_.empty()) {
+            subIter->second.empty()) {
             auto extensionWindow = FindExtensionWindowWithContext();
             if (extensionWindow != nullptr && extensionWindow->GetUIContentSharedPtr() == nullptr) {
                 extensionWindow->AddSetUIExtensionDestroyTimeoutCheck();
