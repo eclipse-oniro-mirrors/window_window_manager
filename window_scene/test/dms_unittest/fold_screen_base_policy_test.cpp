@@ -52,8 +52,8 @@ public:
     MOCK_METHOD(bool, GetModeChangeRunningStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetFoldStatus, (), (override));
     MOCK_METHOD(FoldStatus, GetPhysicalFoldStatus, (), (override));
-    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode,
-    DisplayModeChangeReason reason), (override));
+    MOCK_METHOD(void, ChangeScreenDisplayMode, (FoldDisplayMode displayMode, DisplayModeChangeReason reason,
+        bool isForce), (override));
     MOCK_METHOD(bool, GetPhysicalFoldLockFlag, (), (override, const));
 
     MOCK_METHOD(FoldDisplayMode, GetModeMatchStatus, (FoldStatus status), (override));
@@ -299,7 +299,9 @@ HWTEST_F(FoldScreenBasePolicyTest, CheckDisplayModeChangeTest, TestSize.Level1)
     policy.currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
 
     // force path: still succeeds and now also claims the running flag (TOCTOU fix)
-    bool ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, true);
+    // (CheckDisplayModeChange takes FoldDisplayMode& now, so pass an lvalue)
+    FoldDisplayMode targetMode = FoldDisplayMode::FULL;
+    bool ret = policy.CheckDisplayModeChange(targetMode, DisplayModeChangeReason::DEFAULT, true);
     EXPECT_EQ(FoldDisplayMode::FULL, policy.lastCachedisplayMode_);
     EXPECT_TRUE(ret);
     EXPECT_TRUE(policy.displayModeChangeRunning_);
@@ -307,7 +309,7 @@ HWTEST_F(FoldScreenBasePolicyTest, CheckDisplayModeChangeTest, TestSize.Level1)
 
     g_logMsg.clear();
     policy.isClearingBootAnimation_ = true;
-    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    ret = policy.CheckDisplayModeChange(targetMode);
     EXPECT_TRUE(g_logMsg.find("clearing bootAnimation not change displayMode") != std::string::npos);
     EXPECT_TRUE(!ret);
 
@@ -315,22 +317,22 @@ HWTEST_F(FoldScreenBasePolicyTest, CheckDisplayModeChangeTest, TestSize.Level1)
     policy.isClearingBootAnimation_ = false;
     policy.displayModeChangeRunning_ = true;
     policy.startTimePoint_ = std::chrono::steady_clock::now();
-    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    ret = policy.CheckDisplayModeChange(targetMode);
     EXPECT_TRUE(!ret);
 
     g_logMsg.clear();
     policy.isClearingBootAnimation_ = false;
-    policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false,
-        DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE);
+    policy.CheckDisplayModeChange(targetMode, DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE);
     EXPECT_TRUE(g_logMsg.find("recover mode to") != std::string::npos);
 
     // CAS mutual-exclusion: a successful normal claim arms the flag and blocks a second one
     policy.displayModeChangeRunning_ = false;
     policy.currentDisplayMode_ = FoldDisplayMode::MAIN; // differ from FULL so the equality guard passes
-    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    targetMode = FoldDisplayMode::FULL; // recover-from-cache rewrote it; restore the target
+    ret = policy.CheckDisplayModeChange(targetMode);
     EXPECT_TRUE(ret);
     EXPECT_TRUE(policy.displayModeChangeRunning_);
-    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    ret = policy.CheckDisplayModeChange(targetMode);
     EXPECT_TRUE(!ret);
 
     // leave the singleton clean for downstream cases
@@ -349,7 +351,8 @@ HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeTest, TestSize.Level1)
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
 
-    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayMode(FoldDisplayMode::FULL, true);
+    FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayMode(FoldDisplayMode::FULL,
+        DisplayModeChangeReason::DEFAULT, true);
     EXPECT_TRUE(g_logMsg.find("force change displayMode") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
@@ -558,7 +561,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl04, TestSize.Level
 
     FoldDisplayMode mode = FoldDisplayMode::MAIN;
     EXPECT_CALL(*mockBasePolicy, GetModeMatchStatus(targetStatus)).Times(1).WillOnce(Return(mode));
-    EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
+    EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET, false)).Times(1);
     g_logMsg.clear();
     DMError ret = policy->SetFoldStatusAndLockControl(true, targetStatus);
     EXPECT_EQ(ret, DMError::DM_OK);
@@ -593,7 +596,7 @@ HWTEST_F(FoldScreenBasePolicyTest, SetFoldStatusAndLockControl05, TestSize.Level
 
     FoldDisplayMode mode = FoldDisplayMode::MAIN;
     EXPECT_CALL(*mockBasePolicy, GetModeMatchStatus(physicStatus)).Times(1).WillOnce(Return(mode));
-    EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET)).Times(1);
+    EXPECT_CALL(*mockBasePolicy, ChangeScreenDisplayMode(mode, DisplayModeChangeReason::FORCE_SET, false)).Times(1);
 
     g_logMsg.clear();
     DMError ret = policy->SetFoldStatusAndLockControl(false, physicStatus);

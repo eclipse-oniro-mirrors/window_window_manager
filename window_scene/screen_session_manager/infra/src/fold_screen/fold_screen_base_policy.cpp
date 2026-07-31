@@ -572,7 +572,7 @@ void FoldScreenBasePolicy::SetIsClearingBootAnimation(bool isClearingBootAnimati
 /**
   * fold or expand start
   */
-bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode,
+bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode& displayMode,
     DisplayModeChangeReason reason, bool isForce)
 {
     if (isForce) {
@@ -618,29 +618,29 @@ bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode,
 
 bool FoldScreenBasePolicy::ClaimModeChangeRunning(bool isForce)
 {
+    // The whole gate is serialized: the staleness check and the takeover must be atomic with
+    // respect to concurrent claims. With a bare atomic, a force takeover could either rip a
+    // fresh claim made between the check and the CAS (double dispatch), or lose its own
+    // re-claim to one (force request dropped). Cold path at user-action rate, leaf lock.
+    std::lock_guard<std::mutex> lock(modeChangeClaimMutex_);
     auto now = std::chrono::steady_clock::now();
-    bool expected = false;
-    if (displayModeChangeRunning_.compare_exchange_strong(expected, true)) {
+    if (!displayModeChangeRunning_) {
+        displayModeChangeRunning_ = true;
         startTimePoint_.store(now);
         return true;
     }
-    // force always takes over a running change; a normal change only takes over when the previous
-    // round has timed out and is considered stale (keeps the original 2s escape). startTimePoint_
-    // is stamped on every successful claim so this staleness check measures the claim age itself,
-    // not the dispatch time (armed later by Set(true)) which may not have been written yet.
+    // force always takes over a running change; a normal change only takes over when the
+    // previous round has timed out and is considered stale (keeps the original 2s escape).
+    // startTimePoint_ is stamped on every successful claim so this staleness check measures
+    // the claim age itself, not the dispatch time (armed later by Set(true)).
     auto intervalMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTimePoint_.load()).count();
-    bool takeOver = isForce || (intervalMs > MODE_CHANGE_TIMEOUT_MS);
-    if (!takeOver) {
+    if (!isForce && intervalMs <= MODE_CHANGE_TIMEOUT_MS) {
         return false;
     }
+    // Under the lock no fresh claim can interleave, so re-stamping is enough to own the flag.
     TLOGW(WmsLogTag::DMS, "force/stale takeover, reset running flag");
-    displayModeChangeRunning_ = false;
-    expected = false;
-    if (displayModeChangeRunning_.compare_exchange_strong(expected, true)) {
-        startTimePoint_.store(now);
-        return true;
-    }
-    return false;
+    startTimePoint_.store(now);
+    return true;
 }
 
 void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,

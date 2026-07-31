@@ -94,7 +94,7 @@ public:
     virtual void SetIsClearingBootAnimation(bool isClearingBootAnimation);
     virtual void BootAnimationFinishPowerInit() {};
     //fold or expand
-    bool CheckDisplayModeChange(FoldDisplayMode displayMode,
+    bool CheckDisplayModeChange(FoldDisplayMode& displayMode,
         DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT, bool isForce = false);
     virtual void ChangeScreenDisplayMode(FoldDisplayMode displayMode,
         DisplayModeChangeReason reason = DisplayModeChangeReason::DEFAULT, bool isForce = false);
@@ -188,6 +188,10 @@ private:
     // or an already-matched coordination exit, so the caller can release the claimed running flag.
     bool DispatchDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason,
         const sptr<ScreenSession>& screenSession, FoldDisplayMode currentMode);
+
+    // Serializes the claim gate so the staleness check and takeover are atomic w.r.t. concurrent
+    // claims; without it a force takeover can rip (or lose to) a fresh claim made mid-takeover.
+    std::mutex modeChangeClaimMutex_;
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H
