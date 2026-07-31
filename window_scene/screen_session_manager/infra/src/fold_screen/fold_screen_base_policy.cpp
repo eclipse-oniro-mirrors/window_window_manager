@@ -198,7 +198,7 @@ ScreenId FoldScreenBasePolicy::GetCurrentScreenId() { return screenId_; }
 
 std::chrono::steady_clock::time_point FoldScreenBasePolicy::GetStartTimePoint()
 {
-    return startTimePoint_;
+    return startTimePoint_.load();
 }
 
 bool FoldScreenBasePolicy::GetIsFirstFrameCommitReported()
@@ -213,14 +213,18 @@ void FoldScreenBasePolicy::SetIsFirstFrameCommitReported(bool isFirstFrameCommit
 
 void FoldScreenBasePolicy::ClearState()
 {
-    currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
+    {
+        std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
+        currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
+    }
     currentFoldStatus_ = FoldStatus::UNKNOWN;
 }
 
 bool FoldScreenBasePolicy::GetModeChangeRunningStatus()
 {
     auto currentTime = std::chrono::steady_clock::now();
-    auto intervalMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTimePoint_).count();
+    auto intervalMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTimePoint_.load()).count();
     if (intervalMs > MODE_CHANGE_TIMEOUT_MS) {
         TLOGE(WmsLogTag::DMS, "mode change timeout.");
         return false;
@@ -245,11 +249,13 @@ void FoldScreenBasePolicy::SetLastCacheDisplayMode(FoldDisplayMode mode)
 
 int64_t FoldScreenBasePolicy::getFoldingElapsedMs()
 {
-    if (endTimePoint_ < startTimePoint_) {
+    auto startTime = startTimePoint_.load();
+    auto endTime = endTimePoint_.load();
+    if (endTime < startTime) {
         TLOGE(WmsLogTag::DMS, "invalid timepoint. endTimePoint less startTimePoint");
         return 0;
     }
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTimePoint_ - startTimePoint_).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
     return static_cast<int64_t>(elapsed);
 }
 
@@ -280,7 +286,7 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
     PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
     FoldDisplayMode displayMode = GetModeMatchStatus();
     TLOGW(WmsLogTag::DMS, "CurrentDisplayMode:%{public}d, CurrentFoldStatus:%{public}d",
-        currentDisplayMode_, currentFoldStatus_);
+        GetCurrentDisplayMode(), currentFoldStatus_);
     ChangeScreenDisplayMode(displayMode);
 }
 /**
@@ -297,7 +303,7 @@ void FoldScreenBasePolicy::ChangeOffTentMode()
         TLOGW(WmsLogTag::DMS, "change displaymode to coordination skipped, current coordination flag is true");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "change displaymode to coordination current mode=%{public}d", currentDisplayMode_);
+    TLOGI(WmsLogTag::DMS, "change displaymode to coordination current mode=%{public}d", GetCurrentDisplayMode());
     ScreenSessionManager::GetInstance().NotifyRSCoordination(true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
 
@@ -357,7 +363,7 @@ void FoldScreenBasePolicy::CloseCoordinationScreen()
         TLOGW(WmsLogTag::DMS, "CloseCoordinationScreen skipped, current coordination flag is false");
         return;
     }
-    TLOGI(WmsLogTag::DMS, "Close Coordination Screen current mode=%{public}d", currentDisplayMode_);
+    TLOGI(WmsLogTag::DMS, "Close Coordination Screen current mode=%{public}d", GetCurrentDisplayMode());
     ScreenSessionManager::GetInstance().NotifyRSCoordination(false);
 
     if (ScreenSessionManager::GetInstance().GetWaitingForCoordinationReady()) {
@@ -519,7 +525,7 @@ void FoldScreenBasePolicy::UpdateForPhyScreenPropertyChange()
 {
     TLOGI(WmsLogTag::DMS, "CurrentScreen(%{public}" PRIu64 ")", screenId_);
     FoldDisplayMode displayMode = GetModeMatchStatus();
-    if (currentDisplayMode_ != displayMode) {
+    if (GetCurrentDisplayMode() != displayMode) {
         ChangeScreenDisplayMode(displayMode);
     }
 }
@@ -566,44 +572,75 @@ void FoldScreenBasePolicy::SetIsClearingBootAnimation(bool isClearingBootAnimati
 /**
   * fold or expand start
   */
-bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, 
+bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode,
     DisplayModeChangeReason reason, bool isForce)
 {
     if (isForce) {
         TLOGI(WmsLogTag::DMS, "force change displayMode");
         SetLastCacheDisplayMode(displayMode);
-        return true;
-    }
-    if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
-        TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
-        return false;
-    }
-    if (isClearingBootAnimation_) {
-        TLOGI(WmsLogTag::DMS, "clearing bootAnimation not change displayMode");
-        return false;
-    }
-    if (reason == DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE) {
-        TLOGI(WmsLogTag::DMS, "recover mode to %{public}d", GetLastCacheDisplayMode());
-        displayMode = GetLastCacheDisplayMode();
     } else {
-        SetLastCacheDisplayMode(displayMode);
+        if (GetPhysicalFoldLockFlag() && reason != DisplayModeChangeReason::FORCE_SET) {
+            TLOGI(WmsLogTag::DMS, "Fold status is locked, can't change to display mode: %{public}d", displayMode);
+            return false;
+        }
+        if (isClearingBootAnimation_) {
+            TLOGI(WmsLogTag::DMS, "clearing bootAnimation not change displayMode");
+            return false;
+        }
+        if (reason == DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE) {
+            TLOGI(WmsLogTag::DMS, "recover mode to %{public}d", GetLastCacheDisplayMode());
+            displayMode = GetLastCacheDisplayMode();
+        } else {
+            SetLastCacheDisplayMode(displayMode);
+        }
+        {
+            std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
+            if (currentDisplayMode_ == displayMode) {
+                TLOGW(WmsLogTag::DMS, "ChangeScreenDisplayMode already in displayMode %{public}d", displayMode);
+                return false;
+            }
+        }
     }
-    if (GetModeChangeRunningStatus()) {
+
+    // Atomically claim the running flag to close the TOCTOU window. The pending-task count is
+    // armed later in ChangeScreenDisplayModeToMain/ToFull so that it stays in sync with the
+    // actually dispatched path (and the onBootAnimation_ read that picks it).
+    if (!ClaimModeChangeRunning(isForce)) {
         TLOGW(WmsLogTag::DMS, "last process not complete, skip mode: %{public}d", displayMode);
         return false;
     }
+
     TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, lastElapsedMs: %{public}" PRId64 "ms",
         displayMode, getFoldingElapsedMs());
-
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:ChangeScreenDisplayMode(displayMode = %" PRIu64")", displayMode);
-    {
-        std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
-        if (currentDisplayMode_ == displayMode) {
-            TLOGW(WmsLogTag::DMS, "ChangeScreenDisplayMode already in displayMode %{public}d", displayMode);
-            return false;
-        }
-    }
     return true;
+}
+
+bool FoldScreenBasePolicy::ClaimModeChangeRunning(bool isForce)
+{
+    auto now = std::chrono::steady_clock::now();
+    bool expected = false;
+    if (displayModeChangeRunning_.compare_exchange_strong(expected, true)) {
+        startTimePoint_.store(now);
+        return true;
+    }
+    // force always takes over a running change; a normal change only takes over when the previous
+    // round has timed out and is considered stale (keeps the original 2s escape). startTimePoint_
+    // is stamped on every successful claim so this staleness check measures the claim age itself,
+    // not the dispatch time (armed later by Set(true)) which may not have been written yet.
+    auto intervalMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTimePoint_.load()).count();
+    bool takeOver = isForce || (intervalMs > MODE_CHANGE_TIMEOUT_MS);
+    if (!takeOver) {
+        return false;
+    }
+    TLOGW(WmsLogTag::DMS, "force/stale takeover, reset running flag");
+    displayModeChangeRunning_ = false;
+    expected = false;
+    if (displayModeChangeRunning_.compare_exchange_strong(expected, true)) {
+        startTimePoint_.store(now);
+        return true;
+    }
+    return false;
 }
 
 void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,
@@ -637,6 +674,9 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayM
     sptr<ScreenSession> screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
     if (screenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "default screenSession is null");
+        // CheckDisplayModeChange has already claimed the running flag; release it so the next
+        // change is not blocked until the timeout, since no completion Set(false) will fire.
+        displayModeChangeRunning_ = false;
         return;
     }
     {
@@ -644,38 +684,50 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayM
         lastDisplayMode_ = displayMode;
     }
     ReportFoldDisplayModeChange(displayMode);
+    FoldDisplayMode currentMode = GetCurrentDisplayMode();
+    bool dispatched = DispatchDisplayMode(displayMode, reason, screenSession, currentMode);
+    {
+        std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
+        currentDisplayMode_ = displayMode;
+    }
+    if (!dispatched) {
+        TLOGW(WmsLogTag::DMS, "displayMode %{public}d did not dispatch, release running flag", displayMode);
+        displayModeChangeRunning_ = false;
+    }
+}
+
+bool FoldScreenBasePolicy::DispatchDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason,
+    const sptr<ScreenSession>& screenSession, FoldDisplayMode currentMode)
+{
     switch (displayMode) {
         case FoldDisplayMode::MAIN: {
-            if (currentDisplayMode_ == FoldDisplayMode::COORDINATION) {
+            if (currentMode == FoldDisplayMode::COORDINATION) {
                 CloseCoordinationScreen();
             }
             ChangeScreenDisplayModeToMain(screenSession);
-            break;
+            return true;
         }
         case FoldDisplayMode::FULL: {
-            if (currentDisplayMode_ == FoldDisplayMode::COORDINATION) {
+            if (currentMode == FoldDisplayMode::COORDINATION) {
                 CloseCoordinationScreen();
                 if (GetModeMatchStatus() != displayMode) {
                     TLOGI(WmsLogTag::DMS, "Exit coordination and recover full");
                     ChangeScreenDisplayModeToFull(screenSession, reason);
+                    return true;
                 }
-            } else {
-                ChangeScreenDisplayModeToFull(screenSession, reason);
+                return false; // already in target mode after closing coordination, nothing dispatched
             }
-            break;
+            ChangeScreenDisplayModeToFull(screenSession, reason);
+            return true;
         }
         case FoldDisplayMode::COORDINATION: {
             ChangeScreenDisplayModeToCoordination();
-            break;
+            return false; // ToCoordination never arms the async running-flag lifecycle
         }
         default: {
             TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayMode displayMode is invalid");
-            break;
+            return false;
         }
-    }
-    {
-        std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);
-        currentDisplayMode_ = displayMode;
     }
 }
 

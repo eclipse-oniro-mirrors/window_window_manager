@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H
 #define OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H
 
+#include <atomic>
 #include <mutex>
 
 #include "dm_common.h"
@@ -151,8 +152,8 @@ protected:
     std::atomic<int> pendingTask_{FOLD_TASK_NUM};
     std::atomic<bool> displayModeChangeRunning_ = false;
     std::atomic<FoldDisplayMode> lastCachedisplayMode_ = FoldDisplayMode::UNKNOWN;
-    std::chrono::steady_clock::time_point startTimePoint_ = std::chrono::steady_clock::now();
-    std::chrono::steady_clock::time_point endTimePoint_ = std::chrono::steady_clock::now();
+    std::atomic<std::chrono::steady_clock::time_point> startTimePoint_ { std::chrono::steady_clock::now() };
+    std::atomic<std::chrono::steady_clock::time_point> endTimePoint_ { std::chrono::steady_clock::now() };
     void SetLastCacheDisplayMode(FoldDisplayMode mode);
     int64_t getFoldingElapsedMs();
 
@@ -177,6 +178,16 @@ protected:
     std::atomic<bool> isClearingBootAnimation_ = false;
     bool isFirstFrameCommitReported_ = false;
     std::map<FoldDisplayMode, RRect> screenActiveModeRectMap_ = {};
+
+private:
+    // Atomically claim the displayModeChangeRunning_ flag to close the TOCTOU window between
+    // CheckDisplayModeChange and the actual dispatch. isForce takes over a running change.
+    bool ClaimModeChangeRunning(bool isForce);
+    // Dispatches the per-mode work and reports whether it armed the async running-flag lifecycle
+    // (i.e. reached a Set(true) via ToMain/ToFull). Returns false for COORDINATION, invalid mode,
+    // or an already-matched coordination exit, so the caller can release the claimed running flag.
+    bool DispatchDisplayMode(FoldDisplayMode displayMode, DisplayModeChangeReason reason,
+        const sptr<ScreenSession>& screenSession, FoldDisplayMode currentMode);
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H

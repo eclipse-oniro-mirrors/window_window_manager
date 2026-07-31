@@ -292,29 +292,50 @@ HWTEST_F(FoldScreenBasePolicyTest, CheckDisplayModeChangeTest, TestSize.Level1)
 {
     g_logMsg.clear();
     LOG_SetCallback(MyLogCallback);
+    auto& policy = FoldScreenBasePolicy::GetInstance();
+    // deterministic start state for the singleton
+    policy.displayModeChangeRunning_ = false;
+    policy.isClearingBootAnimation_ = false;
+    policy.currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
 
-    bool ret = FoldScreenBasePolicy::GetInstance().CheckDisplayModeChange(FoldDisplayMode::FULL, true);
-    EXPECT_EQ(FoldDisplayMode::FULL, FoldScreenBasePolicy::GetInstance().lastCachedisplayMode_);
+    // force path: still succeeds and now also claims the running flag (TOCTOU fix)
+    bool ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, true);
+    EXPECT_EQ(FoldDisplayMode::FULL, policy.lastCachedisplayMode_);
     EXPECT_TRUE(ret);
+    EXPECT_TRUE(policy.displayModeChangeRunning_);
+    policy.displayModeChangeRunning_ = false; // release so subsequent checks behave
 
     g_logMsg.clear();
-    FoldScreenBasePolicy::GetInstance().isClearingBootAnimation_ = true;
-    ret = FoldScreenBasePolicy::GetInstance().CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    policy.isClearingBootAnimation_ = true;
+    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
     EXPECT_TRUE(g_logMsg.find("clearing bootAnimation not change displayMode") != std::string::npos);
     EXPECT_TRUE(!ret);
 
     g_logMsg.clear();
-    FoldScreenBasePolicy::GetInstance().isClearingBootAnimation_ = false;
-    FoldScreenBasePolicy::GetInstance().displayModeChangeRunning_ = true;
-    FoldScreenBasePolicy::GetInstance().startTimePoint_ = std::chrono::steady_clock::now();
-    ret = FoldScreenBasePolicy::GetInstance().CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    policy.isClearingBootAnimation_ = false;
+    policy.displayModeChangeRunning_ = true;
+    policy.startTimePoint_ = std::chrono::steady_clock::now();
+    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
     EXPECT_TRUE(!ret);
 
     g_logMsg.clear();
-    FoldScreenBasePolicy::GetInstance().isClearingBootAnimation_ = false;
-    FoldScreenBasePolicy::GetInstance().CheckDisplayModeChange(FoldDisplayMode::FULL, false,
+    policy.isClearingBootAnimation_ = false;
+    policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false,
         DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE);
     EXPECT_TRUE(g_logMsg.find("recover mode to") != std::string::npos);
+
+    // CAS mutual-exclusion: a successful normal claim arms the flag and blocks a second one
+    policy.displayModeChangeRunning_ = false;
+    policy.currentDisplayMode_ = FoldDisplayMode::MAIN; // differ from FULL so the equality guard passes
+    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    EXPECT_TRUE(ret);
+    EXPECT_TRUE(policy.displayModeChangeRunning_);
+    ret = policy.CheckDisplayModeChange(FoldDisplayMode::FULL, false);
+    EXPECT_TRUE(!ret);
+
+    // leave the singleton clean for downstream cases
+    policy.displayModeChangeRunning_ = false;
+    policy.currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
     LOG_SetCallback(nullptr);
 }
 
@@ -386,6 +407,40 @@ HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeInnerTest_foldExitCoor
     FoldScreenBasePolicy::GetInstance().ChangeScreenDisplayModeInner(displayMode, reason);
     EXPECT_EQ(FoldScreenBasePolicy::GetInstance().currentDisplayMode_, FoldDisplayMode::FULL);
     EXPECT_TRUE(g_logMsg.find("Exit coordination and recover full") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ChangeScreenDisplayModeInnerTest_releaseFlagWhenNotDispatched
+ * @tc.desc: non-dispatch paths (invalid mode / COORDINATION) must release the running flag claimed
+ *           by CheckDisplayModeChange instead of leaving it stuck until the 2s timeout.
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBasePolicyTest, ChangeScreenDisplayModeInnerTest_releaseFlagWhenNotDispatched,
+         TestSize.Level1)
+{
+    if (FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP();
+    }
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto& policy = FoldScreenBasePolicy::GetInstance();
+    ScreenSessionManager::GetInstance().screenSessionMap_[0] = sptr<ScreenSession>::MakeSptr();
+
+    // Invalid mode never reaches ToMain/ToFull, so no Set(false) completion exists to clear the
+    // flag; Inner must release it itself.
+    policy.displayModeChangeRunning_ = true;
+    policy.ChangeScreenDisplayModeInner(FoldDisplayMode::UNKNOWN, DisplayModeChangeReason::DEFAULT);
+    EXPECT_FALSE(policy.displayModeChangeRunning_);
+    EXPECT_TRUE(g_logMsg.find("did not dispatch, release running flag") != std::string::npos);
+
+    // COORDINATION dispatches via ToCoordination which never arms Set(true); same guarantee.
+    g_logMsg.clear();
+    policy.displayModeChangeRunning_ = true;
+    policy.ChangeScreenDisplayModeInner(FoldDisplayMode::COORDINATION, DisplayModeChangeReason::DEFAULT);
+    EXPECT_FALSE(policy.displayModeChangeRunning_);
+
+    policy.displayModeChangeRunning_ = false; // leave singleton clean for downstream cases
     LOG_SetCallback(nullptr);
 }
 
