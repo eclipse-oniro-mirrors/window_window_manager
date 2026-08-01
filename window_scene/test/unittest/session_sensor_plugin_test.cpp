@@ -30,9 +30,9 @@ bool IsSessionMotionSensorSubscribed(int32_t motionType);
 namespace {
 constexpr uint32_t SLEEP_TIME_US = 100000;
 
-static void CallbackFunc1(const SessionMotionSensorEvent&) {}
-static void CallbackFunc2(const SessionMotionSensorEvent&) { volatile int dummy = 1; }
-static void CallbackFunc3(const SessionMotionSensorEvent&) { volatile int dummy = 2; }
+static void CallbackFunc1(const MotionSensorEvent&) {}
+static void CallbackFunc2(const MotionSensorEvent&) { volatile int dummy = 1; }
+static void CallbackFunc3(const MotionSensorEvent&) { volatile int dummy = 2; }
 
 class MockMotionEventListener : public IMotionEventListener {
 public:
@@ -129,7 +129,7 @@ HWTEST_F(SessionSensorPluginTest, SubscribeCallback_NullCallback, TestSize.Level
 HWTEST_F(SessionSensorPluginTest, SubscribeCallback_Success, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     bool ret = SessionSubscribeCallback(700, callback);
     EXPECT_TRUE(ret);
     EXPECT_TRUE(IsSessionMotionSensorSubscribed(700));
@@ -138,7 +138,7 @@ HWTEST_F(SessionSensorPluginTest, SubscribeCallback_Success, TestSize.Level1)
 HWTEST_F(SessionSensorPluginTest, SubscribeCallback_SmartMotionType, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     bool ret = SessionSubscribeCallback(701, callback);
     EXPECT_TRUE(ret);
     EXPECT_TRUE(IsSessionMotionSensorSubscribed(701));
@@ -147,7 +147,7 @@ HWTEST_F(SessionSensorPluginTest, SubscribeCallback_SmartMotionType, TestSize.Le
 HWTEST_F(SessionSensorPluginTest, SubscribeCallback_SmartEnhanceType, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     bool ret = SessionSubscribeCallback(703, callback);
     EXPECT_TRUE(ret);
     EXPECT_TRUE(IsSessionMotionSensorSubscribed(703));
@@ -156,7 +156,7 @@ HWTEST_F(SessionSensorPluginTest, SubscribeCallback_SmartEnhanceType, TestSize.L
 HWTEST_F(SessionSensorPluginTest, SubscribeCallback_Duplicate, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     bool ret = SessionSubscribeCallback(700, callback);
     EXPECT_TRUE(ret);
     ret = SessionSubscribeCallback(700, callback);
@@ -166,7 +166,7 @@ HWTEST_F(SessionSensorPluginTest, SubscribeCallback_Duplicate, TestSize.Level1)
 HWTEST_F(SessionSensorPluginTest, UnsubscribeCallback_Success, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     SessionSubscribeCallback(700, callback);
     bool ret = SessionUnsubscribeCallback(700, callback);
     EXPECT_TRUE(ret);
@@ -183,7 +183,7 @@ HWTEST_F(SessionSensorPluginTest, UnsubscribeCallback_NullCallback, TestSize.Lev
 HWTEST_F(SessionSensorPluginTest, UnsubscribeCallback_NotSubscribed, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     bool ret = SessionUnsubscribeCallback(700, callback);
     EXPECT_FALSE(ret);
 }
@@ -200,7 +200,7 @@ HWTEST_F(SessionSensorPluginTest, UnsubscribeCallback_DifferentCallback, TestSiz
 HWTEST_F(SessionSensorPluginTest, UnloadClearsSubscriptions, TestSize.Level1)
 {
     SessionLoadMotionSensor();
-    auto callback = [](const SessionMotionSensorEvent&) {};
+    auto callback = [](const MotionSensorEvent&) {};
     SessionSubscribeCallback(700, callback);
     EXPECT_TRUE(IsSessionMotionSensorSubscribed(700));
     SessionUnloadMotionSensor();

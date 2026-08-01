@@ -78,7 +78,7 @@ bool MotionManager::SubscribeMotionSensorInternal(MotionType motionType)
         return true;
     }
 
-    SessionOnMotionChangedPtr callback = nullptr;
+    OnMotionChangedPtr callback = nullptr;
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         callback = RotationMotionEventCallback;
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
@@ -110,7 +110,7 @@ bool MotionManager::UnsubscribeMotionSensorInternal(MotionType motionType)
         return true;
     }
     
-    SessionOnMotionChangedPtr callback = nullptr;
+    OnMotionChangedPtr callback = nullptr;
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         callback = RotationMotionEventCallback;
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
@@ -187,7 +187,7 @@ float MotionManager::ConvertDeviceMotionToFloat(DeviceRotation deviceRotation)
     }
 }
 
-void MotionManager::RotationMotionEventCallback(const SessionMotionSensorEvent& motionData)
+void MotionManager::RotationMotionEventCallback(const MotionSensorEvent& motionData)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Rotation motion callback, status: %{public}d", motionData.status);
     
@@ -197,7 +197,7 @@ void MotionManager::RotationMotionEventCallback(const SessionMotionSensorEvent& 
     MotionManager::GetInstance().HandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, rotation);
 }
 
-void MotionManager::SmartRotationMotionEventCallback(const SessionMotionSensorEvent& motionData)
+void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& motionData)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, status: %{public}d", motionData.status);
     DeviceRotation motionRotation = DeviceRotation::INVALID;

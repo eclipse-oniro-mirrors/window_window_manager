@@ -84,8 +84,8 @@ private:
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);
     static float ConvertDeviceMotionToFloat(DeviceRotation deviceRotation);
-    static void RotationMotionEventCallback(const SessionMotionSensorEvent& motionData);
-    static void SmartRotationMotionEventCallback(const SessionMotionSensorEvent& motionData);
+    static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
+    static void SmartRotationMotionEventCallback(const MotionSensorEvent& motionData);
     
     std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;

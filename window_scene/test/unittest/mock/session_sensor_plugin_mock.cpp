@@ -21,7 +21,7 @@ namespace OHOS {
 namespace Rosen {
 
 namespace {
-std::map<int32_t, SessionOnMotionChangedPtr> g_callbackMap;
+std::map<int32_t, OnMotionChangedPtr> g_callbackMap;
 std::mutex g_mutex;
 bool g_loaded = false;
 }
@@ -39,7 +39,7 @@ void SessionUnloadMotionSensor(void)
     g_loaded = false;
 }
 
-bool SessionSubscribeCallback(int32_t motionType, SessionOnMotionChangedPtr callback)
+bool SessionSubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
 {
     if (callback == nullptr) {
         return false;
@@ -49,7 +49,7 @@ bool SessionSubscribeCallback(int32_t motionType, SessionOnMotionChangedPtr call
     return true;
 }
 
-bool SessionUnsubscribeCallback(int32_t motionType, SessionOnMotionChangedPtr callback)
+bool SessionUnsubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
 {
     std::lock_guard<std::mutex> lock(g_mutex);
     auto it = g_callbackMap.find(motionType);
@@ -65,7 +65,7 @@ void TriggerSessionMotionEvent(int32_t motionType, int32_t status)
     std::lock_guard<std::mutex> lock(g_mutex);
     auto it = g_callbackMap.find(motionType);
     if (it != g_callbackMap.end() && it->second != nullptr) {
-        SessionMotionSensorEvent event;
+        MotionSensorEvent event;
         event.type = motionType;
         event.status = status;
         event.dataLen = 0;

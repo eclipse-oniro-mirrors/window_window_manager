@@ -28,8 +28,8 @@ namespace {
 }
 
 static void *g_handle = nullptr;
-static SessionMotionSubscribeCallbackPtr g_subscribePtr = nullptr;
-static SessionMotionUnsubscribeCallbackPtr g_unsubscribePtr = nullptr;
+static MotionSubscribeCallbackPtr g_subscribePtr = nullptr;
+static MotionUnsubscribeCallbackPtr g_unsubscribePtr = nullptr;
 
 bool SessionLoadMotionSensor(void)
 {
@@ -64,7 +64,7 @@ void SessionUnloadMotionSensor(void)
 }
 
 __attribute__((no_sanitize("cfi"))) bool SessionSubscribeCallback(int32_t motionType,
-    SessionOnMotionChangedPtr callback)
+    OnMotionChangedPtr callback)
 {
     if (callback == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "callback is nullptr");
@@ -79,7 +79,7 @@ __attribute__((no_sanitize("cfi"))) bool SessionSubscribeCallback(int32_t motion
         const char* dlsymError = nullptr;
         do {
             cnt++;
-            g_subscribePtr = reinterpret_cast<SessionMotionSubscribeCallbackPtr>(dlsym(
+            g_subscribePtr = reinterpret_cast<MotionSubscribeCallbackPtr>(dlsym(
                 g_handle, "MotionSubscribeCallback"));
             dlsymError = dlerror();
             if (dlsymError) {
@@ -96,7 +96,7 @@ __attribute__((no_sanitize("cfi"))) bool SessionSubscribeCallback(int32_t motion
 }
 
 __attribute__((no_sanitize("cfi"))) bool SessionUnsubscribeCallback(int32_t motionType,
-    SessionOnMotionChangedPtr callback)
+    OnMotionChangedPtr callback)
 {
     if (callback == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "callback is nullptr");
@@ -111,7 +111,7 @@ __attribute__((no_sanitize("cfi"))) bool SessionUnsubscribeCallback(int32_t moti
         const char* dlsymError = nullptr;
         do {
             cnt++;
-            g_unsubscribePtr = reinterpret_cast<SessionMotionUnsubscribeCallbackPtr>(dlsym(
+            g_unsubscribePtr = reinterpret_cast<MotionUnsubscribeCallbackPtr>(dlsym(
                 g_handle, "MotionUnsubscribeCallback"));
             dlsymError = dlerror();
             if (dlsymError) {

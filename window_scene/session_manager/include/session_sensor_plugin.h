@@ -27,21 +27,21 @@
 
 namespace OHOS {
 namespace Rosen {
-typedef struct SessionMotionSensorEvent {
+typedef struct MotionSensorEvent {
     int32_t type = -1;
     int32_t status = -1;
     int32_t dataLen = -1;
     int32_t *data = nullptr;
-} SessionMotionSensorEvent;
+} MotionSensorEvent;
 
-using SessionOnMotionChangedPtr = void (*)(const SessionMotionSensorEvent&);
-using SessionMotionSubscribeCallbackPtr = bool (*)(int32_t, SessionOnMotionChangedPtr);
-using SessionMotionUnsubscribeCallbackPtr = bool (*)(int32_t, SessionOnMotionChangedPtr);
+using OnMotionChangedPtr = void (*)(const MotionSensorEvent&);
+using MotionSubscribeCallbackPtr = bool (*)(int32_t, OnMotionChangedPtr);
+using MotionUnsubscribeCallbackPtr = bool (*)(int32_t, OnMotionChangedPtr);
 
 bool SessionLoadMotionSensor(void);
 void SessionUnloadMotionSensor(void);
-bool SessionSubscribeCallback(int32_t motionType, SessionOnMotionChangedPtr callback);
-bool SessionUnsubscribeCallback(int32_t motionType, SessionOnMotionChangedPtr callback);
+bool SessionSubscribeCallback(int32_t motionType, OnMotionChangedPtr callback);
+bool SessionUnsubscribeCallback(int32_t motionType, OnMotionChangedPtr callback);
 }
 }
 #endif /* SESSION_SENSOR_PLUGIN_H */
