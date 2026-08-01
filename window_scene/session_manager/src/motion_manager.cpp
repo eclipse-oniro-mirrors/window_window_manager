@@ -201,18 +201,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, status: %{public}d", motionData.status);
     DeviceRotation motionRotation = DeviceRotation::INVALID;
-    if (motionData.type == MotionType::SMART_MOTION_TYPE && (motionData.status == 4 || motionData.status == 5)) {
-        int32_t dataLen = motionData.dataLen;
-        if (dataLen < 1 || motionData.data == nullptr) {
-            TLOGE(WmsLogTag::WMS_ROTATION, "Invalid motion data, dataLen: %{public}d", dataLen);
-        } else {
-            int32_t* patchData = reinterpret_cast<int32_t*>(motionData.data);
-            TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, motionData: %{public}d", patchData[0]);
-            motionRotation = ConvertMotionActionToDeviceRotation(patchData[0]);
-        }
-    } else {
-        motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
-    }
+    motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
     float rotation = ConvertDeviceMotionToFloat(motionRotation);
     
     MotionManager::GetInstance().HandleMotionEvent(MotionType::SMART_MOTION_TYPE, rotation);
