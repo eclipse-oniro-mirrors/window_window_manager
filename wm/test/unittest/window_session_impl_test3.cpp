@@ -1831,6 +1831,82 @@ HWTEST_F(WindowSessionImplTest3, SyncFvLimits, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetSubWindowModal_SpnBranch
+ * @tc.desc: Test SetSubWindowModal on SPN outer screen, should return WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnBranch, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSubWindowModal_SpnBranch");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    auto ret = window->SetSubWindowModal(true, ModalityType::WINDOW_MODALITY);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetSubWindowModal_NotSpnBranch
+ * @tc.desc: Test SetSubWindowModal when IsSpnOuterScreen returns false, should not return WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_NotSpnBranch, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSubWindowModal_NotSpnBranch");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetDisplayId(0);
+    auto ret = window->SetSubWindowModal(true, ModalityType::WINDOW_MODALITY);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
+ * @tc.name: SetWindowModal_SpnBranch
+ * @tc.desc: Test SetWindowModal on SPN outer screen, should return WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetWindowModal_SpnBranch, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowModal_SpnBranch");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    auto ret = window->SetWindowModal(true);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowModal_NotSpnBranch
+ * @tc.desc: Test SetWindowModal when IsSpnOuterScreen returns false, should not return WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest3, SetWindowModal_NotSpnBranch, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowModal_NotSpnBranch");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetDisplayId(0);
+    auto ret = window->SetWindowModal(true);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+}
+
+/**
  * @tc.name: SetSubWindowModal_SpnOuterScreen01
  * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
  * @tc.type: FUNC

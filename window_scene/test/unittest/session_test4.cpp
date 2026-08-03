@@ -20,6 +20,7 @@
 
 #include "iremote_object_mocker.h"
 #include "key_event.h"
+#include "fold_screen_state_internel.h"
 #include "mock/mock_session.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
