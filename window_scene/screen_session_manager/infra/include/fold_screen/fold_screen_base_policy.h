@@ -183,6 +183,10 @@ private:
     // Atomically claim the displayModeChangeRunning_ flag to close the TOCTOU window between
     // CheckDisplayModeChange and the actual dispatch. isForce takes over a running change.
     bool ClaimModeChangeRunning(bool isForce);
+    // Releases the claimed running flag for paths that did not arm the async count-based lifecycle
+    // (CLAIM hit but dispatch returned false: null screenSession, COORDINATION, invalid mode, or an
+    // already-matched coordination exit). Symmetric counterpart to ClaimModeChangeRunning.
+    void ReleaseModeChangeRunning();
     // Dispatches the per-mode work and reports whether it armed the async running-flag lifecycle
     // (i.e. reached a Set(true) via ToMain/ToFull). Returns false for COORDINATION, invalid mode,
     // or an already-matched coordination exit, so the caller can release the claimed running flag.

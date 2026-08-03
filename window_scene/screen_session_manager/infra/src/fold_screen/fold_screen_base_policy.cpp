@@ -624,8 +624,8 @@ bool FoldScreenBasePolicy::ClaimModeChangeRunning(bool isForce)
     // re-claim to one (force request dropped). Cold path at user-action rate, leaf lock.
     std::lock_guard<std::mutex> lock(modeChangeClaimMutex_);
     auto now = std::chrono::steady_clock::now();
-    if (!displayModeChangeRunning_) {
-        displayModeChangeRunning_ = true;
+    if (!displayModeChangeRunning_.load()) {
+        displayModeChangeRunning_.store(true);
         startTimePoint_.store(now);
         return true;
     }
@@ -641,6 +641,11 @@ bool FoldScreenBasePolicy::ClaimModeChangeRunning(bool isForce)
     TLOGW(WmsLogTag::DMS, "force/stale takeover, reset running flag");
     startTimePoint_.store(now);
     return true;
+}
+
+void FoldScreenBasePolicy::ReleaseModeChangeRunning()
+{
+    displayModeChangeRunning_.store(false);
 }
 
 void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,
@@ -676,7 +681,7 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayM
         TLOGE(WmsLogTag::DMS, "default screenSession is null");
         // CheckDisplayModeChange has already claimed the running flag; release it so the next
         // change is not blocked until the timeout, since no completion Set(false) will fire.
-        displayModeChangeRunning_ = false;
+        ReleaseModeChangeRunning();
         return;
     }
     {
@@ -692,7 +697,7 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayM
     }
     if (!dispatched) {
         TLOGW(WmsLogTag::DMS, "displayMode %{public}d did not dispatch, release running flag", displayMode);
-        displayModeChangeRunning_ = false;
+        ReleaseModeChangeRunning();
     }
 }
 
