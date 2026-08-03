@@ -2285,6 +2285,20 @@ void SceneSession::SetSessionPiPControlStatusChangeCallback(const NotifySessionP
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         session->sessionPiPControlStatusChangeFunc_ = func;
+        if (session->needUpdatePiPControl_) {
+            TLOGW(WmsLogTag::WMS_PIP, "Update pip control status when register callback");
+            for (auto pipControlStatusInfo : session->pipTemplateInfo_.pipControlStatusInfoList) {
+                session->sessionPiPControlStatusChangeFunc_(
+                    static_cast<WsPiPControlType>(pipControlStatusInfo.controlType),
+                    static_cast<WsPiPControlStatus>(pipControlStatusInfo.status));
+            }
+            for (auto pipControlEnableInfo : session->pipTemplateInfo_.pipControlEnableInfoList) {
+                session->sessionPiPControlStatusChangeFunc_(
+                    static_cast<WsPiPControlType>(pipControlEnableInfo.controlType),
+                    static_cast<WsPiPControlStatus>(pipControlEnableInfo.enabled));
+            }
+            session->needUpdatePiPControl_ = false;
+        }
         return WSError::WS_OK;
     }, __func__);
 }
@@ -8284,9 +8298,13 @@ WSError SceneSession::UpdatePiPControlStatus(WsPiPControlType controlType, WsPiP
             TLOGNW(WmsLogTag::WMS_PIP, "%{public}s permission denied, not call by the same process", where);
             return WSError::WS_ERROR_INVALID_PERMISSION;
         }
+        session->pipTemplateInfo_.SetPiPControlStatus(static_cast<PiPControlType>(controlType),
+            static_cast<PiPControlStatus>(status));
         if (session->sessionPiPControlStatusChangeFunc_) {
             HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdatePiPControlStatus");
             session->sessionPiPControlStatusChangeFunc_(controlType, status);
+        } else {
+            session->needUpdatePiPControl_ = true;
         }
         return WSError::WS_OK;
     }, __func__);
