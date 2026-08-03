@@ -3754,6 +3754,137 @@ HWTEST_F(SceneSessionManagerTest12, RecordLifeCycleExceptionEvent, TestSize.Leve
     ssm_->RecordLifeCycleExceptionEvent(sceneSession, ERR_OK,
         WSErrorReason::WS_REASON_WINDOW_START_ERR, "test reason");
 }
+
+/**
+ * @tc.name: CheckSubWindowCallingProcess01
+ * @tc.desc: Check non-sub-window type should return WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckSubWindowCallingProcess01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    sptr<SceneSession> parentSession = nullptr;
+    auto res = ssm_->CheckSubWindowCallingProcess(property, parentSession);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: CheckSubWindowCallingProcess02
+ * @tc.desc: Check UIExtension sub-window should be skipped and return WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckSubWindowCallingProcess02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetIsUIExtFirstSubWindow(true);
+    sptr<SceneSession> parentSession = nullptr;
+    auto res = ssm_->CheckSubWindowCallingProcess(property, parentSession);
+    EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: CheckSubWindowCallingProcess03
+ * @tc.desc: Check system calling should be skipped and return WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckSubWindowCallingProcess03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::MockIsSACalling(false);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetParentPersistentId(100);
+    sptr<SceneSession> parentSession = nullptr;
+    auto res = ssm_->CheckSubWindowCallingProcess(property, parentSession);
+    EXPECT_EQ(res, WSError::WS_OK);
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
+
+/**
+ * @tc.name: CheckSubWindowCallingProcess04
+ * @tc.desc: Check parent session nullptr should return WS_ERROR_INVALID_WINDOW
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckSubWindowCallingProcess04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetParentPersistentId(99999);
+    sptr<SceneSession> parentSession = nullptr;
+    auto res = ssm_->CheckSubWindowCallingProcess(property, parentSession);
+    EXPECT_EQ(res, WSError::WS_ERROR_INVALID_WINDOW);
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
+
+/**
+ * @tc.name: CheckSubWindowCallingProcess05
+ * @tc.desc: Check same process should return WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckSubWindowCallingProcess05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    SessionInfo info;
+    info.abilityName_ = "CheckSubWindowCallingProcess05";
+    info.bundleName_ = "CheckSubWindowCallingProcess05";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    ssm_->sceneSessionMap_.insert(std::make_pair(parentSession->GetPersistentId(), parentSession));
+    LOCK_GUARD_EXPR(SCENE_GUARD, parentSession->SetCallingPid(IPCSkeleton::GetCallingRealPid()));
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetParentPersistentId(parentSession->GetPersistentId());
+    auto res = ssm_->CheckSubWindowCallingProcess(property, parentSession);
+    EXPECT_EQ(res, WSError::WS_OK);
+
+    ssm_->sceneSessionMap_.erase(parentSession->GetPersistentId());
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
+
+/**
+ * @tc.name: CheckSubWindowCallingProcess06
+ * @tc.desc: Check different process should return WS_ERROR_INVALID_OPERATION
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest12, CheckSubWindowCallingProcess06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    SessionInfo info;
+    info.abilityName_ = "CheckSubWindowCallingProcess06";
+    info.bundleName_ = "CheckSubWindowCallingProcess06";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    ssm_->sceneSessionMap_.insert(std::make_pair(parentSession->GetPersistentId(), parentSession));
+    LOCK_GUARD_EXPR(SCENE_GUARD, parentSession->SetCallingPid(IPCSkeleton::GetCallingRealPid() + 1));
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    property->SetParentPersistentId(parentSession->GetPersistentId());
+    auto res = ssm_->CheckSubWindowCallingProcess(property, parentSession);
+    EXPECT_EQ(res, WSError::WS_ERROR_INVALID_OPERATION);
+
+    ssm_->sceneSessionMap_.erase(parentSession->GetPersistentId());
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

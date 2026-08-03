@@ -5084,6 +5084,11 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
     }
 
     auto parentSession = GetSceneSession(property->GetParentPersistentId());
+    WSError processCheckRet = CheckSubWindowCallingProcess(property, parentSession);
+    if (processCheckRet != WSError::WS_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "sub window calling process check failed!");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "sub window calling process check failed"};
+    }
     if (parentSession) {
         auto parentProperty = parentSession->GetSessionProperty();
         if (parentProperty->GetSubWindowLevel() >= MAX_SUB_WINDOW_LEVEL &&
@@ -5683,6 +5688,37 @@ bool SceneSessionManager::CheckSystemWindowPermission(const sptr<WindowSessionPr
     }
     TLOGE(WmsLogTag::WMS_SYSTEM, "finally check permission failed.");
     return false;
+}
+
+WSError SceneSessionManager::CheckSubWindowCallingProcess(const sptr<WindowSessionProperty>& property,
+    const sptr<SceneSession>& parentSession)
+{
+    WindowType type = property->GetWindowType();
+    if (!WindowHelper::IsSubWindow(type)) {
+        return WSError::WS_OK;
+    }
+    if (property->GetIsUIExtFirstSubWindow()) {
+        return WSError::WS_OK;
+    }
+    if (SessionPermission::IsSystemCalling()) {
+        TLOGD(WmsLogTag::WMS_LIFE, "system calling, skip sub window process check");
+        return WSError::WS_OK;
+    }
+    if (parentSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "parent session is nullptr, parentId:%{public}d",
+            property->GetParentPersistentId());
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    auto callingPid = IPCSkeleton::GetCallingRealPid();
+    auto parentPid = parentSession->GetCallingPid();
+    if (callingPid == parentPid) {
+        TLOGD(WmsLogTag::WMS_LIFE, "same process, pid:%{public}d", callingPid);
+        return WSError::WS_OK;
+    }
+    TLOGE(WmsLogTag::WMS_LIFE,
+        "process check failed, callingPid:%{public}d, parentPid:%{public}d, parentId:%{public}d",
+        callingPid, parentPid, property->GetParentPersistentId());
+    return WSError::WS_ERROR_INVALID_OPERATION;
 }
 
 void SceneSessionManager::RecoverSessionInfo(const sptr<WindowSessionProperty>& property)

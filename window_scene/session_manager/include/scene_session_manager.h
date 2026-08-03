@@ -1736,6 +1736,8 @@ private:
     WSError HandleSecureSessionShouldHide(const sptr<SceneSession>& sceneSession);
     bool CheckSystemWindowPermission(const sptr<WindowSessionProperty>& property);
     bool CheckModalSubWindowPermission(const sptr<WindowSessionProperty>& property);
+    WSError CheckSubWindowCallingProcess(const sptr<WindowSessionProperty>& property,
+        const sptr<SceneSession>& parentSession);
 
     /*
      * Window Snapshot
