@@ -1927,6 +1927,9 @@ HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnOuterScreen01, TestSize.Le
  */
 HWTEST_F(WindowSessionImplTest3, SetSubWindowModal_SpnOuterScreen02, TestSize.Level1)
 {
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetSubWindowModal_SpnOuterScreen02");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
@@ -1960,6 +1963,9 @@ HWTEST_F(WindowSessionImplTest3, SetWindowModal_SpnOuterScreen01, TestSize.Level
  */
 HWTEST_F(WindowSessionImplTest3, SetWindowModal_SpnOuterScreen02, TestSize.Level1)
 {
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetWindowModal_SpnOuterScreen02");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);

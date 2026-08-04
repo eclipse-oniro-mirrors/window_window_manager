@@ -3496,6 +3496,11 @@ WMError WindowSessionImpl::SetTouchable(bool isTouchable)
     return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_TOUCHABLE);
 }
 
+bool WindowSessionImpl::IsSpnOuterScreen() const
+{
+    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
+}
+
 /** @note @window.hierarchy */
 WMError WindowSessionImpl::SetTopmost(bool topmost)
 {

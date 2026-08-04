@@ -25,7 +25,6 @@
 #include <event_handler.h>
 
 #include "dm_common.h"
-#include "fold_screen_state_internel.h"
 #include "interfaces/include/ws_common.h"
 #include "layout_controller.h"
 #include "occupied_area_change_info.h"
@@ -504,10 +503,7 @@ public:
     WSRect GetLayoutRect() const;
     bool GetSkipSelfWhenShowOnVirtualScreen() const;
     DisplayId GetDisplayId() const { return GetSessionProperty()->GetDisplayId(); }
-    bool IsSpnOuterScreen() const
-    {
-        return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
-    }
+    bool IsSpnOuterScreen() const;
     static constexpr ScreenId SCREEN_ID_MAIN = 5;
     void SetRestartApp(bool restartApp);
     bool GetRestartApp() const;

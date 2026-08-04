@@ -31,7 +31,6 @@
 #include "singleton_container.h"
 
 #include "common/include/window_session_property.h"
-#include "common/include/fold_screen_state_internel.h"
 #include "display_info.h"
 #include "future_callback.h"
 #include "interfaces/include/ws_common.h"
@@ -231,10 +230,7 @@ public:
     bool GetTouchable() const override;
     uint32_t GetWindowId() const override;
     uint64_t GetDisplayId() const override;
-    bool IsSpnOuterScreen() const
-    {
-        return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
-    }
+    bool IsSpnOuterScreen() const;
     Rect GetRect() const override;
     Rect GetRect(bool useHookedSize) const override;
     bool GetFocusable() const override;
