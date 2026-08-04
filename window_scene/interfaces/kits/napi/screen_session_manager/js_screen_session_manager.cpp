@@ -172,6 +172,8 @@ napi_value JsScreenSessionManager::Init(napi_env env, napi_value exportObj)
         JsScreenSessionManager::RegisterSwitchUserAnimationNotification);
     BindNativeFunction(env, exportObj, "unRegisterSwitchUserAnimationNotification", moduleName,
         JsScreenSessionManager::UnRegisterSwitchUserAnimationNotification);
+    BindNativeFunction(env, exportObj, "setHoverBlockList", moduleName,
+        JsScreenSessionManager::SetHoverBlockList);
     return NapiGetUndefined(env);
 }
 
@@ -464,6 +466,12 @@ napi_value JsScreenSessionManager::UnRegisterSwitchUserAnimationNotification(nap
     TLOGD(WmsLogTag::DMS, "[NAPI]UnRegisterSwitchUserAnimationNotification");
     JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
     return (me != nullptr) ? me->OnUnRegisterSwitchUserAnimationNotification(env, info) : nullptr;
+}
+napi_value JsScreenSessionManager::SetHoverBlockList(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "[NAPI]SetHoverBlockList");
+    JsScreenSessionManager* me = CheckParamsAndGetThis<JsScreenSessionManager>(env, info);
+    return (me != nullptr) ? me->OnSetHoverBlockList(env, info) : nullptr;
 }
 
 void JsScreenSessionManager::OnScreenConnected(const sptr<ScreenSession>& screenSession)
@@ -1908,6 +1916,29 @@ napi_value JsScreenSessionManager::OnUnRegisterSwitchUserAnimationNotification(n
         return NapiGetUndefined(env);
     }
     ScreenSessionManagerClient::GetInstance().UnRegisterSwitchUserAnimationNotification(description);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsScreenSessionManager::OnSetHoverBlockList(napi_env env, const napi_callback_info info)
+{
+    TLOGD(WmsLogTag::DMS, "[NAPI]OnSetHoverBlockList");
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    std::vector<std::string> hoverBlockList;
+    if (!ParseArrayStringValue(env, argv[0], hoverBlockList)) {
+        TLOGE(WmsLogTag::DMS, "[NAPI]Failed to convert parameter to hoverBlockList");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    ScreenSessionManagerClient::GetInstance().SetHoverBlockList(hoverBlockList);
     return NapiGetUndefined(env);
 }
 } // namespace OHOS::Rosen

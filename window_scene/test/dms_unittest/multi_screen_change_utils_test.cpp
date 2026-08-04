@@ -165,26 +165,6 @@ HWTEST_F(MultiScreenChangeUtilsTest, ScreenExtendPositionChange, TestSize.Level1
 }
 
 /**
- * @tc.name: SetScreenAvailableStatus
- * @tc.desc: SetScreenAvailableStatus func
- * @tc.type: FUNC
- */
-HWTEST_F(MultiScreenChangeUtilsTest, SetScreenAvailableStatus, TestSize.Level1)
-{
-    sptr<ScreenSession> screenSession = nullptr;
-    bool isScreenAvailable = true;
-
-    g_logMsg.clear();
-    LOG_SetCallback(MyLogCallback);
-    multiSCU_.SetScreenAvailableStatus(screenSession, isScreenAvailable);
-    screenSession = new ScreenSession();
-    multiSCU_.SetScreenAvailableStatus(screenSession, isScreenAvailable);
-    EXPECT_TRUE(g_logMsg.find("screenSession is null") == std::string::npos);
-    g_logMsg.clear();
-    LOG_SetCallback(nullptr);
-}
-
-/**
  * @tc.name: ScreenMainPositionChange
  * @tc.desc: ScreenMainPositionChange func
  * @tc.type: FUNC

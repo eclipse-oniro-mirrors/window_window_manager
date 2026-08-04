@@ -2103,6 +2103,9 @@ bool ParseSubWindowOptions(napi_env env, napi_value jsObject, const sptr<WindowO
     if (!ParseRectParam(env, jsObject, windowOption)) {
         return false;
     }
+    if (zLevelAboveParentLoosened) {
+        return true;
+    }
     if (!ParseModalityParam(env, jsObject, windowOption)) {
         return false;
     }

@@ -2487,10 +2487,10 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     // Case1: Not cross screen
     sceneSession->GetSessionProperty()->SetDisplayId(startDisplayId);
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    sceneSession->moveDragController_->winType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->endDisplayId_ = startDisplayId;
+    sceneSession->moveDragController_->startDisplayId_ = startDisplayId;
+    sceneSession->moveDragController_->endDisplayId_ = startDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), true);
@@ -2498,10 +2498,10 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     // Case2: Not supported across screen
     sceneSession->GetSessionProperty()->SetDisplayId(startDisplayId);
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_DESKTOP);
-    sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_DESKTOP;
+    sceneSession->moveDragController_->winType_ = WindowType::WINDOW_TYPE_DESKTOP;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->endDisplayId_ = endDisplayId;
+    sceneSession->moveDragController_->startDisplayId_ = startDisplayId;
+    sceneSession->moveDragController_->endDisplayId_ = endDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), true);
@@ -2509,10 +2509,10 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     // Case3: Support cross screen and cross screen
     sceneSession->GetSessionProperty()->SetDisplayId(startDisplayId);
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
+    sceneSession->moveDragController_->winType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->endDisplayId_ = endDisplayId;
+    sceneSession->moveDragController_->startDisplayId_ = startDisplayId;
+    sceneSession->moveDragController_->endDisplayId_ = endDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), false);
@@ -2520,10 +2520,10 @@ HWTEST_F(SceneSessionLayoutTest, HandleMoveDragEnd, TestSize.Level1)
     // Case4: Not cross screen and not supported across screen
     sceneSession->GetSessionProperty()->SetDisplayId(startDisplayId);
     sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_DESKTOP);
-    sceneSession->GetMoveDragController()->winType_ = WindowType::WINDOW_TYPE_DESKTOP;
+    sceneSession->moveDragController_->winType_ = WindowType::WINDOW_TYPE_DESKTOP;
     subSession->GetSessionProperty()->SetDisplayId(startDisplayId);
-    sceneSession->GetMoveDragController()->startDisplayId_ = startDisplayId;
-    sceneSession->GetMoveDragController()->endDisplayId_ = startDisplayId;
+    sceneSession->moveDragController_->startDisplayId_ = startDisplayId;
+    sceneSession->moveDragController_->endDisplayId_ = startDisplayId;
     subSession->SetShouldFollowParentWhenShow(true);
     sceneSession->HandleMoveDragEnd(rect, SizeChangeReason::UNDEFINED);
     EXPECT_EQ(subSession->GetShouldFollowParentWhenShow(), true);

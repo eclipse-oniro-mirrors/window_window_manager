@@ -187,6 +187,8 @@
             OHOS::Rosen::RootScene::RegisterUpdateRootSceneAvoidAreaCallback*;
             OHOS::Rosen::RootScene::RegisterUpdateRootSceneRectCallback*;
             OHOS::Rosen::RootScene::RootScene*;
+            OHOS::Rosen::RootScene::SetDisplayDensity*;
+            OHOS::Rosen::RootScene::GetDisplayDensity*;
             OHOS::Rosen::RootScene::SetDisplayOrientation*;
             OHOS::Rosen::RootScene::SetFrameLayoutFinishCallback*;
             OHOS::Rosen::RootScene::SetOnConfigurationUpdatedCallback*;

@@ -211,10 +211,6 @@ public:
     };
     explicit Session(const SessionInfo& info);
     virtual ~Session();
-    virtual SessionType GetSessionType() const
-    {
-        return SessionType::Session;
-    };
     bool isKeyboardPanelEnabled_ = false;
     virtual void SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
         const std::shared_ptr<AppExecFwk::EventHandler>& exportHandler = nullptr);
@@ -818,6 +814,8 @@ public:
     std::string GetWindowDetectTaskName() const;
     void RemoveWindowDetectTask();
     WSError SwitchFreeMultiWindow(const SystemSessionConfig& config);
+    void UpdateSupportMultiWindowScreenSet(const std::set<ScreenId>& supportMultiWindowScreenSet);
+    WSError UpdateScreenSupportMultiWindowToClient();
     bool haveSetSupportedWindowModes_ = false;
 
     virtual bool CheckGetAvoidAreaAvailable(AvoidAreaType type) { return true; }
@@ -836,8 +834,6 @@ public:
     std::string GetAppInstanceKey() const;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetSessionInfoAbilityInfo();
     virtual void NotifyWindowSceneDetach() {};
-    bool GetNeedBackgroundAfterConnect() const;
-    void SetNeedBackgroundAfterConnect(bool isNeed);
     void RecordLifecycleSessionStateError(SessionState expectState, SessionState currentState) const;
 
     /*
@@ -1396,7 +1392,6 @@ private:
 
     DetectTaskInfo detectTaskInfo_;
     mutable std::shared_mutex detectTaskInfoMutex_;
-    bool needBackgroundAfterConnect_ { false };
 
     /*
      * Starting Window

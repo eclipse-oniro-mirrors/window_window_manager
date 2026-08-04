@@ -426,6 +426,17 @@ HWTEST_F(FoldCreaseRegionControllerTest, SortCreaseRegionRects, TestSize.Level1)
     EXPECT_EQ(testRects[2].posX_, 10);
     EXPECT_EQ(testRects[2].posY_, 20);
 }
+ * @tc.name: SetHoverBlockList
+ * @tc.desc: test function : SetHoverBlockList
+ * @tc.type: FUNC
+ */
+HWTEST_F(FoldScreenBaseControllerTest, SetHoverBlockList, TestSize.Level1)
+{
+    auto controller = FoldScreenBaseController();
+    FoldScreenBasePolicy::GetInstance().hoverBlockList_ = {"11"};
+    controller.SetHoverBlockList({"11", "22"});
+    EXPECT_EQ(FoldScreenBasePolicy::GetInstance().hoverBlockList_.size(), 2);
+}
 } // namespace
 } // namespace DMS
 } // namespace Rosen

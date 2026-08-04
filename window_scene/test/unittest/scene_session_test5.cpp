@@ -2164,6 +2164,110 @@ HWTEST_F(SceneSessionTest5, UpdateUIParam, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateUIParamWithPcScenePanel01
+ * @tc.desc: Test UpdateUIParam with PC scene panel and PC window in free multi window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel01";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(0);
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_EQ(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
+ * @tc.name: UpdateUIParamWithPcScenePanel02
+ * @tc.desc: Test UpdateUIParam with non-PC scene panel
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel02";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel02";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(false);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(0);
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_NE(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
+ * @tc.name: UpdateUIParamWithPcScenePanel03
+ * @tc.desc: Test UpdateUIParam with PC scene panel but non-PC window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel03";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel03";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(0);
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_NE(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
+ * @tc.name: UpdateUIParamWithPcScenePanel04
+ * @tc.desc: Test UpdateUIParam with PC scene panel and PC window but not in free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel04";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel04";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.clear();
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_NE(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
  * @tc.name: UpdateVisibilityInner
  * @tc.desc: UpdateVisibilityInner function01
  * @tc.type: FUNC

@@ -54,11 +54,15 @@ namespace {
         PiPControlGroup::VIDEO_PLAY_PAUSE,
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
+    const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
+    const std::set<PiPControlGroup> VIDEO_NAVIGATION_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_NAVIGATION, VIDEO_NAVIGATION_CONTROLS},
     };
 }
 
@@ -201,6 +205,12 @@ bool AniPiPWindow::checkOptionParams(PipOptionAni& option)
         return false;
     }
     uint32_t pipTemplateType = option.GetPipTemplate();
+    if (IsSystemOnlyPiPTemplateType(static_cast<PiPTemplateType>(pipTemplateType)) &&
+        !Permission::IsSystemCalling(true)) {
+        TLOGE(WmsLogTag::WMS_PIP, "PipOptionAni param error, templateType %{public}u requires system app",
+            pipTemplateType);
+        return false;
+    }
     if (TEMPLATE_CONTROL_MAP.find(static_cast<PiPTemplateType>(pipTemplateType)) ==
         TEMPLATE_CONTROL_MAP.end()) {
         TLOGE(WmsLogTag::WMS_PIP, "PipOptionAni param error, pipTemplateType not exists.");
@@ -223,13 +233,22 @@ bool AniPiPWindow::GetControlGroupFromJs(ani_env* env, ani_ref controlGroup, std
 
     ani_size length = 0;
     auto array = static_cast<ani_array>(controlGroup);
-    env->Array_GetLength(array, &length);
+    ani_status aniRet = env->Array_GetLength(array, &length);
+    if (aniRet != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_PIP, "Array_GetLength is not ANI_OK.");
+    }
 
     for (size_t i = 0; i < length; i++) {
         ani_ref getElementValue = nullptr;
-        env->Array_Get(array, i, &getElementValue);
+        ani_status arrayGetStatus = env->Array_Get(array, i, &getElementValue);
+        if (arrayGetStatus != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_PIP, "Array_Get is not ANI_OK.");
+        }
         ani_int ret;
-        env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(getElementValue), &ret);
+        ani_status enumItemStatus = env->EnumItem_GetValue_Int(static_cast<ani_enum_item>(getElementValue), &ret);
+        if (enumItemStatus != ANI_OK) {
+            TLOGE(WmsLogTag::WMS_PIP, "EnumItem_GetValue_Int is not ANI_OK.");
+        }
         uint32_t controlType = static_cast<uint32_t>(ret);
 
         auto iter = std::find(controls.begin(), controls.end(), controlType);

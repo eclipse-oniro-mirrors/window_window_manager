@@ -537,7 +537,7 @@ public:
         const sptr<IExtensionSecureLimitChangeListener>& listener) override;
     virtual WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) const override;
     virtual WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) const override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
     virtual void SetTouchEvent(int32_t touchType) override;
     WMError SetContinueState(int32_t continueState) override;
     virtual WMError CheckAndModifyWindowRect(uint32_t& width, uint32_t& height)
@@ -602,6 +602,7 @@ public:
     virtual void UpdateSubWindowDragEnabledByDecorVisible() {}
     void SwitchSubWindow(bool freeMultiWindowEnable, int32_t parentId);
     void SwitchSystemWindow(bool freeMultiWindowEnable, int32_t parentId);
+    void UpdateSubWindowPropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property, int32_t parentId);
 
     /*
      * Window Immersive
@@ -985,6 +986,8 @@ protected:
     std::atomic_bool shouldReNotifyHighlight_ = false;
     static std::atomic<int64_t> updateFocusTimeStamp_;
     static std::atomic<int64_t> updateHighlightTimeStamp_;
+    static std::mutex focusTimeStampMutex_;
+    static std::mutex highlightTimeStampMutex_;
     std::shared_ptr<AppExecFwk::EventHandler> handler_ = nullptr;
     bool shouldReNotifyFocus_ = false;
     std::shared_ptr<VsyncStation> vsyncStation_ = nullptr;
@@ -996,6 +999,7 @@ protected:
     // Check whether the UIExtensionAbility process is started
     static bool isUIExtensionAbilityProcess_;
     WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
+    WSError UpdateScreenSupportMultiWindow(const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     std::string identityToken_ = { "" };
     void MakeSubOrDialogWindowDragableAndMoveble();
@@ -1263,7 +1267,9 @@ private:
     template<typename T>
  	EnableIfSame<T, IParentLifecycleEventListener, std::vector<sptr<IParentLifecycleEventListener>>> GetListeners();
     template<typename T>
- 	EnableIfSame<T, IWindowHoverStateChangeListener, std::vector<sptr<IWindowHoverStateChangeListener>>> GetListeners();
+    EnableIfSame<T, IWindowHoverStateChangeListener, std::vector<sptr<IWindowHoverStateChangeListener>>> GetListeners();
+    void ProcessUpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyInfo, bool isFocused);
+    void ProcessNotifyHighlightChange(const sptr<HighlightNotifyInfo>& highlightNotifyInfo, bool isHighlight);
     void NotifyAfterFocused();
     void NotifyUIContentFocusStatus();
     void NotifyAfterUnfocused(bool needNotifyUiContent = true);

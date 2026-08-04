@@ -68,7 +68,8 @@ export namespace PiPWindow {
   export type ControlPanelActionEventCallback = (event: PiPActionEventType, status?: int) => void;
 
 
-  export type PiPControlGroup = VideoPlayControlGroup | VideoCallControlGroup | VideoMeetingControlGroup | VideoLiveControlGroup | VideoDriveControlGroup;
+  export type PiPControlGroup = VideoPlayControlGroup | VideoCallControlGroup | VideoMeetingControlGroup |
+    VideoLiveControlGroup | VideoDriveControlGroup | VideoNavigationControlGroup;
 
   export enum PiPTemplateType {
     VIDEO_PLAY,
@@ -76,6 +77,7 @@ export namespace PiPWindow {
     VIDEO_MEETING,
     VIDEO_LIVE,
     VIDEO_DRIVE,
+    VIDEO_NAVIGATION,
   }
 
   export enum VideoPlayControlGroup {
@@ -103,6 +105,8 @@ export namespace PiPWindow {
   }
 
   export enum VideoDriveControlGroup {}
+
+  export enum VideoNavigationControlGroup {}
 
   export interface PiPWindowSize {
     width: int;

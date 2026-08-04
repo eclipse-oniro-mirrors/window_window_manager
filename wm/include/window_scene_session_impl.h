@@ -276,6 +276,7 @@ public:
      * Free Multi Window
      */
     WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
+    WSError UpdateScreenSupportMultiWindow(const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     virtual bool GetFreeMultiWindowModeEnabledState() override;
     void UpdateImmersiveBySwitchMode(bool freeMultiWindowEnable);
 
@@ -602,7 +603,7 @@ private:
     /*
      * Window Layout
      */
-    void CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
+    WMError CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
     void UpdateSubWindowDragEnabledByDecorVisible() override;
     WMError GetSelectMode(SelectMode& selectMode) override;

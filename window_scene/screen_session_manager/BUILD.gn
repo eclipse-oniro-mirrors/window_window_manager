@@ -66,6 +66,7 @@ ohos_shared_library("screen_session_manager") {
   sources = [
     "../../dm/src/zidl/display_manager_agent_proxy.cpp",
     "../screen_session_manager_client/src/zidl/screen_session_manager_client_proxy.cpp",
+    "src/bundle_info_helper.cpp",
     "src/connection/screen_cast_connection.cpp",
     "src/connection/screen_session_ability_connection.cpp",
     "src/connection/screen_snapshot_picker_connection.cpp",

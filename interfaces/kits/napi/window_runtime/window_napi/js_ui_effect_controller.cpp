@@ -34,7 +34,12 @@ using namespace AbilityRuntime;
 
 napi_status JsUIEffectController::CreateJsObject(napi_env env, JsUIEffectController* filter, napi_value& obj)
 {
-    NAPI_CHECK(napi_create_object(env, &obj), "ui effect obj");
+    napi_status createStatus = napi_create_object(env, &obj);
+    if (createStatus != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "create obj failed %{public}d", createStatus);
+        delete filter;
+        return createStatus;
+    }
     napi_status status = napi_wrap(env, obj, filter, JsUIEffectController::Finalizer, nullptr, nullptr);
     if (status != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "napi func failed, with reason %{public}d", status);

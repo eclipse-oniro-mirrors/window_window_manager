@@ -1669,6 +1669,24 @@ HWTEST_F(WindowSessionPropertyTest, UnMarshallingSessionInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UnMarshallingSessionInfoFail
+ * @tc.desc: UnMarshallingSessionInfo test when appIndex read fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, UnMarshallingSessionInfoFail, TestSize.Level1)
+{
+    Parcel parcel;
+    parcel.WriteString("testBundleName");
+    parcel.WriteString("testModuleName");
+    parcel.WriteString("testAbilityName");
+    parcel.WriteInt32(0);
+    WindowSessionProperty windowSessionProperty;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    bool result = windowSessionProperty.UnmarshallingSessionInfo(parcel, property);
+    ASSERT_EQ(result, false);
+}
+
+/**
  * @tc.name: MarshallingTransitionAnimationMap
  * @tc.desc: MarshallingTransitionAnimationMap test
  * @tc.type: FUNC
@@ -2854,6 +2872,145 @@ HWTEST_F(WindowSessionPropertyTest, GetWindowModeCompat005, TestSize.Level1)
     splitInfo.splitIndex = 99; // Invalid index
     property->SetWindowModeInfo(splitInfo);
     EXPECT_EQ(property->GetWindowModeCompat(), WindowMode::WINDOW_MODE_SPLIT);
+}
+
+/**
+ * @tc.name: SetTitleAndDockHoverEnabled
+ * @tc.desc: SetTitleAndDockHoverEnabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, SetTitleAndDockHoverEnabled, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    EXPECT_EQ(property->GetTitleHoverShowEnabled(), true);
+    EXPECT_EQ(property->GetDockHoverShowEnabled(), true);
+
+    property->SetTitleAndDockHoverEnabled(true, false);
+    EXPECT_EQ(property->GetTitleHoverShowEnabled(), true);
+    EXPECT_EQ(property->GetDockHoverShowEnabled(), false);
+
+    property->SetTitleAndDockHoverEnabled(false, true);
+    EXPECT_EQ(property->GetTitleHoverShowEnabled(), false);
+    EXPECT_EQ(property->GetDockHoverShowEnabled(), true);
+
+    property->SetTitleAndDockHoverEnabled(false, false);
+    EXPECT_EQ(property->GetTitleHoverShowEnabled(), false);
+    EXPECT_EQ(property->GetDockHoverShowEnabled(), false);
+}
+
+/**
+ * @tc.name: MarshallingSupportWindowModes001
+ * @tc.desc: test MarshallingSupportWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, MarshallingSupportWindowModes001, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    supportedWindowModes.emplace_back(static_cast<AppExecFwk::SupportWindowMode>(0));
+    supportedWindowModes.emplace_back(static_cast<AppExecFwk::SupportWindowMode>(0));
+    supportedWindowModes.emplace_back(static_cast<AppExecFwk::SupportWindowMode>(0));
+    supportedWindowModes.emplace_back(static_cast<AppExecFwk::SupportWindowMode>(0));
+    supportedWindowModes.emplace_back(static_cast<AppExecFwk::SupportWindowMode>(0));
+    property->SetSupportedWindowModes(supportedWindowModes);
+
+    Parcel parcel;
+    bool ret = property->MarshallingSupportWindowModes(parcel);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name: MarshallingSupportWindowModes002
+ * @tc.desc: test MarshallingSupportWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, MarshallingSupportWindowModes002, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes;
+    supportedWindowModes.emplace_back(static_cast<AppExecFwk::SupportWindowMode>(0));
+    property->SetSupportedWindowModes(supportedWindowModes);
+
+    Parcel parcel;
+    bool ret = property->MarshallingSupportWindowModes(parcel);
+    EXPECT_EQ(true, ret);
+}
+
+/**
+ * @tc.name: UnmarshallingSupportWindowModes001
+ * @tc.desc: test UnmarshallingSupportWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, UnmarshallingSupportWindowModes001, TestSize.Level1)
+{
+    Parcel parcel;
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    WindowSessionProperty::UnmarshallingSupportWindowModes(parcel, property);
+    std::vector<AppExecFwk::SupportWindowMode> supportModeResult;
+    property->GetSupportedWindowModes(supportModeResult);
+    EXPECT_EQ(supportModeResult.size(), 0);
+}
+
+/**
+ * @tc.name: UnmarshallingSupportWindowModes002
+ * @tc.desc: test UnmarshallingSupportWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, UnmarshallingSupportWindowModes002, TestSize.Level1)
+{
+    Parcel parcel;
+    parcel.WriteUint32(-1);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    WindowSessionProperty::UnmarshallingSupportWindowModes(parcel, property);
+    std::vector<AppExecFwk::SupportWindowMode> supportModeResult;
+    property->GetSupportedWindowModes(supportModeResult);
+    EXPECT_EQ(supportModeResult.size(), 0);
+}
+
+/**
+ * @tc.name: UnmarshallingSupportWindowModes003
+ * @tc.desc: test UnmarshallingSupportWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, UnmarshallingSupportWindowModes003, TestSize.Level1)
+{
+    Parcel parcel;
+    parcel.WriteUint32(5);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    WindowSessionProperty::UnmarshallingSupportWindowModes(parcel, property);
+    std::vector<AppExecFwk::SupportWindowMode> supportModeResult;
+    property->GetSupportedWindowModes(supportModeResult);
+    EXPECT_EQ(supportModeResult.size(), 0);
+}
+
+/**
+ * @tc.name: UnmarshallingSupportWindowModes004
+ * @tc.desc: test UnmarshallingSupportWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, UnmarshallingSupportWindowModes004, TestSize.Level1)
+{
+    Parcel parcel;
+    parcel.WriteUint32(1);
+    parcel.WriteInt32(0);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    WindowSessionProperty::UnmarshallingSupportWindowModes(parcel, property);
+    std::vector<AppExecFwk::SupportWindowMode> supportModeResult;
+    property->GetSupportedWindowModes(supportModeResult);
+    EXPECT_EQ(supportModeResult.size(), 1);
 }
 } // namespace
 } // namespace Rosen

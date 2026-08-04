@@ -150,9 +150,9 @@ public:
     virtual sptr<DisplayInfo> GetDisplayInfoByScreen(ScreenId screenId) override;
     virtual std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT) override;
 
-    virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId) override;
+    virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId, bool isNeedUnused = false) override;
 
-    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos) override;
+    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false) override;
 
     virtual DMError GetScreenSupportedColorGamuts(ScreenId screenId,
         std::vector<ScreenColorGamut>& colorGamuts) override;
@@ -285,7 +285,7 @@ public:
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
     sptr<IRemoteObject> GetRenderSession(ScreenId screenId) override;
-
+    void SetHoverBlockList(const std::vector<std::string>& hoverBlockList) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerProxy> delegator_;
 };

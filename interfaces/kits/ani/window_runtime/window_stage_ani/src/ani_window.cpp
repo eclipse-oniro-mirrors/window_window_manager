@@ -297,13 +297,6 @@ void AniWindow::OnSetPreferredOrientationWithResult(ani_env* env, ani_int orient
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] windowToken_ is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-
     auto apiOrientation = static_cast<ApiOrientation>(orientationValue);
     if (apiOrientation < ApiOrientation::BEGIN || apiOrientation > ApiOrientation::END) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] Orientation %{public}u invalid!",
@@ -318,7 +311,7 @@ void AniWindow::OnSetPreferredOrientationWithResult(ani_env* env, ani_int orient
     }
     WMError ret = window->SetPreferredOrientationWithResult(requestedOrientation, promiseIdValue);
     TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] end: winId: %{public}u, result:%{public}d",
-        windowToken_->GetWindowId(), static_cast<int32_t>(ret));
+        window->GetWindowId(), static_cast<int32_t>(ret));
     if (ret != WMError::WM_OK) {
         AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
     }
@@ -452,13 +445,7 @@ void AniWindow::OnOpacity(ani_env* env, ani_double opacity)
         return;
     }
 
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] windowToken_ is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-
-    if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
+    if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Opacity is not allowed since window is not system window");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
         return;
@@ -6661,7 +6648,7 @@ void AniWindow::SetWindowTransitionAnimation(ani_env* env, ani_object obj, ani_l
 {
     TLOGI(WmsLogTag::WMS_ANIMATION, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
-    if (!aniWindow || !aniWindow->GetWindow()) {
+    if (!aniWindow || !aniWindow->GetWindow() || animation == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] windowToken is nullptr");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;

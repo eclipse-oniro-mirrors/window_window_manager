@@ -683,6 +683,10 @@ void WindowManager::Impl::NotifySupportRotationChange(const SupportRotationInfo&
     }
     for (auto& listener : windowSupportRotationListener) {
         TLOGD(WmsLogTag::WMS_ROTATION, "Notify supportRotationInfo to caller");
+        if (listener == nullptr) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "listener is nullptr");
+            continue;
+        }
         listener->OnSupportRotationChange(supportRotationInfo);
     }
 }

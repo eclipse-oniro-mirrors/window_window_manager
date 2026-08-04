@@ -558,6 +558,7 @@ WMError FloatViewController::SetVisibilityInApp(bool visibleInApp)
     option_.GetFvTemplateInfo(fvTemplateInfo);
     fvTemplateInfo.id_ = id_;
     fvTemplateInfo.isBind_ = bindState_;
+    fvTemplateInfo.bindWindowId_ = bindWindowId_;
     errorCode = window_->UpdateFloatView(fvTemplateInfo);
     if (errorCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Update float view failed when set visibility in app, err: %{public}u", errorCode);
@@ -624,6 +625,7 @@ WMError FloatViewController::UpdateFloatView()
     option_.GetFvTemplateInfo(fvTemplateInfo);
     fvTemplateInfo.id_ = id_;
     fvTemplateInfo.isBind_ = bindState_;
+    fvTemplateInfo.bindWindowId_ = bindWindowId_;
     auto errCode = window_->UpdateFloatView(fvTemplateInfo);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Update float view failed when change float view, err: %{public}u", errCode);

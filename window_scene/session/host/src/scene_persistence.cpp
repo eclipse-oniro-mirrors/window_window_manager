@@ -528,11 +528,11 @@ void ScenePersistence::ClearSnapshot()
     hasSnapshotFreeMultiWindow_ = false;
 }
 
-bool ScenePersistence::IsSnapshotExisted(SnapshotStatus key, bool freeMultiWindow)
+bool ScenePersistence::IsSnapshotExisted(std::string& snapshotPath, SnapshotStatus key, bool freeMultiWindow)
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "IsSnapshotExisted");
     struct stat buf;
-    auto snapshotPath = GetSnapshotFilePath(key, true, freeMultiWindow);
+    snapshotPath = GetSnapshotFilePath(key, false, freeMultiWindow);
     if (stat(snapshotPath.c_str(), &buf)) {
         TLOGD(WmsLogTag::WMS_PATTERN, "Snapshot file %{public}s does not exist",
             snapshotPath.c_str());
@@ -548,7 +548,8 @@ bool ScenePersistence::IsSnapshotExisted(SnapshotStatus key, bool freeMultiWindo
 std::shared_ptr<Media::PixelMap> ScenePersistence::GetLocalSnapshotPixelMap(const float oriScale,
     const float newScale, SnapshotStatus key, bool freeMultiWindow)
 {
-    if (!IsSnapshotExisted(key, freeMultiWindow)) {
+    std::string path;
+    if (!IsSnapshotExisted(path, key, freeMultiWindow)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "local snapshot pic is not existed");
         return nullptr;
     }
@@ -557,7 +558,6 @@ std::shared_ptr<Media::PixelMap> ScenePersistence::GetLocalSnapshotPixelMap(cons
     Media::SourceOptions sourceOpts;
     const char *astcImageFormat = this->isPcWindow_ ? ASTC_IMAGE_FORMAT_LOW : ASTC_IMAGE_FORMAT_HIGH;
     sourceOpts.formatHint = IsAstcEnabled() ? astcImageFormat : IMAGE_FORMAT;
-    std::string path = GetSnapshotFilePath(key, true, freeMultiWindow);
     std::lock_guard lock(savingSnapshotMutex_);
     auto imageSource = Media::ImageSource::CreateImageSource(path, sourceOpts, errorCode);
     if (!imageSource) {

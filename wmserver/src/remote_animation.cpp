@@ -233,7 +233,7 @@ TransitionEvent RemoteAnimation::GetTransitionEvent(sptr<WindowTransitionInfo> s
     }
     WLOGFI("Ability Transition");
     if (dstNode == nullptr) {
-        if (dstInfo->GetAbilityToken() == nullptr) {
+        if (dstInfo && dstInfo->GetAbilityToken() == nullptr) {
             WLOGFE("target window abilityToken is null");
         }
         return TransitionEvent::UNKNOWN;
@@ -247,7 +247,7 @@ TransitionEvent RemoteAnimation::GetTransitionEvent(sptr<WindowTransitionInfo> s
                 return TransitionEvent::UNKNOWN;
             }
             return TransitionEvent::APP_TRANSITION;
-        } else if (dstInfo->GetWindowType() == WindowType::WINDOW_TYPE_DESKTOP) {
+        } else if (dstInfo && dstInfo->GetWindowType() == WindowType::WINDOW_TYPE_DESKTOP) {
             return TransitionEvent::HOME;
         }
     }

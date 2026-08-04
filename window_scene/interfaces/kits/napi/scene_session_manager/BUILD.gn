@@ -82,6 +82,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     "egl:libEGL",
     "opengles:libGLES",
     "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines = []

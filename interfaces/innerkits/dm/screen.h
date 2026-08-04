@@ -158,6 +158,13 @@ public:
     std::string GetSerialNumber() const;
 
     /**
+     * @brief Get screen serial number.
+     *
+     * @return Screen serial number.
+     */
+    bool GetIsInUse() const;
+
+    /**
      * @brief Get screen mode id.
      *
      * @return Screen mode id.

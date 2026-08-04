@@ -545,10 +545,15 @@ using RSSurfaceTextureAttachCallBack = std::function<void(int64_t textureId, boo
 using RSSurfaceTextureUpdateCallBack = std::function<void(std::vector<float>&)>;
 using RSSurfaceTextureInitTypeCallBack = std::function<void(int32_t&)>;
 // codes for arkui-x end
-
+enum class DisplayMode : uint8_t {
+    INVALID = 0,
+    MIRROR,
+    EXPAND,
+    INDEPENDENT,
+};
 struct RSDisplayNodeConfig {
     uint64_t screenId = 0;
-    bool isMirrored = false;
+    DisplayMode displayMode = DisplayMode::INVALID;
     NodeId mirrorNodeId = 0;
     bool isSync = false;
     uint32_t mirrorSourceRotation = 4; // default INVALID_SCREEN_ROTATION

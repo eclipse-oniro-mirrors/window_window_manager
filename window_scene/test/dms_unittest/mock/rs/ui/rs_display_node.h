@@ -40,7 +40,7 @@ public:
     void SetScreenId(uint64_t screenId) {}
     void SetSecurityDisplay(bool isSecurityDisplay) {}
     void SetScreenRotation(const uint32_t& rotation) {}
-    void SetDisplayNodeMirrorConfig(const RSDisplayNodeConfig& displayNodeConfig)
+    void SetDisplayNodeConfig(const RSDisplayNodeConfig& displayNodeConfig)
     {
         displayNodeConfig_ = displayNodeConfig;
     }

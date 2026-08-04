@@ -1296,8 +1296,7 @@ WMError WindowManagerLite::GetWindowModeType(WindowModeType& windowModeType) con
 WMError WindowManagerLite::UpdateAnimationSpeedWithPid(pid_t pid, float speed)
 {
     // 0.f:less than 0.f is invalid, animation speed cannot be negative
-    // 10.f:greater than 10.f is invalid, unexpected UI behavior
-    if (speed < 0.0f || speed > 10.0f) {
+    if (speed < 0.0f) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "update animation speed with invalid speed, speed = %{public}f", speed);
         return WMError::WM_ERROR_INVALID_PARAM;
     }

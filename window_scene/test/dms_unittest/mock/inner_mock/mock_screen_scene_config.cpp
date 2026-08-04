@@ -374,4 +374,9 @@ uint64_t ScreenSceneConfig::GetBootTimeThreshold()
     return bootTimeThreshold_;
 }
 
+bool ScreenSceneConfig::GetIsBoot()
+{
+    return true;
+}
+
 }  // namespace OHOS::Rosen

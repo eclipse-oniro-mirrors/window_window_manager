@@ -239,13 +239,14 @@ HWTEST_F(WindowPatternSnapshotTest, IsSnapshotExisted, TestSize.Level1)
     int32_t persistentId = 1423;
     sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
     ASSERT_NE(nullptr, scenePersistence);
-    bool result = scenePersistence->IsSnapshotExisted();
+    std::string path;
+    bool result = scenePersistence->IsSnapshotExisted(path);
     ASSERT_EQ(result, false);
 
-    result = scenePersistence->IsSnapshotExisted(defaultStatus, false);
+    result = scenePersistence->IsSnapshotExisted(path, defaultStatus, false);
     ASSERT_EQ(result, false);
 
-    result = scenePersistence->IsSnapshotExisted(defaultStatus, true);
+    result = scenePersistence->IsSnapshotExisted(path, defaultStatus, true);
     ASSERT_EQ(result, false);
 }
 
@@ -269,7 +270,8 @@ HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotPixelMap, TestSize.Level1)
     auto result = scenePersistence->GetLocalSnapshotPixelMap(0.5, 0.5);
     ASSERT_EQ(result, nullptr);
 
-    bool result2 = scenePersistence->IsSnapshotExisted();
+    std::string path2;
+    bool result2 = scenePersistence->IsSnapshotExisted(path2);
     ASSERT_EQ(result2, false);
 
     // create pixelMap
@@ -290,7 +292,7 @@ HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotPixelMap, TestSize.Level1)
     int maxScenePersistencePollNum = 100;
     for (int i = 0; i < maxScenePersistencePollNum; i++) {
         result = scenePersistence->GetLocalSnapshotPixelMap(0.8, 0.2);
-        result2 = scenePersistence->IsSnapshotExisted();
+        result2 = scenePersistence->IsSnapshotExisted(path2);
     }
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result2, true);
@@ -1925,10 +1927,11 @@ HWTEST_F(WindowPatternSnapshotTest, IsSnapshotExistedWithFreeMultiWindow, TestSi
     sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
     ASSERT_NE(nullptr, scenePersistence);
     
-    bool result = scenePersistence->IsSnapshotExisted(defaultStatus, true);
+    std::string path;
+    bool result = scenePersistence->IsSnapshotExisted(path, defaultStatus, true);
     ASSERT_EQ(result, false);
     
-    result = scenePersistence->IsSnapshotExisted(defaultStatus, false);
+    result = scenePersistence->IsSnapshotExisted(path, defaultStatus, false);
     ASSERT_EQ(result, false);
     
     ScenePersistence::CreateSnapshotDir("storage");
@@ -1948,10 +1951,10 @@ HWTEST_F(WindowPatternSnapshotTest, IsSnapshotExistedWithFreeMultiWindow, TestSi
     scenePersistence->SaveSnapshot(pixelMap, []() {}, key, DisplayOrientation::PORTRAIT, false);
     usleep(WAIT_SYNC_IN_NS * 10);
     
-    result = scenePersistence->IsSnapshotExisted(key, false);
+    result = scenePersistence->IsSnapshotExisted(path, key, false);
     ASSERT_EQ(result, true);
     
-    result = scenePersistence->IsSnapshotExisted(key, true);
+    result = scenePersistence->IsSnapshotExisted(path, key, true);
     ASSERT_EQ(result, false);
 }
 
@@ -1975,11 +1978,11 @@ HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotPixelMapWithFreeMultiWindow,
 }
 
 /**
- * @tc.name: SnapshotWithWindowSyncTrue
- * @tc.desc: Test Snapshot with windowSync
+ * @tc.name: SnapshotWithOptions
+ * @tc.desc: Test Snapshot with SnapshotOptions, windowSync is always false
  * @tc.type: FUNC
  */
-HWTEST_F(WindowPatternSnapshotTest, SnapshotWithWindowSync, TestSize.Level1)
+HWTEST_F(WindowPatternSnapshotTest, SnapshotWithOptions, TestSize.Level1)
 {
     SessionInfo info;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
@@ -1999,7 +2002,6 @@ HWTEST_F(WindowPatternSnapshotTest, SnapshotWithWindowSync, TestSize.Level1)
     sceneSession->property_->SetPrivacyMode(false);
     
     Session::SnapshotOptions options;
-    options.windowSync = true;
     options.scaleParam = 1.0f;
     
     auto result = sceneSession->Snapshot(options);

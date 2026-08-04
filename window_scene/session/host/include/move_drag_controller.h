@@ -265,21 +265,37 @@ public:
     void SetWindowDragHotAreaFunc(const NotifyWindowDragHotAreaFunc& func);
     void UpdateGravityWhenDrag(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const std::shared_ptr<RSSurfaceNode>& surfaceNode);
-    void UpdateSubWindowGravityWhenFollow(const sptr<MoveDragController>& followedController,
-        const std::shared_ptr<RSSurfaceNode>& surfaceNode);
     void OnLostFocus();
-    AreaType GetAreaType() const { return type_; };
     void SetScale(float scalex, float scaley);
     void SetParentRect(const Rect& parentRect);
 
     /**
-     * @brief Get the Gravity based on the dragAreaType_.
+     * @brief Gets the active edge or corner for regular window resizing.
      *
-     * @return The corresponding Gravity value.
+     * @return The current resize area type.
      */
-    Gravity GetGravity() const;
+    AreaType GetResizeAreaType() const { return resizeAreaType_; }
 
-    Gravity GetDragGravity() const;
+    /**
+     * @brief Gets the gravity of the active edge or corner for regular resizing.
+     *
+     * @return Gravity derived from resizeAreaType_.
+     */
+    Gravity GetResizeDirectionGravity() const;
+
+    /**
+     * @brief Gets the fixed-anchor gravity for regular resizing.
+     *
+     * @return Anchor gravity derived from resizeAreaType_.
+     */
+    Gravity GetResizeAnchorGravity() const;
+
+    /**
+     * @brief Gets the fixed-anchor gravity for scale-based resizing.
+     *
+     * @return Anchor gravity derived from scaleResizeAreaType_.
+     */
+    Gravity GetScaleResizeAnchorGravity() const;
 
     /**
      * @brief Restore the gravity of the surfaceNode to the pre-drag state.
@@ -914,14 +930,6 @@ private:
      */
     WSRect MapRectFromTargetToStart(const WSRect& relativeTargetRect, DisplayId targetDisplayId) const;
 
-    /**
-     * @brief Get the Gravity based on the AreaType.
-     *
-     * @param type The AreaType indicating the hot area.
-     * @return The corresponding Gravity value.
-     */
-    Gravity GetGravity(AreaType type) const;
-
     void SetOriginalMoveDragPos(int32_t pointerId, int32_t pointerType, int32_t pointerPosX,
                                 int32_t pointerPosY, int32_t pointerWindowX, int32_t pointerWindowY,
                                 const WSRect& winRect);
@@ -957,18 +965,27 @@ private:
     int32_t minTranY_ = INT32_MIN;
     int32_t maxTranX_ = INT32_MAX;
     int32_t maxTranY_ = INT32_MAX;
-    AreaType type_ = AreaType::UNDEFINED;
-    AreaType dragAreaType_ = AreaType::UNDEFINED;
+
+    /**
+     * @brief Active edge or corner for regular window resizing.
+     *
+     * Determined from the pointer-down position, resize hot zones, and window
+     * size constraints.
+     */
+    AreaType resizeAreaType_ = AreaType::UNDEFINED;
+
+    /**
+     * @brief Active corner for scale-based window resizing.
+     *
+     * Determined by mapping the pointer-down position to one of four corner
+     * regions. It always resolves to a corner and is independent of window
+     * size constraints.
+     */
+    AreaType scaleResizeAreaType_ = AreaType::UNDEFINED;
+
     AxisType mainMoveAxis_ = AxisType::UNDEFINED;
     MoveDragProperty moveDragProperty_;
 
-    enum class DragType : uint32_t {
-        DRAG_UNDEFINED,
-        DRAG_LEFT_OR_RIGHT,
-        DRAG_BOTTOM_OR_TOP,
-        DRAG_LEFT_TOP_CORNER,
-        DRAG_RIGHT_TOP_CORNER,
-    };
     Rect parentRect_ { 0, 0, 0, 0};
     MoveTempProperty moveTempProperty_;
 
@@ -976,14 +993,18 @@ private:
     void ProcessWindowDragHotAreaFunc(uint32_t lastWindowDragHotAreaType, DisplayId lastHotAreaDisplayId,
         SizeChangeReason reason);
     uint32_t windowDragHotAreaType_ = WINDOW_HOT_AREA_TYPE_UNDEFINED;
+
+    std::mutex windowDragHotAreaFuncMutex_;
     NotifyWindowDragHotAreaFunc windowDragHotAreaFunc_;
+    // Above guarded by windowDragHotAreaFuncMutex_
+
     NotifyWindowPidChangeCallback pidChangeCallback_;
 
     std::optional<Gravity> preDragGravity_ = std::nullopt;
 
     sptr<ScreenChangeListener> screenChangeListener_ = nullptr;
 
-    bool isInterrupted_ = false;
+    std::atomic<bool> isInterrupted_ { false };
 
     /**
      * @brief Display group of the move-drag start display.
@@ -1041,19 +1062,19 @@ private:
     WSRect movingAvoidRect_ = WSRect::EMPTY_RECT;
 
     /**
-     * @brief Cached full-screen rectangles for all connected screens
+     * @brief Cached full-screen rectangles for screens eligible for the current move-drag operation
      *        in the legacy global coordinate system.
      */
     std::unordered_map<ScreenId, WSRect> globalScreenRectMap_;
 
     /**
-     * @brief Cached available rectangles for all connected screens
+     * @brief Cached available rectangles for screens eligible for the current move-drag operation
      *        in the legacy global coordinate system.
      */
     std::unordered_map<ScreenId, WSRect> globalAvailableScreenRectMap_;
 
     /**
-     * @brief Refresh cached full-screen and available rectangles for all connected screens.
+     * @brief Refresh cached full-screen and available rectangles for eligible screens.
      */
     void RefreshGlobalScreenRects();
 

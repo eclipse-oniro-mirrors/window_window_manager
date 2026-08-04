@@ -124,7 +124,9 @@ JsScreenSession::JsScreenSession(napi_env env, const sptr<ScreenSession>& screen
         bool isRealScreen = screenSession_->GetIsRealScreen();
         float densityInCurResolution = screenSession_->GetDensityInCurResolution();
         SetScreenSceneDpiFunc func = [this, isRealScreen, densityInCurResolution](float density) {
-            TLOGI(WmsLogTag::DMS, "Screen Scene Dpi change, new density = %{public}f", density);
+            TLOGI(WmsLogTag::DMS,
+                "Screen Scene Dpi change, dpi=%{public}f, isRealScreen=%{public}d, dpiInResolution=%{public}f",
+                density, isRealScreen, densityInCurResolution);
             if (!screenScene_ || !screenSession_) {
                 TLOGE(WmsLogTag::DMS, "[NAPI]screenScene or screenSession is nullptr");
                 return;
@@ -1105,7 +1107,8 @@ void JsScreenSession::OnHoverStatusChange(int32_t hoverStatus, bool needRotate, 
     }
 }
 
-void JsScreenSession::OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName)
+void JsScreenSession::OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+    uint32_t tokenId, const std::vector<std::string>& permissions)
 {
     const std::string callbackType = ON_SCREEN_CAPTURE_NOTIFY;
     if (!IsCallbackRegistered(callbackType)) {
@@ -1113,7 +1116,7 @@ void JsScreenSession::OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, 
         return;
     }
     auto jsCallbackRef = GetJSCallback(callbackType);
-    auto asyncTask = [jsCallbackRef, callbackType, mainScreenId, uid, clientName, env = env_]() {
+    auto asyncTask = [jsCallbackRef, callbackType, mainScreenId, uid, clientName, tokenId, permissions, env = env_]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "jsScreenSession::OnScreenCaptureNotify");
         if (jsCallbackRef == nullptr) {
             TLOGNE(WmsLogTag::DMS, "Call js callback failed, jsCallbackRef is null!");
@@ -1127,7 +1130,9 @@ void JsScreenSession::OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, 
         napi_value mainId = CreateJsValue(env, static_cast<int64_t>(mainScreenId));
         napi_value clientUid = CreateJsValue(env, uid);
         napi_value client = CreateJsValue(env, clientName);
-        napi_value argv[] = { mainId, clientUid, client };
+        napi_value napiTokenId = CreateJsValue(env, tokenId);
+        napi_value napiPermissions = CreateNativeArray(env, permissions);
+        napi_value argv[] = { mainId, clientUid, client, napiTokenId, napiPermissions };
         napi_call_function(env, NapiGetUndefined(env), method, ArraySize(argv), argv, nullptr);
     };
     if (env_ != nullptr) {

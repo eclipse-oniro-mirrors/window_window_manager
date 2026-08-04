@@ -293,10 +293,6 @@ void MotionManager::HandleDeviceSensorRotation(float rotation)
         TLOGW(WmsLogTag::WMS_ROTATION, "screenSession is null");
         return;
     }
-    if (lastMotionRotation_ == rotation) {
-        TLOGD(WmsLogTag::WMS_ROTATION, "rotation unchanged, skip notification");
-        return;
-    }
     lastMotionRotation_ = rotation;
     screenSession->HandleSensorRotation(rotation);
 }

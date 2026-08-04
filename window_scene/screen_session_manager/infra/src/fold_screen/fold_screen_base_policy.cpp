@@ -15,6 +15,7 @@
 
 #include "fold_screen_base_policy.h"
 #include <parameters.h>
+#include "ffrt_queue.h"
 
 #include <hisysevent.h>
 #include <hitrace_meter.h>
@@ -28,6 +29,7 @@
 #include "sensor_agent.h"
 #include "sensor_agent_type.h"
 #include "product_ext_wrapper.h"
+#include "bundle_info_helper.h"
 
 #ifdef POWER_MANAGER_ENABLE
 #include <power_mgr_client.h>
@@ -182,10 +184,11 @@ void FoldScreenBasePolicy::LockDisplayStatus(bool locked)
 
 FoldStatus FoldScreenBasePolicy::GetFoldStatus()
 {
-    if (!GetPhysicalFoldLockFlag()) {
-        return lastFoldStatus_;
+    FoldStatus status = GetPhysicalFoldLockFlag() ? GetForcedFoldStatus() : lastFoldStatus_;
+    if (IsHoverBlockApp() && status == FoldStatus::HALF_FOLD) {
+        status = FoldStatus::EXPAND;
     }
-    return GetForcedFoldStatus();
+    return status;
 }
 
 void FoldScreenBasePolicy::SetFoldStatus(FoldStatus foldStatus)
@@ -583,6 +586,10 @@ bool FoldScreenBasePolicy::CheckDisplayModeChange(FoldDisplayMode displayMode, b
         TLOGI(WmsLogTag::DMS, "clearing bootAnimation not change displayMode");
         return false;
     }
+    if (!CheckBackSelfNeedChange(displayMode)) {
+        TLOGI(WmsLogTag::DMS, "check no need change displayMode when backself");
+        return false;
+    }
     if (reason == DisplayModeChangeReason::RECOVER_FROM_CACHE_MODE) {
         TLOGI(WmsLogTag::DMS, "recover mode to %{public}d", GetLastCacheDisplayMode());
         displayMode = GetLastCacheDisplayMode();
@@ -620,6 +627,16 @@ void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, 
     return;
 }
 
+static DMS::FfrtQueue serialQueue_("SetDeviceStatusQueue");
+void FoldScreenBasePolicy::SetDeviceStatusAndParam(uint32_t deviceStatus)
+{
+    TLOGI(WmsLogTag::DMS, "Set device status to: %{public}u", deviceStatus);
+    SetDeviceStatus(deviceStatus);
+    serialQueue_.Submit([deviceStatus] {
+        system::SetParameter("persist.dms.device.status", std::to_string(deviceStatus));
+    });
+}
+
 void FoldScreenBasePolicy::UpdateDeviceStatus(FoldDisplayMode displayMode)
 {
     DMDeviceStatus deviceStatus = DMDeviceStatus::UNKNOWN;
@@ -627,9 +644,7 @@ void FoldScreenBasePolicy::UpdateDeviceStatus(FoldDisplayMode displayMode)
     if (iter != DISPLAYMODE_DEVICESTATUS_MAPPING.end()) {
         deviceStatus = iter->second;
     }
-    TLOGI(WmsLogTag::DMS, "Set device status to: %{public}u", deviceStatus);
-    SetDeviceStatus(static_cast<uint32_t>(deviceStatus));
-    system::SetParameter("persist.dms.device.status", std::to_string(static_cast<uint32_t>(deviceStatus)));
+    SetDeviceStatusAndParam(static_cast<uint32_t>(deviceStatus));
 }
 
 void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode, bool isForce,
@@ -1053,8 +1068,59 @@ FoldDisplayMode FoldScreenBasePolicy::GetCurrentDisplayMode() const
     return currentDisplayMode_;
 }
 
+void FoldScreenBasePolicy::SetBackSelf(bool isBackSelf)
+{
+    std::lock_guard<std::mutex> lock_mode(displayBackSelfMutex_);
+    isBackSelf_ = isBackSelf;
+}
+
+bool FoldScreenBasePolicy::GetBackSelf()
+{
+    return isBackSelf_;
+}
+
 const std::map<FoldDisplayMode, RRect>& FoldScreenBasePolicy::GetScreenActiveModeRectMap() const
 {
     return screenActiveModeRectMap_;
+}
+
+void FoldScreenBasePolicy::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+    TLOGI(WmsLogTag::DMS, "hoverBlockList acquired, list size before: %{public}zu, list size after: %{public}zu",
+        hoverBlockList_.size(), hoverBlockList.size());
+    hoverBlockList_ = hoverBlockList;
+}
+
+bool FoldScreenBasePolicy::IsHoverBlockApp()
+{
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        if (hoverBlockList_.empty()) {
+            return false;
+        }
+    }
+    std::string bundleName = BundleInfoHelper::GetCurBundleName();
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        auto it = std::find(hoverBlockList_.begin(), hoverBlockList_.end(), bundleName);
+        return it != hoverBlockList_.end();
+    }
+}
+
+bool FoldScreenBasePolicy::IsHoverBlockPid(const int32_t agentPid)
+{
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        if (hoverBlockList_.empty()) {
+            return false;
+        }
+    }
+    std::string bundleName = BundleInfoHelper::GetBundleNameByPid(agentPid);
+    {
+        std::lock_guard<std::mutex> lock(hoverBlockListMutex_);
+        auto it = std::find(hoverBlockList_.begin(), hoverBlockList_.end(), bundleName);
+        return it != hoverBlockList_.end();
+    }
 }
 } // namespace OHOS::Rosen

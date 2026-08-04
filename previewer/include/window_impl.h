@@ -247,7 +247,7 @@ public:
     virtual WmErrorCode KeepKeyboardOnFocus(bool keepKeyboardFlag) override;
     virtual WMError SetSingleFrameComposerEnabled(bool enable) override;
     virtual WMError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
     virtual void SetTouchEvent(int32_t touchType) override;
 
     /*

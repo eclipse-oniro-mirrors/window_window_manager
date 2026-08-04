@@ -552,6 +552,38 @@ HWTEST_F(SceneSessionManagerAttributeTest, RecoverScreenWatermarkImage004, TestS
 }
 
 /**
+ * @tc.name: SetLeashNodeWatermarkForAppProcess001
+ * @tc.desc: test SetLeashNodeWatermarkForAppProcess
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, SetLeashNodeWatermarkForAppProcess001, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    auto oldProcessWatermarkPidMap = ssm_->processWatermarkPidMap_;
+    ssm_->sceneSessionMap_.clear();
+    ssm_->processWatermarkPidMap_.clear();
+    ssm_->processWatermarkPidMap_.insert_or_assign(123, "testWatermarkName");
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "test.bundle";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetPersistentId(100);
+    sceneSession->SetCallingPid(123);
+    sceneSession->isVisible_.store(true);
+    struct RSSurfaceNodeConfig config;
+    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
+    sceneSession->SetLeashWinSurfaceNode(surfaceNode);
+    ssm_->sceneSessionMap_.insert(std::make_pair(100, sceneSession));
+    ssm_->SetLeashNodeWatermarkForAppProcess(nullptr);
+    EXPECT_EQ(ssm_->NotifyVisibleChange(100), true);
+    ssm_->processWatermarkPidMap_.clear();
+    ssm_->processWatermarkPidMap_ = oldProcessWatermarkPidMap;
+    ssm_->sceneSessionMap_.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
+
+/**
  * @tc.name: RecoverProcessWatermark001
  * @tc.desc: test RecoverProcessWatermark
  * @tc.type: FUNC
@@ -674,6 +706,22 @@ HWTEST_F(SceneSessionManagerAttributeTest, FilterForGetAllWindowLayoutInfo004, T
     EXPECT_EQ(filteredSessions.size(), 0);
     ssm_->sceneSessionMap_.clear();
     ssm_->sceneSessionMap_ = oldSceneSessionMap;
+}
+
+/**
+ * @tc.name: ProcessVirtualPixelRatioChange
+ * @tc.desc: test ProcessVirtualPixelRatioChange.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ProcessVirtualPixelRatioChange, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SetUpdateDisplayDpiChangeCallback([](DisplayId displayId, float density) {});
+    DisplayId defaultDisplayId = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    std::map<DisplayId, sptr<DisplayInfo>> displayInfoMap;
+    DisplayStateChangeType type = DisplayStateChangeType::BEFORE_SUSPEND;
+    ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap, type);
 }
 
 /**

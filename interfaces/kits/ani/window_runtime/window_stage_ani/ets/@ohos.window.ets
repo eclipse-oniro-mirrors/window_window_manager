@@ -3764,8 +3764,16 @@ export class WindowInternal implements Window {
       this.setShadow(this.nativeObj, radius, color, offsetX, offsetY);
     }
 
-    public setTouchableAreas(rects: Array<Rect>): void {
-      this.setTouchableAreas(this.nativeObj, rects);
+    public setTouchableAreas(rects: Array<Rect>): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
+        taskpool.execute((): void => {
+          this.setTouchableAreas(this.nativeObj, rects);
+        }).then((ret: Any): void => {
+            resolve(undefined);
+        }).catch((err: Any): void => {
+            reject(err as BusinessError);
+        });
+      });
     }
 
     public setBlur(radius: double): void {
@@ -5595,7 +5603,7 @@ export interface Window {
     setWindowMask(windowMask: Array<Array<long>>): Promise<void>;
     setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void>;
     clearWindowMask(): Promise<void>;
-    setTouchableAreas(rects: Array<Rect>): void;
+    setTouchableAreas(rects: Array<Rect>): Promise<void>;
     getUIContext(): UIContext;
     getWindowAvoidArea(type: AvoidAreaType): AvoidArea;
     getWindowAvoidAreaIgnoringVisibility(type: AvoidAreaType): AvoidArea;
@@ -5823,7 +5831,7 @@ native function toggleShownStateForAllAppWindowsSync(nativeObj: long): void;
 native function setSpecificSystemWindowZIndexSync(nativeObj: long, windowType: WindowType, zIndex: int): void;
 native function createSubWindowAndBindParentSync(nativeObj: long, name: string,
   parentId: int, ctx: BaseContext, parentWindowEventListener: WindowEventListener): Window;
-native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int): void;
+native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int, userId: int): void;
 
 export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
   parentWindowEventListener: WindowEventListener): Promise<Window> {
@@ -6290,10 +6298,10 @@ export function getMainWindowSnapshot(windowId: Array<number>, config: WindowSna
   });
 }
 
-export function moveMainWindowToTargetDisplay(displayId: long, windowId: int): Promise<void> {
+export function moveMainWindowToTargetDisplay(displayId: long, windowId: int, userId?: int): Promise<void> {
   return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
       taskpool.execute((): void => {
-          return moveMainWindowToTargetDisplaySync(nativeObj, displayId, windowId);
+          return moveMainWindowToTargetDisplaySync(nativeObj, displayId, windowId, userId ?? -1);
       }).then((ret: Any) => {
           resolve(undefined);
       }).catch((err: Any) => {

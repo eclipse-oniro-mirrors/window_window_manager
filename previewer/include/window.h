@@ -724,7 +724,7 @@ public:
      * @param dvsyncSwitch bool.
      * @return * void
      */
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) {}
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) {}
 
     /**
      * @brief Set touch event

@@ -29,10 +29,22 @@ namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "SysCapUtil"};
 const uint32_t API_VERSION_MOD = 1000;
+static constexpr int32_t INVALID_PID = -1;
 }
 std::shared_mutex SysCapUtil::pidBundleNameMutex_;
-std::map<uint32_t, std::shared_ptr<BundleInfo>> SysCapUtil::pidBundleInfoMap_;
-std::map<sptr<IRemoteObject>, uint32_t> SysCapUtil::agentPidMap_;
+std::map<uint32_t, std::shared_ptr<BundleInfo>>& SysCapUtil::GetPidBundleInfoMap()
+{
+    static std::map<uint32_t, std::shared_ptr<BundleInfo>>* map =
+        new std::map<uint32_t, std::shared_ptr<BundleInfo>>();
+    return *map;
+}
+
+std::map<sptr<IRemoteObject>, uint32_t>& SysCapUtil::GetAgentPidMap()
+{
+    static std::map<sptr<IRemoteObject>, uint32_t>* map =
+        new std::map<sptr<IRemoteObject>, uint32_t>();
+    return *map;
+}
 
 std::string SysCapUtil::GetClientName()
 {
@@ -136,7 +148,7 @@ std::shared_ptr<BundleInfo> SysCapUtil::UpdateBundleInfo(uint32_t pid)
         std::shared_ptr<BundleInfo> bundleInfoPtr = std::make_shared<BundleInfo>();
         bundleInfoPtr->name_ = bundleInfo.name;
         bundleInfoPtr->apiVersion_ = bundleInfo.targetVersion % API_VERSION_MOD;
-        pidBundleInfoMap_[pid] = bundleInfoPtr;
+        GetPidBundleInfoMap().emplace(pid, bundleInfoPtr);
         TLOGD(WmsLogTag::DEFAULT, "pid: %{public}u, bundle name: %{public}s",
             pid, bundleInfo.name.c_str());
         return bundleInfoPtr;
@@ -154,7 +166,7 @@ std::shared_ptr<BundleInfo> SysCapUtil::UpdateBundleInfo(uint32_t pid, sptr<IRem
         return nullptr;
     }
     std::unique_lock<std::shared_mutex> lock(pidBundleNameMutex_);
-    agentPidMap_[agent] = pid;
+    GetAgentPidMap().emplace(agent, pid);
     return bundleInfo;
 }
       
@@ -162,8 +174,9 @@ std::shared_ptr<BundleInfo> SysCapUtil::GetBundleInfo(uint32_t pid)
 {
     TLOGD(WmsLogTag::DEFAULT, "get pid:%{public}d bundle info", pid);
     std::shared_lock<std::shared_mutex> lock(pidBundleNameMutex_);
-    auto it = pidBundleInfoMap_.find(pid);
-    if (it == pidBundleInfoMap_.end()) {
+    auto& map = GetPidBundleInfoMap();
+    auto it = map.find(pid);
+    if (it == map.end()) {
         return nullptr;
     } else {
         return it->second;
@@ -173,18 +186,19 @@ std::shared_ptr<BundleInfo> SysCapUtil::GetBundleInfo(uint32_t pid)
 void SysCapUtil::RemoveBundleInfo(sptr<IRemoteObject> agent)
 {
     int32_t pid;
-    {
-        std::unique_lock<std::shared_mutex> lock(pidBundleNameMutex_);
-        auto it = agentPidMap_.find(agent);
-        if (it == agentPidMap_.end()) {
-            return;
-        }
-        pid = it->second;
-        agentPidMap_.erase(it);
-    }
-    TLOGI(WmsLogTag::DEFAULT, "remove pid:%{public}d bundle info", pid);
     std::unique_lock<std::shared_mutex> lock(pidBundleNameMutex_);
-    pidBundleInfoMap_.erase(pid);
+    auto& agentPidMap = GetAgentPidMap();
+    auto it = agentPidMap.find(agent);
+    if (it == agentPidMap.end()) {
+        return;
+    }
+    pid = it->second;
+    if (pid == INVALID_PID) {
+        return;
+    }
+    agentPidMap.erase(it);
+    TLOGI(WmsLogTag::DEFAULT, "remove pid:%{public}d bundle info", pid);
+    GetPidBundleInfoMap().erase(pid);
 }
 } // namespace Rosen
 } // namespace OHOS

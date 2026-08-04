@@ -87,6 +87,7 @@ static napi_value ExportPictureInPictureTemplateType(napi_env env)
     (void)SetNamedProperty(env, result, "VIDEO_MEETING", static_cast<int32_t>(PiPTemplateType::VIDEO_MEETING));
     (void)SetNamedProperty(env, result, "VIDEO_LIVE", static_cast<int32_t>(PiPTemplateType::VIDEO_LIVE));
     (void)SetNamedProperty(env, result, "VIDEO_DRIVE", static_cast<int32_t>(PiPTemplateType::VIDEO_DRIVE));
+    (void)SetNamedProperty(env, result, "VIDEO_NAVIGATION", static_cast<int32_t>(PiPTemplateType::VIDEO_NAVIGATION));
     napi_object_freeze(env, result);
     return result;
 }

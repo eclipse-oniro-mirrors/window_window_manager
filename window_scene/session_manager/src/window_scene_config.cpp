@@ -119,6 +119,9 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "leadTimeMs",                                   WindowSceneConfig::ValueType::INTS },
     { "movingEvent",                                  WindowSceneConfig::ValueType::MAP },
     { "throttleInterval",                             WindowSceneConfig::ValueType::INTS },
+    { "displayIsolation",                             WindowSceneConfig::ValueType::MAP },
+    { "moveIsolatedDisplayIds",                       WindowSceneConfig::ValueType::INTS },
+    { "dragIsolatedDisplayIds",                       WindowSceneConfig::ValueType::INTS },
     // ========================================================================
     { "singleHandBackgroundLayout",                   WindowSceneConfig::ValueType::MAP },
     { "singleHandBackgroundSettingButton",            WindowSceneConfig::ValueType::MAP },

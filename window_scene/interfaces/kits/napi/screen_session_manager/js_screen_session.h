@@ -75,7 +75,8 @@ private:
     void OnScreenDensityChange();
     void OnScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId) override;
     void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId) override;
-    void OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) override;
+    void OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions) override;
     void OnCameraBackSelfieChange(bool isCameraBackSelfie, ScreenId screenId) override;
     void OnSuperFoldStatusChange(ScreenId screenId, SuperFoldStatus superFoldStatus) override;
     void OnSecondaryReflexionChange(ScreenId screenId, bool isSecondaryReflexion) override;

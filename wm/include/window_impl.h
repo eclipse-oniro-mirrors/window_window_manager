@@ -600,6 +600,11 @@ private:
     std::string intentParam_;
     std::function<void()> loadPageCallback_;
     bool isIntentColdStart_ = true;
+
+    /*
+     * Window focus
+     */
+    mutable std::mutex isFocusedMutex_;
 };
 } // namespace Rosen
 } // namespace OHOS

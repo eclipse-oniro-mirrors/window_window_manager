@@ -420,6 +420,7 @@ HWTEST_F(PictureInPictureManagerTest, DoClose, TestSize.Level1)
     ASSERT_EQ(false, PictureInPictureManager::HasActiveController());
     pipController->window_ = mw;
     PictureInPictureManager::PutPipControllerInfo(210, pipController);
+    PictureInPictureManager::PutPipControllerInfo(211, nullptr);
     ASSERT_EQ(true, PictureInPictureManager::HasActiveController());
     PictureInPictureManager::DoClose(210, true, true);
     PictureInPictureManager::DoClose(210, false, true);

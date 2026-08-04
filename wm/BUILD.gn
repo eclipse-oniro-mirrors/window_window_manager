@@ -439,6 +439,9 @@ ohos_shared_library("libwm_lite") {
     "init:libbegetutil",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines += [ "FRAME_TRACE_ENABLE" ]
@@ -533,6 +536,9 @@ ohos_shared_library("libwm_ndk") {
     "input:libmmi-client",
     "input:oh_input_manager",
     "ipc:ipc_core",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"
@@ -733,6 +739,9 @@ ohos_shared_library("libmmi_client_adapter") {
     "input:libmmi-client",
     "ipc:ipc_single",
     "hilog:libhilog",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
     part_name = "window_manager"

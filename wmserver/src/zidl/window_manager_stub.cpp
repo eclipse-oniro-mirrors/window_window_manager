@@ -146,13 +146,13 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
                 return ERR_INVALID_DATA;
             }
             auto type = static_cast<WindowManagerAgentType>(windowType);
-            int32_t instanceUserId = data.ReadInt32();
             sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
-            if (windowManagerAgentObject == nullptr) {
-                return ERR_INVALID_DATA;
-            }
             sptr<IWindowManagerAgent> windowManagerAgentProxy =
                 iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
+            int32_t instanceUserId = INVALID_USER_ID;
+            if (!data.ReadInt32(instanceUserId)) {
+                instanceUserId = INVALID_USER_ID;
+            }
             WMError errCode = RegisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
             reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
@@ -164,13 +164,13 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
                 return ERR_INVALID_DATA;
             }
             auto type = static_cast<WindowManagerAgentType>(windowType);
-            int32_t instanceUserId = data.ReadInt32();
             sptr<IRemoteObject> windowManagerAgentObject = data.ReadRemoteObject();
-            if (windowManagerAgentObject == nullptr) {
-                return ERR_INVALID_DATA;
-            }
             sptr<IWindowManagerAgent> windowManagerAgentProxy =
                 iface_cast<IWindowManagerAgent>(windowManagerAgentObject);
+            int32_t instanceUserId = INVALID_USER_ID;
+            if (!data.ReadInt32(instanceUserId)) {
+                instanceUserId = INVALID_USER_ID;
+            }
             WMError errCode = UnregisterWindowManagerAgent(type, windowManagerAgentProxy, instanceUserId);
             reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
@@ -369,8 +369,15 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
         }
         case WindowManagerMessage::TRANS_ID_GET_ANIMATION_CALLBACK: {
             std::vector<uint32_t> windowIds;
-            data.ReadUInt32Vector(&windowIds);
-            bool isAnimated = data.ReadBool();
+            if (!data.ReadUInt32Vector(&windowIds)) {
+                TLOGE(WmsLogTag::DEFAULT, "Read window ids failed");
+                return ERR_INVALID_DATA;
+            }
+            bool isAnimated = false;
+            if (!data.ReadBool(isAnimated)) {
+                TLOGE(WmsLogTag::DEFAULT, "Read isAnimated failed");
+                return ERR_INVALID_DATA;
+            }
             sptr<RSIWindowAnimationFinishedCallback> finishedCallback = nullptr;
             MinimizeWindowsByLauncher(windowIds, isAnimated, finishedCallback);
             if (finishedCallback == nullptr) {
@@ -563,7 +570,9 @@ int32_t WindowManagerStub::OnRemoteRequest(uint32_t code, MessageParcel& data, M
                 return ERR_INVALID_DATA;
             }
             GetFocusWindowInfo(focusInfo, displayId);
-            reply.WriteParcelable(&focusInfo);
+            if (!reply.WriteParcelable(&focusInfo)) {
+                return ERR_INVALID_DATA;
+            }
             break;
         }
         default:

@@ -120,7 +120,7 @@ WSError WindowFocusController::RemoveFocusGroup(DisplayGroupId displayGroupId, D
         std::lock_guard<std::mutex> lock(focusGroupMapMutex_);
         auto iter = focusGroupMap_.find(displayGroupId);
         if (iter != focusGroupMap_.end()) {
-            auto displayIds = iter->second->displayIds_;
+            auto& displayIds = iter->second->displayIds_;
             displayIds.erase(displayId);
             if (displayIds.size() == 0) {
                 focusGroupMap_.erase(displayGroupId);

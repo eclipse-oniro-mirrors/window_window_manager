@@ -85,7 +85,7 @@ private:
     static napi_value NotifySwitchUserAnimationFinish(napi_env env, napi_callback_info info);
     static napi_value RegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
     static napi_value UnRegisterSwitchUserAnimationNotification(napi_env env, napi_callback_info info);
-
+    static napi_value SetHoverBlockList(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, const napi_callback_info info);
     napi_value OnUnRegisterCallback(napi_env env, const napi_callback_info info);
     void RegisterScreenConnectionCallback(napi_env env, napi_ref& callbackRef);
@@ -139,6 +139,7 @@ private:
     bool ObtainCallBackInfo(napi_env env, const napi_callback_info info,
         std::string& callbackType, napi_ref& callbackRef);
     bool CheckAndTransState(ScbScreenPowerState state, ScreenPowerState& screenState);
+    napi_value OnSetHoverBlockList(napi_env env, const napi_callback_info info);
 
     std::shared_ptr<NativeReference> screenConnectionCallback_;
     std::vector<NativeReference*> tentModeChangeCallback_;

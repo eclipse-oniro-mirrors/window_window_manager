@@ -127,6 +127,9 @@ wmutil_external_deps = [
   "ipc:ipc_single",
   "preferences:native_preferences",
   "samgr:samgr_proxy",
+  "napi:ace_napi",
+  "node:node_header_notice",
+  "libuv:uv",
 ]
 
 ## build libwmutil_static.a
@@ -224,6 +227,9 @@ ohos_shared_library("libwmutil_base") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "init:libbegetutil",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]

@@ -17,6 +17,7 @@
 #define OHOS_WM_INCLUDE_WM_HELPER_H
 
 #include <unistd.h>
+#include <cmath>
 #include <vector>
 #include "ability_info.h"
 #include "window_transition_info.h"
@@ -371,6 +372,89 @@ public:
         return supportModes;
     }
 
+    /**
+     * @brief Convert VP-unit WindowLimits to PX-unit by virtual pixel ratio (px = vp * vpr, truncate).
+     * @note Shared by client and server; keep identical to guarantee consistent results.
+     */
+    static void RecalculatePxLimitsByVp(const WindowLimits& refreshLimitsVp, WindowLimits& refreshLimitsPx,
+        float vpr)
+    {
+        refreshLimitsPx.maxWidth_ = static_cast<uint32_t>(refreshLimitsVp.maxWidth_ * vpr);
+        refreshLimitsPx.maxHeight_ = static_cast<uint32_t>(refreshLimitsVp.maxHeight_ * vpr);
+        refreshLimitsPx.minWidth_ = static_cast<uint32_t>(refreshLimitsVp.minWidth_ * vpr);
+        refreshLimitsPx.minHeight_ = static_cast<uint32_t>(refreshLimitsVp.minHeight_ * vpr);
+    }
+
+    /**
+     * @brief Convert PX-unit WindowLimits to VP-unit by virtual pixel ratio (vp = round(px / vpr)).
+     * @param vpr Must be non-zero.
+     * @note Shared by client and server; keep identical to guarantee consistent results.
+     */
+    static void RecalculateVpLimitsByPx(const WindowLimits& limits, WindowLimits& limitsVP, float vpr)
+    {
+        if (MathHelper::NearZero(vpr)) {
+            return;
+        }
+        limitsVP.maxWidth_ = static_cast<uint32_t>(std::round(limits.maxWidth_ / vpr));
+        limitsVP.maxHeight_ = static_cast<uint32_t>(std::round(limits.maxHeight_ / vpr));
+        limitsVP.minWidth_ = static_cast<uint32_t>(std::round(limits.minWidth_ / vpr));
+        limitsVP.minHeight_ = static_cast<uint32_t>(std::round(limits.minHeight_ / vpr));
+    }
+
+    /**
+     * @brief Calculate intersection of currentLimits and attachedLimits on selected axes.
+     * @note Shared by client and server; keep identical to guarantee consistent results.
+     */
+    static WindowLimits CalculateLimitsIntersection(const WindowLimits& currentLimits,
+        const WindowLimits& attachedLimits, bool intersectHeight, bool intersectWidth)
+    {
+        WindowLimits result = currentLimits;
+        if (intersectHeight) {
+            result.minHeight_ = std::max(currentLimits.minHeight_, attachedLimits.minHeight_);
+            result.maxHeight_ = std::min(currentLimits.maxHeight_, attachedLimits.maxHeight_);
+        }
+        if (intersectWidth) {
+            result.minWidth_ = std::max(currentLimits.minWidth_, attachedLimits.minWidth_);
+            result.maxWidth_ = std::min(currentLimits.maxWidth_, attachedLimits.maxWidth_);
+        }
+        return result;
+    }
+
+    /**
+     * @brief Check whether the intersection result is valid (min <= max) on selected axes.
+     * @note Shared by client and server; keep identical to guarantee consistent results.
+     */
+    static bool IsLimitsIntersectionValid(const WindowLimits& limits, bool checkHeight, bool checkWidth)
+    {
+        if (checkWidth && limits.minWidth_ > limits.maxWidth_) {
+            return false;
+        }
+        if (checkHeight && limits.minHeight_ > limits.maxHeight_) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @brief Whether any width/height intersected attached-limit is configured.
+     * @note Shared by client and server; keep identical to guarantee consistent results.
+     */
+    static bool HasIntersectedAttachLimits(const WindowAnchorInfo& anchorInfo,
+        const std::vector<std::pair<int32_t, AttachLimitOptions>>& attachedLimitOptionsList)
+    {
+        if (anchorInfo.isAnchoredByAttach_ &&
+            (anchorInfo.attachOptions.isIntersectedWidthLimit ||
+             anchorInfo.attachOptions.isIntersectedHeightLimit)) {
+            return true;
+        }
+        for (const auto& item : attachedLimitOptionsList) {
+            if (item.second.isIntersectedWidthLimit || item.second.isIntersectedHeightLimit) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static bool IsPointInTargetRect(int32_t pointPosX, int32_t pointPosY, const Rect& targetRect)
     {
         if ((pointPosX > targetRect.posX_) &&
@@ -682,12 +766,15 @@ public:
         uint32_t winFrameW = static_cast<uint32_t>(WINDOW_FRAME_WIDTH * vpr) * 2; // 2 mean double decor width
         uint32_t winFrameH = static_cast<uint32_t>(WINDOW_FRAME_WIDTH * vpr) +
             static_cast<uint32_t>(WINDOW_TITLE_BAR_HEIGHT * vpr); // decor height
-        uint32_t maxWidth = sizeLimits.maxWidth_ - winFrameW;
-        uint32_t minWidth = sizeLimits.minWidth_ - winFrameW;
-        uint32_t maxHeight = sizeLimits.maxHeight_ - winFrameH;
-        uint32_t minHeight = sizeLimits.minHeight_ - winFrameH;
-        float maxRatio = static_cast<float>(maxWidth) / static_cast<float>(minHeight);
-        float minRatio = static_cast<float>(minWidth) / static_cast<float>(maxHeight);
+        WindowLimits adjustedLimits = sizeLimits;
+        adjustedLimits.Clip(winFrameW, winFrameH);
+        if (adjustedLimits.maxWidth_ == 0 || adjustedLimits.maxHeight_ == 0) {
+            return false;
+        }
+        float maxRatio = (adjustedLimits.minHeight_ == 0)
+            ? std::numeric_limits<float>::infinity()
+            : static_cast<float>(adjustedLimits.maxWidth_) / static_cast<float>(adjustedLimits.minHeight_);
+        float minRatio = static_cast<float>(adjustedLimits.minWidth_) / static_cast<float>(adjustedLimits.maxHeight_);
         if (maxRatio < ratio || ratio < minRatio) {
             return false;
         }

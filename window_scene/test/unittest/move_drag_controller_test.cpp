@@ -30,6 +30,7 @@
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
 #include "session.h"
 #include "session/screen/include/screen_session.h"
+#include "window_display_isolation_policy.h"
 #include "window_manager_hilog.h"
 #include "window_scene.h"
 
@@ -51,9 +52,7 @@ public:
 
 void MoveDragControllerTest::SetUpTestCase() {}
 
-void MoveDragControllerTest::TearDownTestCase()
-{
-}
+void MoveDragControllerTest::TearDownTestCase() {}
 
 void MoveDragControllerTest::SetUp()
 {
@@ -247,9 +246,9 @@ HWTEST_F(MoveDragControllerTest, UpdateGravityWhenDrag, TestSize.Level0)
         pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN);
         moveDragController->UpdateGravityWhenDrag(nullptr, surfaceNode);
         moveDragController->UpdateGravityWhenDrag(pointerEvent, nullptr);
-        moveDragController->type_ = AreaType::UNDEFINED;
+        moveDragController->resizeAreaType_ = AreaType::UNDEFINED;
         moveDragController->UpdateGravityWhenDrag(pointerEvent, surfaceNode);
-        moveDragController->type_ = AreaType::RIGHT;
+        moveDragController->resizeAreaType_ = AreaType::RIGHT;
         moveDragController->UpdateGravityWhenDrag(pointerEvent, surfaceNode);
         auto modifier = surfaceNode->GetModifierByType(ModifierNG::RSModifierType::CLIP_TO_FRAME);
         ASSERT_NE(modifier, nullptr);
@@ -797,26 +796,26 @@ HWTEST_F(MoveDragControllerTest, ConvertXYByAspectRatio01, TestSize.Level1)
 }
 
 /**
- *@tc.name: GetGravity_TopLeft
- *@tc.desc: test function : GetGravity
- *@tc.type: FUNC
+ * @tc.name: GetScaleResizeAnchorGravityUndefined
+ * @tc.desc: test function : GetScaleResizeAnchorGravity
+ * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, GetGravity_TopLeft, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, GetScaleResizeAnchorGravityUndefined, TestSize.Level1)
 {
-    moveDragController->dragAreaType_ = AreaType::UNDEFINED;
-    Gravity gravity = moveDragController->GetGravity();
+    moveDragController->scaleResizeAreaType_ = AreaType::UNDEFINED;
+    Gravity gravity = moveDragController->GetScaleResizeAnchorGravity();
     EXPECT_EQ(gravity, Gravity::TOP_LEFT);
 }
 
 /**
- *@tc.name: GetGravity_TopRight
- *@tc.desc: test function : GetGravity
- *@tc.type: FUNC
+ * @tc.name: GetScaleResizeAnchorGravityTopRight
+ * @tc.desc: test function : GetScaleResizeAnchorGravity
+ * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, GetGravity_TopRight, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, GetScaleResizeAnchorGravityTopRight, TestSize.Level1)
 {
-    moveDragController->dragAreaType_ = AreaType::LEFT_BOTTOM;
-    Gravity gravity = moveDragController->GetGravity();
+    moveDragController->scaleResizeAreaType_ = AreaType::LEFT_BOTTOM;
+    Gravity gravity = moveDragController->GetScaleResizeAnchorGravity();
     EXPECT_EQ(gravity, Gravity::TOP_RIGHT);
 }
 
@@ -1003,12 +1002,12 @@ HWTEST_F(MoveDragControllerTest, ProcessWindowDragHotAreaFunc, TestSize.Level1)
     uint32_t type = 0;
     SizeChangeReason reason = SizeChangeReason::UNDEFINED;
 
-    moveDragController->windowDragHotAreaFunc_ = [&](DisplayId d, uint32_t t, SizeChangeReason r) {
+    moveDragController->SetWindowDragHotAreaFunc([&](DisplayId d, uint32_t t, SizeChangeReason r) {
         isCalled = true;
         displayId = d;
         type = t;
         reason = r;
-    };
+    });
 
     // Test Case 1: Callback should be called when hot area type change
     moveDragController->windowDragHotAreaType_ = 1;
@@ -1773,37 +1772,20 @@ HWTEST_F(MoveDragControllerTest, SetCurrentScreenProperty, TestSize.Level1)
 }
 
 /**
- * @tc.name: UpdateSubWindowGravityWhenFollow
- * @tc.desc: UpdateSubWindowGravityWhenFollow
+ * @tc.name: GetResizeAnchorGravity
+ * @tc.desc: GetResizeAnchorGravity
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, UpdateSubWindowGravityWhenFollow01, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, GetResizeAnchorGravity01, TestSize.Level1)
 {
     SessionInfo info;
     sptr<SceneSession> followSession = sptr<SceneSession>::MakeSptr(info, nullptr);
 
-    sptr<MoveDragController> followController =
+    sptr<MoveDragController> followedController =
         sptr<MoveDragController>::MakeSptr(wptr(followSession));
-    struct RSSurfaceNodeConfig rsSurfaceNodeConfig;
-    std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
 
-    followController->type_ = AreaType::UNDEFINED;
-    moveDragController->UpdateSubWindowGravityWhenFollow(nullptr, nullptr);
-    auto modifier = surfaceNode->GetModifierByType(ModifierNG::RSModifierType::CLIP_TO_FRAME);
-    ASSERT_NE(modifier, nullptr);
-
-    moveDragController->UpdateSubWindowGravityWhenFollow(nullptr, surfaceNode);
-    modifier = surfaceNode->GetModifierByType(ModifierNG::RSModifierType::CLIP_TO_FRAME);
-    ASSERT_NE(modifier, nullptr);
-
-    moveDragController->UpdateSubWindowGravityWhenFollow(followController, surfaceNode);
-    modifier = surfaceNode->GetModifierByType(ModifierNG::RSModifierType::CLIP_TO_FRAME);
-    ASSERT_NE(modifier, nullptr);
-
-    followController->type_ = AreaType::TOP;
-    moveDragController->UpdateSubWindowGravityWhenFollow(followController, surfaceNode);
-    modifier = surfaceNode->GetModifierByType(ModifierNG::RSModifierType::CLIP_TO_FRAME);
-    ASSERT_NE(modifier, nullptr);
+    followedController->resizeAreaType_ = AreaType::TOP;
+    EXPECT_EQ(Gravity::BOTTOM_LEFT, followedController->GetResizeAnchorGravity());
 }
 
 /**
@@ -1817,7 +1799,7 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnDragEvent, TestSize.Level
     moveDragController->moveDragProperty_.originalRect_ = originalRect;
     moveDragController->limits_ = WindowLimits(400, 400, 200, 50, FLT_MAX, 0.0f);
     moveDragController->decoration_ = {0, 0, 0, 0};
-    moveDragController->type_ = AreaType::RIGHT;
+    moveDragController->resizeAreaType_ = AreaType::RIGHT;
 
     // Prepare pointer event + item
     auto pointerEvent = MMI::PointerEvent::Create();
@@ -1854,36 +1836,38 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnDragEvent, TestSize.Level
 }
 
 /**
- * @tc.name: TestGetGravity
- * @tc.desc: Verify GetGravity returns correct value or TOP_LEFT when not found
+ * @tc.name: TestGetResizeAnchorGravity
+ * @tc.desc: Verify GetResizeAnchorGravity returns correct value or TOP_LEFT when not found
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, TestGetGravity, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestGetResizeAnchorGravity, TestSize.Level1)
 {
-    // Case 1: type in GRAVITY_MAP
-    auto gravity = moveDragController->GetGravity(AreaType::TOP);
+    // Case 1: type in RESIZE_ANCHOR_GRAVITY_MAP
+    moveDragController->resizeAreaType_ = AreaType::TOP;
+    auto gravity = moveDragController->GetResizeAnchorGravity();
     EXPECT_EQ(gravity, Gravity::BOTTOM_LEFT);
 
-    // Case 2: type not in GRAVITY_MAP
-    gravity = moveDragController->GetGravity(static_cast<AreaType>(999));
+    // Case 2: type not in RESIZE_ANCHOR_GRAVITY_MAP
+    moveDragController->resizeAreaType_ = static_cast<AreaType>(999);
+    gravity = moveDragController->GetResizeAnchorGravity();
     EXPECT_EQ(gravity, Gravity::TOP_LEFT);
 }
 
 /**
- * @tc.name: TestGetDragGravity
- * @tc.desc: Verify GetDragGravity returns correct value or TOP_LEFT when not found
+ * @tc.name: TestGetResizeDirectionGravity
+ * @tc.desc: Verify GetResizeDirectionGravity returns correct value or TOP_LEFT when not found
  * @tc.type: FUNC
 */
-HWTEST_F(MoveDragControllerTest, TestGetDragGravity, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestGetResizeDirectionGravity, TestSize.Level1)
 {
-    // Case 1: type in DRAG_GRAVITY_MAP
-    moveDragController->type_ = AreaType::TOP;
-    auto gravity = moveDragController->GetDragGravity();
+    // Case 1: type in RESIZE_DIRECTION_GRAVITY_MAP
+    moveDragController->resizeAreaType_ = AreaType::TOP;
+    auto gravity = moveDragController->GetResizeDirectionGravity();
     EXPECT_EQ(gravity, Gravity::TOP);
 
-    // Case 2: type not in DRAG_GRAVITY_MAP
-    moveDragController->type_  = AreaType::UNDEFINED;
-    gravity = moveDragController->GetDragGravity();
+    // Case 2: type not in RESIZE_DIRECTION_GRAVITY_MAP
+    moveDragController->resizeAreaType_ = AreaType::UNDEFINED;
+    gravity = moveDragController->GetResizeDirectionGravity();
     EXPECT_EQ(gravity, Gravity::TOP_LEFT);
 }
 
@@ -1944,7 +1928,7 @@ HWTEST_F(MoveDragControllerTest, TestConvertXYByAspectRatio, TestSize.Level1)
         tx = 100;
         ty = 50;
         moveDragController->mainMoveAxis_ = MoveDragController::AxisType::X_AXIS;
-        moveDragController->type_ = AreaType::RIGHT;
+        moveDragController->resizeAreaType_ = AreaType::RIGHT;
         moveDragController->ConvertXYByAspectRatio(tx, ty, 0.0f);
 
         EXPECT_EQ(tx, 100);
@@ -1956,7 +1940,7 @@ HWTEST_F(MoveDragControllerTest, TestConvertXYByAspectRatio, TestSize.Level1)
         tx = 120;
         ty = 0;
         moveDragController->mainMoveAxis_ = MoveDragController::AxisType::X_AXIS;
-        moveDragController->type_ = AreaType::RIGHT; // POSITIVE_CORRELATION
+        moveDragController->resizeAreaType_ = AreaType::RIGHT; // POSITIVE_CORRELATION
         moveDragController->ConvertXYByAspectRatio(tx, ty, 2.0f);
         // ty = tx / ratio = 120 / 2 = 60 → positive correlation → 60
         EXPECT_EQ(tx, 120);
@@ -1968,7 +1952,7 @@ HWTEST_F(MoveDragControllerTest, TestConvertXYByAspectRatio, TestSize.Level1)
         tx = 90;
         ty = 0;
         moveDragController->mainMoveAxis_ = MoveDragController::AxisType::X_AXIS;
-        moveDragController->type_ = AreaType::LEFT; // NEGATIVE_CORRELATION
+        moveDragController->resizeAreaType_ = AreaType::LEFT; // NEGATIVE_CORRELATION
         moveDragController->ConvertXYByAspectRatio(tx, ty, 3.0f);
         // temp ty = 90 / 3 = 30 → negative correlation → -30
         EXPECT_EQ(tx, 90);
@@ -1980,7 +1964,7 @@ HWTEST_F(MoveDragControllerTest, TestConvertXYByAspectRatio, TestSize.Level1)
         tx = 0;
         ty = 50;
         moveDragController->mainMoveAxis_ = MoveDragController::AxisType::Y_AXIS;
-        moveDragController->type_ = AreaType::BOTTOM; // POSITIVE_CORRELATION
+        moveDragController->resizeAreaType_ = AreaType::BOTTOM; // POSITIVE_CORRELATION
         moveDragController->ConvertXYByAspectRatio(tx, ty, 1.5f);
         // tx = ty * ratio = 50 * 1.5 = 75 → positive correlation → 75
         EXPECT_EQ(tx, 75);
@@ -1992,7 +1976,7 @@ HWTEST_F(MoveDragControllerTest, TestConvertXYByAspectRatio, TestSize.Level1)
         tx = 0;
         ty = 40;
         moveDragController->mainMoveAxis_ = MoveDragController::AxisType::Y_AXIS;
-        moveDragController->type_ = AreaType::TOP; // NEGATIVE_CORRELATION
+        moveDragController->resizeAreaType_ = AreaType::TOP; // NEGATIVE_CORRELATION
         moveDragController->ConvertXYByAspectRatio(tx, ty, 0.5f);
         // temp tx = 40 * 0.5 = 20 → negative correlation → -20
         EXPECT_EQ(tx, -20);
@@ -2734,6 +2718,42 @@ HWTEST_F(MoveDragControllerTest, TestRefreshGlobalScreenRectsFiltersDisplayGroup
     EXPECT_EQ(moveDragController->globalScreenRectMap_[screenId], expectedScreenRect);
     EXPECT_EQ(moveDragController->globalScreenRectMap_.count(otherGroupScreenId), 0);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: TestRefreshGlobalScreenRectsFiltersIsolatedDisplay
+ * @tc.desc: Verify isolated screens are excluded from drag-move screen rect caches
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestRefreshGlobalScreenRectsFiltersIsolatedDisplay, TestSize.Level1)
+{
+    constexpr ScreenId startScreenId = 0;
+    constexpr ScreenId isolatedScreenId = 5;
+    constexpr DisplayGroupId displayGroupId = 10;
+    const auto originalConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    DisplayIsolationConfig testConfig = originalConfig;
+    testConfig.dragIsolatedDisplayIds = { isolatedScreenId };
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(testConfig);
+
+    moveDragController->startDisplayId_ = startScreenId;
+    moveDragController->startDisplayGroupId_ = displayGroupId;
+
+    ScreenProperty screenProperty;
+    screenProperty.SetDisplayGroupId(displayGroupId);
+    screenProperty.SetBounds(RRect({ 0, 0, 300, 200 }, 0.0f, 0.0f));
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[startScreenId] =
+        sptr<ScreenSession>::MakeSptr(startScreenId, screenProperty, 0);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[isolatedScreenId] =
+        sptr<ScreenSession>::MakeSptr(isolatedScreenId, screenProperty, 0);
+
+    moveDragController->RefreshGlobalScreenRects();
+
+    EXPECT_EQ(moveDragController->globalScreenRectMap_.count(startScreenId), 1);
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_.count(startScreenId), 1);
+    EXPECT_EQ(moveDragController->globalScreenRectMap_.count(isolatedScreenId), 0);
+    EXPECT_EQ(moveDragController->globalAvailableScreenRectMap_.count(isolatedScreenId), 0);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(originalConfig);
 }
 
 /**

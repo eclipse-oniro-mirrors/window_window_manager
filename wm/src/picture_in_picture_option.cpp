@@ -234,7 +234,8 @@ uint32_t PipOption::GetPipPriority(uint32_t pipTemplateType) const
         TLOGE(WmsLogTag::WMS_PIP, "param invalid, pipTemplateType is %{public}d", pipTemplateType);
         return PIP_LOW_PRIORITY;
     }
-    if (pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE)) {
+    if (pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE) ||
+        pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_NAVIGATION)) {
         return PIP_TOP_PRIORITY;
     } else if (pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_CALL) ||
         pipTemplateType == static_cast<uint32_t>(PiPTemplateType::VIDEO_MEETING)) {

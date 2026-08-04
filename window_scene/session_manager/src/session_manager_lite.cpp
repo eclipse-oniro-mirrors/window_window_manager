@@ -358,13 +358,13 @@ void SessionManagerLite::OnWMSConnectionChanged(
         if (shouldUpdateCurrentState) {
             isWMSConnected_ = isConnected;
         }
+        TLOGI(WmsLogTag::WMS_MULTI_USER,
+            "State updated: inst=%{public}d, shouldUpdate=%{public}d, "
+            "currentServer userId=%{public}d screenId=%{public}d pid=%{public}d, isWMSConnected=%{public}d",
+            userId_, shouldUpdateCurrentState,
+            currentServer_.userId, currentServer_.screenId, currentServer_.pid, isWMSConnected_);
     }
     bool isUserSwitched = fromUserId != INVALID_USER_ID;
-    TLOGI(WmsLogTag::WMS_MULTI_USER,
-        "State updated: inst=%{public}d, shouldUpdate=%{public}d, isUserSwitched=%{public}d, "
-        "currentServer userId=%{public}d screenId=%{public}d pid=%{public}d, isWMSConnected=%{public}d",
-        userId_, shouldUpdateCurrentState, isUserSwitched,
-        currentServer_.userId, currentServer_.screenId, currentServer_.pid, isWMSConnected_);
     if (isConnected && isUserSwitched) {
         // Notify the user that the old wms has been disconnected.
         OnWMSConnectionChangedCallback(fromUserId, screenId, false, fromPid);

@@ -1622,6 +1622,8 @@ HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions05, TestSize.Level1)
     options.needAnimation = true;
     options.ignoreRotationLock = true;
     bool isFromNapi = false;
+    screenSession->SetScreenTypeInfo(ScreenTypeInfo::EXTERNAL);
+    ssm_->screenSessionMap_[screenId] = screenSession;
     DMError ret = ssm_->SetOrientation(screenId, orientation, options, isFromNapi);
     EXPECT_EQ(ret, DMError::DM_OK);
 
@@ -1645,6 +1647,8 @@ HWTEST_F(ScreenSessionManagerTest, SetOrientationWithOptions06, TestSize.Level1)
     options.needAnimation = true;
     options.ignoreRotationLock = false;
     bool isFromNapi = true;
+    screenSession->SetScreenTypeInfo(ScreenTypeInfo::EXTERNAL);
+    ssm_->screenSessionMap_[screenId] = screenSession;
 
     std::vector<Orientation> orientations = {
         Orientation::UNSPECIFIED, Orientation::VERTICAL,
@@ -1785,7 +1789,7 @@ HWTEST_F(ScreenSessionManagerTest, SetScreenSessionScale_WithDisplayNode, TestSi
     // Create displayNode first so GetDisplayNode returns non-null
     RSDisplayNodeConfig rsConfig;
     rsConfig.screenId = screenId;
-    rsConfig.isMirrored = false;
+    rsConfig.displayMode = DisplayMode::EXPAND;
     screenSession->CreateDisplayNode(rsConfig);
     ASSERT_NE(screenSession->GetDisplayNode(), nullptr);
     float scaleX = 1.5f;
@@ -2246,38 +2250,6 @@ HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurfacePermissionFail01, Test
     EXPECT_EQ(ret, DMError::DM_ERROR_NOT_SYSTEM_APP);
 
     MockAccesstokenKit::ChangeMockStateToInit();
-    ssm_->DestroyVirtualScreen(screenId);
-}
-
-/**
- * @tc.name: AddVirtualScreenSurfacePermissionFail02
- * @tc.desc: AddVirtualScreenSurface with permission denied (invalid permission)
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerTest, AddVirtualScreenSurfacePermissionFail02, TestSize.Level1)
-{
-    ASSERT_NE(ssm_, nullptr);
-    ScreenId screenId;
-    sptr<ScreenSession> screenSession = InitTestScreenSession("AddVirtualScreenSurfacePermFail02", screenId);
-    ASSERT_NE(screenSession, nullptr);
-    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
-    ssm_->screenSessionMap_[screenId] = screenSession;
-
-    sptr<IConsumerSurface> surface = OHOS::IConsumerSurface::Create();
-    ASSERT_NE(surface, nullptr);
-
-    MockAccesstokenKit::MockIsSystemApp(true);
-    MockAccesstokenKit::MockIsSACalling(false);
-    MockAccesstokenKit::MockIsUseTokenMap(true);
-    MockAccesstokenKit::MockTokenMap("ohos.permission.ACCESS_VIRTUAL_SCREEN", -1);
-    MockAccesstokenKit::MockTokenMap("ohos.permission.CAPTURE_SCREEN", -1);
-
-    DMRect surfaceRegion = {0, 0, 100, 100};
-    DMError ret = ssm_->AddVirtualScreenSurface(screenId, surface->GetProducer(), surfaceRegion);
-    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PERMISSION);
-
-    MockAccesstokenKit::ChangeMockStateToInit();
-    ssm_->screenSessionMap_.erase(screenId);
     ssm_->DestroyVirtualScreen(screenId);
 }
 

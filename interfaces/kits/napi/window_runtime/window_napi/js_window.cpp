@@ -1682,9 +1682,8 @@ napi_value JsWindow::OnShowWindow(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             return;
         }
-        if (focusOnShow == false &&
-            (WindowHelper::IsModalSubWindow(weakWindow->GetType(), weakWindow->GetWindowFlags()) ||
-             WindowHelper::IsDialogWindow(weakWindow->GetType()))) {
+        if (isShowWithOptions && (WindowHelper::IsModalSubWindow(weakWindow->GetType(), weakWindow->GetWindowFlags()) ||
+            WindowHelper::IsDialogWindow(weakWindow->GetType()))) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
                 "[window][showWindow]msg: Modal subWindow and dialog can not set focusOnShow."));
             TLOGNE(WmsLogTag::WMS_FOCUS, "Modal subWindow and dialog can not set focusOnShow.");
@@ -1756,6 +1755,8 @@ napi_value JsWindow::OnShowWithAnimation(napi_env env, napi_callback_info info)
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnShowWithAnimation") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][showWithAnimation]msg: Napi send event failed"));
     }
     return result;
 }
@@ -1806,6 +1807,8 @@ napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroy") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][destroy]msg: Napi send event failed"));
     }
     return result;
 }
@@ -4674,6 +4677,7 @@ napi_value JsWindow::OnSetPreferredOrientationWithResult(napi_env env, napi_call
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetPreferredOrientationWithResult") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             errMsgPrefix + "Send event failed."));
+        RemoveOrientationPromiseFromMap(promiseId);
     }
     return result;
 }
@@ -5170,6 +5174,9 @@ napi_value JsWindow::OnSetFocusable(napi_env env, napi_callback_info info)
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetFocusable") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFocusable", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         TLOGE(WmsLogTag::WMS_FOCUS, "window state is abnormal!");
+        napiAsyncTask->Reject(env,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setFocusable]msg: Failed to send event"));
     }
     return result;
 }
@@ -8476,10 +8483,19 @@ __attribute__((no_sanitize("cfi")))
     }
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi object");
+        return nullptr;
+    }
 
     WLOGI("CreateJsWindow %{public}s", windowName.c_str());
     std::unique_ptr<JsWindow> jsWindow = std::make_unique<JsWindow>(window, env);
-    napi_wrap(env, objValue, jsWindow.release(), JsWindow::Finalizer, nullptr, nullptr);
+    auto jsWindowPtr = jsWindow.release();
+    if (napi_wrap(env, objValue, jsWindowPtr, JsWindow::Finalizer, nullptr, nullptr) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to wrap jsWindow");
+        delete jsWindowPtr;
+        return nullptr;
+    }
 
     BindFunctions(env, objValue, "JsWindow");
 
