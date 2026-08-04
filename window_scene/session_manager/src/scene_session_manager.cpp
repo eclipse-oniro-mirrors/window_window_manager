@@ -9310,7 +9310,7 @@ WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId
         if (!sceneSession->IsLifecycleForeground()) {
             focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(true);
         }
-    } else if (!sceneSession->GetSessionInfo().isSystem_ && !IsSessionVisibleForeground(sceneSession)) {
+    } else if (!sceneSession->GetSessionInfo().isSystem_ && !sceneSession->IsLifecycleForeground()) {
         focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(true);
     }
     ShiftFocus(displayId, sceneSession, false, reason);
@@ -16547,9 +16547,6 @@ std::vector<sptr<SceneSession>> SceneSessionManager::CollectProcessingSessions()
             }
             const auto& state = session->GetPostProcessFocusState();
             if (!state.enabled_) {
-                continue;
-            }
-            if (state.isFocused_ && !session->IsVisible()) {
                 continue;
             }
             processingSessions.push_back(session);

@@ -701,7 +701,7 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions03, TestSize.Lev
 
 /**
  * @tc.name: CollectProcessingSessions04
- * @tc.desc: test CollectProcessingSessions with isFocused but not visible
+ * @tc.desc: test CollectProcessingSessions with isFocused true and byForeground false
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions04, TestSize.Level1)
@@ -712,13 +712,13 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions04, TestSize.Lev
     sessionInfo.abilityName_ = "CollectProcessingSessions04";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(nullptr, sceneSession);
-    sceneSession->isVisible_ = false;
-    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
+    PostProcessFocusState state = { true, true, false, FocusChangeReason::CLIENT_REQUEST };
     sceneSession->SetPostProcessFocusState(state);
     ssm_->sceneSessionMap_.emplace(1, sceneSession);
     
     auto sessions = ssm_->CollectProcessingSessions();
-    EXPECT_TRUE(sessions.empty());
+    EXPECT_EQ(sessions.size(), 1);
+    EXPECT_EQ(sessions[0]->GetPersistentId(), 1);
     ssm_->sceneSessionMap_.erase(1);
 }
 
@@ -735,7 +735,6 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions05, TestSize.Lev
     sessionInfo.abilityName_ = "CollectProcessingSessions05";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(nullptr, sceneSession);
-    sceneSession->isVisible_ = true;
     PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession->SetPostProcessFocusState(state);
     ssm_->sceneSessionMap_.emplace(1, sceneSession);
@@ -760,14 +759,12 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions06, TestSize.Lev
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession1->persistentId_ = 1;
     sceneSession1->SetZOrder(100);
-    sceneSession1->isVisible_ = true;
     PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession1->SetPostProcessFocusState(state1);
 
     sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession2->persistentId_ = 2;
     sceneSession2->SetZOrder(50);
-    sceneSession2->isVisible_ = true;
     PostProcessFocusState state2 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession2->SetPostProcessFocusState(state2);
 
@@ -798,14 +795,12 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions07, TestSize.Lev
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession1->persistentId_ = 1;
     sceneSession1->SetZOrder(50);
-    sceneSession1->isVisible_ = true;
     PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession1->SetPostProcessFocusState(state1);
 
     sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession2->persistentId_ = 2;
     sceneSession2->SetZOrder(100);
-    sceneSession2->isVisible_ = true;
     PostProcessFocusState state2 = { true, false, true, FocusChangeReason::DEFAULT };
     sceneSession2->SetPostProcessFocusState(state2);
 
@@ -834,7 +829,6 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions08, TestSize.Lev
 
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession->persistentId_ = 1;
-    sceneSession->isVisible_ = true;
     PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession->SetPostProcessFocusState(state);
 
@@ -866,21 +860,18 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions09, TestSize.Lev
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession1->persistentId_ = 1;
     sceneSession1->SetZOrder(30);
-    sceneSession1->isVisible_ = true;
     PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession1->SetPostProcessFocusState(state1);
 
     sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession2->persistentId_ = 2;
     sceneSession2->SetZOrder(60);
-    sceneSession2->isVisible_ = true;
     PostProcessFocusState state2 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession2->SetPostProcessFocusState(state2);
 
     sptr<SceneSession> sceneSession3 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession3->persistentId_ = 3;
     sceneSession3->SetZOrder(90);
-    sceneSession3->isVisible_ = true;
     PostProcessFocusState state3 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession3->SetPostProcessFocusState(state3);
 
@@ -914,14 +905,12 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions10, TestSize.Lev
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession1->persistentId_ = 1;
     sceneSession1->SetZOrder(100);
-    sceneSession1->isVisible_ = true;
     PostProcessFocusState state1 = { true, true, true, FocusChangeReason::FOREGROUND };
     sceneSession1->SetPostProcessFocusState(state1);
 
     sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     sceneSession2->persistentId_ = 2;
     sceneSession2->SetZOrder(100);
-    sceneSession2->isVisible_ = true;
     PostProcessFocusState state2 = { true, false, true, FocusChangeReason::DEFAULT };
     sceneSession2->SetPostProcessFocusState(state2);
 
