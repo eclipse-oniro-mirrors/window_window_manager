@@ -6455,9 +6455,4 @@ WSError Session::UpdateLSStateInfo(bool isLSState)
     }
     return sessionStage_->UpdateLSState(isLSState);
 }
-
-bool Session::IsSpnOuterScreen() const
-{
-    return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
-}
 } // namespace OHOS::Rosen
