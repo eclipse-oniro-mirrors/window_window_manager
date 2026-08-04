@@ -3129,6 +3129,9 @@ HWTEST_F(WindowSessionImplTest5, IsSpnOuterScreen01, TestSize.Level1)
  */
 HWTEST_F(WindowSessionImplTest5, IsSpnOuterScreen02, TestSize.Level1)
 {
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("IsSpnOuterScreen02");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);

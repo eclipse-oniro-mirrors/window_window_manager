@@ -1976,6 +1976,9 @@ HWTEST_F(WindowSessionTest4, IsSpnOuterScreen01, TestSize.Level1)
  */
 HWTEST_F(WindowSessionTest4, IsSpnOuterScreen02, TestSize.Level1)
 {
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
     ASSERT_NE(session_, nullptr);
     session_->property_->SetDisplayId(0);
     EXPECT_FALSE(session_->IsSpnOuterScreen());
