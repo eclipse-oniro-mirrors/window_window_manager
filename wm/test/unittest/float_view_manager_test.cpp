@@ -192,51 +192,87 @@ HWTEST_F(FloatViewManagerTest, GetActiveController, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RemoveController
+ * @tc.desc: Test RemoveController
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatViewManagerTest, RemoveController, TestSize.Level1)
+{
+    uint32_t windowId = 10;
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, fvController_);
+    EXPECT_EQ(1, FloatViewManager::windowId2Controller_.size());
+    FloatViewManager::RemoveController(windowId + 1);
+    EXPECT_EQ(1, FloatViewManager::windowId2Controller_.size());
+    FloatViewManager::RemoveController(windowId);
+    EXPECT_EQ(0, FloatViewManager::windowId2Controller_.size());
+    FloatViewManager::windowId2Controller_.clear();
+}
+
+/**
+ * @tc.name: GetController
+ * @tc.desc: Test GetController
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatViewManagerTest, GetController, TestSize.Level1)
+{
+    uint32_t windowId = 10;
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, fvController_);
+    EXPECT_NE(nullptr, FloatViewManager::GetController(windowId).promote());
+    EXPECT_EQ(nullptr, FloatViewManager::GetController(windowId + 1).promote());
+    FloatViewManager::windowId2Controller_.clear();
+}
+
+/**
  * @tc.name: DoActionHide
- * @tc.desc: Test DoActionHide with and without active controller
+ * @tc.desc: Test DoActionHide with and without controller in map
  * @tc.type: FUNC
  */
 HWTEST_F(FloatViewManagerTest, DoActionHide, TestSize.Level1)
 {
-    FloatViewManager::DoActionHide("test_reason");
-
-    FloatViewManager::SetActiveController(fvController_);
-    FloatViewManager::DoActionHide("test_reason");
+    uint32_t windowId = 10;
+    FloatViewManager::DoActionHide(windowId, "test_reason");
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, fvController_);
+    FloatViewManager::DoActionHide(windowId, "test_reason");
     EXPECT_EQ(FvWindowState::FV_STATE_HIDDEN, fvController_->GetCurState());
-    FloatViewManager::RemoveActiveController(fvController_);
+    FloatViewManager::windowId2Controller_.clear();
 }
 
 /**
  * @tc.name: DoActionInSidebar
- * @tc.desc: Test DoActionInSidebar with and without active controller
+ * @tc.desc: Test DoActionInSidebar with and without controller in map
  * @tc.type: FUNC
  */
 HWTEST_F(FloatViewManagerTest, DoActionInSidebar, TestSize.Level1)
 {
-    FloatViewManager::DoActionInSidebar("test_reason");
-
-    FloatViewManager::SetActiveController(fvController_);
-    FloatViewManager::DoActionInSidebar("test_reason");
+    uint32_t windowId = 10;
+    FloatViewManager::DoActionInSidebar(windowId, "test_reason");
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, fvController_);
+    FloatViewManager::DoActionInSidebar(windowId, "test_reason");
     EXPECT_EQ(FvWindowState::FV_STATE_IN_SIDEBAR, fvController_->GetCurState());
-    FloatViewManager::RemoveActiveController(fvController_);
+    FloatViewManager::windowId2Controller_.clear();
 }
 
 /**
  * @tc.name: DoActionInFloatingBall
- * @tc.desc: Test DoActionInFloatingBall with and without active controller
+ * @tc.desc: Test DoActionInFloatingBall with and without controller in map
  * @tc.type: FUNC
  */
 HWTEST_F(FloatViewManagerTest, DoActionInFloatingBall, TestSize.Level1)
 {
-    FloatViewManager::DoActionInFloatingBall("test_reason");
-
-    FloatViewManager::SetActiveController(fvController_);
-    FloatViewManager::DoActionInFloatingBall("test_reason");
+    uint32_t windowId = 10;
+    FloatViewManager::DoActionInFloatingBall(windowId, "test_reason");
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, fvController_);
+    FloatViewManager::DoActionInFloatingBall(windowId, "test_reason");
     EXPECT_EQ(FvWindowState::FV_STATE_IN_FLOATING_BALL, fvController_->GetCurState());
     fvController_->SetBindState(true);
-    FloatViewManager::DoActionInFloatingBall("test_reason");
+    FloatViewManager::DoActionInFloatingBall(windowId, "test_reason");
     EXPECT_EQ(FvWindowState::FV_STATE_IN_FLOATING_BALL, fvController_->GetCurState());
-    FloatViewManager::RemoveActiveController(fvController_);
+    FloatViewManager::windowId2Controller_.clear();
 }
 
 /**
@@ -278,62 +314,92 @@ HWTEST_F(FloatViewManagerTest, RemoveActiveControllerBranchCoverage, TestSize.Le
  */
 HWTEST_F(FloatViewManagerTest, DoActionEvent, TestSize.Level1)
 {
-    // branch: action not in map => return
-    FloatViewManager::DoActionEvent("not_exist_action", "ut");
-
-    // branch: action in map => dispatch (use "hide" to avoid depending on StopFloatView)
-    FloatViewManager::SetActiveController(fvController_);
-    FloatViewManager::DoActionEvent("hide", "ut");
+    uint32_t windowId = 10;
+    FloatViewManager::DoActionEvent(windowId, "not_exist_action", "ut");
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, fvController_);
+    FloatViewManager::DoActionEvent(windowId, "hide", "ut");
     EXPECT_EQ(FvWindowState::FV_STATE_HIDDEN, fvController_->GetCurState());
-    FloatViewManager::RemoveActiveController(fvController_);
+    FloatViewManager::windowId2Controller_.clear();
 }
 
 /**
  * @tc.name: DoActionStart
- * @tc.desc: DoActionStart with and without active controller
+ * @tc.desc: DoActionStart with and without controller in map
  * @tc.type: FUNC
  */
 HWTEST_F(FloatViewManagerTest, DoActionStart, TestSize.Level1)
 {
-    // branch: no active controller => do nothing
-    FloatViewManager::DoActionStart();
+    uint32_t windowId = 10;
+    FloatViewManager::DoActionStart(windowId + 1);
 
-    // branch: has active controller => call controller->StopFloatView
     auto mockController = sptr<MockFloatViewController>::MakeSptr(*option_, nullptr);
     ASSERT_NE(nullptr, mockController);
 
-    FloatViewManager::SetActiveController(mockController);
-    FloatViewManager::DoActionStart();
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, mockController);
+    FloatViewManager::DoActionStart(windowId);
     EXPECT_EQ(FvWindowState::FV_STATE_STARTED, mockController->GetCurState());
     mockController->SetBindState(true);
-    FloatViewManager::DoActionStart();
+    FloatViewManager::DoActionStart(windowId);
     EXPECT_EQ(FvWindowState::FV_STATE_STARTED, mockController->GetCurState());
-    FloatViewManager::RemoveActiveController(mockController);
+    FloatViewManager::windowId2Controller_.clear();
+}
+
+/**
+ * @tc.name: DoActionCloseByMainWindow
+ * @tc.desc: DoActionCloseByMainWindow with and without controller in map
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatViewManagerTest, DoActionCloseByMainWindow, TestSize.Level1)
+{
+    auto mockController1 = sptr<MockFloatViewController>::MakeSptr(*option_, nullptr);
+    ASSERT_NE(nullptr, mockController1);
+    mockController1->mainWindowId_ = 10;
+    mockController1->window_ = mw_;
+    auto mockController2 = sptr<MockFloatViewController>::MakeSptr(*option_, nullptr);
+    ASSERT_NE(nullptr, mockController2);
+    mockController2->mainWindowId_ = 10;
+    mockController2->window_ = mw_;
+    auto mockController3 = sptr<MockFloatViewController>::MakeSptr(*option_, nullptr);
+    ASSERT_NE(nullptr, mockController3);
+    mockController3->mainWindowId_ = 20;
+    mockController3->window_ = mw_;
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(101, mockController1);
+    FloatViewManager::AddController(102, mockController2);
+    FloatViewManager::AddController(103, nullptr);
+    FloatViewManager::AddController(201, mockController3);
+
+    FloatViewManager::DoActionCloseByMainWindow(10, "ut");
+    EXPECT_EQ(FvWindowState::FV_STATE_STOPPED, mockController1->GetCurState());
+    EXPECT_EQ(FvWindowState::FV_STATE_STOPPED, mockController2->GetCurState());
+    EXPECT_EQ(FvWindowState::FV_STATE_UNDEFINED, mockController3->GetCurState());
+    FloatViewManager::windowId2Controller_.clear();
 }
 
 /**
  * @tc.name: DoActionClose
- * @tc.desc: DoActionClose with and without active controller
+ * @tc.desc: DoActionClose with and without controller in map
  * @tc.type: FUNC
  */
 HWTEST_F(FloatViewManagerTest, DoActionClose, TestSize.Level1)
 {
-    // branch: no active controller => do nothing
-    FloatViewManager::DoActionClose("ut");
+    uint32_t windowId = 10;
+    FloatViewManager::DoActionClose(windowId, "ut");
 
-    // branch: has active controller => call controller->StopFloatView
     auto mockController = sptr<MockFloatViewController>::MakeSptr(*option_, nullptr);
     ASSERT_NE(nullptr, mockController);
 
-    FloatViewManager::SetActiveController(mockController);
-    FloatViewManager::DoActionClose("ut");
-    EXPECT_EQ(FvWindowState::FV_STATE_UNDEFINED, mockController->GetCurState());
-    FloatViewManager::RemoveActiveController(mockController);
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(windowId, mockController);
+    FloatViewManager::DoActionClose(windowId, "ut");
+    FloatViewManager::windowId2Controller_.clear();
 }
 
 /**
  * @tc.name: SyncFvWindowInfo
- * @tc.desc: SyncFvWindowInfo with and without active controller
+ * @tc.desc: SyncFvWindowInfo with and without controller in map
  * @tc.type: FUNC
  */
 HWTEST_F(FloatViewManagerTest, SyncFvLimitsAndWindowInfo, TestSize.Level1)
@@ -346,18 +412,17 @@ HWTEST_F(FloatViewManagerTest, SyncFvLimitsAndWindowInfo, TestSize.Level1)
     FloatViewLimits limit;
     limit.maxHeight_ = 1;
     limitsInfo.emplace(0, limit);
-    // branch: no active controller => do nothing
     FloatViewManager::SyncFvLimits(windowId, limitsInfo);
     FloatViewManager::SyncFvWindowInfo(windowId, windowInfo, reason);
 
-    // branch: has active controller => call controller->SyncWindowInfo
     auto mockController = sptr<MockFloatViewController>::MakeSptr(*option_, nullptr);
     ASSERT_NE(nullptr, mockController);
     mockController->window_ = mw_;
-    FloatViewManager::SetActiveController(mockController);
+    FloatViewManager::windowId2Controller_.clear();
+    FloatViewManager::AddController(mw_->GetWindowId(), mockController);
     FloatViewManager::SyncFvLimits(mw_->GetWindowId(), limitsInfo);
     FloatViewManager::SyncFvWindowInfo(mw_->GetWindowId(), windowInfo, reason);
-    FloatViewManager::RemoveActiveController(mockController);
+    FloatViewManager::windowId2Controller_.clear();
     EXPECT_EQ(windowInfo.scale_, mockController->GetWindowInfo().scale_);
 }
 } // namespace

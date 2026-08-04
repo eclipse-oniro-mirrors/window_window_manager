@@ -37,6 +37,7 @@ static const int32_t g_screenRotationOffSet = system::GetIntParameter<int32_t>("
 static const int32_t g_screenScanType = system::GetIntParameter<int32_t>("const.window.screen.scan_type", 0);
 static const std::string PRODUCT_SERIES = system::GetParameter("const.build.product", "");
 static const std::string g_packageName = system::GetParameter("const.display_rotation.package.list", "");
+const bool SUPPORT_DPI_SCALING = system::GetBoolParameter("const.desktop.is_support_scale_with_dpi", false);
 static const int32_t SCAN_TYPE_VERTICAL = 1;
 static const int32_t ROTATION_90 = 1;
 static const int32_t ROTATION_270 = 3;
@@ -95,7 +96,7 @@ ScreenSession::ScreenSession(const ScreenSessionConfig& config, ScreenSessionRea
         }
         case ScreenSessionReason::CREATE_SESSION_FOR_MIRROR: {
             rsConfig.screenId = rsId_;
-            rsConfig.isMirrored = true;
+            rsConfig.displayMode = DisplayMode::MIRROR;
             rsConfig.mirrorNodeId = config.mirrorNodeId;
             rsConfig.isSync = true;
             break;
@@ -124,25 +125,27 @@ ScreenSession::ScreenSession(const ScreenSessionConfig& config, ScreenSessionRea
 void ScreenSession::CreateDisplayNode(const Rosen::RSDisplayNodeConfig& config)
 {
     TLOGI(WmsLogTag::DMS,
-        "[DPNODE]config screenId: %{public}" PRIu64", mirrorNodeId: %{public}" PRIu64", isMirrored: %{public}d",
-        config.screenId, config.mirrorNodeId, config.isMirrored);
-    std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
-    displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
-    TLOGD(WmsLogTag::WMS_SCB, "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
-    if (displayNode_ == nullptr) {
-        TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
-        return;
-    }
-    RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
-    const auto& rect = property_.GetBounds().rect_;
-    displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
-    displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
-    if (config.isMirrored) {
-        EnableMirrorScreenRegion();
-    }
-    if (property_.GetNeedCastScale()) {
-        displayNode_->SetPivot(0.0F, 0.0F);
-        displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+        "[DPNODE]config screenId: %{public}" PRIu64", mirrorNodeId: %{public}" PRIu64", displayMode: %{public}d",
+        config.screenId, config.mirrorNodeId, static_cast<int32_t>(config.displayMode));
+    {
+        std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
+        displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
+        TLOGD(WmsLogTag::WMS_SCB, "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
+        if (displayNode_ == nullptr) {
+            TLOGE(WmsLogTag::DMS, "Failed to create displayNode, displayNode is null!");
+            return;
+        }
+        RSAdapterUtil::SetSkipCheckInMultiInstance(displayNode_, true);
+        const auto& rect = property_.GetBounds().rect_;
+        displayNode_->SetFrame(rect.left_, rect.top_, rect.width_, rect.height_);
+        displayNode_->SetBounds(rect.left_, rect.top_, rect.width_, rect.height_);
+        if (config.displayMode == DisplayMode::MIRROR) {
+            EnableMirrorScreenRegion();
+        }
+        if (property_.GetNeedCastScale()) {
+            displayNode_->SetPivot(0.0F, 0.0F);
+            displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
+        }
     }
     RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
 }
@@ -152,7 +155,7 @@ void ScreenSession::ReuseDisplayNode(const RSDisplayNodeConfig& config)
     {
         std::unique_lock<std::shared_mutex> lock(displayNodeMutex_);
         if (displayNode_) {
-            displayNode_->SetDisplayNodeMirrorConfig(config);
+            displayNode_->SetDisplayNodeConfig(config);
             RSTransactionAdapter::FlushImplicitTransaction(displayNode_);
             return;
         }
@@ -211,8 +214,8 @@ ScreenSession::ScreenSession(ScreenId screenId, const ScreenProperty& property,
     rsId_ = screenId;
     property_.SetRsId(rsId_);
     RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession_);
-    Rosen::RSDisplayNodeConfig config = { .screenId = screenId_, .isMirrored = true, .mirrorNodeId = nodeId,
-        .isSync = true};
+    Rosen::RSDisplayNodeConfig config = { .screenId = screenId_, .displayMode = DisplayMode::MIRROR,
+        .mirrorNodeId = nodeId, .isSync = true };
     displayNode_ = Rosen::RSDisplayNode::Create(config, GetRSUIContext());
     TLOGD(WmsLogTag::WMS_SCB,
           "Create RSDisplayNode: %{public}s", RSAdapterUtil::RSNodeToStr(displayNode_).c_str());
@@ -354,7 +357,7 @@ sptr<DisplayInfo> ScreenSession::ConvertToDisplayInfo()
     if (displayInfo == nullptr) {
         return displayInfo;
     }
-    if (!IsScreenAvailable()) {
+    if (!isInUse()) {
         TLOGE(WmsLogTag::DMS, "screenId: %{public}" PRIu64" is unavailable.", screenId_);
         return nullptr;
     }
@@ -516,17 +519,7 @@ void ScreenSession::SetIsCurrentInUse(bool isInUse)
 
 bool ScreenSession::GetIsCurrentInUse() const
 {
-    return isInUse_;
-}
-
-void ScreenSession::SetScreenInUseStatus(bool isInUse)
-{
-    property_.SetIsInUse(isInUse);
-}
-
-bool ScreenSession::isInUse()
-{
-    return property_.GetIsInUse();
+    return isCurrentInUse_ ;
 }
 
 uint64_t ScreenSession::GetSessionId() const
@@ -947,7 +940,7 @@ void ScreenSession::Disconnect()
 
 void ScreenSession::NotifyListenerPropertyChange(const ScreenProperty& newProperty, ScreenPropertyChangeReason reason)
 {
-    if (reason == ScreenPropertyChangeReason::VIRTUAL_PIXEL_RATIO_CHANGE) {
+    if (reason == ScreenPropertyChangeReason::VIRTUAL_PIXEL_RATIO_CHANGE && !SUPPORT_DPI_SCALING) {
         return;
     }
     auto listeners = GetScreenChangeListenerList();
@@ -1982,7 +1975,7 @@ DisplayOrientation ScreenSession::CalcDeviceOrientationWithBounds(Rotation rotat
     if (foldDisplayMode == FoldDisplayMode::GLOBAL_FULL) {
         uint32_t temp = (static_cast<uint32_t>(rotation) + SECONDARY_ROTATION_270) % SECONDARY_ROTATION_MOD;
         rotation = static_cast<Rotation>(temp);
-    } else if (foldDisplayMode == FoldDisplayMode::UNKNOWN) {
+    } else if (foldDisplayMode == FoldDisplayMode::UNKNOWN || !GetIsInternal()) {
         rotation = GetTargetRotationWithBounds(rotation, bounds, static_cast<uint32_t>(ROTATION_90));
     } else if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         rotation = GetTargetRotationWithBounds(rotation, bounds, static_cast<uint32_t>(ROTATION_270));
@@ -2187,13 +2180,19 @@ Orientation ScreenSession::CalcDisplayOrientationToOrientation(DisplayOrientatio
     return orientation;
 }
 
-sptr<ScreenInfo> ScreenSession::ConvertToScreenInfo() const
+
+sptr<ScreenInfo> ScreenSession::ConvertToScreenInfo(bool isNeedUnused) const
 {
     sptr<ScreenInfo> info = new(std::nothrow) ScreenInfo();
     if (info == nullptr) {
         return nullptr;
     }
-    if (!IsScreenAvailable()) {
+    if (isNeedUnused) {
+        TLOGE(WmsLogTag::DMS, "is need Unused is true");
+        FillScreenInfo(info);
+        return info;
+    }
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && !isInUse()) {
         TLOGE(WmsLogTag::DMS, "screenId: %{public}" PRIu64" is unavailable.", screenId_);
         return nullptr;
     }
@@ -2435,7 +2434,7 @@ void ScreenSession::InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startP
 {
     std::unique_lock<std::shared_mutex> displayNodeLock(displayNodeMutex_);
     if (displayNode_ != nullptr) {
-        displayNode_->SetDisplayNodeMirrorConfig(config);
+        displayNode_->SetDisplayNodeConfig(config);
         if (screenId_ == 0 && isFold_) {
             TLOGI(WmsLogTag::DMS, "Return InitRSDisplayNode foldScreen0");
             return;
@@ -2486,7 +2485,7 @@ void ScreenSession::InitRSDisplayNode(RSDisplayNodeConfig& config, Point& startP
         displayNode_->SetPivot(0.0F, 0.0F);
         displayNode_->SetScale(property_.GetCastScaleX(), property_.GetCastScaleY());
     }
-    if (config.isMirrored) {
+    if (config.displayMode == DisplayMode::MIRROR) {
         EnableMirrorScreenRegion();
     }
     RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
@@ -2516,13 +2515,15 @@ bool ScreenSessionGroup::GetRSDisplayNodeConfig(sptr<ScreenSession>& screenSessi
         TLOGE(WmsLogTag::DMS, "screenSession is nullptr.");
         return false;
     }
-    config = { screenSession->rsId_ };
+    config = { screenSession->rsId_, DisplayMode::EXPAND};
     switch (combination_) {
         case ScreenCombination::SCREEN_ALONE:
+            config = { screenSession->rsId_, DisplayMode::INVALID};
             [[fallthrough]];
         case ScreenCombination::SCREEN_EXPAND:
             break;
         case ScreenCombination::SCREEN_UNIQUE:
+            config = { screenSession->rsId_, DisplayMode::INDEPENDENT};
             break;
         case ScreenCombination::SCREEN_MIRROR: {
             if (GetChildCount() == 0 || mirrorScreenId_ == screenSession->screenId_) {
@@ -2541,7 +2542,7 @@ bool ScreenSessionGroup::GetRSDisplayNodeConfig(sptr<ScreenSession>& screenSessi
             NodeId nodeId = displayNode->GetId();
             TLOGI(WmsLogTag::DMS, "mirrorScreenId_:%{public}" PRIu64", rsId_:%{public}" PRIu64", \
                 nodeId:%{public}" PRIu64"", mirrorScreenId_, screenSession->rsId_, nodeId);
-            config = {screenSession->rsId_, true, nodeId, true};
+            config = {screenSession->rsId_, DisplayMode::MIRROR, nodeId, true};
             break;
         }
         default:
@@ -2950,7 +2951,8 @@ void ScreenSession::SetXYPosition(int32_t x, int32_t y)
         GetScreenId(), GetRSScreenId(), x, y);
 }
 
-void ScreenSession::ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName)
+void ScreenSession::ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+    uint32_t tokenId, const std::vector<std::string>& permissions)
 {
     std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
     if (screenChangeListenerList_.empty()) {
@@ -2962,7 +2964,7 @@ void ScreenSession::ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, cons
             TLOGE(WmsLogTag::DMS, "screenChangeListener is null.");
             continue;
         }
-        listener->OnScreenCaptureNotify(mainScreenId, uid, clientName);
+        listener->OnScreenCaptureNotify(mainScreenId, uid, clientName, tokenId, permissions);
     }
 }
 
@@ -3179,7 +3181,7 @@ DisplayId ScreenSession::GetDisplayId()
 
 DisplayId ScreenSession::GetAvailableDisplayId() const
 {
-    if (!IsScreenAvailable()) {
+    if (!isInUse()) {
         TLOGE(WmsLogTag::DMS, "screenId: %{public}" PRIu64" is unavailable.", screenId_);
         return DISPLAY_ID_INVALID;
     }
@@ -3198,14 +3200,14 @@ void ScreenSession::SetDisplayNode(std::shared_ptr<RSDisplayNode> displayNode)
     RSAdapterUtil::SetRSUIContext(displayNode_, GetRSUIContext(), true);
 }
 
-void ScreenSession::SetScreenAvailableStatus(bool isScreenAvailable)
+void ScreenSession::SetScreenInUseStatus(bool isInUse)
 {
-    isScreenAvailable_ = isScreenAvailable;
+    isInUse_ = isInUse;
 }
-
-bool ScreenSession::IsScreenAvailable() const
+ 
+bool ScreenSession::isInUse() const
 {
-    return isScreenAvailable_;
+    return isInUse_;
 }
 
 void ScreenSession::SetRSScreenId(ScreenId rsId)

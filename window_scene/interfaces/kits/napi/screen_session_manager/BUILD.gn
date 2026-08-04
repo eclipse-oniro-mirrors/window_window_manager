@@ -23,6 +23,8 @@ config("screen_session_manager_napi_public_config") {
 }
 
 ohos_shared_library("screensessionmanager_napi") {
+  branch_protector_ret = "pac_ret"
+
   sources = [
     "js_device_screen_config.cpp",
     "js_screen_session.cpp",

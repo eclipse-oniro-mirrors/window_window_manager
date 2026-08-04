@@ -633,7 +633,7 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RegisterWindowPropertyChangeAgent, Te
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
 
     auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
-    auto ret = tempProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    auto ret = tempProxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
@@ -641,29 +641,29 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RegisterWindowPropertyChangeAgent, Te
     ASSERT_NE(proxy, nullptr);
 
     MockMessageParcel::ClearAllErrorFlag();
-    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_OK);
 
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
-    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
 
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
-    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteUint32ErrorFlag(false);
 
-    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, nullptr);
+    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, nullptr, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
-    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->RegisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     remoteMocker->SetRequestResult(ERR_NONE);
 
@@ -682,7 +682,7 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UnregisterWindowPropertyChangeAgent, 
     sptr<IWindowManagerAgent> windowManagerAgent = sptr<WindowManagerAgent>::MakeSptr();
 
     auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
-    auto ret = tempProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    auto ret = tempProxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
@@ -690,29 +690,29 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UnregisterWindowPropertyChangeAgent, 
     ASSERT_NE(proxy, nullptr);
 
     MockMessageParcel::ClearAllErrorFlag();
-    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_OK);
 
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
-    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
 
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
-    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteUint32ErrorFlag(false);
 
-    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, nullptr);
+    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, nullptr, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
-    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent);
+    ret = proxy->UnregisterWindowPropertyChangeAgent(windowInfoKey, interestInfo, windowManagerAgent, 100);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     remoteMocker->SetRequestResult(ERR_NONE);
 

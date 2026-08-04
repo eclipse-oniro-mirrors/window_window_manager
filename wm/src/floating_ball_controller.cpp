@@ -143,6 +143,8 @@ WMError FloatingBallController::UpdateFloatingBall(sptr<FbOption>& option)
     option->GetFbTemplateBaseInfo(fbTemplateBaseInfo);
     fbTemplateBaseInfo.isVisibleInApp_ = visibleInApp_;
     fbTemplateBaseInfo.id_ = id_;
+    fbTemplateBaseInfo.isBind_ = bindState_;
+    fbTemplateBaseInfo.bindWindowId_ = bindWindowId_;
     auto errCode = window_->UpdateFloatingBall(fbTemplateBaseInfo, option->GetIcon());
     std::ostringstream ss;
     errCode == WMError::WM_OK ? (ss << "") : (ss << "Update floating ball window session failed, errCode:"

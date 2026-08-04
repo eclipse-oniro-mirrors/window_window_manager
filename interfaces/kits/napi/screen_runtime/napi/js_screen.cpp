@@ -333,6 +333,7 @@ void SetJsScreenProperties(napi_env env, napi_value objValue, const sptr<ScreenI
         CreateJsValue(env, parentId == SCREEN_ID_INVALID ? -1 : static_cast<int64_t>(parentId)));
     napi_set_named_property(env, objValue, "orientation", CreateJsValue(env, info->GetOrientation()));
     napi_set_named_property(env, objValue, "serialNumber", CreateJsValue(env, info->GetSerialNumber()));
+    napi_set_named_property(env, objValue, "isInUse", CreateJsValue(env, info->GetIsInUse()));
     napi_set_named_property(env, objValue, "sourceMode", CreateJsValue(env, info->GetSourceMode()));
     napi_set_named_property(env, objValue, "screenType",
         CreateJsValue(env, static_cast<uint32_t>(info->GetScreenTypeInfo())));

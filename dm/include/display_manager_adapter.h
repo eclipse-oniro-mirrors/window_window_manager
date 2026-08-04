@@ -50,7 +50,6 @@ public:
 
 class BaseAdapter {
 public:
-    BaseAdapter();
     virtual ~BaseAdapter();
     virtual DMError RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type);
@@ -60,8 +59,7 @@ public:
 protected:
     virtual bool InitDMSProxy();
     virtual bool RegisterClientDeathListener();
-    class Impl;
-    std::unique_ptr<Impl> pImpl_;
+    std::recursive_mutex mutex_;
     sptr<IScreenSessionManager> screenSessionManagerServiceProxy_ = nullptr;
     sptr<IDisplayManager> displayManagerServiceProxy_ = nullptr;
     sptr<IRemoteObject::DeathRecipient> dmsDeath_ = nullptr;
@@ -189,7 +187,7 @@ public:
     virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
         const OrientationOptions& options, bool isFromNapi);
     virtual sptr<ScreenGroupInfo> GetScreenGroupInfoById(ScreenId screenId);
-    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
+    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false);
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, ScreenId& screenGroupId,
         const RotationOption& rotationOption = {Rotation::ROTATION_0, false});
     virtual DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,

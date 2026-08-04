@@ -242,9 +242,12 @@ public:
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) { return false; }
     virtual void NotifyDisplayEvent(DisplayEvent event) {}
     virtual bool SetFreeze(std::vector<DisplayId> displayIds, bool isFreeze) { return false; }
-    virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId) { return nullptr; }
+    virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId, bool isNeedUnused = false) { return nullptr; }
     virtual sptr<ScreenGroupInfo> GetScreenGroupInfoById(ScreenId screenId) { return nullptr; }
-    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos) { return DMError::DM_OK; }
+    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false)
+    {
+        return DMError::DM_OK;
+    }
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
         ScreenId& screenGroupId, const RotationOption& rotationOption = {Rotation::ROTATION_0, false},
         bool forceMirror = false) { return DMError::DM_OK; }
@@ -465,6 +468,7 @@ public:
     virtual DMError GetRoundedCorner(DisplayId displayId, int& radius) { return DMError::DM_OK; }
     virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName) { return DMError::DM_OK; }
     virtual sptr<IRemoteObject> GetRenderSession(ScreenId screenId) { return nullptr; }
+    virtual void SetHoverBlockList(const std::vector<std::string>& hoverBlockList) {}
 };
 } // namespace Rosen
 } // namespace OHOS

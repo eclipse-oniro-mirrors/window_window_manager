@@ -16,6 +16,7 @@
 #include "web_picture_in_picture_controller_interface.h"
 
 #include "native_pip_window_listener.h"
+#include "permission.h"
 #include "picture_in_picture_manager.h"
 #include "window_manager_hilog.h"
 
@@ -49,12 +50,14 @@ namespace {
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
     const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
+    const std::set<PiPControlGroup> VIDEO_NAVIGATION_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
         {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_NAVIGATION, VIDEO_NAVIGATION_CONTROLS},
     };
 }
 
@@ -106,6 +109,12 @@ static int32_t checkCreatePipParams(const PiPConfig& config)
         TLOGE(WmsLogTag::WMS_PIP, "invalid env");
         return -1;
     }
+    if (IsSystemOnlyPiPTemplateType(static_cast<PiPTemplateType>(config.pipTemplateType)) &&
+        !Permission::IsSystemCalling(true)) {
+        TLOGE(WmsLogTag::WMS_PIP, "createPip param error, templateType %{public}u requires system app",
+            config.pipTemplateType);
+        return -1;
+    }
     return checkControlsRules(config.pipTemplateType, config.controlGroup);
 }
 
@@ -130,8 +139,8 @@ WMError WebPictureInPictureControllerInterface::Create(const PiPConfig& pipConfi
 WMError WebPictureInPictureControllerInterface::StartPip(uint32_t controllerId)
 {
     if (auto pipController = sptrWebPipController_) {
-        sptrWebPipController_->SetControllerId(controllerId);
-        auto res = sptrWebPipController_->StartPictureInPicture(StartPipType::NATIVE_START);
+        pipController->SetControllerId(controllerId);
+        auto res = pipController->StartPictureInPicture(StartPipType::NATIVE_START);
         if (res == WMError::WM_OK) {
             isStarted_ = true;
         }

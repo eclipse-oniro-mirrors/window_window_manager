@@ -51,6 +51,11 @@ ScreenScene::ScreenScene(std::string name) : name_(name)
     handler_ = std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::GetMainEventRunner());
     g_ssIsDestroyed = false;
     displayId_ = DISPLAY_ID_INVALID;
+    densityUpdateCallback_ = [](DisplayId displayId, float density) {
+        if (RootScene::staticRootScene_ != nullptr) {
+            RootScene::staticRootScene_->SetDisplayDensity(density, displayId);
+        }
+    };
 }
 
 ScreenScene::~ScreenScene()
@@ -245,6 +250,11 @@ void ScreenScene::SetDisplayDensity(float density)
         return;
     }
     density_ = density;
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "screen: hasCallback=%{public}d, dpi=%{public}f, display=%{public}" PRIu64,
+        densityUpdateCallback_ != nullptr, density, displayId_);
+    if (densityUpdateCallback_) {
+        densityUpdateCallback_(displayId_, density);
+    }
 }
 
 uint64_t ScreenScene::GetDisplayId() const

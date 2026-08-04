@@ -915,6 +915,13 @@ HWTEST_F(KeyboardSessionTest6, HandleActionUpdateKeyboardTouchHotArea01, TestSiz
     property->SetKeyboardTouchHotAreas(keyboardTouchHotAreas);
     WSPropertyChangeAction action = WSPropertyChangeAction::ACTION_UPDATE_ASPECT_RATIO;
     WMError result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property, action);
+    EXPECT_EQ(result, WMError::WM_ERROR_NULLPTR);
+    SessionInfo info;
+    info.abilityName_ = "keyboardPanelSession";
+    info.bundleName_ = "keyboardPanelSession";
+    sptr<SceneSession> keyboardPanelSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    keyboardSession->BindKeyboardPanelSession(keyboardPanelSession);
+    result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property, action);
     EXPECT_EQ(result, WMError::WM_ERROR_INVALID_DISPLAY);
 }
 

@@ -163,8 +163,8 @@ HWTEST_F(ScreenStateMachineTest, DoSetScreenPowerForAll_ShouldReturnFalse_WhenTy
 HWTEST_F(ScreenStateMachineTest,
 DoSetScreenPowerForAll_ShouldReturnFalse_WhenTypeIsValidAndDoSetScreenPowerForAllReturnFalse, TestSize.Level0)
 {   ScreenPowerEvent event = ScreenPowerEvent::POWER_ON;
-    ScreenPowerInfoType validType = std::make_pair(ScreenPowerState::INVALID_STATE,
-    PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_OFF);
+    ScreenPowerInfoType validType = std::make_tuple(ScreenPowerState::INVALID_STATE,
+    PowerStateChangeReason::STATE_CHANGE_REASON_PRE_BRIGHT_AUTH_FAIL_SCREEN_OFF, false);
     EXPECT_FALSE(fsm_->DoSetScreenPowerForAll(event, validType));
 }
 

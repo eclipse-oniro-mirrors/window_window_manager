@@ -276,7 +276,7 @@ void AbstractScreen::SetPropertyForDisplayNode(const std::shared_ptr<RSDisplayNo
 void AbstractScreen::InitRSDisplayNode(const RSDisplayNodeConfig& config, const Point& startPoint)
 {
     if (rsDisplayNode_ != nullptr) {
-        rsDisplayNode_->SetDisplayNodeMirrorConfig(config);
+        rsDisplayNode_->SetDisplayNodeConfig(config);
         TLOGD(WmsLogTag::DMS, "RSDisplayNode is not null");
     } else {
         TLOGD(WmsLogTag::DMS, "Create rsDisplayNode");
@@ -620,9 +620,10 @@ bool AbstractScreenGroup::GetRSDisplayNodeConfig(sptr<AbstractScreen>& dmsScreen
         TLOGE(WmsLogTag::DMS, "dmsScreen is nullptr.");
         return false;
     }
-    config = { dmsScreen->rsId_ };
+    config = { dmsScreen->rsId_, DisplayMode::EXPAND };
     switch (combination_) {
         case ScreenCombination::SCREEN_ALONE:
+            config.displayMode = DisplayMode::INVALID;
             [[fallthrough]];
         case ScreenCombination::SCREEN_EXPAND:
             break;
@@ -647,7 +648,7 @@ bool AbstractScreenGroup::GetRSDisplayNodeConfig(sptr<AbstractScreen>& dmsScreen
             NodeId nodeId = displayNode->GetId();
             TLOGI(WmsLogTag::DMS, "AddChild, mirrorScreenId_:%{public}" PRIu64", rsId_:%{public}" PRIu64", "
                 "nodeId:%{public}" PRIu64"", mirrorScreenId_, dmsScreen->rsId_, nodeId);
-            config = {dmsScreen->rsId_, true, nodeId};
+            config = { dmsScreen->rsId_, DisplayMode::MIRROR, nodeId };
             break;
         }
         default:

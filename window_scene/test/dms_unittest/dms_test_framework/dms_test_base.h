@@ -73,8 +73,8 @@ public:
     MOCK_METHOD(void, OnUpdateFoldDisplayMode, (FoldDisplayMode displayMode), (override));
     MOCK_METHOD(void, SetVirtualPixelRatioSystem, (ScreenId screenId, float virtualPixelRatio), (override));
     MOCK_METHOD(void, OnFoldStatusChangedReportUE, (const std::vector<std::string>& screenFoldInfo), (override));
-    MOCK_METHOD(void, ScreenCaptureNotify, (ScreenId mainScreenId, int32_t uid, const std::string& clientName),
-                (override));
+    MOCK_METHOD(void, ScreenCaptureNotify, (ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions), (override));
     MOCK_METHOD(void, OnCameraBackSelfieChanged, (ScreenId screenId, bool isCameraBackSelfie), (override));
     MOCK_METHOD(void, OnExtendScreenConnectStatusChanged,
                 (ScreenId screenId, ExtendScreenConnectStatus extendScreenConnectStatus), (override));

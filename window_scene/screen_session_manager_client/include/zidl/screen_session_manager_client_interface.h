@@ -21,7 +21,6 @@
 
 #include "display_info.h"
 #include "session/screen/include/screen_property.h"
-#include "session_option.h"
 #include "rs_event_data_manager.h"
 
 namespace OHOS::Rosen {
@@ -105,7 +104,8 @@ public:
     virtual void OnUpdateFoldDisplayMode(FoldDisplayMode displayMode) = 0;
     virtual void SetVirtualPixelRatioSystem(ScreenId screenId, float virtualPixelRatio) = 0;
     virtual void OnFoldStatusChangedReportUE(const std::vector<std::string>& screenFoldInfo) = 0;
-    virtual void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) = 0;
+    virtual void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions) = 0;
     virtual void OnCameraBackSelfieChanged(ScreenId screenId, bool isCameraBackSelfie) = 0;
     virtual void OnExtendScreenConnectStatusChanged(ScreenId screenId,
         ExtendScreenConnectStatus extendScreenConnectStatus) = 0;

@@ -39,8 +39,7 @@ WMError UIEffectManager::CreateUIEffectController(const sptr<IUIEffectController
         return WMError::WM_ERROR_NULLPTR;
     }
     static std::atomic<int32_t> globalControllerId = 0;
-    globalControllerId++;
-    controllerId = globalControllerId;
+    controllerId = ++globalControllerId;
     sptr<UIEffectControllerClientDeath> controllerDeath = sptr<UIEffectControllerClientDeath>::MakeSptr(
         [controllerId, this] () { EraseUIEffectController(controllerId); }
     );
@@ -50,6 +49,11 @@ WMError UIEffectManager::CreateUIEffectController(const sptr<IUIEffectController
     }
     sptr<UIEffectController> newController =
         sptr<UIEffectController>::MakeSptr(controllerId, onUIEffectSetParams_, onUIEffectAnimateTo_);
+    if (!newController) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to make sptr newController");
+        controllerClient->AsObject()->RemoveDeathRecipient(controllerDeath);
+        return WMError::WM_ERROR_NULLPTR;
+    }
     std::unique_lock<std::mutex> lock(UIEffectControllerMapMutex_);
     UIEffectControllerMap_[controllerId] = std::make_tuple(newController, controllerClient, controllerDeath);
     controller = newController;

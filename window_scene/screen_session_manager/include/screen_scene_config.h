@@ -90,6 +90,7 @@ public:
     static uint64_t GetUptimeSeconds();
     static uint64_t GetBootTimeThreshold();
     static void SetRogResolution(const RogResolution& rogResolution);
+    static bool GetIsBoot();
 
 private:
     static std::map<int32_t, std::string> xmlNodeMap_;

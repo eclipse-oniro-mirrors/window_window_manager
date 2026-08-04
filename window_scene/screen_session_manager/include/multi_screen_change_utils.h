@@ -35,8 +35,8 @@ public:
     static void ScreenExtendPositionChange(sptr<ScreenSession>& innerScreen,
         sptr<ScreenSession>& externalScreen);
 
-    static void SetScreenAvailableStatus(sptr<ScreenSession>& screenSession,
-        bool isScreenAvailable);
+    static void SetScreenInUseStatus(sptr<ScreenSession>& screenSession,
+        bool isInUse);
 
     static void SetExternalScreenOffScreenRendering(sptr<ScreenSession>& innerScreen,
         sptr<ScreenSession>& externalScreen);

@@ -31,6 +31,9 @@ WindowInputChannel::WindowInputChannel(const sptr<Window>& window): window_(wind
 
 WindowInputChannel::~WindowInputChannel()
 {
+    if (window_ == nullptr) {
+        return;
+    }
     WLOGI("windowName: %{public}s, windowId: %{public}d", window_->GetWindowName().c_str(), window_->GetWindowId());
     window_->SetNeedRemoveWindowInputChannel(false);
 }

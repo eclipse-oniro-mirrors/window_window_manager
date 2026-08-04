@@ -3025,6 +3025,43 @@ HWTEST_F(WindowSessionImplTest5, GetWindowHoverState, TestSize.Level1)
     bool hoverState = window->GetWindowHoverState();
     EXPECT_FALSE(hoverState);
 }
+
+/**
+ * @tc.name: UpdateSubWindowPropertyWhenTriggerMode
+ * @tc.desc: UpdateSubWindowPropertyWhenTriggerMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, UpdateSubWindowPropertyWhenTriggerMode, TestSize.Level1)
+{
+    sptr<WindowOption> subOption = sptr<WindowOption>::MakeSptr();
+    subOption->SetWindowName("UpdateSubWindowPropertyWhenTriggerMode");
+    subOption->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    sptr<WindowSessionImpl> subWindow = sptr<WindowSessionImpl>::MakeSptr(subOption);
+    ASSERT_NE(subWindow, nullptr);
+    ASSERT_NE(subWindow->property_, nullptr);
+    EXPECT_EQ(subWindow->property_->GetIsPcAppInPad(), false);
+    subWindow->property_->SetPersistentId(10001);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetIsPcAppInPad(true);
+    subWindow->UpdateSubWindowPropertyWhenTriggerMode(property, 10000);
+    EXPECT_EQ(subWindow->property_->GetIsPcAppInPad(), false);
+
+    std::vector<sptr<WindowSessionImpl>> vec;
+    WindowSessionImpl::subWindowSessionMap_.insert(std::pair<int32_t,
+        std::vector<sptr<WindowSessionImpl>>>(10000, vec));
+    subWindow->UpdateSubWindowPropertyWhenTriggerMode(property, 10000);
+    EXPECT_EQ(subWindow->property_->GetIsPcAppInPad(), false);
+
+    WindowSessionImpl::subWindowSessionMap_[10000].push_back(subWindow);
+    subWindow->UpdateSubWindowPropertyWhenTriggerMode(property, 10000);
+    EXPECT_EQ(subWindow->property_->GetIsPcAppInPad(), true);
+
+    property->SetIsPcAppInPad(false);
+    subWindow->UpdateSubWindowPropertyWhenTriggerMode(property, 10000);
+    EXPECT_EQ(subWindow->property_->GetIsPcAppInPad(), false);
+    WindowSessionImpl::subWindowSessionMap_.erase(10000);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

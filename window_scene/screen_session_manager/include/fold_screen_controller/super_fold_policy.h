@@ -68,6 +68,8 @@ private:
     void SetScreenIsInUse(ScreenId screenId, bool isInUse);
     void SetScreenPowerState(ScreenId screenId, DisplayState displayState);
     void OnScreenPropertyChangeNotifyClient();
+    void NotifyRefreshRateEvent(bool isEventStatus);
+    void CloseCoordination();
     std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::mutex currentScreenIdMutex_;
     ScreenId currentScreenId_ = { SCREEN_ID_INVALID };

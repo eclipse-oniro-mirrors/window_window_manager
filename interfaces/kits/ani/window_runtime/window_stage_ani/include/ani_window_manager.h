@@ -70,7 +70,8 @@ public:
     static void ToggleShownStateForAllAppWindows(ani_env* env, ani_long nativeObj);
     static ani_ref CreateSubWindowAndBindParent(ani_env* env, ani_long nativeObj,
         ani_string name, ani_int parentId, ani_object aniContext, ani_ref callback);
-    static void MoveMainWindowToTargetDisplay(ani_env* env, ani_long nativeObj, ani_long displayId, ani_int windowId);
+    static void MoveMainWindowToTargetDisplay(ani_env* env, ani_long nativeObj,
+        ani_long displayId, ani_int windowId, ani_int userId);
 
 private:
     ani_ref OnGetLastWindow(ani_env* env, ani_object context);
@@ -93,7 +94,7 @@ private:
     void OnRegisterWindowManagerCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnUnregisterWindowManagerCallback(ani_env* env, ani_string type, ani_ref callback);
     void OnSetSpecificSystemWindowZIndex(ani_env* env, ani_enum_item windowType, ani_int zIndex);
-    void OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long displayId, ani_int windowId);
+    void OnMoveMainWindowToTargetDisplay(ani_env* env, ani_long displayId, ani_int windowId, ani_int userId);
     void OnSetWindowLayoutMode(ani_env* env, ani_enum_item mode);
     void OnToggleShownStateForAllAppWindows(ani_env* env);
     ani_object OnGetAllWindowLayoutInfo(ani_env* env, ani_long displayId, ani_object optionObj);

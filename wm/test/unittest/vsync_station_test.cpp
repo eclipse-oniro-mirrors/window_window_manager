@@ -144,6 +144,34 @@ HWTEST_F(VsyncStationTest, SetUiDvsyncSwitch, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetUiDvsyncSwitchFromApi
+ * @tc.desc: SetUiDvsyncSwitch From Api Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, SetUiDvsyncSwitchFromApi, TestSize.Level1)
+{
+    NodeId nodeId = 0;
+    std::shared_ptr<VsyncStation> vsyncStation = std::make_shared<VsyncStation>(nodeId);
+    ASSERT_NE(vsyncStation, nullptr);
+    vsyncStation->SetUiDvsyncSwitch(true, FromWhom::API);
+    vsyncStation->SetUiDvsyncSwitch(false, FromWhom::API);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromInner
+ * @tc.desc: SetUiDvsyncSwitch From Inner Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(VsyncStationTest, SetUiDvsyncSwitchFromInner, TestSize.Level1)
+{
+    NodeId nodeId = 0;
+    std::shared_ptr<VsyncStation> vsyncStation = std::make_shared<VsyncStation>(nodeId);
+    ASSERT_NE(vsyncStation, nullptr);
+    vsyncStation->SetUiDvsyncSwitch(true, FromWhom::INNER);
+    vsyncStation->SetUiDvsyncSwitch(false, FromWhom::INNER);
+}
+
+/**
  * @tc.name: DecreaseRequestVsyncTimes
  * @tc.desc: DecreaseRequestVsyncTimes Test
  * @tc.type: FUNC

@@ -18,9 +18,10 @@
 #include "js_pip_controller.h"
 #include "js_pip_utils.h"
 #include "js_runtime_utils.h"
-#include "window_manager_hilog.h"
+#include "permission.h"
 #include "picture_in_picture_manager.h"
 #include "window.h"
+#include "window_manager_hilog.h"
 #include "xcomponent_controller.h"
 
 namespace OHOS {
@@ -50,12 +51,14 @@ namespace {
         PiPControlGroup::VIDEO_LIVE_MUTE_SWITCH,
     };
     const std::set<PiPControlGroup> VIDEO_DRIVE_CONTROLS {};
+    const std::set<PiPControlGroup> VIDEO_NAVIGATION_CONTROLS {};
     const std::map<PiPTemplateType, std::set<PiPControlGroup>> TEMPLATE_CONTROL_MAP {
         {PiPTemplateType::VIDEO_PLAY, VIDEO_PLAY_CONTROLS},
         {PiPTemplateType::VIDEO_CALL, VIDEO_CALL_CONTROLS},
         {PiPTemplateType::VIDEO_MEETING, VIDEO_MEETING_CONTROLS},
         {PiPTemplateType::VIDEO_LIVE, VIDEO_LIVE_CONTROLS},
         {PiPTemplateType::VIDEO_DRIVE, VIDEO_DRIVE_CONTROLS},
+        {PiPTemplateType::VIDEO_NAVIGATION, VIDEO_NAVIGATION_CONTROLS},
     };
     const char* ARKUI_WINDOW_PIP_CREATE = "ArkUI.window.pip.create";
 
@@ -126,6 +129,12 @@ static int32_t checkOptionParams(PipOption& option)
         return -1;
     }
     uint32_t pipTemplateType = option.GetPipTemplate();
+    if (IsSystemOnlyPiPTemplateType(static_cast<PiPTemplateType>(pipTemplateType)) &&
+        !Permission::IsSystemCalling(true)) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, templateType %{public}u requires system app",
+            pipTemplateType);
+        return -1;
+    }
     if (!PictureInPictureManager::IsTemplateTypeSupported(static_cast<PiPTemplateType>(pipTemplateType))) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, pipTemplateType not supported.");
         return -1;

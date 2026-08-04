@@ -127,6 +127,9 @@ wmutil_external_deps = [
   "ipc:ipc_single",
   "preferences:native_preferences",
   "samgr:samgr_proxy",
+  "napi:ace_napi",
+  "node:node_header_notice",
+  "libuv:uv",
 ]
 
 ## build libwmutil_static.a
@@ -224,6 +227,9 @@ ohos_shared_library("libwmutil_base") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "init:libbegetutil",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
@@ -235,6 +241,13 @@ ohos_shared_library("libwmutil_base") {
 ## Build libwmutil.so
 ohos_shared_library("libwmutil") {
   branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+    cfi_policy = "adaptive"
+  }
   sources = wmutil_sources
 
   configs = [

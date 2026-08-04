@@ -297,13 +297,6 @@ void AniWindow::OnSetPreferredOrientationWithResult(ani_env* env, ani_int orient
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] windowToken_ is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-
     auto apiOrientation = static_cast<ApiOrientation>(orientationValue);
     if (apiOrientation < ApiOrientation::BEGIN || apiOrientation > ApiOrientation::END) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] Orientation %{public}u invalid!",
@@ -318,7 +311,7 @@ void AniWindow::OnSetPreferredOrientationWithResult(ani_env* env, ani_int orient
     }
     WMError ret = window->SetPreferredOrientationWithResult(requestedOrientation, promiseIdValue);
     TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] end: winId: %{public}u, result:%{public}d",
-        windowToken_->GetWindowId(), static_cast<int32_t>(ret));
+        window->GetWindowId(), static_cast<int32_t>(ret));
     if (ret != WMError::WM_OK) {
         AniWindowUtils::AniThrowError(env, AniWindowUtils::ToErrorCode(ret));
     }
@@ -452,13 +445,7 @@ void AniWindow::OnOpacity(ani_env* env, ani_double opacity)
         return;
     }
 
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] windowToken_ is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-
-    if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
+    if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Opacity is not allowed since window is not system window");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
         return;
@@ -3352,6 +3339,12 @@ void AniWindow::SetWindowTitleButtonVisible(ani_env* env, ani_object visiblePara
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
+    if (visibleParam == nullptr) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTitleButtonVisible.error",
+            WmErrorCode::WM_ERROR_INVALID_PARAM);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return;
+    }
     ani_boolean isMaximizeButtonVisible = false;
     if (ANI_OK != env->Object_GetPropertyByName_Boolean(visibleParam,
         "isMaximizeButtonVisible", &isMaximizeButtonVisible)) {
@@ -3451,7 +3444,13 @@ void AniWindow::OnCloseDirectly(ani_env* env)
             static_cast<uint32_t>(window->GetType()), window->GetWindowId(), window->GetWindowName().c_str());
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->CloseDirectly());
+    WmErrorCode ret = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+    auto iter = WM_JS_TO_ERROR_CODE_MAP.find(window->CloseDirectly());
+    if (iter != WM_JS_TO_ERROR_CODE_MAP.end()) {
+        ret = iter->second;
+    } else {
+        TLOGE(WmsLogTag::WMS_PC, "[ANI] CloseDirectly error code out of range");
+    }
     TLOGI(WmsLogTag::WMS_PC, "window [%{public}u, %{public}s] ret=%{public}d",
         window->GetWindowId(), window->GetWindowName().c_str(), ret);
     if (ret != WmErrorCode::WM_OK) {
@@ -3796,6 +3795,10 @@ ani_object AniWindow::SetWindowDecorVisible(ani_env* env, bool isVisible)
 
 ani_object AniWindow::SetWindowDecorHeight(ani_env* env, ani_int height)
 {
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] windowToken_ is nullptr");
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+    }
     if (height < MIN_DECOR_HEIGHT || height > MAX_DECOR_HEIGHT) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] height should greater than 37 or smaller than 112");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDecorHeight.error",
@@ -6645,7 +6648,7 @@ void AniWindow::SetWindowTransitionAnimation(ani_env* env, ani_object obj, ani_l
 {
     TLOGI(WmsLogTag::WMS_ANIMATION, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
-    if (!aniWindow || !aniWindow->GetWindow()) {
+    if (!aniWindow || !aniWindow->GetWindow() || animation == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "[ANI] windowToken is nullptr");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
@@ -7950,7 +7953,7 @@ ani_status OHOS::Rosen::ANI_Window_Constructor(ani_vm *vm, uint32_t *result)
             reinterpret_cast<void *>(AniWindow::SetDialogBackGestureEnabled)},
         ani_native_function {"setWindowMaskSync", "lC{std.core.Array}:",
             reinterpret_cast<void *>(AniWindow::SetWindowMask)},
-        ani_native_function {"setWindowMaskWithAlphaSync", "lC{std.core.Uint8Array}ii:",
+        ani_native_function {"setWindowMaskWithAlphaSync", "lC{escompat.Uint8Array}ii:",
             reinterpret_cast<void *>(AniWindow::SetWindowMaskWithAlpha)},
         ani_native_function {"clearWindowMaskSync", "l:", reinterpret_cast<void *>(AniWindow::ClearWindowMask)},
         ani_native_function {"setTouchableAreas", "lC{std.core.Array}:",

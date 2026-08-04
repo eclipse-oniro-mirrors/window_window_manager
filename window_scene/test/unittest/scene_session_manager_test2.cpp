@@ -28,6 +28,7 @@
 #include "session/host/include/session_utils.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_controller.h"
+#include "window_display_isolation_policy.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "session_manager.h"
@@ -574,6 +575,117 @@ HWTEST_F(SceneSessionManagerTest2, ConfigMovingEventValid, TestSize.Level1)
 
     uint32_t interval = MoveDragController::LoadMovingEventThrottleSystemConfig();
     EXPECT_EQ(interval, 16u);
+}
+
+/**
+ * @tc.name: ConfigDisplayIsolationInvalid
+ * @tc.desc: Verify invalid display isolation items are skipped without blocking valid items
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigDisplayIsolationInvalid, TestSize.Level1)
+{
+    const auto originalConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    ConfigItem invalidType;
+    invalidType.SetValue(std::vector<int>{5});
+    EXPECT_FALSE(ssm_->ConfigDisplayIsolation(invalidType));
+    auto policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_EQ(policyConfig.moveIsolatedDisplayIds, originalConfig.moveIsolatedDisplayIds);
+    EXPECT_EQ(policyConfig.dragIsolatedDisplayIds, originalConfig.dragIsolatedDisplayIds);
+
+    ConfigItem negativeDisplayIds;
+    negativeDisplayIds.SetValue(std::vector<int> { -1, 5 });
+    ConfigItem validDisplayIds;
+    validDisplayIds.SetValue(std::vector<int> { 7 });
+    ConfigItem displayIsolation;
+    displayIsolation.SetValue({
+        { "moveIsolatedDisplayIds", negativeDisplayIds },
+        { "dragIsolatedDisplayIds", validDisplayIds },
+    });
+    EXPECT_TRUE(ssm_->ConfigDisplayIsolation(displayIsolation));
+    policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_EQ(policyConfig.moveIsolatedDisplayIds, (std::set<DisplayId> { 5 }));
+    EXPECT_EQ(policyConfig.dragIsolatedDisplayIds, (std::set<DisplayId> { 7 }));
+
+    ConfigItem invalidDisplayIds;
+    invalidDisplayIds.SetValue(std::string("5"));
+    displayIsolation.SetValue({
+        { "moveIsolatedDisplayIds", negativeDisplayIds },
+        { "dragIsolatedDisplayIds", invalidDisplayIds },
+    });
+    EXPECT_TRUE(ssm_->ConfigDisplayIsolation(displayIsolation));
+    policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_EQ(policyConfig.moveIsolatedDisplayIds, (std::set<DisplayId> { 5 }));
+    EXPECT_TRUE(policyConfig.dragIsolatedDisplayIds.empty());
+
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(originalConfig);
+}
+
+/**
+ * @tc.name: ConfigDisplayIsolationIndependentEmptySets
+ * @tc.desc: Verify move and drag isolation sets can be configured independently or left empty
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigDisplayIsolationIndependentEmptySets, TestSize.Level1)
+{
+    const auto originalConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    ConfigItem emptyDisplayIds;
+    emptyDisplayIds.SetValue(std::vector<int> {});
+    ConfigItem isolatedDisplayIds;
+    isolatedDisplayIds.SetValue(std::vector<int> { 5 });
+    ConfigItem displayIsolation;
+
+    displayIsolation.SetValue({
+        { "moveIsolatedDisplayIds", isolatedDisplayIds },
+        { "dragIsolatedDisplayIds", emptyDisplayIds },
+    });
+    EXPECT_TRUE(ssm_->ConfigDisplayIsolation(displayIsolation));
+    auto policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_EQ(policyConfig.moveIsolatedDisplayIds, (std::set<DisplayId> { 5 }));
+    EXPECT_TRUE(policyConfig.dragIsolatedDisplayIds.empty());
+
+    displayIsolation.SetValue({
+        { "dragIsolatedDisplayIds", isolatedDisplayIds },
+    });
+    EXPECT_TRUE(ssm_->ConfigDisplayIsolation(displayIsolation));
+    policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_TRUE(policyConfig.moveIsolatedDisplayIds.empty());
+    EXPECT_EQ(policyConfig.dragIsolatedDisplayIds, (std::set<DisplayId> { 5 }));
+
+    displayIsolation.SetValue(std::map<std::string, ConfigItem> {});
+    EXPECT_TRUE(ssm_->ConfigDisplayIsolation(displayIsolation));
+    policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_TRUE(policyConfig.moveIsolatedDisplayIds.empty());
+    EXPECT_TRUE(policyConfig.dragIsolatedDisplayIds.empty());
+
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(originalConfig);
+}
+
+/**
+ * @tc.name: ConfigDisplayIsolationValid
+ * @tc.desc: Verify display isolation XML config is saved to system parameters
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigDisplayIsolationValid, TestSize.Level1)
+{
+    const auto originalConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    const std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<windowLayout>"
+        "<displayIsolation>"
+        "<moveIsolatedDisplayIds>5 7</moveIsolatedDisplayIds>"
+        "<dragIsolatedDisplayIds>5 8</dragIsolatedDisplayIds>"
+        "</displayIsolation>"
+        "</windowLayout>"
+        "</Configs>";
+    const ConfigItem config = ReadConfig(xmlStr);
+
+    EXPECT_TRUE(ssm_->ConfigWindowLayout(config["windowLayout"]));
+    const auto policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    EXPECT_EQ(policyConfig.moveIsolatedDisplayIds, (std::set<DisplayId>{5, 7}));
+    EXPECT_EQ(policyConfig.dragIsolatedDisplayIds, (std::set<DisplayId>{5, 8}));
+
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(originalConfig);
 }
 
 /**

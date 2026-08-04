@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <map>
+#include <tuple>
 
 #include <screen_manager/screen_types.h>
 #include "dm_common.h"
@@ -40,6 +41,8 @@ enum class ScreenTransitionState {
     SCREEN_DOZE,
     SCREEN_DOZE_SUSPEND,
     SCREEN_INIT,
+    SCREEN_AP_DOZE,
+    SCREEN_AP_DOZE_SUSPEND,
     TRANSITION_STATE_MAX,
 };
 
@@ -73,6 +76,8 @@ enum class ScreenPowerEvent {
     SET_SCREEN_POWER_FOR_ALL_DOZE,
     SET_SCREEN_POWER_FOR_ALL_DOZE_SUSPEND,
     SET_SCREEN_POWER_FOR_ALL_FORCE_POWER_OFF,
+    WAKEUP_BEGIN_PRE_BRIGHT,
+    SUSPEND_BEGIN_PRE_BRIGHT,
     SCREEN_POWER_EVENT_MAX,
 };
 
@@ -86,7 +91,7 @@ enum class AodStatus {
 using SwitchScreenCallback = std::function<void ()>;
 using StateEvent = std::pair<ScreenTransitionState, ScreenPowerEvent>;
 using ScreenPowerInfoType = std::variant<std::monostate, PowerStateChangeReason,
-    DisplayState, std::pair<ScreenPowerState, PowerStateChangeReason>, std::pair<ScreenId, ScreenPowerStatus>,
+    DisplayState, std::tuple<ScreenPowerState, PowerStateChangeReason, bool>, std::pair<ScreenId, ScreenPowerStatus>,
     std::pair<DisplayId, DisplayState>, SwitchScreenCallback>;
 using Action = std::function<bool (ScreenPowerEvent, const ScreenPowerInfoType&)>;
 

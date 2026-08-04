@@ -22,7 +22,7 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-constexpr const char* URI_CHECK_BROKER_SO_NAME = "libams_broker_ext.z.so";
+constexpr const char* URI_CHECK_BROKER_SO_NAME = "/system/lib/libams_broker_ext.z.so";
 constexpr const char* URI_CHECK_BROKER_FUNC_NAME = "PreHandleStartAbility";
 }
  

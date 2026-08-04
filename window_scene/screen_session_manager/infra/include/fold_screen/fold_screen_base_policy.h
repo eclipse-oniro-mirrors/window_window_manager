@@ -141,13 +141,21 @@ public:
     virtual void ChangeScreenPowerOnFold(const std::vector<std::pair<ScreenId,
         ScreenPowerStatus>>& screenPowerTaskList);
     virtual float GetSpecialVirtualPixelRatio();
+    void SetHoverBlockList(const std::vector<std::string>& hoverBlockList);
+    bool IsHoverBlockApp();
+    bool IsHoverBlockPid(const int32_t agentPid);
     bool GetLockDisplayStatus() const;
     virtual void PowerkeySetScreenActiveRect() {};
+    virtual bool CheckBackSelfNeedChange(FoldDisplayMode displayMode) {return true;};
+    void SetBackSelf(bool isBackSelf);
+    bool GetBackSelf();
     const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap() const;
-
+    void SetDeviceStatusAndParam(uint32_t deviceStatus);
 protected:
     FoldScreenBasePolicy();
     virtual ~FoldScreenBasePolicy();
+
+    virtual void PreProcessTP() {};
 
     // Avoid fold to expand process queues private variable
     std::atomic<int> pendingTask_{FOLD_TASK_NUM};
@@ -168,6 +176,8 @@ protected:
     ScreenProperty screenProperty_;
     mutable std::recursive_mutex displayModeMutex_;
     mutable std::mutex liveCreaseRegionMutex_;
+    mutable std::mutex hoverBlockListMutex_;
+    mutable std::mutex displayBackSelfMutex_;
     FoldDisplayMode currentDisplayMode_ = FoldDisplayMode::UNKNOWN;
     FoldStatus currentFoldStatus_ = FoldStatus::UNKNOWN;
     FoldDisplayMode lastDisplayMode_ = FoldDisplayMode::UNKNOWN;
@@ -179,6 +189,9 @@ protected:
     std::atomic<bool> isClearingBootAnimation_ = false;
     bool isFirstFrameCommitReported_ = false;
     std::map<FoldDisplayMode, RRect> screenActiveModeRectMap_ = {};
+    std::vector<uint32_t> screenParams_ = {};
+    std::vector<std::string> hoverBlockList_ = {};
+    bool isBackSelf_ = false;
 };
 } // namespace OHOS::Rosen
 #endif //OHOS_ROSEN_WINDOW_SCENE_FOLD_SCREEN_BASE_POLICY_H

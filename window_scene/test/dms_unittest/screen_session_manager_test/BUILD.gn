@@ -97,6 +97,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/setting_provider.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/zidl/screen_session_manager_stub.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager_adapter.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/bundle_info_helper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/dual_display_fold_policy.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_controller.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/fold_screen_controller/fold_screen_policy.cpp",
@@ -122,6 +123,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/infra/src/common/product_config.cpp",
   "${window_base_path}/window_scene/screen_session_manager/infra/src/common/product_ext_wrapper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/infra/src/ffrt/ffrt_queue.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/infra/src/screen_power/screen_power_mgr.cpp",
 
   # ScreenSession
   "${window_base_path}/window_scene/session/screen/src/screen_property.cpp",
@@ -210,6 +212,7 @@ config("dms_unittest_base_config") {
     "${window_base_path}/window_scene/screen_session_manager/infra/include/fold_screen",
     "${window_base_path}/window_scene/screen_session_manager/infra/include/common",
     "${window_base_path}/window_scene/screen_session_manager/infra/include/ffrt",
+    "${window_base_path}/window_scene/screen_session_manager/infra/include/screen_power",
     "${window_base_path}/window_scene/screen_session_manager/include/zidl",
     "${window_base_path}/window_scene/session_manager_service/include",
 

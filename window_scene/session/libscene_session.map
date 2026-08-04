@@ -65,6 +65,7 @@
             OHOS::Rosen::SceneSession::SetIsSystemKeyboard*;
             OHOS::Rosen::SceneSession::SetUniqueDensityDpi*;
             OHOS::Rosen::SceneSession::SetWatermarkEnabled*;
+            OHOS::Rosen::SceneSession::SetLeashNodeWatermarkEnabled*;
             OHOS::Rosen::SceneSession::ActivateDragBySystem*;
             OHOS::Rosen::SceneSession::MarkAvoidAreaAsDirty*;
             OHOS::Rosen::SceneSession::NotifyOcclusionState*;
@@ -297,7 +298,7 @@
             OHOS::Rosen::ScenePersistentStorage::storageMutex_*;
             OHOS::Rosen::ScenePersistentStorage::HasKey*;
             OHOS::Rosen::ScenePersistentStorage::InitDir*;
-            OHOS::Rosen::SessionCoordinateHelper::RelativeToGlobalDisplayRect*;
+            OHOS::Rosen::WindowCoordinateHelper::ConvertToGlobalDisplayRect*;
             OHOS::Rosen::IsExtensionSessionInvalid*;
             OHOS::Rosen::SceneSession::IsAppSession*;
             OHOS::Rosen::SceneSession::GetSubSession*;

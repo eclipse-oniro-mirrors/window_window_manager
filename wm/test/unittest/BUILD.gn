@@ -529,6 +529,7 @@ ohos_unittest("wm_window_scene_session_impl_test4") {
   deps = [
     ":wm_unittest_common",
     "${window_base_path}/test/common/utils:libtestutil",
+    "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
   ]
 
@@ -638,7 +639,10 @@ ohos_unittest("wm_web_picture_in_picture_controller_interface_test") {
 
   include_dirs = [ "${window_base_path}/interfaces/innerkits/wm/" ]
 
-  sources = [ "web_picture_in_picture_controller_interface_test.cpp" ]
+  sources = [
+    "web_picture_in_picture_controller_interface_test.cpp",
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+  ]
 
   deps = [
     ":wm_unittest_common",

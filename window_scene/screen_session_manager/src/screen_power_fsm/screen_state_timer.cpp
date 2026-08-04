@@ -57,7 +57,7 @@ void ScreenStateTimer::StartTimer(int32_t state, uint32_t delayMs, TaskScheduler
 void ScreenStateTimer::StopTimer(int32_t state)
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    TLOGNFI(WmsLogTag::DMS, "[ScreenPower FSM] current state: %{public}d", state);
+    TLOGD(WmsLogTag::DMS, "[ScreenPower FSM] current state: %{public}d", state);
     stateCancelMap_.erase(state);
     cv_.notify_all();
 }

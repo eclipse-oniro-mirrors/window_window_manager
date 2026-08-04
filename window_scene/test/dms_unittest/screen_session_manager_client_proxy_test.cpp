@@ -334,7 +334,7 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, ScreenCaptureNotify, TestSize.Leve
     std::string clientName = "test";
 
     ASSERT_TRUE(screenSessionManagerClientProxy_ != nullptr);
-    screenSessionManagerClientProxy_->ScreenCaptureNotify(screenId, uid, clientName);
+    screenSessionManagerClientProxy_->ScreenCaptureNotify(screenId, uid, clientName, 0, {});
 }
 
 /**
@@ -1082,6 +1082,109 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnScreenClosedStateChange01, TestS
     proxy->OnScreenClosedStateChange(screenClosedState);
     EXPECT_FALSE(logMsg.find("send request failed") != std::string::npos);
     logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ScreenCaptureNotifyMock01
+ * @tc.desc: ScreenCaptureNotify mock test - remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, ScreenCaptureNotifyMock01, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(nullptr);
+    proxy->ScreenCaptureNotify(0, 1000, "testClient", 12345,
+        {"ohos.permission.CUSTOM_SCREEN_CAPTURE"});
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ScreenCaptureNotifyMock02
+ * @tc.desc: ScreenCaptureNotify mock test - WriteInterfaceToken and all Write* param failures
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, ScreenCaptureNotifyMock02, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    ScreenId mainScreenId = 0;
+    int32_t uid = 1000;
+    std::string clientName = "testClient";
+    uint32_t tokenId = 12345;
+    std::vector<std::string> permissions = {"ohos.permission.CUSTOM_SCREEN_CAPTURE"};
+
+    // WriteInterfaceToken failed
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    proxy->ScreenCaptureNotify(mainScreenId, uid, clientName, tokenId, permissions);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+
+    // Each Write* param failure triggers the same log
+    using WriteErrorSetter = void (*)(bool);
+    const WriteErrorSetter writeSetters[] = {
+        MockMessageParcel::SetWriteUint64ErrorFlag,
+        MockMessageParcel::SetWriteInt32ErrorFlag,
+        MockMessageParcel::SetWriteStringErrorFlag,
+        MockMessageParcel::SetWriteUint32ErrorFlag,
+        MockMessageParcel::SetWriteStringVectorErrorFlag,
+    };
+    for (auto setter : writeSetters) {
+        setter(true);
+        proxy->ScreenCaptureNotify(mainScreenId, uid, clientName, tokenId, permissions);
+        EXPECT_TRUE(logMsg.find("Write screenId or uid or client or tokenId or permissions failed")
+            != std::string::npos);
+        logMsg.clear();
+        MockMessageParcel::ClearAllErrorFlag();
+    }
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: ScreenCaptureNotifyMock03
+ * @tc.desc: ScreenCaptureNotify mock test - SendRequest failed and success path
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerClientProxyTest, ScreenCaptureNotifyMock03, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<ScreenSessionManagerClientProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    ScreenId mainScreenId = 0;
+    int32_t uid = 1000;
+    std::string clientName = "testClient";
+    uint32_t tokenId = 12345;
+    std::vector<std::string> permissions = {"ohos.permission.CUSTOM_SCREEN_CAPTURE"};
+
+    // SendRequest failed
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    proxy->ScreenCaptureNotify(mainScreenId, uid, clientName, tokenId, permissions);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    logMsg.clear();
+
+    // Success path
+    remoteMocker->SetRequestResult(ERR_NONE);
+    proxy->ScreenCaptureNotify(mainScreenId, uid, clientName, tokenId, permissions);
+    EXPECT_TRUE(logMsg.find("failed") == std::string::npos);
+    logMsg.clear();
+
+    MockMessageParcel::ClearAllErrorFlag();
     LOG_SetCallback(nullptr);
 }
 } // namespace Rosen

@@ -3520,6 +3520,50 @@ HWTEST_F(WindowSceneSessionImplTest5, CheckWindowCanInHoverState, TestSize.Level
     result = window->CheckCreaseRegionCanInHoverState(windowRect);
     EXPECT_EQ(result, false);
 }
+
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow01
+ * @tc.desc: Test UpdateScreenSupportMultiWindow with invalid window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, UpdateScreenSupportMultiWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+ 
+    std::set<ScreenId> screenSet = {0, 1};
+    auto result = window->UpdateScreenSupportMultiWindow(screenSet);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_WINDOW);
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow02
+ * @tc.desc: Test UpdateScreenSupportMultiWindow with valid window updates config
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, UpdateScreenSupportMultiWindow02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+ 
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = {"TestBundle", "TestModule", "TestAbility"};
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->property_->SetWindowName("UpdateScreenSupportMultiWindow02");
+ 
+    std::set<ScreenId> screenSet = {0, 1, 2};
+    auto result = window->UpdateScreenSupportMultiWindow(screenSet);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(window->windowSystemConfig_.supportMultiWindowScreenSet_.size(), 3u);
+    EXPECT_EQ(window->windowSystemConfig_.supportMultiWindowScreenSet_.count(0), 1u);
+    EXPECT_EQ(window->windowSystemConfig_.supportMultiWindowScreenSet_.count(1), 1u);
+    EXPECT_EQ(window->windowSystemConfig_.supportMultiWindowScreenSet_.count(2), 1u);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

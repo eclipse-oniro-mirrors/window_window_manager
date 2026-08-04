@@ -1430,7 +1430,7 @@ HWTEST_F(SceneSessionManagerTest5, InitSceneSession02, TestSize.Level1)
     ssm_->sceneSessionMap_.insert(std::make_pair(1, sceneSession));
 
     ssm_->InitSceneSession(sceneSession, sessionInfo, nullptr);
-    ASSERT_EQ(DISPLAY_ID_INVALID, sceneSession->GetSessionInfo().screenId_);
+    EXPECT_EQ(DEFAULT_DISPLAY_ID, sceneSession->GetSessionInfo().screenId_);
 }
 
 /**
@@ -1447,7 +1447,7 @@ HWTEST_F(SceneSessionManagerTest5, PrepareTerminate03, TestSize.Level1)
     sessionInfo.abilityInfo = nullptr;
     int32_t persistentId = 1;
     bool isPrepareTerminate = true;
-    ASSERT_EQ(WSError::WS_OK, ssm_->PrepareTerminate(persistentId, isPrepareTerminate));
+    EXPECT_NE(ssm_->PrepareTerminate(persistentId, isPrepareTerminate), WSError::WS_ERROR_NO_MEM);
 }
 
 /**

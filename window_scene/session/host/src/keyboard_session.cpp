@@ -143,6 +143,10 @@ bool KeyboardSession::GetSkipFlagForCallingSession(const sptr<SceneSession>& cal
     if (!callingSession) {
         return false;
     }
+    if (WindowHelper::IsFvWindow(callingSession->GetWindowType())) {
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "fv window use fv session flag");
+        return callingSession->isSkipSelfWhenShowOnVirtualScreen_.load();
+    }
     auto mainSession = callingSession->GetMainSession();
     if (!mainSession) {
         return false;
@@ -220,11 +224,9 @@ WSError KeyboardSession::NotifyClientToUpdateRect(const std::string& updateReaso
         auto session = weakThis.promote();
         if (!session) {
             TLOGE(WmsLogTag::WMS_KEYBOARD, "Session is null");
-            return WSError::WS_ERROR_DESTROYED_OBJECT;
+            return;
         }
-
-        WSError ret = session->NotifyClientToUpdateRectTask(updateReason, updateRect, rsTransaction);
-        return ret;
+        session->NotifyClientToUpdateRectTask(updateReason, updateRect, rsTransaction);
     }, "NotifyClientToUpdateRect");
     return WSError::WS_OK;
 }
@@ -420,7 +422,11 @@ bool KeyboardSession::GetCallingSessionGlobalScaledRect(const sptr<SceneSession>
         return false;
     }
     Rect globalScaledRect;
-    callingSession->GetGlobalScaledRect(globalScaledRect);
+    WMError errorCode = callingSession->GetGlobalScaledRect(globalScaledRect);
+    if (errorCode != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "get global scaled rect failed");
+        return false;
+    }
     callingSessionGlobalScaledRect = {
         globalScaledRect.posX_,
         globalScaledRect.posY_,
@@ -614,9 +620,7 @@ void KeyboardSession::RestoreCallingSession(uint32_t callingId, const std::share
     if (oriPosYBeforeRaisedByKeyboard != 0 &&
         callingSession->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING) {
         WSRect callingSessionRestoringRect = callingSession->GetSessionRect();
-        if (oriPosYBeforeRaisedByKeyboard != 0) {
-            callingSessionRestoringRect.posY_ = oriPosYBeforeRaisedByKeyboard;
-        }
+        callingSessionRestoringRect.posY_ = oriPosYBeforeRaisedByKeyboard;
         TLOGI(WmsLogTag::WMS_KEYBOARD, "OriPosYBeforeRaisedByKeyboard: %{public}d, sessionMode: %{public}d",
             oriPosYBeforeRaisedByKeyboard, callingSession->GetWindowMode());
         if (!IsSystemKeyboard()) {
@@ -951,11 +955,11 @@ void KeyboardSession::HandleCrossScreenChild(bool isMoveOrDrag)
     auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
     RETURN_IF_NULL(keyboardPanelSurfaceNode);
     RETURN_IF_NULL(moveDragController_);
-    auto displayIds = isMoveOrDrag ?
-        moveDragController_->CollectNewOverlappedDisplayIds() :
-        moveDragController_->GetOverlappedDisplayIds();
+    auto startDisplayId = moveDragController_->GetStartDisplayId();
+    auto displayIds = isMoveOrDrag ? moveDragController_->CollectNewOverlappedDisplayIds() :
+                                     moveDragController_->GetOverlappedDisplayIds();
     for (const auto displayId : displayIds) {
-        if (displayId == moveDragController_->GetStartDisplayId()) {
+        if (displayId == startDisplayId) {
             continue;
         }
         auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(displayId);
@@ -1042,16 +1046,6 @@ void KeyboardSession::SetSurfaceBounds(const WSRect& rect, bool isGlobal, bool n
     RETURN_IF_NULL(keyboardPanelSession_);
     auto keyboardPanelSurfaceNode = keyboardPanelSession_->GetSurfaceNode();
     RETURN_IF_NULL(keyboardPanelSurfaceNode);
-
-    // When drag ends (needFlush == false) and the window is crossing screens,
-    // surface node property changes will be committed together with the ArkUI
-    // relayout triggered on the next vsync, so no explicit flush is required here.
-    // If the window is NOT crossing screens, the changes should be flushed
-    // immediately to avoid affecting the next drag operation.
-    if (!needFlush && moveDragController_) {
-        needFlush = moveDragController_->ShouldFlushOnDragEnd();
-        TLOGD(WmsLogTag::WMS_KEYBOARD, "On drag end, needFlush: %{public}d", needFlush);
-    }
 
     {
         AutoRSTransaction trans(keyboardPanelSurfaceNode, needFlush);
@@ -1199,6 +1193,10 @@ void KeyboardSession::CalculateOccupiedAreaAfterUIRefresh()
 WMError KeyboardSession::HandleActionUpdateKeyboardTouchHotArea(const sptr<WindowSessionProperty>& property,
     WSPropertyChangeAction action)
 {
+    if (keyboardPanelSession_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_KEYBOARD, "keyboardPanelSession_ is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     if (GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         return WMError::WM_ERROR_INVALID_TYPE;
     }

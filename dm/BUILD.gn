@@ -88,7 +88,6 @@ ohos_static_library("libdm_static") {
     "runtime_core:ani",
     "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
-    "ffrt:libffrt",
     "node:node_header_notice",
   ]
 
@@ -154,7 +153,6 @@ ohos_shared_library("libdm") {
     "runtime_core:ani",
     "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
-    "ffrt:libffrt",
     "node:node_header_notice",
   ]
 
@@ -213,6 +211,8 @@ ohos_shared_library("libdm_ndk") {
     "hilog:libhilog",
     "image_framework:pixelmap",
     "ipc:ipc_core",
+    "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   if (window_manager_feature_support_api_metrics) {

@@ -93,8 +93,8 @@ void MultiScreenChangeUtils::ScreenExtendPositionChange(sptr<ScreenSession>& inn
         {innerScreen->GetRSUIContext(), externalScreen->GetRSUIContext()});
 }
 
-void MultiScreenChangeUtils::SetScreenAvailableStatus(sptr<ScreenSession>& screenSession,
-    bool isScreenAvailable)
+void MultiScreenChangeUtils::SetScreenInUseStatus(sptr<ScreenSession>& screenSession,
+    bool isInUse)
 {
     if (!screenSession) {
         TLOGE(WmsLogTag::DMS, "screenSession is null");
@@ -102,8 +102,8 @@ void MultiScreenChangeUtils::SetScreenAvailableStatus(sptr<ScreenSession>& scree
     }
     ScreenId screenId = screenSession->GetScreenId();
     TLOGW(WmsLogTag::DMS, "screenId=%{public}" PRIu64, screenId);
-    screenSession->SetScreenAvailableStatus(isScreenAvailable);
-    if (isScreenAvailable) {
+    screenSession->SetScreenInUseStatus(isInUse);
+    if (isInUse) {
         ScreenSessionManager::GetInstance().NotifyDisplayCreate(
             screenSession->ConvertToDisplayInfo());
     } else {
@@ -405,7 +405,7 @@ void MultiScreenChangeUtils::CreateMirrorSession(sptr<ScreenSession>& mainSessio
         SuperFoldStateManager::GetInstance().RefreshExternalRegion();
     } else {
 #endif
-    RSDisplayNodeConfig config = { screenSession->rsId_, true, displayNode->GetId() };
+    RSDisplayNodeConfig config = { screenSession->rsId_, DisplayMode::MIRROR, displayNode->GetId() };
     screenSession->ReuseDisplayNode(config);
 #ifdef FOLD_ABILITY_ENABLE
     }
@@ -426,7 +426,7 @@ void MultiScreenChangeUtils::ScreenConnectionChange(sptr<IScreenSessionManagerCl
         .innerName_ = screenSession->GetInnerName(),
         .screenId_ = screenSession->GetScreenId(),
         .supportsFocus_ = screenSession->GetSupportsFocus(),
-        .connectToRenderToken_ = screenSession->GetRenderSession(),
+        .renderSession_ = screenSession->GetRenderSession(),
     };
     ssmClient->OnScreenConnectionChanged(option, screenEvent);
 }
@@ -439,7 +439,7 @@ void MultiScreenChangeUtils::CreateExtendSession(sptr<ScreenSession>& screenSess
     }
     screenSession->SetIsExtend(true);
     screenSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
-    RSDisplayNodeConfig config = { screenSession->rsId_, false, INVALID_NODEID };
+    RSDisplayNodeConfig config = { screenSession->rsId_, DisplayMode::EXPAND, INVALID_NODEID };
     screenSession->ReuseDisplayNode(config);
 }
 

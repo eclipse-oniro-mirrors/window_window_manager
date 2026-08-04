@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,13 @@ namespace {
 constexpr int32_t CYCLE_LIMIT = 1000;
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "SceneSessionManagerProxy"};
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
+
+inline WMError RETURN_IPC_ERR(std::string& errMsg, const char* msg)
+{
+    TLOGE(WmsLogTag::WMS_PATTERN, "%{public}s", msg);
+    errMsg = msg;
+    return WMError::WM_ERROR_IPC_FAILED;
+}
 }
 WSErrorResult SceneSessionManagerProxy::CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
     const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
@@ -860,34 +867,34 @@ WMError SceneSessionManagerProxy::RegisterWindowManagerAgent(WindowManagerAgentT
     MessageParcel reply;
     MessageParcel data;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        WLOGFE("Write InterfaceToken failed");
+        TLOGE(WmsLogTag::DEFAULT, "Write InterfaceToken failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     if (!data.WriteUint32(static_cast<uint32_t>(type))) {
-        WLOGFE("Write type failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-
-    if (!data.WriteInt32(instanceUserId)) {
-        WLOGFE("Write instanceUserId failed");
+        TLOGE(WmsLogTag::DEFAULT, "Write type failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     if (!data.WriteRemoteObject(windowManagerAgent->AsObject())) {
-        WLOGFE("Write IWindowManagerAgent failed");
+        TLOGE(WmsLogTag::DEFAULT, "Write IWindowManagerAgent failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        TLOGE(WmsLogTag::DEFAULT, "Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        WLOGFE("remote is null");
+        TLOGE(WmsLogTag::DEFAULT, "remote is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_REGISTER_WINDOW_MANAGER_AGENT),
         data, reply, option) != ERR_NONE) {
-        WLOGFE("SendRequest failed");
+        TLOGE(WmsLogTag::DEFAULT, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -901,34 +908,34 @@ WMError SceneSessionManagerProxy::UnregisterWindowManagerAgent(WindowManagerAgen
     MessageOption option;
     MessageParcel data;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        WLOGFE("Write InterfaceToken failed");
+        TLOGE(WmsLogTag::DEFAULT, "Write InterfaceToken failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     if (!data.WriteUint32(static_cast<uint32_t>(type))) {
-        WLOGFE("Write type failed");
-        return WMError::WM_ERROR_IPC_FAILED;
-    }
-
-    if (!data.WriteInt32(instanceUserId)) {
-        WLOGFE("Write instanceUserId failed");
+        TLOGE(WmsLogTag::DEFAULT, "Write type failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     if (!data.WriteRemoteObject(windowManagerAgent->AsObject())) {
-        WLOGFE("Write IWindowManagerAgent failed");
+        TLOGE(WmsLogTag::DEFAULT, "Write IWindowManagerAgent failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+
+    if (!data.WriteInt32(instanceUserId)) {
+        TLOGE(WmsLogTag::DEFAULT, "Write instanceUserId failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        WLOGFE("remote is null");
+        TLOGE(WmsLogTag::DEFAULT, "remote is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_UNREGISTER_WINDOW_MANAGER_AGENT),
         data, reply, option) != ERR_NONE) {
-        WLOGFE("SendRequest failed");
+        TLOGE(WmsLogTag::DEFAULT, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
@@ -4221,44 +4228,31 @@ WMError SceneSessionManagerProxy::SetImageForRecent(uint32_t imgResourceId, Imag
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write interfaceToken failed");
-        errMsg = "Write interfaceToken failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write interfaceToken failed");
     }
     if (!data.WriteUint32(imgResourceId)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write imgResourceId failed");
-        errMsg = "Write imgResourceId failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write imgResourceId failed");
     }
     if (!data.WriteUint32(static_cast<uint32_t>(imageFit))) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write ImageFit failed");
-        errMsg = "Write ImageFit failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write ImageFit failed");
     }
     if (!data.WriteInt32(persistentId)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write persistentId failed");
-        errMsg = "Write persistentId failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write persistentId failed");
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "remote is null");
-        errMsg = "remote is null";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "remote is null");
     }
     int sendCode = remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_IMAGE_FOR_RECENT),
         data, reply, option);
     if (sendCode != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed, code: %{public}d", sendCode);
-        errMsg = "SendRequest failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "SendRequest failed");
     }
     uint32_t ret = 0;
     if (!reply.ReadUint32(ret)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Read ret failed");
-        errMsg = "Read ret failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Read ret failed");
     }
     std::string readErrMsg;
     if (!reply.ReadString(readErrMsg)) {
@@ -4283,44 +4277,31 @@ WMError SceneSessionManagerProxy::SetImageForRecentPixelMap(const std::shared_pt
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write interfaceToken failed");
-        errMsg = "Write interfaceToken failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write interfaceToken failed");
     }
     if (!data.WriteParcelable(pixelMap.get())) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write pixelMap failed");
-        errMsg = "Write pixelMap failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write pixelMap failed");
     }
     if (!data.WriteUint32(static_cast<uint32_t>(imageFit))) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write ImageFit failed");
-        errMsg = "Write ImageFit failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write ImageFit failed");
     }
     if (!data.WriteInt32(persistentId)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write persistentId failed");
-        errMsg = "Write persistentId failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write persistentId failed");
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "remote is null");
-        errMsg = "remote is null";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "remote is null");
     }
     int sendCode = remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_IMAGE_FOR_RECENT_PIXELMAP),
         data, reply, option);
     if (sendCode != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed, code: %{public}d", sendCode);
-        errMsg = "SendRequest failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "SendRequest failed");
     }
     uint32_t ret = 0;
     if (!reply.ReadUint32(ret)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Read ret failed");
-        errMsg = "Read ret failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Read ret failed");
     }
     std::string readErrMsg;
     if (!reply.ReadString(readErrMsg)) {
@@ -4343,34 +4324,25 @@ WMError SceneSessionManagerProxy::RemoveImageForRecent(int32_t persistentId, std
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write interfaceToken failed");
-        errMsg = "Write interfaceToken failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write interfaceToken failed");
     }
     if (!data.WriteInt32(persistentId)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write persistentId failed");
-        errMsg = "Write persistentId failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write persistentId failed");
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "remote is null");
-        errMsg = "remote is null";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "remote is null");
     }
     int sendCode = remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_REMOVE_IMAGE_FOR_RECENT),
         data, reply, option);
     if (sendCode != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed, code: %{public}d", sendCode);
-        errMsg = "SendRequest failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "SendRequest failed");
     }
     uint32_t ret = 0;
     if (!reply.ReadUint32(ret)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Read ret failed");
-        errMsg = "Read ret failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Read ret failed");
     }
     std::string readErrMsg;
     if (!reply.ReadString(readErrMsg)) {
@@ -4610,48 +4582,34 @@ WMError SceneSessionManagerProxy::SetStartWindowBackgroundColor(
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write interfaceToken failed");
-        errMsg = "Write interfaceToken failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write interfaceToken failed");
     }
     if (!data.WriteString(moduleName)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write moduleName failed");
-        errMsg = "Write moduleName failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write moduleName failed");
     }
     if (!data.WriteString(abilityName)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write abilityName failed");
-        errMsg = "Write abilityName failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write abilityName failed");
     }
     if (!data.WriteUint32(color)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write color failed");
-        errMsg = "Write color failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write color failed");
     }
     if (!data.WriteInt32(uid)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Write uid failed");
-        errMsg = "Write uid failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Write uid failed");
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "Remote is null");
-        errMsg = "Remote is null";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Remote is null");
     }
     int sendCode = remote->SendRequest(
         static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_START_WINDOW_BACKGROUND_COLOR),
         data, reply, option);
     if (sendCode != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed, code: %{public}d", sendCode);
-        errMsg = "SendRequest failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "SendRequest failed");
     }
     int32_t ret = 0;
     if (!reply.ReadInt32(ret)) {
-        errMsg = "Read ret failed";
-        return WMError::WM_ERROR_IPC_FAILED;
+        return RETURN_IPC_ERR(errMsg, "Read ret failed");
     }
     std::string readErrMsg;
     if (!reply.ReadString(readErrMsg)) {
@@ -4822,6 +4780,10 @@ WMError SceneSessionManagerProxy::CreateUIEffectController(const sptr<IUIEffectC
         return WMError::WM_ERROR_IPC_FAILED;
     }
     controller = iface_cast<IUIEffectController>(controllerObject);
+    if (controller == nullptr) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "iface_cast controller failed");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     return err;
 }
 

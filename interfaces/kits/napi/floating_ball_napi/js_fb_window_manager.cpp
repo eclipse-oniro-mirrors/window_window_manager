@@ -69,7 +69,10 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     }
 
     napi_value contextPtrValue = nullptr;
-    napi_get_named_property(env, config, "context", &contextPtrValue);
+    if (napi_get_named_property(env, config, "context", &contextPtrValue) != napi_ok) {
+        return NapiThrowInvalidParam(env,
+            "[FBWindow][create]msg: Failed to get context", ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
+    }
     void* contextPtr = nullptr;
     napi_unwrap(env, contextPtrValue, &contextPtr);
     if (contextPtr == nullptr) {

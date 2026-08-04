@@ -366,6 +366,7 @@ bool SuperFoldPolicy::GetdisplayModeRunningStatus()
 
 void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isScreenOn)
 {
+    CloseCoordination();
     std::string tp = FULL_TP;
     ScreenId offScreenId = GetCurrentScreenId();
     if (screenId == SCREEN_ID_MAIN) {
@@ -517,21 +518,37 @@ void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
 {
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
+    SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
+    SetScreenIsInUse(SCREEN_ID_MAIN, true);
     auto taskCoordination = [=] {
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on full screenId");
         if (!isScreenOn) {
             PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
         }
+        NotifyRefreshRateEvent(true);
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on main screenId");
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
-        SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
-        SetScreenIsInUse(SCREEN_ID_MAIN, true);
         SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::ON);
         SetdisplayModeChangeStatus(false);
     };
     ScreenSessionManager::GetInstance().GetScreenPowerTaskScheduler()->
         PostAsyncTask(taskCoordination, __func__);
+}
+
+void SuperFoldPolicy::CloseCoordination()
+{
+    if (GetCurrentDisplayMode() != FoldDisplayMode::COORDINATION) {
+        TLOGI(WmsLogTag::DMS, "not in coordination");
+        return;
+    }
+    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
+        ScreenPowerStatus::POWER_STATUS_OFF);
+    NotifyRefreshRateEvent(false);
+    SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_ALONE);
+    SetScreenIsInUse(SCREEN_ID_MAIN, false);
+    SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::OFF);
+    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
 }
 
 void SuperFoldPolicy::ExitCoordination()
@@ -540,13 +557,21 @@ void SuperFoldPolicy::ExitCoordination()
         TLOGI(WmsLogTag::DMS, "not in coordination");
         return;
     }
-    ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
-        ScreenPowerStatus::POWER_STATUS_OFF);
-    SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_ALONE);
-    SetScreenIsInUse(SCREEN_ID_MAIN, false);
-    SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::OFF);
-    ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+    CloseCoordination();
+    ScreenSessionManager::GetInstance().NotifyScreenModeChange();
     RecoverDisplayMode();
+}
+
+void SuperFoldPolicy::NotifyRefreshRateEvent(bool isEventStatus)
+{
+    EventInfo eventInfo = {
+        .eventName = "VOTER_MULTISELFOWNEDSCREEN",
+        .eventStatus = isEventStatus,
+        .minRefreshRate = 0,
+        .maxRefreshRate = 0,
+    };
+    TLOGI(WmsLogTag::DMS, "isEventStatus:%{public}d", isEventStatus);
+    RSInterfaces::GetInstance().NotifyRefreshRateEvent(eventInfo);
 }
 
 void SuperFoldPolicy::ReportFoldDisplayModeChange(FoldDisplayMode displayMode)

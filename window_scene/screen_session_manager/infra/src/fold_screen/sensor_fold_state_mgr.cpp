@@ -313,10 +313,12 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
         HandleSensorChange(FoldStatus::FOLDED);
         FoldScreenBasePolicy::GetInstance().ChangeOnTentMode(FoldStatus::FOLDED);
         if (tentSensor.tentType_ == TENT_MODE_ON) {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
+            FoldScreenBasePolicy::GetInstance().SetDeviceStatusAndParam(
+                static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT));
             ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS);
         } else if (tentSensor.tentType_ == TENT_MODE_HOVER_ON) {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT_HOVER));
+            FoldScreenBasePolicy::GetInstance().SetDeviceStatusAndParam(
+                static_cast<uint32_t>(DMDeviceStatus::STATUS_TENT_HOVER));
             ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_HOVER);
         } else {
             TLOGW(WmsLogTag::DMS, "unknown tent mode:%{public}d, no processing", tentModeType_);
@@ -333,9 +335,11 @@ void SensorFoldStateMgr::HandleTentChange(const SensorStatus& sensorStatus)
             nextStatus = GetNextFoldStatus(tmpSensorStatus);
         }
         if (nextStatus == FoldStatus::FOLDED) {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_FOLDED));
+            FoldScreenBasePolicy::GetInstance().SetDeviceStatusAndParam(
+                static_cast<uint32_t>(DMDeviceStatus::STATUS_FOLDED));
         } else {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
+            FoldScreenBasePolicy::GetInstance().SetDeviceStatusAndParam(
+                static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
         }
         HandleSensorChange(nextStatus);
         ReportTentStatusChange(ReportTentModeStatus::NORMAL_EXIT_TENT_MODE);
@@ -401,9 +405,11 @@ void SensorFoldStateMgr::TentModeHandleSensorChange(const SensorStatus& sensorSt
         TLOGI(WmsLogTag::DMS, "exit tent mode. angle: %{public}f, hall: %{public}d", axis.angle_, axis.hall_);
         SetTentMode(TENT_MODE_OFF);
         if (nextStatus == FoldStatus::FOLDED) {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::STATUS_FOLDED));
+            FoldScreenBasePolicy::GetInstance().SetDeviceStatusAndParam(
+                static_cast<uint32_t>(DMDeviceStatus::STATUS_FOLDED));
         } else {
-            SetDeviceStatusAndParam(static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
+            FoldScreenBasePolicy::GetInstance().SetDeviceStatusAndParam(
+                static_cast<uint32_t>(DMDeviceStatus::UNKNOWN));
         }
         ScreenRotationProperty::HandleHoverStatusEventInput(DeviceHoverStatus::TENT_STATUS_CANCEL);
         PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
@@ -417,13 +423,6 @@ ScreenAxis SensorFoldStateMgr::GetTentModeScreenAxis(const SensorStatus& sensorS
         screenAxis = sensorStatus.axis_[0];
     }
     return screenAxis;
-}
-
-void SensorFoldStateMgr::SetDeviceStatusAndParam(uint32_t deviceStatus)
-{
-    TLOGI(WmsLogTag::DMS, "Set device status to: %{public}u", deviceStatus);
-    SetDeviceStatus(deviceStatus);
-    system::SetParameter("persist.dms.device.status", std::to_string(deviceStatus));
 }
 
 void SensorFoldStateMgr::SetTentMode(int tentType)

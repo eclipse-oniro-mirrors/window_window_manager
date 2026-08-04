@@ -500,6 +500,377 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo003, TestSize.Level1)
     controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects1, displayInfo);
     EXPECT_EQ(boundaryRects1, testboundaryRects1);
 }
+
+// =============================================================================
+// A Group: RecoverDisplayInfo tests — secondary display super fold device support
+// =============================================================================
+
+/**
+ * @tc.name: RecoverDisplayInfo_SecondarySuperFold_FULL_Rotation0
+ * @tc.desc: Verify RecoverDisplayInfo sets dwidth/dheight to physical dimensions on secondary super fold device
+ *           when hook is enabled with FULL display mode and ROTATION_0
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SecondarySuperFold_FULL_Rotation0, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetPhysicalWidth(700);
+    displayInfo->SetPhysicalHeight(500);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    // The method should have executed (not early-returned), setting dwidth/dheight to physical dimensions
+    EXPECT_NE(dwidth, 100);
+    EXPECT_NE(dheight, 200);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_SecondarySuperFold_GlobalFull_Rotation0
+ * @tc.desc: Verify RecoverDisplayInfo handles GLOBAL_FULL display mode on secondary super fold device
+ *           with hook enabled and ROTATION_0, ensuring the new GLOBAL_FULL mode path is covered
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SecondarySuperFold_GlobalFull_Rotation0, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    // Use dimensions that may match GLOBAL_FULL configuration on supported devices
+    displayInfo->SetPhysicalWidth(800);
+    displayInfo->SetPhysicalHeight(600);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    EXPECT_NE(dwidth, 100);
+    EXPECT_NE(dheight, 200);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_SecondarySuperFold_FULL_Rotation90_NoSwap
+ * @tc.desc: Verify RecoverDisplayInfo does NOT swap dimensions when rotation is ROTATION_90,
+ *           as the swap only applies to ROTATION_0 and ROTATION_180
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SecondarySuperFold_FULL_Rotation90_NoSwap, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    int32_t phyWidth = 700;
+    int32_t phyHeight = 500;
+    displayInfo->SetPhysicalWidth(phyWidth);
+    displayInfo->SetPhysicalHeight(phyHeight);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_90);
+    // ROTATION_90 does not trigger swap; dwidth/dheight should equal original physical values
+    EXPECT_EQ(static_cast<int32_t>(dwidth), phyWidth);
+    EXPECT_EQ(static_cast<int32_t>(dheight), phyHeight);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_SecondarySuperFold_HookDisabled_Noop
+ * @tc.desc: Verify RecoverDisplayInfo returns early without modifying dwidth/dheight
+ *           when hook is disabled (displayHookMap_ has no entry for current uid)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SecondarySuperFold_HookDisabled_Noop, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetPhysicalWidth(700);
+    displayInfo->SetPhysicalHeight(500);
+    // Do NOT set up hook info — IsHook() should return false, triggering early return
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    // Guard should trigger early return: IsHook() is false → !IsHook() is true → return
+    EXPECT_EQ(dwidth, 100);
+    EXPECT_EQ(dheight, 200);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_NonSuperFoldDevice_Noop
+ * @tc.desc: Verify RecoverDisplayInfo returns early on non-super-fold devices even when hook is enabled,
+ *           ensuring the device type guard correctly prevents execution on unsupported hardware
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_NonSuperFoldDevice_Noop, TestSize.Level1)
+{
+    // No device type skip — this test verifies behavior on non-super-fold devices
+    // On a super fold device, the guard would pass and this test becomes a positive case
+    if (FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice() ||
+        FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Skipping negative test on super fold device";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetPhysicalWidth(700);
+    displayInfo->SetPhysicalHeight(500);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    // On a non-super-fold device: !(IsSecondary || IsSingle) is true → early return
+    EXPECT_EQ(dwidth, 100);
+    EXPECT_EQ(dheight, 200);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_SecondarySuperFold_NullDisplayInfo
+ * @tc.desc: Verify RecoverDisplayInfo handles nullptr displayInfo gracefully without crash
+ *           on secondary super fold device with hook enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SecondarySuperFold_NullDisplayInfo, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = nullptr;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    // Should return early on nullptr displayInfo without crash
+    EXPECT_EQ(dwidth, 100);
+    EXPECT_EQ(dheight, 200);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_SingleSuperFold_GlobalFull_Rotation0
+ * @tc.desc: Verify RecoverDisplayInfo on single display super fold device with GLOBAL_FULL mode,
+ *           ensuring the existing code path is not broken by the secondary display changes
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SingleSuperFold_GlobalFull_Rotation0, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires single display super fold device (fold type 7)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetPhysicalWidth(800);
+    displayInfo->SetPhysicalHeight(600);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    EXPECT_NE(dwidth, 100);
+    EXPECT_NE(dheight, 200);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+// =============================================================================
+// B Group: HookCutoutInfo tests — secondary display super fold device support
+// =============================================================================
+
+/**
+ * @tc.name: HookCutoutInfo_SecondarySuperFold_NormalScaling
+ * @tc.desc: Verify HookCutoutInfo correctly scales boundary rects on secondary super fold device
+ *           with hook enabled and normal display info
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_NormalScaling, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    DMRect rect = { 50, 50, 10, 10 };
+    std::vector<DMRect> boundaryRects = { rect };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 200;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
+
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    // With scale 100/200 = 0.5, the rect should be transformed
+    EXPECT_EQ(boundaryRects.size(), 1);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: HookCutoutInfo_SecondarySuperFold_ZeroHookDimensions
+ * @tc.desc: Verify HookCutoutInfo returns early when hook dimensions are zero
+ *           on secondary super fold device with hook enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_ZeroHookDimensions, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    DMRect rect = { 50, 50, 10, 10 };
+    std::vector<DMRect> boundaryRects = { rect };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->HookCutoutInfo(0, 200, boundaryRects, displayInfo);
+    // hookWidth is zero → should return early, boundaryRects unchanged
+    EXPECT_EQ(boundaryRects.size(), 1);
+    EXPECT_EQ(boundaryRects[0], rect);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: HookCutoutInfo_SecondarySuperFold_HookDisabled_Noop
+ * @tc.desc: Verify HookCutoutInfo returns early without modification when hook is disabled
+ *           on secondary super fold device
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_HookDisabled_Noop, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    DMRect rect = { 50, 50, 10, 10 };
+    std::vector<DMRect> boundaryRects = { rect };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    // Do NOT set up hook info — IsHook() returns false → guard triggers early return
+
+    controller->HookCutoutInfo(200, 200, boundaryRects, displayInfo);
+    EXPECT_EQ(boundaryRects.size(), 1);
+    EXPECT_EQ(boundaryRects[0], rect);
+}
+
+/**
+ * @tc.name: HookCutoutInfo_NonSuperFoldDevice_Noop
+ * @tc.desc: Verify HookCutoutInfo returns early on non-super-fold devices even with hook enabled,
+ *           ensuring device type guard correctly prevents execution
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_NonSuperFoldDevice_Noop, TestSize.Level1)
+{
+    if (FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice() ||
+        FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Skipping negative test on super fold device";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    DMRect rect = { 50, 50, 10, 10 };
+    std::vector<DMRect> boundaryRects = { rect };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    controller->HookCutoutInfo(200, 200, boundaryRects, displayInfo);
+    // On non-super-fold device, guard returns early; rects unchanged
+    EXPECT_EQ(boundaryRects.size(), 1);
+    EXPECT_EQ(boundaryRects[0], rect);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: HookCutoutInfo_SecondarySuperFold_AllRectsOutOfBounds
+ * @tc.desc: Verify HookCutoutInfo filters out all boundary rects when they lie completely
+ *           outside the display area on secondary super fold device
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_AllRectsOutOfBounds, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
+        GTEST_SKIP() << "Requires secondary display super fold device (fold type 8)";
+    }
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    // All rects positioned outside the scaled display area (ActualPos + Actual extends to 100x100,
+    // but hook scale factor maps these to far outside the bounds)
+    DMRect outRect1 = { 1000, 1000, 1, 1 };
+    DMRect outRect2 = { 500, 500, 1, 1 };
+    std::vector<DMRect> boundaryRects = { outRect1, outRect2 };
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    uint32_t hookWidth = 200;
+    uint32_t hookHeight = 200;
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+    displayInfo->SetActualPosX(0);
+    displayInfo->SetActualPosY(0);
+    displayInfo->SetActualWidth(100);
+    displayInfo->SetActualHeight(100);
+
+    controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
+    // All rects should be filtered out because they're outside the display bounds after scaling
+    EXPECT_EQ(boundaryRects.size(), 0);
+
+    ssm_.displayHookMap_.erase(uid);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

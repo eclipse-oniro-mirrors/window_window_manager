@@ -20,6 +20,7 @@
 #include <string>
 #include <sstream>
 #include <unordered_map>
+#include <iremote_object.h>
 
 #include <parcel.h>
 
@@ -859,6 +860,25 @@ struct ScreenDirectionInfo {
     int32_t screenRotation_;
     int32_t rotation_;
     int32_t phyRotation_;
+};
+
+/**
+ * @brief Session option when connect
+ */
+struct SessionOption {
+    ScreenId rsId_;
+    std::string serialNumber_;
+    std::string name_;
+    bool isExtend_;
+    std::string innerName_;
+    ScreenId screenId_;
+    std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
+    bool supportsFocus_ {true};
+    bool isRotationLocked_;
+    int32_t rotation_;
+    std::map<int32_t, int32_t> rotationOrientationMap_;
+    bool isBooting_ { false };
+    sptr<IRemoteObject> renderSession_ = nullptr;
 };
 
 /**

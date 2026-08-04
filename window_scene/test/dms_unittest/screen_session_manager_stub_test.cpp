@@ -3817,6 +3817,25 @@ HWTEST_F(ScreenSessionManagerStubTest, SetPowerStateForAodNnormalTest, TestSize.
 }
 
 /**
+ * @tc.name: SetHoverBlockListNnormalTest
+ * @tc.desc: SetHoverBlockListNnormalTest test normal input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, SetHoverBlockListNnormalTest, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    std::vector<std::string> hoverBlockList = {"11", "22"};
+    data.WriteStringVector(hoverBlockList);
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_HOVER_BLOCK_LIST);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, 0);
+}
+
+/**
  * @tc.name: IsCapturedByBundleNameList001
  * @tc.desc: IsCapturedByBundleNameList test normal input
  * @tc.type: FUNC
@@ -3826,7 +3845,6 @@ HWTEST_F(ScreenSessionManagerStubTest, IsCapturedByBundleNameList001, TestSize.L
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
-    
     data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
 
     std::vector<std::string> bundleNameList = {"com.test.app1", "com.test.app2"};
@@ -3839,6 +3857,7 @@ HWTEST_F(ScreenSessionManagerStubTest, IsCapturedByBundleNameList001, TestSize.L
     
     bool result = reply.ReadBool();
     EXPECT_EQ(result, false);
+
 }
 
 /**

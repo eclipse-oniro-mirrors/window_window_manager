@@ -41,6 +41,7 @@ public:
     FloatViewController(const FvOption &option, ani_env* env);
     virtual ~FloatViewController();
     void UpdateMainWindow(const sptr<Window>& mainWindow);
+    uint32_t GetMainWindowId() const;
     WMError StartFloatView();
     WMError StartFloatViewSingle(bool showWhenCreate = true);
     WMError StopFloatViewFromClient();
@@ -111,7 +112,10 @@ private:
 
     class WindowLifeCycleListener : public IWindowLifeCycle {
     public:
+        explicit WindowLifeCycleListener(uint32_t mainWindowId) : mainWindowId_(mainWindowId) {}
         void AfterDestroyed() override;
+    private:
+        uint32_t mainWindowId_ = 0;
     };
 
     sptr<IWindowLifeCycle> mainWindowLifeCycleListener_ = nullptr;

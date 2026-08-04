@@ -150,7 +150,7 @@ bool PictureInPictureManager::HasActiveController()
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     for (auto& pair : windowToControllerMap_) {
-        if (IsControllerStateActive(pair.second->GetControllerState())) {
+        if (pair.second != nullptr && IsControllerStateActive(pair.second->GetControllerState())) {
             return true;
         }
     }
@@ -217,7 +217,7 @@ void PictureInPictureManager::DetachAutoStartController(int32_t handleId,
         return;
     }
     autoStartControllerMap_.erase(mit);
-    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}u", autoStartControllerMap_.size());
+    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}zu", autoStartControllerMap_.size());
     auto controller = pipController.promote();
     if (controller != nullptr) {
         uint32_t mainWindowId = controller->GetMainWindowId();

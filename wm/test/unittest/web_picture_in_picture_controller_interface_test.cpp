@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "ability_context_impl.h"
+#include "mock_accesstoken_kit.h"
 #include "mock_static_call.h"
 #include "mock_session.h"
 #include "web_picture_in_picture_controller_interface.h"
@@ -110,7 +111,7 @@ HWTEST_F(WebPictureInPictureControllerInterfaceTest, Create, TestSize.Level1)
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
     int num = 0;
     pipConfig.env = reinterpret_cast<napi_env>(&num);
-    pipConfig.pipTemplateType = 5;
+    pipConfig.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::END);
     ret = controller->Create(pipConfig);
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
     pipConfig.pipTemplateType = 0;
@@ -127,6 +128,34 @@ HWTEST_F(WebPictureInPictureControllerInterfaceTest, Create, TestSize.Level1)
     pipConfig.controlGroup = {101, 102};
     ret = controller->Create(pipConfig);
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: CreateSystemOnlyTemplate
+ * @tc.desc: system-only PiP templates require system calling
+ * @tc.type: FUNC
+ */
+HWTEST_F(WebPictureInPictureControllerInterfaceTest, CreateSystemOnlyTemplate, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockIsSACalling(false);
+    pipConfig.controlGroup = {};
+    pipConfig.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE);
+    WMError ret = controller->Create(pipConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+    pipConfig.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_NAVIGATION);
+    ret = controller->Create(pipConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+
+    MockAccesstokenKit::MockIsSystemApp(true);
+    MockAccesstokenKit::MockIsSACalling(true);
+    pipConfig.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_DRIVE);
+    ret = controller->Create(pipConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    pipConfig.pipTemplateType = static_cast<uint32_t>(PiPTemplateType::VIDEO_NAVIGATION);
+    ret = controller->Create(pipConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    MockAccesstokenKit::ChangeMockStateToInit();
 }
 
 /**

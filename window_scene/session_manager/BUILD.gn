@@ -143,6 +143,7 @@ scene_session_manager_external_deps = [
   "egl:libEGL",
   "opengles:libGLES",
   "node:node_header_notice",
+  "libuv:uv",
 ]
 
 ## Build libscene_session_manager_static.a
@@ -372,6 +373,9 @@ ohos_static_library("session_manager_static") {
     "samgr:samgr_proxy",
     "egl:libEGL",
     "opengles:libGLES",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"
@@ -425,6 +429,9 @@ ohos_shared_library("session_manager") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
@@ -479,6 +486,9 @@ ohos_shared_library("session_manager_lite") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]

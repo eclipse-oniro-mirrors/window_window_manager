@@ -436,11 +436,11 @@ void ScreenManagerAdapterLite::SyncScreenPowerState(ScreenPowerState state)
     TLOGI(WmsLogTag::DMS, "sync power state success");
 }
 
-DMError ScreenManagerAdapterLite::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos)
+DMError ScreenManagerAdapterLite::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
 
-    return displayManagerServiceProxy_->GetAllScreenInfos(screenInfos);
+    return displayManagerServiceProxy_->GetAllScreenInfos(screenInfos, isNeedUnused);
 }
 
 DMError ScreenManagerAdapterLite::GetPhysicalScreenIds(std::vector<ScreenId>& screenIds)

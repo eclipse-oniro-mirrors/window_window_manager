@@ -220,6 +220,29 @@ HWTEST_F(CompatibleModeMainSessionTest, UpdateAppHookWindowInfo04, TestSize.Leve
     ASSERT_EQ(ret, WSError::WS_OK);
     GTEST_LOG_(INFO) << "UpdateAppHookWindowInfo04 test end";
 }
+
+/**
+ * @tc.name: NotifyCompatibleModeChangeWithVerticalFullScreen
+ * @tc.desc: NotifyCompatibleModeChange with LANDSCAPE_VERTICAL_FULL_SCALE
+ * @tc.type: FUNC
+ */
+HWTEST_F(CompatibleModeMainSessionTest, NotifyCompatibleModeChangeWithVerticalFullScreen, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test start";
+    SessionInfo info;
+    info.abilityName_ = "testAbilityName";
+    info.moduleName_ = "testModuleName";
+    info.bundleName_ = "testBundleName";
+    sptr<MainSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    CompatibleStyleMode receivedMode = CompatibleStyleMode::INVALID_VALUE;
+    session->RegisterCompatibleModeChangeCallback([&receivedMode](CompatibleStyleMode mode) {
+        receivedMode = mode;
+    });
+    auto ret = session->NotifyCompatibleModeChange(CompatibleStyleMode::LANDSCAPE_VERTICAL_FULL_SCALE);
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(receivedMode, CompatibleStyleMode::LANDSCAPE_VERTICAL_FULL_SCALE);
+    GTEST_LOG_(INFO) << "NotifyCompatibleModeChangeWithVerticalFullScreen test end";
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

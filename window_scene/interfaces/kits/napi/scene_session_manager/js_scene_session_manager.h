@@ -203,6 +203,7 @@ public:
     static napi_value SupportCacheLockedSessionSnapshot(napi_env env, napi_callback_info info);
     static napi_value SupportPreloadStartingWindow(napi_env env, napi_callback_info info);
     static napi_value PreloadStartingWindow(napi_env env, napi_callback_info info);
+    static napi_value SetPreloadStartingWindowPixelMap(napi_env env, napi_callback_info info);
 
     /*
      * Window Event
@@ -492,6 +493,7 @@ private:
     napi_value OnSupportCacheLockedSessionSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSupportPreloadStartingWindow(napi_env env, napi_callback_info info);
     napi_value OnPreloadStartingWindow(napi_env env, napi_callback_info info);
+    napi_value OnSetPreloadStartingWindowPixelMap(napi_env env, napi_callback_info info);
 
     /*
      * Compatible Mode

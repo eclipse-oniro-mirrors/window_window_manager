@@ -27,7 +27,7 @@ const std::string ACTION_HIDE = "hide";
 const std::string ACTION_IN_SIDEBAR = "inSidebar";
 const std::string ACTION_IN_FLOATING_BALL = "inFloatingBall";
 
-const std::map<std::string, std::function<void(const std::string&)>> FV_ACTION_MAP {
+const std::map<std::string, std::function<void(uint32_t, const std::string&)>> FV_ACTION_MAP {
     {ACTION_START, FloatViewManager::DoActionStart},
     {ACTION_CLOSE, FloatViewManager::DoActionClose},
     {ACTION_HIDE, FloatViewManager::DoActionHide},
@@ -38,6 +38,8 @@ const std::map<std::string, std::function<void(const std::string&)>> FV_ACTION_M
 
 bool FloatViewManager::isSupportFloatView_ = false;
 sptr<FloatViewController> FloatViewManager::activeController_ = nullptr;
+std::mutex FloatViewManager::controllerMapMutex_;
+std::map<uint32_t, wptr<FloatViewController>> FloatViewManager::windowId2Controller_ = {};
 
 bool FloatViewManager::HasActiveController()
 {
@@ -69,7 +71,34 @@ void FloatViewManager::RemoveActiveController(const wptr<FloatViewController>& f
     }
 }
 
-void FloatViewManager::DoActionEvent(const std::string& actionName, const std::string& reason)
+void FloatViewManager::AddController(uint32_t windowId, wptr<FloatViewController> controller)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "add fv controller, windowId: %{public}u", windowId);
+    std::lock_guard<std::mutex> lock(controllerMapMutex_);
+    windowId2Controller_.insert(std::make_pair(windowId, controller));
+}
+
+void FloatViewManager::RemoveController(uint32_t windowId)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "remove fv controller, windowId: %{public}u", windowId);
+    std::lock_guard<std::mutex> lock(controllerMapMutex_);
+    auto iter = windowId2Controller_.find(windowId);
+    if (iter != windowId2Controller_.end()) {
+        windowId2Controller_.erase(iter);
+    }
+}
+
+wptr<FloatViewController> FloatViewManager::GetController(uint32_t windowId)
+{
+    std::lock_guard<std::mutex> lock(controllerMapMutex_);
+    auto iter = windowId2Controller_.find(windowId);
+    if (iter != windowId2Controller_.end()) {
+        return iter->second;
+    }
+    return nullptr;
+}
+
+void FloatViewManager::DoActionEvent(uint32_t windowId, const std::string& actionName, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "in, actionName %{public}s, reason: %{public}s", actionName.c_str(), reason.c_str());
     auto func = FV_ACTION_MAP.find(actionName);
@@ -77,13 +106,13 @@ void FloatViewManager::DoActionEvent(const std::string& actionName, const std::s
         TLOGE(WmsLogTag::WMS_SYSTEM, "no func to process");
         return;
     }
-    func->second(reason);
+    func->second(windowId, reason);
 }
 
-void FloatViewManager::DoActionStart(const std::string& reason)
+void FloatViewManager::DoActionStart(uint32_t windowId, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "start in");
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->ChangeState(FvWindowState::FV_STATE_STARTED);
         if (controller->IsBind()) {
             FloatWindowManager::ProcessBindFloatViewStateChange(controller, FvWindowState::FV_STATE_STARTED);
@@ -91,34 +120,53 @@ void FloatViewManager::DoActionStart(const std::string& reason)
     }
 }
 
-void FloatViewManager::DoActionClose(const std::string& reason)
+void FloatViewManager::DoActionCloseByMainWindow(uint32_t mainWindowId, const std::string& reason)
+{
+    TLOGI(WmsLogTag::WMS_SYSTEM, "close in, mainWindowId: %{public}u, reason: %{public}s",
+        mainWindowId, reason.c_str());
+    std::vector<uint32_t> controllerList;
+    {
+        std::lock_guard<std::mutex> lock(controllerMapMutex_);
+        for (const auto& pair : windowId2Controller_) {
+            auto controller = pair.second.promote();
+            if (controller != nullptr && controller->GetMainWindowId() == mainWindowId) {
+                controllerList.push_back(pair.first);
+            }
+        }
+    }
+    for (const auto& windowId : controllerList) {
+        DoActionClose(windowId, reason);
+    }
+}
+
+void FloatViewManager::DoActionClose(uint32_t windowId, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "close in, reason: %{public}s", reason.c_str());
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->StopFloatView(reason);
     }
 }
 
-void FloatViewManager::DoActionHide(const std::string& reason)
+void FloatViewManager::DoActionHide(uint32_t windowId, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "hide in");
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->ChangeState(FvWindowState::FV_STATE_HIDDEN);
     }
 }
 
-void FloatViewManager::DoActionInSidebar(const std::string& reason)
+void FloatViewManager::DoActionInSidebar(uint32_t windowId, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "inSidebar in");
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->ChangeState(FvWindowState::FV_STATE_IN_SIDEBAR);
     }
 }
 
-void FloatViewManager::DoActionInFloatingBall(const std::string& reason)
+void FloatViewManager::DoActionInFloatingBall(uint32_t windowId, const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "inFloatingBall in");
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->ChangeState(FvWindowState::FV_STATE_IN_FLOATING_BALL);
         if (controller->IsBind()) {
             FloatWindowManager::ProcessBindFloatViewStateChange(controller, FvWindowState::FV_STATE_IN_FLOATING_BALL);
@@ -130,7 +178,7 @@ void FloatViewManager::SyncFvWindowInfo(uint32_t windowId, const FloatViewWindow
     const std::string& reason)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvWindowInfo in, reason: %{public}s", reason.c_str());
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->SyncWindowInfo(windowId, windowInfo, reason);
     }
 }
@@ -138,7 +186,7 @@ void FloatViewManager::SyncFvWindowInfo(uint32_t windowId, const FloatViewWindow
 void FloatViewManager::SyncFvLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& limits)
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncFvLimits in");
-    if (auto controller = GetActiveController()) {
+    if (auto controller = GetController(windowId).promote()) {
         controller->SyncLimits(windowId, limits);
     }
 }

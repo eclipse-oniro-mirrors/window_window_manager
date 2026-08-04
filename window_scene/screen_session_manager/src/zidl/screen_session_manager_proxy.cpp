@@ -1225,7 +1225,7 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
 
 bool ScreenSessionManagerProxy::RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject)
 {
-    TLOGI(WmsLogTag::DMS, "ENTER");
+    TLOGD(WmsLogTag::DMS, "ENTER");
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGW(WmsLogTag::DMS, "remote is nullptr");
@@ -2365,7 +2365,7 @@ std::vector<DisplayId> ScreenSessionManagerProxy::GetAllDisplayIds(int32_t userI
     return allDisplayIds;
 }
 
-sptr<ScreenInfo> ScreenSessionManagerProxy::GetScreenInfoById(ScreenId screenId)
+sptr<ScreenInfo> ScreenSessionManagerProxy::GetScreenInfoById(ScreenId screenId, bool isNeedUnused)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
@@ -2402,7 +2402,7 @@ sptr<ScreenInfo> ScreenSessionManagerProxy::GetScreenInfoById(ScreenId screenId)
     return info;
 }
 
-DMError ScreenSessionManagerProxy::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos)
+DMError ScreenSessionManagerProxy::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
@@ -2416,6 +2416,10 @@ DMError ScreenSessionManagerProxy::GetAllScreenInfos(std::vector<sptr<ScreenInfo
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "GetAllScreenInfos: WriteInterfaceToken failed");
         return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteBool(isNeedUnused)) {
+        TLOGW(WmsLogTag::DMS, "Write isFromNapi failed");
+        return DMError::DM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_ALL_SCREEN_INFOS),
         data, reply, option) != ERR_NONE) {
@@ -4973,7 +4977,7 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenMaxRefreshRate(ScreenId id, u
 
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option{ MessageOption::TF_IMAGE };
+    MessageOption option;
 
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
@@ -5043,7 +5047,7 @@ sptr<DisplayInfo> ScreenSessionManagerProxy::GetPrimaryDisplayInfo()
     }
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option{ MessageOption::TF_IMAGE };
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return nullptr;
@@ -5625,5 +5629,30 @@ sptr<IRemoteObject> ScreenSessionManagerProxy::GetRenderSession(ScreenId screenI
         return nullptr;
     }
     return reply.ReadRemoteObject();
+}
+
+void ScreenSessionManagerProxy::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "Remote is nullptr");
+        return;
+    }
+    MessageParcel reply;
+    MessageParcel data;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteStringVector(hoverBlockList)) {
+        TLOGE(WmsLogTag::DMS, "Write hoverBlockList failed");
+        return;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_HOVER_BLOCK_LIST),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return;
+    }
 }
 } // namespace OHOS::Rosen

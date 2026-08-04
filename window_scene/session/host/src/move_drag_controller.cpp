@@ -40,6 +40,7 @@
 #include "session_helper.h"
 #include "session_utils.h"
 #include "string_util.h"
+#include "window_display_isolation_policy.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
 #include "wm_common_inner.h"
@@ -70,7 +71,11 @@ constexpr const char* MOVE_RESAMPLE_SECONDARY_PHASE_LEAD_TIME_MS_PARAM_KEY =
 constexpr const char* MOVING_EVENT_THROTTLE_INTERVAL_PARAM_KEY = "persist.windowlayout.movingevent.throttleinterval";
 }
 
-const std::map<AreaType, Gravity> GRAVITY_MAP = {
+namespace {
+/**
+ * @brief Maps each resize area to the opposite gravity used as the fixed resize anchor.
+ */
+const std::map<AreaType, Gravity> RESIZE_ANCHOR_GRAVITY_MAP = {
     {AreaType::LEFT,          Gravity::TOP_RIGHT},
     {AreaType::TOP,           Gravity::BOTTOM_LEFT},
     {AreaType::RIGHT,         Gravity::TOP_LEFT},
@@ -81,16 +86,31 @@ const std::map<AreaType, Gravity> GRAVITY_MAP = {
     {AreaType::LEFT_BOTTOM,   Gravity::TOP_RIGHT}
 };
 
-const std::map<AreaType, Gravity> DRAG_GRAVITY_MAP = {
-    {AreaType::LEFT, Gravity::LEFT},
-    {AreaType::TOP, Gravity::TOP},
-    {AreaType::RIGHT, Gravity::RIGHT},
-    {AreaType::BOTTOM, Gravity::BOTTOM},
-    {AreaType::LEFT_TOP, Gravity::TOP_LEFT},
-    {AreaType::RIGHT_TOP, Gravity::TOP_RIGHT},
-    {AreaType::RIGHT_BOTTOM, Gravity::BOTTOM_RIGHT},
-    {AreaType::LEFT_BOTTOM, Gravity::BOTTOM_LEFT}
+/**
+ * @brief Maps each resize area to the gravity in the same direction as the resize operation.
+ */
+const std::map<AreaType, Gravity> RESIZE_DIRECTION_GRAVITY_MAP = {
+    {AreaType::LEFT,          Gravity::LEFT},
+    {AreaType::TOP,           Gravity::TOP},
+    {AreaType::RIGHT,         Gravity::RIGHT},
+    {AreaType::BOTTOM,        Gravity::BOTTOM},
+    {AreaType::LEFT_TOP,      Gravity::TOP_LEFT},
+    {AreaType::RIGHT_TOP,     Gravity::TOP_RIGHT},
+    {AreaType::RIGHT_BOTTOM,  Gravity::BOTTOM_RIGHT},
+    {AreaType::LEFT_BOTTOM,   Gravity::BOTTOM_LEFT}
 };
+
+Gravity GetGravityByAreaType(AreaType areaType, const std::map<AreaType, Gravity>& gravityMap)
+{
+    auto iter = gravityMap.find(areaType);
+    if (iter == gravityMap.end()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "No corresponding gravity found, areaType:%{public}u",
+            static_cast<uint32_t>(areaType));
+        return Gravity::TOP_LEFT;
+    }
+    return iter->second;
+}
+} // namespace
 
 /**
  * @brief Get the display offset in the legacy global coordinate system
@@ -358,7 +378,7 @@ MoveDragController::~MoveDragController()
     screenChangeListener_->UnregisterIfNeeded();
 }
 
-bool MoveDragController::ShouldFlushOnDragEnd() const
+bool MoveDragController::IsDragEndedOnSameDisplay() const
 {
     if (startDisplayId_ == DISPLAY_ID_INVALID ||
         endDisplayId_ == DISPLAY_ID_INVALID) {
@@ -539,25 +559,6 @@ WSRect MoveDragController::MapRectFromTargetToStart(const WSRect& relativeTarget
     return relativeTargetRect.WithOffset(offsetX, offsetY);
 }
 
-void MoveDragController::UpdateSubWindowGravityWhenFollow(const sptr<MoveDragController>& followedController,
-    const std::shared_ptr<RSSurfaceNode>& surfaceNode)
-{
-    RETURN_IF_NULL(surfaceNode);
-    RETURN_IF_NULL(followedController);
-    auto type = followedController->GetAreaType();
-    if (type == AreaType::UNDEFINED) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "type undefined");
-        return;
-    }
-    Gravity dragGravity = GRAVITY_MAP.at(type);
-    if (dragGravity >= Gravity::TOP && dragGravity <= Gravity::BOTTOM_RIGHT) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "begin SetFrameGravity when follow, gravity:%{public}d, type:%{public}d",
-            dragGravity, type);
-        surfaceNode->SetFrameGravity(dragGravity);
-        RSTransactionAdapter::FlushImplicitTransaction(surfaceNode);
-    }
-}
-
 /** @note @window.drag */
 void MoveDragController::InitMoveDragProperty()
 {
@@ -683,6 +684,7 @@ void MoveDragController::ProcessMoveRectUpdate(const std::shared_ptr<MMI::Pointe
 
 bool MoveDragController::ShouldThrottleMovingEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
 {
+    RETURN_IF_NULL(pointerEvent, false);
     if (movingEventThrottleIntervalUs_ == 0) {
         return false;
     }
@@ -808,12 +810,16 @@ void MoveDragController::ProcessWindowDragHotAreaFunc(uint32_t lastWindowDragHot
         "[lastWindowDragHotAreaType: %{public}d, windowDragHotAreaType_: %{public}d, lastHotAreaDisplayId: %{public}"
         PRIu64 ",hotAreaDisplayId_: %{public}" PRIu64 "]", isSendHotAreaMessage, reason, lastWindowDragHotAreaType,
         windowDragHotAreaType_, lastHotAreaDisplayId, hotAreaDisplayId_);
-    if (isSendHotAreaMessage) {
-        TLOGI(WmsLogTag::WMS_LAYOUT, "start, isSendHotAreaMessage:%{public}u, reason:%{public}d",
-            isSendHotAreaMessage, reason);
+    if (!isSendHotAreaMessage) {
+        return;
     }
-    if (windowDragHotAreaFunc_ && isSendHotAreaMessage) {
-        windowDragHotAreaFunc_(hotAreaDisplayId_, windowDragHotAreaType_, reason);
+    NotifyWindowDragHotAreaFunc callback;
+    {
+        std::lock_guard<std::mutex> lock(windowDragHotAreaFuncMutex_);
+        callback = windowDragHotAreaFunc_;
+    }
+    if (callback) {
+        callback(hotAreaDisplayId_, windowDragHotAreaType_, reason);
     }
 }
 
@@ -823,7 +829,7 @@ void MoveDragController::UpdateGravityWhenDrag(const std::shared_ptr<MMI::Pointe
 {
     RETURN_IF_NULL(surfaceNode);
     RETURN_IF_NULL(pointerEvent);
-    if (type_ == AreaType::UNDEFINED) {
+    if (resizeAreaType_ == AreaType::UNDEFINED) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Undefined area type");
         return;
     }
@@ -831,13 +837,13 @@ void MoveDragController::UpdateGravityWhenDrag(const std::shared_ptr<MMI::Pointe
     if (actionType == MMI::PointerEvent::POINTER_ACTION_DOWN ||
         actionType == MMI::PointerEvent::POINTER_ACTION_BUTTON_DOWN) {
         preDragGravity_ = surfaceNode->GetStagingProperties().GetFrameGravity();
-        Gravity dragGravity = GetGravity(type_);
-        surfaceNode->SetFrameGravity(dragGravity);
+        Gravity anchorGravity = GetResizeAnchorGravity();
+        surfaceNode->SetFrameGravity(anchorGravity);
         RSTransactionAdapter::FlushImplicitTransaction(surfaceNode);
         TLOGI(WmsLogTag::WMS_LAYOUT,
-              "windowId: %{public}d, areaType: %{public}u, preDragGravity: %{public}d, dragGravity: %{public}d",
-              persistentId_, static_cast<uint32_t>(type_), static_cast<int32_t>(preDragGravity_.value()),
-              static_cast<int32_t>(dragGravity));
+              "windowId: %{public}d, areaType: %{public}u, preDragGravity: %{public}d, anchorGravity: %{public}d",
+              persistentId_, static_cast<uint32_t>(resizeAreaType_),
+              static_cast<int32_t>(preDragGravity_.value()), static_cast<int32_t>(anchorGravity));
     }
 }
 
@@ -865,35 +871,26 @@ TargetRectUpdateMode MoveDragController::UpdateTargetRectOnDragEvent(
     TLOGD(WmsLogTag::WMS_LAYOUT, "offsetX: %{public}d, offsetY: %{public}d", offsetX, offsetY);
 
     auto targetRect = !MathHelper::NearZero(aspectRatio_) ?
-        CalcFixedAspectRatioTargetRect(type_, offsetX, offsetY, aspectRatio_, moveDragProperty_.originalRect_) :
-        CalcFreeformTargetRect(type_, offsetX, offsetY, moveDragProperty_.originalRect_);
+        CalcFixedAspectRatioTargetRect(
+            resizeAreaType_, offsetX, offsetY, aspectRatio_, moveDragProperty_.originalRect_) :
+        CalcFreeformTargetRect(resizeAreaType_, offsetX, offsetY, moveDragProperty_.originalRect_);
     UpdateTargetRect(reason, targetRect);
     return TargetRectUpdateMode::UPDATED_IMMEDIATELY;
 }
 
-Gravity MoveDragController::GetGravity() const
+Gravity MoveDragController::GetResizeDirectionGravity() const
 {
-    return GetGravity(dragAreaType_);
+    return GetGravityByAreaType(resizeAreaType_, RESIZE_DIRECTION_GRAVITY_MAP);
 }
 
-Gravity MoveDragController::GetDragGravity() const
+Gravity MoveDragController::GetResizeAnchorGravity() const
 {
-    auto iter = DRAG_GRAVITY_MAP.find(type_);
-    if (iter == DRAG_GRAVITY_MAP.end()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "No corresponding gravity found, type %{public}u", static_cast<uint32_t>(type_));
-        return Gravity::TOP_LEFT;
-    }
-    return iter->second;
+    return GetGravityByAreaType(resizeAreaType_, RESIZE_ANCHOR_GRAVITY_MAP);
 }
 
-Gravity MoveDragController::GetGravity(AreaType type) const
+Gravity MoveDragController::GetScaleResizeAnchorGravity() const
 {
-    auto iter = GRAVITY_MAP.find(type);
-    if (iter == GRAVITY_MAP.end()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "No corresponding gravity found, type %{public}u", static_cast<uint32_t>(type));
-        return Gravity::TOP_LEFT;
-    }
-    return iter->second;
+    return GetGravityByAreaType(scaleResizeAreaType_, RESIZE_ANCHOR_GRAVITY_MAP);
 }
 
 bool MoveDragController::RestoreToPreDragGravity(const std::shared_ptr<RSSurfaceNode>& surfaceNode)
@@ -1079,10 +1076,7 @@ WSRect MoveDragController::GetScreenRectById(DisplayId displayId)
 
 void MoveDragController::SetMoveAvailableArea(const DMRect& area)
 {
-    moveAvailableArea_.posX_ = area.posX_;
-    moveAvailableArea_.posY_ = area.posY_;
-    moveAvailableArea_.width_ = area.width_;
-    moveAvailableArea_.height_ = area.height_;
+    moveAvailableArea_ = area;
 }
 
 void MoveDragController::UpdateMoveAvailableArea(DisplayId targetDisplayId)
@@ -1543,14 +1537,14 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     vpr_ = GetVirtualPixelRatio(pointerEvent);
     const auto sourceType = pointerEvent->GetSourceType();
     int outside = (sourceType == MMI::PointerEvent::SOURCE_TYPE_MOUSE) ? HOTZONE_POINTER * vpr_ : HOTZONE_TOUCH * vpr_;
-    type_ = SessionHelper::GetAreaType(pointerItem.GetWindowX(), pointerItem.GetWindowY(), sourceType, outside, vpr_,
-        moveDragProperty_.originalRect_, limits_);
-    dragAreaType_ = SessionHelper::GetAreaTypeForScaleResize(pointerItem.GetWindowX(), pointerItem.GetWindowY(),
+    resizeAreaType_ = SessionHelper::GetAreaType(pointerItem.GetWindowX(), pointerItem.GetWindowY(), sourceType,
+        outside, vpr_, moveDragProperty_.originalRect_, limits_);
+    scaleResizeAreaType_ = SessionHelper::GetAreaTypeForScaleResize(pointerItem.GetWindowX(), pointerItem.GetWindowY(),
         outside, moveDragProperty_.originalRect_);
     TLOGI(WmsLogTag::WMS_LAYOUT, "pointWinX:%{private}d, pointWinY:%{private}d, outside:%{public}d, vpr:%{public}f, "
         "rect:%{public}s, type:%{public}d", pointerItem.GetWindowX(), pointerItem.GetWindowY(), outside, vpr_,
-        moveDragProperty_.originalRect_.ToString().c_str(), type_);
-    if (type_ == AreaType::UNDEFINED) {
+        moveDragProperty_.originalRect_.ToString().c_str(), resizeAreaType_);
+    if (resizeAreaType_ == AreaType::UNDEFINED) {
         return false;
     }
     auto property = CallSceneSession(&SceneSession::GetSessionProperty, sptr<WindowSessionProperty>(nullptr));
@@ -1562,7 +1556,7 @@ bool MoveDragController::EventDownInit(const std::shared_ptr<MMI::PointerEvent>&
     moveDragProperty_.originalPointerPosX_ = pointerItem.GetDisplayX();
     moveDragProperty_.originalPointerPosY_ = pointerItem.GetDisplayY();
     if (MathHelper::NearZero(aspectRatio_)) {
-        CalcFreeformTranslateLimits(type_);
+        CalcFreeformTranslateLimits(resizeAreaType_);
     }
     originalRect = CalcFirstOriginalRectPos(originalRect);
     moveDragProperty_.originalRect_.posX_ = originalRect.posX_;
@@ -1812,11 +1806,11 @@ int32_t MoveDragController::ConvertByAreaType(int32_t tran) const
         { AreaType::LEFT_BOTTOM, NEGATIVE_CORRELATION },
         { AreaType::RIGHT_BOTTOM, POSITIVE_CORRELATION },
     };
-    if (areaTypeMap.find(type_) == areaTypeMap.end()) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "not find type:%{public}d", type_);
+    if (areaTypeMap.find(resizeAreaType_) == areaTypeMap.end()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "not find resizeAreaType:%{public}d", resizeAreaType_);
         return tran;
     }
-    return areaTypeMap.at(type_) * tran;
+    return areaTypeMap.at(resizeAreaType_) * tran;
 }
 
 void MoveDragController::ConvertXYByAspectRatio(int32_t& tx, int32_t& ty, float aspectRatio)
@@ -2009,6 +2003,7 @@ int32_t MoveDragController::GetPointerType() const
 
 void MoveDragController::SetWindowDragHotAreaFunc(const NotifyWindowDragHotAreaFunc& func)
 {
+    std::lock_guard<std::mutex> lock(windowDragHotAreaFuncMutex_);
     windowDragHotAreaFunc_ = func;
 }
 
@@ -2236,6 +2231,12 @@ void MoveDragController::RefreshGlobalScreenRects()
         if (screenProp.GetDisplayGroupId() != startDisplayGroupId_) {
             TLOGD(WmsLogTag::WMS_LAYOUT, "Skip screenId: %{public}" PRIu64 ", displayGroupId: %{public}" PRIu64,
                   screenId, screenProp.GetDisplayGroupId());
+            continue;
+        }
+        if (!WindowDisplayIsolationPolicy::IsDragEnable(startDisplayId_, screenId)) {
+            TLOGD(WmsLogTag::WMS_LAYOUT,
+                  "Skip isolated screen, fromDisplayId: %{public}" PRIu64 ", toDisplayId: %{public}" PRIu64,
+                  startDisplayId_, screenId);
             continue;
         }
         const WSRect screenRect = BuildScreenRect(screenProp);

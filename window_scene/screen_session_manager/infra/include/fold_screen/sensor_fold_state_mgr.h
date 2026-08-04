@@ -70,7 +70,6 @@ private:
     std::vector<std::string> getHallSwitchAppList();
     void NotifyReportFoldStatusToScb(int32_t nextStatus);
     void ReportNotifyFoldStatusChange(int32_t nextStatus);
-    void SetDeviceStatusAndParam(uint32_t deviceStatus);
 
     std::vector<int32_t> foldAlgorithmStrategy_;
     class Impl;

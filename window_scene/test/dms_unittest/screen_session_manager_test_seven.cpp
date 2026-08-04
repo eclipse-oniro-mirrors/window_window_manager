@@ -790,10 +790,7 @@ HWTEST_F(ScreenSessionManagerTest, ProxyForFreeze, TestSize.Level1)
     std::set<DisplayManagerAgentType> pidAgentTypes = {DisplayManagerAgentType::SCREEN_EVENT_LISTENER};
     ScreenId screenId = 1050;
     sptr<ScreenSession> screenSession = new (std::nothrow) ScreenSession(screenId, ScreenProperty(), 0);
-    ssm_->NotifyUnfreezedAgents(pid, unfreezedPidList, pidAgentTypes, screenSession);
-
     ssm_->NotifyUnfreezed(unfreezedPidList, screenSession);
-
     std::set<int32_t> pidList = {1, 2, 3};
     DMError ret = ssm_->ProxyForFreeze(pidList, true);
     ASSERT_EQ(ret, DMError::DM_OK);

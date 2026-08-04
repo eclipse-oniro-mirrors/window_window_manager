@@ -3875,7 +3875,10 @@ void WindowImpl::UpdateFocusStatus(bool focused)
     }
 
     WLOGFD("IsFocused: %{public}d, id: %{public}u", focused, property_->GetWindowId());
-    isFocused_ = focused;
+    {
+        std::lock_guard<std::mutex> lock(isFocusedMutex_);
+        isFocused_ = focused;
+    }
     if (focused) {
         HiSysEventWrite(
             OHOS::HiviewDFX::HiSysEvent::Domain::WINDOW_MANAGER,
@@ -3902,6 +3905,7 @@ bool WindowImpl::IsFocused() const
         return false;
     }
 
+    std::lock_guard<std::mutex> lock(isFocusedMutex_);
     return isFocused_;
 }
 
@@ -4143,7 +4147,12 @@ WmErrorCode WindowImpl::UpdateWindowStateWhenShow()
             subWindowState_ = WindowState::STATE_SHOWN;
         }
     }
-    if (needNotifyFocusLater_ && isFocused_) {
+    bool isFocused = false;
+    {
+        std::lock_guard<std::mutex> lock(isFocusedMutex_);
+        isFocused = isFocused_;
+    }
+    if (needNotifyFocusLater_ && isFocused) {
         UpdateFocusStatus(true);
     }
     return WmErrorCode::WM_OK;

@@ -110,7 +110,7 @@ Display::Display(const std::string& name, sptr<DisplayInfo> info)
 
 Display::~Display()
 {
-    TLOGI(WmsLogTag::DMS, "~Display");
+    TLOGD(WmsLogTag::DMS, "~Display");
 }
 
 DisplayId Display::GetId() const

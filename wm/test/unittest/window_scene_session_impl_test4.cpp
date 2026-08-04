@@ -25,6 +25,7 @@
 #include "mock_window_adapter.h"
 #include "parameters.h"
 #include "singleton_mocker.h"
+#include "window_display_isolation_policy.h"
 #include "window_scene_session_impl.h"
 #include "window_session_impl.h"
 #include "wm_common.h"
@@ -2282,6 +2283,50 @@ HWTEST_F(WindowSceneSessionImplTest4, MoveWindowToGlobal01, TestSize.Level1)
 
     auto ret = window->MoveWindowToGlobal(0, 0, moveConfiguration);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION);
+}
+
+/**
+ * @tc.name: MoveWindowWithDisplayIsolation
+ * @tc.desc: Verify explicit move APIs reject isolated displays and allow extended displays
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, MoveWindowWithDisplayIsolation, TestSize.Level1)
+{
+    const auto originalConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
+    DisplayIsolationConfig testConfig = originalConfig;
+    testConfig.moveIsolatedDisplayIds = { 5 };
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(testConfig);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetAllDisplayIds(_))
+        .WillRepeatedly(Return(std::vector<DisplayId> { 0, 5, 1001 }));
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->state_ = WindowState::STATE_INITIAL;
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    window->property_->SetDisplayId(0);
+
+    MoveConfiguration moveConfiguration = { 5 };
+    EXPECT_EQ(window->MoveToAsync(10, 10, moveConfiguration), WMError::WM_ERROR_INVALID_OP_IN_CUR_STATUS);
+    EXPECT_EQ(window->MoveWindowToGlobal(10, 10, moveConfiguration), WMError::WM_ERROR_INVALID_OP_IN_CUR_STATUS);
+
+    moveConfiguration.displayId = 1001;
+    EXPECT_EQ(window->MoveWindowToGlobal(10, 10, moveConfiguration), WMError::WM_OK);
+
+    window->property_->SetDisplayId(5);
+    moveConfiguration.displayId = 0;
+    EXPECT_EQ(window->MoveToAsync(10, 10, moveConfiguration), WMError::WM_ERROR_INVALID_OP_IN_CUR_STATUS);
+
+    moveConfiguration.displayId = 1001;
+    EXPECT_EQ(window->MoveWindowToGlobal(10, 10, moveConfiguration), WMError::WM_ERROR_INVALID_OP_IN_CUR_STATUS);
+
+    WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(originalConfig);
 }
 
 /**

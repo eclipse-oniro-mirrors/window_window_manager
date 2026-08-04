@@ -126,12 +126,17 @@ HWTEST_F(SceneSessionTest6, NotifyUpdateGravity01, TestSize.Level1)
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
     ASSERT_NE(nullptr, surfaceNode);
+    auto rsUIDirector = RSUIDirector::Create(nullptr, nullptr);
+    surfaceNode->SetRSUIContext(rsUIDirector->GetRSUIContext());
     subSession->surfaceNode_ = nullptr;
     subSession->moveDragController_ = nullptr;
+    subSession->SetFrameGravity(Gravity::BOTTOM_LEFT, true);
     mainSession->NotifyUpdateGravity();
     ASSERT_NE(nullptr, mainSession->notifySurfaceBoundsChangeFuncMap_[subSessionId]);
 
     subSession->surfaceNode_ = surfaceNode;
+    subSession->SetFrameGravity(Gravity::BOTTOM_LEFT, true);
+    EXPECT_EQ(Gravity::BOTTOM_LEFT, surfaceNode->GetStagingProperties().GetFrameGravity());
     mainSession->NotifyUpdateGravity();
     ASSERT_NE(nullptr, mainSession->notifySurfaceBoundsChangeFuncMap_[subSessionId]);
 

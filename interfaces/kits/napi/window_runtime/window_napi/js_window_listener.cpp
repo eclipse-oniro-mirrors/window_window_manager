@@ -240,15 +240,9 @@ void JsWindowListener::LifeCycleCallBack(LifeCycleEventType eventType)
             WLOGFE("this listener or eng is nullptr");
             return;
         }
-        napi_handle_scope scope = nullptr;
-        napi_status status = napi_open_handle_scope(eng, &scope);
-        if (status != napi_ok || scope == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "open handle scope failed.");
-            return;
-        }
+        HandleScope handleScope(eng);
         napi_value argv[] = {CreateJsValue(eng, static_cast<uint32_t>(eventType))};
         thisListener->CallJsMethod(LIFECYCLE_EVENT_CB.c_str(), argv, ArraySize(argv));
-        napi_close_handle_scope(eng, scope);
     };
     if (!eventHandler_) {
         WLOGFE("get main event handler failed!");

@@ -4564,7 +4564,7 @@ public:
      */
     virtual WMError IsWindowRectAutoSave(bool& enabled) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
-/**
+    /**
      * @brief Sets the supported window modes.
      *
      * @param supportedWindowModes Supported window modes of the window.
@@ -5072,7 +5072,7 @@ public:
      * @param dvsyncSwitch bool.
      * @return * void
      */
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) {}
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) {}
 
     /**
      * @brief Set touch event

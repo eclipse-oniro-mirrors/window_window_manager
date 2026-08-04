@@ -203,7 +203,7 @@ enum class WindowType : uint32_t {
 
     WINDOW_TYPE_UI_EXTENSION = 3000
 };
- 
+
 /**
  * @struct RealTimeSwitchInfo.
  *
@@ -1937,8 +1937,14 @@ enum class PiPTemplateType : uint32_t {
     VIDEO_MEETING = 2,
     VIDEO_LIVE = 3,
     VIDEO_DRIVE = 4,
+    VIDEO_NAVIGATION = 5,
     END,
 };
+
+inline bool IsSystemOnlyPiPTemplateType(PiPTemplateType type)
+{
+    return type == PiPTemplateType::VIDEO_DRIVE || type == PiPTemplateType::VIDEO_NAVIGATION;
+}
 
 struct PiPGroupConfig {
     uint32_t groupId = 0;
@@ -2232,7 +2238,6 @@ struct PiPTemplateInfo : public Parcelable {
             info.status = static_cast<PiPControlStatus>(status);
             pipTemplateInfo->pipControlStatusInfoList.emplace_back(info);
         }
-        return true;
         uint32_t controlEnableSize = 0;
         if (!parcel.ReadUint32(controlEnableSize) || controlEnableSize > MAX_SIZE_PIP_CONTROL) {
             return false;
@@ -2396,7 +2401,7 @@ enum class FloatingBallState : uint32_t {
     STOPPED = 2,
     ERROR = 3,
 };
- 
+
 /**
  * @brief Enumerates floating ball template.
  */
@@ -3336,7 +3341,7 @@ struct KeyboardLayoutParams : public Parcelable {
         return LandscapeKeyboardRect_.IsUninitializedRect() && PortraitKeyboardRect_.IsUninitializedRect() &&
                LandscapePanelRect_.IsUninitializedRect() && PortraitPanelRect_.IsUninitializedRect();
     }
-    
+
     bool isValidAvoidHeight() const
     {
         return landscapeAvoidHeight_ >= 0 && portraitAvoidHeight_ >= 0;
@@ -3735,6 +3740,7 @@ enum DefaultSpecificZIndex {
     MUTISCREEN_COLLABORATION = 930,
     SUPER_PRIVACY_ANIMATION = 1100,
     BANNER_LIVE_SHARE = 2210,
+    VIRTUAL_TOUCH_PAD = 8010,
 };
 
 /**
@@ -4331,6 +4337,8 @@ enum class CompatibleStyleMode : uint32_t {
     LANDSCAPE_4_3 = 21,
     // 16:9 aspect ratio
     LANDSCAPE_16_9 = 22,
+    // keep vertical aspect ratio and scale to landscape
+    LANDSCAPE_VERTICAL_FULL_SCALE = 23,
 };
 
 enum class WindowManagerAgentType : uint32_t {
@@ -4411,5 +4419,15 @@ struct StartMovingOptions {
 
 bool IsMultiInstanceEnabled();
 }
+
+#ifndef VSYNC_TYPE_H
+#define VSYNC_TYPE_H
+enum class FromWhom : uint8_t {
+    INNER = 0,
+    API = 1,
+};
+
+constexpr FromWhom DEFAULT_FROMWHOM = FromWhom::INNER;
+#endif
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

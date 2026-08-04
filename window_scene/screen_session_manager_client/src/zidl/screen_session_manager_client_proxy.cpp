@@ -33,7 +33,7 @@ void ScreenSessionManagerClientProxy::OnScreenConnectionChanged(SessionOption Se
     if (!ScreenConnectWriteParam(SessionOption, screenEvent, data)) {
         return;
     }
-    auto renderSession = SessionOption.connectToRenderToken_;
+    auto renderSession = SessionOption.renderSession_;
     if (renderSession) {
         if (!data.WriteBool(true) || !data.WriteRemoteObject(renderSession)) {
             TLOGE(WmsLogTag::DMS, "Write bool or renderSession failed");
@@ -889,7 +889,7 @@ void ScreenSessionManagerClientProxy::OnFoldStatusChangedReportUE(const std::vec
 }
 
 void ScreenSessionManagerClientProxy::ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid,
-    const std::string& clientName)
+    const std::string& clientName, uint32_t tokenId, const std::vector<std::string>& permissions)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
@@ -903,8 +903,9 @@ void ScreenSessionManagerClientProxy::ScreenCaptureNotify(ScreenId mainScreenId,
         TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
         return;
     }
-    if (!data.WriteUint64(mainScreenId) || !data.WriteInt32(uid) || !data.WriteString(clientName)) {
-        TLOGE(WmsLogTag::DMS, "Write screenId or uid or client failed");
+    if (!data.WriteUint64(mainScreenId) || !data.WriteInt32(uid) || !data.WriteString(clientName) ||
+        !data.WriteUint32(tokenId) || !data.WriteStringVector(permissions)) {
+        TLOGE(WmsLogTag::DMS, "Write screenId or uid or client or tokenId or permissions failed");
         return;
     }
     if (remote->SendRequest(

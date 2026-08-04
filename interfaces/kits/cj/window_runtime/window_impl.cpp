@@ -1437,6 +1437,7 @@ int32_t CJWindowImpl::GetWindowStatus(int32_t& errCode)
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "Get window status failed, window [%{public}u, %{public}s]",
             windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str());
+        return static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED);
     }
 
     return static_cast<int32_t>(windowStatus);

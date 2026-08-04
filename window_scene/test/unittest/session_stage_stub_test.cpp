@@ -2116,6 +2116,63 @@ HWTEST_F(SessionStageStubTest, HandleUpdateLSState, TestSize.Level1)
 }
 
 /**
+ * @tc.name: HandleUpdateScreenSupportMultiWindow
+ * @tc.desc: Test HandleUpdateScreenSupportMultiWindow normal deserialization
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleUpdateScreenSupportMultiWindow, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteUint32(2);
+    data.WriteUint64(0);
+    data.WriteUint64(1);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW);
+    int result = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(result, ERR_NONE);
+}
+ 
+/**
+ * @tc.name: HandleUpdateScreenSupportMultiWindow01
+ * @tc.desc: Test HandleUpdateScreenSupportMultiWindow with wrong interface token
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleUpdateScreenSupportMultiWindow01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(u"wrong.token");
+    data.WriteUint32(1);
+    data.WriteUint64(0);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW);
+    int result = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_NE(result, ERR_NONE);
+}
+ 
+/**
+ * @tc.name: HandleUpdateScreenSupportMultiWindow02
+ * @tc.desc: Test HandleUpdateScreenSupportMultiWindow with empty screen set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleUpdateScreenSupportMultiWindow02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteUint32(0);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW);
+    int result = sessionStageStub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(result, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSwitchFreeMultiWindow
  * @tc.desc: HandleSwitchFreeMultiWindow
  * @tc.type: FUNC
@@ -2153,6 +2210,43 @@ HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_WithScreenSet, TestSi
     int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
     ASSERT_EQ(result, ERR_NONE);
     
+    WSError errCode = static_cast<WSError>(reply.ReadInt32());
+    ASSERT_EQ(errCode, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: HandleSwitchFreeMultiWindow_ExceedMaxScreenSize
+ * @tc.desc: HandleSwitchFreeMultiWindow with screenSetSize exceeding MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_ExceedMaxScreenSize, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteBool(true);
+    data.WriteUint32(35); // exceeds MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE (34)
+ 
+    int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_DATA);
+}
+ 
+/**
+ * @tc.name: HandleSwitchFreeMultiWindow_BoundaryScreenSize
+ * @tc.desc: HandleSwitchFreeMultiWindow with screenSetSize at MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE boundary
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_BoundaryScreenSize, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteBool(true);
+    data.WriteUint32(34); // at MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE boundary
+    for (uint32_t i = 0; i < 34; ++i) {
+        data.WriteUint64(i);
+    }
+ 
+    int result = sessionStageStub_->HandleSwitchFreeMultiWindow(data, reply);
+    ASSERT_EQ(result, ERR_NONE);
     WSError errCode = static_cast<WSError>(reply.ReadInt32());
     ASSERT_EQ(errCode, WSError::WS_OK);
 }

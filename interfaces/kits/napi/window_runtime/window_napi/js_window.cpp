@@ -1696,9 +1696,8 @@ napi_value JsWindow::OnShowWindow(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             return;
         }
-        if (focusOnShow == false &&
-            (WindowHelper::IsModalSubWindow(weakWindow->GetType(), weakWindow->GetWindowFlags()) ||
-             WindowHelper::IsDialogWindow(weakWindow->GetType()))) {
+        if (isShowWithOptions && (WindowHelper::IsModalSubWindow(weakWindow->GetType(), weakWindow->GetWindowFlags()) ||
+            WindowHelper::IsDialogWindow(weakWindow->GetType()))) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
                 "[window][showWindow]msg: Modal subWindow and dialog can not set focusOnShow."));
             TLOGNE(WmsLogTag::WMS_FOCUS, "Modal subWindow and dialog can not set focusOnShow.");
@@ -1770,6 +1769,8 @@ napi_value JsWindow::OnShowWithAnimation(napi_env env, napi_callback_info info)
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnShowWithAnimation") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][showWithAnimation]msg: Napi send event failed"));
     }
     return result;
 }
@@ -1820,6 +1821,8 @@ napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroy") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][destroy]msg: Napi send event failed"));
     }
     return result;
 }
@@ -2834,113 +2837,25 @@ napi_value JsWindow::HandlePositionTransform(
 /** @note @window.layout */
 napi_value JsWindow::OnClientToGlobalDisplay(napi_env env, napi_callback_info info)
 {
-    const std::string histogramName = "ArkUI.window.clientToGlobalDisplay";
-    size_t argc = TWO_PARAMS_SIZE;
-    napi_value argv[TWO_PARAMS_SIZE] = { nullptr };
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != TWO_PARAMS_SIZE) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnClientToGlobalDisplay: Invalid argc: %{public}zu", argc);
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-    }
-
-    int32_t x = 0;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], x)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnClientToGlobalDisplay: Failed to convert parameter to x");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-    }
-    int32_t y = 0;
-    if (!ConvertFromJsValue(env, argv[INDEX_ONE], y)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnClientToGlobalDisplay: Failed to convert parameter to y");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-    }
-
-    if (!windowToken_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnClientToGlobalDisplay: window is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-
-    Position inPosition { x, y };
-    Position outPosition;
     std::string errMsg;
-    auto transformRet = windowToken_->ClientToGlobalDisplay(inPosition, outPosition, errMsg);
-    auto it = WM_JS_TO_ERROR_CODE_MAP.find(transformRet);
-    WmErrorCode errCode = (it != WM_JS_TO_ERROR_CODE_MAP.end()) ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
-    if (errCode != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), errCode);
-        std::string errorMsg = "Client to global display failed";
-        APPEND_ERROR_MESSAGE(errorMsg, errMsg);
-        return NapiThrowError(env, errCode, errorMsg);
-    }
-    TLOGI(WmsLogTag::WMS_LAYOUT, "OnClientToGlobalDisplay: windowId: %{public}u, inPosition: %{public}s, outPosition: %{public}s",
-        windowToken_->GetWindowId(), inPosition.ToString().c_str(), outPosition.ToString().c_str());
-
-    auto jsOutPosition = BuildJsPosition(env, outPosition);
-    if (!jsOutPosition) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnClientToGlobalDisplay: Failed to build JS position object");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-    return jsOutPosition;
+    return HandlePositionTransform(
+        env, info,
+        [&errMsg](const sptr<Window>& window, const Position& inPosition, Position& outPosition) {
+            return window->ClientToGlobalDisplay(inPosition, outPosition, errMsg);
+        },
+        __func__);
 }
 
 /** @note @window.layout */
 napi_value JsWindow::OnGlobalDisplayToClient(napi_env env, napi_callback_info info)
 {
-    const std::string histogramName = "ArkUI.window.globalDisplayToClient";
-    size_t argc = TWO_PARAMS_SIZE;
-    napi_value argv[TWO_PARAMS_SIZE] = { nullptr };
-    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != TWO_PARAMS_SIZE) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnGlobalDisplayToClient: Invalid argc: %{public}zu", argc);
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-    }
-
-    int32_t x = 0;
-    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], x)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnGlobalDisplayToClient: Failed to convert parameter to x");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-    }
-    int32_t y = 0;
-    if (!ConvertFromJsValue(env, argv[INDEX_ONE], y)) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnGlobalDisplayToClient: Failed to convert parameter to y");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
-    }
-
-    if (!windowToken_) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnGlobalDisplayToClient: window is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-
-    Position inPosition { x, y };
-    Position outPosition;
     std::string errMsg;
-    auto transformRet = windowToken_->GlobalDisplayToClient(inPosition, outPosition, errMsg);
-    auto it = WM_JS_TO_ERROR_CODE_MAP.find(transformRet);
-    WmErrorCode errCode = (it != WM_JS_TO_ERROR_CODE_MAP.end()) ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
-    if (errCode != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), errCode);
-        std::string errorMsg = "Global display to client failed";
-        APPEND_ERROR_MESSAGE(errorMsg, errMsg);
-        return NapiThrowError(env, errCode, errorMsg);
-    }
-    TLOGI(WmsLogTag::WMS_LAYOUT, "OnGlobalDisplayToClient: windowId: %{public}u, inPosition: %{public}s, outPosition: %{public}s",
-        windowToken_->GetWindowId(), inPosition.ToString().c_str(), outPosition.ToString().c_str());
-
-    auto jsOutPosition = BuildJsPosition(env, outPosition);
-    if (!jsOutPosition) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "OnGlobalDisplayToClient: Failed to build JS position object");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(histogramName.c_str(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-    }
-    return jsOutPosition;
+    return HandlePositionTransform(
+        env, info,
+        [&errMsg](const sptr<Window>& window, const Position& inPosition, Position& outPosition) {
+            return window->GlobalDisplayToClient(inPosition, outPosition, errMsg);
+        },
+        __func__);
 }
 
 napi_value JsWindow::OnSetWindowType(napi_env env, napi_callback_info info)
@@ -4793,6 +4708,7 @@ napi_value JsWindow::OnSetPreferredOrientationWithResult(napi_env env, napi_call
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetPreferredOrientationWithResult") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
             errMsgPrefix + "Send event failed."));
+        RemoveOrientationPromiseFromMap(promiseId);
     }
     return result;
 }
@@ -5289,6 +5205,9 @@ napi_value JsWindow::OnSetFocusable(napi_env env, napi_callback_info info)
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetFocusable") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFocusable", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         TLOGE(WmsLogTag::WMS_FOCUS, "window state is abnormal!");
+        napiAsyncTask->Reject(env,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setFocusable]msg: Failed to send event"));
     }
     return result;
 }
@@ -8612,10 +8531,19 @@ __attribute__((no_sanitize("cfi")))
     }
     napi_value objValue = nullptr;
     napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi object");
+        return nullptr;
+    }
 
     WLOGI("CreateJsWindow %{public}s", windowName.c_str());
     std::unique_ptr<JsWindow> jsWindow = std::make_unique<JsWindow>(window, env);
-    napi_wrap(env, objValue, jsWindow.release(), JsWindow::Finalizer, nullptr, nullptr);
+    auto jsWindowPtr = jsWindow.release();
+    if (napi_wrap(env, objValue, jsWindowPtr, JsWindow::Finalizer, nullptr, nullptr) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to wrap jsWindow");
+        delete jsWindowPtr;
+        return nullptr;
+    }
 
     BindFunctions(env, objValue, "JsWindow");
 
