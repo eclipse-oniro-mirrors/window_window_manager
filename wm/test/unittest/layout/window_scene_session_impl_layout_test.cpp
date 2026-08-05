@@ -1016,12 +1016,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(false);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabledByDecorVisible(true);
     EXPECT_TRUE(window->property_->GetDragEnabled());
 }
 
@@ -1042,12 +1038,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(false));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabledByDecorVisible(false);
     EXPECT_FALSE(window->property_->GetDragEnabled());
 }
 
@@ -1068,12 +1060,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabledByDecorVisible(false);
     // Main window should not be affected, drag remains true
     EXPECT_TRUE(window->property_->GetDragEnabled());
 }
@@ -1095,16 +1083,43 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(false);
     window->hasSetEnableDrag_.store(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabledByDecorVisible(true);
     // Should skip, drag remains false
     EXPECT_FALSE(window->property_->GetDragEnabled());
     window->hasSetEnableDrag_.store(false);
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabledByDecorVisible05
+ * @tc.desc: Use target decor state instead of querying the previous UIContent state
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible05,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible05");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetIsShowDecorInFreeMultiWindow(true);
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+
+    bool targetDecorVisible = window->UpdateDecorEnable(true);
+    window->UpdateSubWindowDragEnabledByDecorVisible(targetDecorVisible);
+
+    EXPECT_TRUE(targetDecorVisible);
+    EXPECT_TRUE(window->property_->GetDragEnabled());
+
+    window->property_->SetDecorEnable(false);
+    EXPECT_FALSE(window->UpdateDecorEnable(true));
 }
 
 /**
