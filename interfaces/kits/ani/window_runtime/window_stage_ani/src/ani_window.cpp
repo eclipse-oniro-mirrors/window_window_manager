@@ -235,8 +235,6 @@ void AniWindow::SetPreferredOrientation(ani_env* env, ani_object obj, ani_long n
         aniWindow->OnSetPreferredOrientation(env, orientation);
     } else {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setPreferredOrientation]msg: The window is not created or destroyed.");
     }
 }
 
@@ -249,8 +247,6 @@ void AniWindow::OnSetPreferredOrientation(ani_env* env, ani_int orientation)
     auto window = GetWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] window is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setPreferredOrientation]msg: The window is not created or destroyed.");
         return;
     }
 
@@ -281,8 +277,6 @@ void AniWindow::SetPreferredOrientationWithResult(ani_env* env, ani_object obj, 
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setPreferredOrientationWithResult]msg: The window is not created or destroyed.");
         return;
     }
     aniWindow->OnSetPreferredOrientationWithResult(env, orientation, promiseId);
@@ -461,7 +455,7 @@ void AniWindow::OnOpacity(ani_env* env, ani_double opacity)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Opacity is not allowed since window is not system window");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][opacity]msg: Only system windows are supported.");
+            "[window][opacity]msg: Only system windows, global floating windows, and modal windows are supported.");
         return;
     }
 
@@ -490,8 +484,6 @@ void AniWindow::Scale(ani_env* env, ani_object obj, ani_long nativeObj, ani_obje
         aniWindow->OnScale(env, scaleOptions);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][scale]msg: The window is not created or destroyed.");
     }
 }
 
@@ -572,7 +564,7 @@ void AniWindow::OnScale(ani_env* env, ani_object scaleOptions)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Scale is not allowed since window is not system window");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][scale]msg: Only system windows are supported.");
+            "[window][scale]msg: Only system windows, global floating windows, and modal windows are supported.");
         return;
     }
 
@@ -603,8 +595,6 @@ void AniWindow::Translate(ani_env* env, ani_object obj, ani_long nativeObj, ani_
         aniWindow->OnTranslate(env, translateOptions);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][translate]msg: The window is not created or destroyed.");
     }
 }
 
@@ -651,7 +641,7 @@ void AniWindow::OnTranslate(ani_env* env, ani_object translateOptions)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Translate is not allowed since window is not system window");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][translate]msg: Only system windows are supported.");
+            "[window][translate]msg: Only system windows, global floating windows, and modal windows are supported.");
         return;
     }
 
@@ -680,8 +670,6 @@ void AniWindow::Rotate(ani_env* env, ani_object obj, ani_long nativeObj, ani_obj
         aniWindow->OnRotate(env, rotateOptions);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][rotate]msg: The window is not created or destroyed.");
     }
 }
 
@@ -746,7 +734,7 @@ void AniWindow::OnRotate(ani_env* env, ani_object rotateOptions)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Rotate is not allowed since window is not system window");
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][rotate]msg: Only system windows are supported.");
+            "[window][rotate]msg: Only system windows, global floating windows, and modal windows are supported.");
         return;
     }
 
@@ -778,8 +766,6 @@ void AniWindow::SetShadow(ani_env* env, ani_object obj, ani_long nativeObj, ani_
         aniWindow->OnSetShadow(env, radius, color, offsetX, offsetY);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setShadow]msg: The window is not created or destroyed.");
     }
 }
 
@@ -797,7 +783,8 @@ void AniWindow::OnSetShadow(ani_env* env, ani_double radius, ani_string color, a
     if (!WindowHelper::IsSystemWindow(window->GetType()) &&
         !WindowHelper::IsSubWindow(window->GetType())) {
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setShadow]msg: Only system windows and subwindows are supported.");
+           "[window][setShadow]msg: Only system windows, "
+            "global floating windows, modal windows and subwindows are supported.");
         return;
     }
 
@@ -884,8 +871,6 @@ void AniWindow::SetBlur(ani_env* env, ani_object obj, ani_long nativeObj, ani_do
         aniWindow->OnSetBlur(env, radius);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setBlur]msg: The window is not created or destroyed.");
     }
 }
 
@@ -903,7 +888,7 @@ void AniWindow::OnSetBlur(ani_env* env, ani_double radius)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Unexpected window type:%{public}d", window->GetType());
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setBlur]msg: Only system windows are supported.");
+            "[window][setBlur]msg: Only system windows, global floating windows, and modal windows are supported.");
         return;
     }
     double radiusValue = static_cast<double>(radius);
@@ -930,8 +915,6 @@ void AniWindow::SetBackdropBlurStyle(ani_env* env, ani_object obj, ani_long nati
         aniWindow->OnSetBackdropBlurStyle(env, blurStyle);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setBackdropBlurStyle]msg: The window is not created or destroyed.");
     }
 }
 
@@ -949,7 +932,8 @@ void AniWindow::OnSetBackdropBlurStyle(ani_env* env, ani_int blurStyle)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Unexpected window type:%{public}d", window->GetType());
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setBackdropBlurStyle]msg: Only system windows are supported.");
+            "[window][setBackdropBlurStyle]msg: Only system windows, "
+            "global floating windows, and modal windows are supported.");
         return;
     }
     uint32_t resultValue = static_cast<uint32_t>(blurStyle);
@@ -977,8 +961,6 @@ void AniWindow::SetBackdropBlur(ani_env* env, ani_object obj, ani_long nativeObj
         aniWindow->OnSetBackdropBlur(env, radius);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setBackdropBlur]msg: The window is not created or destroyed.");
     }
 }
 
@@ -996,7 +978,8 @@ void AniWindow::OnSetBackdropBlur(ani_env* env, ani_double radius)
     if (!WindowHelper::IsSystemWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] Unexpected window type:%{public}d", window->GetType());
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setBackdropBlur]msg: Only system windows are supported.");
+            "[window][setBackdropBlur]msg: Only system windows, "
+            "global floating windows, and modal windows are supported.");
         return;
     }
 
@@ -1044,7 +1027,7 @@ ani_double AniWindow::OnGetWindowCornerRadius(ani_env* env)
     }
     if (!WindowHelper::IsFloatOrSubWindow(window->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] This is not sub window or float window");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING.
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
             "[window][getWindowCornerRadius]msg: Only subwindows and float windows are supported.");
         return cornerRadius;
     }
@@ -1067,8 +1050,6 @@ void AniWindow::SetWindowCornerRadius(ani_env* env, ani_object obj, ani_long nat
         aniWindow->OnSetWindowCornerRadius(env, cornerRadius);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowCornerRadius]msg: The window is not created or destroyed.");
     }
 }
 
@@ -1107,8 +1088,6 @@ void AniWindow::SetWindowShadowRadius(ani_env* env, ani_object obj, ani_long nat
         aniWindow->OnSetWindowShadowRadius(env, radius);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowShadowRadius]msg: The window is not created or destroyed.");
     }
 }
 
@@ -3585,8 +3564,6 @@ void AniWindow::HideWithAnimation(ani_env* env, ani_object obj, ani_long nativeO
         aniWindow->OnHideWithAnimation(env);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][hideWithAnimation]msg: The window is not created or destroyed.");
     }
 }
 
@@ -3594,7 +3571,8 @@ void AniWindow::OnHideWithAnimation(ani_env* env)
 {
     TLOGI(WmsLogTag::WMS_ANIMATION, "[ANI]");
     if (!Permission::IsSystemCallingOrStartByHdcd(true)) {
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+            "Permission verification failed. A non-system application calls a system API.");
         return;
     }
     auto window = GetWindow();
@@ -3609,7 +3587,8 @@ void AniWindow::OnHideWithAnimation(ani_env* env)
         TLOGE(WmsLogTag::WMS_ANIMATION,
             "window Type %{public}u is not supported", static_cast<uint32_t>(winType));
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][hideWithAnimation]msg: Only system windows are supported.");
+            "[window][hideWithAnimation]msg: Only system windows, "
+            "global floating windows, and modal windows are supported.");
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Hide(0, true, false));
@@ -3627,8 +3606,6 @@ void AniWindow::ShowWithAnimation(ani_env* env, ani_object obj, ani_long nativeO
         aniWindow->OnShowWithAnimation(env);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][showWithAnimation]msg: The window is not created or destroyed.");
     }
 }
 
@@ -3651,7 +3628,8 @@ void AniWindow::OnShowWithAnimation(ani_env* env)
         TLOGE(WmsLogTag::WMS_ANIMATION,
             "window Type %{public}u is not supported", static_cast<uint32_t>(winType));
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][showWithAnimation]msg: Only system windows are supported.");
+            "[window][showWithAnimation]msg: Only system windows, "
+            "global floating windows, and modal windows are supported.");
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Show(0, true, true));
@@ -3727,7 +3705,8 @@ ani_object AniWindow::OnGetTransitionController(ani_env* env, ani_object obj)
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_ANIMATION, "Unexpected window type: %{public}d", windowToken_->GetType());
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][getTransitionController]msg: Only system windows are supported.");
+            "[window][getTransitionController]msg: Only system windows, "
+            "global floating windows, and modal windows are supported.");
     }
 
     if (aniTransControllerObj_ == nullptr) {
