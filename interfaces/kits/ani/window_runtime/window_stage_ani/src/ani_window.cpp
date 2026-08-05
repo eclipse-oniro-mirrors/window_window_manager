@@ -247,6 +247,8 @@ void AniWindow::OnSetPreferredOrientation(ani_env* env, ani_int orientation)
     auto window = GetWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setPreferredOrientationWithResult]msg: The window is not created or destroyed.");
         return;
     }
 
@@ -436,8 +438,6 @@ void AniWindow::Opacity(ani_env* env, ani_object obj, ani_long nativeObj, ani_do
         aniWindow->OnOpacity(env, opacity);
     } else {
         TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][opacity]msg: The window is not created or destroyed.");
     }
 }
 
