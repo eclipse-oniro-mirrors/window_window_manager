@@ -123,12 +123,13 @@ HWTEST_F(WindowSceneSessionImplTest, CreateWindowAndDestroy01, TestSize.Level0)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, session, errMsg));
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy(false));
-    ASSERT_EQ(WMError::WM_ERROR_REPEAT_OPERATION, window->Create(abilityContext_, session));
+    ASSERT_EQ(WMError::WM_ERROR_REPEAT_OPERATION, window->Create(abilityContext_, session, errMsg));
     window->property_->SetPersistentId(1);
     ASSERT_EQ(WMError::WM_OK, window->Destroy(false));
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->Create(abilityContext_, session));
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->Create(abilityContext_, session, errMsg));
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy(true));
 }
 
@@ -145,11 +146,12 @@ HWTEST_F(WindowSceneSessionImplTest, CreateWindowAndDestroy02, TestSize.Level0)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     std::string identityToken = "testToken";
-    window->Create(abilityContext_, session);
-    ASSERT_EQ(WMError::WM_ERROR_REPEAT_OPERATION, window->Create(abilityContext_, session, identityToken));
+    std::string errMsg;
+    window->Create(abilityContext_, session, errMsg);
+    ASSERT_EQ(WMError::WM_ERROR_REPEAT_OPERATION, window->Create(abilityContext_, session, errMsg, identityToken));
     window->property_->SetPersistentId(1);
     window->Destroy(false);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->Create(abilityContext_, session, identityToken));
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->Create(abilityContext_, session, errMsg, identityToken));
     ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window->Destroy(false));
 }
 
@@ -238,7 +240,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession01, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -259,7 +262,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession02, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle0", "CreateTestModule0", "CreateTestAbility0" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     windowSceneSession->property_->SetPersistentId(103);
     windowSceneSession->property_->SetParentPersistentId(102);
     windowSceneSession->property_->SetParentId(102);
@@ -288,7 +292,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession03, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle0", "CreateTestModule0", "CreateTestAbility0" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     windowSceneSession->property_->SetParentPersistentId(102);
     windowSceneSession->property_->SetParentId(102);
@@ -316,7 +321,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession04, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle4", "CreateTestModule4", "CreateTestAbility4" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     windowSceneSession->property_->SetPersistentId(104);
     windowSceneSession->property_->SetParentPersistentId(103);
@@ -346,7 +352,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession05, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle5", "CreateTestModule5", "CreateTestAbility5" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     windowSceneSession->property_->SetParentPersistentId(104);
     windowSceneSession->property_->SetParentId(104);
@@ -374,7 +381,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession06, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle6", "CreateTestModule6", "CreateTestAbility6" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     windowSceneSession->property_->SetPersistentId(105);
     windowSceneSession->property_->SetParentPersistentId(102);
@@ -403,7 +411,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession07, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle7", "CreateTestModule7", "CreateTestAbility7" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     windowSceneSession->property_->SetPersistentId(106);
     windowSceneSession->property_->SetParentPersistentId(105);
@@ -431,7 +440,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession08, TestSize
     // scene session manager processing
     option->SetIsUIExtFirstSubWindow(true);
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-    windowSceneSession->Create(abilityContext_, nullptr);
+    std::string errMsg;
+    windowSceneSession->Create(abilityContext_, nullptr, errMsg);
     ASSERT_EQ(windowSceneSession->property_->GetParentPersistentId(), option->GetParentId());
     // scene session manager processing
     option->SetIsUIExtFirstSubWindow(false);
@@ -439,7 +449,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession08, TestSize
     option->AddWindowFlag(WindowFlag::WINDOW_FLAG_IS_TOAST);
     windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(nullptr, windowSceneSession);
-    windowSceneSession->Create(abilityContext_, nullptr);
+    windowSceneSession->Create(abilityContext_, nullptr, errMsg);
     ASSERT_EQ(windowSceneSession->property_->GetParentPersistentId(), option->GetParentId());
 
     sptr<WindowSceneSessionImpl> mainWindow = sptr<WindowSceneSessionImpl>::MakeSptr(option);
@@ -450,13 +460,13 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession08, TestSize
     option->RemoveWindowFlag(WindowFlag::WINDOW_FLAG_IS_TOAST);
     windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     windowSceneSession->windowSessionMap_["mainWindow"] = { parentId, mainWindow };
-    windowSceneSession->Create(abilityContext_, nullptr);
+    windowSceneSession->Create(abilityContext_, nullptr, errMsg);
     ASSERT_EQ(windowSceneSession->property_->GetDisplayId(), mainWindow->property_->GetDisplayId());
     // window processing
     option->SetIsUIExtAnySubWindow(false);
     windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     windowSceneSession->windowSessionMap_["mainWindow"] = { parentId, mainWindow };
-    windowSceneSession->Create(abilityContext_, nullptr);
+    windowSceneSession->Create(abilityContext_, nullptr, errMsg);
     ASSERT_EQ(windowSceneSession->property_->GetDisplayId(), mainWindow->property_->GetDisplayId());
 }
 
@@ -482,7 +492,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession09, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -506,7 +517,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession10, TestSize
     parentWindow->property_->SetPersistentId(parentId);
     SessionInfo sessionInfo = {"TextMenuTestBundle", "TextMenuTestModule", "TextMenuTestAbility"};
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    WMError error = parentWindow->Create(abilityContext_, session);
+    std::string errMsg;
+    WMError error = parentWindow->Create(abilityContext_, session, errMsg);
     ASSERT_EQ(error, WMError::WM_OK);
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
@@ -517,7 +529,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession10, TestSize
     option->SetParentId(parentId);
     sptr<WindowSceneSessionImpl> textMenuWindow = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(nullptr, textMenuWindow);
-    error = textMenuWindow->Create(abilityContext_, nullptr);
+    error = textMenuWindow->Create(abilityContext_, nullptr, errMsg);
     ASSERT_EQ(error, WMError::WM_OK);
     ASSERT_EQ(WMError::WM_OK, textMenuWindow->Destroy(true));
     ASSERT_EQ(WMError::WM_OK, parentWindow->Destroy(true));
@@ -545,7 +557,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession11, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -567,7 +580,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession12, TestSize
 
     SessionInfo sessionInfo = { "CreateTestBundle6", "CreateTestModule612", "CreateTestAbility12" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     windowSceneSession->property_->SetPersistentId(105);
     windowSceneSession->property_->SetParentPersistentId(102);
@@ -602,7 +616,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession13, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -629,7 +644,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession14, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Show());
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
@@ -657,7 +673,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession15, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Show());
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
@@ -685,7 +702,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession16, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Show());
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
@@ -713,7 +731,8 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession17, TestSize
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Show());
     EXPECT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
     windowSceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
@@ -797,7 +816,8 @@ HWTEST_F(WindowSceneSessionImplTest, FindParentSessionByParentId01, TestSize.Lev
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     ASSERT_NE(nullptr, session);
 
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
     windowSceneSession->hostSession_ = session;
     ASSERT_TRUE(nullptr != windowSceneSession->FindParentSessionByParentId(1112));
     windowSceneSession->Destroy(true);
@@ -819,7 +839,8 @@ HWTEST_F(WindowSceneSessionImplTest, DisableAppWindowDecor01, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     std::shared_ptr<AbilityRuntime::Context> context;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(context, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(context, session, errMsg));
     windowSession->property_->SetPersistentId(1);
 
     windowSession->UpdateDecorEnable(false);
@@ -848,7 +869,8 @@ HWTEST_F(WindowSceneSessionImplTest, DisableAppWindowDecor02, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     std::shared_ptr<AbilityRuntime::Context> context;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(context, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(context, session, errMsg));
     windowSession->property_->SetPersistentId(0);
 
     windowSession->UpdateDecorEnable(false);
@@ -874,7 +896,8 @@ HWTEST_F(WindowSceneSessionImplTest, DisableAppWindowDecor03, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     std::shared_ptr<AbilityRuntime::Context> context;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(context, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(context, session, errMsg));
     windowSession->property_->SetPersistentId(1);
 
     windowSession->UpdateDecorEnable(false);
@@ -1524,10 +1547,11 @@ HWTEST_F(WindowSceneSessionImplTest, Close01, TestSize.Level1)
 
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
     windowSceneSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(WMError::WM_OK, res);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Close());
-    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener);
+    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(WMError::WM_OK, res);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Close());
 }
@@ -2288,7 +2312,8 @@ HWTEST_F(WindowSceneSessionImplTest, SystemBarProperty07, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->property_->SetPersistentId(1);
-    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext_, session, errMsg));
     window->hostSession_ = session;
 
     SystemBarProperty property;
@@ -3189,10 +3214,11 @@ HWTEST_F(WindowSceneSessionImplTest, CloseSpecificScene, TestSize.Level1)
     windowSceneSession->hostSession_ = session;
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
     windowSceneSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(WMError::WM_OK, res);
     EXPECT_EQ(WSError::WS_OK, windowSceneSession->CloseSpecificScene());
-    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener);
+    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(WMError::WM_OK, res);
     EXPECT_EQ(WSError::WS_OK, windowSceneSession->CloseSpecificScene());
 }
@@ -3250,7 +3276,8 @@ HWTEST_F(WindowSceneSessionImplTest, RestoreMainWindow, TestSize.Level1)
     window->SetWindowType(WindowType::WINDOW_TYPE_MEDIA);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    EXPECT_EQ(WMError::WM_OK, window->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, window->Create(abilityContext_, session, errMsg));
     window->state_ = WindowState::STATE_CREATED;
     window->hostSession_ = session;
     {
@@ -3309,7 +3336,8 @@ HWTEST_F(WindowSceneSessionImplTest, GetAndVerifyWindowTypeForArkUI01, TestSize.
     windowSceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     auto parentWindow = WindowSceneSessionImpl::GetWindowWithId(100);
     EXPECT_EQ(parentWindow != nullptr, true);
@@ -3360,7 +3388,8 @@ HWTEST_F(WindowSceneSessionImplTest, GetAndVerifyWindowTypeForArkUI02, TestSize.
     windowSceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     auto parentWindow = WindowSceneSessionImpl::GetWindowWithId(101);
     EXPECT_EQ(parentWindow != nullptr, true);
@@ -3410,7 +3439,8 @@ HWTEST_F(WindowSceneSessionImplTest, GetAndVerifyWindowTypeForArkUI03, TestSize.
     windowSceneSession->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
+    std::string errMsg;
+    EXPECT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
 
     auto parentWindow = WindowSceneSessionImpl::GetWindowWithId(101);
     EXPECT_EQ(parentWindow != nullptr, true);

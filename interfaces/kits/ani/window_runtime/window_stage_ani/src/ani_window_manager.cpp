@@ -505,9 +505,12 @@ ani_ref CreateAniSubWindow(ani_env* env, sptr<WindowOption> windowOption)
             "[ANI] Parent window missed");
     }
 
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption);
+    std::string errMsg;
+    WMError errCode = WMError::WM_OK;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, nullptr, errMsg, errCode);
     if (window == nullptr) {
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg);
     } else {
         return CreateAniWindowObject(env, window);
     }
@@ -814,11 +817,13 @@ void AniWindowManager::OnRegisterWindowManagerCallback(ani_env* env, ani_string 
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
+    std::string errMsg;
     WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER,
-        env, callback, ani_double(0));
+        env, callback, ani_double(0), errMsg);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
-        AniWindowUtils::AniThrowError(env, ret);
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Register listener failed." : errMsg));
     }
 }
 
@@ -839,11 +844,13 @@ void AniWindowManager::OnUnregisterWindowManagerCallback(ani_env* env, ani_strin
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
+    std::string errMsg;
     WmErrorCode ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER,
-        env, callback);
+        env, callback, errMsg);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off", ret);
-        AniWindowUtils::AniThrowError(env, ret);
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
     }
 }
 
@@ -1085,10 +1092,12 @@ ani_ref AniWindowManager::OnCreateSubWindowAndBindParent(ani_env* env, ani_strin
         TLOGE(WmsLogTag::WMS_LIFE, "[ANI] SubWindow create error");
         return AniWindowUtils::AniThrowError(env, WM_JS_TO_ERROR_CODE_MAP.at(wmError), "SubWindow create error");
     }
+    std::string errMsg;
     WmErrorCode ret = registerManager_->RegisterListener(subWindow, "parentLifecycleEvent", CaseType::CASE_WINDOW,
-        env, callback, ani_double(0));
+        env, callback, ani_double(0), errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        return AniWindowUtils::AniThrowError(env, ret, "Register listener error");
+        return AniWindowUtils::AniThrowError(env, ret,
+            "[window][CreateSubWindowAndBindParent]msg: " + (errMsg.empty() ? "Create window failed" : errMsg));
     }
     return CreateAniWindowObject(env, subWindow);
 }

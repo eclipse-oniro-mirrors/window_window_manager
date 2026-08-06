@@ -519,17 +519,18 @@ HWTEST_F(WindowSessionImplTest3, RegisterWindowWillCloseListeners, TestSize.Leve
     ASSERT_NE(window_, nullptr);
     window_->property_->SetPersistentId(INVALID_SESSION_ID);
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
-    auto ret = window_->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto ret = window_->RegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
 
     window_->property_->SetPersistentId(1);
     window_->state_ = WindowState::STATE_CREATED;
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
-    ret = window_->RegisterWindowWillCloseListeners(listener);
+    ret = window_->RegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    ret = window_->RegisterWindowWillCloseListeners(listener);
+    ret = window_->RegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(ret, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: RegisterWindowWillCloseListeners end";
 }
@@ -546,17 +547,18 @@ HWTEST_F(WindowSessionImplTest3, UnRegisterWindowWillCloseListeners, TestSize.Le
     ASSERT_NE(window_, nullptr);
     window_->property_->SetPersistentId(INVALID_SESSION_ID);
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
-    auto ret = window_->UnRegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto ret = window_->UnRegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
 
     window_->property_->SetPersistentId(1);
     window_->state_ = WindowState::STATE_CREATED;
     window_->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
-    ret = window_->UnRegisterWindowWillCloseListeners(listener);
+    ret = window_->UnRegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
 
     window_->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    ret = window_->UnRegisterWindowWillCloseListeners(listener);
+    ret = window_->UnRegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(ret, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: UnRegisterWindowWillCloseListeners end";
 }

@@ -739,7 +739,7 @@ ColorSpace WindowSessionImpl::GetColorSpace()
     return GetColorSpaceFromSurfaceGamut(colorGamut);
 }
 
-WMError WindowSessionImpl::WindowSessionCreateCheck()
+WMError WindowSessionImpl::WindowSessionCreateCheck(std::string& errMsg)
 {
     if (vsyncStation_ == nullptr || !vsyncStation_->IsVsyncReceiverCreated()) {
         RecordLifeCycleExceptionEvent(WMError::WM_ERROR_NULLPTR,
@@ -753,6 +753,7 @@ WMError WindowSessionImpl::WindowSessionCreateCheck()
         WLOGFE("WindowName(%{public}s) already exists.", name.c_str());
         RecordLifeCycleExceptionEvent(WMError::WM_ERROR_REPEAT_OPERATION,
             WMErrorReason::WM_REASON_WINDOW_CREATE_ERR, "window with the name already exists");
+        errMsg = "The subWindow has been created and can not be created again";
         return WMError::WM_ERROR_REPEAT_OPERATION;
     }
 
@@ -5204,7 +5205,8 @@ EnableIfSame<T, IWindowWillCloseListener, std::vector<sptr<IWindowWillCloseListe
     return windowWillCloseListeners_[GetPersistentId()];
 }
 
-WMError WindowSessionImpl::RegisterWindowWillCloseListeners(const sptr<IWindowWillCloseListener>& listener)
+WMError WindowSessionImpl::RegisterWindowWillCloseListeners(
+    const sptr<IWindowWillCloseListener>& listener, std::string& errMsg)
 {
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -5215,13 +5217,15 @@ WMError WindowSessionImpl::RegisterWindowWillCloseListeners(const sptr<IWindowWi
     }
     if (!WindowHelper::IsAppWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_DECOR, "window type is not supported");
+        errMsg = "Invalid window type, not called from mainWindow or subWindow";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     std::lock_guard<std::recursive_mutex> lockListener(windowWillCloseListenersMutex_);
     return RegisterListener(windowWillCloseListeners_[GetPersistentId()], listener);
 }
 
-WMError WindowSessionImpl::UnRegisterWindowWillCloseListeners(const sptr<IWindowWillCloseListener>& listener)
+WMError WindowSessionImpl::UnRegisterWindowWillCloseListeners(
+    const sptr<IWindowWillCloseListener>& listener, std::string& errMsg)
 {
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -5232,6 +5236,7 @@ WMError WindowSessionImpl::UnRegisterWindowWillCloseListeners(const sptr<IWindow
     }
     if (!WindowHelper::IsAppWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_DECOR, "window type is not supported");
+        errMsg = "Invalid window type, not called from mainWindow or subWindow";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     std::lock_guard<std::recursive_mutex> lockListener(windowWillCloseListenersMutex_);

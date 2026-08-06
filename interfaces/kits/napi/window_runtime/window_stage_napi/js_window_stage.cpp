@@ -345,7 +345,7 @@ napi_value JsWindowStage::OnGetMainWindow(napi_env env, napi_callback_info info)
         auto weakScene = weak.lock();
         if (weakScene == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
-                "[window][getMainWindow]msg: Window scene is nullptr."));
+                "[window][getMainWindow]msg: The window stage is not created or destroyed."));
             TLOGNE(WmsLogTag::WMS_LIFE, "WindowScene_ is nullptr!");
             return;
         }
@@ -372,7 +372,7 @@ napi_value JsWindowStage::OnGetMainWindowSync(napi_env env, napi_callback_info i
     if (weakScene == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "WindowScene is null");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
-            "[window][getMainWindowSync]msg: Window scene is nullptr."));
+            "[window][getMainWindowSync]msg: The window stage is not created or destroyed."));
         return NapiGetUndefined(env);
     }
     auto window = weakScene->GetMainWindow();
@@ -413,11 +413,12 @@ napi_value JsWindowStage::OnEvent(napi_env env, napi_callback_info info)
             "[window][on]msg: Failed to convert parameter to eventString."));
         return NapiGetUndefined(env);
     }
+    std::string errMsgPrefix = "[window][on('" + eventString + "')]msg: ";
     napi_value value = argv[1];
     if (!NapiIsCallable(env, value)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Callback(argv[1]) is not callable");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][on]msg: Callback is not callable."));
+            errMsgPrefix + (errMsg.empty()? "Callback is not callable." : errMsg)));
         return NapiGetUndefined(env);
     }
 
@@ -425,13 +426,15 @@ napi_value JsWindowStage::OnEvent(napi_env env, napi_callback_info info)
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get window failed");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][on]msg: The window is not created or destroyed."));
+            errMsgPrefix + (errMsg.empty()? "The window is not created or destroyed." : errMsg)));
         return NapiGetUndefined(env);
     }
-    auto ret = g_listenerManager->RegisterListener(window, eventString, CaseType::CASE_STAGE, env, value);
+    std::string errMsg;
+    auto ret = g_listenerManager->RegisterListener(window, eventString, CaseType::CASE_STAGE, env, value, errMsg);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "register event %{public}s failed, ret=%{public}d", eventString.c_str(), ret);
-        napi_throw(env, JsErrUtils::CreateJsError(env, ret, "[window][on]msg: Register event listener failed."));
+        napi_throw(env, JsErrUtils::CreateJsError(env, ret,
+            errMsgPrefix + (errMsg.empty() ? "Register event listener failed." : errMsg)));
         return NapiGetUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Window [%{public}u, %{public}s] register event %{public}s",
@@ -461,28 +464,33 @@ napi_value JsWindowStage::OffEvent(napi_env env, napi_callback_info info)
         return NapiGetUndefined(env);
     }
 
+    std::string errMsgPrefix = "[window][off('" + eventString + "')]msg: ";
     auto window = weakScene->GetMainWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get window failed");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][off]msg: The window is not created or destroyed."));
+            errMsgPrefix + (errMsg.empty()? "The window is not created or destroyed." : errMsg)));
         return NapiGetUndefined(env);
     }
     napi_value value = nullptr;
     WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsg;
     if (argc == 1) {
-        ret = g_listenerManager->UnregisterListener(window, eventString, CaseType::CASE_STAGE, env, nullptr);
+        ret = g_listenerManager->UnregisterListener(window, eventString, CaseType::CASE_STAGE, env, nullptr, errMsg);
     } else {
         value = argv[1];
         if (value != nullptr && GetType(env, value) == napi_function) {
-            ret = g_listenerManager->UnregisterListener(window, eventString, CaseType::CASE_STAGE, env, value);
+            ret = g_listenerManager->UnregisterListener(window, eventString, CaseType::CASE_STAGE, env, value,
+                errMsg);
         } else {
-            ret = g_listenerManager->UnregisterListener(window, eventString, CaseType::CASE_STAGE, env, nullptr);
+            ret = g_listenerManager->UnregisterListener(window, eventString, CaseType::CASE_STAGE, env, nullptr,
+                errMsg);
         }
     }
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "unregister event %{public}s failed, ret=%{public}d", eventString.c_str(), ret);
-        napi_throw(env, JsErrUtils::CreateJsError(env, ret, "[window][off]msg: Unregister event listener failed."));
+        napi_throw(env, JsErrUtils::CreateJsError(env, ret,
+            errMsgPrefix + (errMsg.empty() ? "Unregister listener failed." : errMsg)));
         return NapiGetUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Window [%{public}u, %{public}s] unregister event %{public}s",
@@ -633,11 +641,15 @@ napi_value JsWindowStage::OnCreateSubWindow(napi_env env, napi_callback_info inf
         sptr<Rosen::WindowOption> windowOption = new Rosen::WindowOption();
         windowOption->SetWindowType(Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
         windowOption->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
-        auto window = weakScene->CreateWindow(windowName, windowOption);
+        std::string errMsg;
+        auto window = weakScene->CreateWindow(windowName, windowOption, errMsg);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "Create window failed");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindow]msg: Failed to create window, name='" + windowName + "'"));
+            std::string jsErrMsg = "[window][createSubWindow]msg: Failed to create window, name='" + windowName + "'. ";
+            if (!errMsg.empty()) {
+                jsErrMsg += errMsg;
+            }
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, jsErrMsg));
             return;
         }
         task->Resolve(env, CreateJsWindowObject(env, window));
@@ -1034,11 +1046,13 @@ napi_value JsWindowStage::OnCreateSubWindowWithOptions(napi_env env, napi_callba
         option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
         option->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
         option->SetOnlySupportSceneBoard(true);
-        auto window = windowScene->CreateWindow(windowName, option);
+        std::string errMsg;
+        auto window = windowScene->CreateWindow(windowName, errMsg, option);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s Create window failed", where);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindowWithOptions]msg:The window is not created or destroyed."));
+            std::string jsErrMsg = "[window][createSubWindowWithOptions]msg:" +
+                (errMsg.empty() ? "The window is not created or destroyed." : errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, jsErrMsg));
             return;
         }
         task->Resolve(env, CreateJsWindowObject(env, window));

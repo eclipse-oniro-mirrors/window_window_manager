@@ -126,7 +126,8 @@ HWTEST_F(WindowExtensionSessionImplTest, Create01, TestSize.Level0)
     ASSERT_NE(nullptr, session);
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetPersistentId(1);
-    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, window_->Destroy(false));
 }
 
@@ -137,7 +138,8 @@ HWTEST_F(WindowExtensionSessionImplTest, Create01, TestSize.Level0)
  */
 HWTEST_F(WindowExtensionSessionImplTest, Create02, TestSize.Level1)
 {
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(nullptr, nullptr));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(nullptr, nullptr, errMsg));
 }
 
 /**
@@ -148,7 +150,8 @@ HWTEST_F(WindowExtensionSessionImplTest, Create02, TestSize.Level1)
 HWTEST_F(WindowExtensionSessionImplTest, Create03, TestSize.Level1)
 {
     auto abilityContext = std::make_shared<AbilityRuntime::AbilityContextImpl>();
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(abilityContext, nullptr));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(abilityContext, nullptr, errMsg));
 }
 
 /**
@@ -166,7 +169,8 @@ HWTEST_F(WindowExtensionSessionImplTest, Create04, TestSize.Level1)
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetPersistentId(1);
     EXPECT_CALL(*session, Connect(_, _, _, _, _, _, _, _, _)).WillOnce(Return(WSError::WS_ERROR_NULLPTR));
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(abilityContext, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window_->Create(abilityContext, session, errMsg));
 }
 
 /**
@@ -182,7 +186,8 @@ HWTEST_F(WindowExtensionSessionImplTest, Create05, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window_->property_->SetPersistentId(1);
     window_->property_->SetUIExtensionUsage(UIExtensionUsage::MODAL);
-    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, window_->Destroy(false));
 }
 
@@ -199,7 +204,8 @@ HWTEST_F(WindowExtensionSessionImplTest, Create06, TestSize.Level1)
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window_->property_->SetPersistentId(1);
     window_->property_->SetUIExtensionUsage(UIExtensionUsage::CONSTRAINED_EMBEDDED);
-    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session, errMsg));
     ASSERT_EQ(WMError::WM_OK, window_->Destroy(false));
 }
 
@@ -369,7 +375,8 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForAll03, TestSize.L
     std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetPersistentId(1);
-    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window_->Create(abilityContext, session, errMsg));
     ASSERT_NE(nullptr, window_);
     window_->GetWindowExtensionSessionSet().insert(window_);
     std::vector<std::shared_ptr<AbilityRuntime::Context>> ignoreWindowContexts;
@@ -3999,3 +4006,6 @@ HWTEST_F(WindowExtensionSessionImplTest, GetWindowPropertyInfo, TestSize.Level1)
 }
 } // namespace Rosen
 } // namespace OHOS
+
+
+

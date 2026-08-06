@@ -146,6 +146,7 @@ public:
 
     virtual WMError Maximize() override;
     virtual WMError Minimize() override;
+    virtual WMError Minimize(std::string& errMsg) override;
     virtual WMError Recover() override;
     virtual WMError Close() override;
     virtual void StartMove() override;

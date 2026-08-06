@@ -356,7 +356,7 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediatelySplitMaximizeMo
     EXPECT_EQ(WMError::WM_OK, ret);
     EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
 
-    // Set to non-split mode â€” maximize mode should NOT be changed
+    // Set to non-split mode â€?maximize mode should NOT be changed
     window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
     WindowModeInfo floatingInfo = { WindowMode::WINDOW_MODE_FLOATING };
     ret = window->UpdateWindowModeImmediately(floatingInfo);
@@ -434,7 +434,8 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateConfigurationForAll, TestSize.Level1
     windowSession->hostSession_ = session;
     windowSession->property_->SetPersistentId(1);
     windowSession->state_ = WindowState::STATE_SHOWN;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session, errMsg));
     windowSceneSessionImpl->UpdateConfigurationForAll(configuration);
     ASSERT_EQ(WMError::WM_OK, windowSession->Destroy(true));
 }
@@ -1148,7 +1149,8 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
-    EXPECT_EQ(window->Create(abilityContext_, session), WMError::WM_OK);
+    std::string errMsg;
+    EXPECT_EQ(window->Create(abilityContext_, session, errMsg), WMError::WM_OK);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
@@ -2112,7 +2114,8 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateConfigurationSyncForAll, TestSize.Le
     windowSession->hostSession_ = session;
     windowSession->property_->SetPersistentId(1);
     windowSession->state_ = WindowState::STATE_SHOWN;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session, errMsg));
     windowSceneSessionImpl->UpdateConfigurationSyncForAll(configuration);
     ASSERT_EQ(WMError::WM_OK, windowSession->Destroy(true));
 }
@@ -2748,3 +2751,5 @@ HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition01, TestSize.Level
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
+
+

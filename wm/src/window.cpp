@@ -35,9 +35,9 @@ constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "Window"
 }
 
 static sptr<Window> CreateWindowWithSession(sptr<WindowOption>& option,
-    const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode,
-    sptr<ISession> iSession = nullptr, const std::string& identityToken = "", bool isModuleAbilityHookEnd = false,
-    const std::shared_ptr<RSUIContext>& rsUiContext = nullptr)
+    const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, std::string& errMsg, WMError& errCode,
+    sptr<ISession> iSession = nullptr, const std::string& identityToken = "",
+    bool isModuleAbilityHookEnd = false, const std::shared_ptr<RSUIContext>& rsUiContext = nullptr)
 {
     WLOGFD("in");
     sptr<WindowSessionImpl> windowSessionImpl = nullptr;
@@ -54,8 +54,8 @@ static sptr<Window> CreateWindowWithSession(sptr<WindowOption>& option,
     }
 
     windowSessionImpl->SetWindowType(option->GetWindowType());
-    WMError error = windowSessionImpl->Create(context, iSession, identityToken, isModuleAbilityHookEnd,
-        option->IsBlockSubwindow());
+    WMError error = windowSessionImpl->Create(context, iSession, errMsg, identityToken,
+        isModuleAbilityHookEnd, option->IsBlockSubwindow());
     if (error != WMError::WM_OK) {
         errCode = error;
         WLOGFE("error: %{public}u", static_cast<uint32_t>(errCode));
@@ -66,6 +66,14 @@ static sptr<Window> CreateWindowWithSession(sptr<WindowOption>& option,
 
 sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& option,
     const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode,
+    const std::shared_ptr<RSUIContext>& rsUiContext)
+{
+    std::string errMsg;
+    return Create(windowName, option, errMsg, context, errCode, rsUiContext);
+}
+
+sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& option, std::string& errMsg,
+    const std::shared_ptr<AbilityRuntime::Context>& context, WMError& errCode,
     const std::shared_ptr<RSUIContext>& rsUiContext)
 {
     if (windowName.empty()) {
@@ -90,7 +98,7 @@ sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& o
     }
     option->SetWindowName(windowName);
     if (SceneBoardJudgement::IsSceneBoardEnabled()) {
-        return CreateWindowWithSession(option, context, errCode, nullptr, "", false, rsUiContext);
+        return CreateWindowWithSession(option, context, errMsg, errCode, nullptr, "", false, rsUiContext);
     }
     if (option->GetOnlySupportSceneBoard()) {
         errCode = WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -137,8 +145,9 @@ sptr<Window> Window::Create(sptr<WindowOption>& option, const std::shared_ptr<OH
         WLOGFE("window type is invalid %{public}d", type);
         return nullptr;
     }
-    return CreateWindowWithSession(option, context, errCode,
-        iface_cast<Rosen::ISession>(iSession), identityToken, isModuleAbilityHookEnd);
+    std::string errMsg;
+    return CreateWindowWithSession(option, context, errMsg, errCode, iface_cast<Rosen::ISession>(iSession),
+        identityToken, isModuleAbilityHookEnd);
 }
 
 WMError Window::GetAndVerifyWindowTypeForArkUI(uint32_t parentId, const std::string& windowName,

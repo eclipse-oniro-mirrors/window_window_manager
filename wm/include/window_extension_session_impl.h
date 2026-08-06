@@ -43,7 +43,7 @@ public:
     ~WindowExtensionSessionImpl();
 
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
-        const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
+        const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
     WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;

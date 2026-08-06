@@ -1074,6 +1074,22 @@ public:
         const std::shared_ptr<RSUIContext>& rsUiContext = nullptr);
 
     /**
+     * @brief create window instance.
+     *
+     * @param windowName window name, identify window instance
+     * @param option window propertion
+     * @param errMsg error message of create window
+     * @param context ability context
+     * @param errCode error code of create window
+     * @param rsUiContext rsUiContext
+     * @return sptr<Window> If create window success,return window instance;Otherwise, return nullptr
+     */
+    static sptr<Window> Create(const std::string& windowName,
+        sptr<WindowOption>& option, std::string& errMsg,
+        const std::shared_ptr<AbilityRuntime::Context>& context = nullptr, WMError& errCode = DefaultCreateErrCode,
+        const std::shared_ptr<RSUIContext>& rsUiContext = nullptr);
+
+    /**
      * @brief create main/uiextension window with session
      *
      * @param option window propertion
@@ -2977,6 +2993,14 @@ public:
     virtual WMError Minimize() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief minimize the main window. It is called by ACE when minimize button is clicked.
+     *
+     * @param errMsg error message when minimize failed.
+     * @return WMError
+     */
+    virtual WMError Minimize(std::string& errMsg) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
      * @brief recovery the main window. It is called by ACE when recovery button is clicked.
      *
      * @return WMError
@@ -4201,19 +4225,27 @@ public:
      * @brief Register window close async process listener.
      *
      * @param listener IWindowWillCloseListener.
+     * @param errMsg error message when register failed.
      * @return WM_OK means register success, others means register failed.
      */
     virtual WMError RegisterWindowWillCloseListeners(
-        const sptr<IWindowWillCloseListener>& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Unregister window close async process listener.
      *
      * @param listener IWindowWillCloseListener.
+     * @param errMsg error message when unregister failed.
      * @return WM_OK means unregister success, others means unregister failed.
      */
     virtual WMError UnRegisterWindowWillCloseListeners(
-        const sptr<IWindowWillCloseListener>& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Register switch free multi-window listener.
@@ -5031,17 +5063,25 @@ public:
      * @brief Set the parent window of a sub window.
      *
      * @param newParentWindowId new parent window id.
+     * @param errMsg error message when set parent window failed.
      * @return WM_OK means set parent window success, others means failed.
      */
-    virtual WMError SetParentWindow(int32_t newParentWindowId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetParentWindow(int32_t newParentWindowId, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Get the parent window of a sub window.
      *
      * @param parentWindow parent window.
+     * @param errMsg error message when get parent window failed.
      * @return WM_OK means get parent window success, others means failed.
      */
-    virtual WMError GetParentWindow(sptr<Window>& parentWindow) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set window anchor info.

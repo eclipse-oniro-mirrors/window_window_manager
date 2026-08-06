@@ -750,8 +750,8 @@ void WindowSceneSessionImpl::UpdateWindowState()
 }
 
 WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
-    const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
-    bool isBlockSubwindow)
+    const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken,
+    bool isModuleAbilityHookEnd, bool isBlockSubwindow)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "Window Create name:%{public}s, state:%{public}u, mode:%{public}u",
         property_->GetWindowName().c_str(), state_, GetWindowMode());
@@ -759,7 +759,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
     if (!context) {
         TLOGW(WmsLogTag::WMS_LIFE, "context is nullptr");
     }
-    WMError ret = WindowSessionCreateCheck();
+    WMError ret = WindowSessionCreateCheck(errMsg);
     if (ret != WMError::WM_OK) {
         return ret;
     }
@@ -977,7 +977,7 @@ WMError WindowSceneSessionImpl::SetParentWindowInner(int32_t oldParentWindowId,
     return WMError::WM_OK;
 }
 
-WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
+WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId, std::string& errMsg)
 {
     auto subWindowId = GetPersistentId();
     if (property_->GetPcAppInpadCompatibleMode()) {
@@ -994,6 +994,7 @@ WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
     if (!WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_SUB, "winId: %{public}d called by invalid window type %{public}d",
             subWindowId, GetType());
+        errMsg = "Invalid window type. Only subwindows are supported";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     auto oldParentWindowId = property_->GetParentPersistentId();
@@ -1017,6 +1018,7 @@ WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
     if (newParentWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "winId: %{public}d can not find new parent window By Id: %{public}d",
             subWindowId, newParentWindowId);
+        errMsg = "The parent window does not exist or has been destroyed";
         return WMError::WM_ERROR_INVALID_PARENT;
     }
     auto newWindowType = newParentWindow->GetType();
@@ -1031,7 +1033,7 @@ WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
     return SetParentWindowInner(oldParentWindowId, newParentWindow);
 }
 
-WMError WindowSceneSessionImpl::GetParentWindow(sptr<Window>& parentWindow)
+WMError WindowSceneSessionImpl::GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg)
 {
     if (property_->GetPcAppInpadCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "This is PcAppInPad, not Supported");
@@ -1043,6 +1045,7 @@ WMError WindowSceneSessionImpl::GetParentWindow(sptr<Window>& parentWindow)
     if (!WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_SUB, "winId: %{public}d called by invalid window type %{public}d",
             GetPersistentId(), GetType());
+        errMsg = "Invalid window type, not called from subWindow";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (property_->GetIsUIExtFirstSubWindow()) {
@@ -4355,6 +4358,12 @@ WMError WindowSceneSessionImpl::SetWindowTitle(const std::string& title)
 
 WMError WindowSceneSessionImpl::Minimize()
 {
+    std::string errMsg;
+    return Minimize(errMsg);
+}
+
+WMError WindowSceneSessionImpl::Minimize(std::string& errMsg)
+{
     WLOGFI("id: %{public}d", GetPersistentId());
     if (IsWindowSessionInvalid()) {
         WLOGFE("session is invalid");
@@ -4369,6 +4378,7 @@ WMError WindowSceneSessionImpl::Minimize()
         hostSession->OnSessionEvent(SessionEvent::EVENT_MINIMIZE);
     } else {
         WLOGFE("This window state is abnormal.");
+        errMsg = "Invalid window type. Only main windows, subwindows, and float windows are supported";
         return WMError::WM_DO_NOTHING;
     }
     return WMError::WM_OK;
