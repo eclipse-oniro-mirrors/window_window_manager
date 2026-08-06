@@ -35,6 +35,7 @@
 #include "permission.h"
 #include "pixel_map.h"
 #include "pixel_map_taihe_ani.h"
+#include "window_focus_error_msg_helper.h"
 #include "window_helper.h"
 #include "window_histogram_management.h"
 #include "window_manager.h"
@@ -1310,7 +1311,8 @@ ani_int AniWindow::GetSubWindowZLevel(ani_env* env, ani_object obj, ani_long nat
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSubWindowZLevel",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getSubWindowZLevel]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL,
+                WMError::WM_ERROR_NULLPTR));
         return ANI_ERROR;
     }
     return aniWindow->OnGetSubWindowZLevel(env);
@@ -1324,7 +1326,8 @@ ani_int AniWindow::OnGetSubWindowZLevel(ani_env* env)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSubWindowZLevel",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getSubWindowZLevel]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL,
+                WMError::WM_ERROR_NULLPTR));
         return ANI_ERROR;
     }
     int32_t zLevel = 0;
@@ -1348,7 +1351,8 @@ ani_boolean AniWindow::IsFocused(ani_env* env, ani_object obj, ani_long nativeOb
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isFocused",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][isFocused]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::IS_FOCUSED,
+                WMError::WM_ERROR_NULLPTR));
         return ANI_ERROR;
     }
     return aniWindow->OnIsFocused(env);
@@ -1363,7 +1367,8 @@ ani_boolean AniWindow::OnIsFocused(ani_env* env)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isFocused",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][isFocused]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::IS_FOCUSED,
+                WMError::WM_ERROR_NULLPTR));
         return ANI_ERROR;
     }
     bool isFocused = window->IsFocused();
@@ -1382,7 +1387,8 @@ void AniWindow::SetSubWindowZLevel(ani_env* env, ani_object obj, ani_long native
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setSubWindowZLevel]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1395,7 +1401,8 @@ void AniWindow::OnSetSubWindowZLevel(ani_env* env, ani_int zLevel)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setSubWindowZLevel]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+                WMError::WM_ERROR_NULLPTR));
         return;
     }
 
@@ -1404,14 +1411,16 @@ void AniWindow::OnSetSubWindowZLevel(ani_env* env, ani_int zLevel)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel",
             WmErrorCode::WM_ERROR_INVALID_CALLING);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setSubWindowZLevel]msg: Not allowed since window is not sub window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+                WMError::WM_ERROR_INVALID_CALLING));
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSubWindowZLevel(zLevel));
-    if (ret != WmErrorCode::WM_OK) {
+    WMError wmError = window->SetSubWindowZLevel(zLevel);
+    if (wmError != WMError::WM_OK) {
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][setSubWindowZLevel]");
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, wmError);
+        AniWindowUtils::AniThrowError(env, ret, errMsg);
     }
 }
 
@@ -1426,7 +1435,8 @@ void AniWindow::RaiseAboveTarget(ani_env* env, ani_object obj, ani_long nativeOb
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][raiseAboveTarget]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_ABOVE_TARGET,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1439,14 +1449,16 @@ void AniWindow::OnRaiseAboveTarget(ani_env* env, ani_int windowId)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][raiseAboveTarget]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_ABOVE_TARGET,
+                WMError::WM_ERROR_NULLPTR));
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseAboveTarget(windowId));
-    if (ret != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][raiseAboveTarget]");
+    WMError ret = window->RaiseAboveTarget(windowId);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_ABOVE_TARGET, ret));
     }
 }
 
@@ -1461,7 +1473,8 @@ void AniWindow::RaiseToAppTop(ani_env* env, ani_object obj, ani_long nativeObj)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseToAppTop",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][raiseToAppTop]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_TO_APP_TOP,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1474,14 +1487,16 @@ void AniWindow::OnRaiseToAppTop(ani_env* env)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseToAppTop",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][raiseToAppTop]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_TO_APP_TOP,
+                WMError::WM_ERROR_NULLPTR));
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseToAppTop());
-    if (ret != WmErrorCode::WM_OK) {
+    WMError wmError = window->RaiseToAppTop();
+    if (wmError != WMError::WM_OK) {
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseToAppTop", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][raiseToAppTop]");
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_TO_APP_TOP, wmError);
+        AniWindowUtils::AniThrowError(env, ret, errMsg);
     }
 }
 
@@ -1496,7 +1511,8 @@ void AniWindow::SetTopmost(ani_env* env, ani_object obj, ani_long nativeObj, ani
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setTopmost]msg:Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_TOPMOST,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1517,7 +1533,8 @@ void AniWindow::OnSetTopmost(ani_env* env, ani_boolean isTopmost)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setTopmost]msg:Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_TOPMOST,
+                WMError::WM_ERROR_NULLPTR));
         return;
     }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
@@ -1525,7 +1542,8 @@ void AniWindow::OnSetTopmost(ani_env* env, ani_boolean isTopmost)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost",
             WmErrorCode::WM_ERROR_INVALID_CALLING);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setTopmost]msg:setTopmost fail, not main window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_TOPMOST,
+                WMError::WM_ERROR_INVALID_CALLING));
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetTopmost(isTopmost));
@@ -1667,7 +1685,8 @@ void AniWindow::RaiseMainWindowAboveTarget(ani_env* env, ani_object obj, ani_lon
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][raiseMainWindowAboveTarget]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1679,7 +1698,8 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][raiseMainWindowAboveTarget]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET,
+                WMError::WM_ERROR_INVALID_WINDOW));
         return;
     }
     if (!Permission::IsSystemCallingOrStartByHdcd(true)) {
@@ -1690,22 +1710,25 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
             "[window][raiseMainWindowAboveTarget]msg: permission denied, require system application");
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseMainWindowAboveTarget(windowId));
-    if (ret != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget", ret);
-        AniWindowUtils::AniThrowError(env, ret, "[window][raiseMainWindowAboveTarget]");
+    WMError ret = window->RaiseMainWindowAboveTarget(windowId);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET, ret));
         return;
     }
 }
 
 void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
 {
-    if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowToken is nullptr");
+if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] OnSetWindowTopmost windowToken_ is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTopmost]msg: Window is null");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_TOPMOST,
+                WMError::WM_ERROR_NULLPTR));
         return;
     }
     if (!windowToken_->IsPcOrPadFreeMultiWindowMode()) {
@@ -1713,7 +1736,7 @@ void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost",
             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][setWindowTopmost]msg: device not support");
+            "[window][setWindowTopmost]msg: Device not support.");
         return;
     }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
@@ -1721,7 +1744,8 @@ void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost",
             WmErrorCode::WM_ERROR_INVALID_CALLING);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setWindowTopmost]msg: not allowed since window is not main window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_TOPMOST,
+                WMError::WM_ERROR_INVALID_CALLING));
         return;
     }
     auto ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetMainWindowTopmost(isWindowTopmost));
@@ -1788,7 +1812,8 @@ void AniWindow::SetWindowFocusable(ani_env* env, ani_object obj, ani_long native
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowFocusable",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowFocusable]msg:The window is not created or destroyed");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_FOCUSABLE,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1801,13 +1826,16 @@ void AniWindow::OnSetWindowFocusable(ani_env* env, ani_boolean isFocusable)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowFocusable",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowFocusable]msg:The window is not created or destroyed");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_FOCUSABLE,
+                WMError::WM_ERROR_INVALID_WINDOW));
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFocusable(isFocusable));
-    if (ret != WmErrorCode::WM_OK) {
+    WMError wmError = window->SetFocusable(isFocusable);
+    if (wmError != WMError::WM_OK) {
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowFocusable", ret);
-        AniWindowUtils::AniThrowError(env, ret, "[window][setWindowFocusable]");
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_FOCUSABLE, wmError);
+        AniWindowUtils::AniThrowError(env, ret, errMsg);
     }
 }
 
@@ -1822,7 +1850,8 @@ void AniWindow::RequestFocus(ani_env* env, ani_object obj, ani_long nativeObj, a
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.requestFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][requestFocus]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS,
+                WMError::WM_ERROR_INVALID_WINDOW));
     }
 }
 
@@ -1843,7 +1872,8 @@ void AniWindow::OnRequestFocus(ani_env* env, ani_boolean isFocused)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.requestFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][requestFocus]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS,
+                WMError::WM_ERROR_INVALID_WINDOW));
         return;
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RequestFocusByClient(isFocused));
@@ -1864,7 +1894,8 @@ void AniWindow::SetSubWindowModal(ani_env* env, ani_object obj, ani_long nativeO
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setSubWindowModal]msg: invalid window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -1877,14 +1908,16 @@ void AniWindow::OnSetSubWindowModal(ani_env* env, ani_boolean isModal)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setSubWindowModal]msg: invalid window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL,
+                WMError::WM_ERROR_NULLPTR));
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSubWindowModal(isModal));
-    if (ret != WmErrorCode::WM_OK) {
+    WMError wmError = window->SetSubWindowModal(isModal);
+    if (wmError != WMError::WM_OK) {
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][setSubWindowModal]");
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL, wmError);
+        AniWindowUtils::AniThrowError(env, ret, errMsg);
     }
 }
 
@@ -1894,13 +1927,14 @@ void AniWindow::SetSubWindowModalType(ani_env* env, ani_object obj, ani_long nat
     TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
-        aniWindow->OnSetSubWindowModalType(env, isModal, modalityType);
+        aniWindow->OnSetSubWindowModal(env, isModal, static_cast<ApiModalityType>(modalityType));
     } else {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] aniWindow is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setSubWindowModal]msg: invalid window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL,
+                WMError::WM_ERROR_NULLPTR));
     }
 }
 
@@ -3936,14 +3970,16 @@ ani_object AniWindow::SetRaiseByClickEnabled(ani_env* env, ani_boolean enable)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnabled",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setRaiseByClickEnabled]msg:  windowToken_ is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED,
+                WMError::WM_ERROR_NULLPTR));
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetRaiseByClickEnabled(static_cast<bool>(enable)));
-    if (ret != WmErrorCode::WM_OK) {
+    WMError ret = windowToken_->SetRaiseByClickEnabled(static_cast<bool>(enable));
+    if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] SetRaiseByClickEnabled set error");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnabled", ret);
-        return AniWindowUtils::AniThrowError(env, ret,
-            "[window][setRaiseByClickEnabled]");
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnabled", wmErrorCode);
+        return AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, ret));
     }
     return 0;
 }
@@ -3955,15 +3991,16 @@ ani_object AniWindow::SetExclusivelyHighlighted(ani_env* env, ani_boolean exclus
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setExclusivelyHighlighted",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setExclusivelyHighlighted]msg: windowToken_ is null");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED,
+                WMError::WM_ERROR_INVALID_WINDOW));
     }
-    WmErrorCode ret =
-        WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetExclusivelyHighlighted(static_cast<bool>(exclusivelyHighlighted)));
-    if (ret != WmErrorCode::WM_OK) {
+    WMError ret = windowToken_->SetExclusivelyHighlighted(static_cast<bool>(exclusivelyHighlighted));
+    if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_FOCUS, "[ANI] Set exclusively highlighted failed");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setExclusivelyHighlighted", ret);
-        return AniWindowUtils::AniThrowError(env, ret,
-            "[window][setExclusivelyHighlighted]");
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setExclusivelyHighlighted", wmErrorCode);
+        return AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED, ret));
     }
     return 0;
 }
@@ -6365,15 +6402,17 @@ void AniWindow::OnSetWindowDelayRaiseOnDrag(ani_env* env, ani_boolean isEnabled)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDelayRaiseOnDrag",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowDelayRaiseOnDrag]msg: WindowToken is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED,
+                WMError::WM_ERROR_INVALID_WINDOW));
         return;
     }
     WMError ret = windowToken_->SetWindowDelayRaiseEnabled(static_cast<bool>(isEnabled));
-    WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
-    if (errorCode != WmErrorCode::WM_OK) {
+    if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_FOCUS, "failed");
+        WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDelayRaiseOnDrag", errorCode);
-        AniWindowUtils::AniThrowError(env, errorCode, "[window][setWindowDelayRaiseOnDrag]");
+        AniWindowUtils::AniThrowError(env, errorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED, ret));
         return;
     }
 }

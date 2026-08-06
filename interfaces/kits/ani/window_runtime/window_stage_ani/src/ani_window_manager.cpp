@@ -35,6 +35,7 @@
 #include "window_option.h"
 #include "scene_board_judgement.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 #include "../../../../../../wm/include/get_snapshot_callback.h"
 
 namespace OHOS {
@@ -152,7 +153,7 @@ ani_ref AniWindowManager::OnGetLastWindow(ani_env* env, ani_object aniContext)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-            "[window][getLastWindow]msg: Get top window failed");
+            "[window][getLatsWindow]msg: Top window or main window is not created or destroyed.");
     }
     return CreateAniWindowObject(env, window);
 }
@@ -172,12 +173,12 @@ void AniWindowManager::OnShiftAppWindowFocus(ani_env* env, ani_int sourceWindowI
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "[ANI] sourceWindowId: %{public}d targetWindowId: %{public}d",
         static_cast<int32_t>(sourceWindowId), static_cast<int32_t>(targetWindowId));
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId));
-    if (ret != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][shiftAppWindowFocus]msg:ShiftAppWindowFocus failed");
+    WMError ret = SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, ret));
     }
     return ;
 }

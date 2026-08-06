@@ -38,6 +38,7 @@
 #include "sys_cap_util.h"
 #include "get_snapshot_callback.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -1259,11 +1260,11 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         if (lists->window == nullptr || lists->window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Top window or main window is not created or destroyed."));
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Top window or main window is not created or destroyed."));
             }
             WLOGFE("Get top window failed, %{public}d", lists->window == nullptr);
             return;
@@ -1588,7 +1589,7 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != 2) { // 2: params num
+    if (argc != 2) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Argc is invalid: %{public}zu", argc);
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
@@ -1606,28 +1607,33 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][shiftAppWindowFocus]"));
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS,
+                WMError::WM_ERROR_INVALID_PARAM)));
         return NapiGetUndefined(env);
     }
-    // only return promiss<void>
     napi_value lastParam = nullptr;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [env, task = napiAsyncTask, sourcePersistentId, targetPersistentId] {
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-                SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourcePersistentId, targetPersistentId));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError ret = SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(
+                sourcePersistentId, targetPersistentId);
+            if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
                 TLOGND(WmsLogTag::WMS_FOCUS, "OnShiftAppWindowFocus success");
             } else {
-                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret, "ShiftAppWindowFocus failed"));
+                WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", wmErrorCode);
+                task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, ret)));
             }
         };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnShiftAppWindowFocus") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         TLOGE(WmsLogTag::WMS_FOCUS, "window state is abnormal!");
+        napiAsyncTask->Reject(env,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
+                "[window][shiftAppWindowFocus]msg: send event failed"));
     }
     return result;
 }
