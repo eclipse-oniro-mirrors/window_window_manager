@@ -1839,14 +1839,12 @@ napi_value JsWindow::OnDestroyWindow(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             return;
         }
-        std::string errMsg;
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->Destroy(errMsg));
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->Destroy());
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s end, window [%{public}u, %{public}s] ret=%{public}d",
             where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
         if (ret != WmErrorCode::WM_OK) {
-            std::string jsErrMsg = "[window][destroyWindow]msg: " +
-                (errMsg.empty() ? "Window destroy failed." : errMsg);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, jsErrMsg));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][destroyWindow]msg: Window destroy failed."));
             return;
         }
         SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
@@ -10942,7 +10940,7 @@ napi_value JsWindow::OnCreateSubWindowWithOptions(napi_env env, napi_callback_in
         windowOption->SetParentId(windowToken->GetWindowId());
         windowOption->SetWindowTag(WindowTag::SUB_WINDOW);
         std::string errMsg;
-        auto subWindow = Window::Create(windowName, windowOption, window->GetContext(), errMsg);
+        auto subWindow = Window::Create(windowName, windowOption, errMsg, window->GetContext());
         if (subWindow == nullptr) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s create sub window failed.", where);
             std::string jsErrMsg = "[window][createSubWindowWithOptions]msg: " +

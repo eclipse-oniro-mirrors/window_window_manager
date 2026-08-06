@@ -750,6 +750,14 @@ void WindowSceneSessionImpl::UpdateWindowState()
 }
 
 WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+    const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
+    bool isBlockSubwindow)
+{
+    std::string errMsg;
+    return Create(context, iSession, errMsg, identityToken, isModuleAbilityHookEnd, isBlockSubwindow);
+}
+
+WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
     const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken,
     bool isModuleAbilityHookEnd, bool isBlockSubwindow)
 {

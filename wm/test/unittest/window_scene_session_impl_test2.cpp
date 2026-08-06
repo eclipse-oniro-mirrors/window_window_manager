@@ -697,8 +697,7 @@ HWTEST_F(WindowSceneSessionImplTest2, UpdateConfigurationForAll02, TestSize.Leve
     ASSERT_NE(nullptr, abilityContext);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string errMsg;
-    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext, session, errMsg));
+    ASSERT_EQ(WMError::WM_OK, window->Create(abilityContext, session));
     std::shared_ptr<AppExecFwk::Configuration> configuration;
     std::vector<std::shared_ptr<AbilityRuntime::Context>> ignoreWindowContexts;
     ignoreWindowContexts.push_back(abilityContext);
@@ -722,8 +721,7 @@ HWTEST_F(WindowSceneSessionImplTest2, GetTopWindowWithContext01, TestSize.Level1
     }
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string errMsg;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
     windowSceneSession->GetTopWindowWithContext(context);
     windowSceneSession->Destroy(true);
 }
@@ -745,8 +743,7 @@ HWTEST_F(WindowSceneSessionImplTest2, GetMainWindowWithContext01, TestSize.Level
     }
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string errMsg;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session, errMsg));
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->Create(abilityContext_, session));
     windowSceneSession->GetMainWindowWithContext(context);
     windowSceneSession->Destroy(true);
 }

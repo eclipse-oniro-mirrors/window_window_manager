@@ -506,8 +506,7 @@ ani_ref CreateAniSubWindow(ani_env* env, sptr<WindowOption> windowOption)
     }
 
     std::string errMsg;
-    WMError errCode = WMError::WM_OK;
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, nullptr, errMsg, errCode);
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg);
     if (window == nullptr) {
         std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg);

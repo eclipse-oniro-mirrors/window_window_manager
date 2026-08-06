@@ -418,7 +418,7 @@ napi_value JsWindowStage::OnEvent(napi_env env, napi_callback_info info)
     if (!NapiIsCallable(env, value)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Callback(argv[1]) is not callable");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            errMsgPrefix + (errMsg.empty()? "Callback is not callable." : errMsg)));
+            errMsgPrefix + "Callback is not callable."));
         return NapiGetUndefined(env);
     }
 
@@ -426,7 +426,7 @@ napi_value JsWindowStage::OnEvent(napi_env env, napi_callback_info info)
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get window failed");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            errMsgPrefix + (errMsg.empty()? "The window is not created or destroyed." : errMsg)));
+            errMsgPrefix + "The window is not created or destroyed."));
         return NapiGetUndefined(env);
     }
     std::string errMsg;
@@ -469,7 +469,7 @@ napi_value JsWindowStage::OffEvent(napi_env env, napi_callback_info info)
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Get window failed");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            errMsgPrefix + (errMsg.empty()? "The window is not created or destroyed." : errMsg)));
+            errMsgPrefix + "The window is not created or destroyed."));
         return NapiGetUndefined(env);
     }
     napi_value value = nullptr;
@@ -1047,7 +1047,7 @@ napi_value JsWindowStage::OnCreateSubWindowWithOptions(napi_env env, napi_callba
         option->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
         option->SetOnlySupportSceneBoard(true);
         std::string errMsg;
-        auto window = windowScene->CreateWindow(windowName, errMsg, option);
+        auto window = windowScene->CreateWindow(windowName, option, errMsg);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s Create window failed", where);
             std::string jsErrMsg = "[window][createSubWindowWithOptions]msg:" +

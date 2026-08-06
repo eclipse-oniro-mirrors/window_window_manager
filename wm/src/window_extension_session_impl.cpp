@@ -110,6 +110,14 @@ std::shared_ptr<IDataHandler> WindowExtensionSessionImpl::GetExtensionDataHandle
 }
 
 WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+    const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
+    bool isBlockSubwindow)
+{
+    std::string errMsg;
+    return Create(context, iSession, errMsg, identityToken, isModuleAbilityHookEnd, isBlockSubwindow);
+}
+
+WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
     const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken,
     bool isModuleAbilityHookEnd, bool isBlockSubwindow)
 {

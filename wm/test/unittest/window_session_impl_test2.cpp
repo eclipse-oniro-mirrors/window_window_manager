@@ -204,8 +204,7 @@ HWTEST_F(WindowSessionImplTest2, Create, TestSize.Level1)
     ASSERT_NE(window, nullptr);
     std::shared_ptr<AbilityRuntime::Context> context;
     sptr<Rosen::ISession> ISession;
-    std::string errMsg;
-    ASSERT_EQ(window->Create(context, ISession, errMsg), WMError::WM_OK);
+    ASSERT_EQ(window->Create(context, ISession), WMError::WM_OK);
     window->Destroy();
 }
 
@@ -2383,8 +2382,7 @@ HWTEST_F(WindowSessionImplTest2, NotifySizeChange, TestSize.Level1)
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string errMsg;
-    EXPECT_EQ(WMError::WM_OK, window->Create(nullptr, session, errMsg));
+    EXPECT_EQ(WMError::WM_OK, window->Create(nullptr, session));
 
     Rect rect;
     sptr<IWindowChangeListener> listener = sptr<MockWindowChangeListener>::MakeSptr();
@@ -2436,8 +2434,7 @@ HWTEST_F(WindowSessionImplTest2, AvoidAreaChangeListener, TestSize.Level1)
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    std::string errMsg;
-    EXPECT_EQ(WMError::WM_OK, window->Create(nullptr, session, errMsg));
+    EXPECT_EQ(WMError::WM_OK, window->Create(nullptr, session));
 
     sptr<IAvoidAreaChangedListener> nullListener = nullptr;
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->UnregisterAvoidAreaChangeListener(nullListener));
@@ -2638,8 +2635,7 @@ HWTEST_F(WindowSessionImplTest2, TouchOutsideListener, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
     ASSERT_NE(nullptr, session);
-    std::string errMsg;
-    EXPECT_EQ(WMError::WM_OK, window->Create(nullptr, session, errMsg));
+    EXPECT_EQ(WMError::WM_OK, window->Create(nullptr, session));
 
     sptr<ITouchOutsideListener> nullListener = nullptr;
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, window->UnregisterTouchOutsideListener(nullListener));

@@ -185,7 +185,8 @@ sptr<Window> Window::CreatePiP(sptr<WindowOption>& option, const PiPTemplateInfo
         return nullptr;
     }
     windowSessionImpl->GetProperty()->SetPiPTemplateInfo(pipTemplateInfo);
-    WMError error = windowSessionImpl->Create(context, nullptr);
+    std::string errMsg;
+    WMError error = windowSessionImpl->Create(context, nullptr, errMsg);
     if (error != WMError::WM_OK) {
         errCode = error;
         TLOGW(WmsLogTag::WMS_PIP, "Create pip window, error: %{public}u", static_cast<uint32_t>(errCode));
@@ -221,7 +222,8 @@ sptr<Window> Window::CreateFb(sptr<WindowOption>& option, const FloatingBallTemp
     FloatingBallTemplateInfo fbTemplateInfo = FloatingBallTemplateInfo(fbTemplateBaseInfo, icon);
     fbTemplateInfo.isVisibleInApp_ = fbTemplateBaseInfo.isVisibleInApp_;
     windowSessionImpl->GetProperty()->SetFbTemplateInfo(fbTemplateInfo);
-    WMError error = windowSessionImpl->Create(context, nullptr);
+    std::string errMsg;
+    WMError error = windowSessionImpl->Create(context, nullptr, errMsg);
     if (error != WMError::WM_OK) {
         errCode = error;
         TLOGW(WmsLogTag::WMS_SYSTEM, "Create fb window, error: %{public}u", static_cast<uint32_t>(errCode));
@@ -254,7 +256,8 @@ sptr<Window> Window::CreateFv(sptr<WindowOption>& option, const FloatViewTemplat
         return nullptr;
     }
     windowSessionImpl->GetProperty()->SetFvTemplateInfo(fvTemplateInfo);
-    WMError error = windowSessionImpl->Create(context, nullptr);
+    std::string errMsg;
+    WMError error = windowSessionImpl->Create(context, nullptr, errMsg);
     if (error != WMError::WM_OK) {
         errCode = error;
         TLOGW(WmsLogTag::WMS_SYSTEM, "Create fv window, error: %{public}u", static_cast<uint32_t>(errCode));

@@ -472,7 +472,7 @@ static void CreateNewSubWindowTask(sptr<WindowOption> windowOption, napi_env env
         windowOption->SetParentId(parentId);
     }
     std::string errMsg;
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, nullptr, errMsg);
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg);
     if (window != nullptr) {
         task.Resolve(env, CreateJsWindowObject(env, window));
     } else {
@@ -501,7 +501,7 @@ static void CreateSubWindowTask(uint32_t parentWinId, std::string windowName, Wi
     windowOption->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
     windowOption->SetParentId(parentWinId);
     std::string errMsg;
-    sptr<Window> window = Window::Create(windowName, windowOption, nullptr, errMsg);
+    sptr<Window> window = Window::Create(windowName, windowOption, errMsg);
     if (window != nullptr) {
         task.Resolve(env, CreateJsWindowObject(env, window));
     } else {

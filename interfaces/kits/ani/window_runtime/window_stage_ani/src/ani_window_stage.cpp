@@ -316,7 +316,7 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     windowOption->SetOnlySupportSceneBoard(true);
     std::string errMsg;
-    auto window = windowScene->CreateWindow(windowName, errMsg, windowOption);
+    auto window = windowScene->CreateWindow(windowName, windowOption, errMsg);
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "create window failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",

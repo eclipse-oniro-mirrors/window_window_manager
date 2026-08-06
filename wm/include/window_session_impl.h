@@ -101,6 +101,10 @@ public:
     static sptr<WindowSessionImpl> GetWindowWithId(uint32_t windowId);
 
     virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+        const sptr<Rosen::ISession>& iSession,
+        const std::string& identityToken = "", bool isModuleAbilityHookEnd = false,
+        bool isBlockSubwindow = false) { return WMError::WM_OK; }
+    virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) { return WMError::WM_OK; }
 

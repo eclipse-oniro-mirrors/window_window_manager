@@ -434,8 +434,7 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateConfigurationForAll, TestSize.Level1
     windowSession->hostSession_ = session;
     windowSession->property_->SetPersistentId(1);
     windowSession->state_ = WindowState::STATE_SHOWN;
-    std::string errMsg;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session, errMsg));
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session));
     windowSceneSessionImpl->UpdateConfigurationForAll(configuration);
     ASSERT_EQ(WMError::WM_OK, windowSession->Destroy(true));
 }
@@ -1149,8 +1148,7 @@ HWTEST_F(WindowSceneSessionImplTest4, SetWindowTitle, TestSize.Level1)
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_INVALID_WINDOW);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_ERROR_NULLPTR);
-    std::string errMsg;
-    EXPECT_EQ(window->Create(abilityContext_, session, errMsg), WMError::WM_OK);
+    EXPECT_EQ(window->Create(abilityContext_, session), WMError::WM_OK);
     EXPECT_EQ(window->SetWindowTitle(title), WMError::WM_OK);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
@@ -2114,8 +2112,7 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateConfigurationSyncForAll, TestSize.Le
     windowSession->hostSession_ = session;
     windowSession->property_->SetPersistentId(1);
     windowSession->state_ = WindowState::STATE_SHOWN;
-    std::string errMsg;
-    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session, errMsg));
+    ASSERT_EQ(WMError::WM_OK, windowSession->Create(abilityContext_, session));
     windowSceneSessionImpl->UpdateConfigurationSyncForAll(configuration);
     ASSERT_EQ(WMError::WM_OK, windowSession->Destroy(true));
 }
