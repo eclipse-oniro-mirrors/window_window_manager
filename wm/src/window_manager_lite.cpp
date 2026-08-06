@@ -417,7 +417,11 @@ void WindowManagerLite::Impl::NotifyWindowModeChange(WindowModeType type)
     TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
         static_cast<uint8_t>(type), static_cast<uint32_t>(windowModeListeners.size()));
     for (auto &listener : windowModeListeners) {
-        listener->OnWindowModeUpdate(type);
+        if (listener != nullptr) {
+            listener->OnWindowModeUpdate(type);
+        } else {
+            TLOGE(WmsLogTag::WMS_MAIN, "listener is nullptr.");
+        }
     }
 }
 
@@ -436,7 +440,7 @@ void WindowManagerLite::Impl::NotifyAccessibilityWindowInfo(const std::vector<sp
         TLOGD(WmsLogTag::WMS_MAIN, "wid[%{public}u], innerWid[%{public}u], "
             "uiNodeId[%{public}u], rect[%{public}d %{public}d %{public}d %{public}d], "
             "isFocused[%{public}d], isDecorEnable[%{public}d], displayId[%{public}" PRIu64 "], layer[%{public}u], "
-            "mode[%{public}u], type[%{public}u, updateType[%{public}d], bundle[%{public}s]",
+            "mode[%{public}u], type[%{public}u], updateType[%{public}d], bundle[%{public}s]",
             info->wid_, info->innerWid_, info->uiNodeId_, info->windowRect_.width_, info->windowRect_.height_,
             info->windowRect_.posX_, info->windowRect_.posY_, info->focused_, info->isDecorEnable_, info->displayId_,
             info->layer_, info->mode_, info->type_, type, info->bundleName_.c_str());

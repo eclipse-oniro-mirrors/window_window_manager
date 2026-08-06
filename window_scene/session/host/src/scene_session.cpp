@@ -5877,7 +5877,11 @@ void SceneSession::UpdateRotationAvoidArea()
         if (Session::IsScbCoreEnabled()) {
             MarkAvoidAreaAsDirty();
         } else {
-            specificCallback_->onUpdateAvoidArea_(GetPersistentId());
+            if (specificCallback_->onUpdateAvoidArea_) {
+                specificCallback_->onUpdateAvoidArea_(GetPersistentId());
+            } else {
+                TLOGE(WmsLogTag::DMS, "onUpdateAvoidArea_ is null");
+            }
         }
     }
 }
