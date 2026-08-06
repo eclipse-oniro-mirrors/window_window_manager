@@ -2605,4 +2605,3 @@ HWTEST_F(WindowSceneSessionImplTest2, SetFullScreen, TestSize.Level0)
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
-

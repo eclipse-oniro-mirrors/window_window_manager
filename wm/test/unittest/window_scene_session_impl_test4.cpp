@@ -356,7 +356,7 @@ HWTEST_F(WindowSceneSessionImplTest4, UpdateWindowModeImmediatelySplitMaximizeMo
     EXPECT_EQ(WMError::WM_OK, ret);
     EXPECT_EQ(window->property_->GetMaximizeMode(), MaximizeMode::MODE_RECOVER);
 
-    // Set to non-split mode â€?maximize mode should NOT be changed
+    // Set to non-split mode â€” maximize mode should NOT be changed
     window->property_->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
     WindowModeInfo floatingInfo = { WindowMode::WINDOW_MODE_FLOATING };
     ret = window->UpdateWindowModeImmediately(floatingInfo);
@@ -2751,5 +2751,3 @@ HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition01, TestSize.Level
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
-
-

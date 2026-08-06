@@ -3108,5 +3108,3 @@ HWTEST_F(WindowSessionImplTest2, NotifyKeyboardAnimationWillBegin, TestSize.Leve
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
-
-

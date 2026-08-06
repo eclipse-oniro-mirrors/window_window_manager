@@ -4006,6 +4006,3 @@ HWTEST_F(WindowExtensionSessionImplTest, GetWindowPropertyInfo, TestSize.Level1)
 }
 } // namespace Rosen
 } // namespace OHOS
-
-
-
