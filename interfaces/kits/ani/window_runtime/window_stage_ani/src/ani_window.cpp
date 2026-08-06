@@ -6832,7 +6832,8 @@ ani_object AniWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_string name
     auto subWindow = Window::Create(windowName, windowOption, errMsg, windowToken_->GetContext());
     if (subWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "create sub window failed");
-        std::string msg = "[window][createSubWindowWithOptions]msg: " + (errMsg.empty() ? "Create sub window failed." : errMsg);
+        std::string msg = "[window][createSubWindowWithOptions]msg: " +
+            (errMsg.empty() ? "Create sub window failed." : errMsg);
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg);
     }
     TLOGI(WmsLogTag::WMS_SUB, "Create sub window %{public}s end", windowName.c_str());

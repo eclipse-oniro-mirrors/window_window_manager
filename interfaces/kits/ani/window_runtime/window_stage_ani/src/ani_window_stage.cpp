@@ -1098,7 +1098,8 @@ void AniWindowStage::OnUnregisterWindowCallback(ani_env* env, ani_string type, a
         errMsg);
     if (ret != WmErrorCode::WM_OK) {
         std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
-        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
+        AniWindowUtils::AniThrowError(env, ret,
+            errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
     }
 }
 }  // namespace Rosen

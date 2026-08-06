@@ -829,7 +829,8 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
             case static_cast<uint32_t>(RegisterListenerType::SUB_WINDOW_CLOSE_CB):
                 return ProcessSubWindowCloseRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_WILL_CLOSE_CB):
-                return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env, errMsg, parameter);
+                return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env, errMsg,
+                    parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_HIGHLIGHT_CHANGE_CB):
                 return ProcessWindowHighlightChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_ROTATION_CHANGE_CB):

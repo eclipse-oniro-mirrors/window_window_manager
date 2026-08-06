@@ -1459,7 +1459,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SetParentWindow02, TestSize.Level1)
     EXPECT_EQ(res, WMError::WM_ERROR_INVALID_PARENT);
     newParentWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
     WindowAdapterMocker mocker;
-    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _, _)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _)).WillOnce(Return(WMError::WM_OK));
     res = subWindow->SetParentWindow(newParentWindowId, errMsg);
     EXPECT_EQ(res, WMError::WM_OK);
     sptr<Window> parentWindow = nullptr;
@@ -1512,7 +1512,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SetParentWindow03, TestSize.Level1)
         std::pair<uint64_t, sptr<WindowSessionImpl>>(parentWindow2->GetWindowId(), parentWindow2)));
     WindowAdapterMocker mocker;
     WMError mockerResult = WMError::WM_ERROR_INVALID_WINDOW;
-    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _, _)).WillOnce(Return(mockerResult));
+    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _)).WillOnce(Return(mockerResult));
     EXPECT_EQ(subWindow->SetParentWindow(newParentWindowId, errMsg), mockerResult);
     subWindow->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     subWindow->property_->SetPcAppInpadCompatibleMode(true);
@@ -1564,7 +1564,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SetParentWindow04, TestSize.Level1)
     parentWindow1->GetSubWindows(1, subWindows);
     EXPECT_EQ(subWindows.size(), 1);
     WindowAdapterMocker mocker;
-    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _, _)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _)).WillOnce(Return(WMError::WM_OK));
     int32_t newParentWindowId = 3;
     std::string errMsg;
     EXPECT_EQ(subWindow->SetParentWindow(newParentWindowId, errMsg), WMError::WM_OK);
@@ -1605,7 +1605,7 @@ HWTEST_F(WindowSceneSessionImplTest5, SetParentWindowInner, TestSize.Level1)
     parentWindow->state_ = WindowState::STATE_HIDDEN;
 
     WindowAdapterMocker mocker;
-    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _, _)).WillRepeatedly(Return(WMError::WM_OK));
+    EXPECT_CALL(mocker.Mock(), SetParentWindow(_, _)).WillRepeatedly(Return(WMError::WM_OK));
     WindowSceneSessionImpl::subWindowSessionMap_.clear();
     EXPECT_EQ(WMError::WM_OK, subWindow->SetParentWindowInner(1, parentWindow));
     EXPECT_EQ(subWindow->state_, WindowState::STATE_HIDDEN);

@@ -849,7 +849,8 @@ void AniWindowManager::OnUnregisterWindowManagerCallback(ani_env* env, ani_strin
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off", ret);
         std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
-        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
+        AniWindowUtils::AniThrowError(env, ret,
+            errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
     }
 }
 

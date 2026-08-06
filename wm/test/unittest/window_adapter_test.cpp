@@ -1213,8 +1213,7 @@ HWTEST_F(WindowAdapterTest, SetParentWindow, TestSize.Level1)
     windowAdapter.windowManagerServiceProxy_ = nullptr;
     int32_t subWindowId = 1;
     int32_t newParentWindowId = 2;
-    std::string errMsg;
-    auto err = windowAdapter.SetParentWindow(subWindowId, newParentWindowId, errMsg);
+    auto err = windowAdapter.SetParentWindow(subWindowId, newParentWindowId);
     ASSERT_EQ(err, WMError::WM_ERROR_SAMGR);
 }
 

@@ -66,7 +66,7 @@ void OHWindowTest::SetUp()
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
     sptr<WindowOption> option = new WindowOption();
     EXPECT_CALL(m->Mock(), CreateWindow(_, _, _, _)).Times(1).WillOnce([this, &option](
-        const std::string&, sptr<WindowOption>&, std::shared_ptr<AbilityRuntime::Context>) -> sptr<Window> {
+        const std::string&, sptr<WindowOption>&, std::string&, std::shared_ptr<AbilityRuntime::Context>) -> sptr<Window> {
         sptr<WindowImpl> window = new WindowImpl(option);
         EXPECT_EQ(WMError::WM_OK, window->Create(INVALID_WINDOW_ID, abilityContext_));
         return window;
