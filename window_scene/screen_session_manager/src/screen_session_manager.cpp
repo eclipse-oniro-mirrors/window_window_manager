@@ -14523,14 +14523,14 @@ void ScreenSessionManager::SubmitUnfreezeBatch()
         unfreezeTaskQueue_.pop_front();
         bool isLastInBatch = (i == count - 1);
         auto sharedTask = std::shared_ptr<UnfreezeTask>(std::move(task));
-        taskScheduler_->PostAsyncTask([this, sharedTask, isLastInBatch] {
-            if (sharedTask->IsAgentAlive()) {
-                sharedTask->Execute();
-            }
-            if (isLastInBatch && !unfreezeTaskQueue_.empty()) {
+        if (sharedTask->IsAgentAlive()) {
+            sharedTask->Execute();
+        }
+        if (isLastInBatch && !unfreezeTaskQueue_.empty()) {
+            taskScheduler_->PostAsyncTask([this] {
                 SubmitUnfreezeBatch();
-            }
-        }, "UnfreezeTask");
+            },"SubmitUnfreezeBatch");
+        }
     }
 }
 
