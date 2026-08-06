@@ -1927,7 +1927,7 @@ void AniWindow::SetSubWindowModalType(ani_env* env, ani_object obj, ani_long nat
     TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
-        aniWindow->OnSetSubWindowModal(env, isModal, static_cast<ApiModalityType>(modalityType));
+        aniWindow->OnSetSubWindowModalType(env, isModal, modalityType);
     } else {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] aniWindow is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal",
