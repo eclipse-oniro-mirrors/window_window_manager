@@ -7388,7 +7388,6 @@ napi_value JsWindow::OnTranslate(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_SYSTEM, "not system app, permission denied!");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
     }
-
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
