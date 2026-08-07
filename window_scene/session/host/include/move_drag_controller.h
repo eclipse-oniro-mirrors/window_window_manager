@@ -941,7 +941,6 @@ private:
                                 int32_t pointerPosY, int32_t pointerWindowX, int32_t pointerWindowY,
                                 const WSRect& winRect);
     WSRect GetScreenRectById(DisplayId displayId);
-    void MoveDragInterrupted(bool resetPosition = true);
     void UpdateMoveAvailableArea(DisplayId targetDisplayId);
     void SetCurrentScreenProperty(DisplayId targetDisplayId);
     void SetInputBarCrossAttr(MoveDirection moveDirection, DisplayId targetDisplayId);
