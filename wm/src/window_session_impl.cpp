@@ -259,6 +259,8 @@ std::map<int32_t, std::vector<sptr<IWindowRotationChangeListener>>> WindowSessio
 std::map<int32_t, std::vector<sptr<IFreeWindowModeChangeListener>>> WindowSessionImpl::freeWindowModeChangeListeners_;
 std::map<int32_t, std::vector<sptr<IParentLifecycleEventListener>>> WindowSessionImpl::parentLifecycleEventListeners_;
 std::recursive_mutex WindowSessionImpl::lifeCycleListenerMutex_;
+std::recursive_mutex WindowSessionImpl::focusStateChangedListenerMutex_;
+std::map<int32_t, std::vector<sptr<IFocusStateChangedListener>>> WindowSessionImpl::focusStateChangedListeners_;
 std::recursive_mutex WindowSessionImpl::windowStageLifeCycleListenerMutex_;
 std::recursive_mutex WindowSessionImpl::windowChangeListenerMutex_;
 std::recursive_mutex WindowSessionImpl::windowCrossAxisListenerMutex_;
@@ -2017,7 +2019,7 @@ void WindowSessionImpl::ProcessUpdateFocus(const sptr<FocusNotifyInfo>& focusNot
 {
     auto notifyTime = focusNotifyInfo->timeStamp_;
     if (focusNotifyInfo->isSameCallingPid_ && !focusNotifyInfo->isSyncNotify_) {
-        UpdateFocusState(isFocused);
+        UpdateFocusState(isFocused, focusNotifyInfo);
         updateFocusTimeStamp_.store(notifyTime);
         return;
     }
@@ -2038,7 +2040,7 @@ void WindowSessionImpl::ProcessUpdateFocus(const sptr<FocusNotifyInfo>& focusNot
     }
     auto otherWindowId = isFocused ? focusNotifyInfo->unfocusWindowId_ : focusNotifyInfo->focusWindowId_;
     if (!focusNotifyInfo->isSyncNotify_ || otherWindowId == INVALID_SESSION_ID) {
-        UpdateFocusState(isFocused);
+        UpdateFocusState(isFocused, focusNotifyInfo);
         if (!focusNotifyInfo->isSameCallingPid_) {
             WindowManager::GetInstance().NotifyApplicationFocusChangedResult(isFocused);
         }
@@ -2047,13 +2049,13 @@ void WindowSessionImpl::ProcessUpdateFocus(const sptr<FocusNotifyInfo>& focusNot
     auto otherWindow = GetWindowWithId(otherWindowId);
     if (isFocused) {
         if (otherWindow != nullptr) {
-            otherWindow->UpdateFocusState(!isFocused);
+            otherWindow->UpdateFocusState(!isFocused, focusNotifyInfo);
         }
-        UpdateFocusState(isFocused);
+        UpdateFocusState(isFocused, focusNotifyInfo);
     } else {
-        UpdateFocusState(isFocused);
+        UpdateFocusState(isFocused, focusNotifyInfo);
         if (otherWindow != nullptr) {
-            otherWindow->UpdateFocusState(!isFocused);
+            otherWindow->UpdateFocusState(!isFocused, focusNotifyInfo);
         }
     }
     if (!focusNotifyInfo->isSameCallingPid_) {
@@ -2061,7 +2063,7 @@ void WindowSessionImpl::ProcessUpdateFocus(const sptr<FocusNotifyInfo>& focusNot
     }
 }
 
-void WindowSessionImpl::UpdateFocusState(bool isFocused)
+void WindowSessionImpl::UpdateFocusState(bool isFocused, const sptr<FocusNotifyInfo>& focusNotifyInfo)
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "focus: %{public}u, id: %{public}d", isFocused, GetPersistentId());
     isFocused_ = isFocused;
@@ -2080,6 +2082,21 @@ void WindowSessionImpl::UpdateFocusState(bool isFocused)
     } else {
         NotifyAfterUnfocused();
     }
+
+    WindowFocusChangeReason reason = WindowFocusChangeReason::DEFAULT;
+    int32_t nextFocusedWindowId = INVALID_WINDOW_ID;
+    int32_t preFocusedWindowId = INVALID_WINDOW_ID;
+    if (focusNotifyInfo != nullptr) {
+        reason = focusNotifyInfo->reason_;
+        if (focusNotifyInfo->isSameCallingPid_) {
+            if (!isFocused){
+               nextFocusedWindowId = focusNotifyInfo->focusWindowId_;
+            } else {
+                preFocusedWindowId = focusNotifyInfo->unfocusWindowId_;
+            }
+        }
+    }
+    NotifyFocusStateChanged(isFocused, reason, nextFocusedWindowId, preFocusedWindowId);
 }
 
 bool WindowSessionImpl::IsFocused() const
@@ -4291,6 +4308,21 @@ WMError WindowSessionImpl::UnregisterLifeCycleListener(const sptr<IWindowLifeCyc
     return UnregisterListenerInMap(lifecycleListeners_, GetPersistentId(), listener);
 }
 
+WMError WindowSessionImpl::RegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener)
+{
+    WLOGFD("in");
+    std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
+    return RegisterListener(focusStateChangedListener_[GetPersistentId()], listener);
+}
+
+WMError WindowSessionImpl::UnRegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener)
+{
+    WLOGFD("in");
+    std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
+    return UnregisterListenerInMap(focusStateChangedListener_, GetPersistentId(), listener);
+}
+
+
 WMError WindowSessionImpl::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
 {
     return RegisterWindowChangeListener(listener, true);
@@ -5469,6 +5501,22 @@ EnableIfSame<T, IWindowLifeCycle, std::vector<sptr<IWindowLifeCycle>>> WindowSes
 }
 
 template<typename T>
+EnableIfSame<T, IFocusStateChangedListener, std::vector<sptr<IFocusStateChangedListener>>>
+    WindowSessionImpl::GetListeners()
+{
+    std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
+    auto iter = focusStateChangedListeners_.find(GetPersistentId());
+    if (iter == focusStateChangedListeners_.end()) {
+        return std::vector<sptr<IFocusStateChangedListener>>();
+    }
+    std::vector<sptr<IFocusStateChangedListener>> listeners;
+    for (auto& listener : iter->second) {
+        listeners.push_back(listener);
+    }
+    return listeners;
+}
+
+template<typename T>
 EnableIfSame<T, IWindowStageLifeCycle, std::vector<sptr<IWindowStageLifeCycle>>> WindowSessionImpl::GetListeners()
 {
     std::lock_guard<std::recursive_mutex> lockListener(windowStageLifeCycleListenerMutex_);
@@ -6419,6 +6467,22 @@ void WindowSessionImpl::NotifyWindowAfterUnfocused()
     auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
     // use needNotifyUinContent to separate ui content callbacks
     CALL_LIFECYCLE_LISTENER(AfterUnfocused, lifecycleListeners, isGamePreLaunch_);
+}
+
+void WindowSessionImpl::NotifyFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t preFocusedWindowId)
+{
+    std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
+    auto Listeners = GetListeners<IFocusStateChangedListener>();
+    TLOGI(WmsLogTag::WMS_FOCUS, "windowId: %{public}d, isFocused: %{public}d, reason: %{public}d, "
+        "nextFocusedWindowId: %{public}d, preFocusedWindowId: %{public}d, listenerCnt: %{public}zu",
+        GetPersistentId(), isFocused, static_cast<int32_t>(reason), nextFocusedWindowId,
+        preFocusedWindowId, Listeners.size());
+    for (auto& listener : listeners) {
+        if (listener != nullptr) {
+            listener->OnFocusStateChanged(isFocused, reason, nextFocusedWindowId, preFocusedWindowId);
+        }
+    }
 }
 
 void WindowSessionImpl::NotifyUIContentHighlightStatus(bool isHighlighted)

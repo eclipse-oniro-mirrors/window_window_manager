@@ -209,6 +209,25 @@ protected:
 };
 
 /**
+ * @class IFocusStateChangedListener
+ *
+ * @brief IFocusStateChangedListener is a listener used to notify caller that focus state changed.
+ */
+class IFocusStateChangedListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller that focus state changed.
+     * 
+     * @param isFocused Whether ther window is focused
+     * @param reason Focus change reason
+     * @param nextFocusedWindowId next focused window id, valid only when unfocused and same process.
+     * @param preFocusedWindowId pre focused window id, valid only when focused and same process.
+     */
+    virtual void OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t preFocusedWindowId = INVALID_WINDOW_ID) {}
+};
+
+/**
  * @class IParentLifecycleEventListener
  *
  * @brief IParentLifecycleEventListener is a listener used to notify caller that lifecycle of parent window.
@@ -5777,6 +5796,30 @@ public:
      */
     virtual WMError UnregisterWindowHoverStateChangeListener(
         const sptr<IWindowHoverStateChangeListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Register focus state change listener
+     *
+     * @param listener IFocusStateChangedListener.
+     * @return WM_OK means register success, others means unregister failed
+     */
+    virtual WMError RegisterFocusStateChangedListener(
+        const sptr<IFocusStateChangedListener>& listener)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
+     * @brief Unregister focus state change listener
+     *
+     * @param listener IFocusStateChangedListener.
+     * @return WM_OK means register success, others means unregister failed
+     */
+    virtual WMError UnRegisterFocusStateChangedListener(
+        const sptr<IFocusStateChangedListener>& listener)
     {
         return WMError::WM_OK;
     }

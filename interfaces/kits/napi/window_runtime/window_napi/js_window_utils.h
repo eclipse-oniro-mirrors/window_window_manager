@@ -297,6 +297,7 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     napi_value AnimationTypeInit(napi_env env);
     napi_value WindowTransitionTypeInit(napi_env env);
     napi_value WindowAnimationCurveInit(napi_env env);
+    napi_value FocusChangeReasonInit(napi_env env);
     napi_value GetWindowLimitsAndConvertToJsValue(napi_env env, const WindowLimits& windowLimits);
     napi_value ConvertTitleButtonAreaToJsValue(napi_env env, const TitleButtonRect& titleButtonRect);
     napi_value ConvertFrameMetricsToJsValue(napi_env env, const FrameMetrics& metrics);

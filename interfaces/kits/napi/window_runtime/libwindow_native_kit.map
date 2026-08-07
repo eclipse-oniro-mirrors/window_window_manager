@@ -383,6 +383,7 @@
             OHOS::Rosen::WindowErrorCodeInit*;
             OHOS::Rosen::WindowErrorInit*;
             OHOS::Rosen::WindowEventTypeInit*;
+            OHOS::Rosen::FocusChangeReasonInit*;
             OHOS::Rosen::WindowLayoutModeInit*;
             OHOS::Rosen::WindowModeInit*;
             OHOS::Rosen::SplitRatioPreferenceInit*;

@@ -74,6 +74,7 @@ const std::string FREE_WINDOW_MODE_CHANGE_CB = "freeWindowModeChange";
 const std::string APPLICATION_FOCUS_STATE_CHANGE_CB = "applicationFocusStageChange";
 const std::string PARENT_LIFECYCLE_EVENT_CB = "parentLifecycleEvent";
 const std::string WINDOW_POSTURE_CHANGE_CB = "windowPostureChange";
+const std::string WINDOW_FOCUS_STATE_CHANGE_CB = "focusStateChange";
 
 JsWindowListener::~JsWindowListener()
 {
@@ -642,6 +643,35 @@ void JsWindowListener::OnApplicationFocusUpdate(bool isFocused)
         thisListener->CallJsMethod(APPLICATION_FOCUS_STATE_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
     if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnApplicationFocusUpdate") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to send event");
+    }
+}
+
+void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+    int32_t nextFocusedWindowId, int32_t preFocusedWindowId)
+{
+    auto jsCallback = [self = weakRef_, isFocused, reason, nextFocusedWindowId, preFocusedWindowId, env = env_] {
+        auto thisListener = self.promote();
+        if (thisListener == nullptr || env == nullptr) {
+            TLOGE(WmsLogTag::WMS_FOCUS, "this listener or eng is nullptr");
+            return;
+        }
+        napi_value objValue = nullptr;
+        napi_create_object(env, &objValue);
+        napi_set_named_property(env, objValue, "focused", CreateJsValue(env, isFocused));
+        // Map reason to JS enum: CLICK=1, OTHER=0
+        napi_set_named_property(env, objValue, "focusChangeReason",
+            CreateJsValue(env, reason == WindowFocusChangeReason::CLICK ? 1 : 0));
+        if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {
+            napi_set_named_property(env, objValue, "nextFocusedWindowId", CreateJsValue(env, nextFocusedWindowId));
+        }
+        if (isFocused && preFocusedWindowId != INVALID_WINDOW_ID) {
+            napi_set_named_property(env, objValue, "preFocusedWindowId", CreateJsValue(env, preFocusedWindowId));
+        }
+        napi_value argv[] = { objValue };        
+        thisListener->CallJsMethod(WINDOW_FOCUS_STATE_CHANGE_CB.c_str(), argv, ArraySize(argv));
+    };
+    if (napi_send_event(env_, jsCallback, napi_eprio_immediate, "OnFocusStateChanged") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Failed to send event");
     }
 }

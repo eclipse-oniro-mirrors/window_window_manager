@@ -269,7 +269,7 @@ public:
     WSError UpdateOrientation() override;
     WSError UpdateDisplayId(uint64_t displayId) override;
     WSError UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyInfo, bool isFocused) override;
-    void UpdateFocusState(bool isFocused);
+    void UpdateFocusState(bool isFocused, const sptr<FocusNotifyInfo>& focusNotifyInfo = nullptr);
     bool IsFocused() const override;
     WMError RequestFocus() const override;
     WMError RequestFocusByClient(bool isFocused) const override;
@@ -298,6 +298,8 @@ public:
 
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
+    WMError RegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
+    WMError UnRegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
     WMError RegisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError UnregisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
@@ -1181,6 +1183,8 @@ private:
     static GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace);
 
     template<typename T> EnableIfSame<T, IWindowLifeCycle, std::vector<sptr<IWindowLifeCycle>>> GetListeners();
+    template<typename T> 
+    EnableIfSame<T, IFocusStateChangedListener, std::vector<sptr<IFocusStateChangedListener>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IWindowStageLifeCycle, std::vector<sptr<IWindowStageLifeCycle>>> GetListeners();
     template<typename T> EnableIfSame<T, IDisplayMoveListener, std::vector<sptr<IDisplayMoveListener>>> GetListeners();
@@ -1269,6 +1273,8 @@ private:
     void NotifyAfterResumed();
     void NotifyAfterPaused();
     void NotifyUIContentHighlightStatus(bool isHighlighted);
+    void NotifyFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t preFocusedWindowId);
 
     /*
      * Window Decor listener
@@ -1343,6 +1349,7 @@ private:
     bool InitWaterfallMode();
 
     static std::recursive_mutex lifeCycleListenerMutex_;
+    static std::recursive_mutex focusStateChangedListenerMutex_;
     static std::recursive_mutex windowStageLifeCycleListenerMutex_;
     static std::recursive_mutex windowChangeListenerMutex_;
     static std::recursive_mutex windowCrossAxisListenerMutex_;
@@ -1382,6 +1389,7 @@ private:
     static std::mutex frameMetricsChangeListenerMutex_;
     static std::unordered_map<int32_t, std::vector<sptr<IFrameMetricsChangedListener>>> frameMetricsChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
+    static std::map<int32_t, std::vector<sptr<IFocusStateChangedListener>>> focusStateChangedListener_;
     static std::map<int32_t, std::vector<sptr<IWindowStageLifeCycle>>> windowStageLifecycleListeners_;
     static std::map<int32_t, std::vector<sptr<IDisplayMoveListener>>> displayMoveListeners_;
     static std::map<int32_t, std::vector<std::pair<sptr<IWindowChangeListener>, bool>>> windowChangeListeners_;

@@ -75,6 +75,7 @@ const std::map<std::string, RegisterListenerType> WINDOW_LISTENER_MAP {
     {WINDOW_ROTATION_CHANGE_CB, RegisterListenerType::WINDOW_ROTATION_CHANGE_CB},
     {FREE_WINDOW_MODE_CHANGE_CB, RegisterListenerType::FREE_WINDOW_MODE_CHANGE_CB},
     {PARENT_LIFECYCLE_EVENT_CB, RegisterListenerType::PARENT_LIFECYCLE_EVENT_CB},
+    {WINDOW_FOCUS_STATE_CHANGE_CB, RegisterListenerType::WINDOW_FOCUS_STATE_CHANGE_CB},
 };
 const std::map<std::string, RegisterListenerType> WINDOW_STAGE_LISTENER_MAP {
     // white register list for window stage
@@ -390,6 +391,20 @@ WmErrorCode JsWindowRegisterManager::ProcessApplicationFocusChangeRegister(sptr<
     } else {
         ret = MappingWmErrorCodeSafely(
             WindowManager::GetInstance().UnregisterApplicationFocusChangedListener(thisListener));
+    }
+    return ret;
+}
+
+WmErrorCode JsWindowRegisterManager::ProcessFocusStateChangeRegister(sptr<JsWindowListener> listener,
+    sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "called");
+    sptr<IFocusStateChangedListener> thisListener(listener);
+    WmErrorCode ret;
+    if (isRegister) {
+        ret = MappingWmErrorCodeSafely(window->RegisterFocusStateChangedListener(thisListener));
+    } else {
+        ret = MappingWmErrorCodeSafely(window->UnRegisterFocusStateChangedListener(thisListener));
     }
     return ret;
 }
@@ -838,6 +853,8 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
                 return ProcessFreeWindowModeChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::PARENT_LIFECYCLE_EVENT_CB):
                 return ProcessParentLifecycleEventRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::WINDOW_FOCUS_STATE_CHANGE_CB):
+                return ProcessFocusStateChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             default:
                 WLOGFE("RegisterListenerType %{public}u is not supported",
                     static_cast<uint32_t>(registerListenerType));

@@ -34,12 +34,14 @@ public:
      * @brief Constructor of FocusNotifyInfo
      */
     FocusNotifyInfo(int64_t timeStamp, int32_t unfocusWindowId, int32_t focusWindowId,
-        bool isSyncNotify, bool isSameCallingPid = true)
+        bool isSyncNotify, bool isSameCallingPid = true,
+        WindowFocusChangeReason reason = WindowFocusChangeReason::DEFAULT)
         : timeStamp_(timeStamp),
           unfocusWindowId_(unfocusWindowId),
           focusWindowId_(focusWindowId),
           isSyncNotify_(isSyncNotify),
-          isSameCallingPid_(isSameCallingPid) {};
+          isSameCallingPid_(isSameCallingPid),
+          reason_(reason) {};
 
     /**
      * @brief Destructor of FocusNotifyInfo
@@ -55,7 +57,8 @@ public:
     virtual bool Marshalling(Parcel& parcel) const
     {
         return parcel.WriteInt64(timeStamp_) && parcel.WriteInt32(unfocusWindowId_) &&
-            parcel.WriteInt32(focusWindowId_) && parcel.WriteBool(isSyncNotify_) && parcel.WriteBool(isSameCallingPid_);
+            parcel.WriteInt32(focusWindowId_) && parcel.WriteBool(isSyncNotify_) && parcel.WriteBool(isSameCallingPid_) &&
+            parcel.WriteInt32(static_cast<int32_t>(reason_));
     }
 
     static FocusNotifyInfo* Unmarshalling(Parcel& parcel)
@@ -67,6 +70,10 @@ public:
         if (!res) {
             return nullptr;
         }
+        int32_t reasonVal = 0;
+        if (parcel.ReadInt32(reasonVal)) {
+            focusNotifyInfo->reason_ = static_cast<WindowFocusChangeReason>(reasonVal);
+        }
         return focusNotifyInfo.release();
     }
 
@@ -75,6 +82,7 @@ public:
     int32_t focusWindowId_ = INVALID_WINDOW_ID;
     bool isSyncNotify_ = false;
     bool isSameCallingPid_ = true;
+    WindowFocusChangeReason reason_ = WindowFocusChangeReason::DEFAULT;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_FOCUS_NOTIFY_INFO_H

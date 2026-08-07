@@ -9999,7 +9999,7 @@ void SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc(
 }
 
 sptr<FocusNotifyInfo> SceneSessionManager::GetFocusNotifyInfo(DisplayId displayId,
-    const sptr<SceneSession>& nextSession)
+    const sptr<SceneSession>& nextSession, FocusChangeReason reason)
 {
     auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
     if (focusGroup == nullptr) {
@@ -10019,13 +10019,14 @@ sptr<FocusNotifyInfo> SceneSessionManager::GetFocusNotifyInfo(DisplayId displayI
         focusNotifyInfo->isSyncNotify_ = focusNotifyInfo->isSameCallingPid_ &&
             !focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
     }
+    focusNotifyInfo->reason_ = static_cast<WindowFocusChangeReason>(reason);
     return focusNotifyInfo;
 }
 
 WSError SceneSessionManager::ShiftFocus(DisplayId displayId, const sptr<SceneSession>& nextSession,
     bool isProactiveUnfocus, FocusChangeReason reason)
 {
-    auto focusNotifyInfo = GetFocusNotifyInfo(displayId, nextSession);
+    auto focusNotifyInfo = GetFocusNotifyInfo(displayId, nextSession, reason);
     if (focusNotifyInfo == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is nullptr");
         return WSError::WS_OK;

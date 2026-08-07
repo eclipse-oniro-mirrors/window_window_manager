@@ -69,6 +69,7 @@ enum class RegisterListenerType : uint32_t {
     FREE_WINDOW_MODE_CHANGE_CB,
     APPLICATION_FOCUS_STATE_CHANGE_CB,
     PARENT_LIFECYCLE_EVENT_CB,
+    WINDOW_FOCUS_STATE_CHANGE_CB,
 };
 
 class JsWindowRegisterManager {
@@ -123,6 +124,8 @@ private:
     WmErrorCode ProcessWaterMarkFlagChangeRegister(sptr<JsWindowListener> listener,
         sptr<Window> window, bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessApplicationFocusChangeRegister(sptr<JsWindowListener> listener,
+        sptr<Window> window, bool isRegister, napi_env env, napi_value parameter = nullptr);
+    WmErrorCode ProcessFocusStateChangeRegister(sptr<JsWindowListener> listener,
         sptr<Window> window, bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowVisibilityChangeRegister(sptr<JsWindowListener> listener, sptr<Window> window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
