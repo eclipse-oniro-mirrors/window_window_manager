@@ -11897,7 +11897,8 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
     const std::string errMsgPrefix = "[window][getRotationLocked]msg: ";
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "window is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, errMsgPrefix + "The window is not created or destroyed");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            errMsgPrefix + "The window is not created or destroyed.");
     }
     if (!Permission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_ROTATION, "permission denied, require system application!");
