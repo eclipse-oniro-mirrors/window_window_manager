@@ -1225,10 +1225,18 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
                 session->EditSessionInfo().reuseSessionInGamePreLaunch_ = false;
             }
         }
-        //
-        //
-        //
-        //
+        if (event == SessionEvent::EVENT_MAXIMIZE || event == SessionEvent::EVENT_MAXIMIZE_FULLSCREEN) {
+            if (session->moveDragController_ &&
+                (session->moveDragController_->GetStartMoveFlag() ||
+                    session->moveDragController_->GetStartDragFlag())) {
+                TLOGNI(WmsLogTag::WMS_LAYOUT, "Interrupt move/drag on maximize event, id: %{public}d, "
+                    "event: %{public}u, isMove: %{public}d, isDrag: %{public}d",
+                    session->GetPersistentId(), static_cast<uint32_t>(event),
+                    session->moveDragController_->GetStartMoveFlag(),
+                    session->moveDragController_->GetStartDragFlag());
+                session->moveDragController_->MoveDragInterrupted(false);
+            }
+        }
         if (event == SessionEvent::EVENT_START_MOVE) {
             if (!session->IsMovable(param.needFocused)) {
                 return WSError::WS_OK;

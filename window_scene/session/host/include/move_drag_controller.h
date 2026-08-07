@@ -188,6 +188,13 @@ public:
     void SetNotifyWindowPidChangeCallback(const NotifyWindowPidChangeCallback& callback);
 
     /**
+     * @brief Interrupt the current move/drag operation.
+     *
+     * @param resetPosition If true, reset target rect to original position; if false, keep current position.
+     */
+    void MoveDragInterrupted(bool resetPosition = true);
+
+    /**
      * @brief Update targetRectChangeReason_ and optionally targetRect_ (all in MoveDragProperty).
      *
      * @param reason   The reason for the size or position change.
