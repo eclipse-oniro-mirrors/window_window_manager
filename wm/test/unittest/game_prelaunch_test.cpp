@@ -93,14 +93,13 @@ namespace {
  */
 HWTEST_F(GamePrelaunchTest, SetIsGamePreLaunch01, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetIsGamePreLaunch01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto ret = window->SetIsGamePreLaunch(true);
@@ -114,14 +113,13 @@ HWTEST_F(GamePrelaunchTest, SetIsGamePreLaunch01, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, SetIsGamePreLaunch02, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("SetIsGamePreLaunch02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto ret = window->SetIsGamePreLaunch(false);
@@ -135,14 +133,13 @@ HWTEST_F(GamePrelaunchTest, SetIsGamePreLaunch02, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, ClearIsGamePreLaunch01, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("ClearIsGamePreLaunch01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     window->SetIsGamePreLaunch(true);
@@ -157,14 +154,13 @@ HWTEST_F(GamePrelaunchTest, ClearIsGamePreLaunch01, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, ResumeWithGamePrelaunch01, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("ResumeWithGamePrelaunch01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     window->Resume(true);
@@ -179,14 +175,13 @@ HWTEST_F(GamePrelaunchTest, ResumeWithGamePrelaunch01, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, ResumeWithGamePrelaunch02, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("ResumeWithGamePrelaunch02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     window->Resume(false);
@@ -267,14 +262,13 @@ HWTEST_F(GamePrelaunchTest, LifeCycleChangeReasonGamePrelaunchBackground, TestSi
  */
 HWTEST_F(GamePrelaunchTest, GamePrelaunchLifecycleListener01, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("GamePrelaunchLifecycleListener01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto mockListener = sptr<MockWindowLifeCycleListener>::MakeSptr();
@@ -293,14 +287,13 @@ HWTEST_F(GamePrelaunchTest, GamePrelaunchLifecycleListener01, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, GamePrelaunchLifecycleListener02, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("GamePrelaunchLifecycleListener02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto mockListener = sptr<MockWindowLifeCycleListener>::MakeSptr();
@@ -319,14 +312,13 @@ HWTEST_F(GamePrelaunchTest, GamePrelaunchLifecycleListener02, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, GamePrelaunchWindowSceneListener01, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("GamePrelaunchWindowSceneListener01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto mockListener = sptr<MockWindowLifeCycleListener>::MakeSptr();
@@ -346,14 +338,13 @@ HWTEST_F(GamePrelaunchTest, GamePrelaunchWindowSceneListener01, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, GamePrelaunchWindowSceneListener02, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("GamePrelaunchWindowSceneListener02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto mockListener = sptr<MockWindowLifeCycleListener>::MakeSptr();
@@ -373,14 +364,13 @@ HWTEST_F(GamePrelaunchTest, GamePrelaunchWindowSceneListener02, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, GamePrelaunchIntegration01, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("GamePrelaunchIntegration01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto mockListener = sptr<MockWindowLifeCycleListener>::MakeSptr();
@@ -403,14 +393,13 @@ HWTEST_F(GamePrelaunchTest, GamePrelaunchIntegration01, TestSize.Level0)
  */
 HWTEST_F(GamePrelaunchTest, GamePrelaunchIntegration02, TestSize.Level0)
 {
-    std::string errMsg;
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     option->SetWindowName("GamePrelaunchIntegration02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     
-    window->Create(abilityContext_, session, errMsg);
+    window->Create(abilityContext_, session);
     window->property_->SetPersistentId(1);
     
     auto mockListener = sptr<MockWindowLifeCycleListener>::MakeSptr();
