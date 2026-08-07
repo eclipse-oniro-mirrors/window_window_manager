@@ -284,7 +284,7 @@ HWTEST_F(MotionManagerListenerTest, SetMotionEventListener_SameRotationSkipped, 
     EXPECT_FALSE(listener_.rotationCalled_);
 }
 
-HWTEST_F(MotionManagerListenerTest, SetMotionEventListener_SameSmartRotationSkipped, TestSize.Level1)
+HWTEST_F(MotionManagerListenerTest, SetMotionEventListener_SameSmartRotationNotSkipped, TestSize.Level1)
 {
     MotionManager::GetInstance().SetMotionEventListener(&listener_);
     MotionManager::GetInstance().Init();
@@ -293,7 +293,7 @@ HWTEST_F(MotionManagerListenerTest, SetMotionEventListener_SameSmartRotationSkip
     EXPECT_EQ(listener_.lastSmartRotation_, 90.0f);
     listener_.Reset();
     MotionManager::GetInstance().TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE, 90.0f);
-    EXPECT_FALSE(listener_.smartRotationCalled_);
+    EXPECT_TRUE(listener_.smartRotationCalled_);
 }
 
 HWTEST_F(MotionManagerListenerTest, HandleMotionEvent_InvalidType, TestSize.Level1)
