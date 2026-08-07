@@ -55,9 +55,11 @@ namespace {
     constexpr const char* const ERROR_NOT_SAME_APP = "The two windows are not from the same process.";
     constexpr const char* const ERROR_TARGET_ALREADY_FOCUSED = "The target window is already focused.";
     constexpr const char* const ERROR_CANNOT_FIND_TOP = "Cannot find top window with the given context or window id.";
-    constexpr const char* const ERROR_MAIN_OR_TARGET_INVALID = "Invalid window type. Only main windows are supported, and target must not be modal or topmost.";
+    constexpr const char* const ERROR_MAIN_OR_TARGET_INVALID =
+        "Invalid window type. Only main windows are supported, and target must not be modal or topmost.";
     constexpr const char* const ERROR_SUB_OR_TARGET_NOT_SHOWN = "The window or target window is not shown.";
-    constexpr const char* const ERROR_SCREEN_NOT_ALLOW_FOCUSED = "The screen of the window is not allowed to be focused.";
+    constexpr const char* const ERROR_SCREEN_NOT_ALLOW_FOCUSED =
+        "The screen of the window is not allowed to be focused.";
 }
 
 std::string WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType apiType, WMError error,
@@ -90,6 +92,194 @@ const char* WindowFocusErrorMsgHelper::GetApiName(WindowFocusApiType apiType)
     return (index < FOCUS_API_COUNT) ? FOCUS_API_NAMES[index] : "[window]msg: ";
 }
 
+const char* WindowFocusErrorMsgHelper::GetFocusableErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) {
+        return ERROR_NOT_CREATED;
+    }
+    if (error == WMError::WM_ERROR_INVALID_OPERATION) {
+        return ERROR_SCREEN_NOT_ALLOW_FOCUSED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetSubWindowModalErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_SUB;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) {
+        return ERROR_NOT_CREATED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetTopmostErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_MAIN;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) {
+        return ERROR_NOT_CREATED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetRaiseToAppTopErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_SUB;
+    }
+    if (error == WMError::WM_ERROR_INVALID_PARENT) {
+        return ERROR_NO_PARENT;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    if (error == WMError::WM_DO_NOTHING) {
+        return ERROR_NOT_SHOWN;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetSubWindowZLevelErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_NON_MODAL;
+    }
+    if (error == WMError::WM_ERROR_INVALID_PARENT) {
+        return ERROR_NO_PARENT;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetSubWindowZLevelQueryErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_SUB_OR_DIALOG;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetWindowModalErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_MAIN;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetRaiseByClickErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_PARENT) {
+        return ERROR_NO_PARENT;
+    }
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_SUB;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    if (error == WMError::WM_DO_NOTHING) {
+        return ERROR_NOT_SHOWN;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetMainWindowRaiseByClickErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_MAIN;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    if (error == WMError::WM_DO_NOTHING) {
+        return ERROR_NOT_SHOWN;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetRaiseAboveTargetErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_PARENT) {
+        return ERROR_NO_PARENT;
+    }
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_SUB;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    if (error == WMError::WM_DO_NOTHING) {
+        return ERROR_SUB_OR_TARGET_NOT_SHOWN;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetRaiseMainWindowAboveTargetErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_MAIN_OR_TARGET_INVALID;
+    }
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetExclusivelyHighlightedErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_NON_MODAL;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetWindowDelayRaiseErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_TYPE) {
+        return ERROR_TYPE_NOT_SUPPORT;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetShiftAppWindowFocusErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_OPERATION) {
+        return ERROR_SOURCE_NOT_FOCUSED;
+    }
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_NOT_SAME_APP;
+    }
+    if (error == WMError::WM_DO_NOTHING) {
+        return ERROR_TARGET_ALREADY_FOCUSED;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetTopWindowErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_CANNOT_FIND_TOP;
+    }
+    return "";
+}
+
+const char* WindowFocusErrorMsgHelper::GetFocusQueryErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_NULLPTR) {
+        return ERROR_NOT_CREATED;
+    }
+    return "";
+}
+
 const char* WindowFocusErrorMsgHelper::GetSpecificErrorMsg(WindowFocusApiType apiType, WMError error)
 {
     if (IsFixedGeneralError(error)) {
@@ -103,86 +293,39 @@ const char* WindowFocusErrorMsgHelper::GetSpecificErrorMsg(WindowFocusApiType ap
     switch (apiType) {
         case WindowFocusApiType::SET_FOCUSABLE:
         case WindowFocusApiType::SET_WINDOW_FOCUSABLE:
-            if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) {
-                return ERROR_NOT_CREATED;
-            }
-            if (error == WMError::WM_ERROR_INVALID_OPERATION) return ERROR_SCREEN_NOT_ALLOW_FOCUSED;
-            break;
+            return GetFocusableErrorMsg(error);
         case WindowFocusApiType::SET_SUB_WINDOW_MODAL:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_SUB;
-            if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) return ERROR_NOT_CREATED;
-            break;
+            return GetSubWindowModalErrorMsg(error);
         case WindowFocusApiType::SET_TOPMOST:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_MAIN;
-            if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) return ERROR_NOT_CREATED;
-            break;
         case WindowFocusApiType::SET_WINDOW_TOPMOST:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_MAIN;
-            if (error == WMError::WM_ERROR_NULLPTR || error == WMError::WM_DO_NOTHING) return ERROR_NOT_CREATED;
-            break;
+            return GetTopmostErrorMsg(error);
         case WindowFocusApiType::RAISE_TO_APP_TOP:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_SUB;
-            if (error == WMError::WM_ERROR_INVALID_PARENT) return ERROR_NO_PARENT;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            if (error == WMError::WM_DO_NOTHING) return ERROR_NOT_SHOWN;
-            break;
+            return GetRaiseToAppTopErrorMsg(error);
         case WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_NON_MODAL;
-            if (error == WMError::WM_ERROR_INVALID_PARENT) return ERROR_NO_PARENT;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            break;
+            return GetSubWindowZLevelErrorMsg(error);
         case WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_SUB_OR_DIALOG;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            break;
+            return GetSubWindowZLevelQueryErrorMsg(error);
         case WindowFocusApiType::SET_WINDOW_MODAL:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_MAIN;
-            break;
+            return GetWindowModalErrorMsg(error);
         case WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED:
-            if (error == WMError::WM_ERROR_INVALID_PARENT) return ERROR_NO_PARENT;
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_SUB;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            if (error == WMError::WM_DO_NOTHING) return ERROR_NOT_SHOWN;
-            break;
+            return GetRaiseByClickErrorMsg(error);
         case WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_MAIN;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            if (error == WMError::WM_DO_NOTHING) return ERROR_NOT_SHOWN;
-            break;
+            return GetMainWindowRaiseByClickErrorMsg(error);
         case WindowFocusApiType::RAISE_ABOVE_TARGET:
-            if (error == WMError::WM_ERROR_INVALID_PARENT) return ERROR_NO_PARENT;
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_SUB;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            if (error == WMError::WM_DO_NOTHING) return ERROR_SUB_OR_TARGET_NOT_SHOWN;
-            break;
+            return GetRaiseAboveTargetErrorMsg(error);
         case WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_MAIN_OR_TARGET_INVALID;
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_NOT_CREATED;
-            break;
+            return GetRaiseMainWindowAboveTargetErrorMsg(error);
         case WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED:
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_ONLY_NON_MODAL;
-            break;
+            return GetExclusivelyHighlightedErrorMsg(error);
         case WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED:
-            if (error == WMError::WM_ERROR_INVALID_TYPE) return ERROR_TYPE_NOT_SUPPORT;
-            break;
+            return GetWindowDelayRaiseErrorMsg(error);
         case WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS:
-            if (error == WMError::WM_ERROR_INVALID_OPERATION) return ERROR_SOURCE_NOT_FOCUSED;
-            if (error == WMError::WM_ERROR_INVALID_CALLING) return ERROR_NOT_SAME_APP;
-            if (error == WMError::WM_DO_NOTHING) return ERROR_TARGET_ALREADY_FOCUSED;
-            break;
+            return GetShiftAppWindowFocusErrorMsg(error);
         case WindowFocusApiType::GET_TOP_WINDOW:
-            if (error == WMError::WM_ERROR_NULLPTR) return ERROR_CANNOT_FIND_TOP;
-            break;
+            return GetTopWindowErrorMsg(error);
         case WindowFocusApiType::IS_FOCUSED:
-            if (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_NULLPTR) {
-                return ERROR_NOT_CREATED;
-            }
-            break;
         case WindowFocusApiType::IS_WINDOW_HIGHLIGHTED:
-            if (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_NULLPTR) {
-                return ERROR_NOT_CREATED;
-            }
-            break;
+            return GetFocusQueryErrorMsg(error);
     }
 
     return "";

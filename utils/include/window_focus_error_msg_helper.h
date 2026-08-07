@@ -59,6 +59,22 @@ private:
 
     static const char* GetApiName(WindowFocusApiType apiType);
     static const char* GetSpecificErrorMsg(WindowFocusApiType apiType, WMError error);
+    static const char* GetFocusableErrorMsg(WMError error);
+    static const char* GetSubWindowModalErrorMsg(WMError error);
+    static const char* GetTopmostErrorMsg(WMError error);
+    static const char* GetRaiseToAppTopErrorMsg(WMError error);
+    static const char* GetSubWindowZLevelErrorMsg(WMError error);
+    static const char* GetSubWindowZLevelQueryErrorMsg(WMError error);
+    static const char* GetWindowModalErrorMsg(WMError error);
+    static const char* GetRaiseByClickErrorMsg(WMError error);
+    static const char* GetMainWindowRaiseByClickErrorMsg(WMError error);
+    static const char* GetRaiseAboveTargetErrorMsg(WMError error);
+    static const char* GetRaiseMainWindowAboveTargetErrorMsg(WMError error);
+    static const char* GetExclusivelyHighlightedErrorMsg(WMError error);
+    static const char* GetWindowDelayRaiseErrorMsg(WMError error);
+    static const char* GetShiftAppWindowFocusErrorMsg(WMError error);
+    static const char* GetTopWindowErrorMsg(WMError error);
+    static const char* GetFocusQueryErrorMsg(WMError error);
 };
 
 } // namespace Rosen

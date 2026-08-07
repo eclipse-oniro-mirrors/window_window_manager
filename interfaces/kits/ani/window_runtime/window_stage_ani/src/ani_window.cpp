@@ -1419,7 +1419,8 @@ void AniWindow::OnSetSubWindowZLevel(ani_env* env, ani_int zLevel)
     if (wmError != WMError::WM_OK) {
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel", ret);
-        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, wmError);
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+            wmError);
         AniWindowUtils::AniThrowError(env, ret, errMsg);
     }
 }

@@ -1590,7 +1590,6 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != 2) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "Argc is invalid: %{public}zu", argc);
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     int32_t sourcePersistentId = static_cast<int32_t>(INVALID_WINDOW_ID);
@@ -1604,11 +1603,9 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     if (errCode == WMError::WM_ERROR_INVALID_PARAM) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS,
-                WMError::WM_ERROR_INVALID_PARAM)));
+            "[window][shiftAppWindowFocus]"));
         return NapiGetUndefined(env);
     }
     napi_value lastParam = nullptr;
@@ -1630,7 +1627,6 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnShiftAppWindowFocus") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        TLOGE(WmsLogTag::WMS_FOCUS, "window state is abnormal!");
         napiAsyncTask->Reject(env,
             JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
                 "[window][shiftAppWindowFocus]msg: send event failed"));
