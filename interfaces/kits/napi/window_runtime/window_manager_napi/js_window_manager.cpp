@@ -1589,7 +1589,7 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc != 2) {
+    if (argc != 2) { // 2: params num
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     int32_t sourcePersistentId = static_cast<int32_t>(INVALID_WINDOW_ID);

@@ -45,7 +45,7 @@ namespace {
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgBasic, TestSize.Level1)
 {
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NULLPTR);
     EXPECT_EQ(0, msg.find(" "));
     EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
@@ -56,7 +56,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgBasic, TestSize.Level1)
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgFormat, TestSize.Level1)
 {
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NULLPTR);
 
     EXPECT_EQ(0, msg.find(" "));
@@ -75,7 +75,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgFormat, TestSize.Level1)
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralOnly, TestSize.Level1)
 {
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_INVALID_WINDOW);
 
     EXPECT_EQ(0, msg.find(" "));
@@ -94,7 +94,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralOnly, TestSize.Level1)
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralOnlyNoDetail, TestSize.Level1)
 {
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_IPC_FAILED);
 
     EXPECT_EQ(0, msg.find(" "));
@@ -111,7 +111,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgWithCustomMsg, TestSize.Level
 {
     std::string customMsg = "session creation failed due to memory limit";
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NULLPTR,
         customMsg);
 
@@ -126,7 +126,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralWithCustom, TestSize.L
 {
     std::string customMsg = "window creation timeout";
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_IPC_FAILED,
         customMsg);
 
@@ -141,21 +141,21 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgFixedGeneralError, TestSize.L
     std::string customMsg = "this should not appear";
 
     std::string msg801 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
         customMsg);
     EXPECT_NE(std::string::npos, msg801.find("Capability not supported"));
     EXPECT_EQ(std::string::npos, msg801.find(customMsg));
 
     std::string msg201 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_INVALID_PERMISSION,
         customMsg);
     EXPECT_NE(std::string::npos, msg201.find("Permission verification failed"));
     EXPECT_EQ(std::string::npos, msg201.find(customMsg));
 
     std::string msg202 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NOT_SYSTEM_APP,
         customMsg);
     EXPECT_NE(std::string::npos, msg202.find("non-system application"));
@@ -166,7 +166,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownError, TestSize.Level1
 {
     constexpr int32_t unknownError = -999;
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         static_cast<WMError>(unknownError));
     EXPECT_NE(std::string::npos, msg.find("failed"));
     EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
@@ -177,7 +177,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownWithCustom, TestSize.L
     constexpr int32_t unknownError = -999;
     std::string customMsg = "custom error detail";
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         static_cast<WMError>(unknownError),
         customMsg);
     EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
@@ -187,10 +187,10 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownWithCustom, TestSize.L
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgEmptyCustomMsg, TestSize.Level1)
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NULLPTR);
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE, 
+        WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NULLPTR,
         "");
     EXPECT_EQ(msg1, msg2);
@@ -199,13 +199,13 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgEmptyCustomMsg, TestSize.Leve
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgDifferentApiTypes, TestSize.Level1)
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_SUB_WINDOW_MODAL, 
+        WindowFocusApiType::SET_SUB_WINDOW_MODAL,
         WMError::WM_ERROR_INVALID_CALLING);
     EXPECT_NE(std::string::npos, msg1.find("setSubWindowModal"));
     EXPECT_NE(std::string::npos, msg1.find("Only sub windows are supported"));
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_WINDOW_TOPMOST, 
+        WindowFocusApiType::SET_WINDOW_TOPMOST,
         WMError::WM_ERROR_INVALID_CALLING);
     EXPECT_NE(std::string::npos, msg2.find("setWindowTopmost"));
     EXPECT_NE(std::string::npos, msg2.find("Only main windows are supported"));
@@ -217,7 +217,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownApiType, TestSize.Leve
 {
     constexpr WindowFocusApiType unknownApi = static_cast<WindowFocusApiType>(999);
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        unknownApi, 
+        unknownApi,
         WMError::WM_ERROR_NULLPTR);
     EXPECT_NE(std::string::npos, msg.find("[window]"));
 }
