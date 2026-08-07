@@ -1225,6 +1225,10 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
                 session->EditSessionInfo().reuseSessionInGamePreLaunch_ = false;
             }
         }
+        //
+        //
+        //
+        //
         if (event == SessionEvent::EVENT_START_MOVE) {
             if (!session->IsMovable(param.needFocused)) {
                 return WSError::WS_OK;
