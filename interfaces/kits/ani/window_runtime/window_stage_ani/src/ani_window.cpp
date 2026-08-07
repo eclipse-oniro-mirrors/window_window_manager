@@ -1723,7 +1723,7 @@ void AniWindow::OnRaiseMainWindowAboveTarget(ani_env* env, ani_int windowId)
 
 void AniWindow::SetWindowTopmost(ani_env* env, ani_boolean isWindowTopmost)
 {
-if (windowToken_ == nullptr) {
+    if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] OnSetWindowTopmost windowToken_ is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
