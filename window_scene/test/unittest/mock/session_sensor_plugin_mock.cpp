@@ -22,7 +22,7 @@ namespace Rosen {
 
 namespace {
 std::map<int32_t, OnMotionChangedPtr> g_callbackMap;
-std::mutex callbackMap_mutex;
+std::mutex g_callbackMapMutex;
 bool g_loaded = false;
 }
 
@@ -34,7 +34,7 @@ bool SessionLoadMotionSensor(void)
 
 void SessionUnloadMotionSensor(void)
 {
-    std::lock_guard<std::mutex> lock(callbackMap_mutex);
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
     g_callbackMap.clear();
     g_loaded = false;
 }
@@ -44,14 +44,14 @@ bool SessionSubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
     if (callback == nullptr) {
         return false;
     }
-    std::lock_guard<std::mutex> lock(callbackMap_mutex);
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
     g_callbackMap[motionType] = callback;
     return true;
 }
 
 bool SessionUnsubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
 {
-    std::lock_guard<std::mutex> lock(callbackMap_mutex);
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
     auto it = g_callbackMap.find(motionType);
     if (it != g_callbackMap.end() && it->second == callback) {
         g_callbackMap.erase(it);
@@ -62,7 +62,7 @@ bool SessionUnsubscribeCallback(int32_t motionType, OnMotionChangedPtr callback)
 
 void TriggerSessionMotionEvent(int32_t motionType, int32_t status)
 {
-    std::lock_guard<std::mutex> lock(callbackMap_mutex);
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
     auto it = g_callbackMap.find(motionType);
     if (it != g_callbackMap.end() && it->second != nullptr) {
         MotionSensorEvent event;
@@ -81,7 +81,7 @@ bool IsSessionMotionSensorLoaded()
 
 bool IsSessionMotionSensorSubscribed(int32_t motionType)
 {
-    std::lock_guard<std::mutex> lock(callbackMap_mutex);
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
     return g_callbackMap.find(motionType) != g_callbackMap.end();
 }
 
