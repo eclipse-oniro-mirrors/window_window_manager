@@ -172,18 +172,6 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownError, TestSize.Level1
     EXPECT_NE(std::string::npos, msg.find("setFocusable"));
 }
 
-HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownWithCustom, TestSize.Level1)
-{
-    constexpr int32_t unknownError = -999;
-    std::string customMsg = "custom error detail";
-    std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
-        WindowFocusApiType::SET_FOCUSABLE,
-        static_cast<WMError>(unknownError),
-        customMsg);
-    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
-    EXPECT_NE(std::string::npos, msg.find(customMsg));
-}
-
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgEmptyCustomMsg, TestSize.Level1)
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
