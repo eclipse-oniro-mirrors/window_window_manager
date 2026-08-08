@@ -502,17 +502,16 @@ static void CreateSubWindowTask(uint32_t parentWinId, std::string windowName, Wi
     windowOption->SetWindowType(winType);
     windowOption->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
     windowOption->SetParentId(parentWinId);
-    std::string errMsg;
-    sptr<Window> window = Window::Create(windowName, windowOption, errMsg);
+    sptr<Window> window = Window::Create(windowName, windowOption);
     if (window != nullptr) {
         task.Resolve(env, CreateJsWindowObject(env, window));
     } else {
         WLOGFE("Create window failed");
-        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
         if (newErrorCode) {
-            task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg));
+            task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "Create window failed"));
         } else {
-            task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR, msg));
+            task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR, "Create window failed"));
         }
     }
 }
