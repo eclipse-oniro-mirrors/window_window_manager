@@ -1783,10 +1783,10 @@ bool ScreenSessionManagerClient::GetSupportsFocus(DisplayId displayId)
         return false;
     }
     bool supportsFocus = screenSession->GetSupportsFocus();
-    bool canUse = screenSession->GetIsInternal() && screenSession->isInUse();
-    TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64", supportsFocus: %{public}d, canUse: %{public}d",
-        displayId, supportsFocus, canUse);
-    return supportsFocus && canUse;
+    bool isInUse = screenSession->isInUse();
+    TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64", supportsFocus: %{public}d, isInUse: %{public}d",
+        displayId, supportsFocus, isInUse);
+    return supportsFocus && isInUse;
 }
 
 void ScreenSessionManagerClient::RegisterTransRSEventListener(
