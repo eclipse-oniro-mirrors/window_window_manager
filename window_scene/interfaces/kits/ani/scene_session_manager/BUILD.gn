@@ -68,7 +68,6 @@ ohos_shared_library("scenesessionmanagerani_kit") {
   external_deps = [
     "ability_runtime:ability_manager",
     "ace_engine:ace_uicontent",
-    "graphic_2d:librender_service_base",
     "hilog:libhilog",
   ]
 
