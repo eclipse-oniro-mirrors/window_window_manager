@@ -221,6 +221,281 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownApiType, TestSize.Leve
         WMError::WM_ERROR_NULLPTR);
     EXPECT_NE(std::string::npos, msg.find("[window]"));
 }
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetFocusableAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_FOCUSABLE, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg1.find("not created or destroyed"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_FOCUSABLE, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_FOCUSABLE, WMError::WM_ERROR_INVALID_OPERATION);
+    EXPECT_NE(std::string::npos, msg3.find("not allowed to be focused"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetWindowFocusableAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_FOCUSABLE, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg1.find("not created or destroyed"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_FOCUSABLE, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_FOCUSABLE, WMError::WM_ERROR_INVALID_OPERATION);
+    EXPECT_NE(std::string::npos, msg3.find("not allowed to be focused"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetSubWindowModalAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_MODAL, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("Only sub windows are supported"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_MODAL, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_MODAL, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetTopmostAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_TOPMOST, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("Only main windows are supported"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_TOPMOST, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_TOPMOST, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetWindowTopmostAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_TOPMOST, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("Only main windows are supported"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_TOPMOST, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_TOPMOST, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgRaiseToAppTopAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("Only sub windows are supported"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_ERROR_INVALID_PARENT);
+    EXPECT_NE(std::string::npos, msg2.find("parent window does not exist"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+
+    std::string msg4 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg4.find("not shown"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetSubWindowZLevelAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("Only non-modal sub windows"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_INVALID_PARENT);
+    EXPECT_NE(std::string::npos, msg2.find("parent window does not exist"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGetSubWindowZLevelAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("sub windows are supported"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetWindowModalAllErrors, TestSize.Level1)
+{
+    std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_MODAL, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg.find("Only main windows are supported"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetRaiseByClickEnabledAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_INVALID_PARENT);
+    EXPECT_NE(std::string::npos, msg1.find("parent window does not exist"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg2.find("Only sub windows are supported"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+
+    std::string msg4 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg4.find("not shown"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetMainWindowRaiseByClickEnabledAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("Only main windows are supported"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg3.find("not shown"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgRaiseAboveTargetAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_ABOVE_TARGET, WMError::WM_ERROR_INVALID_PARENT);
+    EXPECT_NE(std::string::npos, msg1.find("parent window does not exist"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_ABOVE_TARGET, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg2.find("Only sub windows are supported"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_ABOVE_TARGET, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg3.find("not created or destroyed"));
+
+    std::string msg4 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_ABOVE_TARGET, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg4.find("or target window is not shown"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgRaiseMainWindowAboveTargetAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg1.find("target must not be modal or topmost"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetExclusivelyHighlightedAllErrors, TestSize.Level1)
+{
+    std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg.find("Only non-modal sub windows"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetWindowDelayRaiseEnabledAllErrors, TestSize.Level1)
+{
+    std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED, WMError::WM_ERROR_INVALID_TYPE);
+    EXPECT_NE(std::string::npos, msg.find("Only app windows are supported"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgShiftAppWindowFocusAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, WMError::WM_ERROR_INVALID_OPERATION);
+    EXPECT_NE(std::string::npos, msg1.find("source window is not focused"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, WMError::WM_ERROR_INVALID_CALLING);
+    EXPECT_NE(std::string::npos, msg2.find("not from the same process"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, WMError::WM_DO_NOTHING);
+    EXPECT_NE(std::string::npos, msg3.find("already focused"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGetTopWindowAllErrors, TestSize.Level1)
+{
+    std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::GET_TOP_WINDOW, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg.find("Cannot find top window"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgIsFocusedAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::IS_FOCUSED, WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_NE(std::string::npos, msg1.find("not created or destroyed"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::IS_FOCUSED, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgIsWindowHighlightedAllErrors, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::IS_WINDOW_HIGHLIGHTED, WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_NE(std::string::npos, msg1.find("not created or destroyed"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::IS_WINDOW_HIGHLIGHTED, WMError::WM_ERROR_NULLPTR);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgInvalidWindowAndSession, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_FOCUSABLE, WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_NE(std::string::npos, msg1.find("not created or destroyed"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_FOCUSABLE, WMError::WM_ERROR_INVALID_SESSION);
+    EXPECT_NE(std::string::npos, msg2.find("not created or destroyed"));
+}
+
+HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgAllApiTypesNoMatch, TestSize.Level1)
+{
+    std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_FOCUSABLE, WMError::WM_ERROR_IPC_FAILED);
+    EXPECT_NE(std::string::npos, msg1.find("failed"));
+
+    std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::SET_SUB_WINDOW_MODAL, WMError::WM_ERROR_IPC_FAILED);
+    EXPECT_NE(std::string::npos, msg2.find("failed"));
+
+    std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
+        WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_ERROR_IPC_FAILED);
+    EXPECT_NE(std::string::npos, msg3.find("failed"));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
