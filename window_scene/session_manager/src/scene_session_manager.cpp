@@ -21991,20 +21991,20 @@ WMError SceneSessionManager::NotifySupportRotationRegistered()
 
 bool SceneSessionManager::RegisterMotionSensor(int32_t motionType)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
     MotionManager::GetInstance().SetMotionEventListener(this);
     return MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
 }
 
 bool SceneSessionManager::UnregisterMotionSensor(int32_t motionType)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
     return MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
 }
 
 void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
     if (sensorRotationChangeListener_) {
         sensorRotationChangeListener_(sensorRotation);
     }
@@ -22012,7 +22012,7 @@ void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
 
 void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionSmartRotationChanged sensorRotation: %{public}f", sensorRotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
     if (smartSensorRotationChangeListener_) {
         smartSensorRotationChangeListener_(sensorRotation);
     }
