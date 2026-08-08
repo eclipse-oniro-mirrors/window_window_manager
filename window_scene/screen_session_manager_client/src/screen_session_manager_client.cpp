@@ -1784,7 +1784,7 @@ bool ScreenSessionManagerClient::GetSupportsFocus(DisplayId displayId)
     }
     bool supportsFocus = screenSession->GetSupportsFocus();
     bool canUse = screenSession->GetIsInternal() && screenSession->isInUse();
-    TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64", supportsFocus: %{public}d, canUse",
+    TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64", supportsFocus: %{public}d, canUse: %{public}d",
         displayId, supportsFocus, canUse);
     return supportsFocus && canUse;
 }
