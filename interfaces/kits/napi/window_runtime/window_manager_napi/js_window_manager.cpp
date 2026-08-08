@@ -398,13 +398,15 @@ static void CreateNewSystemWindowTask(void* contextPtr, sptr<WindowOption> windo
         }
     }
     WMError wmError = WMError::WM_OK;
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, context->lock(), wmError);
+    std::string errMsg;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg, context->lock(), wmError);
     WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
     if (window != nullptr && wmErrorCode == WmErrorCode::WM_OK) {
         task.Resolve(env, CreateJsWindowObject(env, window));
     } else {
         WLOGFE("Create window failed");
-        task.Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "Create window failed"));
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        task.Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, msg));
     }
 }
 

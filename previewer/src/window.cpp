@@ -28,7 +28,7 @@ sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& o
     const std::shared_ptr<RSUIContext>& rsUIContext)
 {
     std::string errMsg;
-    return Create(windowName, option, errMsg, context, errCode, rsUiContext);
+    return Create(windowName, option, errMsg, context, errCode, rsUIContext);
 }
 
 sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& option, std::string& errMsg,
