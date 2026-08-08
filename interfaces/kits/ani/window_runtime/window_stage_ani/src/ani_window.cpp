@@ -783,8 +783,8 @@ void AniWindow::OnSetShadow(ani_env* env, ani_double radius, ani_string color, a
     if (!WindowHelper::IsSystemWindow(window->GetType()) &&
         !WindowHelper::IsSubWindow(window->GetType())) {
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-           "[window][setShadow]msg: Only system windows,"
-            " global floating windows, modal windows and subwindows are supported.");
+            "[window][setShadow]msg: Only system windows, "
+            "global floating windows, modal windows and subwindows are supported.");
         return;
     }
 

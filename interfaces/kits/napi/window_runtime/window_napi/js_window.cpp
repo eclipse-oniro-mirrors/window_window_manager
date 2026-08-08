@@ -7405,6 +7405,7 @@ napi_value JsWindow::OnTranslate(napi_env env, napi_callback_info info)
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
             "[window][translate]msg: Only system windows, global floating windows, "
             "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
+    }
     napi_value nativeObj = argv[0];
     if (nativeObj == nullptr) {
         WLOGFE("Failed to convert object to TranslateOptions");
