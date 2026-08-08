@@ -48,7 +48,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgBasic, TestSize.Level1)
         WindowFocusApiType::SET_FOCUSABLE,
         WMError::WM_ERROR_NULLPTR);
     EXPECT_EQ(0, msg.find(" "));
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
     EXPECT_NE(std::string::npos, msg.find("msg:"));
     EXPECT_NE(std::string::npos, msg.find("not created or destroyed"));
 }
@@ -61,7 +61,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgFormat, TestSize.Level1)
 
     EXPECT_EQ(0, msg.find(" "));
 
-    size_t apiPos = msg.find("[window][setWindowFocusable]");
+    size_t apiPos = msg.find("[window][setFocusable]");
     size_t msgPos = msg.find("msg:");
     size_t specificPos = msg.find("The window is not created or destroyed.");
 
@@ -79,11 +79,11 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralOnly, TestSize.Level1)
         WMError::WM_ERROR_INVALID_WINDOW);
 
     EXPECT_EQ(0, msg.find(" "));
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
     EXPECT_NE(std::string::npos, msg.find("msg:"));
     EXPECT_NE(std::string::npos, msg.find("not created or destroyed"));
 
-    size_t apiPos = msg.find("[window][setWindowFocusable]");
+    size_t apiPos = msg.find("[window][setFocusable]");
     size_t msgPos = msg.find("msg:");
     size_t specificPos = msg.find("The window is not created or destroyed.");
 
@@ -98,10 +98,10 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralOnlyNoDetail, TestSize
         WMError::WM_ERROR_IPC_FAILED);
 
     EXPECT_EQ(0, msg.find(" "));
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
     EXPECT_NE(std::string::npos, msg.find("msg:"));
 
-    size_t apiPos = msg.find("[window][setWindowFocusable]");
+    size_t apiPos = msg.find("[window][setFocusable]");
     EXPECT_NE(std::string::npos, apiPos);
 
     EXPECT_EQ(std::string::npos, msg.find("The window is not created or destroyed"));
@@ -116,7 +116,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgWithCustomMsg, TestSize.Level
         customMsg);
 
     EXPECT_EQ(0, msg.find(" "));
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
     EXPECT_NE(std::string::npos, msg.find("msg:"));
     EXPECT_NE(std::string::npos, msg.find(customMsg));
     EXPECT_EQ(std::string::npos, msg.find("not created or destroyed"));
@@ -131,7 +131,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGeneralWithCustom, TestSize.L
         customMsg);
 
     EXPECT_EQ(0, msg.find(" "));
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
     EXPECT_NE(std::string::npos, msg.find("msg:"));
     EXPECT_NE(std::string::npos, msg.find(customMsg));
 }
@@ -169,7 +169,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownError, TestSize.Level1
         WindowFocusApiType::SET_FOCUSABLE,
         static_cast<WMError>(unknownError));
     EXPECT_NE(std::string::npos, msg.find("failed"));
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
 }
 
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownWithCustom, TestSize.Level1)
@@ -180,7 +180,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgUnknownWithCustom, TestSize.L
         WindowFocusApiType::SET_FOCUSABLE,
         static_cast<WMError>(unknownError),
         customMsg);
-    EXPECT_NE(std::string::npos, msg.find("setWindowFocusable"));
+    EXPECT_NE(std::string::npos, msg.find("setFocusable"));
     EXPECT_NE(std::string::npos, msg.find(customMsg));
 }
 
@@ -202,7 +202,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgDifferentApiTypes, TestSize.L
         WindowFocusApiType::SET_SUB_WINDOW_MODAL,
         WMError::WM_ERROR_INVALID_CALLING);
     EXPECT_NE(std::string::npos, msg1.find("setSubWindowModal"));
-    EXPECT_NE(std::string::npos, msg1.find("Only sub windows are supported"));
+    EXPECT_NE(std::string::npos, msg1.find("Only subwindows are supported"));
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_WINDOW_TOPMOST,
@@ -256,7 +256,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetSubWindowModalAllErrors, T
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_SUB_WINDOW_MODAL, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg1.find("Only sub windows are supported"));
+    EXPECT_NE(std::string::npos, msg1.find("Only subwindows are supported"));
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_SUB_WINDOW_MODAL, WMError::WM_ERROR_NULLPTR);
@@ -301,7 +301,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgRaiseToAppTopAllErrors, TestS
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg1.find("Only sub windows are supported"));
+    EXPECT_NE(std::string::npos, msg1.find("Only subwindows are supported"));
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::RAISE_TO_APP_TOP, WMError::WM_ERROR_INVALID_PARENT);
@@ -320,7 +320,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetSubWindowZLevelAllErrors, 
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg1.find("Only non-modal sub windows"));
+    EXPECT_NE(std::string::npos, msg1.find("Only non-modal subwindows"));
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_INVALID_PARENT);
@@ -335,7 +335,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgGetSubWindowZLevelAllErrors, 
 {
     std::string msg1 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg1.find("sub windows are supported"));
+    EXPECT_NE(std::string::npos, msg1.find("subwindows are supported"));
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL, WMError::WM_ERROR_NULLPTR);
@@ -357,7 +357,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetRaiseByClickEnabledAllErro
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg2.find("Only sub windows are supported"));
+    EXPECT_NE(std::string::npos, msg2.find("Only subwindows are supported"));
 
     std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, WMError::WM_ERROR_NULLPTR);
@@ -391,7 +391,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgRaiseAboveTargetAllErrors, Te
 
     std::string msg2 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::RAISE_ABOVE_TARGET, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg2.find("Only sub windows are supported"));
+    EXPECT_NE(std::string::npos, msg2.find("Only subwindows are supported"));
 
     std::string msg3 = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::RAISE_ABOVE_TARGET, WMError::WM_ERROR_NULLPTR);
@@ -417,7 +417,7 @@ HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetExclusivelyHighlightedAllE
 {
     std::string msg = WindowFocusErrorMsgHelper::GetErrorMsg(
         WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED, WMError::WM_ERROR_INVALID_CALLING);
-    EXPECT_NE(std::string::npos, msg.find("Only non-modal sub windows"));
+    EXPECT_NE(std::string::npos, msg.find("Only non-modal subwindows"));
 }
 
 HWTEST_F(WindowFocusErrorMsgHelperTest, GetErrorMsgSetWindowDelayRaiseEnabledAllErrors, TestSize.Level1)
