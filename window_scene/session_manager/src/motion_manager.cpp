@@ -220,7 +220,7 @@ void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
 
 void MotionManager::HandleDeviceSensorRotation(float rotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "HandleDeviceSensorRotation rotation: %{public}f", rotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation: %{public}f", rotation);
     if (lastMotionRotation_ == rotation) {
         TLOGD(WmsLogTag::WMS_ROTATION, "rotation unchanged, skip notification");
         return;
@@ -233,7 +233,7 @@ void MotionManager::HandleDeviceSensorRotation(float rotation)
 
 void MotionManager::HandleSmartSensorRotation(float rotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "HandleSmartSensorRotation rotation: %{public}f", rotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation: %{public}f", rotation);
     lastSmartMotionRotation_ = rotation;
     if (motionEventListener_ != nullptr) {
         motionEventListener_->OnMotionSmartRotationChanged(rotation);

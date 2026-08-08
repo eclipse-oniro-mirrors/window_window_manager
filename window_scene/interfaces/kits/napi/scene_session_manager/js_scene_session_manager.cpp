@@ -6098,20 +6098,16 @@ napi_value JsSceneSessionManager::OnRegisterMotionSensor(napi_env env, napi_call
         TLOGE(WmsLogTag::WMS_ROTATION, "Argc count is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
-        napi_value result = nullptr;
-        napi_get_boolean(env, false, &result);
-        return result;
+        return NapiGetUndefined(env);
     }
     int32_t motionType = 0;
     if (!ConvertFromJsValue(env, argv[0], motionType)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert motionType");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
-        napi_value result = nullptr;
-        napi_get_boolean(env, false, &result);
-        return result;
+        return NapiGetUndefined(env);
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "RegisterMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
     bool ret = SceneSessionManager::GetInstance().RegisterMotionSensor(motionType);
     napi_value result = nullptr;
     napi_get_boolean(env, ret, &result);
@@ -6127,20 +6123,16 @@ napi_value JsSceneSessionManager::OnUnregisterMotionSensor(napi_env env, napi_ca
         TLOGE(WmsLogTag::WMS_ROTATION, "Argc count is invalid: %{public}zu", argc);
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
-        napi_value result = nullptr;
-        napi_get_boolean(env, false, &result);
-        return result;
+        return NapiGetUndefined(env);
     }
     int32_t motionType = 0;
     if (!ConvertFromJsValue(env, argv[0], motionType)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert motionType");
         napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
                                       "Input parameter is missing or invalid"));
-        napi_value result = nullptr;
-        napi_get_boolean(env, false, &result);
-        return result;
+        return NapiGetUndefined(env);
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "UnregisterMotionSensor motionType: %{public}d", motionType);
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
     bool ret = SceneSessionManager::GetInstance().UnregisterMotionSensor(motionType);
     napi_value result = nullptr;
     napi_get_boolean(env, ret, &result);
