@@ -21,13 +21,11 @@
 #include "refbase.h"
 #include "dm_common.h"
 #include "screen_rotation_property.h"
-#include "screen_sensor_plugin.h"
+#include "session_sensor_plugin.h"
 #include "window_manager_hilog.h"
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 constexpr int32_t DISABLED_SMART_ROTATION = 0;
 constexpr int32_t ENABLED_SMART_ROTATION = 1;
-#endif
 
 namespace OHOS {
 namespace Rosen {
@@ -49,6 +47,7 @@ class IMotionEventListener {
 public:
     virtual ~IMotionEventListener() = default;
     virtual void OnMotionRotationChanged(float sensorRotation) = 0;
+    virtual void OnMotionSmartRotationChanged(float sensorRotation) = 0;
 };
 
 class MotionManager {
@@ -58,23 +57,15 @@ public:
     void Init();
     void SetMotionEventListener(IMotionEventListener* listener);
     
-    void SubscribeMotionSensor(MotionType motionType);
-    void UnsubscribeMotionSensor(MotionType motionType);
-    
-    void OnScreenOn();
-    void OnScreenOff();
+    bool SubscribeMotionSensor(MotionType motionType);
+    bool UnsubscribeMotionSensor(MotionType motionType);
     
     float GetLastMotionRotation() const;
     float GetLastSmartMotionRotation() const;
     
     bool IsMotionSensorSubscribed(MotionType motionType) const;
-    bool NeedMotionSensorSubscribe(MotionType motionType) const;
-    bool IsScreenOn() const;
     bool IsInitialized() const;
-    bool IsDefaultSmartMotionEnabled() const;
     void Reset();
-    void SetScreenOnState(bool isScreenOn);
-    void SetDefaultSmartMotionEnabled(bool enabled);
     
     void TestHandleMotionEvent(MotionType motionType, float rotation);
     
@@ -84,10 +75,9 @@ private:
     MotionManager(const MotionManager&) = delete;
     MotionManager& operator=(const MotionManager&) = delete;
     
-    void SubscribeDefaultMotionSensors();
     void UnsubscribeAllMotionSensors();
-    void SubscribeMotionSensorInternal(MotionType motionType);
-    void UnsubscribeMotionSensorInternal(MotionType motionType);
+    bool SubscribeMotionSensorInternal(MotionType motionType);
+    bool UnsubscribeMotionSensorInternal(MotionType motionType);
     void HandleMotionEvent(MotionType motionType, float rotation);
     void HandleDeviceSensorRotation(float rotation);
     void HandleSmartSensorRotation(float rotation);
@@ -100,19 +90,12 @@ private:
     std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;
     
-    // 已注册类型
     std::map<MotionType, bool> subscribedMotionTypes_;
-    // 亮屏时需要注册类型
-    std::map<MotionType, bool> needSubscribedMotionTypes_;
     float lastMotionRotation_ = -1.0f;
     float lastSmartMotionRotation_ = -1.0f;
-    
-    bool isDefaultSmartMotionEnabled_ = false;
-    bool isScreenOn_ = true;
     bool isInitialized_ = false;
 };
 
-#ifdef WM_SUBSCRIBE_MOTION_ENABLE
 class MotionSubscriberWrapper {
 friend MotionManager;
 public:
@@ -124,7 +107,6 @@ private:
     
     static std::map<MotionType, bool> isMotionSubscribedMap_;
 };
-#endif
 
 } // namespace Rosen
 } // namespace OHOS

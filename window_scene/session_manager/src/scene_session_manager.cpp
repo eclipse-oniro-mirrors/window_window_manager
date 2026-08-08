@@ -75,6 +75,7 @@
 #include "scene_screen_change_listener.h"
 #include "scene_system_ability_listener.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "motion_manager.h"
 #include "session/host/include/ability_info_manager.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_controller.h"
@@ -604,6 +605,8 @@ void SceneSessionManager::Init()
 
     // Initialize locale indexing configuration
     OHOS::Rosen::TextConfig::SetLocaleTextBreakEnabled(true);
+
+    MotionManager::GetInstance().Init();
 }
 
 void SceneSessionManager::RegisterBrightnessDataChangeListener()
@@ -22020,6 +22023,49 @@ WMError SceneSessionManager::NotifySupportRotationRegistered()
         TLOGE(WmsLogTag::WMS_ROTATION, "supportRotationRegisteredListener_ is null");
     }
     return WMError::WM_OK;
+}
+
+bool SceneSessionManager::RegisterMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
+    MotionManager::GetInstance().SetMotionEventListener(this);
+    return MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
+}
+
+bool SceneSessionManager::UnregisterMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
+    return MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
+}
+
+void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
+    if (sensorRotationChangeListener_) {
+        sensorRotationChangeListener_(sensorRotation);
+    }
+}
+
+void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
+    if (smartSensorRotationChangeListener_) {
+        smartSensorRotationChangeListener_(sensorRotation);
+    }
+}
+
+void SceneSessionManager::SetSensorRotationChangeListener(NotifySensorRotationChangeFunc&& func)
+{
+    taskScheduler_->PostAsyncTask([this, func] {
+        sensorRotationChangeListener_ = std::move(func);
+    }, __func__);
+}
+
+void SceneSessionManager::SetSmartSensorRotationChangeListener(NotifySmartSensorRotationChangeFunc&& func)
+{
+    taskScheduler_->PostAsyncTask([this, func] {
+        smartSensorRotationChangeListener_ = std::move(func);
+    }, __func__);
 }
 
 WMError SceneSessionManager::GetAllJsonProfile(AppExecFwk::ProfileType profileType, int32_t userId,
