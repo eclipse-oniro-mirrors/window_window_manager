@@ -856,6 +856,8 @@ public:
         const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback);
     std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>
         isSessionBoundedSystemTrayCallback_;
+    virtual bool GetSessionBoundedSystemTray(
+        int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const { return false; }
 
     /*
      * Window Decor

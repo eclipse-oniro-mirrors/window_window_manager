@@ -5252,7 +5252,12 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
             UpdatePipGroupCount(property->GetPiPTemplateInfo(), true);
         }
 
-        NotifyCreateSpecificSession(newSession, property, type);
+        bool isBoundedSystemTray = false;
+        if (parentSession) {
+            std::string appInstanceKey = parentSession->GetSessionProperty()->GetAppInstanceKey();
+            isBoundedSystemTray = parentSession->GetSessionBoundedSystemTray(pid, tokenId, appInstanceKey);
+        }
+        NotifyCreateSpecificSession(newSession, property, type, isBoundedSystemTray);
         session = newSession;
         renderSession = ScreenSessionManagerClient::GetInstance().GetRenderSessionToken();
         AddClientDeathRecipient(sessionStage, newSession);
@@ -6173,7 +6178,7 @@ void SceneSessionManager::SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>&
 }
 
 void SceneSessionManager::NotifyCreateSpecificSession(sptr<SceneSession> newSession,
-    sptr<WindowSessionProperty> property, const WindowType& type)
+    sptr<WindowSessionProperty> property, const WindowType& type, bool isBoundedSystemTray)
 {
     if (newSession == nullptr || property == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "newSession or property is nullptr");
@@ -6208,7 +6213,7 @@ void SceneSessionManager::NotifyCreateSpecificSession(sptr<SceneSession> newSess
             return;
         }
     } else if (SessionHelper::IsSubWindow(type)) {
-        NotifyCreateSubSession(property->GetParentPersistentId(), newSession);
+        NotifyCreateSubSession(property->GetParentPersistentId(), newSession, 0, isBoundedSystemTray);
         TLOGD(WmsLogTag::WMS_LIFE, "Notify sub jsSceneSession, id:%{public}d, parentId:%{public}d, type:%{public}d",
             newSession->GetPersistentId(), property->GetParentPersistentId(), type);
     } else {
@@ -6217,7 +6222,8 @@ void SceneSessionManager::NotifyCreateSpecificSession(sptr<SceneSession> newSess
     }
 }
 
-void SceneSessionManager::NotifyCreateSubSession(int32_t persistentId, sptr<SceneSession> session, uint32_t windowFlags)
+void SceneSessionManager::NotifyCreateSubSession(
+    int32_t persistentId, sptr<SceneSession> session, uint32_t windowFlags, bool isBoundedSystemTray)
 {
     if (session == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "SubSession is nullptr");
@@ -6245,7 +6251,7 @@ void SceneSessionManager::NotifyCreateSubSession(int32_t persistentId, sptr<Scen
     parentSession->AddSubSession(session);
     session->SetParentSession(parentSession);
     if (createSubSessionFunc) {
-        createSubSessionFunc(session);
+        createSubSessionFunc(session, isBoundedSystemTray);
     }
     TLOGD(WmsLogTag::WMS_LIFE, "Notify success, parentId: %{public}d, subId: %{public}d",
         persistentId, session->GetPersistentId());

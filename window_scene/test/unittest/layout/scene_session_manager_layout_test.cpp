@@ -662,7 +662,7 @@ HWTEST_F(SceneSessionManagerLayoutTest, RecoverCachedSubSession_WithAnchorInfo, 
     ssm_->recoverSubSessionCacheMap_[200].emplace_back(subSession);
 
     // Register createSubSessionFunc so NotifyCreateSubSession establishes parent-child
-    ssm_->createSubSessionFuncMap_[200] = [](const sptr<SceneSession>& session) {};
+    ssm_->createSubSessionFuncMap_[200] = [](const sptr<SceneSession>& session, bool isBoundedSystemTray) {};
 
     // Recover - NotifyCreateSubSession sets up parent-child, then SetWindowAnchorInfo propagates
     ssm_->RecoverCachedSubSession(200);
