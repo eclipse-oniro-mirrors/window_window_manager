@@ -2047,7 +2047,7 @@ void WindowManager::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChan
         WLOGFE("focusChangeInfo is nullptr.");
         return;
     }
-    TLOGD(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
+    TLOGI(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
     if (focused) {
         pImpl_->NotifyFocused(focusChangeInfo);
     } else {
