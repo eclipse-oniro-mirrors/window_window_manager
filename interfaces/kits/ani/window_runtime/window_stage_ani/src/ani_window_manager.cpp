@@ -153,7 +153,7 @@ ani_ref AniWindowManager::OnGetLastWindow(ani_env* env, ani_object aniContext)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-            "[window][getLatsWindow]msg: Top window or main window is not created or destroyed.");
+            "[window][getLastWindow]msg: Top window or main window is not created or destroyed.");
     }
     return CreateAniWindowObject(env, window);
 }

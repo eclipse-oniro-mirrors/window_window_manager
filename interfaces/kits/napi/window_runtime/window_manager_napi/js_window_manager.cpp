@@ -1628,7 +1628,7 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env,
-            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                 "[window][shiftAppWindowFocus]msg: send event failed"));
     }
     return result;
