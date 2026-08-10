@@ -2672,6 +2672,12 @@ WMError WindowImpl::NotifyWindowTransition(TransitionReason reason)
 
 WMError WindowImpl::Minimize()
 {
+    std::string errMsg;
+    return Minimize(errMsg);
+}
+
+WMError WindowImpl::Minimize(std::string& errMsg)
+{
     WLOGI("id: %{public}u Minimize", property_->GetWindowId());
     if (!IsWindowValid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;

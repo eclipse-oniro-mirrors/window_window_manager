@@ -27,6 +27,14 @@ sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& o
     const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode,
     const std::shared_ptr<RSUIContext>& rsUIContext)
 {
+    std::string errMsg;
+    return Create(windowName, option, errMsg, context, errCode, rsUIContext);
+}
+
+sptr<Window> Window::Create(const std::string& windowName, sptr<WindowOption>& option, std::string& errMsg,
+    const std::shared_ptr<OHOS::AbilityRuntime::Context>& context, WMError& errCode,
+    const std::shared_ptr<RSUIContext>& rsUIContext)
+{
     if (option == nullptr) {
         option = new(std::nothrow) WindowOption();
         if (option == nullptr) {

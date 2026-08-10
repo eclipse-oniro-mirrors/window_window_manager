@@ -715,6 +715,11 @@ WMError WindowImpl::Minimize()
     return WMError::WM_OK;
 }
 
+WMError WindowImpl::Minimize(std::string& errMsg)
+{
+    return WMError::WM_OK;
+}
+
 WMError WindowImpl::Recover()
 {
     return WMError::WM_OK;

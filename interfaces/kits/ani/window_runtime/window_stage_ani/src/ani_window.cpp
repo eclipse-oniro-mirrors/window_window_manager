@@ -2759,9 +2759,12 @@ void AniWindow::OnRegisterWindowCallback(ani_env* env, ani_string type, ani_ref 
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
-    WmErrorCode ret = registerManager_->RegisterListener(window, cbType, CaseType::CASE_WINDOW, env, callback, timeout);
+    std::string errMsgPrefix = "[window][on('" + cbType + "')]msg: ";
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->RegisterListener(window, cbType, CaseType::CASE_WINDOW, env, callback, timeout,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Register listener failed." : errMsg));
         return;
     }
 }
@@ -2792,9 +2795,13 @@ void AniWindow::OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_re
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
-    WmErrorCode ret = registerManager_->UnregisterListener(window, cbType, CaseType::CASE_WINDOW, env, callback);
+    std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->UnregisterListener(window, cbType, CaseType::CASE_WINDOW, env, callback,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret,
+            errMsgPrefix + (errMsg.empty() ? "Unregister listener failed." : errMsg));
         return;
     }
 }
@@ -2944,8 +2951,9 @@ void AniWindow::OnBindDialogTarget(ani_env* env, ani_object argv, ani_ref deathC
         return;
     }
 
+    std::string errMsg;
     registerManager_->RegisterListener(windowToken_, "dialogDeathRecipient",
-        CaseType::CASE_WINDOW, env, deathCallback, 0.0);
+        CaseType::CASE_WINDOW, env, deathCallback, 0.0, errMsg);
     wptr<Window> weakToken(windowToken_);
     auto window = weakToken.promote();
     if (window == nullptr) {
@@ -3646,10 +3654,12 @@ ani_ref AniWindow::GetParentWindow(ani_env* env)
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
     sptr<Window> parentWindow = nullptr;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetParentWindow(parentWindow));
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetParentWindow(parentWindow, errMsg));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] get failed, result=%{public}d", ret);
-        return AniWindowUtils::AniThrowError(env, ret);
+        std::string msg = "[window][getParentWindow]msg: " + (errMsg.empty() ? "Get parent window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, ret, msg);
     }
     if (parentWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] parentWindow is nullptr");
@@ -3666,11 +3676,13 @@ void AniWindow::SetParentWindow(ani_env* env, ani_int windowId)
         return;
     }
     int32_t newParentWindowId = static_cast<int32_t>(windowId);
-    WMError ret = windowToken_->SetParentWindow(newParentWindowId);
+    std::string errMsg;
+    WMError ret = windowToken_->SetParentWindow(newParentWindowId, errMsg);
     if (ret != WMError::WM_OK) {
         WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
         TLOGE(WmsLogTag::WMS_SUB, "[ANI] Set parent window failed");
-        AniWindowUtils::AniThrowError(env, wmErrorCode);
+        std::string msg = "[window][setParentWindow]msg: " + (errMsg.empty() ? "Set parent window failed." : errMsg);
+        AniWindowUtils::AniThrowError(env, wmErrorCode, msg);
     } else {
         TLOGI(WmsLogTag::WMS_SUB, "[ANI] windowId: %{public}u set parent window id: %{public}u end",
             windowToken_->GetWindowId(), newParentWindowId);
@@ -5141,12 +5153,14 @@ void AniWindow::OnMinimize(ani_env* env)
         return;
     }
  
-    WMError ret = windowToken_->Minimize();
+    std::string errMsg;
+    WMError ret = windowToken_->Minimize(errMsg);
     TLOGNI(WmsLogTag::WMS_PC, "[ANI] Window [%{public}u, %{public}s] minimize end, ret=%{public}d",
         windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), ret);
     if (ret != WMError::WM_OK) {
         WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
-        AniWindowUtils::AniThrowError(env, wmErrorCode);
+        std::string msg = "[window][minimize]msg: " + (errMsg.empty() ? "Minimize failed." : errMsg);
+        AniWindowUtils::AniThrowError(env, wmErrorCode, msg);
     }
 }
  
@@ -6454,8 +6468,9 @@ static void RegisterAttachOptionCallbacks(sptr<Window> windowToken, ani_env* env
     ani_ref parentWindowSizeChangeCallback;
     if (getPropertyAndCheckUndefined(attachOptions, "parentWindowSizeChangeCallback",
         parentWindowSizeChangeCallback, "parentWindowSizeChangeCallback")) {
+        std::string errMsg;
         if (registerManager->RegisterListener(windowToken, "parentWindowSizeChange",
-            CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallback, 0) != WmErrorCode::WM_OK) {
+            CaseType::CASE_WINDOW, env, parentWindowSizeChangeCallback, 0, errMsg) != WmErrorCode::WM_OK) {
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
             return;
         }
@@ -6464,8 +6479,9 @@ static void RegisterAttachOptionCallbacks(sptr<Window> windowToken, ani_env* env
     ani_ref parentWindowStatusChangeCallback;
     if (getPropertyAndCheckUndefined(attachOptions, "parentWindowStatusChangeCallback",
         parentWindowStatusChangeCallback, "parentWindowStatusChangeCallback")) {
+        std::string errMsg;
         if (registerManager->RegisterListener(windowToken, "parentWindowStatusChange",
-            CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallback, 0) != WmErrorCode::WM_OK) {
+            CaseType::CASE_WINDOW, env, parentWindowStatusChangeCallback, 0, errMsg) != WmErrorCode::WM_OK) {
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
             return;
         }
@@ -6659,8 +6675,9 @@ void AniWindow::OnDetachLayoutToParentWindow(ani_env* env)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
         return;
     }
+    std::string errMsg;
     WmErrorCode sizeChangeRet = registerManager_->UnregisterListener(windowToken_, "parentWindowSizeChange",
-        CaseType::CASE_WINDOW, env, nullptr);
+        CaseType::CASE_WINDOW, env, nullptr, errMsg);
     if (sizeChangeRet != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.detachLayoutToParentWindow",
             sizeChangeRet);
@@ -6669,7 +6686,7 @@ void AniWindow::OnDetachLayoutToParentWindow(ani_env* env)
     }
 
     WmErrorCode statusChangeRet = registerManager_->UnregisterListener(windowToken_, "parentWindowStatusChange",
-        CaseType::CASE_WINDOW, env, nullptr);
+        CaseType::CASE_WINDOW, env, nullptr, errMsg);
     if (statusChangeRet != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.detachLayoutToParentWindow", statusChangeRet);
         AniWindowUtils::AniThrowError(env, statusChangeRet);
@@ -6853,18 +6870,20 @@ ani_object AniWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_string name
         !WindowHelper::IsMainWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_SUB, "%{public}d", windowToken_->GetType());
         return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "invalid window type");
+            "Invalid window type. Only main windows, subwindows, and floating windows are supported");
     }
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     windowOption->SetOnlySupportSceneBoard(true);
     windowOption->SetParentId(windowToken_->GetWindowId());
     windowOption->SetWindowTag(WindowTag::SUB_WINDOW);
-    auto subWindow = Window::Create(windowName, windowOption, windowToken_->GetContext());
+    std::string errMsg;
+    auto subWindow = Window::Create(windowName, windowOption, errMsg, windowToken_->GetContext());
     if (subWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "create sub window failed");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "create sub window failed");
+        std::string msg = "[window][createSubWindowWithOptions]msg: " +
+            (errMsg.empty() ? "Create sub window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg);
     }
     TLOGI(WmsLogTag::WMS_SUB, "Create sub window %{public}s end", windowName.c_str());
     return static_cast<ani_object>(CreateAniWindowObject(env, subWindow));
