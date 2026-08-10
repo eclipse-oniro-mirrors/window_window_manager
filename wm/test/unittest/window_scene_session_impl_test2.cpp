@@ -2623,7 +2623,7 @@ HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnBranch, Test
 
 /**
  * @tc.name: RaiseMainWindowAboveTarget_NotSpnBranch
- * @tc.desc: Test RaiseMainWindowAboveTarget when IsSpnOuterScreen returns false
+ * @tc.desc: Test RaiseMainWindowAboveTarget when IsSuperMultiFoldOuterScreen returns false
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_NotSpnBranch, TestSize.Level1)
@@ -2645,7 +2645,7 @@ HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_NotSpnBranch, T
 
 /**
  * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen01
- * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
+ * @tc.desc: Test IsSuperMultiFoldOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen01, TestSize.Level1)
@@ -2659,12 +2659,12 @@ HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen0
     sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(sourceSession, nullptr);
     sourceSession->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
-    EXPECT_TRUE(sourceSession->IsSpnOuterScreen());
+    EXPECT_TRUE(sourceSession->IsSuperMultiFoldOuterScreen());
 }
 
 /**
  * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen02
- * @tc.desc: Test IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
+ * @tc.desc: Test IsSuperMultiFoldOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen02, TestSize.Level1)
@@ -2675,7 +2675,7 @@ HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen0
     sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     ASSERT_NE(sourceSession, nullptr);
     sourceSession->property_->SetDisplayId(0);
-    EXPECT_FALSE(sourceSession->IsSpnOuterScreen());
+    EXPECT_FALSE(sourceSession->IsSuperMultiFoldOuterScreen());
 }
 }
 } // namespace

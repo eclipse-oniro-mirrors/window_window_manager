@@ -6475,7 +6475,7 @@ WSError Session::UpdateLSStateInfo(bool isLSState)
     return sessionStage_->UpdateLSState(isLSState);
 }
 
-bool Session::IsSpnOuterScreen() const
+bool Session::IsSuperMultiFoldOuterScreen() const
 {
     return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
 }

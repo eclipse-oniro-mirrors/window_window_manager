@@ -3496,7 +3496,7 @@ WMError WindowSessionImpl::SetTouchable(bool isTouchable)
     return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_TOUCHABLE);
 }
 
-bool WindowSessionImpl::IsSpnOuterScreen() const
+bool WindowSessionImpl::IsSuperMultiFoldOuterScreen() const
 {
     return FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && GetDisplayId() == SCREEN_ID_MAIN;
 }
@@ -3505,8 +3505,8 @@ bool WindowSessionImpl::IsSpnOuterScreen() const
 WMError WindowSessionImpl::SetTopmost(bool topmost)
 {
     TLOGD(WmsLogTag::WMS_HIERARCHY, "%{public}d", topmost);
-    if (IsSpnOuterScreen()) {
-        return WMError::WM_OK;
+    if (IsSuperMultiFoldOuterScreen()) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "SetTopmost on SPN outer screen, topmost=%{public}d", topmost);
     }
     if (!IsPcOrPadFreeMultiWindowMode()) {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -3527,8 +3527,8 @@ bool WindowSessionImpl::IsTopmost() const
 /** @note @window.hierarchy */
 WMError WindowSessionImpl::SetMainWindowTopmost(bool isTopmost)
 {
-    if (IsSpnOuterScreen()) {
-        return WMError::WM_OK;
+    if (IsSuperMultiFoldOuterScreen()) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "SetMainWindowTopmost on SPN outer screen, isTopmost=%{public}d", isTopmost);
     }
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "session is invalid");
@@ -4650,8 +4650,8 @@ WMError WindowSessionImpl::SetWindowTitleMoveEnabled(bool enable)
 
 WMError WindowSessionImpl::SetSubWindowModal(bool isModal, ModalityType modalityType)
 {
-    if (IsSpnOuterScreen()) {
-        return WMError::WM_OK;
+    if (IsSuperMultiFoldOuterScreen()) {
+        TLOGI(WmsLogTag::WMS_SUB, "SetSubWindowModal on SPN outer screen, isModal=%{public}d", isModal);
     }
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -4700,8 +4700,8 @@ WMError WindowSessionImpl::SetSubWindowModal(bool isModal, ModalityType modality
 
 WMError WindowSessionImpl::SetWindowModal(bool isModal)
 {
-    if (IsSpnOuterScreen()) {
-        return WMError::WM_OK;
+    if (IsSuperMultiFoldOuterScreen()) {
+        TLOGI(WmsLogTag::WMS_MAIN, "SetWindowModal on SPN outer screen, isModal=%{public}d", isModal);
     }
     if (IsWindowSessionInvalid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;

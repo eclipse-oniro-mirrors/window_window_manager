@@ -3048,7 +3048,7 @@ HWTEST_F(WindowSessionImplTest5, SetTopmost_SpnOuterScreen, TestSize.Level1)
 
 /**
  * @tc.name: SetTopmost_NotSpnOuterScreen
- * @tc.desc: Test SetTopmost when IsSpnOuterScreen returns false, should not return WM_OK
+ * @tc.desc: Test SetTopmost when IsSuperMultiFoldOuterScreen returns false, should not return WM_OK
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplTest5, SetTopmost_NotSpnOuterScreen, TestSize.Level1)
@@ -3087,7 +3087,7 @@ HWTEST_F(WindowSessionImplTest5, SetMainWindowTopmost_SpnOuterScreen, TestSize.L
 
 /**
  * @tc.name: SetMainWindowTopmost_NotSpnOuterScreen
- * @tc.desc: Test SetMainWindowTopmost when IsSpnOuterScreen returns false, should not return WM_OK
+ * @tc.desc: Test SetMainWindowTopmost when IsSuperMultiFoldOuterScreen returns false, should not return WM_OK
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplTest5, SetMainWindowTopmost_NotSpnOuterScreen, TestSize.Level1)
@@ -3105,39 +3105,39 @@ HWTEST_F(WindowSessionImplTest5, SetMainWindowTopmost_NotSpnOuterScreen, TestSiz
 }
 
 /**
- * @tc.name: IsSpnOuterScreen01
- * @tc.desc: Test IsSpnOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
+ * @tc.name: IsSuperMultiFoldOuterScreen01
+ * @tc.desc: Test IsSuperMultiFoldOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest5, IsSpnOuterScreen01, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest5, IsSuperMultiFoldOuterScreen01, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         GTEST_SKIP() << "Not SPN device, skipping test.";
     }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("IsSpnOuterScreen01");
+    option->SetWindowName("IsSuperMultiFoldOuterScreen01");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     window->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
-    EXPECT_TRUE(window->IsSpnOuterScreen());
+    EXPECT_TRUE(window->IsSuperMultiFoldOuterScreen());
 }
 
 /**
- * @tc.name: IsSpnOuterScreen02
- * @tc.desc: Test IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
+ * @tc.name: IsSuperMultiFoldOuterScreen02
+ * @tc.desc: Test IsSuperMultiFoldOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest5, IsSpnOuterScreen02, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest5, IsSuperMultiFoldOuterScreen02, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         GTEST_SKIP() << "Not SPN device, skipping test.";
     }
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("IsSpnOuterScreen02");
+    option->SetWindowName("IsSuperMultiFoldOuterScreen02");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     ASSERT_NE(window, nullptr);
     window->property_->SetDisplayId(0);
-    EXPECT_FALSE(window->IsSpnOuterScreen());
+    EXPECT_FALSE(window->IsSuperMultiFoldOuterScreen());
 }
 
 /**

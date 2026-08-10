@@ -1955,33 +1955,33 @@ HWTEST_F(WindowSessionTest4, TestHandleHookDisplayNormal, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsSpnOuterScreen01
- * @tc.desc: Test Session::IsSpnOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
+ * @tc.name: IsSuperMultiFoldOuterScreen01
+ * @tc.desc: Test Session::IsSuperMultiFoldOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionTest4, IsSpnOuterScreen01, TestSize.Level1)
+HWTEST_F(WindowSessionTest4, IsSuperMultiFoldOuterScreen01, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         GTEST_SKIP() << "Not SPN device, skipping test.";
     }
     ASSERT_NE(session_, nullptr);
     session_->property_->SetDisplayId(Session::SCREEN_ID_MAIN);
-    EXPECT_TRUE(session_->IsSpnOuterScreen());
+    EXPECT_TRUE(session_->IsSuperMultiFoldOuterScreen());
 }
 
 /**
- * @tc.name: IsSpnOuterScreen02
- * @tc.desc: Test Session::IsSpnOuterScreen with displayId != SCREEN_ID_MAIN
+ * @tc.name: IsSuperMultiFoldOuterScreen02
+ * @tc.desc: Test Session::IsSuperMultiFoldOuterScreen with displayId != SCREEN_ID_MAIN
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionTest4, IsSpnOuterScreen02, TestSize.Level1)
+HWTEST_F(WindowSessionTest4, IsSuperMultiFoldOuterScreen02, TestSize.Level1)
 {
     if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
         GTEST_SKIP() << "Not SPN device, skipping test.";
     }
     ASSERT_NE(session_, nullptr);
     session_->property_->SetDisplayId(0);
-    EXPECT_FALSE(session_->IsSpnOuterScreen());
+    EXPECT_FALSE(session_->IsSuperMultiFoldOuterScreen());
 }
 } // namespace
 } // namespace Rosen
