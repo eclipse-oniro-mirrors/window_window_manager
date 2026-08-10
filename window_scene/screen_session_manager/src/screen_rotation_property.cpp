@@ -18,11 +18,26 @@
 
 namespace OHOS {
 namespace Rosen {
+constexpr ScreenId SCREEN_ID_FULL = 0;
 bool ScreenRotationProperty::isDeviceHorizontal_ = false;
 
 bool ScreenRotationProperty::isDeviceHorizontal()
 {
     return isDeviceHorizontal_;
+}
+
+bool ScreenRotationProperty::IsDeviceHorizontalByScreenSession()
+{
+    // Read the live device rotation from the full (inner) screen session, consistent with
+    // FoldCreaseRegionController which uses SCREEN_ID_FULL for the same property.
+    auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_FULL);
+    if (screenSession == nullptr) {
+        TLOGW(WmsLogTag::DMS, "screenSession is null, fallback to cached horizontal status");
+        return isDeviceHorizontal_;
+    }
+    Rotation deviceRotation = screenSession->GetScreenProperty().GetDeviceRotation();
+    // ROTATION_90 / ROTATION_270 indicate landscape orientation
+    return deviceRotation == Rotation::ROTATION_90 || deviceRotation == Rotation::ROTATION_270;
 }
 
 void ScreenRotationProperty::HandleSensorEventInput(DeviceRotation deviceRotation)
