@@ -647,10 +647,7 @@ WMError WindowManagerLite::UnregisterFocusChangedListener(const sptr<IFocusChang
     }
 
     std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
-    if (pImpl_->focusChangedListeners_.erase(listener) == 0) {
-        WLOGFE("could not find this listener");
-        return WMError::WM_OK;
-    }
+    pImpl_->focusChangedListeners_.erase(listener);
     WMError ret = WMError::WM_OK;
     if (pImpl_->focusChangedListeners_.empty() && pImpl_->focusChangedListenerAgent_ != nullptr) {
         ret = WindowAdapterLite::GetInstance(userId_).UnregisterWindowManagerAgent(
