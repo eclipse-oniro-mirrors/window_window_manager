@@ -733,7 +733,7 @@ napi_value JsWindow::SetPreferredOrientation(napi_env env, napi_callback_info in
         return me->OnSetPreferredOrientation(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][setPreferredOrientation]msg: Window is nullptr.");
+        "[window][setPreferredOrientation]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::SetPreferredOrientationWithResult(napi_env env, napi_callback_info info)
@@ -744,7 +744,7 @@ napi_value JsWindow::SetPreferredOrientationWithResult(napi_env env, napi_callba
         return me->OnSetPreferredOrientationWithResult(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][SetPreferredOrientationWithResult]msg: Window is nullptr.");
+        "[window][setPreferredOrientationWithResult]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::GetPreferredOrientation(napi_env env, napi_callback_info info)
@@ -755,7 +755,7 @@ napi_value JsWindow::GetPreferredOrientation(napi_env env, napi_callback_info in
         return me->OnGetPreferredOrientation(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][getPreferredOrientation]msg: Window is nullptr.");
+        "[window][getPreferredOrientation]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::ConvertOrientationAndRotation(napi_env env, napi_callback_info info)
@@ -887,7 +887,7 @@ napi_value JsWindow::SetWindowCornerRadius(napi_env env, napi_callback_info info
         return me->OnSetWindowCornerRadius(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][setWindowCornerRadius]msg: Window is nullptr.");
+        "[window][setWindowCornerRadius]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::GetWindowCornerRadius(napi_env env, napi_callback_info info)
@@ -898,7 +898,7 @@ napi_value JsWindow::GetWindowCornerRadius(napi_env env, napi_callback_info info
         return me->OnGetWindowCornerRadius(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][getWindowCornerRadius]msg: Window is nullptr.");
+        "[window][getWindowCornerRadius]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::SetShadow(napi_env env, napi_callback_info info)
@@ -916,7 +916,7 @@ napi_value JsWindow::SetWindowShadowRadius(napi_env env, napi_callback_info info
         return me->OnSetWindowShadowRadius(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][setWindowShadowRadius]msg: Window is nullptr.");
+        "[window][setWindowShadowRadius]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::SetBlur(napi_env env, napi_callback_info info)
@@ -1145,7 +1145,7 @@ napi_value JsWindow::SetWindowTransitionAnimation(napi_env env, napi_callback_in
         return me->OnSetWindowTransitionAnimation(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][setWindowTransitionAnimation]msg: Window is nullptr.");
+        "[window][setWindowTransitionAnimation]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::GetWindowTransitionAnimation(napi_env env, napi_callback_info info)
@@ -1156,7 +1156,7 @@ napi_value JsWindow::GetWindowTransitionAnimation(napi_env env, napi_callback_in
         return me->OnGetWindowTransitionAnimation(env, info);
     }
     return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-        "[window][getWindowTransitionAnimation]msg: Window is nullptr.");
+        "[window][getWindowTransitionAnimation]msg: The window is not created or destroyed.");
 }
 
 napi_value JsWindow::SetWindowDecorHeight(napi_env env, napi_callback_info info)
@@ -1735,13 +1735,24 @@ napi_value JsWindow::OnShowWithAnimation(napi_env env, napi_callback_info info)
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [weakToken, errCode, where, env, task = napiAsyncTask] {
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode));
+            std::string errorMsg;
+            if (errCode == WmErrorCode::WM_ERROR_STATE_ABNORMALLY) {
+                errorMsg = "[window][showWithAnimation]msg: The window is not created or destroyed.";
+            } else if (errCode == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+                errorMsg = "[window][showWithAnimation]msg: Only system windows, "
+                    "global floating windows, and modal windows are supported.";
+            } else if (errCode == WmErrorCode::WM_ERROR_NOT_SYSTEM_APP) {
+                errorMsg = "[window][showWithAnimation]msg: Permission verification failed. "
+                "A non-system application calls a system API.";
+            }
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode, errorMsg));
             return;
         }
         auto weakWindow = weakToken.promote();
         if (weakWindow == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][showWithAnimation]msg: The window is not created or destroyed."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->Show(0, true, true));
@@ -1936,13 +1947,24 @@ napi_value JsWindow::OnHideWithAnimation(napi_env env, napi_callback_info info)
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [weakToken, errCode, where, env, task = napiAsyncTask] {
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode));
+            std::string errorMsg;
+            if (errCode == WmErrorCode::WM_ERROR_STATE_ABNORMALLY) {
+                errorMsg = "[window][hideWithAnimation]msg: The window is not created or destroyed.";
+            } else if (errCode == WmErrorCode::WM_ERROR_INVALID_CALLING) {
+                errorMsg = "[window][hideWithAnimation]msg: Only system windows, "
+                    "global floating windows and dialog windows are supported.";
+            } else if (errCode == WmErrorCode::WM_ERROR_NOT_SYSTEM_APP) {
+                errorMsg = "[window][showWithAnimation]msg: Permission verification failed. "
+                "A non-system application calls a system API.";
+            }
+            task->Reject(env, JsErrUtils::CreateJsError(env, errCode, errorMsg));
             return;
         }
         auto weakWindow = weakToken.promote();
         if (weakWindow == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][hideWithAnimation]msg: The window is not created or destroyed."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->Hide(0, true, false));
@@ -4608,7 +4630,7 @@ napi_value JsWindow::OnSetPreferredOrientation(napi_env env, napi_callback_info 
         auto weakWindow = windowToken.promote();
         if (weakWindow == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][setPreferredOrientation]msg: Window is nullptr."));
+                "[window][setPreferredOrientation]msg: The window is not created or destroyed."));
             return;
         }
         if (requestedOrientation == Orientation::INVALID) {
@@ -4654,7 +4676,7 @@ napi_value JsWindow::OnSetPreferredOrientationWithResult(napi_env env, napi_call
         auto weakWindow = windowToken.promote();
         if (weakWindow == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(
-                env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, errMsgPrefix + "Window is nullptr."));
+                env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, errMsgPrefix + "The window is not created or destroyed."));
             RemoveOrientationPromiseFromMap(promiseId);
             return;
         }
@@ -4670,7 +4692,7 @@ napi_value JsWindow::OnSetPreferredOrientationWithResult(napi_env env, napi_call
             weakWindow->GetWindowName().c_str(), static_cast<uint32_t>(requestedOrientation), promiseId, ret);
         WmErrorCode errCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError( env, errCode, errMsgPrefix + "failed."));
+            task->Reject(env, JsErrUtils::CreateJsError( env, errCode));
             RemoveOrientationPromiseFromMap(promiseId);
         }
     };
@@ -4731,7 +4753,7 @@ napi_value JsWindow::OnGetPreferredOrientation(napi_env env, napi_callback_info 
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "window is nullptr");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getPreferredOrientation]msg: Window is nullptr."));
+            "[window][getPreferredOrientation]msg: The window is not created or destroyed."));
         return NapiGetUndefined(env);
     }
     Orientation requestedOrientation = windowToken_->GetRequestedOrientation();
@@ -4758,9 +4780,9 @@ napi_value JsWindow::OnConvertOrientationAndRotation(napi_env env, napi_callback
             "[window][convertOrientationAndRotation]msg: invalid argc");
     }
     if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ROTATION, "window is nullptr");
+        TLOGE(WmsLogTag::WMS_ROTATION, "The window is not created or destroyed.");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][convertOrientationAndRotation]msg: invalid window");
+            "[window][convertOrientationAndRotation]msg: The window is not created or destroyed.");
     }
     int32_t from = 0;
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], from)) {
@@ -7149,11 +7171,14 @@ napi_value JsWindow::OnOpacity(napi_env env, napi_callback_info info)
     }
     if (windowToken_ == nullptr) {
         WLOGFE("WindowToken_ is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][opacity]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         WLOGFE("Opacity is not allowed since window is not system window");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][opacity]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     napi_value nativeVal = argv[0];
     if (nativeVal == nullptr) {
@@ -7242,11 +7267,14 @@ napi_value JsWindow::OnScale(napi_env env, napi_callback_info info)
     }
     if (windowToken_ == nullptr) {
         WLOGFE("WindowToken_ is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][scale]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         WLOGFE("Scale is not allowed since window is not system window");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][scale]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     napi_value nativeObj = argv[0];
     if (nativeObj == nullptr) {
@@ -7313,11 +7341,14 @@ napi_value JsWindow::OnRotate(napi_env env, napi_callback_info info)
     }
     if (windowToken_ == nullptr) {
         WLOGFE("WindowToken_ is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][rotate]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         WLOGFE("Rotate is not allowed since window is not system window");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][rotate]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     napi_value nativeObj = argv[0];
     if (nativeObj == nullptr) {
@@ -7363,7 +7394,6 @@ napi_value JsWindow::OnTranslate(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_SYSTEM, "not system app, permission denied!");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
     }
-
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -7373,11 +7403,14 @@ napi_value JsWindow::OnTranslate(napi_env env, napi_callback_info info)
     }
     if (windowToken_ == nullptr) {
         WLOGFE("WindowToken_ is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][translate]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         WLOGFE("Translate is not allowed since window is not system window");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][translate]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     napi_value nativeObj = argv[0];
     if (nativeObj == nullptr) {
@@ -7453,11 +7486,14 @@ napi_value JsWindow::OnGetTransitionController(napi_env env, napi_callback_info 
 
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "windowToken is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getTransitionController]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Unexpected window type:%{public}d", windowToken_->GetType());
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][getTransitionController]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     if (jsTransControllerObj_ == nullptr || jsTransControllerObj_->GetNapiValue() == nullptr) {
         WmErrorCode ret = CreateTransitionController(env);
@@ -7548,7 +7584,7 @@ napi_value JsWindow::OnSetWindowCornerRadius(napi_env env, napi_callback_info in
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s window is nullptr", where);
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
-                "[window][setWindowCornerRadius]msg: Native window is nullptr."));
+                "[window][setWindowCornerRadius]msg: The window is not created or destroyed."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowCornerRadius(cornerRadius));
@@ -7584,12 +7620,12 @@ napi_value JsWindow::OnGetWindowCornerRadius(napi_env env, napi_callback_info in
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "WindowToken is nullptr.");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getWindowCornerRadius]msg: Native window is nullptr.");
+            "[window][getWindowCornerRadius]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsFloatOrSubWindow(windowToken_->GetType())) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "This is not sub window or float window.");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Only subwindows and float windows are supported.");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][getWindowCornerRadius]msg: This is not sub window or float window.");
+            "[window][getWindowCornerRadius]msg: Only subwindows and float windows are supported.");
     }
 
     float cornerRadius = 0.0f;
@@ -7622,11 +7658,14 @@ napi_value JsWindow::OnSetShadow(napi_env env, napi_callback_info info)
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
     if (windowToken_ == nullptr) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setShadow]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType()) &&
         !WindowHelper::IsSubWindow(windowToken_->GetType())) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][setShadow]msg: Only system windows, "
+            "global floating windows, modal windows and subwindows are supported.");
     }
 
     if (argv[0] == nullptr) {
@@ -7700,12 +7739,12 @@ napi_value JsWindow::OnSetWindowShadowRadius(napi_env env, napi_callback_info in
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "WindowToken is nullptr.");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowShadowRadius]msg: Native window is nullptr.");
+            "[window][setWindowShadowRadius]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsFloatOrSubWindow(windowToken_->GetType())) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "This is not sub window or float window.");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Only subwindows and float windows are supported.");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setWindowShadowRadius]msg: This is not sub window or float window.");
+            "[window][setWindowShadowRadius]msg: Only subwindows and float windows are supported.");
     }
 
     double result = 0.0;
@@ -7751,11 +7790,14 @@ napi_value JsWindow::OnSetBlur(napi_env env, napi_callback_info info)
     }
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "windowToken is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setBlur]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Unexpected window type:%{public}d", windowToken_->GetType());
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][setBlur]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     napi_value nativeVal = argv[0];
     if (nativeVal == nullptr) {
@@ -7793,11 +7835,14 @@ napi_value JsWindow::OnSetBackdropBlur(napi_env env, napi_callback_info info)
     }
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "windowToken is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setBackdropBlur]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Unexpected window type:%{public}d", windowToken_->GetType());
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][setBackdropBlur]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
     napi_value nativeVal = argv[0];
     if (nativeVal == nullptr) {
@@ -7835,11 +7880,14 @@ napi_value JsWindow::OnSetBackdropBlurStyle(napi_env env, napi_callback_info inf
     }
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "windowToken is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setBackdropBlurStyle]msg: The window is not created or destroyed.");
     }
     if (!WindowHelper::IsSystemWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "Unexpected window type:%{public}d", windowToken_->GetType());
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][setBackdropBlurStyle]msg: Only system windows, global floating windows, "
+            "and modal windows are supported, name='" + windowToken_->GetWindowName() + "'");
     }
 
     napi_value nativeMode = argv[0];
@@ -9359,9 +9407,9 @@ napi_value JsWindow::OnSetFollowParentMultiScreenPolicy(napi_env env, napi_callb
 napi_value JsWindow::OnSetWindowTransitionAnimation(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Window instance not exist");
+        TLOGE(WmsLogTag::WMS_ANIMATION, "The window is not created or destroyed");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTransitionAnimation]msg: Window instance not exist.");
+            "[window][setWindowTransitionAnimation]msg: The window is not created or destroyed.");
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->IsTransitionAnimationSupported());
     if (ret != WmErrorCode::WM_OK) {
@@ -9396,7 +9444,7 @@ napi_value JsWindow::OnSetWindowTransitionAnimation(napi_env env, napi_callback_
         auto window = weakToken.promote();
         if (window == nullptr) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
-                "[window][setWindowTransitionAnimation]msg: Native window is nullptr,"));
+                "[window][setWindowTransitionAnimation]msg: The window is not created or destroyed."));
             return;
         }
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowTransitionAnimation(
@@ -9420,9 +9468,9 @@ napi_value JsWindow::OnGetWindowTransitionAnimation(napi_env env, napi_callback_
 {
     TLOGD(WmsLogTag::WMS_ANIMATION, "[NAPI]");
     if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "Window instance not exist");
+        TLOGE(WmsLogTag::WMS_ANIMATION, "The window is not created or destroyed");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getWindowTransitionAnimation]msg: Transition animation is not enable.");
+            "[window][getWindowTransitionAnimation]msg: The window is not created or destroyed.");
     }
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->IsTransitionAnimationSupported());
     if (ret != WmErrorCode::WM_OK) {
@@ -11805,7 +11853,8 @@ napi_value JsWindow::OnSetRotationLocked(napi_env env, napi_callback_info info)
     const std::string errMsgPrefix = "[window][setRotationLocked]msg: ";
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "windowToken is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, errMsgPrefix + "window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            errMsgPrefix + "The window is not created or destroyed.");
     }
     if (!Permission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_ROTATION, "permission denied, require system application!");
@@ -11831,7 +11880,7 @@ napi_value JsWindow::OnSetRotationLocked(napi_env env, napi_callback_info info)
         if (!window) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "window is nullptr");
             napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                errMsgPrefix + "window is nullptr"));
+                errMsgPrefix + "The window is not created or destroyed."));
             return;
         }
         auto ret = window->SetRotationLocked(locked);
@@ -11863,7 +11912,8 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
     const std::string errMsgPrefix = "[window][getRotationLocked]msg: ";
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "window is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, errMsgPrefix + "window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            errMsgPrefix + "The window is not created or destroyed.");
     }
     if (!Permission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_ROTATION, "permission denied, require system application!");
