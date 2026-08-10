@@ -609,31 +609,33 @@ WMError WindowManagerLite::ActiveFaultAgentReregister(const WindowManagerAgentTy
 WMError WindowManagerLite::RegisterFocusChangedListener(const sptr<IFocusChangedListener>& listener)
 {
     if (listener == nullptr) {
-        WLOGFE("listener could not be null");
+        TLOGE(WmsLogTag::WMS_FOCUS, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
-    WMError ret = WMError::WM_OK;
-    if (pImpl_->focusChangedListenerAgent_ == nullptr) {
-        pImpl_->focusChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
-        ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowManagerAgent(
-            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, pImpl_->focusChangedListenerAgent_);
-        if (ret == WMError::WM_ERROR_SAMGR) {
-            ret = ActiveFaultAgentReregister(
-                WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, pImpl_->focusChangedListenerAgent_);
+    WMError ret;
+    auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    sptr<WindowManagerAgent> tempAgent = nullptr; // for avoid holding locks to send ipc
+    {
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+        if (pImpl_->focusChangedListenerAgent_ == nullptr) {
+            pImpl_->focusChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
         }
+        tempAgent = pImpl_->focusChangedListenerAgent_;
+    }
+    ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowManagerAgent(agentType, tempAgent);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(agentType, tempAgent);
     }
     if (ret != WMError::WM_OK) {
-        WLOGFW("RegisterWindowManagerAgent failed !");
+        TLOGE(WmsLogTag::WMS_FOCUS, "register failed");
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
         pImpl_->focusChangedListenerAgent_ = nullptr;
-    } else {
-        if (pImpl_->focusChangedListeners_.count(listener)) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->focusChangedListeners_.insert(listener);
+        return ret;
     }
+
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+    pImpl_->focusChangedListeners_.insert(listener);
     return ret;
 }
 
