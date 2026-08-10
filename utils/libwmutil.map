@@ -46,6 +46,7 @@
             OHOS::Rosen::FloatingViewReporter::ReportSetVisibilityEvent*;
             OHOS::Rosen::FloatingViewReporter::SetCurrentPackageName*;
             OHOS::Rosen::JsErrUtils::CreateJsError*;
+            OHOS::Rosen::JsErrUtils::CreateFloatWindowJsError*;
             OHOS::Rosen::PerformReporter::end*;
             OHOS::Rosen::PerformReporter::PerformReporter*;
             OHOS::Rosen::PerformReporter::start*;
@@ -275,6 +276,7 @@
             OHOS::Rosen::WindowTransitionInfo::SetWindowType*;
             OHOS::Rosen::WindowTransitionInfo::Unmarshalling*;
             OHOS::Rosen::WindowTransitionInfo::WindowTransitionInfo*;
+            OHOS::Rosen::FloatWindowErrorMsg::GetApiErrorMsg*;
 
             vtable?for?OHOS::Rosen::RSTransactionAdapter*;
             vtable?for?OHOS::Rosen::ScreenGroupInfo*;

@@ -18,6 +18,9 @@
 #include "parameters.h"
 #include "picture_in_picture_controller.h"
 #include "picture_in_picture_manager.h"
+#include "float_window_manager.h"
+#include "float_view_controller.h"
+#include "float_view_manager.h"
 #include "window.h"
 #include "wm_common.h"
 #include "xcomponent_controller.h"
@@ -101,26 +104,39 @@ HWTEST_F(WebPictureInPictureControllerTest, CreatePictureInPictureWindow, TestSi
     auto option = webPipControl->pipOption_;
     webPipControl->pipOption_ = nullptr;
     StartPipType startType = StartPipType::NATIVE_START;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType).errCode);
 
     webPipControl->pipOption_ = option;
     webPipControl->mainWindow_ = nullptr;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType).errCode);
 
     webPipControl->mainWindow_ = mw;
     EXPECT_CALL(*(mw), GetWindowState()).Times(AtLeast(1)).WillRepeatedly(Return(WindowState::STATE_CREATED));
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType).errCode);
 
     StartPipType autoStartType = StartPipType::AUTO_START;
     EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(nullptr));
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(autoStartType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(autoStartType).errCode);
     auto contextPtr = std::make_shared<MockAbilityContextImpl>();
     EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(contextPtr));
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(autoStartType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(autoStartType).errCode);
 
     EXPECT_CALL(*(mw), GetWindowState()).Times(AtLeast(1)).WillRepeatedly(Return(WindowState::STATE_SHOWN));
     EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(contextPtr));
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->CreatePictureInPictureWindow(startType).errCode);
+
+    EXPECT_CALL(*(mw), GetWindowState()).Times(AtLeast(1)).WillRepeatedly(Return(WindowState::STATE_SHOWN));
+    EXPECT_CALL(*(mw), GetContext()).Times(AtLeast(1)).WillRepeatedly(Return(contextPtr));
+
+    FloatWindowManager::floatViewCnt_ = 1;
+    auto option_ = sptr<FvOption>::MakeSptr();
+    ASSERT_NE(nullptr, option_);
+    sptr<FloatViewController> fvController =
+        sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
+    fvController->curState_ = FvWindowState::FV_STATE_STARTED;
+    FloatViewManager::SetActiveController(fvController);
+    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,
+        webPipControl->CreatePictureInPictureWindow(startType).errCode);
 }
 
 /**
@@ -134,20 +150,20 @@ HWTEST_F(WebPictureInPictureControllerTest, StartPictureInPicture, TestSize.Leve
     auto option = webPipControl->pipOption_;
     webPipControl->pipOption_ = nullptr;
     StartPipType startType = StartPipType::NATIVE_START;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType).errCode);
 
     webPipControl->pipOption_ = option;
     webPipControl->curState_ = PiPWindowState::STATE_STARTING;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, webPipControl->StartPictureInPicture(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, webPipControl->StartPictureInPicture(startType).errCode);
 
     webPipControl->curState_ = PiPWindowState::STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, webPipControl->StartPictureInPicture(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_REPEAT_OPERATION, webPipControl->StartPictureInPicture(startType).errCode);
 
     webPipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType).errCode);
 
     webPipControl->curState_ = PiPWindowState::STATE_STOPPING;
-    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, webPipControl->StartPictureInPicture(startType).errCode);
 }
 
 /**

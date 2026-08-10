@@ -27,7 +27,7 @@ public:
     PictureInPictureController(sptr<PipOption> pipOption, sptr<Window> mainWindow, uint32_t mainWindowId, napi_env env);
     ~PictureInPictureController();
     
-    WMError StartPictureInPicture(StartPipType startType) override;
+    WMErrorResult StartPictureInPicture(StartPipType startType) override;
     void SetAutoStartEnabled(bool enable) override;
     void IsAutoStartEnabled(bool& enable) const override;
     void UpdateContentSize(int32_t width, int32_t height) override;
@@ -57,7 +57,7 @@ public:
     inline void SetFirstHandleId(int32_t id) { firstHandleId_ = id; }
 
 protected:
-    WMError CreatePictureInPictureWindow(StartPipType startType) override;
+    WMErrorResult CreatePictureInPictureWindow(StartPipType startType) override;
     void UpdateWinRectByComponent() override;
     void UpdatePiPSourceRect() const override;
     void SetUIContent() const override;
@@ -73,9 +73,10 @@ protected:
 private:
     void DeletePIPMode();
     virtual NavigationController* GetNavigationController(const std::string& navId);
-    WMError ValidatePiPCreateParams(StartPipType startType);
-    WMError PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
+    WMErrorResult ValidatePiPCreateParams(StartPipType startType);
+    WMErrorResult PreparePiPWindowCreation(StartPipType startType, PiPTemplateInfo& pipTemplateInfo,
         std::shared_ptr<AbilityRuntime::Context>& abilityContext);
+    WMErrorResult ValidateStartPictureInPicture(StartPipType startType);
 };
 } // namespace Rosen
 } // namespace OHOS
