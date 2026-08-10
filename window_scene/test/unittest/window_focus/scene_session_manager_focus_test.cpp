@@ -712,6 +712,7 @@ HWTEST_F(SceneSessionManagerFocusTest, CollectProcessingSessions04, TestSize.Lev
     sessionInfo.abilityName_ = "CollectProcessingSessions04";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(nullptr, sceneSession);
+    sceneSession->persistentId_ = 1;
     PostProcessFocusState state = { true, true, false, FocusChangeReason::CLIENT_REQUEST };
     sceneSession->SetPostProcessFocusState(state);
     ssm_->sceneSessionMap_.emplace(1, sceneSession);
