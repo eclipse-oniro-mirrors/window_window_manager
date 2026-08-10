@@ -28,6 +28,7 @@
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_helper.h"
+#include "motion_manager.h"
 #include "window_visibility_info.h"
 
 namespace OHOS::Rosen {
@@ -1987,6 +1988,24 @@ napi_value CreateSupportWindowModes(napi_env env,
         napi_set_element(env, arrayValue, index++, CreateJsValue(env, static_cast<int32_t>(supportWindowMode)));
     }
     return arrayValue;
+}
+
+napi_value CreateJsMotionType(napi_env env)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        WLOGFE("Failed to get jsObject");
+        return nullptr;
+    }
+    
+    napi_set_named_property(env, objValue, "DEVICE_MOTION_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE)));
+    napi_set_named_property(env, objValue, "SMART_MOTION_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::SMART_MOTION_TYPE)));
+    napi_set_named_property(env, objValue, "SMART_MOTION_ENHANCE_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE)));
+    return objValue;
 }
 
 napi_value CreateJsSessionPendingConfigs(napi_env env, const PendingSessionActivationConfig &config)

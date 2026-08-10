@@ -17,6 +17,7 @@
 #include "dms_global_mutex.h"
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "window_manager_hilog.h"
+#include "fold_screen_state_internel.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -451,6 +452,9 @@ void ScreenSessionManagerAdapter::OnScreenshot(sptr<ScreenshotInfo> info)
 FoldStatus ScreenSessionManagerAdapter::FoldStatusTrans(FoldStatus foldStatus)
 {
     FoldStatus transfoldstatus = foldStatus;
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        return transfoldstatus;
+    }
     switch (foldStatus) {
         case FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED:
         case FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND:

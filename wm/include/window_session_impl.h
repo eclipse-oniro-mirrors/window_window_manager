@@ -1060,8 +1060,12 @@ protected:
      * Window Layout
      */
     std::atomic_bool isDragTaskPostDone_ = true;
+    // Pending request to enable background force-flush vsync; set when uiContent is not yet
+    // ready and retried once in InitUIContent after uiContent is created.
+    std::atomic_bool needBackgroundForceFlushVsync_ = false;
     void FlushLayoutSize(int32_t width, int32_t height) override;
     void FlushVsync() override;
+    void SetBackgroundForceFlushVsync() override;
     sptr<FutureCallback> layoutCallback_ = nullptr;
     sptr<FutureCallback> getTargetInfoCallback_ = nullptr;
     sptr<FutureCallback> getRotationResultFuture_ = nullptr;

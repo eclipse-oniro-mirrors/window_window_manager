@@ -81,6 +81,10 @@ public:
     MOCK_METHOD1(RestoreFloatViewMainWindow, WMError(const std::shared_ptr<AAFwk::WantParams>& wantParams));
     MOCK_METHOD1(GetSelectMode, WMError(SelectMode& selectMode));
     MOCK_METHOD1(NotifySplitRatioChanged, WMError(float newRatio));
+    MOCK_METHOD(WSError, NotifyClientToUpdateRect,
+        (const std::string& updateReason, std::optional<WSRect> updateRect,
+         std::shared_ptr<RSTransaction> rsTransaction), (override));
+    MOCK_METHOD(PreWindowProperty, PreCalcWindowProperty, (), (override));
 };
 } // namespace Rosen
 } // namespace OHOS

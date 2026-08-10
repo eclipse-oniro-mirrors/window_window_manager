@@ -98,6 +98,7 @@ group("unittest") {
       ":ws_scene_session_manager_proxy_test",
       ":ws_scene_session_manager_stub_test",
       ":ws_scene_session_manager_stub_test2",
+      ":ws_scene_session_manager_motion_test",
       ":ws_scene_session_manager_three_test",
       ":ws_scene_session_manager_outline_test",
       ":ws_scene_session_manager_test",
@@ -109,6 +110,8 @@ group("unittest") {
       ":ws_session_manager_lite_test",
       ":ws_session_manager_service_recover_proxy_test",
       ":ws_session_manager_test",
+      ":ws_session_sensor_plugin_test",
+      ":ws_motion_manager_test",
       ":ws_session_proxy_immersive_test",
       ":ws_session_proxy_layout_test",
       ":ws_session_proxy_lifecycle_test",
@@ -1045,6 +1048,54 @@ ohos_unittest("ws_scene_session_manager_stub_test2") {
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
+}
+
+ohos_unittest("ws_scene_session_manager_motion_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "${window_base_path}/window_scene/session_manager/src/motion_manager.cpp",
+    "scene_session_manager_motion_test.cpp",
+    "mock/session_sensor_plugin_mock.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+}
+
+ohos_unittest("ws_session_sensor_plugin_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "${window_base_path}/window_scene/session_manager/src/motion_manager.cpp",
+    "session_sensor_plugin_test.cpp",
+    "mock/session_sensor_plugin_mock.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+}
+
+ohos_unittest("ws_motion_manager_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "${window_base_path}/window_scene/session_manager/src/motion_manager.cpp",
+    "motion_manager_test.cpp",
+    "mock/session_sensor_plugin_mock.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
 }
 
 ohos_unittest("ws_scene_session_manager_supplement_test") {

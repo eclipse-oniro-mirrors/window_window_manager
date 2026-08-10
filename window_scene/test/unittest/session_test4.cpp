@@ -1759,6 +1759,118 @@ HWTEST_F(WindowSessionTest4, UpdateSessionOutline01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestGetPrelayoutContext_PrelaunchOnly
+ * @tc.desc: Non-game prelaunch (isPrelaunch_=true) keeps prelayout disabled but populates winRect.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestGetPrelayoutContext_PrelaunchOnly, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "PrelaunchOnly";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    const uint32_t preWidth = 720;
+    const uint32_t preHeight = 1280;
+    ON_CALL(*session, PreCalcWindowProperty())
+        .WillByDefault(Return(PreWindowProperty(0, preWidth, preHeight)));
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = true;
+
+    auto ctx = session->GetPrelayoutContext();
+    // enable follows isGamePrelaunch_; non-game prelaunch keeps it disabled.
+    EXPECT_FALSE(ctx.enable);
+    // Proceeds past the first guard; the prelaunch-only early return still initializes winRect.
+    EXPECT_EQ(ctx.winRect.posX_, 0);
+    EXPECT_EQ(ctx.winRect.posY_, 0);
+    EXPECT_EQ(ctx.winRect.width_, static_cast<int32_t>(preWidth));
+    EXPECT_EQ(ctx.winRect.height_, static_cast<int32_t>(preHeight));
+    // Returns before GetSessionProperty, so display stays at its defaults.
+    EXPECT_EQ(ctx.display.width, 0u);
+    EXPECT_EQ(ctx.display.height, 0u);
+    EXPECT_FLOAT_EQ(ctx.display.density, 1.0f);
+    EXPECT_EQ(ctx.display.rotation, 0u);
+}
+
+/**
+ * @tc.name: TestGetPrelayoutContext_GamePrelaunchAndPrelaunch
+ * @tc.desc: Both flags set: enable=true skips the prelaunch-only early return and runs the full path.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestGetPrelayoutContext_GamePrelaunchAndPrelaunch, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GamePrelaunchAndPrelaunch";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    const uint32_t preWidth = 720;
+    const uint32_t preHeight = 1280;
+    ON_CALL(*session, PreCalcWindowProperty())
+        .WillByDefault(Return(PreWindowProperty(0, preWidth, preHeight)));
+    session->sessionInfo_.isGamePrelaunch_ = true;
+    session->sessionInfo_.isPrelaunch_ = true;
+
+    auto ctx = session->GetPrelayoutContext();
+    // With enable=true the (isPrelaunch_ && !enable) early-return is skipped.
+    EXPECT_TRUE(ctx.enable);
+    // winRect is populated from PreCalcWindowProperty.
+    EXPECT_EQ(ctx.winRect.posX_, 0);
+    EXPECT_EQ(ctx.winRect.posY_, 0);
+    EXPECT_EQ(ctx.winRect.width_, static_cast<int32_t>(preWidth));
+    EXPECT_EQ(ctx.winRect.height_, static_cast<int32_t>(preHeight));
+    // property_ is non-null by default, so the null-property check is passed and display is
+    // populated from preCalc. (density depends on the screen session in the test env.)
+    EXPECT_EQ(ctx.display.width, preWidth);
+    EXPECT_EQ(ctx.display.height, preHeight);
+    EXPECT_EQ(ctx.display.rotation, 0u);
+}
+
+/**
+ * @tc.name: TestHandleInitialRect_Prelaunch
+ * @tc.desc: With isPrelaunch_, HandleInitialRect forwards a non-nullopt rect even when ctx.enable=false.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleInitialRect_Prelaunch, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleInitialRectPrelaunch";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = true;
+
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    ctx.winRect = { 0, 0, 100, 200 };
+    // New branch (ctx.enable || isPrelaunch_) is true -> forwards ctx.winRect (non-nullopt).
+    EXPECT_CALL(*session, NotifyClientToUpdateRect(testing::StrEq("Connect"),
+        testing::Eq(std::optional<WSRect>(ctx.winRect)), testing::_)).Times(1);
+    session->HandleInitialRect(ctx);
+}
+
+/**
+ * @tc.name: TestHandleInitialRect_NoPrelaunch
+ * @tc.desc: Without isPrelaunch_ and ctx.enable=false, HandleInitialRect forwards a nullopt rect.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleInitialRect_NoPrelaunch, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleInitialRectNoPrelaunch";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = false;
+
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    ctx.winRect = { 0, 0, 100, 200 };
+    // (ctx.enable || isPrelaunch_) is false -> forwards nullopt.
+    EXPECT_CALL(*session, NotifyClientToUpdateRect(testing::StrEq("Connect"),
+        testing::Eq(std::optional<WSRect>{}), testing::_)).Times(1);
+    session->HandleInitialRect(ctx);
+}
+
+/**
  * @tc.name: CheckEmptyKeyboardAvoidAreaIfNeeded 01
  * @tc.desc: Test Case CheckEmptyKeyboardAvoidAreaIfNeeded 01
  * @tc.type: FUNC

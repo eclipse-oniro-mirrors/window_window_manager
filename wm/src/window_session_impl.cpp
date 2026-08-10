@@ -1741,6 +1741,10 @@ void WindowSessionImpl::NotifyAfterUIContentReady()
         uiContent->UpdateTransform(transform);
         SetNeedRenotifyTransform(false);
     }
+    if (needBackgroundForceFlushVsync_.load()) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}u, renotify background force flush", GetWindowId());
+        SetBackgroundForceFlushVsync();
+    }
 }
 
 void WindowSessionImpl::NotifyRotationAnimationEnd()
@@ -1821,6 +1825,37 @@ void WindowSessionImpl::FlushVsync()
             hasNotifyPrelaunchStartingWindow_ = true;
         }
     }
+}
+
+void WindowSessionImpl::SetBackgroundForceFlushVsync()
+{
+    if (!WindowHelper::IsMainWindow(GetType())) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "id:%{public}u, is not main window", GetWindowId());
+        return;
+    }
+    auto uiContent = GetUIContentSharedPtr();
+    if (uiContent == nullptr) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "id:%{public}u, uiContent is null, retry after uiContent ready",
+            GetWindowId());
+        needBackgroundForceFlushVsync_.store(true);
+        return;
+    }
+    needBackgroundForceFlushVsync_.store(false);
+    int32_t frameNum = property_->GetFrameNum();
+    if (frameNum >= 0) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "id:%{public}u, frameNum:%{public}d >= 0, skip background flush",
+            GetWindowId(), frameNum);
+        return;
+    }
+    bool isPrelaunch = property_->IsPrelaunch();
+    if (!isPrelaunch) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "id:%{public}u, not prelaunch, skip background flush", GetWindowId());
+        return;
+    }
+    int32_t frameCount = -frameNum;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "id:%{public}u, isPrelaunch:%{public}u, frameNum:%{public}d, "
+        "frameCount:%{public}d", GetWindowId(), isPrelaunch, frameNum, frameCount);
+    uiContent->SetBackgroundForceFlushVsync(isPrelaunch, frameCount);
 }
 
 WMError WindowSessionImpl::NotifySnapshotUpdate()

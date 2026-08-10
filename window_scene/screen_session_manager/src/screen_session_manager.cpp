@@ -61,7 +61,6 @@
 #include "window_manager_hilog.h"
 #include "screen_rotation_property.h"
 #include "screen_sensor_connector.h"
-#include "motion_manager.h"
 #include "screen_setting_helper.h"
 #include "screen_session_dumper.h"
 #include "mock_session_manager_service.h"
@@ -8170,9 +8169,8 @@ void ScreenSessionManager::SetSensorSubscriptionEnabled()
         TLOGNFE(WmsLogTag::DMS, "autoRotation is not open");
         return;
     }
-    DmsXcollie dmsXcollie("DMS:SubscribeRotationSensor", XCOLLIE_TIMEOUT_10S);
+    DmsXcollie dmsXcollie("DMS:SetSensorSubscriptionEnabled", XCOLLIE_TIMEOUT_10S);
     ScreenSensorConnector::SubscribeRotationSensor();
-    MotionManager::GetInstance().SetMotionEventListener(this);
     TLOGNFI(WmsLogTag::DMS, "subscribe rotation sensor successful");
 }
 
@@ -12743,18 +12741,6 @@ void ScreenSessionManager::OnSensorRotationChange(float sensorRotation, ScreenId
     clientProxy->OnSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
 }
 
-void ScreenSessionManager::OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser)
-{
-    TLOGNFI(WmsLogTag::WMS_ROTATION, "screenId: %{public}" PRIu64 " smartSensorRotation: %{public}f isSwitchUser: %{public}d",
-        screenId, sensorRotation, isSwitchUser);
-    auto clientProxy = GetClientProxy();
-    if (!clientProxy) {
-        TLOGNFI(WmsLogTag::WMS_ROTATION, "clientProxy_ is null");
-        return;
-    }
-    clientProxy->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-}
-
 void ScreenSessionManager::OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId screenId)
 {
     TLOGNFI(WmsLogTag::DMS, "screenId: %{public}" PRIu64 " hoverStatus: %{public}d", screenId, hoverStatus);
@@ -13031,31 +13017,6 @@ void ScreenSessionManager::HandleFoldStatusChangeWhenSwitchUser(
 #endif
 }
 
-void ScreenSessionManager::HandleMotionSensorRotationWhenSwitchUser(sptr<ScreenSession>& screenSession)
-{
-#ifdef WM_MULTI_USR_ABILITY_ENABLE
-    bool deviceMotionNeeded = MotionManager::GetInstance().NeedMotionSensorSubscribe(
-        MotionType::DEVICE_MOTION_TYPE);
-    bool smartMotionNeeded = MotionManager::GetInstance().NeedMotionSensorSubscribe(
-        MotionType::SMART_MOTION_TYPE) ||
-        MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_ENHANCE_TYPE);
-    
-    TLOGNFI(WmsLogTag::WMS_ROTATION, "deviceMotionNeeded: %{public}d, smartMotionNeeded: %{public}d",
-        deviceMotionNeeded, smartMotionNeeded);
-    
-    if (deviceMotionNeeded && smartMotionNeeded) {
-        screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-        screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
-    } else if (deviceMotionNeeded) {
-        screenSession->SensorRotationChange(screenSession->GetValidSensorRotation(), true);
-    } else if (smartMotionNeeded) {
-        screenSession->SmartSensorRotationChange(screenSession->GetValidSmartSensorRotation(), true);
-    } else {
-        screenSession->UpdateValidRotationToScb();
-    }
-#endif
-}
-
 void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> oldScbPids, int32_t newScbPid)
 {
 #ifdef WM_MULTI_USR_ABILITY_ENABLE
@@ -13078,7 +13039,7 @@ void ScreenSessionManager::ScbStatusRecoveryWhenSwitchUser(std::vector<int32_t> 
         delayTime = SWITCH_USER_DISPLAYMODE_CHANGE_DELAY;
         HandleFoldStatusChangeWhenSwitchUser(screenSession, oldScbDisplayMode);
     } else {
-        HandleMotionSensorRotationWhenSwitchUser(screenSession);
+        screenSession->UpdateValidRotationToScb();
     }
     
     auto task = [=] {
@@ -18092,28 +18053,6 @@ DMError ScreenSessionManager::GetScreenCapability(ScreenId screenId, ScreenCapab
     return DMError::DM_OK;
 }
 
-void ScreenSessionManager::SubscribeMotionSensor(int32_t motionType)
-{
-    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
-    MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
-}
-
-void ScreenSessionManager::UnsubscribeMotionSensor(int32_t motionType)
-{
-    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
-    MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
-}
-
-void ScreenSessionManager::OnMotionRotationChanged(float sensorRotation)
-{
-    TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionRotationChanged sensorRotation: %{public}f", sensorRotation);
-    auto screenSession = GetDefaultScreenSession();
-    if (!screenSession) {
-        TLOGW(WmsLogTag::DMS, "screenSession is null");
-        return;
-    }
-    screenSession->HandleSensorRotation(sensorRotation);
-}
 void ScreenSessionManager::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
 {
 #ifdef FOLD_ABILITY_ENABLE

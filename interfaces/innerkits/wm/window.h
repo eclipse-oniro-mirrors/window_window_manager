@@ -5696,6 +5696,14 @@ public:
     virtual void FlushVsync() {}
 
     /**
+     * @brief Enable background force flush vsync.
+     * When enabled and app is in background, requestFrame will succeed for up to count vsync cycles.
+     * After count reaches 0, the feature auto-disables.
+     * Should be called on the UI thread.
+     */
+    virtual void SetBackgroundForceFlushVsync() {}
+
+    /**
      * @brief Notify pageEnable.
      *
      * @param action action.

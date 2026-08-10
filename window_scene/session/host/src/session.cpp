@@ -6395,7 +6395,7 @@ PrelayoutContext Session::GetPrelayoutContext()
 
     // Enable prelayout only for game prelaunch to improve launch experience.
     ctx.enable = sessionInfo_.isGamePrelaunch_;
-    if (!ctx.enable) {
+    if (!ctx.enable && !sessionInfo_.isPrelaunch_) {
         return ctx;
     }
 
@@ -6408,6 +6408,11 @@ PrelayoutContext Session::GetPrelayoutContext()
         static_cast<int32_t>(preCalc.height)
     };
 
+    if (sessionInfo_.isPrelaunch_ && !ctx.enable) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}d, only initialize winRect, ctx: %{public}s",
+            GetPersistentId(), ctx.ToString().c_str());
+        return ctx;
+    }
     auto sessionProperty = GetSessionProperty();
     if (sessionProperty == nullptr) {
         return ctx;
@@ -6437,7 +6442,7 @@ void Session::HandleInitialRect(const PrelayoutContext& ctx)
     }
 
     const std::optional<WSRect> rect =
-        ctx.enable ? std::make_optional(ctx.winRect) : std::nullopt;
+        (ctx.enable || GetSessionInfo().isPrelaunch_) ? std::make_optional(ctx.winRect) : std::nullopt;
 
     NotifyClientToUpdateRect("Connect", rect, nullptr);
 }
