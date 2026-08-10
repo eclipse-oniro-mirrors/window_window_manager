@@ -738,7 +738,6 @@ ohos_shared_library("libmmi_client_adapter") {
     "input:libmmi-client",
     "ipc:ipc_single",
     "hilog:libhilog",
-    "napi:ace_napi",
     "node:node_header_notice",
     "libuv:uv",
   ]
