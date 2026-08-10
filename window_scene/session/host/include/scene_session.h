@@ -1372,6 +1372,8 @@ protected:
 
 private:
     bool ShouldNotifyTouchOutside() const;
+    bool ShouldNotifyOutsideDownXY() const;
+
     void NotifyAccessibilityVisibilityChange();
     void CalculateCombinedExtWindowFlags();
     WSError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo,

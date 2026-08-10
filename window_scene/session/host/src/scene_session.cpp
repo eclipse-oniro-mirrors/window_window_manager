@@ -134,6 +134,9 @@ const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
     "SCBGestureBack",
     "SCBSystemSwipeDownArea"
 };
+const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_MODULE_NAMES = {
+    "virtualtouchpad"
+};
 
 bool CheckIfRectElementIsTooLarge(const WSRect& rect)
 {
@@ -4113,13 +4116,13 @@ WSError SceneSession::ProcessPointDownSession(int32_t posX, int32_t posY)
         return WSError::WS_ERROR_INVALID_TYPE;
     }
 
-    // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
+    // Notify client has been touched outside.
+    if (specificCallback_ && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(id, GetDisplayId());
     }
 
-    // notify outside down event
-    if (specificCallback_ != nullptr && specificCallback_->onOutsideDownEvent_) {
+    // Notify client the outside down position.
+    if (specificCallback_ && specificCallback_->onOutsideDownEvent_ && ShouldNotifyOutsideDownXY()) {
         specificCallback_->onOutsideDownEvent_(posX, posY);
     }
     return WSError::WS_OK;
@@ -4161,13 +4164,13 @@ void SceneSession::NotifyOutsideDownEvent(const std::shared_ptr<MMI::PointerEven
         return;
     }
 
-    // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
+    // Notify client has been touched outside.
+    if (specificCallback_ && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(GetPersistentId(), GetDisplayId());
     }
 
-    // notify outside down event
-    if (specificCallback_ != nullptr && specificCallback_->onOutsideDownEvent_) {
+    // Notify client the outside down position.
+    if (specificCallback_ && specificCallback_->onOutsideDownEvent_ && ShouldNotifyOutsideDownXY()) {
         specificCallback_->onOutsideDownEvent_(pointerItem.GetDisplayX(), pointerItem.GetDisplayY());
     }
 }
@@ -11658,13 +11661,30 @@ WSError SceneSession::NotifyClientToUpdateLSState(bool isLSState)
 
 bool SceneSession::ShouldNotifyTouchOutside() const
 {
-    for (const auto& excludeName : TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES) {
-        if (sessionInfo_.bundleName_.find(excludeName) != std::string::npos) {
+    for (const auto& bundleName : TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES) {
+        if (sessionInfo_.bundleName_.find(bundleName) != std::string::npos) {
+            return false;
+        }
+    }
+    for (const auto& moduleName : TOUCH_OUTSIDE_EXCLUDE_MODULE_NAMES) {
+        if (sessionInfo_.moduleName_.find(moduleName) != std::string::npos) {
             return false;
         }
     }
     return true;
 }
+
+bool SceneSession::ShouldNotifyOutsideDownXY() const
+{
+    // Currently, only the virtualtouchpad window needs to filter the outside down position.
+    for (const auto& moduleName : TOUCH_OUTSIDE_EXCLUDE_MODULE_NAMES) {
+        if (sessionInfo_.moduleName_.find(moduleName) != std::string::npos) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
  * Window Event end
  */
