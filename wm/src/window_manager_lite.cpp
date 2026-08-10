@@ -615,7 +615,7 @@ WMError WindowManagerLite::RegisterFocusChangedListener(const sptr<IFocusChanged
 
     WMError ret;
     auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
-    sptr<WindowManagerAgent> tempAgent = nullptr; // for avoid holding locks to send ipc
+    sptr<WindowManagerAgentLite> tempAgent = nullptr; // for avoid holding locks to send ipc
     {
         std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
         if (pImpl_->focusChangedListenerAgent_ == nullptr) {
