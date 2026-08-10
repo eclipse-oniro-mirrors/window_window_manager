@@ -524,10 +524,9 @@ HWTEST_F(ScreenSessionManagerTest, GetVisibleAreaDisplayInfoById03, Function | S
 
 /**
  * @tc.name: GetVisibleAreaDisplayInfoById04
- * @tc.desc: Query the fake display id (DISPLAY_ID_FAKE). The fake-session lookup only runs on
- *           super-fold devices (FoldScreenStateInternel::IsSuperFoldDisplayDevice reads a static
- *           system parameter that cannot be toggled in unit tests), so it returns nullptr here and
- *           must not crash.
+ * @tc.desc: Query the fake display id (DISPLAY_ID_FAKE). On super-fold devices it must be resolved
+ *           via the fake screen session; otherwise it returns nullptr. IsSuperFoldDisplayDevice
+ *           reads a static system parameter that cannot be toggled in unit tests, so branch on it.
  * @tc.type: FUNC
  */
 HWTEST_F(ScreenSessionManagerTest, GetVisibleAreaDisplayInfoById04, Function | SmallTest | Level3)
@@ -542,9 +541,13 @@ HWTEST_F(ScreenSessionManagerTest, GetVisibleAreaDisplayInfoById04, Function | S
     ASSERT_NE(nullptr, fakeScreenSession);
     screenSession->SetFakeScreenSession(fakeScreenSession);
     ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
-    // Fake display id resolves only on super-fold hardware; expect nullptr and no crash here.
     auto res = ssm_->GetVisibleAreaDisplayInfoById(DISPLAY_ID_FAKE);
-    ASSERT_EQ(res, nullptr);
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        ASSERT_NE(res, nullptr);
+        ASSERT_EQ(res->GetDisplayId(), DISPLAY_ID_FAKE);
+    } else {
+        ASSERT_EQ(res, nullptr);
+    }
     ssm_->screenSessionMap_.erase(50);
 }
 
