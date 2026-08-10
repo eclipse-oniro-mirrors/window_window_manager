@@ -760,6 +760,9 @@ sptr<ScreenSession> ScreenSessionManager::CreateDefaultVirtualScreen(ScreenSessi
         rsInterface_.RemoveVirtualScreen(defaultRSScreenId);
         return nullptr;
     }
+    // Register DMS as listener so power events can be dispatched on the placeholder
+    // virtual screen, consistent with GetOrCreateScreenSession and CreateVirtualScreen.
+    screenSession->RegisterScreenChangeListener(this);
     {
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
         screenSessionMap_.insert(std::make_pair(SCREEN_ID_DEFAULT, screenSession));
