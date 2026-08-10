@@ -803,7 +803,11 @@ void WindowController::NotifyDisplayStateChange(DisplayId defaultDisplayId, sptr
         case DisplayStateChangeType::CREATE: {
             SetDefaultDisplayInfo(defaultDisplayId, displayInfo);
             windowRoot_->ProcessDisplayCreate(defaultDisplayId, displayInfo, displayInfoMap);
-            FlushWindowInfoWithDisplayId(displayInfo->GetDisplayId());
+            if (displayInfo != nullptr) {
+                FlushWindowInfoWithDisplayId(displayInfo->GetDisplayId());
+            } else {
+                TLOGE(WmsLogTag::DEFAULT, "displayInfo is null.");
+            }
             break;
         }
         case DisplayStateChangeType::DESTROY: {
