@@ -3525,19 +3525,34 @@ sptr<DisplayInfo> ScreenSessionManager::GetVisibleAreaDisplayInfoById(DisplayId 
             TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, displayInfo is nullptr.");
             continue;
         }
-        if (displayId != displayInfo->GetDisplayId()) {
-            continue;
-        }
-        TLOGD(WmsLogTag::DMS, "success");
-        HandleRotationCorrectionExemption(displayInfo);
-        displayInfo = HookDisplayInfoByUid(displayInfo, screenSession);
-        if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        if (displayId == displayInfo->GetDisplayId()) {
+            TLOGD(WmsLogTag::DMS, "success");
+            HandleRotationCorrectionExemption(displayInfo);
+            displayInfo = HookDisplayInfoByUid(displayInfo, screenSession);
+            if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+                return displayInfo;
+            }
+#ifdef FOLD_ABILITY_ENABLE
+            HandleSuperFoldDisplayInfoWhenKeyboardOn(screenSession, displayInfo);
+#endif
             return displayInfo;
         }
-#ifdef FOLD_ABILITY_ENABLE
-        HandleSuperFoldDisplayInfoWhenKeyboardOn(screenSession, displayInfo);
-        return displayInfo;
-#endif
+        // DISPLAY_ID_FAKE(999) hangs on the fake screen session, query it when
+        // the main session does not match.
+        if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice() ||
+            !screenSession->GetScreenProperty().GetIsFakeInUse()) {
+            continue;
+        }
+        auto fakeSession = screenSession->GetFakeScreenSession();
+        if (fakeSession == nullptr) {
+            continue;
+        }
+        sptr<DisplayInfo> fakeDisplayInfo = fakeSession->ConvertToRealDisplayInfo();
+        if (fakeDisplayInfo != nullptr && displayId == fakeDisplayInfo->GetDisplayId()) {
+            TLOGD(WmsLogTag::DMS, "fake success");
+            HandleRotationCorrectionExemption(fakeDisplayInfo);
+            return HookDisplayInfoByUid(fakeDisplayInfo, fakeSession);
+        }
     }
     TLOGNFE(WmsLogTag::DMS, "GetVisibleAreaDisplayInfoById failed. displayId: %{public}" PRIu64" ", displayId);
     return nullptr;
