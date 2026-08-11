@@ -552,6 +552,78 @@ HWTEST_F(ScreenSessionManagerTest, GetVisibleAreaDisplayInfoById04, Function | S
 }
 
 /**
+ * @tc.name: GetVisibleAreaDisplayInfoById05
+ * @tc.desc: On super-fold devices the DISPLAY_ID_FAKE path must run HookDisplayInfoByUid
+ *           against the FAKE session's rotation-correction context, not the parent session's.
+ *           Regression guard for the fix that passes fakeSession to HookDisplayInfoByUid:
+ *           passing the parent session instead yields a wrong DisplayOrientation.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, GetVisibleAreaDisplayInfoById05, Function | SmallTest | Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+    DisplayId id = 50;
+    // phyWidth < phyHeight on both sessions so isVerticalScreen is deterministic.
+    ScreenProperty mainProperty;
+    mainProperty.SetIsFakeInUse(true);
+    mainProperty.SetPhyWidth(500);
+    mainProperty.SetPhyHeight(1000);
+    sptr<ScreenSession> screenSession = new ScreenSession(id, mainProperty, 0);
+    ASSERT_NE(nullptr, screenSession);
+
+    ScreenProperty fakeProperty;
+    fakeProperty.SetPhyWidth(500);
+    fakeProperty.SetPhyHeight(1000);
+    sptr<ScreenSession> fakeScreenSession = new ScreenSession(DISPLAY_ID_FAKE, fakeProperty, 0);
+    ASSERT_NE(nullptr, fakeScreenSession);
+    screenSession->SetFakeScreenSession(fakeScreenSession);
+
+    // Distinct rotation-correction maps (offsets are enum-index units, 0..3, since
+    // RemoveRotationCorrection operates mod SECONDARY_ROTATION_MOD=4): parent 0, fake 1 (=ROTATION_90).
+    std::unordered_map<FoldDisplayMode, int32_t> mainMap;
+    mainMap[FoldDisplayMode::UNKNOWN] = 0;
+    screenSession->SetRotationCorrectionMap(mainMap);
+    std::unordered_map<FoldDisplayMode, int32_t> fakeMap;
+    fakeMap[FoldDisplayMode::UNKNOWN] = static_cast<int32_t>(Rotation::ROTATION_90);
+    fakeScreenSession->SetRotationCorrectionMap(fakeMap);
+
+    // Hook the calling uid at ROTATION_90 (degrees, as ConvertIntToRotation expects); do not
+    // override the computed orientation so it reflects CalcDisplayOrientation. Distinctive
+    // width/height prove the hook actually ran regardless of rotation/orientation quirks.
+    uint32_t uid = getuid();
+    DMHookInfo hookInfo = {};
+    hookInfo.width_ = 777;
+    hookInfo.height_ = 888;
+    hookInfo.density_ = 2.0;
+    hookInfo.rotation_ = 90; // degrees -> ConvertIntToRotation -> ROTATION_90
+    hookInfo.enableHookRotation_ = true;
+    hookInfo.displayOrientation_ = static_cast<uint32_t>(DisplayOrientation::UNKNOWN);
+    hookInfo.enableHookDisplayOrientation_ = false;
+    hookInfo.isFullScreenInForceSplit_ = false;
+    ssm_->displayHookMap_[uid] = hookInfo;
+
+    ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
+    auto res = ssm_->GetVisibleAreaDisplayInfoById(DISPLAY_ID_FAKE);
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        ASSERT_NE(res, nullptr);
+        ASSERT_EQ(res->GetDisplayId(), DISPLAY_ID_FAKE);
+        // Hook ran: width/height overridden with the distinctive values.
+        EXPECT_EQ(res->GetWidth(), 777);
+        EXPECT_EQ(res->GetHeight(), 888);
+        // Input ROTATION_90; the fake offset ROTATION_90 cancels it to effective ROTATION_0,
+        // which on a vertical screen maps to PORTRAIT. The parent offset 0 would keep ROTATION_90
+        // (-> LANDSCAPE), which is the value the bug produced.
+        EXPECT_EQ(res->GetDisplayOrientation(), DisplayOrientation::PORTRAIT);
+    } else {
+        // The fake fallback only runs on super-fold devices.
+        ASSERT_EQ(res, nullptr);
+    }
+
+    ssm_->displayHookMap_.erase(uid);
+    ssm_->screenSessionMap_.erase(50);
+}
+
+/**
  * @tc.name: GetDisplayInfoByScreen01
  * @tc.desc: GetDisplayInfoByScreen01
  * @tc.type: FUNC
