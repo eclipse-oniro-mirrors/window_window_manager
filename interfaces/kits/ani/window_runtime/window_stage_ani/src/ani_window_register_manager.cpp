@@ -646,7 +646,7 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowTitleButtonRectChangeRegister
 }
 
 WmErrorCode AniWindowRegisterManager::ProcessWindowWillCloseRegister(const sptr<AniWindowListener>& listener,
-    const sptr<Window>& window, bool isRegister, ani_env* env)
+    const sptr<Window>& window, bool isRegister, ani_env* env, std::string& errMsg)
 {
     TLOGD(WmsLogTag::DEFAULT, "called");
     HISTOGRAM_BOOLEAN(
@@ -662,9 +662,9 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowWillCloseRegister(const sptr<
     sptr<IWindowWillCloseListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowWillCloseListeners(thisListener));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowWillCloseListeners(thisListener, errMsg));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnRegisterWindowWillCloseListeners(thisListener));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnRegisterWindowWillCloseListeners(thisListener, errMsg));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(
         isRegister ? "ArkUI.window.onWindowWillClose.error" : "ArkUI.window.offWindowWillClose.error", ret);
@@ -708,7 +708,7 @@ bool AniWindowRegisterManager::IsWindowPostureCallbackRegistered(ani_env* env, u
 }
 
 WmErrorCode AniWindowRegisterManager::RegisterListener(sptr<Window> window, const std::string& type,
-    CaseType caseType, ani_env* env, ani_ref callback, ani_long timeout)
+    CaseType caseType, ani_env* env, ani_ref callback, ani_long timeout, std::string& errMsg)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (IsCallbackRegistered(env, type, callback)) {
@@ -742,7 +742,8 @@ WmErrorCode AniWindowRegisterManager::RegisterListener(sptr<Window> window, cons
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     windowManagerListener->SetMainEventHandler();
-    WmErrorCode ret = ProcessListener(listenerType, caseType, windowManagerListener, window, true, env, timeout);
+    WmErrorCode ret = ProcessListener(listenerType, caseType, windowManagerListener, window, true, env, timeout,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI]Register type %{public}s failed", type.c_str());
         return ret;
@@ -754,7 +755,8 @@ WmErrorCode AniWindowRegisterManager::RegisterListener(sptr<Window> window, cons
 }
 
 WmErrorCode AniWindowRegisterManager::ProcessWindowStageListener(RegisterListenerType registerListenerType,
-    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister, ani_env* env)
+    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
+    ani_env* env, std::string& errMsg)
 {
     switch (registerListenerType) {
         case RegisterListenerType::WINDOW_STAGE_EVENT_CB:
@@ -771,8 +773,8 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowStageListener(RegisterListene
 }
 
 WmErrorCode AniWindowRegisterManager::ProcessWindowListener(RegisterListenerType registerListenerType,
-    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister, ani_env* env,
-    ani_long timeout)
+    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
+    ani_env* env, ani_long timeout, std::string& errMsg)
 {
     switch (static_cast<uint32_t>(registerListenerType)) {
         case static_cast<uint32_t>(RegisterListenerType::WINDOW_SIZE_CHANGE_CB):
@@ -832,7 +834,7 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowListener(RegisterListenerType
         case static_cast<uint32_t>(RegisterListenerType::WINDOW_ROTATION_CHANGE_CB):
             return ProcessWindowRotationChangeRegister(windowManagerListener, window, isRegister, env);
         case static_cast<uint32_t>(RegisterListenerType::WINDOW_WILL_CLOSE_CB):
-            return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env);
+            return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env, errMsg);
         case static_cast<uint32_t>(RegisterListenerType::RECT_CHANGE_IN_GLOBAL_DISPLAY_CB):
             return ProcessRectChangeInGlobalDisplayRegister(windowManagerListener, window, isRegister, env);
         case static_cast<uint32_t>(RegisterListenerType::EXTENSION_SECURE_LIMIT_CHANGE_CB):
@@ -855,7 +857,8 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowListener(RegisterListenerType
 }
 
 WmErrorCode AniWindowRegisterManager::ProcessWindowManagerListener(RegisterListenerType registerListenerType,
-    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister, ani_env* env)
+    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
+    ani_env* env, std::string& errMsg)
 {
     switch (static_cast<uint32_t>(registerListenerType)) {
         case static_cast<uint32_t>(RegisterListenerType::SYSTEM_BAR_TINT_CHANGE_CB):
@@ -875,21 +878,24 @@ WmErrorCode AniWindowRegisterManager::ProcessWindowManagerListener(RegisterListe
 }
 
 WmErrorCode AniWindowRegisterManager::ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
-    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister, ani_env* env,
-    ani_long timeout)
+    const sptr<AniWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
+    ani_env* env, ani_long timeout, std::string& errMsg)
 {
     if (caseType == CaseType::CASE_WINDOW_MANAGER) {
-        return ProcessWindowManagerListener(registerListenerType, windowManagerListener, window, isRegister, env);
+        return ProcessWindowManagerListener(registerListenerType, windowManagerListener, window, isRegister, env,
+            errMsg);
     } else if (caseType == CaseType::CASE_WINDOW) {
-        return ProcessWindowListener(registerListenerType, windowManagerListener, window, isRegister, env, timeout);
+        return ProcessWindowListener(registerListenerType, windowManagerListener, window, isRegister, env, timeout,
+            errMsg);
     } else if (caseType == CaseType::CASE_STAGE) {
-        return ProcessWindowStageListener(registerListenerType, windowManagerListener, window, isRegister, env);
+        return ProcessWindowStageListener(registerListenerType, windowManagerListener, window, isRegister, env,
+            errMsg);
     }
     return WmErrorCode::WM_OK;
 }
 
 WmErrorCode AniWindowRegisterManager::UnregisterListener(sptr<Window> window, const std::string& type,
-    CaseType caseType, ani_env* env, ani_ref callback)
+    CaseType caseType, ani_env* env, ani_ref callback, std::string& errMsg)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
@@ -912,7 +918,7 @@ WmErrorCode AniWindowRegisterManager::UnregisterListener(sptr<Window> window, co
     if (!callback || isUndef == ANI_TRUE) {
         TLOGI(WmsLogTag::DEFAULT, "[ANI]Unregister all callbck, type:%{public}s", type.c_str());
         for (auto it = jsCbMap_[type].begin(); it != jsCbMap_[type].end();) {
-            WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window, false, env, 0);
+            WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window, false, env, 0, errMsg);
             if (ret != WmErrorCode::WM_OK) {
                 TLOGE(WmsLogTag::DEFAULT, "[ANI]Unregister type %{public}s failed, no value", type.c_str());
                 return ret;
@@ -931,7 +937,7 @@ WmErrorCode AniWindowRegisterManager::UnregisterListener(sptr<Window> window, co
                 continue;
             }
             findFlag = true;
-            WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window, false, env, 0);
+            WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window, false, env, 0, errMsg);
             if (ret != WmErrorCode::WM_OK) {
                 TLOGE(WmsLogTag::DEFAULT, "[ANI]Unregister type %{public}s failed", type.c_str());
                 return ret;

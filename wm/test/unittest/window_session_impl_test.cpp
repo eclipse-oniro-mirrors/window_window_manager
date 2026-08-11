@@ -517,7 +517,8 @@ HWTEST_F(WindowSessionImplTest, WindowSessionCreateCheck01, TestSize.Level1)
     sptr<WindowSessionImpl> window1 = new (std::nothrow) WindowSessionImpl(option1);
     ASSERT_NE(nullptr, window1);
 
-    WMError res = window1->WindowSessionCreateCheck();
+    std::string errMsg;
+    WMError res = window1->WindowSessionCreateCheck(errMsg);
     ASSERT_EQ(res, WMError::WM_OK);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: WindowSessionCreateCheck01 end";
 }
@@ -536,7 +537,8 @@ HWTEST_F(WindowSessionImplTest, WindowSessionCreateCheck03, TestSize.Level1)
     sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
     ASSERT_NE(window, nullptr);
     window->windowSessionMap_[name] = std::pair<int32_t, sptr<WindowSessionImpl>>(1, window);
-    WMError res = window->WindowSessionCreateCheck();
+    std::string errMsg;
+    WMError res = window->WindowSessionCreateCheck(errMsg);
     ASSERT_EQ(res, WMError::WM_ERROR_REPEAT_OPERATION);
     GTEST_LOG_(INFO) << "WindowSessionImplTest: WindowSessionCreateCheck03 end";
 }
@@ -1299,9 +1301,10 @@ HWTEST_F(WindowSessionImplTest, RegisterListener04, TestSize.Level1)
     window->property_->SetPersistentId(1);
 
     sptr<IWindowWillCloseListener> listener14 = nullptr;
-    WMError res = window->RegisterWindowWillCloseListeners(listener14);
+    std::string errMsg;
+    WMError res = window->RegisterWindowWillCloseListeners(listener14, errMsg);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
-    res = window->UnRegisterWindowWillCloseListeners(listener14);
+    res = window->UnRegisterWindowWillCloseListeners(listener14, errMsg);
     ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
 
     EXPECT_EQ(WMError::WM_OK, window->Destroy());

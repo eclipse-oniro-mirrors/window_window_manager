@@ -79,7 +79,7 @@ WmErrorCode JsWindowRegisterManager::ProcessAvoidAreaChangeRegister(sptr<JsWindo
 }
 
 WmErrorCode JsWindowRegisterManager::RegisterListener(sptr<Window> window, std::string type,
-    CaseType caseType, napi_env env, napi_value callback, napi_value parameter)
+    CaseType caseType, napi_env env, napi_value callback, std::string& errMsg, napi_value parameter)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (IsCallbackRegistered(env, type, callback)) {
@@ -135,7 +135,7 @@ WmErrorCode JsWindowRegisterManager::ProcessRegisterCallback(ListenerFunctionTyp
 }
 
 WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std::string type,
-    CaseType caseType, napi_env env, napi_value value)
+    CaseType caseType, napi_env env, napi_value value, std::string& errMsg)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
