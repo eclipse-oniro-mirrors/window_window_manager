@@ -3500,6 +3500,9 @@ WMError WindowSceneSessionImpl::RaiseAboveTarget(int32_t subWindowId)
 WMError WindowSceneSessionImpl::RaiseMainWindowAboveTarget(int32_t targetId)
 {
     TLOGI(WmsLogTag::WMS_HIERARCHY, "source id: %{public}u, target id: %{public}u", GetWindowId(), targetId);
+    if (IsSuperMultiFoldOuterScreen()) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "RaiseMainWindowAboveTarget on SPN outer screen");
+    }
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "device type not supported");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;

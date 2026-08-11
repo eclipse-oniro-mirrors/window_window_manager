@@ -20,6 +20,7 @@
 
 #include "iremote_object_mocker.h"
 #include "key_event.h"
+#include "fold_screen_state_internel.h"
 #include "mock/mock_session.h"
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
@@ -2063,6 +2064,36 @@ HWTEST_F(WindowSessionTest4, TestHandleHookDisplayNormal, TestSize.Level1)
     EXPECT_EQ(capturedInfo.rotation_, ctx.display.rotation);
     EXPECT_TRUE(capturedInfo.enableHookRotation_);
     EXPECT_TRUE(capturedEnable);
+}
+
+/**
+ * @tc.name: IsSuperMultiFoldOuterScreen01
+ * @tc.desc: Test Session::IsSuperMultiFoldOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, IsSuperMultiFoldOuterScreen01, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    ASSERT_NE(session_, nullptr);
+    session_->property_->SetDisplayId(Session::SCREEN_ID_MAIN);
+    EXPECT_TRUE(session_->IsSuperMultiFoldOuterScreen());
+}
+
+/**
+ * @tc.name: IsSuperMultiFoldOuterScreen02
+ * @tc.desc: Test Session::IsSuperMultiFoldOuterScreen with displayId != SCREEN_ID_MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, IsSuperMultiFoldOuterScreen02, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    ASSERT_NE(session_, nullptr);
+    session_->property_->SetDisplayId(0);
+    EXPECT_FALSE(session_->IsSuperMultiFoldOuterScreen());
 }
 } // namespace
 } // namespace Rosen
