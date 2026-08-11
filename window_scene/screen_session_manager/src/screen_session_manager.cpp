@@ -3531,8 +3531,8 @@ sptr<DisplayInfo> ScreenSessionManager::GetVisibleAreaDisplayInfoById(DisplayId 
             }
 #ifdef FOLD_ABILITY_ENABLE
             HandleSuperFoldDisplayInfoWhenKeyboardOn(screenSession, displayInfo);
-            return displayInfo;
 #endif
+            return displayInfo;
         }
         // DISPLAY_ID_FAKE(999) hangs on the fake screen session, query it when
         // the main session does not match.
@@ -3548,7 +3548,7 @@ sptr<DisplayInfo> ScreenSessionManager::GetVisibleAreaDisplayInfoById(DisplayId 
         if (fakeDisplayInfo != nullptr && displayId == fakeDisplayInfo->GetDisplayId()) {
             TLOGD(WmsLogTag::DMS, "fake success");
             HandleRotationCorrectionExemption(fakeDisplayInfo);
-            return HookDisplayInfoByUid(fakeDisplayInfo, screenSession);
+            return HookDisplayInfoByUid(fakeDisplayInfo, fakeSession);
         }
     }
     TLOGNFE(WmsLogTag::DMS, "GetVisibleAreaDisplayInfoById failed. displayId: %{public}" PRIu64" ", displayId);
