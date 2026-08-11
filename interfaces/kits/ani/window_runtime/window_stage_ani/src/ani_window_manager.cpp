@@ -485,12 +485,14 @@ ani_ref CreateAniSystemWindow(ani_env* env, void* contextPtr, sptr<WindowOption>
         }
     }
     WMError wmError = WMError::WM_OK;
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, context->lock(), wmError);
+    std::string errMsg;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg, context->lock(), wmError);
     WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
     if (window != nullptr && wmErrorCode == WmErrorCode::WM_OK) {
         return CreateAniWindowObject(env, window);
     } else {
-        return AniWindowUtils::AniThrowError(env, wmErrorCode, "Create window failed");
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, wmErrorCode, msg);
     }
 }
 
