@@ -22,7 +22,7 @@
 
 namespace OHOS::Rosen {
 namespace {
-constexpr char ARK_CONNECT_LIB_PATH[] = "libark_connect_inspector.z.so";
+constexpr char ARK_CONNECT_LIB_PATH[] = "/system/lib/libark_connect_inspector.z.so";
 constexpr char SET_WMS_CALLBACK[] = "SetWMSCallback";
 constexpr char SEND_WMS_MESSAGE[] = "SendMessage";
 const std::string METHOD_NAME = "WMS.windowList";
