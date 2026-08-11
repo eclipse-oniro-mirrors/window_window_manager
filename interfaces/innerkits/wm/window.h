@@ -218,7 +218,7 @@ public:
     /**
      * @brief Notify caller that focus state changed.
      * 
-     * @param isFocused Whether ther window is focused
+     * @param isFocused Whether the window is focused
      * @param reason Focus change reason
      * @param nextFocusedWindowId next focused window id, valid only when unfocused and same process.
      * @param preFocusedWindowId pre focused window id, valid only when focused and same process.
@@ -5812,7 +5812,7 @@ public:
      * @brief Register focus state change listener
      *
      * @param listener IFocusStateChangedListener.
-     * @return WM_OK means register success, others means unregister failed
+     * @return WM_OK means register success, others means register failed
      */
     virtual WMError RegisterFocusStateChangedListener(
         const sptr<IFocusStateChangedListener>& listener)
@@ -5824,7 +5824,7 @@ public:
      * @brief Unregister focus state change listener
      *
      * @param listener IFocusStateChangedListener.
-     * @return WM_OK means register success, others means unregister failed
+     * @return WM_OK means unregister success, others means unregister failed
      */
     virtual WMError UnRegisterFocusStateChangedListener(
         const sptr<IFocusStateChangedListener>& listener)

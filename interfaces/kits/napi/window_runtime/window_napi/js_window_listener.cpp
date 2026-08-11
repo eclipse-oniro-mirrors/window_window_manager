@@ -653,7 +653,7 @@ void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReas
     auto jsCallback = [self = weakRef_, isFocused, reason, nextFocusedWindowId, preFocusedWindowId, env = env_] {
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
-            TLOGE(WmsLogTag::WMS_FOCUS, "this listener or eng is nullptr");
+            TLOGE(WmsLogTag::WMS_FOCUS, "this listener or env is nullptr");
             return;
         }
         napi_value objValue = nullptr;

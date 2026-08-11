@@ -4347,14 +4347,14 @@ WMError WindowSessionImpl::RegisterFocusStateChangedListener(const sptr<IFocusSt
 {
     WLOGFD("in");
     std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
-    return RegisterListener(focusStateChangedListener_[GetPersistentId()], listener);
+    return RegisterListener(focusStateChangedListeners_[GetPersistentId()], listener);
 }
 
 WMError WindowSessionImpl::UnRegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener)
 {
     WLOGFD("in");
     std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
-    return UnregisterListenerInMap(focusStateChangedListener_, GetPersistentId(), listener);
+    return UnregisterListenerInMap(focusStateChangedListeners_, GetPersistentId(), listener);
 }
 
 
@@ -6513,7 +6513,7 @@ void WindowSessionImpl::NotifyFocusStateChanged(bool isFocused, WindowFocusChang
         "nextFocusedWindowId: %{public}d, preFocusedWindowId: %{public}d, listenerCnt: %{public}zu",
         GetPersistentId(), isFocused, static_cast<int32_t>(reason), nextFocusedWindowId,
         preFocusedWindowId, Listeners.size());
-    for (auto& listener : listeners) {
+    for (auto& listener : Listeners) {
         if (listener != nullptr) {
             listener->OnFocusStateChanged(isFocused, reason, nextFocusedWindowId, preFocusedWindowId);
         }
