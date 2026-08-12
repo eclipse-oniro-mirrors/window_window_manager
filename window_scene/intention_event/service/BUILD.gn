@@ -46,16 +46,8 @@ ohos_shared_library("intention_event_anr_manager") {
 
   public_configs = [ ":intention_event_public_config" ] 
   external_deps = [
-    "ability_base:want",
-    "accessibility:accessibility_common",
-    "bundle_framework:appexecfwk_base",
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "hicollie:libhicollie",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_single",
   ]
 
   if (defined(global_parts_info) &&
@@ -69,4 +61,5 @@ ohos_shared_library("intention_event_anr_manager") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

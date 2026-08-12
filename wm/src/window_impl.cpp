@@ -45,7 +45,6 @@
 #include "wm_math.h"
 #include "perform_reporter.h"
 #include "hitrace_meter.h"
-#include <hisysevent.h>
 
 namespace OHOS {
 namespace Rosen {

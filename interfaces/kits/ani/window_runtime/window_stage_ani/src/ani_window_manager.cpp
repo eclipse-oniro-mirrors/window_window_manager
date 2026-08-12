@@ -32,12 +32,8 @@
 #include "window_manager_hilog.h"
 #include "window_scene.h"
 #include "window_helper.h"
-#include "window_manager.h"
 #include "window_option.h"
-#include "permission.h"
 #include "scene_board_judgement.h"
-#include "singleton_container.h"
-#include "pixel_map.h"
 #include "window_histogram_management.h"
 #include "../../../../../../wm/include/get_snapshot_callback.h"
 

@@ -43,7 +43,6 @@
 #include "wm_common.h"
 #include "wm_math.h"
 #include "window_histogram_management.h"
-#include "permission.h"
 
 using OHOS::Rosen::WindowScene;
 
