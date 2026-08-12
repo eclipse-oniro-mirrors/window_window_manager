@@ -3628,7 +3628,8 @@ HWTEST_F(WindowSessionImplTest, RegisterFocusStateChangedListener01, TestSize.Le
     // 3. Verify the result
     ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
     auto iter = WindowSessionImpl::focusStateChangedListeners_.find(1);
-    ASSERT_EQ(iter, WindowSessionImpl::focusStateChangedListeners_.end());
+    ASSERT_NE(iter, WindowSessionImpl::focusStateChangedListeners_.end());
+    ASSERT_EQ(iter->second.size(), 0);
     ASSERT_EQ(WMError::WM_OK, window->Destroy());
 }
 
