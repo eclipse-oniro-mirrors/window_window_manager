@@ -988,7 +988,12 @@ HWTEST_F(ScreenSessionManagerTest, SetMultiScreenMode01, TestSize.Level1)
     screenSession->SetScreenType(ScreenType::REAL);
 
     auto ret = ssm_->SetMultiScreenMode(0, screenSession->GetRSScreenId(), screenMode);
-    ASSERT_EQ(ret, DMError::DM_OK);
+    bool isPcNow = ssm_->GetPcStatus();
+    if (isPcNow) {
+        ASSERT_EQ(ret, DMError::DM_OK);
+    } else {
+        ASSERT_EQ(ret, DMError::DM_ERROR_INVALID_MODE_ID);
+    }
     ssm_->DestroyVirtualScreen(screenId);
 #endif
 }
@@ -1013,7 +1018,12 @@ HWTEST_F(ScreenSessionManagerTest, SetMultiScreenMode02, TestSize.Level1)
     screenSession->SetScreenType(ScreenType::REAL);
 
     auto ret = ssm_->SetMultiScreenMode(0, screenSession->GetRSScreenId(), screenMode);
-    ASSERT_EQ(ret, DMError::DM_OK);
+    bool isPcNow = ssm_->GetPcStatus();
+    if (isPcNow) {
+        ASSERT_EQ(ret, DMError::DM_OK);
+    } else {
+        ASSERT_EQ(ret, DMError::DM_ERROR_INVALID_MODE_ID);
+    }
     ssm_->DestroyVirtualScreen(screenId);
 #endif
 }
@@ -1038,7 +1048,12 @@ HWTEST_F(ScreenSessionManagerTest, SetMultiScreenMode03, TestSize.Level1)
 
     uint32_t testNum = 2;
     auto ret = ssm_->SetMultiScreenMode(0, screenSession->GetRSScreenId(), static_cast<MultiScreenMode>(testNum));
-    ASSERT_EQ(ret, DMError::DM_OK);
+    bool isPcNow = ssm_->GetPcStatus();
+    if (isPcNow) {
+        ASSERT_EQ(ret, DMError::DM_OK);
+    } else {
+        ASSERT_EQ(ret, DMError::DM_ERROR_INVALID_MODE_ID);
+    }
     ssm_->DestroyVirtualScreen(screenId);
 #endif
 }

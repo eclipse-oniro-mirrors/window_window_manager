@@ -169,6 +169,7 @@ public:
         DMRect mainScreenRegion, ScreenId& screenGroupId) override;
     virtual DMError SetMultiScreenMode(ScreenId mainScreenId, ScreenId secondaryScreenId,
         MultiScreenMode screenMode) override;
+    DMError CheckMultiScreen(ScreenId mainScreenId, ScreenId secondaryScreenId, MultiScreenMode screenMode);
     virtual DMError SetMultiScreenRelativePosition(MultiScreenPositionOptions mainScreenOptions,
         MultiScreenPositionOptions secondScreenOption) override;
     virtual DMError StopMirror(const std::vector<ScreenId>& mirrorScreenIds) override;
