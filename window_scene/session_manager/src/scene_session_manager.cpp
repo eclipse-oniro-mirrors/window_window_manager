@@ -2903,7 +2903,7 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
     // The user-specified unit is density-invariant, so the base is taken in the user unit and the other
     // unit is derived. Mirrors the client UpdateDensityInner + CalculateAttachedWindowLimitsIntersection.
     float vpr = targetDensity;
-    auto anchorInfo = sessionProperty->GetWindowAnchorInfo();
+    auto anchorInfo = sceneSession->GetWindowAnchorInfo();
     auto optionsList = sessionProperty->GetAttachedLimitOptionsList();
     auto attachedList = sessionProperty->GetAttachedWindowLimitsList();
     bool hasIntersected = WindowHelper::HasIntersectedAttachLimits(anchorInfo, optionsList);
