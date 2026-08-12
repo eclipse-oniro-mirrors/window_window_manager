@@ -1187,7 +1187,7 @@ private:
     static GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace);
 
     template<typename T> EnableIfSame<T, IWindowLifeCycle, std::vector<sptr<IWindowLifeCycle>>> GetListeners();
-    template<typename T> 
+    template<typename T>
     EnableIfSame<T, IFocusStateChangedListener, std::vector<sptr<IFocusStateChangedListener>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IWindowStageLifeCycle, std::vector<sptr<IWindowStageLifeCycle>>> GetListeners();

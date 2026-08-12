@@ -6508,12 +6508,12 @@ void WindowSessionImpl::NotifyFocusStateChanged(bool isFocused, WindowFocusChang
         int32_t nextFocusedWindowId, int32_t preFocusedWindowId)
 {
     std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
-    auto Listeners = GetListeners<IFocusStateChangedListener>();
+    auto listeners = GetListeners<IFocusStateChangedListener>();
     TLOGI(WmsLogTag::WMS_FOCUS, "windowId: %{public}d, isFocused: %{public}d, reason: %{public}d, "
         "nextFocusedWindowId: %{public}d, preFocusedWindowId: %{public}d, listenerCnt: %{public}zu",
         GetPersistentId(), isFocused, static_cast<int32_t>(reason), nextFocusedWindowId,
-        preFocusedWindowId, Listeners.size());
-    for (auto& listener : Listeners) {
+        preFocusedWindowId, listeners.size());
+    for (auto& listener : listeners) {
         if (listener != nullptr) {
             listener->OnFocusStateChanged(isFocused, reason, nextFocusedWindowId, preFocusedWindowId);
         }

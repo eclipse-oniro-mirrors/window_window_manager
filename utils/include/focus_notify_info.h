@@ -57,8 +57,8 @@ public:
     virtual bool Marshalling(Parcel& parcel) const
     {
         return parcel.WriteInt64(timeStamp_) && parcel.WriteInt32(unfocusWindowId_) &&
-            parcel.WriteInt32(focusWindowId_) && parcel.WriteBool(isSyncNotify_) && parcel.WriteBool(isSameCallingPid_) &&
-            parcel.WriteInt32(static_cast<int32_t>(reason_));
+            parcel.WriteInt32(focusWindowId_) && parcel.WriteBool(isSyncNotify_) &&
+            parcel.WriteBool(isSameCallingPid_) && parcel.WriteInt32(static_cast<int32_t>(reason_));
     }
 
     static FocusNotifyInfo* Unmarshalling(Parcel& parcel)
