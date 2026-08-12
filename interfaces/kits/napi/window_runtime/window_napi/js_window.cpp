@@ -98,6 +98,7 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
         SetWindowToken(nullptr);
+        isDestroyed_ = true;
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in js window", windowName.c_str());
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
@@ -3112,10 +3113,14 @@ napi_value JsWindow::OnRegisterWindowCallback(napi_env env, napi_callback_info i
 napi_value JsWindow::OnUnregisterWindowCallback(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
-        WLOGFE("Window is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off",
-            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "[window][off]msg: The window is not created or destroyed.");
+        if (isDestroyed_) {
+            TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
+            return NapiGetUndefined(env);
+        } else {
+            TLOGI(WmsLogTag::WMS_LIFE, "Window is nullptr");
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][off]msg: The window is not created or destroyed.");
+        }
     }
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
