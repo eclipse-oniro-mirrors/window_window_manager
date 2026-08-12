@@ -1227,6 +1227,10 @@ private:
     bool dozeNotifyFinish_ = false;
     bool pictureFrameReady_ = false;
     bool pictureFrameBreak_ = false;
+    // Set when a wake-up power event could not be dispatched because screenSessionMap_
+    // was empty (race with screen hot-plug on PC). Checked by OneScreenConnect so the
+    // dropped event can be replayed after the physical screen takes over SCREEN_ID_DEFAULT.
+    std::atomic<bool> wakeupPowerEventDropped_ {false};
 
     std::mutex scbBufferAvailableMutex_;
     std::condition_variable scbBufferAvailableCV_;
