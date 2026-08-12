@@ -1265,6 +1265,74 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, GetAppWindowShowingInfosByBundleName_
     EXPECT_EQ(sceneSessionManagerLiteProxy_->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos),
         WMError::WM_ERROR_IPC_FAILED);
 }
+
+/**
+ * @tc.name: UpdateRogWindowConfig_Success
+ * @tc.desc: Test UpdateRogWindowConfig with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateRogWindowConfig_Success, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.app1", "com.test.app2"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateRogWindowConfig(windowConfig), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_WriteTokenFailed
+ * @tc.desc: Test UpdateRogWindowConfig when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateRogWindowConfig_WriteTokenFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    RogWindowConfig windowConfig;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateRogWindowConfig(windowConfig), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_RemoteNullFailed
+ * @tc.desc: Test UpdateRogWindowConfig when remote object is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateRogWindowConfig_RemoteNullFailed, TestSize.Level1)
+{
+    sptr<SceneSessionManagerLiteProxy> liteProxyNullRemote = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    ASSERT_NE(liteProxyNullRemote, nullptr);
+    RogWindowConfig windowConfig;
+    EXPECT_EQ(liteProxyNullRemote->UpdateRogWindowConfig(windowConfig), WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_SendReqFailed
+ * @tc.desc: Test UpdateRogWindowConfig when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateRogWindowConfig_SendReqFailed, TestSize.Level1)
+{
+    iRemoteObjectMocker_->SetRequestResult(1);
+    RogWindowConfig windowConfig;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateRogWindowConfig(windowConfig), WMError::WM_ERROR_IPC_FAILED);
+    iRemoteObjectMocker_->SetRequestResult(0);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_ReadRetFailed
+ * @tc.desc: Test UpdateRogWindowConfig when ReadInt32 failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateRogWindowConfig_ReadRetFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    RogWindowConfig windowConfig;
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateRogWindowConfig(windowConfig), WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+}
 }
 }
 }

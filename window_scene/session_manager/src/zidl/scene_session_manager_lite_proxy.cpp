@@ -3305,4 +3305,41 @@ WMError SceneSessionManagerLiteProxy::GetAppWindowShowingInfosByBundleName(const
     }
     return WMError::WM_OK;
 }
+
+WMError SceneSessionManagerLiteProxy::UpdateRogWindowConfig(const RogWindowConfig& windowConfig)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "in");
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(windowConfig.width) ||
+        !data.WriteUint32(windowConfig.height) ||
+        !data.WriteUint32(windowConfig.dpi) ||
+        !data.WriteFloat(windowConfig.scale) ||
+        !data.WriteStringVector(windowConfig.xhdpiAppList)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Write windowConfig failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return static_cast<WMError>(ret);
+}
 } // namespace OHOS::Rosen
