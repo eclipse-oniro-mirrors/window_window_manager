@@ -47,6 +47,7 @@ const std::string PREVIEW_WINDOW_NAME_PREFIX = "PreviewWindow";
 const std::string VOICEINPUT_WINDOW_NAME_PREFIX = "__VoiceHardwareInput";
 const std::string SCREEN_LOCK_WINDOW = "SCBScreenLock";
 constexpr int32_t CURSOR_DRAG_COUNT_MAX = 1;
+const std::string VIRTUAL_TOUCHPAD_MODULE_NAME = "virtualtouchpad";
 } // namespace
 
 static bool operator==(const MMI::Rect left, const MMI::Rect right)
@@ -910,6 +911,20 @@ void SceneSessionDirtyManager::UpdateWindowFlagsForLockCursor(const sptr<SceneSe
     }
 }
 
+void SceneSessionDirtyManager::UpdateWindowFlagsForVirtualPad(const sptr<SceneSession>& sceneSession,
+                                                              MMI::WindowInfo& windowInfo) const
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "sceneSession is null");
+        return;
+    }
+    std::string moduleName = sceneSession->GetSessionInfo().moduleName_;
+    if (moduleName.find(VIRTUAL_TOUCHPAD_MODULE_NAME) != std::string::npos) {
+        windowInfo.flags |= MMI::WindowInputPolicy::FLAG_SKIP_MONITOR;
+        TLOGD(WmsLogTag::WMS_EVENT, "Add flag success");
+    }
+}
+
 std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyManager::GetWindowInfo(
     const sptr<SceneSession>& sceneSession, const WindowAction& action) const
 {
@@ -995,6 +1010,7 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
     UpdateWindowFlagsForReceiveDragEventEnabled(sceneSession, windowInfo);
     UpdateWindowFlagsForWindowSeparation(sceneSession, windowInfo);
     UpdateWindowFlagsForLockCursor(sceneSession, windowInfo);
+    UpdateWindowFlagsForVirtualPad(sceneSession, windowInfo);
     UpdatePrivacyMode(sceneSession, windowInfo);
     windowInfo.uiExtentionWindowInfo = GetSecSurfaceWindowinfoList(sceneSession, windowInfo, transform);
     return {windowInfo, pixelMap};
