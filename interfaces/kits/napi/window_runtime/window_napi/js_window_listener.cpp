@@ -659,19 +659,18 @@ void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReas
         napi_value objValue = nullptr;
         napi_create_object(env, &objValue);
         napi_set_named_property(env, objValue, "focused", CreateJsValue(env, isFocused));
-        // Map reason to JS enum: CLICK=1, OTHER=0
         napi_set_named_property(env, objValue, "focusChangeReason",
-            CreateJsValue(env, reason == WindowFocusChangeReason::CLICK ? 1 : 0));
+            CreateJsValue(env, ConvertWindowFocusChangeReasonToJsValue(reason)));
         if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {
             napi_set_named_property(env, objValue, "nextFocusedWindowId", CreateJsValue(env, nextFocusedWindowId));
         }
         if (isFocused && preFocusedWindowId != INVALID_WINDOW_ID) {
             napi_set_named_property(env, objValue, "preFocusedWindowId", CreateJsValue(env, preFocusedWindowId));
         }
-        napi_value argv[] = { objValue };        
+        napi_value argv[] = { objValue };
         thisListener->CallJsMethod(WINDOW_FOCUS_STATE_CHANGE_CB.c_str(), argv, ArraySize(argv));
     };
-    if (napi_send_event(env_, jsCallback, napi_eprio_immediate, "OnFocusStateChanged") != napi_status::napi_ok) {
+    if (napi_send_event(env_, jsCallback, napi_eprio_high, "OnFocusStateChanged") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_FOCUS, "Failed to send event");
     }
 }

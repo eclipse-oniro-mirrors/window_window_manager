@@ -1965,13 +1965,22 @@ napi_value WindowAnimationCurveInit(napi_env env)
     return objValue;
 }
 
+// JS FocusChangeReason only exposes OTHER(0) / CLICK(1) (intentional simplification); other C++ reasons collapse to OTHER.
+constexpr int32_t FOCUS_CHANGE_REASON_OTHER = 0;
+constexpr int32_t FOCUS_CHANGE_REASON_CLICK = 1;
+
+int32_t ConvertWindowFocusChangeReasonToJsValue(WindowFocusChangeReason reason)
+{
+    return reason == WindowFocusChangeReason::CLICK ? FOCUS_CHANGE_REASON_CLICK : FOCUS_CHANGE_REASON_OTHER;
+}
+
 napi_value FocusChangeReasonInit(napi_env env)
 {
     CHECK_NAPI_ENV_RETURN_IF_NULL(env);
     napi_value objValue = nullptr;
     CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
-    napi_set_named_property(env, objValue, "OTHER", CreateJsValue(env, 0));
-    napi_set_named_property(env, objValue, "CLICK", CreateJsValue(env, 1));
+    napi_set_named_property(env, objValue, "OTHER", CreateJsValue(env, FOCUS_CHANGE_REASON_OTHER));
+    napi_set_named_property(env, objValue, "CLICK", CreateJsValue(env, FOCUS_CHANGE_REASON_CLICK));
     return objValue;
 }
 

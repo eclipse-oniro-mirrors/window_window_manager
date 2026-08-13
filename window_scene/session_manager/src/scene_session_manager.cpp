@@ -10022,7 +10022,15 @@ sptr<FocusNotifyInfo> SceneSessionManager::GetFocusNotifyInfo(DisplayId displayI
         focusNotifyInfo->isSyncNotify_ = focusNotifyInfo->isSameCallingPid_ &&
             !focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
     }
-    focusNotifyInfo->reason_ = static_cast<WindowFocusChangeReason>(reason);
+    int32_t reasonVal = static_cast<int32_t>(reason);
+    if (reasonVal < static_cast<int32_t>(WindowFocusChangeReason::DEFAULT) ||
+        reasonVal >= static_cast<int32_t>(WindowFocusChangeReason::MAX)) {
+        // FocusChangeReason (server) has 5 more values (21-25) than WindowFocusChangeReason (client),
+        // which the client enum cannot represent; fall back to DEFAULT.
+        focusNotifyInfo->reason_ = WindowFocusChangeReason::DEFAULT;
+    } else {
+        focusNotifyInfo->reason_ = static_cast<WindowFocusChangeReason>(reasonVal);
+    }
     return focusNotifyInfo;
 }
 

@@ -206,9 +206,10 @@ class MockRectChangeInGlobalDisplayListener : public IRectChangeInGlobalDisplayL
 public:
     MOCK_METHOD(void, OnRectChangeInGlobalDisplay, (const Rect& rect, WindowSizeChangeReason reason), (override));
 };
+
 class MockFocusStateChangedListener : public IFocusStateChangedListener {
 public:
-    MOCK_METHOD4(OnFocusStateChanged, void(bool, WindowFocusChangeReason, int32_t, int32_t));
+    MOCK_METHOD(void, OnFocusStateChanged, (bool, WindowFocusChangeReason, int32_t, int32_t), (override));
 };
 } // Rosen
 } // OHOS

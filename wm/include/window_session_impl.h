@@ -299,7 +299,7 @@ public:
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     WMError RegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
-    WMError UnRegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
+    WMError UnregisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
     WMError RegisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError UnregisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;

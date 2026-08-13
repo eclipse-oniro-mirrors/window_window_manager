@@ -217,8 +217,8 @@ class IFocusStateChangedListener : virtual public RefBase {
 public:
     /**
      * @brief Notify caller that focus state changed.
-     * 
-     * @param isFocused Whether the window is focused
+     *
+     * @param isFocused Whether the window is focused.
      * @param reason Focus change reason
      * @param nextFocusedWindowId next focused window id, valid only when unfocused and same process.
      * @param preFocusedWindowId pre focused window id, valid only when focused and same process.
@@ -5826,7 +5826,7 @@ public:
      * @param listener IFocusStateChangedListener.
      * @return WM_OK means unregister success, others means unregister failed
      */
-    virtual WMError UnRegisterFocusStateChangedListener(
+    virtual WMError UnregisterFocusStateChangedListener(
         const sptr<IFocusStateChangedListener>& listener)
     {
         return WMError::WM_OK;

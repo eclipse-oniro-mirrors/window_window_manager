@@ -404,7 +404,7 @@ WmErrorCode JsWindowRegisterManager::ProcessFocusStateChangeRegister(sptr<JsWind
     if (isRegister) {
         ret = MappingWmErrorCodeSafely(window->RegisterFocusStateChangedListener(thisListener));
     } else {
-        ret = MappingWmErrorCodeSafely(window->UnRegisterFocusStateChangedListener(thisListener));
+        ret = MappingWmErrorCodeSafely(window->UnregisterFocusStateChangedListener(thisListener));
     }
     return ret;
 }

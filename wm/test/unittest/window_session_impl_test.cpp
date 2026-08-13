@@ -3695,42 +3695,16 @@ HWTEST_F(WindowSessionImplTest, RegisterFocusStateChangedListener03, TestSize.Le
 }
 
 /**
- * @tc.name: UnRegisterFocusStateChangedListener01
- * @tc.desc: UnRegisterFocusStateChangedListener with null listener returns WM_ERROR_NULLPTR
+ * @tc.name: RegisterFocusStateChangedListener04
+ * @tc.desc: RegisterFocusStateChangedListener then Destroy clears listener map entry
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, UnRegisterFocusStateChangedListener01, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, RegisterFocusStateChangedListener04, TestSize.Level1)
 {
     // 1. Set up the test environment
     WindowSessionImpl::focusStateChangedListeners_.clear();
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UnRegisterFocusStateChangedListener01");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    SessionInfo sessionInfo = {"FocusBundle", "FocusModule", "FocusAbility"};
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
-    window->hostSession_ = session;
-    window->property_->SetPersistentId(1);
-
-    // 2. Call the function to be tested
-    auto ret = window->UnRegisterFocusStateChangedListener(nullptr);
-
-    // 3. Verify the result
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
-    ASSERT_EQ(WMError::WM_OK, window->Destroy());
-}
-
-/**
- * @tc.name: UnRegisterFocusStateChangedListener02
- * @tc.desc: UnRegisterFocusStateChangedListener returns WM_OK and removes listener from map
- * @tc.type: FUNC
- */
-HWTEST_F(WindowSessionImplTest, UnRegisterFocusStateChangedListener02, TestSize.Level1)
-{
-    // 1. Set up the test environment
-    WindowSessionImpl::focusStateChangedListeners_.clear();
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UnRegisterFocusStateChangedListener02");
+    option->SetWindowName("RegisterFocusStateChangedListener04");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = {"FocusBundle", "FocusModule", "FocusAbility"};
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
@@ -3744,7 +3718,64 @@ HWTEST_F(WindowSessionImplTest, UnRegisterFocusStateChangedListener02, TestSize.
     ASSERT_EQ(iter->second.size(), 1);
 
     // 2. Call the function to be tested
-    auto ret = window->UnRegisterFocusStateChangedListener(listener);
+    ASSERT_EQ(WMError::WM_OK, window->Destroy());
+
+    // 3. Verify the result
+    iter = WindowSessionImpl::focusStateChangedListeners_.find(1);
+    ASSERT_EQ(iter, WindowSessionImpl::focusStateChangedListeners_.end());
+}
+
+/**
+ * @tc.name: UnregisterFocusStateChangedListener01
+ * @tc.desc: UnregisterFocusStateChangedListener with null listener returns WM_ERROR_NULLPTR
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UnregisterFocusStateChangedListener01, TestSize.Level1)
+{
+    // 1. Set up the test environment
+    WindowSessionImpl::focusStateChangedListeners_.clear();
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UnregisterFocusStateChangedListener01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = {"FocusBundle", "FocusModule", "FocusAbility"};
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+
+    // 2. Call the function to be tested
+    auto ret = window->UnregisterFocusStateChangedListener(nullptr);
+
+    // 3. Verify the result
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+    ASSERT_EQ(WMError::WM_OK, window->Destroy());
+}
+
+/**
+ * @tc.name: UnregisterFocusStateChangedListener02
+ * @tc.desc: UnregisterFocusStateChangedListener returns WM_OK and removes listener from map
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, UnregisterFocusStateChangedListener02, TestSize.Level1)
+{
+    // 1. Set up the test environment
+    WindowSessionImpl::focusStateChangedListeners_.clear();
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UnregisterFocusStateChangedListener02");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = {"FocusBundle", "FocusModule", "FocusAbility"};
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_EQ(WMError::WM_OK, window->Create(nullptr, session));
+    window->hostSession_ = session;
+    window->property_->SetPersistentId(1);
+    sptr<MockFocusStateChangedListener> listener = sptr<MockFocusStateChangedListener>::MakeSptr();
+    ASSERT_EQ(WMError::WM_OK, window->RegisterFocusStateChangedListener(listener));
+    auto iter = WindowSessionImpl::focusStateChangedListeners_.find(1);
+    ASSERT_NE(iter, WindowSessionImpl::focusStateChangedListeners_.end());
+    ASSERT_EQ(iter->second.size(), 1);
+
+    // 2. Call the function to be tested
+    auto ret = window->UnregisterFocusStateChangedListener(listener);
 
     // 3. Verify the result
     ASSERT_EQ(WMError::WM_OK, ret);
@@ -3755,16 +3786,16 @@ HWTEST_F(WindowSessionImplTest, UnRegisterFocusStateChangedListener02, TestSize.
 }
 
 /**
- * @tc.name: UnRegisterFocusStateChangedListener03
- * @tc.desc: UnRegisterFocusStateChangedListener with PersistentId not in map returns WM_OK
+ * @tc.name: UnregisterFocusStateChangedListener03
+ * @tc.desc: UnregisterFocusStateChangedListener with PersistentId not in map returns WM_OK
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSessionImplTest, UnRegisterFocusStateChangedListener03, TestSize.Level1)
+HWTEST_F(WindowSessionImplTest, UnregisterFocusStateChangedListener03, TestSize.Level1)
 {
     // 1. Set up the test environment
     WindowSessionImpl::focusStateChangedListeners_.clear();
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UnRegisterFocusStateChangedListener03");
+    option->SetWindowName("UnregisterFocusStateChangedListener03");
     sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
     SessionInfo sessionInfo = {"FocusBundle", "FocusModule", "FocusAbility"};
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
@@ -3775,7 +3806,7 @@ HWTEST_F(WindowSessionImplTest, UnRegisterFocusStateChangedListener03, TestSize.
     sptr<MockFocusStateChangedListener> listener = sptr<MockFocusStateChangedListener>::MakeSptr();
 
     // 2. Call the function to be tested
-    auto ret = window->UnRegisterFocusStateChangedListener(listener);
+    auto ret = window->UnregisterFocusStateChangedListener(listener);
 
     // 3. Verify the result
     ASSERT_EQ(WMError::WM_OK, ret);

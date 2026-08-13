@@ -2124,8 +2124,8 @@ void WindowSessionImpl::UpdateFocusState(bool isFocused, const sptr<FocusNotifyI
     if (focusNotifyInfo != nullptr) {
         reason = focusNotifyInfo->reason_;
         if (focusNotifyInfo->isSameCallingPid_) {
-            if (!isFocused){
-               nextFocusedWindowId = focusNotifyInfo->focusWindowId_;
+            if (!isFocused) {
+                nextFocusedWindowId = focusNotifyInfo->focusWindowId_;
             } else {
                 preFocusedWindowId = focusNotifyInfo->unfocusWindowId_;
             }
@@ -4350,7 +4350,7 @@ WMError WindowSessionImpl::RegisterFocusStateChangedListener(const sptr<IFocusSt
     return RegisterListener(focusStateChangedListeners_[GetPersistentId()], listener);
 }
 
-WMError WindowSessionImpl::UnRegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener)
+WMError WindowSessionImpl::UnregisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener)
 {
     WLOGFD("in");
     std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
@@ -5880,6 +5880,10 @@ void WindowSessionImpl::ClearListenersById(int32_t persistentId)
     {
         std::lock_guard<std::recursive_mutex> lockListener(lifeCycleListenerMutex_);
         ClearUselessListeners(lifecycleListeners_, persistentId);
+    }
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
+        ClearUselessListeners(focusStateChangedListeners_, persistentId);
     }
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowChangeListenerMutex_);
