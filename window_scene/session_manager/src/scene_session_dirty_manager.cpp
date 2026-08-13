@@ -680,6 +680,7 @@ void SceneSessionDirtyManager::AddModalExtensionWindowInfo(std::vector<MMI::Wind
     std::vector<int32_t> pointerChangeAreas(POINTER_CHANGE_AREA_COUNT, 0);
     windowInfo.pointerChangeAreas = std::move(pointerChangeAreas);
     windowInfo.zOrder = windowInfo.zOrder + ZORDER_UIEXTENSION_INDEX;
+    windowInfo.uiExtentionWindowInfo.clear();
 
     windowInfoList.emplace_back(windowInfo);
 }
