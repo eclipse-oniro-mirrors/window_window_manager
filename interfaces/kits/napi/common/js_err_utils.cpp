@@ -16,6 +16,7 @@
 #include "js_err_utils.h"
 
 #include "window_error_msg.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS::Rosen {
 template<class T>
@@ -99,6 +100,17 @@ napi_value JsErrUtils::CreateJsError(napi_env env, const DmErrorCode& errorCode,
     napi_value result = nullptr;
     napi_create_error(env, CreateJsValue(env, static_cast<int32_t>(errorCode)),
         CreateJsValue(env, WindowErrorMsg::BuildErrorMsg(errorCode, msg)), &result);
+    return result;
+}
+
+napi_value JsErrUtils::CreateFloatWindowJsError(napi_env env, FloatWindowModule module,
+                                                const std::string& methodName, WmErrorCode errorCode,
+                                                const std::string& customMessage)
+{
+    napi_value result = nullptr;
+    std::string errorMsg = FloatWindowErrorMsg::GetApiErrorMsg(module, methodName, errorCode, customMessage);
+    napi_create_error(env, CreateJsValue(env, static_cast<int32_t>(errorCode)),
+        CreateJsValue(env, errorMsg), &result);
     return result;
 }
 } // namespace OHOS::Rosen
