@@ -20,6 +20,7 @@
 #include "window_manager_hilog.h"
 #include "napi_common_want.h"
 #include "permission.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -52,6 +53,29 @@ const char* ARKUI_WINDOW_FV_GETWINDOWPROPERTIES_BOOL = "ArkUI.window.fv.getWindo
 const char* ARKUI_WINDOW_FV_RESTOREMAINWINDOW_BOOL = "ArkUI.window.fv.restoreMainWindow.bool";
 const char* ARKUI_WINDOW_FV_ONCHANGE_BOOL = "ArkUI.window.fv.onChange.bool";
 const char* ARKUI_WINDOW_FV_OFFCHANGE_BOOL = "ArkUI.window.fv.offChange.bool";
+}
+
+static NapiAsyncTask::CompleteCallback CreateFloatViewCompleteCallback(
+    std::shared_ptr<WmErrorCode> errCodePtr, std::shared_ptr<std::string> errMsgPtr,
+    const std::string& apiName, const char* histogramBoolName)
+{
+    return [errCodePtr, errMsgPtr, apiName, histogramBoolName]
+        (napi_env env, NapiAsyncTask& task, int32_t status) {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
+            task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW,
+                apiName, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "System error, such as a null pointer or insufficient memory."));
+            return;
+        }
+        if (*errCodePtr == WmErrorCode::WM_OK) {
+            task.Resolve(env, NapiGetUndefined(env));
+            HISTOGRAM_BOOLEAN(histogramBoolName, 1);
+        } else {
+            task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW,
+                apiName, *errCodePtr, *errMsgPtr));
+            HISTOGRAM_BOOLEAN(histogramBoolName, 0);
+        }
+    };
 }
 
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
@@ -125,8 +149,7 @@ napi_value JsFloatViewController::OnStartFloatView(napi_env env, napi_callback_i
         if (!Permission::CheckCallingPermission(FLOAT_VIEW_PERMISSION)) {
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_START, WmErrorCode::WM_ERROR_NO_PERMISSION);
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_START_BOOL, 0);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NO_PERMISSION,
-                "no permission."));
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NO_PERMISSION));
             return;
         }
         auto fvController = weakController.promote();
@@ -135,12 +158,14 @@ napi_value JsFloatViewController::OnStartFloatView(napi_env env, napi_callback_i
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_START, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_START_BOOL, 0);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "The controller is nullptr."));
+                "The float view controller object is null."));
             return;
         }
-        auto errCode = ConvertErrorToCode(fvController->StartFloatView());
+        auto errRes = fvController->StartFloatView();
+        auto errCode = ConvertErrorToCode(errRes.errCode);
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to start float view."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW,
+                    "start", errCode, errRes.errMsg));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_START_BOOL, 0);
             return;
         } else {
@@ -165,32 +190,25 @@ napi_value JsFloatViewController::OnStopFloatView(napi_env env, napi_callback_in
     TLOGI(WmsLogTag::WMS_SYSTEM, "OnStopFloatView");
     wptr<FloatViewController> weakController(fvController_);
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
-    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr] {
-        if (errCodePtr == nullptr) {
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
+    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, errMsgPtr] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
         auto fvController = weakController.promote();
         if (fvController == nullptr) {
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            *errMsgPtr = "The float view controller object is null.";
             return;
         }
-        *errCodePtr = ConvertErrorToCode(fvController->StopFloatViewFromClient());
+        auto result = fvController->StopFloatViewFromClient();
+        *errCodePtr = ConvertErrorToCode(result.errCode);
+        *errMsgPtr = result.errMsg;
     };
-    NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (errCodePtr == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
-                return;
-            }
-            if (*errCodePtr == WmErrorCode::WM_OK) {
-                task.Resolve(env, NapiGetUndefined(env));
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to stop float view."));
-            }
-        };
     napi_value result = nullptr;
-    NapiAsyncTask::Schedule("JsFloatViewController::OnStopFloatView",
-        env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    NapiAsyncTask::Schedule("JsFloatViewController::OnStopFloatView", env,
+        CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute),
+            CreateFloatViewCompleteCallback(errCodePtr, errMsgPtr, "stop", nullptr), &result));
     return result;
 }
 
@@ -249,10 +267,11 @@ napi_value JsFloatViewController::SetUIContextTask(napi_env env, const std::stri
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [weakController, contentStorage, contextUrl, isLoadByName, env, task = napiAsyncTask] {
+        std::string apiName = isLoadByName ? "setUIContextByName" : "setUIContext";
         if (contextUrl.empty()) {
             TLOGNE(WmsLogTag::WMS_SYSTEM, "The ui path is empty");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
-                "The ui path is empty."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW, apiName,
+                WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "The ui path is empty."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_SETUICONTEXT, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETUICONTEXT_BOOL, 0);
             return;
@@ -260,15 +279,17 @@ napi_value JsFloatViewController::SetUIContextTask(napi_env env, const std::stri
         auto fvController = weakController.promote();
         if (fvController == nullptr) {
             TLOGNE(WmsLogTag::WMS_SYSTEM, "Controller is nullptr");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "The controller is nullptr."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW, apiName,
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "The float view controller object is null."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_SETUICONTEXT, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETUICONTEXT_BOOL, 0);
             return;
         }
-        auto errCode = ConvertErrorToCode(fvController->SetUIContext(contextUrl, contentStorage, isLoadByName));
+        auto result = fvController->SetUIContext(contextUrl, contentStorage, isLoadByName);
+        auto errCode = ConvertErrorToCode(result.errCode);
         if (errCode != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to set UI content."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW, apiName,
+                errCode, result.errMsg));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETUICONTEXT_BOOL, 0);
             return;
         } else {
@@ -308,35 +329,26 @@ napi_value JsFloatViewController::OnSetFloatViewVisibilityInApp(napi_env env, na
     }
     wptr<FloatViewController> weakController(fvController_);
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
-    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, visibleInApp] {
-        if (errCodePtr == nullptr) {
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
+    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, errMsgPtr, visibleInApp] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
         auto fvController = weakController.promote();
         if (fvController == nullptr) {
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            *errMsgPtr = "The float view controller object is null.";
             return;
         }
-        *errCodePtr = ConvertErrorToCode(fvController->SetVisibilityInApp(visibleInApp));
+        auto result = fvController->SetVisibilityInApp(visibleInApp);
+        *errCodePtr = ConvertErrorToCode(result.errCode);
+        *errMsgPtr = result.errMsg;
     };
-    NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (errCodePtr == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
-                return;
-            }
-            if (*errCodePtr == WmErrorCode::WM_OK) {
-                task.Resolve(env, NapiGetUndefined(env));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETFLOATVIEWVISIBILITYINAPP_BOOL, 1);
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "Failed to set float view visibility in app."));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETFLOATVIEWVISIBILITYINAPP_BOOL, 0);
-            }
-        };
     napi_value result = nullptr;
-    NapiAsyncTask::Schedule("JsFloatViewController::OnSetFloatViewVisibilityInApp",
-        env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    NapiAsyncTask::Schedule("JsFloatViewController::OnSetFloatViewVisibilityInApp", env,
+        CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute),
+            CreateFloatViewCompleteCallback(errCodePtr, errMsgPtr, "setFloatViewVisibilityInApp",
+                ARKUI_WINDOW_FV_SETFLOATVIEWVISIBILITYINAPP_BOOL), &result));
     return result;
 }
 
@@ -391,41 +403,34 @@ napi_value JsFloatViewController::OnSetWindowSizeTask(napi_env env, int32_t widt
 {
     wptr<FloatViewController> weakController(fvController_);
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
-    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, width, height] {
-        if (errCodePtr == nullptr) {
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
+    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, errMsgPtr, width, height] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
         auto fvController = weakController.promote();
         if (fvController == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_SETWINDOWSIZE, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            *errMsgPtr = "The float view controller object is null.";
             return;
         }
         if (width <= 0 || height <= 0) {
             *errCodePtr = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+            *errMsgPtr = "The value of the size is less than or equal to 0.";
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_SETWINDOWSIZE, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return;
         }
         Rect rect = {0, 0, static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-        *errCodePtr = ConvertErrorToCode(fvController->SetWindowSize(rect));
+        auto result = fvController->SetWindowSize(rect);
+        *errCodePtr = ConvertErrorToCode(result.errCode);
+        *errMsgPtr = result.errMsg;
     };
-    NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (errCodePtr == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
-                return;
-            }
-            if (*errCodePtr == WmErrorCode::WM_OK) {
-                task.Resolve(env, NapiGetUndefined(env));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETWINDOWSIZE_BOOL, 1);
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to set window size."));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETWINDOWSIZE_BOOL, 0);
-            }
-        };
     napi_value result = nullptr;
-    NapiAsyncTask::Schedule("JsFloatViewController::OnSetWindowSizeTask",
-        env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    NapiAsyncTask::Schedule("JsFloatViewController::OnSetWindowSizeTask", env,
+        CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute),
+            CreateFloatViewCompleteCallback(errCodePtr, errMsgPtr, "setWindowSize",
+                ARKUI_WINDOW_FV_SETWINDOWSIZE_BOOL), &result));
     return result;
 }
 
@@ -468,38 +473,31 @@ napi_value JsFloatViewController::OnSwitchTemplateTask(napi_env env, std::shared
 {
     wptr<FloatViewController> weakController(fvController_);
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
-    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, templateProperty] {
-        if (errCodePtr == nullptr) {
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
+    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, errMsgPtr, templateProperty] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
         auto fvController = weakController.promote();
         if (fvController == nullptr) {
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            *errMsgPtr = "The float view controller object is null.";
             return;
         }
         if (!templateProperty->CheckLegal()) {
             *errCodePtr = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+            *errMsgPtr = "TemplateProperty check failed.";
             return;
         }
-        *errCodePtr = ConvertErrorToCode(fvController->SetTemplateTypeAndSize(templateProperty));
+        auto result = fvController->SetTemplateTypeAndSize(templateProperty);
+        *errCodePtr = ConvertErrorToCode(result.errCode);
+        *errMsgPtr = result.errMsg;
     };
-    NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (errCodePtr == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
-                return;
-            }
-            if (*errCodePtr == WmErrorCode::WM_OK) {
-                task.Resolve(env, NapiGetUndefined(env));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETTEMPLATETYPE_BOOL, 1);
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to set template type."));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_SETTEMPLATETYPE_BOOL, 0);
-            }
-        };
     napi_value result = nullptr;
-    NapiAsyncTask::Schedule("JsFloatViewController::OnSwitchTemplateTask",
-        env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    NapiAsyncTask::Schedule("JsFloatViewController::OnSwitchTemplateTask", env,
+        CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute),
+            CreateFloatViewCompleteCallback(errCodePtr, errMsgPtr, "switchTemplate",
+                ARKUI_WINDOW_FV_SETTEMPLATETYPE_BOOL), &result));
     return result;
 }
 
@@ -562,38 +560,28 @@ napi_value JsFloatViewController::OnRestoreMainWindow(napi_env env, napi_callbac
         }
     }
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
     wptr<FloatViewController> weakController(fvController_);
     std::shared_ptr<AAFwk::WantParams> parameters = std::make_shared<AAFwk::WantParams>(wantParams);
-    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, parameters] {
-        if (errCodePtr == nullptr || parameters == nullptr) {
+    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, errMsgPtr, parameters] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr || parameters == nullptr) {
             return;
         }
         auto controller = weakController.promote();
         if (controller == nullptr) {
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            *errMsgPtr = "The float view controller object is null.";
             return;
         }
-        *errCodePtr = ConvertErrorToCode(controller->RestoreMainWindow(parameters));
+        auto result = controller->RestoreMainWindow(parameters);
+        *errCodePtr = ConvertErrorToCode(result.errCode);
+        *errMsgPtr = result.errMsg;
     };
-    NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr, parameters](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (errCodePtr == nullptr || parameters == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
-                HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_RESTOREMAINWINDOW,
-                    WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-                return;
-            }
-            if (*errCodePtr == WmErrorCode::WM_OK) {
-                task.Resolve(env, NapiGetUndefined(env));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_RESTOREMAINWINDOW_BOOL, 1);
-            } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to restore main window."));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_RESTOREMAINWINDOW_BOOL, 0);
-            }
-        };
     napi_value result = nullptr;
-    NapiAsyncTask::Schedule("JsFloatViewController::OnRestoreMainWindow",
-        env, CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute), std::move(complete), &result));
+    NapiAsyncTask::Schedule("JsFloatViewController::OnRestoreMainWindow", env,
+        CreateAsyncTaskWithLastParam(env, nullptr, std::move(execute),
+            CreateFloatViewCompleteCallback(errCodePtr, errMsgPtr, "restoreMainWindow",
+                ARKUI_WINDOW_FV_RESTOREMAINWINDOW_BOOL), &result));
     return result;
 }
 
@@ -647,7 +635,6 @@ napi_value JsFloatViewController::RegisterCallbackWithType(
         return NapiThrowError(env, WmErrorCode::WM_ERROR_FV_REPEAT_OPERATION, "Callback already registered.",
             ARKUI_WINDOW_FV_ONCHANGE, ARKUI_WINDOW_FV_ONCHANGE_BOOL);
     }
-
     std::shared_ptr<NativeReference> callbackRef;
     napi_ref result = nullptr;
     napi_create_reference(env, value, 1, &result);
@@ -719,13 +706,13 @@ WMError JsFloatViewController::DoRegisterCallbackWithType(
     WMError errCode = WMError::WM_OK;
     switch (callbackType) {
         case CallbackType::STATE_CHANGE:
-            errCode = fvController_->RegisterStateChangeListener(listener);
+            errCode = fvController_->RegisterStateChangeListener(listener).errCode;
             break;
         case CallbackType::RECT_CHANGE:
-            errCode = fvController_->RegisterRectChangeListener(listener);
+            errCode = fvController_->RegisterRectChangeListener(listener).errCode;
             break;
         case CallbackType::LIMITS_CHANGE:
-            errCode = fvController_->RegisterLimitsChangeListener(listener);
+            errCode = fvController_->RegisterLimitsChangeListener(listener).errCode;
             break;
         default:
             break;
@@ -739,13 +726,13 @@ WMError JsFloatViewController::DoUnregisterCallbackWithType(
     WMError errCode = WMError::WM_OK;
     switch (callbackType) {
         case CallbackType::STATE_CHANGE:
-            errCode = fvController_->UnregisterStateChangeListener(listener);
+            errCode = fvController_->UnregisterStateChangeListener(listener).errCode;
             break;
         case CallbackType::RECT_CHANGE:
-            errCode = fvController_->UnregisterRectChangeListener(listener);
+            errCode = fvController_->UnregisterRectChangeListener(listener).errCode;
             break;
         case CallbackType::LIMITS_CHANGE:
-            errCode = fvController_->UnregisterLimitsChangeListener(listener);
+            errCode = fvController_->UnregisterLimitsChangeListener(listener).errCode;
             break;
         default:
             break;

@@ -337,7 +337,7 @@ void AniFbController::OnstartFloatingBallAni(ani_env* env, ani_object paramsInte
     // working
     fbOption.SetTextUpdateAnimationType(static_cast<uint32_t>(FloatingBallTextUpdateAnimationType::ANIMATION_NONE));
     sptr<FbOption> optionPtr = sptr<FbOption>::MakeSptr(fbOption);
-    WMError errCode = fbController_->StartFloatingBall(optionPtr);
+    WMError errCode = fbController_->StartFloatingBall(optionPtr).errCode;
     // check result
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->StartFloatingBall failed");
@@ -373,7 +373,7 @@ void AniFbController::OnSetInApplicationVisibleAni(ani_env* env, ani_boolean isV
         return;
     }
     // check nullptr
-    WMError errCode = fbController_->SetInApplicationVisible(static_cast<bool>(isVisible));
+    WMError errCode = fbController_->SetInApplicationVisible(static_cast<bool>(isVisible)).errCode;
     // check result
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->SetInApplicationVisible failed");
@@ -419,7 +419,7 @@ void AniFbController::OnupdateFloatingBallAni(ani_env* env, ani_object paramsInt
     if (CheckParams(env, fbOption) == false) {return;}
     // check nullptr
     sptr<FbOption> optionPtr = sptr<FbOption>::MakeSptr(fbOption);  // convert to sptr<FbOption>
-    WMError errCode = fbController_->UpdateFloatingBall(optionPtr);
+    WMError errCode = fbController_->UpdateFloatingBall(optionPtr).errCode;
     // check result
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FB]fbController_->UpdateFloatingBall failed");
@@ -457,7 +457,7 @@ bool AniFbController::OnstopFloatingBallAni(ani_env* env)
         return false;
     }
     // working
-    WMError errCode = fbController_->StopFloatingBallFromClient();
+    WMError errCode = fbController_->StopFloatingBallFromClient().errCode;
     // check result
     if (errCode != WMError::WM_OK) {
         AniThrowError(env, errCode, "[FB]internal error");
@@ -490,7 +490,7 @@ ani_object AniFbController::OnGetFloatingBallWindowInfoAni(ani_env* env)
     }
     // get windowId
     uint32_t windowId;
-    WMError errCode = fbController_->GetFloatingBallWindowInfo(windowId);
+    WMError errCode = fbController_->GetFloatingBallWindowInfo(windowId).errCode;
     if (errCode != WMError::WM_OK) {
         AniThrowError(env, errCode, "[FB]GetFloatingBallWindowInfo failed");
         return static_cast<ani_object>(AniGetUndefined(env));
@@ -567,7 +567,7 @@ void AniFbController::OnrestoreMainWindowAni(ani_env* env, ani_object want)
         AniThrowError(env, WmErrorCode::WM_ERROR_FB_PARAM_INVALID, "[FB]abilityWant is invalid");
         return;
     }
-    WMError errCode = fbController_->RestoreMainWindow(abilityWant);
+    WMError errCode = fbController_->RestoreMainWindow(abilityWant).errCode;
     // check result
     if (errCode != WMError::WM_OK) {
         AniThrowError(env, errCode, "[FB]internal error");
@@ -672,7 +672,7 @@ WmErrorCode AniFbController::ProcessOnClickListener(sptr<AniFbWindowListener>& l
     TLOGI(WmsLogTag::DEFAULT, "[FB]start");
     // working
     WMError ret = WMError::WM_OK;
-    ret = fbController_->RegisterFbClickObserver(listener);
+    ret = fbController_->RegisterFbClickObserver(listener).errCode;
     // convert result
     WmErrorCode res = static_cast<WmErrorCode>(ret);
     return res;
@@ -760,7 +760,7 @@ WmErrorCode AniFbController::ProcessOnStateChangeListener(sptr<AniFbWindowListen
     TLOGI(WmsLogTag::DEFAULT, "[FB]start");
     // working
     WMError ret = WMError::WM_OK;
-    ret = fbController_->RegisterFbLifecycle(listener);
+    ret = fbController_->RegisterFbLifecycle(listener).errCode;
     // convert result
     WmErrorCode res = static_cast<WmErrorCode>(ret);
     return res;
@@ -840,7 +840,7 @@ WmErrorCode AniFbController::ProcessOnDestroyListener(sptr<AniFbWindowListener>&
 {
     TLOGI(WmsLogTag::DEFAULT, "[FB]start");
     WMError ret = WMError::WM_OK;
-    ret = fbController_->RegisterFbDestroyObserver(listener);
+    ret = fbController_->RegisterFbDestroyObserver(listener).errCode;
     WmErrorCode res = static_cast<WmErrorCode>(ret);
     return res;
 };
@@ -964,11 +964,11 @@ WMError AniFbController::UnRegisterListener(FbListenerType fbListenerType, sptr<
 {
     switch (fbListenerType) {
         case FbListenerType::CLICK_CB:
-            return fbController_->UnRegisterFbClickObserver(listener);
+            return fbController_->UnRegisterFbClickObserver(listener).errCode;
         case FbListenerType::STATE_CHANGE_CB:
-            return fbController_->UnRegisterFbLifecycle(listener);
+            return fbController_->UnRegisterFbLifecycle(listener).errCode;
         case FbListenerType::DESTROY_CB:
-            return fbController_->UnRegisterFbDestroyObserver(listener);
+            return fbController_->UnRegisterFbDestroyObserver(listener).errCode;
         default:
             return WMError::WM_ERROR_FB_PARAM_INVALID;
     }

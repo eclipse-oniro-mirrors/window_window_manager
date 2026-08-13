@@ -32,28 +32,28 @@ class FloatingBallController : public RefBase {
 public:
     FloatingBallController(const sptr<Window>& mainWindow, const uint32_t& mainWindowId, void* context);
     virtual ~FloatingBallController();
-    WMError StartFloatingBall(sptr<FbOption>& option);
-    WMError StartFloatingBallSingle(const sptr<FbOption>& option, bool showWhenCreate = true);
-    WMError StopFloatingBall(const std::string& reason);
-    WMError UpdateFloatingBall(sptr<FbOption>& option);
-    WMError SetInApplicationVisible(bool isVisible);
-    WMError RestoreMainWindow(const std::shared_ptr<AAFwk::Want>& want);
-    WMError DestroyFloatingBallWindow(const std::string& reason);
+    WMErrorResult StartFloatingBall(sptr<FbOption>& option);
+    WMErrorResult StartFloatingBallSingle(const sptr<FbOption>& option, bool showWhenCreate = true);
+    WMErrorResult StopFloatingBall(const std::string& reason);
+    WMErrorResult UpdateFloatingBall(sptr<FbOption>& option);
+    WMErrorResult SetInApplicationVisible(bool isVisible);
+    WMErrorResult RestoreMainWindow(const std::shared_ptr<AAFwk::Want>& want);
+    WMErrorResult DestroyFloatingBallWindow(const std::string& reason);
     sptr<Window> GetFbWindow() const;
-    WMError StopFloatingBallFromClient();
-    WMError StopFloatingBallFromClientSingle();
+    WMErrorResult StopFloatingBallFromClient();
+    WMErrorResult StopFloatingBallFromClientSingle();
 
-    WMError RegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
-    WMError RegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
-    WMError RegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener);
-    WMError UnRegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
-    WMError UnRegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
-    WMError UnRegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener);
+    WMErrorResult RegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
+    WMErrorResult RegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
+    WMErrorResult RegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener);
+    WMErrorResult UnRegisterFbLifecycle(const sptr<IFbLifeCycle>& listener);
+    WMErrorResult UnRegisterFbClickObserver(const sptr<IFbClickObserver>& listener);
+    WMErrorResult UnRegisterFbDestroyObserver(const sptr<IFbDestroyObserver>& listener);
  
     void OnFloatingBallClick();
     void OnFloatingBallDestroy(const std::string& reason);
  
-    WMError GetFloatingBallWindowInfo(uint32_t& windowId);
+    WMErrorResult GetFloatingBallWindowInfo(uint32_t& windowId);
 
     void UpdateMainWindow(const sptr<Window>& mainWindow);
     FbWindowState GetCurState();
@@ -64,12 +64,12 @@ public:
     void SetBindWindowId(uint32_t windowId);
     void SetShowWhenCreate(bool showWhenCreate);
 private:
-    WMError CreateFloatingBallWindow(const sptr<FbOption>& option);
-    WMError PrepareStartFloatingBall(const sptr<FbOption>& option, bool showWhenCreate);
-    WMError StartFloatingBallInner(const sptr<FbOption>& option);
+    WMErrorResult CreateFloatingBallWindow(const sptr<FbOption>& option);
+    WMErrorResult PrepareStartFloatingBall(const sptr<FbOption>& option, bool showWhenCreate);
+    WMErrorResult StartFloatingBallInner(const sptr<FbOption>& option);
  
-    template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
-    template<typename T> WMError UnRegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
+    template<typename T> WMErrorResult RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
+    template<typename T> WMErrorResult UnRegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
  
     void OnFloatingBallStart();
     void OnFloatingBallStop();
