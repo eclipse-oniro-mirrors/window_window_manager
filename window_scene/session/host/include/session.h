@@ -197,6 +197,7 @@ extern const std::string DETACH_EVENT_NAME;
 class Session : public SessionStub {
 public:
     friend class HidumpController;
+    static constexpr ScreenId SCREEN_ID_MAIN = 5;
     using Task = std::function<void()>;
     class SessionLifeCycleTask : public virtual RefBase {
     public:
@@ -503,6 +504,7 @@ public:
     WSRect GetLayoutRect() const;
     bool GetSkipSelfWhenShowOnVirtualScreen() const;
     DisplayId GetDisplayId() const { return GetSessionProperty()->GetDisplayId(); }
+    bool IsSuperMultiFoldOuterScreen() const;
     void SetRestartApp(bool restartApp);
     bool GetRestartApp() const;
     void SetRestartInSameProcess(bool restartInSameProcess);

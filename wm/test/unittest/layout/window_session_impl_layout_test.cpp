@@ -472,6 +472,56 @@ HWTEST_F(WindowSessionImplLayoutTest, NotifyAfterUIContentReady, TestSize.Level1
 }
 
 /**
+ * @tc.name: NotifyAfterUIContentReady_RenotifyBackgroundFlush
+ * @tc.desc: A pending background-flush request is re-applied via NotifyAfterUIContentReady.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplLayoutTest, NotifyAfterUIContentReady_RenotifyBackgroundFlush, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RenotifyBackgroundFlush");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(2026);
+    window->property_->SetFrameNum(-1);
+    window->property_->SetPrelaunch(true);
+    window->SetNeedRenotifyTransform(false);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(true, 1)).Times(1);
+    window->uiContent_ = std::move(uiContent);
+    // Request was deferred earlier (uiContent was null at that time).
+    window->needBackgroundForceFlushVsync_.store(true);
+    ASSERT_TRUE(window->needBackgroundForceFlushVsync_.load());
+
+    window->NotifyAfterUIContentReady();
+    EXPECT_FALSE(window->needBackgroundForceFlushVsync_.load());
+}
+
+/**
+ * @tc.name: NotifyAfterUIContentReady_NoBackgroundFlushPending
+ * @tc.desc: With no pending background-flush request, NotifyAfterUIContentReady does not flush.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplLayoutTest, NotifyAfterUIContentReady_NoBackgroundFlushPending, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NoBackgroundFlushPending");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(2027);
+    window->property_->SetFrameNum(-1);
+    window->property_->SetPrelaunch(true);
+    window->SetNeedRenotifyTransform(false);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(_, _)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+    ASSERT_FALSE(window->needBackgroundForceFlushVsync_.load());
+
+    window->NotifyAfterUIContentReady();
+    EXPECT_FALSE(window->needBackgroundForceFlushVsync_.load());
+}
+
+/**
  * @tc.name: NotifyFirstValidLayoutUpdate
  * @tc.desc: NotifyFirstValidLayoutUpdate
  * @tc.type: FUNC

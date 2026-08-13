@@ -113,6 +113,14 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
     bool isBlockSubwindow)
 {
+    std::string errMsg;
+    return Create(context, iSession, errMsg, identityToken, isModuleAbilityHookEnd, isBlockSubwindow);
+}
+
+WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+    const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken,
+    bool isModuleAbilityHookEnd, bool isBlockSubwindow)
+{
     TLOGD(WmsLogTag::WMS_LIFE, "Called.");
     if (!context || !iSession) {
         TLOGE(WmsLogTag::WMS_LIFE, "context is nullptr: %{public}u or sessionToken is nullptr: %{public}u",

@@ -25,8 +25,8 @@ namespace OHOS {
 namespace Rosen {
 class MockStaticCall : public StaticCall {
 public:
-    MOCK_METHOD3(CreateWindow, sptr<Window>(const std::string& windowName,
-        sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> abilityContext));
+    MOCK_METHOD4(CreateWindow, sptr<Window>(const std::string& windowName,
+        sptr<WindowOption>& option, std::string& errMsg, std::shared_ptr<AbilityRuntime::Context> abilityContext));
 };
 } // namepsace Rosen
 } // namespace OHOS

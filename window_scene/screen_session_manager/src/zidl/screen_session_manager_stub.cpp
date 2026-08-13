@@ -1737,36 +1737,6 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             break;
         }
-        case DisplayManagerMessage::TRANS_ID_SUBSCRIBE_MOTION_SENSOR: {
-            int32_t motionType = 0;
-            if (!data.ReadInt32(motionType)) {
-                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
-                return ERR_INVALID_DATA;
-            }
-            if (!SessionPermission::IsSystemCalling()) {
-                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!");
-                WSError ret = WSError::WS_ERROR_INVALID_PERMISSION;
-                reply.WriteInt32(static_cast<int32_t>(ret));
-                break;
-            }
-            SubscribeMotionSensor(motionType);
-            break;
-        }
-        case DisplayManagerMessage::TRANS_ID_UNSUBSCRIBE_MOTION_SENSOR: {
-            int32_t motionType = 0;
-            if (!data.ReadInt32(motionType)) {
-                TLOGE(WmsLogTag::WMS_ROTATION, "Read motionType failed");
-                return ERR_INVALID_DATA;
-            }
-            if (!SessionPermission::IsSystemCalling()) {
-                TLOGE(WmsLogTag::WMS_ROTATION, "permission denied!");
-                WSError ret = WSError::WS_ERROR_INVALID_PERMISSION;
-                reply.WriteInt32(static_cast<int32_t>(ret));
-                break;
-            }
-            UnsubscribeMotionSensor(motionType);
-            break;
-        }
         case DisplayManagerMessage::TRANS_ID_GET_RENDER_SESSION: {
             ScreenId screenId = static_cast<ScreenId>(data.ReadUint64());
             sptr<IRemoteObject> renderSession = GetRenderSession(screenId);

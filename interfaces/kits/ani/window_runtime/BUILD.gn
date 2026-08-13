@@ -89,7 +89,6 @@ ohos_shared_library("windowstageani_kit") {
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "hitrace:hitrace_meter",
-    "image_framework:image",
     "image_framework:image_native",
     "image_framework:image_taihe",
     "ipc:ipc_napi",
@@ -153,19 +152,8 @@ ohos_shared_library("windowstageani_module") {
     "ability_runtime:ability_manager",
     "ability_runtime:abilitykit_native",
     "ability_runtime:runtime",
-    "access_token:libaccesstoken_sdk",
-    "ace_engine:ace_uicontent",
-    "bundle_framework:appexecfwk_base",
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
     "hilog:libhilog",
-    "hitrace:hitrace_meter",
-    "image_framework:image",
-    "image_framework:image_native",
     "image_framework:image_taihe",
-    "ipc:ipc_napi",
-    "ipc:ipc_single",
-    "napi:ace_napi",
     "runtime_core:ani",
     "runtime_core:ani_helpers",
     "node:node_header_notice",
@@ -185,6 +173,7 @@ ohos_shared_library("windowstageani_module") {
     external_deps += [ "api_metrics:histogrammanager" ]
     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_API_METRICS" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("window_stage_ani_pack") {

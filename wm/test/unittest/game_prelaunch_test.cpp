@@ -37,6 +37,18 @@ namespace {
     {
         g_logMsg += msg;
     }
+
+void PreparePrelaunchWindow(std::shared_ptr<AbilityRuntime::AbilityContext> abilityContext,
+    const std::string& name, sptr<WindowSceneSessionImpl>& window)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName(name);
+    window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->Create(abilityContext, session);
+    window->property_->SetPersistentId(1);
+}
 }
 using Mocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
 
@@ -410,6 +422,163 @@ HWTEST_F(GamePrelaunchTest, GamePrelaunchIntegration02, TestSize.Level0)
     
     EXPECT_TRUE(window->isDidForeground_);
     EXPECT_FALSE(window->isColdStart_);
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_NotMainWindow01
+ * @tc.desc: Non-main window returns early without touching uiContent.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_NotMainWindow01, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNotMain01", window);
+    // Sub window type is out of [APP_MAIN_WINDOW_BASE, APP_MAIN_WINDOW_END), not a main window.
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(testing::_, testing::_)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+
+    window->SetBackgroundForceFlushVsync();
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_NullUiContent01
+ * @tc.desc: Main window with null uiContent defers the request until uiContent is ready.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_NullUiContent01, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNullUi01", window);
+    window->uiContent_ = nullptr;
+    ASSERT_EQ(window->GetUIContentSharedPtr(), nullptr);
+
+    window->SetBackgroundForceFlushVsync();
+    // uiContent not ready -> request is deferred and retried once uiContent is created.
+    EXPECT_TRUE(window->needBackgroundForceFlushVsync_.load());
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_FrameNumNonNegative01
+ * @tc.desc: frameNum == 0 (>= 0) skips the uiContent call.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_FrameNumNonNegative01, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNonNeg01", window);
+    window->property_->SetFrameNum(0);
+    window->property_->SetPrelaunch(true);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(testing::_, testing::_)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+
+    window->SetBackgroundForceFlushVsync();
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_FrameNumNonNegative02
+ * @tc.desc: Positive frameNum (>= 0) skips the uiContent call.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_FrameNumNonNegative02, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNonNeg02", window);
+    window->property_->SetFrameNum(5);
+    window->property_->SetPrelaunch(false);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(testing::_, testing::_)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+
+    window->SetBackgroundForceFlushVsync();
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_NotPrelaunch01
+ * @tc.desc: Negative frameNum but isPrelaunch=false skips the uiContent call.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_NotPrelaunch01, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNotPre01", window);
+    window->property_->SetFrameNum(-10);
+    window->property_->SetPrelaunch(false);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(testing::_, testing::_)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+
+    window->SetBackgroundForceFlushVsync();
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_FrameNumNegative01
+ * @tc.desc: Negative frameNum is negated to positive and passed through with isPrelaunch=true.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_FrameNumNegative01, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNeg01", window);
+    window->property_->SetFrameNum(-1);
+    window->property_->SetPrelaunch(true);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(true, 1)).Times(1);
+    window->uiContent_ = std::move(uiContent);
+
+    window->SetBackgroundForceFlushVsync();
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_FrameNumNegative02
+ * @tc.desc: Larger negative frameNum is negated and forwarded when isPrelaunch=true.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_FrameNumNegative02, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushNeg02", window);
+    window->property_->SetFrameNum(-10);
+    window->property_->SetPrelaunch(true);
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(true, 10)).Times(1);
+    window->uiContent_ = std::move(uiContent);
+
+    window->SetBackgroundForceFlushVsync();
+}
+
+/**
+ * @tc.name: SetBackgroundForceFlushVsync_RetryAfterUiContentReady01
+ * @tc.desc: A deferred request (uiContent was null) is re-applied once uiContent becomes ready,
+ *           and the pending flag is cleared.
+ * @tc.type: FUNC
+ */
+HWTEST_F(GamePrelaunchTest, SetBackgroundForceFlushVsync_RetryAfterUiContentReady01, TestSize.Level1)
+{
+    sptr<WindowSceneSessionImpl> window;
+    PreparePrelaunchWindow(abilityContext_, "BkgFlushRetry01", window);
+    window->property_->SetFrameNum(-1);
+    window->property_->SetPrelaunch(true);
+    window->uiContent_ = nullptr;
+
+    // 1. uiContent not ready: the request is deferred.
+    window->SetBackgroundForceFlushVsync();
+    EXPECT_TRUE(window->needBackgroundForceFlushVsync_.load());
+
+    // 2. uiContent becomes ready; NotifyAfterUIContentReady re-applies the deferred request
+    //    (calling SetBackgroundForceFlushVsync), forwarding to uiContent and clearing the flag.
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, SetBackgroundForceFlushVsync(true, 1)).Times(1);
+    window->uiContent_ = std::move(uiContent);
+    window->NotifyAfterUIContentReady();
+    EXPECT_FALSE(window->needBackgroundForceFlushVsync_.load());
 }
 }
 }

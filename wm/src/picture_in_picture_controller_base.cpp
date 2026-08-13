@@ -106,20 +106,21 @@ uint32_t PictureInPictureControllerBase::GetControllerId() const
     return controllerId_;
 }
 
-WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType startType)
+WMErrorResult PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType startType)
 {
     TLOGI(WmsLogTag::WMS_PIP, "startType:%{public}u", startType);
     if (pipOption_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Get PictureInPicture option failed");
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
             0, PipConst::FAILED, "Get PictureInPicture option failed");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "PiP configuration parameters are invalid."};
     }
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "window is null when show pip");
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "window is nullptr when show pip");
-        return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
+        return WMErrorResult{WMError::WM_ERROR_PIP_STATE_ABNORMALLY,
+            "The PiP window is not created or has been destroyed."};
     }
     NotifyStateChangeInner(PiPState::ABOUT_TO_START);
     for (auto& listener : pipLifeCycleListeners_) {
@@ -135,7 +136,7 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
     WMError errCode = window_->Show(0, false);
     if (errCode != WMError::WM_OK) {
         NotifyOpretationError(errCode, startType);
-        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        return WMErrorResult{WMError::WM_ERROR_PIP_INTERNAL_ERROR, "Internal error, failed to show the PiP window."};
     }
     uint32_t requestWidth = 0;
     uint32_t requestHeight = 0;
@@ -153,62 +154,65 @@ WMError PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPipType 
     SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
         pipOption_->GetPipTemplate(), PipConst::PIP_SUCCESS, "show pip success");
     isStoppedFromClient_ = false;
-    return WMError::WM_OK;
+    return WMErrorResult{WMError::WM_OK, ""};
 }
 
-WMError PictureInPictureControllerBase::StartPictureInPictureInner(StartPipType startType)
+WMErrorResult PictureInPictureControllerBase::StartPictureInPictureInner(StartPipType startType)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
-    WMError errCode = CreatePictureInPictureWindow(startType);
-    if (errCode != WMError::WM_OK) {
+    WMErrorResult result = CreatePictureInPictureWindow(startType);
+    if (result.errCode != WMError::WM_OK) {
         curState_ = PiPWindowState::STATE_UNDEFINED;
-        TLOGE(WmsLogTag::WMS_PIP, "Create pip window failed, err: %{public}u", errCode);
+        TLOGE(WmsLogTag::WMS_PIP, "Create pip window failed, err: %{public}u", result.errCode);
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "Create pip window failed");
-        return errCode;
+        return result;
     }
     StartPipType type = startType;
     if (IsTypeNodeEnabled() && startType != StartPipType::AUTO_START) {
         type = StartPipType::AUTO_START;
     }
-    errCode = ShowPictureInPictureWindow(type);
-    if (errCode != WMError::WM_OK) {
+    WMErrorResult showResult = ShowPictureInPictureWindow(type);
+    if (showResult.errCode != WMError::WM_OK) {
         curState_ = PiPWindowState::STATE_UNDEFINED;
-        TLOGE(WmsLogTag::WMS_PIP, "Show pip window failed, err: %{public}u", errCode);
+        TLOGE(WmsLogTag::WMS_PIP, "Show pip window failed, err: %{public}u", showResult.errCode);
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(type),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "Show pip window failed");
-        return errCode;
+        return showResult;
     }
     curState_ = PiPWindowState::STATE_STARTED;
     SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(type),
         pipOption_->GetPipTemplate(), PipConst::PIP_SUCCESS, "start pip success");
-    return WMError::WM_OK;
+    return WMErrorResult{WMError::WM_OK, ""};
 }
 
-WMError PictureInPictureControllerBase::StopPictureInPictureFromClient()
+WMErrorResult PictureInPictureControllerBase::StopPictureInPictureFromClient()
 {
     if (!window_) {
         TLOGE(WmsLogTag::WMS_PIP, "window is null");
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(StopPipType::USER_STOP),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "window is null when stop from client");
-        return WMError::WM_ERROR_PIP_STATE_ABNORMALLY;
+        return WMErrorResult{WMError::WM_ERROR_PIP_STATE_ABNORMALLY,
+            "The PiP window is not created or has been destroyed."};
     }
     if (curState_ == PiPWindowState::STATE_STOPPING || curState_ == PiPWindowState::STATE_STOPPED ||
         curState_ == PiPWindowState::STATE_RESTORING) {
         TLOGE(WmsLogTag::WMS_PIP, "Repeat stop request, curState: %{public}u", curState_);
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(StopPipType::USER_STOP),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "Repeat stop request when stop from client");
-        return WMError::WM_ERROR_PIP_REPEAT_OPERATION;
+        return WMErrorResult{WMError::WM_ERROR_PIP_REPEAT_OPERATION,
+            "Repeated PiP operation."};
     }
     isStoppedFromClient_ = true;
     WMError res = window_->NotifyPrepareClosePiPWindow(isWeb_);
     if (res != WMError::WM_OK) {
         SingletonContainer::Get<PiPReporter>().ReportPiPStopWindow(static_cast<int32_t>(StopPipType::USER_STOP),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "window destroy failed when stop from client");
-        return WMError::WM_ERROR_PIP_DESTROY_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_DESTROY_FAILED,
+            "Internal error, the window type is not a PiP window."};
     }
     curState_ = PiPWindowState::STATE_STOPPING;
-    return res;
+    return WMErrorResult{res, ""};
 }
 
 WMError PictureInPictureControllerBase::StopPictureInPicture(bool destroyWindow, StopPipType stopPipType, bool withAnim)
@@ -692,22 +696,24 @@ bool PictureInPictureControllerBase::GetPiPSettingSwitchStatus()
     return switchStatus;
 }
 
-WMError PictureInPictureControllerBase::IsPiPActive(bool& status)
+WMErrorResult PictureInPictureControllerBase::IsPiPActive(bool& status)
 {
     if (curState_ != PiPWindowState::STATE_STARTED) {
-        return WMError::WM_OK;
+        return WMErrorResult{WMError::WM_OK, ""};
     }
     if (window_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "window is nullptr.");
-        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        return WMErrorResult{WMError::WM_ERROR_PIP_INTERNAL_ERROR,
+            "The PiP window is not created or has been destroyed."};
     }
     WMError ret = window_->IsPiPActive(status);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "get switch error.");
-        return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
+        return WMErrorResult{WMError::WM_ERROR_PIP_INTERNAL_ERROR,
+            "The PiP window is not created or has been destroyed."};
     }
     TLOGI(WmsLogTag::WMS_PIP, "active status: %{public}d", status);
-    return WMError::WM_OK;
+    return WMErrorResult{WMError::WM_OK, ""};
 }
 // LCOV_EXCL_STOP
 } // namespace Rosen

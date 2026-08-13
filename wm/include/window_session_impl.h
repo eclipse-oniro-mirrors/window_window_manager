@@ -92,6 +92,8 @@ using IKBWillHideListener = IKeyboardWillHideListener;
 
 class WindowSessionImpl : public Window, public virtual SessionStageStub {
 public:
+    static constexpr ScreenId SCREEN_ID_MAIN = 5;
+
     explicit WindowSessionImpl(const sptr<WindowOption>& option,
         const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
     ~WindowSessionImpl();
@@ -104,6 +106,9 @@ public:
         const sptr<Rosen::ISession>& iSession,
         const std::string& identityToken = "", bool isModuleAbilityHookEnd = false,
         bool isBlockSubwindow = false) { return WMError::WM_OK; }
+    virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+        const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
+        bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) { return WMError::WM_OK; }
 
     /*
      * inherits from window
@@ -228,6 +233,7 @@ public:
     bool GetTouchable() const override;
     uint32_t GetWindowId() const override;
     uint64_t GetDisplayId() const override;
+    bool IsSuperMultiFoldOuterScreen() const;
     Rect GetRect() const override;
     Rect GetRect(bool useHookedSize) const override;
     bool GetFocusable() const override;
@@ -505,8 +511,10 @@ public:
     WMError RegisterMainWindowCloseListeners(const sptr<IMainWindowCloseListener>& listener) override;
     WMError UnregisterMainWindowCloseListeners(const sptr<IMainWindowCloseListener>& listener) override;
     WMError NotifyMainWindowClose(bool& terminateCloseProcess);
-    WMError RegisterWindowWillCloseListeners(const sptr<IWindowWillCloseListener>& listener) override;
-    WMError UnRegisterWindowWillCloseListeners(const sptr<IWindowWillCloseListener>& listener) override;
+    WMError RegisterWindowWillCloseListeners(
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg) override;
+    WMError UnRegisterWindowWillCloseListeners(
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg) override;
     WMError NotifyWindowWillClose(sptr<Window> window);
 
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
@@ -854,7 +862,7 @@ protected:
 
     void ClearVsyncStation();
     void ReleaseSurfaceNode();
-    WMError WindowSessionCreateCheck();
+    WMError WindowSessionCreateCheck(std::string& errMsg);
     void UpdateDecorEnableToAce(bool isDecorEnable);
     bool NeedShowDecorInOtherDisplay(bool decorVisible);
     bool updateDecorWhenDockAutoHide(bool decorVisible);
@@ -1058,8 +1066,12 @@ protected:
      * Window Layout
      */
     std::atomic_bool isDragTaskPostDone_ = true;
+    // Pending request to enable background force-flush vsync; set when uiContent is not yet
+    // ready and retried once in InitUIContent after uiContent is created.
+    std::atomic_bool needBackgroundForceFlushVsync_ = false;
     void FlushLayoutSize(int32_t width, int32_t height) override;
     void FlushVsync() override;
+    void SetBackgroundForceFlushVsync() override;
     sptr<FutureCallback> layoutCallback_ = nullptr;
     sptr<FutureCallback> getTargetInfoCallback_ = nullptr;
     sptr<FutureCallback> getRotationResultFuture_ = nullptr;

@@ -44,6 +44,7 @@ group("unittest") {
     ":utils_wm_occlusion_region_test",
     ":wm_window_frame_trace_impl_test",
     ":utils_dms_global_mutex_test",
+    ":utils_float_window_error_msg_test",
   ]
   if (!window_manager_use_sceneboard) {
     deps += [
@@ -201,6 +202,16 @@ ohos_unittest("utils_window_error_msg_test") {
   module_out_path = module_out_path
 
   sources = [ "window_error_msg_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("utils_float_window_error_msg_test") {
+  module_out_path = module_out_path
+
+  sources = [ "float_window_error_msg_test.cpp" ]
 
   deps = [ ":utils_unittest_common" ]
 

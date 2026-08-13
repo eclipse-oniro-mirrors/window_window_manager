@@ -122,6 +122,7 @@ public:
     MOCK_METHOD4(NotifyExecuteAction, bool(int64_t elementId, const std::map<std::string, std::string>& actionAguments,
         int32_t action, int64_t baseParent));
     MOCK_METHOD1(SetContainerButtonStyle, void(const Rosen::DecorButtonStyle& decorButtonStyle));
+    MOCK_METHOD2(SetBackgroundForceFlushVsync, void(bool isPrelaunch, size_t frameCount));
 };
 } // namespace Ace
 } // namespace OHOS

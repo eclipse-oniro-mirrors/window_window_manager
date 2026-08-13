@@ -90,6 +90,7 @@ ohos_unittest("window_pattern_starting_window_rdb_test") {
     "googletest:gtest_main",
     "graphic_2d:librender_service_base",
     "graphic_2d:librender_service_client",
+    "hilog:libhilog",
     "relational_store:native_rdb",
   ]
 }

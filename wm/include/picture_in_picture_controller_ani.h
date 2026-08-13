@@ -30,7 +30,7 @@ public:
                                   ani_env* env);
     ~PictureInPictureControllerAni();
 
-    WMError StartPictureInPicture(StartPipType startType) override;
+    WMErrorResult StartPictureInPicture(StartPipType startType) override;
     void SetAutoStartEnabled(bool enable) override;
     void IsAutoStartEnabled(bool& enable) const override;
     void UpdateContentSize(int32_t width, int32_t height) override;
@@ -65,7 +65,8 @@ protected:
     ani_vm* vm_ = nullptr;
     
     ani_env* GetEnv() const;
-    WMError CreatePictureInPictureWindow(StartPipType startType) override;
+    WMErrorResult CreatePictureInPictureWindow(StartPipType startType) override;
+    WMErrorResult DoCreatePipWindow();
     void UpdateWinRectByComponent() override;
     void UpdatePiPSourceRect() const override;
     void SetUIContent() const override;

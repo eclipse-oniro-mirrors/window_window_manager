@@ -1225,6 +1225,18 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
                 session->EditSessionInfo().reuseSessionInGamePreLaunch_ = false;
             }
         }
+        if (event == SessionEvent::EVENT_MAXIMIZE || event == SessionEvent::EVENT_MAXIMIZE_FULLSCREEN) {
+            if (session->moveDragController_ &&
+                (session->moveDragController_->GetStartMoveFlag() ||
+                    session->moveDragController_->GetStartDragFlag())) {
+                TLOGNI(WmsLogTag::WMS_LAYOUT, "Interrupt move/drag on maximize event, id: %{public}d, "
+                    "event: %{public}u, isMove: %{public}d, isDrag: %{public}d",
+                    session->GetPersistentId(), static_cast<uint32_t>(event),
+                    session->moveDragController_->GetStartMoveFlag(),
+                    session->moveDragController_->GetStartDragFlag());
+                session->moveDragController_->MoveDragInterrupted(false);
+            }
+        }
         if (event == SessionEvent::EVENT_START_MOVE) {
             if (!session->IsMovable(param.needFocused)) {
                 return WSError::WS_OK;
@@ -2291,6 +2303,20 @@ void SceneSession::SetSessionPiPControlStatusChangeCallback(const NotifySessionP
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         session->sessionPiPControlStatusChangeFunc_ = func;
+        if (session->needUpdatePiPControl_) {
+            TLOGW(WmsLogTag::WMS_PIP, "Update pip control status when register callback");
+            for (auto pipControlStatusInfo : session->pipTemplateInfo_.pipControlStatusInfoList) {
+                session->sessionPiPControlStatusChangeFunc_(
+                    static_cast<WsPiPControlType>(pipControlStatusInfo.controlType),
+                    static_cast<WsPiPControlStatus>(pipControlStatusInfo.status));
+            }
+            for (auto pipControlEnableInfo : session->pipTemplateInfo_.pipControlEnableInfoList) {
+                session->sessionPiPControlStatusChangeFunc_(
+                    static_cast<WsPiPControlType>(pipControlEnableInfo.controlType),
+                    static_cast<WsPiPControlStatus>(pipControlEnableInfo.enabled));
+            }
+            session->needUpdatePiPControl_ = false;
+        }
         return WSError::WS_OK;
     }, __func__);
 }
@@ -4844,12 +4870,8 @@ void SceneSession::CompatibilityModeWindowScaleTransfer(WSRect& rect, bool isSca
         return;
     }
     if (!isScale) {
-        if (!MathHelper::NearZero(scaleX)) {
             scaleX = 1 / scaleX;
-        }
-        if (!MathHelper::NearZero(scaleY)) {
             scaleY = 1 / scaleY;
-        }
     }
     if (IsCompatibilityModeScale(scaleX, scaleY)) {
         WindowScaleTransfer(rect, scaleX, scaleY);
@@ -4904,8 +4926,9 @@ bool SceneSession::MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeR
         return false;
     }
     bool isDockAutoHide = onGetIsDockAutoHideFunc_ ? onGetIsDockAutoHideFunc_() : false;
-    int32_t statusBarHeight = (IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen()) ? 0 : GetStatusBarHeight();
-    int32_t dockHeight = (IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen()) ? 0 : GetDockHeight();
+    bool isFullScreenOrHide = IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen();
+    int32_t statusBarHeight = isFullScreenOrHide ? 0 : GetStatusBarHeight();
+    int32_t dockHeight = isFullScreenOrHide ? 0 : GetDockHeight();
     CompatibilityModeWindowScaleTransfer(rect, true);
     bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), rect, statusBarHeight, dockHeight);
     if (!ret) {
@@ -4961,13 +4984,14 @@ void SceneSession::NotifyFullScreenAfterThrowSlip(const WSRect& rect)
             TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s session go background when throw", where);
             return;
         }
-        if (session->throwSlipToFullScreenAnimCount_.load() == 0) {
+        uint32_t animCount = session->throwSlipToFullScreenAnimCount_.load();
+        if (animCount == 0) {
             TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s session moved when throw", where);
             return;
         }
-        if (session->throwSlipToFullScreenAnimCount_.load() > 1) {
+        if (animCount > 1) {
             TLOGNW(WmsLogTag::WMS_LAYOUT, "%{public}s throw-slip fullscreen animation count: %{public}u",
-                where, session->throwSlipToFullScreenAnimCount_.load());
+                where, animCount);
             session->throwSlipToFullScreenAnimCount_.fetch_sub(1);
             return;
         }
@@ -5887,7 +5911,11 @@ void SceneSession::UpdateRotationAvoidArea()
         if (Session::IsScbCoreEnabled()) {
             MarkAvoidAreaAsDirty();
         } else {
-            specificCallback_->onUpdateAvoidArea_(GetPersistentId());
+            if (specificCallback_->onUpdateAvoidArea_) {
+                specificCallback_->onUpdateAvoidArea_(GetPersistentId());
+            } else {
+                TLOGE(WmsLogTag::DMS, "onUpdateAvoidArea_ is null");
+            }
         }
     }
 }
@@ -8364,9 +8392,13 @@ WSError SceneSession::UpdatePiPControlStatus(WsPiPControlType controlType, WsPiP
             TLOGNW(WmsLogTag::WMS_PIP, "%{public}s permission denied, not call by the same process", where);
             return WSError::WS_ERROR_INVALID_PERMISSION;
         }
+        session->pipTemplateInfo_.SetPiPControlStatus(static_cast<PiPControlType>(controlType),
+            static_cast<PiPControlStatus>(status));
         if (session->sessionPiPControlStatusChangeFunc_) {
             HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSession::UpdatePiPControlStatus");
             session->sessionPiPControlStatusChangeFunc_(controlType, status);
+        } else {
+            session->needUpdatePiPControl_ = true;
         }
         return WSError::WS_OK;
     }, __func__);

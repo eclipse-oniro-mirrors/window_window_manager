@@ -4394,6 +4394,127 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
         EXPECT_FALSE(raiseToTopCalled);
     }
 }
+
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize01
+ * @tc.desc: EVENT_MAXIMIZE should interrupt ongoing move
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize01";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize01";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->hasPointDown_ = true;
+    session->moveDragController_->SetStartMoveFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartMoveFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_FALSE(session->moveDragController_->GetStartMoveFlag());
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize02
+ * @tc.desc: EVENT_MAXIMIZE should interrupt ongoing drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize02";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize02";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->SetStartDragFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartDragFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_FALSE(session->moveDragController_->GetStartDragFlag());
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize03
+ * @tc.desc: EVENT_MAXIMIZE_FULLSCREEN should interrupt ongoing move
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize03";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize03";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->hasPointDown_ = true;
+    session->moveDragController_->SetStartMoveFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartMoveFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE_FULLSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_FALSE(session->moveDragController_->GetStartMoveFlag());
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize04
+ * @tc.desc: EVENT_MAXIMIZE should not interrupt when no drag/move is active
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize04";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize04";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    ASSERT_FALSE(session->moveDragController_->GetStartMoveFlag());
+    ASSERT_FALSE(session->moveDragController_->GetStartDragFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize05
+ * @tc.desc: Other events should not interrupt drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize05";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize05";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->hasPointDown_ = true;
+    session->moveDragController_->SetStartMoveFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartMoveFlag());
+ 
+    session->OnSessionEvent(SessionEvent::EVENT_RECOVER);
+    EXPECT_TRUE(session->moveDragController_->GetStartMoveFlag());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

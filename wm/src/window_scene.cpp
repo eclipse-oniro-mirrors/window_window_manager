@@ -68,8 +68,9 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
     if (context != nullptr) {
         option->SetBundleName(context->GetBundleName());
     }
+    std::string errMsg;
     auto mainWindow = SingletonContainer::Get<StaticCall>().CreateWindow(
-        GenerateMainWindowName(context), option, context);
+        GenerateMainWindowName(context), option, errMsg, context);
     if (mainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "mainWindow is null after create Window!");
         return WMError::WM_ERROR_NULLPTR;
@@ -133,6 +134,13 @@ WMError WindowScene::Init(DisplayId displayId, const std::shared_ptr<AbilityRunt
 
 sptr<Window> WindowScene::CreateWindow(const std::string& windowName, sptr<WindowOption>& option) const
 {
+    std::string errMsg;
+    return CreateWindow(windowName, option, errMsg);
+}
+
+sptr<Window> WindowScene::CreateWindow(const std::string& windowName, sptr<WindowOption>& option,
+    std::string& errMsg) const
+{
     auto mainWindow = GetMainWindow();
     if (windowName.empty() || mainWindow == nullptr || option == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "new windowName: %{public}s", windowName.c_str());
@@ -142,7 +150,7 @@ sptr<Window> WindowScene::CreateWindow(const std::string& windowName, sptr<Windo
     option->SetWindowTag(WindowTag::SUB_WINDOW);
     TLOGD(WmsLogTag::WMS_SUB, "windowName: %{public}s, parentId: %{public}u",
         windowName.c_str(), mainWindow->GetWindowId());
-    return SingletonContainer::Get<StaticCall>().CreateWindow(windowName, option, mainWindow->GetContext());
+    return SingletonContainer::Get<StaticCall>().CreateWindow(windowName, option, errMsg, mainWindow->GetContext());
 }
 
 sptr<Window> WindowScene::GetMainWindow() const

@@ -45,7 +45,6 @@
 #include "wm_math.h"
 #include "perform_reporter.h"
 #include "hitrace_meter.h"
-#include <hisysevent.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -245,6 +244,25 @@ sptr<Window> WindowImpl::Find(const std::string& name)
 const std::shared_ptr<AbilityRuntime::Context> WindowImpl::GetContext() const
 {
     return context_;
+}
+
+sptr<WindowImpl> WindowImpl::FindMainWindowWithContext() const
+{
+    auto context = GetContext();
+    if (context == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "get context failed");
+        return nullptr;
+    }
+    std::shared_lock<std::shared_mutex> lock(windowMapMutex_);
+    for (const auto& winPair : windowMap_) {
+        auto win = winPair.second.second;
+        if (win && win->GetType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW &&
+            context.get() == win->GetContext().get()) {
+            return static_cast<WindowImpl*>(win.GetRefPtr());
+        }
+    }
+    TLOGW(WmsLogTag::WMS_MAIN, "id:%{public}u, Can not find main window, not app type", GetWindowId());
+    return nullptr;
 }
 
 sptr<Window> WindowImpl::FindWindowById(uint32_t WinId)
@@ -1629,6 +1647,14 @@ WMError WindowImpl::Create(uint32_t parentId, const std::shared_ptr<AbilityRunti
     }
     SetDefaultDisplayIdIfNeed();
     context_ = context;
+    if (property_->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) {
+        if (auto mainWindow = FindMainWindowWithContext()) {
+            property_->SetParentId(mainWindow->GetWindowId());
+            property_->SetDisplayId(mainWindow->GetDisplayId());
+            TLOGI(WmsLogTag::WMS_DIALOG, "id:%{public}u, parentId: %{public}u",
+                GetWindowId(), mainWindow->GetWindowId());
+        }
+    }
     sptr<WindowImpl> window(this);
     sptr<IWindow> windowAgent(new WindowAgent(window));
     static std::atomic<uint32_t> tempWindowId = 0;
@@ -2644,6 +2670,12 @@ WMError WindowImpl::NotifyWindowTransition(TransitionReason reason)
 }
 
 WMError WindowImpl::Minimize()
+{
+    std::string errMsg;
+    return Minimize(errMsg);
+}
+
+WMError WindowImpl::Minimize(std::string& errMsg)
 {
     WLOGI("id: %{public}u Minimize", property_->GetWindowId());
     if (!IsWindowValid()) {

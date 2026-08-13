@@ -69,12 +69,12 @@ public:
         
         std::lock_guard<std::mutex> lock(mutex_);
         for (const auto& info : recordInfos_) {
-            TLOGW(WmsLogTag::DMS, "[%{public}s]: %{public}s",
+            TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "[%{public}s]: %{public}s",
                 formatTimestamp(info.timestamp).c_str(), info.info.c_str());
         }
 
         for (const auto& info : recordBoundsInfos_) {
-            TLOGW(WmsLogTag::DMS, "[%{public}s]: %{public}s",
+            TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "[%{public}s]: %{public}s",
                 formatTimestamp(info.timestamp).c_str(), info.info.c_str());
         }
     }
