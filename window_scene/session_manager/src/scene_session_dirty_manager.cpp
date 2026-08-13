@@ -46,6 +46,7 @@ const std::string SCREENSHOT_WINDOW_NAME_PREFIX = "ScreenShotWindow";
 const std::string PREVIEW_WINDOW_NAME_PREFIX = "PreviewWindow";
 const std::string VOICEINPUT_WINDOW_NAME_PREFIX = "__VoiceHardwareInput";
 const std::string SCREEN_LOCK_WINDOW = "SCBScreenLock";
+const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
 constexpr int32_t CURSOR_DRAG_COUNT_MAX = 1;
 } // namespace
 
@@ -360,6 +361,9 @@ static void UpdateKeyboardHotAreasInner(const sptr<SceneSession>& sceneSession, 
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
+    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
+    std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
+    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
     if (sceneSession->GetWindowType() == WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
         if (keyboardTouchHotAreas.isKeyboardEmpty()) {
             return;

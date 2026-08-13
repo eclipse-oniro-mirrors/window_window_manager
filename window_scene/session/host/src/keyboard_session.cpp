@@ -37,6 +37,7 @@ namespace {
     constexpr float MOVE_DRAG_POSITION_Z = 100.5f;
     constexpr int32_t INSERT_TO_THE_END = -1;
     const std::string KEYBOARD_ANIM_SYNC_EVENT_NAME { "KeyboardAnimationSyncException" };
+    const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
 }
 KeyboardSession::KeyboardSession(const SessionInfo& info, const sptr<SpecificSessionCallback>& specificCallback,
     const sptr<KeyboardSessionCallback>& keyboardCallback)
@@ -1256,7 +1257,11 @@ WMError KeyboardSession::IsLandscape(uint64_t displayId, bool& isLandscape)
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    TLOGI(WmsLogTag::WMS_KEYBOARD, "%{public}d|%{public}d|%{public}d", displayWidth, displayHeight, isLandscape);
+    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
+    std::string dispName = (display != nullptr) ? display->GetName() : "UNKNOWN";
+    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "s-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d|%{public}s",
+        displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
     return WMError::WM_OK;
 }
 
