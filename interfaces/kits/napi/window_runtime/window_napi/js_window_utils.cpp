@@ -39,6 +39,8 @@ constexpr size_t ARG_COUNT_ZERO = 0;
 constexpr size_t ARG_COUNT_TWO = 2;
 constexpr size_t ARG_COUNT_THREE = 3;
 constexpr int32_t MAX_TOUCHABLE_AREAS = 10;
+constexpr int32_t FOCUS_CHANGE_REASON_OTHER = 0;
+constexpr int32_t FOCUS_CHANGE_REASON_CLICK = 1;
 constexpr uint32_t CURVE_TYPE_SPRING = 1;
 constexpr uint32_t ANIMATION_FOUR_PARAMS_SIZE = 4;
 const std::string RESOLVED_CALLBACK = "resolvedCallback";
@@ -1964,10 +1966,6 @@ napi_value WindowAnimationCurveInit(napi_env env)
         CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::CUBIC_BEZIER)));
     return objValue;
 }
-
-// JS FocusChangeReason only exposes OTHER(0) / CLICK(1) (intentional simplification); other C++ reasons collapse to OTHER.
-constexpr int32_t FOCUS_CHANGE_REASON_OTHER = 0;
-constexpr int32_t FOCUS_CHANGE_REASON_CLICK = 1;
 
 int32_t ConvertWindowFocusChangeReasonToJsValue(WindowFocusChangeReason reason)
 {
