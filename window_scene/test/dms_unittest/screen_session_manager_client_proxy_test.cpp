@@ -350,7 +350,7 @@ HWTEST_F(ScreenSessionManagerClientProxyTest, OnCreateScreenSessionOnly, TestSiz
     bool isExtend = false;
 
     ASSERT_TRUE(screenSessionManagerClientProxy_ != nullptr);
-    screenSessionManagerClientProxy_->OnCreateScreenSessionOnly(screenId, rsId, name, isExtend);
+    screenSessionManagerClientProxy_->OnCreateScreenSessionOnly(screenId, rsId, name, nullptr, isExtend);
 }
 
 /**

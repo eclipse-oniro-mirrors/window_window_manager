@@ -50,6 +50,12 @@ ohos_unittest("dm_display_lite_test") {
 
   deps = [ ":dm_unittest_common_lite" ]
   deps += dm_unittest_common_lite_deps
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+  ]
 }
 
 ohos_unittest("dm_display_manager_adapter_lite_test") {
@@ -135,7 +141,11 @@ ohos_unittest("dm_screen_manager_lite_test") {
 
   deps = [ ":dm_unittest_common_lite" ]
   deps += dm_unittest_common_lite_deps
-  external_deps = [ "hilog:libhilog" ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+  ]
 }
 
 ## Build dm_unittest_common_lite.a {{{

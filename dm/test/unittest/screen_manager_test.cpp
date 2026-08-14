@@ -92,6 +92,13 @@ void ScreenManagerTest::TearDown()
 }
 
 namespace {
+std::string g_logMsg;
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+    const char *msg)
+{
+    g_logMsg = msg;
+}
+
 /**
  * @tc.name: CreateAndDestroy01
  * @tc.desc: CreateVirtualScreen with invalid option and return invalid screen id
@@ -616,7 +623,7 @@ HWTEST_F(ScreenManagerTest, MakeMirror_002, TestSize.Level1)
     for (uint32_t i = 0; i < 33; ++i) {
         mirrorScreenId.emplace_back(i);
     }
-    DMError ret2 = ScreenManager::GetInstance().MakeMirror(1, mirrorScreenId, ScreenGroupId, Rotation::ROTATION_0);
+    DMError ret2 = ScreenManager::GetInstance().MakeMirror(1, mirrorScreenId, screenGroupId, Rotation::ROTATION_0);
     ASSERT_EQ(ret2, DMError::DM_ERROR_INVALID_PARAM);
 }
 
@@ -741,7 +748,7 @@ HWTEST_F(ScreenManagerTest, SetScreenPrivacyWindowTagSwitch, TestSize.Level1)
     ScreenId mainScreenId = 1;
     std::vector<std::string> privacyWindowTag{"test1", "test2"};
     DMError res = ScreenManager::GetInstance().SetScreenPrivacyWindowTagSwitch(mainScreenId, privacyWindowTag, true);
-    EXPECT_NE(result, DMError::DM_OK);
+    EXPECT_NE(res, DMError::DM_OK);
 }
 
 /**

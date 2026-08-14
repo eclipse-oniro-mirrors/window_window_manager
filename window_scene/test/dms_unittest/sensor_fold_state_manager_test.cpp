@@ -17,6 +17,7 @@
 
 #include "fold_screen_controller/fold_screen_policy.h"
 #include "fold_screen_controller/sensor_fold_state_manager/sensor_fold_state_manager.h"
+#include "fold_screen_controller/super_fold_sensor_manager.h"
 #include "fold_screen_state_internel.h"
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "window_manager_hilog.h"

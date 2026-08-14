@@ -17,6 +17,7 @@
 #include "common_test_utils.h"
 #include "display_manager.h"
 #include "display_manager_proxy.h"
+#include "scene_board_judgement.h"
 #include "screen_manager.h"
 #include "window.h"
 #include "window_manager_hilog.h"
