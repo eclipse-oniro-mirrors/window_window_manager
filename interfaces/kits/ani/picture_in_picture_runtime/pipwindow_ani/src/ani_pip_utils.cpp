@@ -117,7 +117,6 @@ ani_status AniPipUtils::CreateBusinessError(ani_env* env, int32_t error, std::st
 ani_ref AniPipUtils::AniThrowError(ani_env* env, WMError error, std::string msg)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
-     // WMError → WmErrorCode
     WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(error);
     std::string errorMessage = msg.empty() ? GetErrorMsg(errorCode) : msg;
     ani_object aniError;

@@ -1584,6 +1584,7 @@ private:
     /*
      * PiP Window
      */
+    bool needUpdatePiPControl_ = false;
     NotifySessionPiPControlStatusChangeFunc sessionPiPControlStatusChangeFunc_;
     NotifyAutoStartPiPStatusChangeFunc autoStartPiPStatusChangeFunc_;
     NotifyUpdatePiPTemplateInfoFunc updatePiPTemplateInfoCallbackFunc_;

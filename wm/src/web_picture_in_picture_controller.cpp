@@ -46,17 +46,19 @@ WebPictureInPictureController::WebPictureInPictureController(const PiPConfig& co
     pipOption_->SetCreateTimestamp(createTimestamp_);
 }
 
-WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
+WMErrorResult WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType startType)
 {
     if (pipOption_ == nullptr || mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption or mainWindow is nullptr");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
+            "The XComponentController or main window is null."};
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
         mainWindowId_, mainWindow_->GetWindowState());
     if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
+            "The main window is not shown."};
     }
     UpdateWinRectByComponent();
     auto windowOption = sptr<WindowOption>::MakeSptr();
@@ -73,39 +75,45 @@ WMError WebPictureInPictureController::CreatePictureInPictureWindow(StartPipType
     pipTemplateInfo.isWeb = true;
     auto context = mainWindow_->GetContext();
     if (context == nullptr) {
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
+            "Internal error, failed to create PiP window."};
     }
     SingletonContainer::Get<PiPReporter>().SetCurrentPackageName(context->GetApplicationInfo()->name);
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context, errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
-        return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_PIP_CREATE_FAILED;
+        if (errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS) {
+            return WMErrorResult{errCode, "App has already started float view."};
+        }
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
+            "Internal error, failed to create PiP window."};
     }
     mainWindowLifeCycleListener_ = sptr<PictureInPictureController::WindowLifeCycleListener>::MakeSptr(mainWindowId_);
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     window_ = window;
     window_->UpdatePiPRect(windowRect_, WindowSizeChangeReason::PIP_START);
     PictureInPictureManager::PutPipControllerInfo(window_->GetWindowId(), this);
-    return WMError::WM_OK;
+    return WMErrorResult{WMError::WM_OK, ""};
 }
 
-WMError WebPictureInPictureController::StartPictureInPicture(StartPipType startType)
+WMErrorResult WebPictureInPictureController::StartPictureInPicture(StartPipType startType)
 {
     TLOGI(WmsLogTag::WMS_PIP, "called");
     if (pipOption_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption is null");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "pipOption is null"};
     }
     if (curState_ == PiPWindowState::STATE_STARTING || curState_ == PiPWindowState::STATE_STARTED) {
         TLOGW(WmsLogTag::WMS_PIP, "pipWindow is starting, state: %{public}u, id: %{public}u, mainWindow: %{public}u",
             curState_, (window_ == nullptr) ? INVALID_WINDOW_ID : window_->GetWindowId(), mainWindowId_);
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "Pip window is starting");
-        return WMError::WM_ERROR_PIP_REPEAT_OPERATION;
+        return WMErrorResult{WMError::WM_ERROR_PIP_REPEAT_OPERATION, "pip window is starting"};
     }
     curState_ = PiPWindowState::STATE_STARTING;
     PictureInPictureManager::DoClose(window_ == nullptr ? INVALID_WINDOW_ID : window_->GetWindowId(), true, true);
-    return StartPictureInPictureInner(startType);
+    WMErrorResult result = StartPictureInPictureInner(startType);
+    return result;
 }
 
 void WebPictureInPictureController::SetUIContent() const

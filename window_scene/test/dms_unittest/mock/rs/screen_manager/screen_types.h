@@ -29,6 +29,8 @@ using ScreenPhysicalId = uint32_t;
 
 constexpr ScreenId INVALID_SCREEN_ID = ~(static_cast<ScreenId>(0));
 
+constexpr ScreenId NONE_PHYSICAL_SCREEN_ID = ~(static_cast<ScreenId>(0)) - 1;
+
 constexpr int32_t INVALID_BACKLIGHT_VALUE = -1;
 
 constexpr uint32_t LAYER_COMPOSITION_CAPACITY = 12;

@@ -438,6 +438,11 @@ ani_object ConvertStartAnimationSystemOptionsToAniValue(ani_env* env,
     ret = env->FindEnum("@ohos.window.window.AnimationType", &animationType);
     CHECK_RET_RETURN_NULLPTR(ret, "[ANI] Find enum AnimationType failed.");
 
+    if (!startAnimationSystemOptions) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] startAnimationSystemOptions is null.");
+        return nullptr;
+    }
+
     ani_enum_item animationTypeItem;
     std::string itemName = GetAnimationTypeItemName(startAnimationSystemOptions->animationType);
     ret = env->Enum_GetEnumItemByName(animationType, itemName.c_str(), &animationTypeItem);

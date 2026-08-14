@@ -45,7 +45,6 @@
 #include "wm_math.h"
 #include "perform_reporter.h"
 #include "hitrace_meter.h"
-#include <hisysevent.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -2671,6 +2670,12 @@ WMError WindowImpl::NotifyWindowTransition(TransitionReason reason)
 }
 
 WMError WindowImpl::Minimize()
+{
+    std::string errMsg;
+    return Minimize(errMsg);
+}
+
+WMError WindowImpl::Minimize(std::string& errMsg)
 {
     WLOGI("id: %{public}u Minimize", property_->GetWindowId());
     if (!IsWindowValid()) {

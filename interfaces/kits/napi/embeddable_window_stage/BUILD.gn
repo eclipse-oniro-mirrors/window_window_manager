@@ -55,7 +55,6 @@ ohos_shared_library("embeddablewindowstage") {
   ]
 
   external_deps = [
-    "ipc:ipc_single",
     "napi:ace_napi",
     "node:node_header_notice",
     "libuv:uv",
@@ -64,6 +63,7 @@ ohos_shared_library("embeddablewindowstage") {
   relative_install_dir = "module/application"
   part_name = "window_manager"
   subsystem_name = "window"
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 config("embeddable_window_stage_kit_config") {

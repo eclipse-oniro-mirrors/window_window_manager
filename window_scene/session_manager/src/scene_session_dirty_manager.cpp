@@ -550,7 +550,7 @@ std::map<int32_t, sptr<SceneSession>> SceneSessionDirtyManager::GetDialogSession
         }
         AddDialogSessionMapItem(session, dialogMap);
         AddCallingPidMapItem(session, callingPidMap);
-        if (session->IsApplicationModal()) {
+        if (session->IsApplicationModal() && !session->IsSuperMultiFoldOuterScreen()) {
             hasModalApplication = true;
         }
     }
