@@ -238,6 +238,9 @@ void WindowManager::Impl::NotifyUnfocused(const sptr<FocusChangeInfo>& focusChan
     }
     TLOGD(WmsLogTag::WMS_FOCUS, "Notify unfocused listeners: %{public}zu", focusChangeListeners.size());
     for (auto& listener : focusChangeListeners) {
+        if (listener == nullptr) {
+            continue;
+        }
         listener->OnUnfocused(focusChangeInfo);
     }
 }
