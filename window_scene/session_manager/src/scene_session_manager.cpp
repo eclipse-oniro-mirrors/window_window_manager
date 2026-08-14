@@ -20648,11 +20648,13 @@ void SceneSessionManager::ReportRssFloatWindowV1(const bool isForeground, const 
         return;
     }
     // report background
+    bool isEmpty = false;
     {
         std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatWindowV1SetMutex_);
         foregroundSessionFloatWindowV1Set_.erase(session);
+        isEmpty = foregroundSessionFloatWindowV1Set_.empty();
     }
-    if (foregroundSessionFloatWindowV1Set_.empty()) {
+    if (isEmpty) {
         ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 0, payload);
         TLOGI(WmsLogTag::WMS_SYSTEM, "report background successfully, window ResType is RES_TYPE_FLOATING_WINDOW_V1");
     }
@@ -20674,11 +20676,13 @@ void SceneSessionManager::ReportRssFB(const bool isForeground, const sptr<SceneS
         return;
     }
     // report background
+    isEmpty = false;
     {
         std::unique_lock<std::shared_mutex> lock(foregroundSessionFloatBallSetMutex_);
         foregroundSessionFloatBallSet_.erase(session);
+        isEmpty = foregroundSessionFloatBallSet_.empty();
     }
-    if (foregroundSessionFloatBallSet_.empty()) {
+    if (isEmpty) {
         ResourceSchedule::ResSchedClient::GetInstance().ReportData(reportType, 0, payload);
         TLOGI(WmsLogTag::WMS_SYSTEM, "report background successfully, window ResType is RES_TYPE_FLOATING_BALL");
     }
