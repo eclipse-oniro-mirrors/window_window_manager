@@ -75,8 +75,20 @@ void ScreenCutoutController::RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dhei
         TLOGE(WmsLogTag::DMS, "displayInfo invaild");
         return;
     }
-    int32_t phyWidth = displayInfo->GetPhysicalWidth();
-    int32_t phyHeight = displayInfo->GetPhysicalHeight();
+    int32_t phyWidth = 0;
+    int32_t phyHeight = 0;
+    const auto& rogResolution = ScreenSceneConfig::GetRogResolution();
+
+    if (rogResolution.isSupportRog) {
+        phyWidth = rogResolution.width;
+        phyHeight = rogResolution.height;
+        if (rotation == Rotation::ROTATION_90 || rotation == Rotation::ROTATION_270) {
+            std::swap(phyWidth, phyHeight);
+        }
+    } else {
+        phyWidth = displayInfo->GetPhysicalWidth();
+        phyHeight = displayInfo->GetPhysicalHeight();
+    }
     FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(phyWidth, phyHeight);
     if ((displayMode == FoldDisplayMode::FULL || displayMode == FoldDisplayMode::GLOBAL_FULL) &&
         (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180)) {
@@ -84,8 +96,9 @@ void ScreenCutoutController::RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dhei
     }
     dwidth = phyWidth;
     dheight = phyHeight;
-    TLOGI(WmsLogTag::DMS,"id: %{public}" PRIu64", pw: %{public}u, ph: %{public}u, W: %{public}u,"
-        "H: %{public}u", displayInfo->GetDisplayId(), phyWidth, phyHeight, dwidth, dheight);
+    TLOGI(WmsLogTag::DMS, "id: %{public}" PRIu64
+        ", isRog: %{public}d r: %{public}d pw: %{public}u, ph: %{public}u, W: %{public}u, H: %{public}u",
+        displayInfo->GetDisplayId(), rogResolution.isSupportRog, rotation, phyWidth, phyHeight, dwidth, dheight);
 }
 
 void ScreenCutoutController::HookCutoutInfo(uint32_t hookWidth, uint32_t hookHeight,

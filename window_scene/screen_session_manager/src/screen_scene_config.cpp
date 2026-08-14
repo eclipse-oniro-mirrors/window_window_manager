@@ -572,6 +572,11 @@ void ScreenSceneConfig::SetRogResolution(const RogResolution& rogResolution)
     rogResolution_ = rogResolution;
 }
 
+RogResolution ScreenSceneConfig::GetRogResolution()
+{
+    return GetRogResolution(0, 0);
+}
+
 RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t height)
 {
     if (rogResolution_.notInit) {

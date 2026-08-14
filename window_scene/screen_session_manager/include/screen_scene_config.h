@@ -86,6 +86,7 @@ public:
     static void SetConcurrentUserState(bool state) { isConcurrentUser_ = state; };
     static void UpdateCutoutBoundRect(uint64_t displayId, float rogRatio);
     static int32_t GetRogDpi();
+    static RogResolution GetRogResolution();
     static RogResolution GetRogResolution(uint32_t width, uint32_t height);
     static uint64_t GetUptimeSeconds();
     static uint64_t GetBootTimeThreshold();
