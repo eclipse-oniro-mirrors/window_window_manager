@@ -15045,11 +15045,9 @@ DMError ScreenSessionManager::SetMultiScreenMode(ScreenId mainScreenId, ScreenId
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
-    bool isInUse = false;
-    IsPhysicalExtendScreenInUse(mainScreenId, secondaryScreenId, isInUse);
-    if (isInUse) {
-        TLOGNFI(WmsLogTag::DMS, "physical extend screen in use");
-        return DMError::DM_ERROR_INVALID_MODE_ID;
+    auto ret = CheckMultiScreen(mainScreenId, secondaryScreenId, screenMode);
+    if (ret != DMError::DM_OK) {
+        return ret;
     }
     CreateExtendVirtualScreen(mainScreenId, secondaryScreenId);
     {
@@ -15080,6 +15078,27 @@ DMError ScreenSessionManager::SetMultiScreenMode(ScreenId mainScreenId, ScreenId
     NotifyScreenModeChange();
     ReportMultScreenChange(mainScreenId, secondaryScreenId, screenMode);
 #endif
+    return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::CheckMultiScreen(ScreenId mainScreenId, ScreenId secondaryScreenId,
+    MultiScreenMode screenMode)
+{
+    if (!g_isPcDevice) {
+        return DMError::DM_ERROR_INVALID_MODE_ID;
+    }
+    bool isInUse = false;
+    IsPhysicalExtendScreenInUse(mainScreenId, secondaryScreenId, isInUse);
+    if (isInUse) {
+        TLOGNFW(WmsLogTag::DMS, "physical extend screen in use");
+        return DMError::DM_ERROR_INVALID_MODE_ID;
+    }
+    auto screenSession = GetScreenSessionByRsId(secondaryScreenId);
+    auto screenType = screenSession->GetScreenProperty().GetScreenType();
+    if (HasExtendVirtualScreen() && screenMode == MultiScreenMode::SCREEN_EXTEND && screenType == ScreenType::VIRTUAL) {
+        TLOGNFW(WmsLogTag::DMS, "extend virtual screen in use");
+        return DMError::DM_ERROR_INVALID_MODE_ID;
+    }
     return DMError::DM_OK;
 }
 
