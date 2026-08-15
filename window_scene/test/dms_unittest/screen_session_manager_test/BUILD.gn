@@ -84,6 +84,7 @@ test_source_common = [
   "${window_base_path}/window_scene/screen_session_manager/src/screen_edid_parse.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_power_utils.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_rotation_property.cpp",
+  "${window_base_path}/window_scene/screen_session_manager/src/screen_scene_config.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_sensor_connector.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_dumper.cpp",
   "${window_base_path}/window_scene/screen_session_manager/src/screen_session_manager.cpp",
