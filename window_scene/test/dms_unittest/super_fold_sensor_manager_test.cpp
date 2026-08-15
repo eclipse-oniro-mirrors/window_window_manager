@@ -235,6 +235,19 @@ HWTEST_F(SuperFoldSensorManagerTest, HandlePostureData06, TestSize.Level1)
 
 
 /**
+ * @tc.name: GetFoldStatusChangeEvents01
+ * @tc.desc: test function : GetFoldStatusChangeEvents
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, GetFoldStatusChangeEvents01, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(170.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(100.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(0.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_FOLDED);
+}
+
+/**
  * @tc.name: NotifyFoldAngleChanged01
  * @tc.desc: test function : NotifyFoldAngleChanged
  * @tc.type: FUNC
