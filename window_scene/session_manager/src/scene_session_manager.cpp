@@ -5917,9 +5917,15 @@ void SceneSessionManager::CacheSpecificSessionForRecovering(
         "%{public}d, window type=%{public}d", sceneSession->GetPersistentId(), parentId, windowType);
 
     if (WindowHelper::IsSubWindow(windowType)) {
-        recoverSubSessionCacheMap_[parentId].emplace_back(sceneSession);
+        auto& subCacheList = recoverSubSessionCacheMap_[parentId];
+        if (std::find(subCacheList.begin(), subCacheList.end(), sceneSession) == subCacheList.end()) {
+            subCacheList.emplace_back(sceneSession);
+        }
     } else if (WindowHelper::IsDialogWindow(windowType)) {
-        recoverDialogSessionCacheMap_[parentId].emplace_back(sceneSession);
+        auto& dialogCacheList = recoverDialogSessionCacheMap_[parentId];
+        if (std::find(dialogCacheList.begin(), dialogCacheList.end(), sceneSession) == dialogCacheList.end()) {
+            dialogCacheList.emplace_back(sceneSession);
+        }
     }
 }
 
