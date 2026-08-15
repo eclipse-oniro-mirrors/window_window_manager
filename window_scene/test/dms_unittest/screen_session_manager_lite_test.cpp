@@ -18,7 +18,7 @@
 #include "screen_session_manager/include/screen_session_manager_lite.h"
 #include "window_manager_hilog.h"
 #include "display_manager_agent_default.h"
-#include "flod_screen_state_internel.h"
+#include "fold_screen_state_internel.h"
 
 using namespace testing;
 using namespace testing::ext;

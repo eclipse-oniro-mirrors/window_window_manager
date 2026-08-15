@@ -171,7 +171,7 @@ namespace {
     {
         std::recursive_mutex mutex;
         DualDisplayFoldPolicy policy(mutex, std::shared_ptr<TaskScheduler>());
-        EXPECT_THAT(policy.GetSupportedFoldStatus(),
+        EXPECT_THAT(policy.GetSupportedFoldStates(),
             UnorderedElementsAre(
                 FoldStatus::EXPAND,
                 FoldStatus::FOLDED,

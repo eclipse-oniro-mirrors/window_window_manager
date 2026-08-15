@@ -1319,10 +1319,20 @@ if (window_manager_fold_ability) {
 
     sources = [ "sensor_fold_state_manager_test.cpp" ]
 
-    deps = [ ":ws_unittest_common" ]
+    deps = [
+      ":ws_unittest_common",
+      "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+    ]
 
     external_deps = test_external_deps
     external_deps += [ "init:libbegetutil" ]
+
+    defines = []
+    if (defined(global_parts_info) &&
+        defined(global_parts_info.sensors_sensor)) {
+      external_deps += [ "sensor:sensor_interface_native" ]
+      defines += [ "SENSOR_ENABLE" ]
+    }
   }
 
   ohos_unittest("ws_dual_display_fold_policy_test") {

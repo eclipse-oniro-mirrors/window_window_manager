@@ -31,21 +31,13 @@ public:
 };
 ScreenManagerLite& ScreenManagerLiteTest::sml_ = ScreenManagerLite::GetInstance();
 
-void ScreenManagerLiteTest::SetUpTestCase()
-{
-}
+void ScreenManagerLiteTest::SetUpTestCase() {}
 
-void ScreenManagerLiteTest::TearDownTestCase()
-{
-}
+void ScreenManagerLiteTest::TearDownTestCase() {}
 
-void ScreenManagerLiteTest::SetUp()
-{
-}
+void ScreenManagerLiteTest::SetUp() {}
 
-void ScreenManagerLiteTest::TearDown()
-{
-}
+void ScreenManagerLiteTest::TearDown() {}
 
 namespace {
 /**
@@ -87,7 +79,7 @@ HWTEST_F(ScreenManagerLiteTest, SetResolution, TestSize.Level1)
 
     dpi = 10;
     EXPECT_EQ(sml_.SetResolution(width, height, dpi), DMError::DM_ERROR_INVALID_PARAM);
-+}
 }
+} // namespace
 } // namespace Rosen
 } // namespace OHOS

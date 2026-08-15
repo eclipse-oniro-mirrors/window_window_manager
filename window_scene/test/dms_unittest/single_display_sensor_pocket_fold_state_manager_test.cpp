@@ -278,7 +278,7 @@ HWTEST_F(SingleDisplaySensorPocketFoldStateManagerTest, HandleTentChange, TestSi
     EXPECT_EQ(OHOS::system::GetParameter("persist.dms.device.status", "0"), "2");
 
     mgr.allowUserSensorForLargeFoldDevice = 0;
-    mgr.currentAngle = 140.0F + 0.1;
+    mgr.currentAngle_ = 140.0F + 0.1;
     mgr.HandleTentChange(0, g_policy, 1);
     EXPECT_EQ(OHOS::system::GetParameter("persist.dms.device.status", "0"), "0");
 }

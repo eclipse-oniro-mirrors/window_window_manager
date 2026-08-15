@@ -24,11 +24,11 @@ namespace Rosen {
 class MockDisplayManagerAdapterLite : public DisplayManagerAdapterLite {
 public:
     MOCK_METHOD0(Clear, void());
-    MOCK_METHOD2(RegisterDisplayManagerAgent, DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent,
-        DisplayManagerAgentType type));
-    MOCK_METHOD2(UnregisterDisplayManagerAgent, DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent,
-        DisplayManagerAgentType type));
-    MOCK_METHOD0(GetDefaultDisplayInfo, sptr<DisplayInfo>(int32_t userId));
+    MOCK_METHOD2(RegisterDisplayManagerAgent,
+                 DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type));
+    MOCK_METHOD2(UnregisterDisplayManagerAgent,
+                 DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type));
+    MOCK_METHOD1(GetDefaultDisplayInfo, sptr<DisplayInfo>(int32_t userId));
     MOCK_METHOD1(GetDisplayInfo, sptr<DisplayInfo>(DisplayId displayId));
 
     MOCK_METHOD1(WakeUpBegin, bool(PowerStateChangeReason reason));
@@ -43,16 +43,16 @@ public:
 class MockScreenManagerAdapterLite : public ScreenManagerAdapterLite {
 public:
     MOCK_METHOD0(Clear, void());
-    MOCK_METHOD2(RegisterDisplayManagerAgent, DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent,
-        DisplayManagerAgentType type));
-    MOCK_METHOD2(UnregisterDisplayManagerAgent, DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent,
-        DisplayManagerAgentType type));
-    MOCK_METHOD3(SetSpecifiedScreenPower, bool(ScreenId screenId, ScreenPowerState state,
-        PowerStateChangeReason reason));
+    MOCK_METHOD2(RegisterDisplayManagerAgent,
+                 DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type));
+    MOCK_METHOD2(UnregisterDisplayManagerAgent,
+                 DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type));
+    MOCK_METHOD3(SetSpecifiedScreenPower,
+                 bool(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason));
     MOCK_METHOD2(SetScreenPowerForAll, bool(ScreenPowerState state, PowerStateChangeReason reason));
     MOCK_METHOD1(GetScreenPower, ScreenPowerState(ScreenId dmsScreenId));
 };
-}
+} // namespace Rosen
 } // namespace OHOS
 
 #endif // FRAMEWORKS_WM_TEST_UT_MOCK_DISPLAY_MANAGER_ADAPTER_LITE_H

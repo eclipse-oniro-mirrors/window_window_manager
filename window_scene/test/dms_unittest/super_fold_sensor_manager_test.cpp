@@ -585,10 +585,10 @@ HWTEST_F(SuperFoldSensorManagerTest, HandleSuperSensorChange001, TestSize.Level1
     SuperFoldStatusChangeEvents events = SuperFoldStatusChangeEvents::ANGLE_CHANGE_FOLDED;
     mgr.HandleSuperSensorChange(events);
     EXPECT_NE(SuperFoldStateManager::GetInstance().curState_, SuperFoldStatus::UNKNOWN);
-    ssm_->SetIsExtendModelocked(true);
+    ssm_->SetIsExtendModeLocked(true);
     mgr.HandleSuperSensorChange(events);
     EXPECT_NE(SuperFoldStateManager::GetInstance().curState_, SuperFoldStatus::UNKNOWN);
-    ssm_->SetIsExtendModelocked(false);
+    ssm_->SetIsExtendModeLocked(false);
 }
 
 /**
@@ -635,10 +635,10 @@ HWTEST_F(SuperFoldSensorManagerTest, SetStateMachineToActived, TestSize.Level1)
     SuperFoldSensorManager mgr = SuperFoldSensorManager();
     mgr.SetStateMachineToActived();
     EXPECT_NE(SuperFoldStateManager::GetInstance().curState_, SuperFoldStatus::UNKNOWN);
-    ssm_->SetIsExtendModelocked(true);
+    ssm_->SetIsExtendModeLocked(true);
     mgr.SetStateMachineToActived();
     EXPECT_NE(SuperFoldStateManager::GetInstance().curState_, SuperFoldStatus::UNKNOWN);
-    ssm_->SetIsExtendModelocked(false);
+    ssm_->SetIsExtendModeLocked(false);
 }
 
 /**
