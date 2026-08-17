@@ -1011,6 +1011,8 @@ private:
     std::unordered_map<std::string, ConvertSystemConfigFunc> convertConfigMap_;
     static sptr<SceneSessionManager> CreateInstance();
     void Init();
+    std::shared_ptr<PowerMgr::RunningLock> CreateKeepScreenRunningLock(
+        const sptr<SceneSession>& sceneSession, const std::string& screenLockPrefix);
     void RegisterAppListener();
     bool IsPrepareTerminateEnabled() const;
     void InitPrepareTerminateConfig();
