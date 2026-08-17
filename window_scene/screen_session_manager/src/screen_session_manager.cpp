@@ -15095,7 +15095,8 @@ DMError ScreenSessionManager::CheckMultiScreen(ScreenId mainScreenId, ScreenId s
     }
     auto screenSession = GetScreenSessionByRsId(secondaryScreenId);
     auto screenType = screenSession->GetScreenProperty().GetScreenType();
-    if (HasExtendVirtualScreen() && screenMode == MultiScreenMode::SCREEN_EXTEND && screenType == ScreenType::VIRTUAL) {
+    if (screenMode == MultiScreenMode::SCREEN_EXTEND && screenType == ScreenType::VIRTUAL &&
+        IsExtendVirtualScreenExist()) {
         TLOGNFW(WmsLogTag::DMS, "extend virtual screen in use");
         return DMError::DM_ERROR_INVALID_MODE_ID;
     }
@@ -15556,6 +15557,32 @@ bool ScreenSessionManager::HasExtendVirtualScreen()
         }
     }
     return hasExtendVirtualScreen;
+}
+
+bool ScreenSessionManager::IsExtendVirtualScreenExist()
+{
+    TLOGNFI(WmsLogTag::DMS, "start");
+    bool isExtendVirtualScreenExist = false;
+    std::map<ScreenId, sptr<ScreenSession>> screenSessionMap;
+    {
+        std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+        screenSessionMap = screenSessionMap_;
+    }
+    for (const auto& sessionIt : screenSessionMap) {
+        sptr<ScreenSession> screenSession = sessionIt.second;
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr, ScreenId: %{public}" PRIu64,
+                sessionIt.first);
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL &&
+            screenSession->GetScreenCombination() == ScreenCombination::SCREEN_EXTEND) {
+            isExtendVirtualScreenExist = true;
+            TLOGNFI(WmsLogTag::DMS, "is true, screenId: %{public}" PRIu64, screenSession->GetScreenId());
+            break;
+        }
+    }
+    return isExtendVirtualScreenExist;
 }
 
 void ScreenSessionManager::SwitchScrollParam(FoldDisplayMode displayMode)

@@ -804,6 +804,7 @@ private:
     void UpdateSuperFoldRefreshRate(sptr<ScreenSession> screenSession, uint32_t refreshRate);
     void GetInternalWidth();
     bool HasExtendVirtualScreen();
+    bool IsExtendVirtualScreenExist();
     void InitExtendScreenProperty(ScreenId screenId, sptr<ScreenSession> session, ScreenProperty property);
     sptr<ScreenSession> CreatePhysicalMirrorSessionInner(ScreenId screenId, ScreenId defaultScreenId,
         ScreenProperty property, sptr<IRemoteObject> connectToRenderToken = nullptr);
