@@ -385,8 +385,6 @@ ani_int AniWindow::ConvertOrientationAndRotation(ani_env* env, ani_object obj, a
         return aniWindow->OnConvertOrientationAndRotation(env, from, to, value);
     } else {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] aniWindow is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][convertOrientationAndRotation]msg: The window is not created or destroyed.");
         return ANI_ERROR;
     }
 }
