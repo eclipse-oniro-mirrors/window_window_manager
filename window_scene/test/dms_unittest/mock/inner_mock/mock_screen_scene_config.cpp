@@ -359,6 +359,11 @@ uint32_t ScreenSceneConfig::GetNumberConfigValue(const std::string& name, const 
     return default_value;
 }
 
+RogResolution ScreenSceneConfig::GetRogResolution()
+{
+    return GetRogResolution(0, 0);
+}
+
 RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t height)
 {
     return rogResolution_;

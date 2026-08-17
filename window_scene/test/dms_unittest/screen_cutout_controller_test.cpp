@@ -719,6 +719,88 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_SingleSuperFold_GlobalFu
     ssm_.displayHookMap_.erase(uid);
 }
 
+/**
+ * @tc.name: RecoverDisplayInfo_RogSupport_Rotation0_NoSwap
+ * @tc.desc: isSupportRog=true + ROTATION_0 -> phyWidth/phyHeight take rogResolution without swap
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_RogSupport_Rotation0_NoSwap, TestSize.Level1)
+{
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 100;
+    uint32_t dheight = 200;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetPhysicalWidth(700);
+    displayInfo->SetPhysicalHeight(500);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    ScreenSceneConfig::SetRogResolution(RogResolution{ true, false, 0, 0.0f, 320, 240 });
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    EXPECT_EQ(dwidth, 320u);
+    EXPECT_EQ(dheight, 240u);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_RogSupport_Rotation90_Swap
+ * @tc.desc: isSupportRog=true + ROTATION_90 -> swap width/height
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_RogSupport_Rotation90_Swap, TestSize.Level1)
+{
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 0;
+    uint32_t dheight = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    ScreenSceneConfig::SetRogResolution(RogResolution{ true, false, 0, 0.0f, 320, 240 });
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_90);
+    EXPECT_EQ(dwidth, 240u);
+    EXPECT_EQ(dheight, 320u);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
+/**
+ * @tc.name: RecoverDisplayInfo_RogNotSupport_FallbackPhysical
+ * @tc.desc: isSupportRog=false -> fall through to physical dimensions
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_RogNotSupport_FallbackPhysical, TestSize.Level1)
+{
+    sptr<ScreenCutoutController> controller = new ScreenCutoutController();
+    ASSERT_NE(controller, nullptr);
+    uint32_t dwidth = 0;
+    uint32_t dheight = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    ASSERT_NE(displayInfo, nullptr);
+    displayInfo->SetPhysicalWidth(700);
+    displayInfo->SetPhysicalHeight(500);
+    uint32_t uid = getuid();
+    DMHookInfo dmHookInfo = CreateDefaultHookInfo();
+    ssm_.displayHookMap_[uid] = dmHookInfo;
+
+    ScreenSceneConfig::SetRogResolution(RogResolution{ false, false, 0, 0.0f, 0, 0 });
+
+    controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    EXPECT_EQ(dwidth, 700u);
+    EXPECT_EQ(dheight, 500u);
+
+    ssm_.displayHookMap_.erase(uid);
+}
+
 // =============================================================================
 // B Group: HookCutoutInfo tests — secondary display super fold device support
 // =============================================================================
