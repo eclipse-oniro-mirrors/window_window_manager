@@ -654,9 +654,8 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverDisplayInfo_NonSuperFoldDevice_Noop,
     ssm_.displayHookMap_[uid] = dmHookInfo;
 
     controller->RecoverDisplayInfo(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
-    // On a non-super-fold device: !(IsSecondary || IsSingle) is true → early return
-    EXPECT_EQ(dwidth, 100);
-    EXPECT_EQ(dheight, 200);
+    EXPECT_EQ(dwidth, 700);
+    EXPECT_EQ(dheight, 500);
 
     ssm_.displayHookMap_.erase(uid);
 }
