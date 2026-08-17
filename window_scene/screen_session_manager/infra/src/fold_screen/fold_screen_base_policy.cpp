@@ -538,9 +538,11 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeToMainOnBootAnimation(sptr<Scr
 {
     TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayModeToMainOnBootAnimation");
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(SCREEN_ID_MAIN);
+    screenProperty_ .SetRsId(SCREEN_ID_MAIN);
     screenSession->UpdatePropertyByFoldControl(screenProperty_);
     screenSession->SetValidWidth(screenProperty_.GetBounds().rect_.width_);
     screenSession->SetValidHeight(screenProperty_.GetBounds().rect_.height_);
+    screenSession->SetRSScreenId(SCREEN_ID_MAIN);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::FOLD_SCREEN_FOLDING);
     TLOGI(WmsLogTag::DMS, "screenBounds : width_= %{public}f, height_= %{public}f",
@@ -553,9 +555,11 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeToFullOnBootAnimation(sptr<Scr
 {
     TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayModeToFullOnBootAnimation");
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(SCREEN_ID_FULL);
+    screenProperty_ .SetRsId(SCREEN_ID_MAIN);
     screenSession->UpdatePropertyByFoldControl(screenProperty_);
     screenSession->SetValidWidth(screenProperty_.GetBounds().rect_.width_);
     screenSession->SetValidHeight(screenProperty_.GetBounds().rect_.height_);
+    screenSession->SetRSScreenId(SCREEN_ID_FULL);
     screenSession->PropertyChange(screenSession->GetScreenProperty(),
         ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND);
     TLOGI(WmsLogTag::DMS, "screenBounds : width_= %{public}f, height_= %{public}f",

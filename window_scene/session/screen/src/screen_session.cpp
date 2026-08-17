@@ -753,6 +753,7 @@ void ScreenSession::UpdatePropertyByFoldControl(const ScreenProperty& updatedPro
     property_.SetDpiPhyBounds(updatedProperty.GetPhyWidth(), updatedProperty.GetPhyHeight());
     property_.SetPhyBounds(updatedProperty.GetPhyBounds());
     property_.SetBounds(updatedProperty.GetBounds());
+    property_.SetRsId(updatedProperty.GetRsId());
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
         Rotation screenRotation = property_.GetScreenRotation();
         if (firstSCBConnect) {
