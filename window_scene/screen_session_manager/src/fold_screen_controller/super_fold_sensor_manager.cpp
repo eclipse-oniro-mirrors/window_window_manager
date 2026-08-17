@@ -175,7 +175,7 @@ void SuperFoldSensorManager::NotifyFoldAngleChanged(float foldAngle, bool isForc
         if (!isForce) {
             lastEvents_ = events;
         }
-        if (!ScreenRotationProperty::IsDeviceHorizontalByScreenSession() ||
+        if (!ScreenRotationProperty::IsDeviceHorizontal() ||
             events == SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED) {
             HandleSuperSensorChange(events);
         }
