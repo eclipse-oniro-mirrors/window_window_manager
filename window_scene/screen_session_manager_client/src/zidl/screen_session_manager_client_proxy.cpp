@@ -38,11 +38,11 @@ void ScreenSessionManagerClientProxy::OnScreenConnectionChanged(SessionOption Se
         if (!data.WriteBool(true) || !data.WriteRemoteObject(renderSession)) {
             TLOGE(WmsLogTag::DMS, "Write bool or renderSession failed");
             return;
-        } else {
-            if (!data.WriteBool(false)) {
-                TLOGE(WmsLogTag::DMS, "Write boolbool failed");
-                return;
-            }
+        }
+    } else {
+        if (!data.WriteBool(false)) {
+            TLOGE(WmsLogTag::DMS, "Write bool failed");
+            return;
         }
     }
     if (remote->SendRequest(

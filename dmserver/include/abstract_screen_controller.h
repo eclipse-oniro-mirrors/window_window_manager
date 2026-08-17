@@ -64,7 +64,7 @@ public:
     bool SetRotation(ScreenId screenId, Rotation rotationAfter, bool isFromWindow, bool withAnimation = true);
 
     DMError SetScreenActiveMode(ScreenId screenId, uint32_t modeId);
-    const std::shared_ptr<RSDisplayNode>& GetRSDisplayNodeByScreenId(ScreenId dmsScreenId) const;
+    const std::shared_ptr<RSDisplayNode> GetRSDisplayNodeByScreenId(ScreenId dmsScreenId) const;
     void UpdateRSTree(ScreenId dmsScreenId, ScreenId parentScreenId, std::shared_ptr<RSSurfaceNode>& surfaceNode,
         bool isAdd, bool isMultiDisplay);
     DMError AddSurfaceNodeToScreen(ScreenId dmsScreenId, std::shared_ptr<RSSurfaceNode>& surfaceNode, bool onTop);
