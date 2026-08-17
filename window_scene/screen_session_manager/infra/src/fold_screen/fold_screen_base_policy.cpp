@@ -555,7 +555,7 @@ void FoldScreenBasePolicy::ChangeScreenDisplayModeToFullOnBootAnimation(sptr<Scr
 {
     TLOGI(WmsLogTag::DMS, "ChangeScreenDisplayModeToFullOnBootAnimation");
     screenProperty_ = ScreenSessionManager::GetInstance().GetPhyScreenProperty(SCREEN_ID_FULL);
-    screenProperty_ .SetRsId(SCREEN_ID_MAIN);
+    screenProperty_ .SetRsId(SCREEN_ID_FULL);
     screenSession->UpdatePropertyByFoldControl(screenProperty_);
     screenSession->SetValidWidth(screenProperty_.GetBounds().rect_.width_);
     screenSession->SetValidHeight(screenProperty_.GetBounds().rect_.height_);
