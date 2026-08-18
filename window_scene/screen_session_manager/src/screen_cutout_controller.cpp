@@ -49,22 +49,20 @@ sptr<CutoutInfo> ScreenCutoutController::GetScreenCutoutInfo(DisplayId displayId
         displayInfo = ScreenSessionManager::GetInstance().GetDisplayInfoById(displayId);
     }
     if (displayInfo == nullptr) {
-        TLOGE(WmsLogTag::DMS, "displayInfo invaild");
+        TLOGE(WmsLogTag::DMS, "displayInfo invalid");
         return nullptr;
     }
     std::vector<DMRect> boundaryRects;
-    uint32_t dwidth = width;
-    uint32_t dheight = height;
-    RecoverDisplayInfo(width, height, displayInfo, rotation);
-    GetCutoutArea(displayId, width, height, rotation, boundaryRects);
-    HookCutoutInfo(dwidth, dheight, boundaryRects, displayInfo);
     WaterfallDisplayAreaRects waterfallArea = {};
-    GetWaterfallArea(dwidth, dheight, rotation, waterfallArea);
 
+    GetCutoutArea(displayInfo, width, height, rotation, boundaryRects);
+    HookCutoutInfo(width, height, boundaryRects, displayInfo);
+
+    GetWaterfallArea(width, height, rotation, waterfallArea);
     return sptr<CutoutInfo>::MakeSptr(boundaryRects, waterfallArea);
 }
 
-void ScreenCutoutController::RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dheight,
+void ScreenCutoutController::RecoverRealScreenSize(uint32_t& dwidth, uint32_t& dheight,
     sptr<DisplayInfo> displayInfo, Rotation rotation) const
 {
     if (!ScreenSessionManager::GetInstance().IsHook()) {
@@ -72,7 +70,7 @@ void ScreenCutoutController::RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dhei
         return;
     }
     if (!displayInfo) {
-        TLOGE(WmsLogTag::DMS, "displayInfo invaild");
+        TLOGE(WmsLogTag::DMS, "displayInfo invalid");
         return;
     }
     int32_t phyWidth = 0;
@@ -146,20 +144,27 @@ void ScreenCutoutController::HookCutoutInfo(uint32_t hookWidth, uint32_t hookHei
     boundaryRects = newBoundaryRects;
 }
 
-void ScreenCutoutController::GetCutoutArea(DisplayId displayId, uint32_t width,
+void ScreenCutoutController::GetCutoutArea(sptr<DisplayInfo> displayInfo, uint32_t width,
     uint32_t height, Rotation rotation, std::vector<DMRect>& cutoutArea) const
 {
+    if (displayInfo == nullptr) {
+        TLOGE(WmsLogTag::DMS, "displayInfo invalid");
+        return;
+    }
+
+    RecoverRealScreenSize(width, height, displayInfo, rotation);
+
     FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(width, height);
 
     TLOGD(WmsLogTag::DMS, "ID: %{public}" PRIu64 ", W: %{public}u, H: %{public}u, R: %{public}u"
-    	"Mode: %{public}u", displayId, width, height, rotation, displayMode);
+    	"Mode: %{public}u", displayInfo->GetDisplayId(), width, height, rotation, displayMode);
 
     std::vector<DMRect> boundaryRects;
     if (ScreenSessionManager::GetInstance().IsFoldable() &&
         (displayMode == FoldDisplayMode::MAIN || displayMode == FoldDisplayMode::GLOBAL_FULL)) {
         boundaryRects = ScreenSceneConfig::GetSubCutoutBoundaryRect();
     } else {
-        boundaryRects = ScreenSceneConfig::GetCutoutBoundaryRect(displayId);
+        boundaryRects = ScreenSceneConfig::GetCutoutBoundaryRect(displayInfo->GetDisplayId());
     }
     CheckBoundaryRectsWithRotation(boundaryRects, width, height, rotation);
     if (!boundaryRects.empty()) {
