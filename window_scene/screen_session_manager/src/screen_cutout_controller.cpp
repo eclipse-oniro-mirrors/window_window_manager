@@ -73,30 +73,31 @@ void ScreenCutoutController::RecoverRealScreenSize(uint32_t& dwidth, uint32_t& d
         TLOGE(WmsLogTag::DMS, "displayInfo invalid");
         return;
     }
-    int32_t phyWidth = 0;
-    int32_t phyHeight = 0;
-    const auto& rogResolution = ScreenSceneConfig::GetRogResolution();
 
-    if (rogResolution.isSupportRog) {
-        phyWidth = rogResolution.width;
-        phyHeight = rogResolution.height;
-        if (rotation == Rotation::ROTATION_90 || rotation == Rotation::ROTATION_270) {
-            std::swap(phyWidth, phyHeight);
-        }
-    } else {
-        phyWidth = displayInfo->GetPhysicalWidth();
-        phyHeight = displayInfo->GetPhysicalHeight();
+    const sptr<ScreenSession> session =
+        ScreenSessionManager::GetInstance().GetScreenSession(displayInfo->GetScreenId());
+    if (!session) {
+        TLOGE(WmsLogTag::DMS, "session is null");
+        return;
     }
-    FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(phyWidth, phyHeight);
+
+    const RRect& screenBounds = session->GetScreenProperty().GetBounds();
+
+    int32_t width = screenBounds.rect_.GetWidth();
+    int32_t height = screenBounds.rect_.GetHeight();
+
+    FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(width, height);
     if ((displayMode == FoldDisplayMode::FULL || displayMode == FoldDisplayMode::GLOBAL_FULL) &&
         (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180)) {
-        std::swap(phyWidth, phyHeight);
+        std::swap(width, height);
     }
-    dwidth = phyWidth;
-    dheight = phyHeight;
+
     TLOGI(WmsLogTag::DMS, "id: %{public}" PRIu64
-        ", isRog: %{public}d r: %{public}d pw: %{public}u, ph: %{public}u, W: %{public}u, H: %{public}u",
-        displayInfo->GetDisplayId(), rogResolution.isSupportRog, rotation, phyWidth, phyHeight, dwidth, dheight);
+        ", r: %{public}d pw: %{public}u, ph: %{public}u, W: %{public}u, H: %{public}u",
+        displayInfo->GetDisplayId(), rotation, width, height, dwidth, dheight);
+
+    dwidth = width;
+    dheight = height;
 }
 
 void ScreenCutoutController::HookCutoutInfo(uint32_t hookWidth, uint32_t hookHeight,
