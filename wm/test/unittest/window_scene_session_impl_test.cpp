@@ -2010,7 +2010,7 @@ HWTEST_F(WindowSceneSessionImplTest, NotifyRemoveStartingWindow, TestSize.Level1
     ret = window->NotifyRemoveStartingWindow();
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    EXPECT_CALL(*(session), RemoveStartingWindow()).WillOnce(Return(WSError::WS_OK));
+    EXPECT_CALL(*(session), RemoveStartingWindow(::testing::_)).WillOnce(Return(WSError::WS_OK));
     ret = window->NotifyRemoveStartingWindow();
     ASSERT_EQ(ret, WMError::WM_OK);
 }
