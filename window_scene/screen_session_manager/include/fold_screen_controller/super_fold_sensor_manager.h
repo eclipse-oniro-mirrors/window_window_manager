@@ -49,7 +49,7 @@ public:
  
     void UnregisterHallCallback();
  
-    void HandlePostureData(const SensorEvent * const event);
+    void HandlePostureData(const SensorEvent * const event, bool isForce = false);
  
     void HandleHallData(const SensorEvent * const event);
 
@@ -70,14 +70,18 @@ private:
  
     float curAngle_ = 170.0F;
 
+    SuperFoldStatusChangeEvents lastEvents_ = SuperFoldStatusChangeEvents::INVALID;
+
     int32_t curInterval_ = 0;
 
     uint16_t curHall_ = USHRT_MAX;
 
     uint16_t hallActive_ = 1 << 2;
  
-    void NotifyFoldAngleChanged(float foldAngle);
- 
+    void NotifyFoldAngleChanged(float foldAngle, bool isForce = false);
+
+    SuperFoldStatusChangeEvents GetFoldStatusChangeEvents(float foldAngle);
+
     void NotifyHallChanged(uint16_t hall, float foldAngle, bool isHallEvent = false);
 
     void NotifySoftKeyboardChanged();
