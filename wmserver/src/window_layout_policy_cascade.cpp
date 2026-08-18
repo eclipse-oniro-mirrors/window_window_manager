@@ -334,8 +334,8 @@ void WindowLayoutPolicyCascade::ComputeRectByAspectRatio(const sptr<WindowNode>&
     // 2. get rect without decoration if enable decoration
     auto newRect = node->GetRequestRect();
     if (node->GetWindowProperty() != nullptr && node->GetWindowProperty()->GetDecorEnable()) {
-        newRect.width_ -= winFrameW;
-        newRect.height_ -= winFrameH;
+        newRect.width_ = (newRect.width_ > winFrameW) ? (newRect.width_ - winFrameW) : 0;
+        newRect.height_ = (newRect.height_ > winFrameH) ? (newRect.height_ - winFrameH) : 0;
     }
     auto oriRect = newRect;
 
