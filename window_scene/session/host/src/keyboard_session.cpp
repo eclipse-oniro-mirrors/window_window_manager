@@ -315,6 +315,10 @@ WSError KeyboardSession::AdjustKeyboardLayout(const KeyboardLayoutParams& params
         if (params.gravity_ == WindowGravity::WINDOW_GRAVITY_FLOAT) {
             session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_FLOAT);
             session->SetWindowAnimationFlag(false);
+            sptr<SceneSession> callingSession = session->GetSceneSession(session->GetCallingSessionId());
+            if (callingSession) {
+                callingSession->SetOriPosYBeforeRaisedByKeyboard(0);
+            }
         } else {
             if (session->IsLifecycleForeground()) {
                 session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM);
@@ -617,8 +621,10 @@ void KeyboardSession::RestoreCallingSession(uint32_t callingId, const std::share
     if (occupiedAreaChanged) {
         NotifyOccupiedAreaChanged(callingSession, occupiedAreaInfo, true, rsTransaction);
     }
+    const KeyboardLayoutParams keyboardLayoutParams = GetSessionProperty()->GetKeyboardLayoutParams();
     if (oriPosYBeforeRaisedByKeyboard != 0 &&
-        callingSession->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING) {
+        callingSession->GetWindowMode() == WindowMode::WINDOW_MODE_FLOATING &&
+        keyboardLayoutParams.gravity_ != WindowGravity::WINDOW_GRAVITY_FLOAT) {
         WSRect callingSessionRestoringRect = callingSession->GetSessionRect();
         callingSessionRestoringRect.posY_ = oriPosYBeforeRaisedByKeyboard;
         TLOGI(WmsLogTag::WMS_KEYBOARD, "OriPosYBeforeRaisedByKeyboard: %{public}d, sessionMode: %{public}d",
