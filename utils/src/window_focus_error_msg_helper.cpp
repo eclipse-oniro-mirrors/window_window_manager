@@ -49,6 +49,8 @@ namespace {
     constexpr const char* const ERROR_NO_PARENT = "The parent window does not exist or has been destroyed.";
     constexpr const char* const ERROR_NOT_SHOWN = "The window is not shown.";
     constexpr const char* const ERROR_ONLY_NON_MODAL = "Invalid window type. Only non-modal subwindows are supported.";
+    constexpr const char* const ERROR_NOT_MAIN_AND_MODAL =
+        "Invalid window type. Main window, dialog window and the subwindow with modal attributes are not supported.";
     constexpr const char* const ERROR_SUB_OR_DIALOG = "Invalid window type. Only subwindows are supported.";
     constexpr const char* const ERROR_TYPE_NOT_SUPPORT = "Invalid window type. Only app windows are supported.";
     constexpr const char* const ERROR_SOURCE_NOT_FOCUSED = "The source window is not focused.";
@@ -237,7 +239,7 @@ const char* WindowFocusErrorMsgHelper::GetRaiseMainWindowAboveTargetErrorMsg(WME
 const char* WindowFocusErrorMsgHelper::GetExclusivelyHighlightedErrorMsg(WMError error)
 {
     if (error == WMError::WM_ERROR_INVALID_CALLING) {
-        return ERROR_ONLY_NON_MODAL;
+        return ERROR_NOT_MAIN_AND_MODAL;
     }
     return "";
 }
