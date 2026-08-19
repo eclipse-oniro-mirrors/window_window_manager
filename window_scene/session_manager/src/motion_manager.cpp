@@ -204,7 +204,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
 }
 
 void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
-{    
+{
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         HandleDeviceSensorRotation(rotation);
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
