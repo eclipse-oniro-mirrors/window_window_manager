@@ -542,7 +542,8 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_Normal, TestSize.Leve
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     ssm_.displayHookMap_[uid] = dmHookInfo;
 
-    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+
+    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
     EXPECT_EQ(dwidth, 700);
     EXPECT_EQ(dheight, 500);
 
@@ -572,7 +573,7 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_Rotation90_NoSwap, Te
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     ssm_.displayHookMap_[uid] = dmHookInfo;
 
-    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo, Rotation::ROTATION_90);
+    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
     // ROTATION_90 does not trigger swap; dwidth/dheight should equal original bounds values
     EXPECT_EQ(static_cast<int32_t>(dwidth), phyWidth);
     EXPECT_EQ(static_cast<int32_t>(dheight), phyHeight);
@@ -599,7 +600,7 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_HookDisabled_Noop, Te
     displayInfo->SetScreenId(0);
     // Do NOT set up hook info — IsHook() should return false, triggering early return
 
-    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
     // Guard should trigger early return: IsHook() is false → !IsHook() is true → return
     EXPECT_EQ(dwidth, 100);
     EXPECT_EQ(dheight, 200);
@@ -623,7 +624,7 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_NullDisplayInfo, Test
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     ssm_.displayHookMap_[uid] = dmHookInfo;
 
-    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo, Rotation::ROTATION_0);
+    controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
     // Should return early on nullptr displayInfo without crash
     EXPECT_EQ(dwidth, 100);
     EXPECT_EQ(dheight, 200);

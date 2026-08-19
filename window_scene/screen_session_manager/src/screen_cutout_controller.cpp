@@ -63,7 +63,7 @@ sptr<CutoutInfo> ScreenCutoutController::GetScreenCutoutInfo(DisplayId displayId
 }
 
 void ScreenCutoutController::RecoverRealScreenSize(uint32_t& dwidth, uint32_t& dheight,
-    sptr<DisplayInfo> displayInfo, Rotation rotation) const
+    sptr<DisplayInfo> displayInfo) const
 {
     if (!ScreenSessionManager::GetInstance().IsHook()) {
         TLOGD(WmsLogTag::DMS, "no need hook");
@@ -86,15 +86,9 @@ void ScreenCutoutController::RecoverRealScreenSize(uint32_t& dwidth, uint32_t& d
     int32_t width = screenBounds.rect_.GetWidth();
     int32_t height = screenBounds.rect_.GetHeight();
 
-    FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(width, height);
-    if ((displayMode == FoldDisplayMode::FULL || displayMode == FoldDisplayMode::GLOBAL_FULL) &&
-        (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180)) {
-        std::swap(width, height);
-    }
-
     TLOGI(WmsLogTag::DMS, "id: %{public}" PRIu64
-        ", r: %{public}d pw: %{public}u, ph: %{public}u, W: %{public}u, H: %{public}u",
-        displayInfo->GetDisplayId(), rotation, width, height, dwidth, dheight);
+        ", pw: %{public}u, ph: %{public}u, W: %{public}u, H: %{public}u",
+        displayInfo->GetDisplayId(), width, height, dwidth, dheight);
 
     dwidth = width;
     dheight = height;
@@ -153,7 +147,7 @@ void ScreenCutoutController::GetCutoutArea(sptr<DisplayInfo> displayInfo, uint32
         return;
     }
 
-    RecoverRealScreenSize(width, height, displayInfo, rotation);
+    RecoverRealScreenSize(width, height, displayInfo);
 
     FoldDisplayMode displayMode = ScreenSceneConfig::GetFoldDisplayMode(width, height);
 
