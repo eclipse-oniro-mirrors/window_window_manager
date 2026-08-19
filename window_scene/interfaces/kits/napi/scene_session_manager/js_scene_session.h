@@ -539,7 +539,7 @@ private:
     void ChangeSessionVisibilityWithStatusBar(const SessionInfo& info, bool visible);
     void ChangeSessionVisibilityWithStatusBarInner(std::shared_ptr<SessionInfo> sessionInfo, bool visible);
     void OnBufferAvailableChange(const bool isBufferAvailable, bool startWindowInvisible = false);
-    void OnCreateSubSession(const sptr<SceneSession>& sceneSession);
+    void OnCreateSubSession(const sptr<SceneSession>& sceneSession, bool isBoundedSystemTray);
     void OnClearSubSession(int32_t subPersistentId);
     void OnBindDialogTarget(const sptr<SceneSession>& sceneSession);
     void OnSessionRectChange(const WSRect& rect,
