@@ -47,7 +47,6 @@ MotionManager::~MotionManager()
 
 void MotionManager::Init()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (isInitialized_) {
         TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager already initialized");
         return;
@@ -65,7 +64,6 @@ void MotionManager::Init()
 
 void MotionManager::SetMotionEventListener(IMotionEventListener* listener)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     motionEventListener_ = listener;
     TLOGI(WmsLogTag::WMS_ROTATION, "Motion event listener set");
 }
@@ -136,13 +134,11 @@ bool MotionManager::UnsubscribeMotionSensorInternal(MotionType motionType)
 
 bool MotionManager::SubscribeMotionSensor(MotionType motionType)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     return SubscribeMotionSensorInternal(motionType);
 }
 
 bool MotionManager::UnsubscribeMotionSensor(MotionType motionType)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     return UnsubscribeMotionSensorInternal(motionType);
 }
 
@@ -208,9 +204,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
 }
 
 void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    
+{    
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         HandleDeviceSensorRotation(rotation);
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
@@ -266,7 +260,6 @@ bool MotionManager::IsInitialized() const
 
 void MotionManager::Reset()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     UnsubscribeAllMotionSensors();
     lastMotionRotation_ = -1.0f;
     lastSmartMotionRotation_ = -1.0f;
