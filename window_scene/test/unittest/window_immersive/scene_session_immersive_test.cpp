@@ -761,6 +761,216 @@ HWTEST_F(SceneSessionImmersiveTest, CheckGetAvoidAreaAvailable, TestSize.Level1)
     session->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
     EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), false);
 }
+
+/**
+ * @tc.name: CheckAndGetRogScale
+ * @tc.desc: CheckAndGetRogScale when callback is null or set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CheckAndGetRogScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "CheckAndGetRogScale";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    float scale = 0.0f;
+    EXPECT_FALSE(session->CheckAndGetRogScale(scale));
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(nullptr, callBack);
+    session->specificCallback_ = callBack;
+    EXPECT_FALSE(session->CheckAndGetRogScale(scale));
+
+    auto task = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = task;
+    EXPECT_TRUE(session->CheckAndGetRogScale(scale));
+    EXPECT_FLOAT_EQ(scale, 1.5f);
+
+    auto taskFalse = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.0f;
+        return false;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskFalse;
+    EXPECT_FALSE(session->CheckAndGetRogScale(scale));
+}
+
+/**
+ * @tc.name: GetScaleInRog
+ * @tc.desc: GetScaleInRog when app is or is not in ROG config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetScaleInRog, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetScaleInRog";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    float scaleX = 0.0f;
+    float scaleY = 0.0f;
+    EXPECT_EQ(session->GetScaleInRog(scaleX, scaleY), WSError::WS_DO_NOTHING);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+    EXPECT_EQ(session->GetScaleInRog(scaleX, scaleY), WSError::WS_OK);
+    EXPECT_FLOAT_EQ(scaleX, 1.5f);
+    EXPECT_FLOAT_EQ(scaleY, 1.5f);
+
+    auto taskNotInRog = [](const std::string bundleName, float& scale) -> bool {
+        return false;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskNotInRog;
+    scaleX = 0.0f;
+    scaleY = 0.0f;
+    EXPECT_EQ(session->GetScaleInRog(scaleX, scaleY), WSError::WS_DO_NOTHING);
+}
+
+/**
+ * @tc.name: GetScale
+ * @tc.desc: GetScale priority test - LS state first, then ROG
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetScale";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    float scaleX = 0.0f;
+    float scaleY = 0.0f;
+    EXPECT_EQ(session->GetScale(scaleX, scaleY), WSError::WS_DO_NOTHING);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+    EXPECT_EQ(session->GetScale(scaleX, scaleY), WSError::WS_OK);
+    EXPECT_FLOAT_EQ(scaleX, 1.5f);
+    EXPECT_FLOAT_EQ(scaleY, 1.5f);
+}
+
+/**
+ * @tc.name: GetSystemAvoidAreaWithRogScale
+ * @tc.desc: GetSystemAvoidArea with ROG scale for 720p adaptation
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetSystemAvoidAreaWithRogScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetSystemAvoidAreaWithRogScale";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    session->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->SetSystemConfig(systemConfig);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    session->GetSessionProperty()->SetDisplayId(2025);
+    session->SetIsMidScene(false);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    WSRect rect;
+    AvoidArea avoidAreaWithoutRog;
+    session->GetSystemAvoidArea(rect, avoidAreaWithoutRog);
+    uint32_t heightWithoutRog = avoidAreaWithoutRog.topRect_.height_;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+
+    WSRect rect2;
+    AvoidArea avoidAreaWithRog;
+    session->GetSystemAvoidArea(rect2, avoidAreaWithRog);
+    uint32_t heightWithRog = avoidAreaWithRog.topRect_.height_;
+
+    EXPECT_EQ(heightWithRog, static_cast<uint32_t>(std::ceil(heightWithoutRog / 1.5f)));
+}
+
+/**
+ * @tc.name: CalculateAvoidAreaByScaleWithRog
+ * @tc.desc: CalculateAvoidAreaByScale with ROG scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CalculateAvoidAreaByScaleWithRog, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "CalculateAvoidAreaByScaleWithRog";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    WSRectF avoidAreaRect = { 0, 0, 150, 60 };
+    Rect resultWithoutRog = session->CalculateAvoidAreaByScale(avoidAreaRect);
+    EXPECT_EQ(resultWithoutRog.posX_, 0);
+    EXPECT_EQ(resultWithoutRog.posY_, 0);
+    EXPECT_EQ(resultWithoutRog.width_, 150);
+    EXPECT_EQ(resultWithoutRog.height_, 60);
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+
+    WSRectF avoidAreaRect2 = { 0, 0, 150, 60 };
+    Rect resultWithRog = session->CalculateAvoidAreaByScale(avoidAreaRect2);
+    EXPECT_EQ(resultWithRog.posX_, 0);
+    EXPECT_EQ(resultWithRog.posY_, 0);
+    EXPECT_EQ(resultWithRog.width_, 100);
+    EXPECT_EQ(resultWithRog.height_, 40);
+}
+
+/**
+ * @tc.name: CalculateAvoidAreaByTypeWithRog
+ * @tc.desc: CalculateAvoidAreaByType with ROG scale for 720p adaptation
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CalculateAvoidAreaByTypeWithRog, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "CalculateAvoidAreaByTypeWithRog";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+
+    session->GetLayoutController()->SetSessionGlobalRect({ 0, 0, 720, 1560 });
+
+    WSRect winRect = { 0, 0, 720, 1560 };
+    WSRect avoidRect = { 0, 0, 1080, 90 };
+    AvoidArea avoidArea;
+    session->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidRect, avoidArea);
+    EXPECT_NE(avoidArea.topRect_.height_, 0);
+}
 }
 }
 }

@@ -2627,7 +2627,22 @@ sptr<SceneSession::SpecificSessionCallback> SceneSessionManager::CreateSpecificS
         AppExecFwk::AbilityInfo& abilityInfo) {
         return this->CheckAndGetAbilityInfoByWant(want, abilityInfo);
     };
+    specificCb->onCheckAndGetRogScaleCallback_ = [this](const std::string bundleName, float& scale) {
+        return this->CheckAndGetRogScale(bundleName, scale);
+    };
     return specificCb;
+}
+
+bool SceneSessionManager::CheckAndGetRogScale(const std::string bundleName, float& scale)
+{
+    bool result = false;
+    {
+        std::lock_guard<std::mutex> lock(rogWindowConfigMutex_);
+        result = std::find(rogWindowConfig_.xhdpiAppList.begin(), rogWindowConfig_.xhdpiAppList.end(), bundleName) !=
+            rogWindowConfig_.xhdpiAppList.end();
+        scale = rogWindowConfig_.scale;
+    }
+    return result;
 }
 
 WMError SceneSessionManager::AddSessionBlackListForSession(int32_t persistentId,

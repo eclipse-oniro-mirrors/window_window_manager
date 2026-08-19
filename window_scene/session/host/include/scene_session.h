@@ -185,6 +185,8 @@ using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, boo
 using NotifySessionBlackListFunc = std::function<WMError(int32_t persistentId,
     const std::unordered_set<std::string>& privacyWindowTags)>;
 using NotifyPreCalcWindowPropertyFunc = std::function<void()>;
+using CheckAndGetRogScaleFunc = std::function<bool(const std::string bundleName,
+    float& scale)>;
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -237,6 +239,7 @@ public:
         CheckAndGetAbilityInfoByWantCallback onCheckAndGetAbilityInfoByWantCallback_;
         NotifyFollowScreenChangeFunc onUpdateFollowScreenChange_;
         NotifyRotationLockChangeFunc onRotationLockChange_;
+        CheckAndGetRogScaleFunc onCheckAndGetRogScaleCallback_;
     };
 
     // func for change window scene pattern property
@@ -1402,6 +1405,9 @@ private:
         const std::map<WindowType, SystemBarProperty>& properties, AvoidAreaType type);
     template<typename T>
     Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
+    WSError GetScale(float& scaleX, float& scaleY) const;
+    bool CheckAndGetRogScale(float& scale) const;
+    WSError GetScaleInRog(float& scaleX, float& scaleY) const;
 
     /*
      * Window Lifecycle
