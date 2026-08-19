@@ -256,6 +256,25 @@ void SceneInputManager::UpdateHotAreas(const sptr<SceneSession>& sceneSession,
     sceneSessionDirty_->UpdateHotAreas(sceneSession, touchHotAreas, pointerHotAreas);
 }
 
+void SceneInputManager::FilterSyncedScreens(std::map<ScreenId, ScreenProperty>& screensProperties)
+{
+    for (auto it = screensProperties.begin(); it != screensProperties.end();) {
+        auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(it->first);
+        if (screenSession == nullptr) {
+            TLOGE(WmsLogTag::WMS_EVENT, "screen session is null, screenId=%{public}" PRIu64 "", it->first);
+            it = screensProperties.erase(it);
+            continue;
+        }
+        if (!screenSession->isInUse()) {
+            TLOGD(WmsLogTag::WMS_EVENT, "screen session not in use, screenId=%{public}" PRIu64 "", it->first);
+            it = screensProperties.erase(it);
+            continue;
+        }
+        TLOGD(WmsLogTag::WMS_EVENT, "synced screenId: %{public}" PRIu64 "", it->first);
+        ++it;
+    }
+}
+
 std::vector<MMI::ScreenInfo> SceneInputManager::ConstructScreenInfos(
     std::map<ScreenId, ScreenProperty>& screensProperties)
 {
@@ -363,6 +382,20 @@ void SceneInputManager::ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProp
     }
 }
 
+void SceneInputManager::FilterWindowInfoList(const std::map<ScreenId, ScreenProperty>& screensProperties,
+    std::vector<MMI::WindowInfo>& windowInfoList)
+{
+    // Filter windowInfos which displayId is not included in the active screens.
+    for (auto it = windowInfoList.begin(); it != windowInfoList.end();) {
+        if (screensProperties.count(static_cast<ScreenId>(it->displayId)) == 0) {
+            TLOGD(WmsLogTag::WMS_EVENT, "filter displayId=%{public}" PRIu64 "", static_cast<uint64_t>(it->displayId));
+            it = windowInfoList.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 std::unordered_map<DisplayId, int32_t> SceneInputManager::GetFocusedSessionMap() const
 {
     std::unordered_map<DisplayId, int32_t> focusInfoMap;
@@ -429,6 +462,9 @@ void SceneInputManager::FlushEmptyInfoToMMI()
     auto task = [this]() {
         std::map<ScreenId, ScreenProperty> screensProperties =
             ScreenSessionManagerClient::GetInstance().GetAllScreensProperties();
+        // Only flush active screenInfo to MMI.
+        FilterSyncedScreens(screensProperties);
+
         std::vector<MMI::ScreenInfo> screenInfos = ConstructScreenInfos(screensProperties);
         std::map<DisplayGroupId, MMI::DisplayGroupInfo> displayGroupMap;
         ConstructDisplayGroupInfos(screensProperties, displayGroupMap);
@@ -770,8 +806,11 @@ void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& win
                                               std::vector<std::shared_ptr<Media::PixelMap>>&& pixelMapList,
                                               const bool forceFlush)
 {
-    eventHandler_->PostTask([this, windowInfoList = std::move(windowInfoList),
-        uiExtensionInfoList = std::move(uiExtensionInfoList), pixelMapList = std::move(pixelMapList), forceFlush] {
+    eventHandler_->PostTask([this,
+                             windowInfoList = std::move(windowInfoList),
+                             uiExtensionInfoList = std::move(uiExtensionInfoList),
+                             pixelMapList = std::move(pixelMapList),
+                             forceFlush]() mutable {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "FlushDisplayInfoToMMI");
         if (isUserBackground_.load()) {
             TLOGND(WmsLogTag::WMS_MULTI_USER, "User in background, no need to flush display info");
@@ -787,6 +826,11 @@ void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& win
         }
         std::map<ScreenId, ScreenProperty> screensProperties =
             ScreenSessionManagerClient::GetInstance().GetAllScreensProperties();
+        // Only flush active screenInfo and windowInfo to MMI.
+        FilterSyncedScreens(screensProperties);
+        FilterWindowInfoList(screensProperties, windowInfoList);
+
+        // Construct screenInfos, displayGroupMap from the properties.
         std::vector<MMI::ScreenInfo> screenInfos = ConstructScreenInfos(screensProperties);
         std::map<DisplayGroupId, MMI::DisplayGroupInfo> displayGroupMap;
         ConstructDisplayGroupInfos(screensProperties, displayGroupMap);

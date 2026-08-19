@@ -138,8 +138,13 @@ static WMError DefaultCreateErrCode = WMError::WM_OK;
 class WINDOW_EXPORT Window : public RefBase {
 public:
     static sptr<Window> Create(const std::string& windowName,
-    sptr<WindowOption>& option, const std::shared_ptr<AbilityRuntime::Context>& context = nullptr,
-    WMError& errCode = DefaultCreateErrCode, const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+        sptr<WindowOption>& option, const std::shared_ptr<AbilityRuntime::Context>& context = nullptr,
+        WMError& errCode = DefaultCreateErrCode, const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+    static sptr<Window> Create(const std::string& windowName,
+        sptr<WindowOption>& option, std::string& errMsg,
+        const std::shared_ptr<AbilityRuntime::Context>& context = nullptr, WMError& errCode = DefaultCreateErrCode,
+        const std::shared_ptr<RSUIContext>& rsUIContext = nullptr);
+
     static sptr<Window> Find(const std::string& windowName);
     static sptr<Window> GetTopWindowWithContext(const std::shared_ptr<AbilityRuntime::Context>& context = nullptr);
     static sptr<Window> GetTopWindowWithId(uint32_t mainWinId);
@@ -429,6 +434,7 @@ public:
     virtual WMError SetAPPWindowIcon(const std::shared_ptr<Media::PixelMap>& icon) = 0;
     virtual WMError DisableAppWindowDecor() = 0;
     virtual WMError Minimize() = 0;
+    virtual WMError Minimize(std::string& errMsg) = 0;
     virtual WMError Maximize() = 0;
     virtual WMError Recover() = 0;
     virtual WMError Restore() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
@@ -724,7 +730,7 @@ public:
      * @param dvsyncSwitch bool.
      * @return * void
      */
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) {}
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) {}
 
     /**
      * @brief Set touch event
@@ -868,17 +874,25 @@ public:
      * @brief Set the parent window of a sub window.
      *
      * @param newParentWindowId new parent window id.
+     * @param errMsg error message when set parent window failed.
      * @return WM_OK means set parent window success, others means failed.
      */
-    virtual WMError SetParentWindow(int32_t newParentWindowId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetParentWindow(int32_t newParentWindowId, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Get the parent window of a sub window.
      *
      * @param parentWindow parent window.
+     * @param errMsg error message when get parent window failed.
      * @return WM_OK means get parent window success, others means failed.
      */
-    virtual WMError GetParentWindow(sptr<Window>& parentWindow) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set window anchor info.
@@ -1049,6 +1063,14 @@ public:
     {
         return true;
     }
+
+    /**
+     * @brief Enable background force flush vsync.
+     * When enabled and app is in background, requestFrame will succeed for up to count vsync cycles.
+     * After count reaches 0, the feature auto-disables.
+     * Should be called on the UI thread.
+     */
+    virtual void SetBackgroundForceFlushVsync() {}
 
     /**
      * @brief Flush vsync for prelaunch.

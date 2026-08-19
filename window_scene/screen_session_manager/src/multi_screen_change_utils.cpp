@@ -93,8 +93,8 @@ void MultiScreenChangeUtils::ScreenExtendPositionChange(sptr<ScreenSession>& inn
         {innerScreen->GetRSUIContext(), externalScreen->GetRSUIContext()});
 }
 
-void MultiScreenChangeUtils::SetScreenAvailableStatus(sptr<ScreenSession>& screenSession,
-    bool isScreenAvailable)
+void MultiScreenChangeUtils::SetScreenInUseStatus(sptr<ScreenSession>& screenSession,
+    bool isInUse)
 {
     if (!screenSession) {
         TLOGE(WmsLogTag::DMS, "screenSession is null");
@@ -102,8 +102,8 @@ void MultiScreenChangeUtils::SetScreenAvailableStatus(sptr<ScreenSession>& scree
     }
     ScreenId screenId = screenSession->GetScreenId();
     TLOGW(WmsLogTag::DMS, "screenId=%{public}" PRIu64, screenId);
-    screenSession->SetScreenAvailableStatus(isScreenAvailable);
-    if (isScreenAvailable) {
+    screenSession->SetScreenInUseStatus(isInUse);
+    if (isInUse) {
         ScreenSessionManager::GetInstance().NotifyDisplayCreate(
             screenSession->ConvertToDisplayInfo());
     } else {

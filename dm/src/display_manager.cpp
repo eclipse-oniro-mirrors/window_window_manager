@@ -535,22 +535,13 @@ private:
 
 bool DisplayManager::Impl::CheckRectValid(const Media::Rect& rect, int32_t oriHeight, int32_t oriWidth) const
 {
-    if (rect.left < 0) {
+    if (rect.left < 0 || rect.top < 0 || rect.width < 0 || rect.height < 0) {
         return false;
     }
-    if (rect.top < 0) {
+    if (rect.left > oriWidth - rect.width) {
         return false;
     }
-    if (rect.width < 0) {
-        return false;
-    }
-    if (rect.height < 0) {
-        return false;
-    }
-    if (rect.width + rect.left > oriWidth) {
-        return false;
-    }
-    if (rect.height + rect.top > oriHeight) {
+    if (rect.top > oriHeight - rect.height) {
         return false;
     }
     return true;

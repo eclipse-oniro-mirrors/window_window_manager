@@ -146,6 +146,7 @@ public:
 
     virtual WMError Maximize() override;
     virtual WMError Minimize() override;
+    virtual WMError Minimize(std::string& errMsg) override;
     virtual WMError Recover() override;
     virtual WMError Close() override;
     virtual void StartMove() override;
@@ -247,7 +248,7 @@ public:
     virtual WmErrorCode KeepKeyboardOnFocus(bool keepKeyboardFlag) override;
     virtual WMError SetSingleFrameComposerEnabled(bool enable) override;
     virtual WMError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
     virtual void SetTouchEvent(int32_t touchType) override;
 
     /*

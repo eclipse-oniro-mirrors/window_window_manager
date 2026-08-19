@@ -257,6 +257,32 @@ HWTEST_F(RootSceneTest, SetUiDvsyncSwitchErr, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetUiDvsyncSwitchFromApi
+ * @tc.desc: SetUiDvsyncSwitch From Api Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(RootSceneTest, SetUiDvsyncSwitchFromApiSucc, TestSize.Level1)
+{
+    RootScene rootScene;
+    rootScene.SetUiDvsyncSwitch(true, FromWhom::API);
+    rootScene.SetUiDvsyncSwitch(false, FromWhom::API);
+    ASSERT_EQ(1, rootScene.GetWindowId());
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromInner
+ * @tc.desc: SetUiDvsyncSwitch From Inner Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(RootSceneTest, SetUiDvsyncSwitchFromInnerSucc, TestSize.Level1)
+{
+    RootScene rootScene;
+    rootScene.SetUiDvsyncSwitch(true, FromWhom::INNER);
+    rootScene.SetUiDvsyncSwitch(false, FromWhom::INNER);
+    ASSERT_EQ(1, rootScene.GetWindowId());
+}
+
+/**
  * @tc.name: SetTouchEvent
  * @tc.desc: SetTouchEvent Test
  * @tc.type: FUNC

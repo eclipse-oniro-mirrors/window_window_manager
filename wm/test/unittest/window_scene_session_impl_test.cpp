@@ -1524,10 +1524,11 @@ HWTEST_F(WindowSceneSessionImplTest, Close01, TestSize.Level1)
 
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
     windowSceneSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(WMError::WM_OK, res);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Close());
-    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener);
+    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener, errMsg);
     ASSERT_EQ(WMError::WM_OK, res);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Close());
 }
@@ -2009,7 +2010,7 @@ HWTEST_F(WindowSceneSessionImplTest, NotifyRemoveStartingWindow, TestSize.Level1
     ret = window->NotifyRemoveStartingWindow();
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    EXPECT_CALL(*(session), RemoveStartingWindow()).WillOnce(Return(WSError::WS_OK));
+    EXPECT_CALL(*(session), RemoveStartingWindow(::testing::_)).WillOnce(Return(WSError::WS_OK));
     ret = window->NotifyRemoveStartingWindow();
     ASSERT_EQ(ret, WMError::WM_OK);
 }
@@ -3189,10 +3190,11 @@ HWTEST_F(WindowSceneSessionImplTest, CloseSpecificScene, TestSize.Level1)
     windowSceneSession->hostSession_ = session;
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
     windowSceneSession->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto res = windowSceneSession->RegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(WMError::WM_OK, res);
     EXPECT_EQ(WSError::WS_OK, windowSceneSession->CloseSpecificScene());
-    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener);
+    res = windowSceneSession->UnRegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(WMError::WM_OK, res);
     EXPECT_EQ(WSError::WS_OK, windowSceneSession->CloseSpecificScene());
 }

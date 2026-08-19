@@ -20,6 +20,7 @@
 #include "fold_screen_state_internel.h"
 #include "window_manager_hilog.h"
 #include "screen_session_manager.h"
+#include "screen_session_manager/include/screen_rotation_property.h"
 #include "scene_board_judgement.h"
 #include "fold_screen_controller/secondary_fold_sensor_manager.h"
 
@@ -235,6 +236,60 @@ HWTEST_F(SuperFoldSensorManagerTest, HandlePostureData06, TestSize.Level1)
 
 
 /**
+ * @tc.name: GetFoldStatusChangeEvents01
+ * @tc.desc: test function : GetFoldStatusChangeEvents
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, GetFoldStatusChangeEvents01, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(170.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(100.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(0.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_FOLDED);
+}
+
+/**
+ * @tc.name: GetFoldStatusChangeEvents_BufferArea
+ * @tc.desc: test buffer area (150 <= angle < 160) and its inner status branch.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, GetFoldStatusChangeEvents_BufferArea, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    auto& stateMgr = SuperFoldStateManager::GetInstance();
+
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(155.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+
+    stateMgr.curState_ = SuperFoldStatus::FOLDED;
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(155.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+
+    stateMgr.curState_ = SuperFoldStatus::EXPANDED;
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(155.0F), SuperFoldStatusChangeEvents::UNDEFINED);
+
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+}
+
+/**
+ * @tc.name: GetFoldStatusChangeEvents_Boundary
+ * @tc.desc: test boundary values of the threshold comparisons.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, GetFoldStatusChangeEvents_Boundary, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    SuperFoldStateManager::GetInstance().curState_ = SuperFoldStatus::EXPANDED;
+
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(160.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(159.9F), SuperFoldStatusChangeEvents::UNDEFINED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(150.0F), SuperFoldStatusChangeEvents::UNDEFINED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(149.9F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED);
+    EXPECT_EQ(mgr.GetFoldStatusChangeEvents(-1.0F), SuperFoldStatusChangeEvents::ANGLE_CHANGE_FOLDED);
+
+    SuperFoldStateManager::GetInstance().curState_ = SuperFoldStatus::UNKNOWN;
+}
+
+/**
  * @tc.name: NotifyFoldAngleChanged01
  * @tc.desc: test function : NotifyFoldAngleChanged
  * @tc.type: FUNC
@@ -302,6 +357,86 @@ HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged05, Function | SmallT
     mgr.NotifyFoldAngleChanged(foldAngle);
     EXPECT_TRUE(ScreenSessionManager::GetInstance().lastFoldAngles_.empty());
     usleep(SLEEP_TIME_US);
+}
+
+/**
+ * @tc.name: NotifyFoldAngleChanged_Dedup
+ * @tc.desc: test dedup path when the fold status event is unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_Dedup, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    mgr.NotifyFoldAngleChanged(170.0F);
+    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    mgr.NotifyFoldAngleChanged(170.0F);
+    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+}
+
+/**
+ * @tc.name: NotifyFoldAngleChanged_Force
+ * @tc.desc: test isForce path does not update the dedup baseline.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_Force, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    mgr.NotifyFoldAngleChanged(170.0F);
+    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    mgr.NotifyFoldAngleChanged(170.0F, true);
+    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+    mgr.NotifyFoldAngleChanged(100.0F, true);
+    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
+}
+
+/**
+ * @tc.name: NotifyFoldAngleChanged_HorizontalSkip
+ * @tc.desc: test horizontal device with non-expanded event skips HandleSuperSensorChange.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_HorizontalSkip, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    auto& stateMgr = SuperFoldStateManager::GetInstance();
+    ScreenRotationProperty::isDeviceHorizontal_ = true;
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+    mgr.NotifyFoldAngleChanged(100.0F);
+    EXPECT_EQ(stateMgr.curState_, SuperFoldStatus::UNKNOWN);
+    ScreenRotationProperty::isDeviceHorizontal_ = false;
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+}
+
+/**
+ * @tc.name: NotifyFoldAngleChanged_HorizontalExpanded
+ * @tc.desc: test horizontal device with expanded event still handles the change.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_HorizontalExpanded, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    auto& stateMgr = SuperFoldStateManager::GetInstance();
+    ScreenRotationProperty::isDeviceHorizontal_ = true;
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+    mgr.NotifyFoldAngleChanged(170.0F);
+    EXPECT_EQ(stateMgr.curState_, SuperFoldStatus::EXPANDED);
+    ScreenRotationProperty::isDeviceHorizontal_ = false;
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+}
+
+/**
+ * @tc.name: NotifyFoldAngleChanged_NotHorizontal
+ * @tc.desc: test non-horizontal device always handles the change.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_NotHorizontal, TestSize.Level1)
+{
+    SuperFoldSensorManager mgr = SuperFoldSensorManager();
+    auto& stateMgr = SuperFoldStateManager::GetInstance();
+    ScreenRotationProperty::isDeviceHorizontal_ = false;
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
+    mgr.NotifyFoldAngleChanged(100.0F);
+    EXPECT_EQ(stateMgr.curState_, SuperFoldStatus::HALF_FOLDED);
+    stateMgr.curState_ = SuperFoldStatus::UNKNOWN;
 }
 
 /**

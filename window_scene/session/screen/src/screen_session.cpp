@@ -304,7 +304,7 @@ void ScreenSession::UnregisterScreenChangeListener(IScreenChangeListener* screen
         TLOGE(WmsLogTag::DMS, "Failed to unregister screen change listener, listener is null!");
         return;
     }
-
+    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
     screenChangeListenerList_.erase(
         std::remove_if(screenChangeListenerList_.begin(), screenChangeListenerList_.end(),
             [screenChangeListener](IScreenChangeListener* listener) { return screenChangeListener == listener; }),
@@ -357,7 +357,7 @@ sptr<DisplayInfo> ScreenSession::ConvertToDisplayInfo()
     if (displayInfo == nullptr) {
         return displayInfo;
     }
-    if (!IsScreenAvailable()) {
+    if (!isInUse()) {
         TLOGE(WmsLogTag::DMS, "screenId: %{public}" PRIu64" is unavailable.", screenId_);
         return nullptr;
     }
@@ -519,17 +519,7 @@ void ScreenSession::SetIsCurrentInUse(bool isInUse)
 
 bool ScreenSession::GetIsCurrentInUse() const
 {
-    return isInUse_;
-}
-
-void ScreenSession::SetScreenInUseStatus(bool isInUse)
-{
-    property_.SetIsInUse(isInUse);
-}
-
-bool ScreenSession::isInUse()
-{
-    return property_.GetIsInUse();
+    return isCurrentInUse_ ;
 }
 
 uint64_t ScreenSession::GetSessionId() const
@@ -1173,31 +1163,15 @@ void ScreenSession::HandleSensorRotation(float sensorRotation)
     SensorRotationChange(sensorRotation);
 }
 
-void ScreenSession::HandleSmartRotation(float sensorRotation)
-{
-    SmartSensorRotationChange(sensorRotation);
-}
-
 void ScreenSession::SensorRotationChange(Rotation sensorRotation)
 {
     float rotation = ConvertRotationToFloat(sensorRotation);
     SensorRotationChange(rotation);
 }
 
-void ScreenSession::SmartSensorRotationChange(Rotation sensorRotation)
-{
-    float rotation = ConvertRotationToFloat(sensorRotation);
-    SmartSensorRotationChange(rotation);
-}
-
 void ScreenSession::SensorRotationChange(float sensorRotation)
 {
     SensorRotationChange(sensorRotation, false);
-}
-
-void ScreenSession::SmartSensorRotationChange(float sensorRotation)
-{
-    SmartSensorRotationChange(sensorRotation, false);
 }
 
 void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser)
@@ -1216,29 +1190,9 @@ void ScreenSession::SensorRotationChange(float sensorRotation, bool isSwitchUser
     }
 }
 
-void ScreenSession::SmartSensorRotationChange(float sensorRotation, bool isSwitchUser)
-{
-    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
-    if (sensorRotation >= 0.0f) {
-        currentValidSmartRotation_ = sensorRotation;
-    }
-    for (auto& listener : screenChangeListenerList_) {
-        if (!listener) {
-            TLOGE(WmsLogTag::WMS_ROTATION, "screenChangeListener is null.");
-            continue;
-        }
-        listener->OnSmartSensorRotationChange(sensorRotation, screenId_, isSwitchUser);
-    }
-}
-
 float ScreenSession::GetValidSensorRotation()
 {
     return currentValidSensorRotation_.load();
-}
-
-float ScreenSession::GetValidSmartSensorRotation()
-{
-    return currentValidSmartRotation_.load();
 }
 
 void ScreenSession::HandleHoverStatusChange(int32_t hoverStatus, bool needRotate)
@@ -2190,13 +2144,19 @@ Orientation ScreenSession::CalcDisplayOrientationToOrientation(DisplayOrientatio
     return orientation;
 }
 
-sptr<ScreenInfo> ScreenSession::ConvertToScreenInfo() const
+
+sptr<ScreenInfo> ScreenSession::ConvertToScreenInfo(bool isNeedUnused) const
 {
     sptr<ScreenInfo> info = new(std::nothrow) ScreenInfo();
     if (info == nullptr) {
         return nullptr;
     }
-    if (!IsScreenAvailable()) {
+    if (isNeedUnused) {
+        TLOGE(WmsLogTag::DMS, "is need Unused is true");
+        FillScreenInfo(info);
+        return info;
+    }
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && !isInUse()) {
         TLOGE(WmsLogTag::DMS, "screenId: %{public}" PRIu64" is unavailable.", screenId_);
         return nullptr;
     }
@@ -3185,7 +3145,7 @@ DisplayId ScreenSession::GetDisplayId()
 
 DisplayId ScreenSession::GetAvailableDisplayId() const
 {
-    if (!IsScreenAvailable()) {
+    if (!isInUse()) {
         TLOGE(WmsLogTag::DMS, "screenId: %{public}" PRIu64" is unavailable.", screenId_);
         return DISPLAY_ID_INVALID;
     }
@@ -3204,14 +3164,14 @@ void ScreenSession::SetDisplayNode(std::shared_ptr<RSDisplayNode> displayNode)
     RSAdapterUtil::SetRSUIContext(displayNode_, GetRSUIContext(), true);
 }
 
-void ScreenSession::SetScreenAvailableStatus(bool isScreenAvailable)
+void ScreenSession::SetScreenInUseStatus(bool isInUse)
 {
-    isScreenAvailable_ = isScreenAvailable;
+    isInUse_ = isInUse;
 }
-
-bool ScreenSession::IsScreenAvailable() const
+ 
+bool ScreenSession::isInUse() const
 {
-    return isScreenAvailable_;
+    return isInUse_;
 }
 
 void ScreenSession::SetRSScreenId(ScreenId rsId)

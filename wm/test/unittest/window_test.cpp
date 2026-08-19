@@ -2902,7 +2902,8 @@ HWTEST_F(WindowTest, RegisterWindowWillCloseListeners, TestSize.Level1)
 {
     sptr<Window> window = sptr<Window>::MakeSptr();
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
-    auto ret = window->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto ret = window->RegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
     EXPECT_EQ(WMError::WM_OK, window->Destroy());
 }
@@ -2916,7 +2917,8 @@ HWTEST_F(WindowTest, UnRegisterWindowWillCloseListeners, TestSize.Level1)
 {
     sptr<Window> window = sptr<Window>::MakeSptr();
     sptr<IWindowWillCloseListener> listener = sptr<IWindowWillCloseListener>::MakeSptr();
-    auto ret = window->UnRegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    auto ret = window->UnRegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
     EXPECT_EQ(WMError::WM_OK, window->Destroy());
 }
@@ -3003,7 +3005,8 @@ HWTEST_F(WindowTest, SetParentWindow, TestSize.Level1)
 {
     sptr<Window> window = sptr<Window>::MakeSptr();
     int32_t newParentWindowId = 1;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetParentWindow(newParentWindowId));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->SetParentWindow(newParentWindowId, errMsg));
     ASSERT_EQ(WMError::WM_OK, window->Destroy());
 }
 
@@ -3016,7 +3019,8 @@ HWTEST_F(WindowTest, GetParentWindow, TestSize.Level1)
 {
     sptr<Window> window = sptr<Window>::MakeSptr();
     sptr<Window> parentWindow = nullptr;
-    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->GetParentWindow(parentWindow));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, window->GetParentWindow(parentWindow, errMsg));
     ASSERT_EQ(parentWindow, nullptr);
     ASSERT_EQ(WMError::WM_OK, window->Destroy());
 }

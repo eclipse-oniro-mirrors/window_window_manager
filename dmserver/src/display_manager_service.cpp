@@ -879,6 +879,7 @@ void DisplayManagerService::NotifyPrivateWindowStateChanged(bool hasPrivate)
 
 std::vector<DisplayPhysicalResolution> DisplayManagerService::GetAllDisplayPhysicalResolution()
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (allDisplayPhysicalResolution_.empty()) {
         sptr<DisplayInfo> displayInfo = DisplayManagerService::GetDefaultDisplayInfo();
         if (displayInfo == nullptr) {

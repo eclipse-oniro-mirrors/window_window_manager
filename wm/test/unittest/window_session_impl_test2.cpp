@@ -1393,7 +1393,8 @@ HWTEST_F(WindowSessionImplTest2, WindowSessionCreateCheck, TestSize.Level1)
     displayWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_FREEZE_DISPLAY);
     window->windowSessionMap_.insert(std::make_pair<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>(
         "displayWindow", std::pair<int32_t, sptr<WindowSessionImpl>>(displayId, displayWindow)));
-    ASSERT_EQ(window->WindowSessionCreateCheck(), WMError::WM_OK);
+    std::string errMsg;
+    ASSERT_EQ(window->WindowSessionCreateCheck(errMsg), WMError::WM_OK);
 
     window->windowSessionMap_.clear();
     auto cameraWindow = GetTestWindowImpl("cameraWindow");
@@ -1401,7 +1402,7 @@ HWTEST_F(WindowSessionImplTest2, WindowSessionCreateCheck, TestSize.Level1)
     cameraWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT_CAMERA);
     window->windowSessionMap_.insert(std::make_pair<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>(
         "cameraWindow", std::pair<int32_t, sptr<WindowSessionImpl>>(cameraId, cameraWindow)));
-    ASSERT_EQ(window->WindowSessionCreateCheck(), WMError::WM_ERROR_REPEAT_OPERATION);
+    ASSERT_EQ(window->WindowSessionCreateCheck(errMsg), WMError::WM_ERROR_REPEAT_OPERATION);
     window->Destroy();
     displayWindow->Destroy();
     cameraWindow->Destroy();
@@ -2839,6 +2840,102 @@ HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchErr, TestSize.Level1)
     window->vsyncStation_ = nullptr;
     window->SetUiDvsyncSwitch(true);
     window->SetUiDvsyncSwitch(false);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromApi
+ * @tc.desc: SetUiDvsyncSwitch From Api
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchFromApi, TestSize.Level1)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    ASSERT_NE(option, nullptr);
+    option->SetWindowName("SetUiDvsyncSwitchFromApi");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->SetUiDvsyncSwitch(true, FromWhom::API);
+    window->vsyncStation_ = nullptr;
+    window->SetUiDvsyncSwitch(true, FromWhom::API);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromApiSucc
+ * @tc.desc: SetUiDvsyncSwitch From Api Test Succ
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchFromApiSucc, TestSize.Level1)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    option->SetWindowName("SetUiDvsyncSwitchFromApiSucc");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->SetUiDvsyncSwitch(true, FromWhom::API);
+    window->SetUiDvsyncSwitch(false, FromWhom::API);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromApiErr
+ * @tc.desc: SetUiDvsyncSwitch From Api Test Err
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchFromApiErr, TestSize.Level1)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    option->SetWindowName("SetUiDvsyncSwitchFromApiErr");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->vsyncStation_ = nullptr;
+    window->SetUiDvsyncSwitch(true, FromWhom::API);
+    window->SetUiDvsyncSwitch(false, FromWhom::API);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromInner
+ * @tc.desc: SetUiDvsyncSwitch From Inner
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchFromInner, TestSize.Level1)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    ASSERT_NE(option, nullptr);
+    option->SetWindowName("SetUiDvsyncSwitchFromInner");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->SetUiDvsyncSwitch(true, FromWhom::INNER);
+    window->vsyncStation_ = nullptr;
+    window->SetUiDvsyncSwitch(true, FromWhom::INNER);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromInnerSucc
+ * @tc.desc: SetUiDvsyncSwitch From Inner Test Succ
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchFromInnerSucc, TestSize.Level1)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    option->SetWindowName("SetUiDvsyncSwitchFromInnerSucc");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->SetUiDvsyncSwitch(true, FromWhom::INNER);
+    window->SetUiDvsyncSwitch(false, FromWhom::INNER);
+}
+
+/**
+ * @tc.name: SetUiDvsyncSwitchFromInnerErr
+ * @tc.desc: SetUiDvsyncSwitch From Inner Test Err
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, SetUiDvsyncSwitchFromInnerErr, TestSize.Level1)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    option->SetWindowName("SetUiDvsyncSwitchFromInnerErr");
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    ASSERT_NE(window, nullptr);
+    window->vsyncStation_ = nullptr;
+    window->SetUiDvsyncSwitch(true, FromWhom::INNER);
+    window->SetUiDvsyncSwitch(false, FromWhom::INNER);
 }
 
 /**

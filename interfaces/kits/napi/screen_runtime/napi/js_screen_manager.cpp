@@ -34,6 +34,7 @@
 namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
+constexpr size_t ARGC_ZERO = 0;
 constexpr size_t ARGC_ONE = 1;
 constexpr size_t ARGC_TWO = 2;
 constexpr size_t ARGC_THREE = 3;
@@ -179,23 +180,38 @@ napi_value OnGetAllScreens(napi_env env, napi_callback_info info)
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    bool isNeedUnused = false;
     napi_value lastParam = nullptr;
-    if (argc >= ARGC_ONE && argv[ARGC_ONE - 1] != nullptr &&
-        GetType(env, argv[ARGC_ONE - 1]) == napi_function) {
-        lastParam = argv[ARGC_ONE - 1];
+
+    if (argc >= ARGC_ONE && argv[ARGC_ZERO] != nullptr) {
+        napi_valuetype type0 = GetType(env, argv[ARGC_ZERO]);
+        if (type0 == napi_function) {
+            lastParam = argv[ARGC_ZERO];
+            if (argc >= ARGC_TWO && argv[ARGC_ONE] != nullptr &&
+                GetType(env, argv[ARGC_ONE]) == napi_boolean) {
+                napi_get_value_bool(env, argv[ARGC_ONE], &isNeedUnused);
+            }
+        } else if (type0 == napi_boolean) {
+            napi_get_value_bool(env, argv[ARGC_ZERO], &isNeedUnused);
+        }
     }
+
     napi_value result = nullptr;
     std::unique_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [this, env, task = napiAsyncTask.get()]() {
+
+    auto asyncTask = [this, env, task = napiAsyncTask.get(), isNeedUnused]() {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "JsScreenManager::OnGetAllScreens");
         std::vector<sptr<Screen>> screens;
-        auto res = DM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<ScreenManager>().GetAllScreens(screens));
+        auto res = DM_JS_TO_ERROR_CODE_MAP.at(
+            SingletonContainer::Get<ScreenManager>().GetAllScreens(screens, isNeedUnused));
         if (res != DmErrorCode::DM_OK) {
             task->Reject(env, CreateJsError(env, static_cast<int32_t>(res),
                 "JsScreenManager::OnGetAllScreens failed."));
         } else if (!screens.empty()) {
             task->Resolve(env, CreateJsScreenVectorObject(env, screens));
-            TLOGNI(WmsLogTag::DMS, "JsScreenManager::OnGetAllScreens success");
+            TLOGNI(WmsLogTag::DMS, "JsScreenManager::OnGetAllScreens success, isNeedUnused: %{public}d",
+                isNeedUnused);
         } else {
             task->Reject(env, CreateJsError(env,
                 static_cast<int32_t>(DmErrorCode::DM_ERROR_INVALID_SCREEN),

@@ -38,6 +38,9 @@ public:
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
+    WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+        const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
+        bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
     WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
         int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
@@ -55,6 +58,7 @@ public:
     void PreProcessCreate();
     void SetDefaultProperty();
     WMError Minimize() override;
+    WMError Minimize(std::string& errMsg) override;
     void NotifyWindowStageCreateFinished() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
@@ -207,8 +211,8 @@ public:
     /*
      * Sub Window
      */
-    WMError SetParentWindow(int32_t newParentWindowId) override;
-    WMError GetParentWindow(sptr<Window>& parentWindow) override;
+    WMError SetParentWindow(int32_t newParentWindowId, std::string& errMsg) override;
+    WMError GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg) override;
 
     /*
      * Sub Window zLevel above parent loosened

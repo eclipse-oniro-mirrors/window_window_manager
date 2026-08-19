@@ -20,7 +20,7 @@ namespace OHOS {
 namespace Rosen {
 bool ScreenRotationProperty::isDeviceHorizontal_ = false;
 
-bool ScreenRotationProperty::isDeviceHorizontal()
+bool ScreenRotationProperty::IsDeviceHorizontal()
 {
     return isDeviceHorizontal_;
 }

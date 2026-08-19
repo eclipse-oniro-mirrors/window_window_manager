@@ -2379,5 +2379,15 @@ struct StartMovingOptions {
     }
 };
 }
+
+#ifndef VSYNC_TYPE_H
+#define VSYNC_TYPE_H
+enum class FromWhom : uint8_t {
+    INNER = 0,
+    API = 1,
+};
+
+constexpr FromWhom DEFAULT_FROMWHOM = FromWhom::INNER;
+#endif
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

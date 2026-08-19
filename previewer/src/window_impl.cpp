@@ -715,6 +715,11 @@ WMError WindowImpl::Minimize()
     return WMError::WM_OK;
 }
 
+WMError WindowImpl::Minimize(std::string& errMsg)
+{
+    return WMError::WM_OK;
+}
+
 WMError WindowImpl::Recover()
 {
     return WMError::WM_OK;
@@ -1327,7 +1332,7 @@ WMError WindowImpl::SetLandscapeMultiWindow(bool isLandscapeMultiWindow)
     return WMError::WM_OK;
 }
 
-void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch)
+void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
 {
 }
 

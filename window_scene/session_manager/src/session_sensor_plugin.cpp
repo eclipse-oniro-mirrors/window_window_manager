@@ -1,0 +1,130 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "session_sensor_plugin.h"
+
+namespace OHOS {
+namespace Rosen {
+namespace {
+    constexpr uint32_t SLEEP_TIME_US = 10000;
+    constexpr uint32_t RETRY_TIMES = 3;
+#if (defined(__aarch64__) || defined(__x86_64__))
+    const std::string PLUGIN_SO_PATH = "/system/lib64/platformsdk/libmotion_agent.z.so";
+#else
+    const std::string PLUGIN_SO_PATH = "/system/lib/platformsdk/libmotion_agent.z.so";
+#endif
+}
+
+static void *g_handle = nullptr;
+static MotionSubscribeCallbackPtr g_subscribePtr = nullptr;
+static MotionUnsubscribeCallbackPtr g_unsubscribePtr = nullptr;
+
+bool SessionLoadMotionSensor(void)
+{
+    if (g_handle != nullptr) {
+        TLOGW(WmsLogTag::WMS_ROTATION, "motion plugin already loaded");
+        return true;
+    }
+    int32_t cnt = 0;
+    const char* dlopenError = nullptr;
+    do {
+        cnt++;
+        g_handle = dlopen(PLUGIN_SO_PATH.c_str(), RTLD_LAZY);
+        dlopenError = dlerror();
+        if (dlopenError) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "dlopen error: %{public}s", dlopenError);
+        }
+        TLOGI(WmsLogTag::WMS_ROTATION, "dlopen %{public}s, retry cnt: %{public}d", PLUGIN_SO_PATH.c_str(), cnt);
+        usleep(SLEEP_TIME_US);
+    } while (!g_handle && cnt < RETRY_TIMES);
+    return g_handle != nullptr;
+}
+
+void SessionUnloadMotionSensor(void)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "unload motion plugin");
+    if (g_handle != nullptr) {
+        dlclose(g_handle);
+        g_handle = nullptr;
+    }
+    g_subscribePtr = nullptr;
+    g_unsubscribePtr = nullptr;
+}
+
+__attribute__((no_sanitize("cfi"))) bool SessionSubscribeCallback(int32_t motionType,
+    OnMotionChangedPtr callback)
+{
+    if (callback == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "callback is nullptr");
+        return false;
+    }
+    if (g_handle == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "g_handle is nullptr");
+        return false;
+    }
+    if (g_subscribePtr == nullptr) {
+        int32_t cnt = 0;
+        const char* dlsymError = nullptr;
+        do {
+            cnt++;
+            g_subscribePtr = reinterpret_cast<MotionSubscribeCallbackPtr>(dlsym(
+                g_handle, "MotionSubscribeCallback"));
+            dlsymError = dlerror();
+            if (dlsymError) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "dlsym error: %{public}s", dlsymError);
+                usleep(SLEEP_TIME_US);
+            }
+            TLOGI(WmsLogTag::WMS_ROTATION, "dlsym %{public}s, retry cnt: %{public}d", "MotionSubscribeCallback", cnt);
+        } while (!g_subscribePtr && cnt < RETRY_TIMES);
+    }
+    if (g_subscribePtr == nullptr) {
+        return false;
+    }
+    return g_subscribePtr(motionType, callback);
+}
+
+__attribute__((no_sanitize("cfi"))) bool SessionUnsubscribeCallback(int32_t motionType,
+    OnMotionChangedPtr callback)
+{
+    if (callback == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "callback is nullptr");
+        return false;
+    }
+    if (g_handle == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "g_handle is nullptr");
+        return false;
+    }
+    if (g_unsubscribePtr == nullptr) {
+        int32_t cnt = 0;
+        const char* dlsymError = nullptr;
+        do {
+            cnt++;
+            g_unsubscribePtr = reinterpret_cast<MotionUnsubscribeCallbackPtr>(dlsym(
+                g_handle, "MotionUnsubscribeCallback"));
+            dlsymError = dlerror();
+            if (dlsymError) {
+                TLOGE(WmsLogTag::WMS_ROTATION, "dlsym error: %{public}s", dlsymError);
+                usleep(SLEEP_TIME_US);
+            }
+            TLOGI(WmsLogTag::WMS_ROTATION, "dlsym %{public}s, retry cnt: %{public}d", "MotionUnsubscribeCallback", cnt);
+        } while (!g_unsubscribePtr && cnt < RETRY_TIMES);
+    }
+    if (g_unsubscribePtr == nullptr) {
+        return false;
+    }
+    return g_unsubscribePtr(motionType, callback);
+}
+}
+}

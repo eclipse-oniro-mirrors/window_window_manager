@@ -44,6 +44,16 @@ const std::map<FvWindowState, FloatViewState> STATE_TO_STATE = {
     {FvWindowState::FV_STATE_IN_SIDEBAR, FloatViewState::FV_IN_SIDEBAR},
     {FvWindowState::FV_STATE_IN_FLOATING_BALL, FloatViewState::FV_IN_FLOATING_BALL},
 };
+
+bool IsWindowInfoChanged(const FloatViewWindowInfo& oldInfo, const FloatViewWindowInfo& newInfo)
+{
+    bool rectChanged = (oldInfo.windowRect_.posX_ != newInfo.windowRect_.posX_ ||
+        oldInfo.windowRect_.posY_ != newInfo.windowRect_.posY_ ||
+        oldInfo.windowRect_.width_ != newInfo.windowRect_.width_ ||
+        oldInfo.windowRect_.height_ != newInfo.windowRect_.height_);
+    bool scaleChanged = (oldInfo.scale_ != newInfo.scale_);
+    return rectChanged || scaleChanged;
+}
 }
 FloatViewController::FloatViewController(const FvOption &option, napi_env env)
     : weakRef_(this), option_(option), env_(env), type_(APIType::NAPI)
@@ -639,6 +649,7 @@ void FloatViewController::SyncWindowInfo(uint32_t windowId, const FloatViewWindo
 {
     TLOGI(WmsLogTag::WMS_SYSTEM, "SyncWindowInfo called, id: %{public}s, reason: %{public}s", id_.c_str(),
         reason.c_str());
+    bool infoChanged = false;
     {
         std::lock_guard<std::mutex> lock(controllerMutex_);
         if (window_ == nullptr) {
@@ -650,10 +661,13 @@ void FloatViewController::SyncWindowInfo(uint32_t windowId, const FloatViewWindo
             "windowId: %{public}u, infoWindowId: %{public}u", window_->GetWindowId(), windowId);
             return;
         }
+        infoChanged = IsWindowInfoChanged(windowInfo_, windowInfo);
         windowInfo_ = windowInfo;
-        option_.SetRect(windowInfo_.windowRect_); // update option for UpdateFloatView
+        option_.SetRect(windowInfo_.windowRect_);
     }
-    OnRectChange(windowInfo.windowRect_, windowInfo.scale_, reason);
+    if (infoChanged) {
+        OnRectChange(windowInfo.windowRect_, windowInfo.scale_, reason);
+    }
 }
 
 void FloatViewController::SyncLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& fvLimits)

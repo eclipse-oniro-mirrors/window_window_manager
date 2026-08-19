@@ -417,7 +417,11 @@ void WindowManagerLite::Impl::NotifyWindowModeChange(WindowModeType type)
     TLOGI(WmsLogTag::WMS_MAIN, "type=%{public}u, size=%{public}u",
         static_cast<uint8_t>(type), static_cast<uint32_t>(windowModeListeners.size()));
     for (auto &listener : windowModeListeners) {
-        listener->OnWindowModeUpdate(type);
+        if (listener != nullptr) {
+            listener->OnWindowModeUpdate(type);
+        } else {
+            TLOGE(WmsLogTag::WMS_MAIN, "listener is nullptr.");
+        }
     }
 }
 
@@ -436,7 +440,7 @@ void WindowManagerLite::Impl::NotifyAccessibilityWindowInfo(const std::vector<sp
         TLOGD(WmsLogTag::WMS_MAIN, "wid[%{public}u], innerWid[%{public}u], "
             "uiNodeId[%{public}u], rect[%{public}d %{public}d %{public}d %{public}d], "
             "isFocused[%{public}d], isDecorEnable[%{public}d], displayId[%{public}" PRIu64 "], layer[%{public}u], "
-            "mode[%{public}u], type[%{public}u, updateType[%{public}d], bundle[%{public}s]",
+            "mode[%{public}u], type[%{public}u], updateType[%{public}d], bundle[%{public}s]",
             info->wid_, info->innerWid_, info->uiNodeId_, info->windowRect_.width_, info->windowRect_.height_,
             info->windowRect_.posX_, info->windowRect_.posY_, info->focused_, info->isDecorEnable_, info->displayId_,
             info->layer_, info->mode_, info->type_, type, info->bundleName_.c_str());
@@ -605,31 +609,33 @@ WMError WindowManagerLite::ActiveFaultAgentReregister(const WindowManagerAgentTy
 WMError WindowManagerLite::RegisterFocusChangedListener(const sptr<IFocusChangedListener>& listener)
 {
     if (listener == nullptr) {
-        WLOGFE("listener could not be null");
+        TLOGE(WmsLogTag::WMS_FOCUS, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
     }
 
-    std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
-    WMError ret = WMError::WM_OK;
-    if (pImpl_->focusChangedListenerAgent_ == nullptr) {
-        pImpl_->focusChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
-        ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowManagerAgent(
-            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, pImpl_->focusChangedListenerAgent_);
-        if (ret == WMError::WM_ERROR_SAMGR) {
-            ret = ActiveFaultAgentReregister(
-                WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS, pImpl_->focusChangedListenerAgent_);
+    WMError ret;
+    auto agentType = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS;
+    sptr<WindowManagerAgentLite> tempAgent = nullptr; // for avoid holding locks to send ipc
+    {
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+        if (pImpl_->focusChangedListenerAgent_ == nullptr) {
+            pImpl_->focusChangedListenerAgent_ = sptr<WindowManagerAgentLite>::MakeSptr(userId_);
         }
+        tempAgent = pImpl_->focusChangedListenerAgent_;
+    }
+    ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowManagerAgent(agentType, tempAgent);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(agentType, tempAgent);
     }
     if (ret != WMError::WM_OK) {
-        WLOGFW("RegisterWindowManagerAgent failed !");
+        TLOGE(WmsLogTag::WMS_FOCUS, "register failed");
+        std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
         pImpl_->focusChangedListenerAgent_ = nullptr;
-    } else {
-        if (pImpl_->focusChangedListeners_.count(listener)) {
-            WLOGFW("Listener is already registered.");
-            return WMError::WM_OK;
-        }
-        pImpl_->focusChangedListeners_.insert(listener);
+        return ret;
     }
+
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
+    pImpl_->focusChangedListeners_.insert(listener);
     return ret;
 }
 
@@ -641,10 +647,7 @@ WMError WindowManagerLite::UnregisterFocusChangedListener(const sptr<IFocusChang
     }
 
     std::lock_guard<std::recursive_mutex> lock(pImpl_->focusChangedMutex_);
-    if (pImpl_->focusChangedListeners_.erase(listener) == 0) {
-        WLOGFE("could not find this listener");
-        return WMError::WM_OK;
-    }
+    pImpl_->focusChangedListeners_.erase(listener);
     WMError ret = WMError::WM_OK;
     if (pImpl_->focusChangedListeners_.empty() && pImpl_->focusChangedListenerAgent_ != nullptr) {
         ret = WindowAdapterLite::GetInstance(userId_).UnregisterWindowManagerAgent(

@@ -276,7 +276,7 @@ DMError MultiScreenPowerChangeManager::HandleInnerMainExternalExtendChange(sptr<
     MultiScreenChangeUtils::ScreenDensityChangeNotify(innerScreen, externalScreen);
 
     /* step7: set inner screen unavailable */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(externalScreen, false);
+    MultiScreenChangeUtils::SetScreenInUseStatus(externalScreen, false);
 
     /* step8: disconnect inner screen */
     MultiScreenChangeUtils::ScreenConnectionChange(ssmClient, externalScreen, ScreenEvent::DISCONNECTED);
@@ -345,7 +345,7 @@ DMError MultiScreenPowerChangeManager::HandleInnerMainExternalMirrorChange(sptr<
     MultiScreenChangeUtils::ScreenDensityChangeNotify(innerScreen, nullptr);
 
     /* step7: set screen unavailable */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(externalScreen, false);
+    MultiScreenChangeUtils::SetScreenInUseStatus(externalScreen, false);
 
     /* step8: inner screen power change */
     ScreenSessionManager::GetInstance().CallRsSetScreenPowerStatusSync(externalScreen->GetRSScreenId(),
@@ -376,7 +376,7 @@ DMError MultiScreenPowerChangeManager::HandleInnerExtendExternalMainChange(sptr<
     MultiScreenChangeUtils::ScreenCombinationChange(externalScreen, innerScreen, ScreenCombination::SCREEN_EXTEND);
 
     /* step3: set screen unavailable */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(innerScreen, false);
+    MultiScreenChangeUtils::SetScreenInUseStatus(innerScreen, false);
 
     /* step4: screen power change */
     ScreenSessionManager::GetInstance().CallRsSetScreenPowerStatusSync(innerScreen->GetRSScreenId(),
@@ -408,7 +408,7 @@ DMError MultiScreenPowerChangeManager::HandleInnerMirrorExternalMainChange(sptr<
     MultiScreenChangeUtils::ScreenCombinationChange(externalScreen, innerScreen, ScreenCombination::SCREEN_MIRROR);
 
     /* step3: set inner screen unavailable. */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(innerScreen, false);
+    MultiScreenChangeUtils::SetScreenInUseStatus(innerScreen, false);
 
     /* step4: remove inner screen displayNode. */
     ScreenDisplayNodeRemove(innerScreen);
@@ -516,10 +516,14 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerMainExternalExtendChan
     MultiScreenChangeUtils::ScreenExtendPositionChange(innerScreen, externalScreen);
 
     /* step9: set screen unavailable */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(innerScreen, true);
+    MultiScreenChangeUtils::SetScreenInUseStatus(innerScreen, true);
 
     /* step10: inner screen power on */
-    CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    if (ScreenSessionManager::GetInstance().HasInternalScreen()) {
+        CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    } else {
+        CallRsSetScreenPowerStatusSyncToOn(externalScreen->GetRSScreenId());
+    }
     return DMError::DM_OK;
 }
 
@@ -572,10 +576,14 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerMainExternalMirrorChan
     MultiScreenChangeUtils::ScreenDensityChangeNotify(innerScreen, nullptr);
 
     /* step8: set screen unavailable */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(innerScreen, true);
+    MultiScreenChangeUtils::SetScreenInUseStatus(innerScreen, true);
 
     /* step9: inner screen power on */
-    CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    if (ScreenSessionManager::GetInstance().HasInternalScreen()) {
+        CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    } else {
+        CallRsSetScreenPowerStatusSyncToOn(externalScreen->GetRSScreenId());
+    }
 
     TLOGW(WmsLogTag::DMS, "recovery external main to inner main and external mirror end.");
     return DMError::DM_OK;
@@ -612,13 +620,17 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerExtendExternalMainChan
     MultiScreenChangeUtils::ScreenExtendPositionChange(externalScreen, innerScreen);
 
     /* step4: set screen unavailable. */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(innerScreen, true);
+    MultiScreenChangeUtils::SetScreenInUseStatus(innerScreen, true);
 
     /* step5: change screen to extend. */
     ScreenToExtendChange(ssmClient, innerScreen);
 
     /* step6: inner screen power on */
-    CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    if (ScreenSessionManager::GetInstance().HasInternalScreen()) {
+        CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    } else {
+        CallRsSetScreenPowerStatusSyncToOn(innerScreen->GetRSScreenId());
+    }
 
     TLOGW(WmsLogTag::DMS, "recovery external main to inner extend and external main end.");
     return DMError::DM_OK;
@@ -640,10 +652,14 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerMirrorExternalMainChan
     MultiScreenChangeUtils::ScreenCombinationChange(externalScreen, innerScreen, ScreenCombination::SCREEN_MIRROR);
 
     /* step3: set inner screen available. */
-    MultiScreenChangeUtils::SetScreenAvailableStatus(innerScreen, true);
+    MultiScreenChangeUtils::SetScreenInUseStatus(innerScreen, true);
 
     /* step4: inner screen power on */
-    CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    if (ScreenSessionManager::GetInstance().HasInternalScreen()) {
+        CallRsSetScreenPowerStatusSyncToOn(SCREEN_ID_FULL);
+    } else {
+        CallRsSetScreenPowerStatusSyncToOn(externalScreen->GetRSScreenId());
+    }
 
     TLOGW(WmsLogTag::DMS, "recovery external main to inner mirror and external main end.");
 

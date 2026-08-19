@@ -52,7 +52,6 @@ public:
     virtual void OnPowerStatusChange(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) {}
     virtual void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
-    virtual void OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
     virtual void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) {}
     virtual void OnScreenOrientationChangeWithOptions(float screenOrientation,
         const OrientationOptions& options, ScreenId screenId) {}
@@ -123,7 +122,7 @@ public:
 
     sptr<DisplayInfo> ConvertToDisplayInfo();
     sptr<DisplayInfo> ConvertToRealDisplayInfo();
-    sptr<ScreenInfo> ConvertToScreenInfo() const;
+    sptr<ScreenInfo> ConvertToScreenInfo(bool isNeedUnused = false) const;
     sptr<SupportedScreenModes> GetActiveScreenMode() const;
     ScreenSourceMode GetSourceMode() const;
     void SetScreenCombination(ScreenCombination combination);
@@ -306,13 +305,10 @@ public:
     DisplaySourceMode GetDisplaySourceMode() const;
     void SetXYPosition(int32_t x, int32_t y);
 
-    void SetScreenInUseStatus(bool isInUse);
-    bool isInUse();
-
     bool isPrimary_ { false };
     bool isInternal_ { false };
     bool isExtended_ { false };
-    bool isInUse_ { false };
+    bool isCurrentInUse_ { false };
     bool isReal_ { false };
     bool isPcUse_ { false };
     bool isFakeSession_ { false };
@@ -352,9 +348,6 @@ public:
     void SensorRotationChange(Rotation sensorRotation);
     void SensorRotationChange(float sensorRotation);
     void SensorRotationChange(float sensorRotation, bool isSwitchUser);
-    void SmartSensorRotationChange(Rotation sensorRotation);
-    void SmartSensorRotationChange(float sensorRotation);
-    void SmartSensorRotationChange(float sensorRotation, bool isSwitchUser);
     float GetValidSensorRotation();
     float GetValidSmartSensorRotation();
     void HoverStatusChange(int32_t hoverStatus, bool needRotate = true);
@@ -418,8 +411,8 @@ public:
     void SetScreenOffScreenRenderingInner();
     void SetScreenProperty(ScreenProperty property);
 
-    void SetScreenAvailableStatus(bool isScreenAvailable);
-    bool IsScreenAvailable() const;
+    void SetScreenInUseStatus(bool isInUse);
+    bool isInUse() const;
 
     void UpdateDisplayNodeRotation(int rotation);
     void SetIsAvailableAreaNeedNotify(bool isAvailableAreaNeedNotify);
@@ -515,7 +508,7 @@ private:
     bool isFakeInUse_ = false;  // is fakeScreenSession can be used
     bool isBScreenHalf_ = false;
     bool isPhysicalMirrorSwitch_ = false;
-    bool isScreenAvailable_ = true;
+    bool isInUse_ = true;
     std::atomic<bool> isExtendVirtual_ {false};
     mutable std::shared_mutex displayNodeMutex_;
     std::atomic<bool> touchEnabled_ { true };

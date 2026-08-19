@@ -128,7 +128,7 @@ public:
 
     void RemoveRootScene(DisplayId displayId);
 
-    void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
+    void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
 
     void SetTouchEvent(int32_t touchType) override;
 

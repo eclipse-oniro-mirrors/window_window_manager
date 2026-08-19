@@ -3123,6 +3123,77 @@ HWTEST_F(MoveDragControllerTest, AvoidingNoOtherScreensLeavesTargetRectUnchanged
     const WSRect targetRect = { 10, 10, 20, 20 };
     EXPECT_EQ(moveDragController->AvoidOverlappingOtherScreens(targetRect, { 0, 0, 100, 100 }, {}), targetRect);
 }
+
+/**
+ * @tc.name: MoveDragInterruptedWithoutReset01
+ * @tc.desc: MoveDragInterrupted with resetPosition=false should clear move flag and keep current position
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, MoveDragInterruptedWithoutReset01, TestSize.Level1)
+{
+    moveDragController->hasPointDown_ = true;
+    moveDragController->SetStartMoveFlag(true);
+    ASSERT_TRUE(moveDragController->GetStartMoveFlag());
+ 
+    moveDragController->MoveDragInterrupted(false);
+    EXPECT_FALSE(moveDragController->GetStartMoveFlag());
+    EXPECT_FALSE(moveDragController->hasPointDown_);
+}
+ 
+/**
+ * @tc.name: MoveDragInterruptedWithoutReset02
+ * @tc.desc: MoveDragInterrupted with resetPosition=false should clear drag flag
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, MoveDragInterruptedWithoutReset02, TestSize.Level1)
+{
+    moveDragController->SetStartDragFlag(true);
+    ASSERT_TRUE(moveDragController->GetStartDragFlag());
+ 
+    moveDragController->MoveDragInterrupted(false);
+    EXPECT_FALSE(moveDragController->GetStartDragFlag());
+}
+ 
+/**
+ * @tc.name: MoveDragInterruptedWithoutReset03
+ * @tc.desc: MoveDragInterrupted with resetPosition=false should not reset to original rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, MoveDragInterruptedWithoutReset03, TestSize.Level1)
+{
+    WSRect originalRect = { 100, 100, 200, 200 };
+    moveDragController->moveDragProperty_.originalRect_ = originalRect;
+ 
+    moveDragController->hasPointDown_ = true;
+    moveDragController->SetStartMoveFlag(true);
+ 
+    moveDragController->MoveDragInterrupted(false);
+    // resetPosition=false should not change targetRect to originalRect
+    WSRect targetRect = moveDragController->GetTargetRect(
+        MoveDragController::TargetRectCoordinate::RELATED_TO_START_DISPLAY);
+    EXPECT_NE(targetRect.posX_, originalRect.posX_);
+}
+ 
+/**
+ * @tc.name: MoveDragInterruptedWithReset01
+ * @tc.desc: MoveDragInterrupted with resetPosition=true should reset to original rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, MoveDragInterruptedWithReset01, TestSize.Level1)
+{
+    WSRect originalRect = { 100, 100, 200, 200 };
+    moveDragController->moveDragProperty_.originalRect_ = originalRect;
+ 
+    moveDragController->hasPointDown_ = true;
+    moveDragController->SetStartMoveFlag(true);
+ 
+    moveDragController->MoveDragInterrupted(true);
+    // resetPosition=true should reset targetRect to originalRect
+    WSRect targetRect = moveDragController->GetTargetRect(
+        MoveDragController::TargetRectCoordinate::RELATED_TO_START_DISPLAY);
+    EXPECT_EQ(targetRect.posX_, originalRect.posX_);
+    EXPECT_EQ(targetRect.posY_, originalRect.posY_);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

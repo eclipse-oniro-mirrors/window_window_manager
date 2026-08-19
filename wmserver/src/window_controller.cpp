@@ -240,7 +240,8 @@ bool WindowController::CheckParentWindowValid(const sptr<WindowProperty>& proper
             return false;
         }
     } else {
-        if (property->GetParentId() != INVALID_WINDOW_ID) {
+        if (property->GetParentId() != INVALID_WINDOW_ID &&
+            property->GetWindowType()!= WindowType::WINDOW_TYPE_DIALOG) {
             WLOGFE("failed, type is error");
             return false;
         }
@@ -802,7 +803,11 @@ void WindowController::NotifyDisplayStateChange(DisplayId defaultDisplayId, sptr
         case DisplayStateChangeType::CREATE: {
             SetDefaultDisplayInfo(defaultDisplayId, displayInfo);
             windowRoot_->ProcessDisplayCreate(defaultDisplayId, displayInfo, displayInfoMap);
-            FlushWindowInfoWithDisplayId(displayInfo->GetDisplayId());
+            if (displayInfo != nullptr) {
+                FlushWindowInfoWithDisplayId(displayInfo->GetDisplayId());
+            } else {
+                TLOGE(WmsLogTag::DEFAULT, "displayInfo is null.");
+            }
             break;
         }
         case DisplayStateChangeType::DESTROY: {

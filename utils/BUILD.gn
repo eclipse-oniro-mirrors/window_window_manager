@@ -99,6 +99,7 @@ wmutil_sources = [
   "src/window_frame_trace_impl.cpp",
   "src/window_property.cpp",
   "src/window_transition_info.cpp",
+  "src/float_window_error_msg.cpp",
 ]
 
 wmutil_external_deps = [

@@ -97,7 +97,7 @@ void SuperFoldSensorManager::UnregisterHallCallback()
     }
 }
 
-void SuperFoldSensorManager::HandlePostureData(const SensorEvent * const event)
+void SuperFoldSensorManager::HandlePostureData(const SensorEvent * const event, bool isForce)
 {
     if (event == nullptr) {
         TLOGI(WmsLogTag::DMS, "SensorEvent is nullptr.");
@@ -131,45 +131,60 @@ void SuperFoldSensorManager::HandlePostureData(const SensorEvent * const event)
         return;
     }
     TLOGD(WmsLogTag::DMS, "angle value is: %{public}f.", curAngle_);
-    auto task = [this, curAngle = curAngle_] {
-        NotifyFoldAngleChanged(curAngle);
+    auto task = [this, curAngle = curAngle_, isForce] {
+        NotifyFoldAngleChanged(curAngle, isForce);
     };
     if (taskScheduler_) {
         taskScheduler_->PostAsyncTask(task, "DMSHandlePosture");
     }
 }
 
-void SuperFoldSensorManager::NotifyFoldAngleChanged(float foldAngle)
+SuperFoldStatusChangeEvents SuperFoldSensorManager::GetFoldStatusChangeEvents(float foldAngle)
 {
     SuperFoldStatusChangeEvents events = SuperFoldStatusChangeEvents::UNDEFINED;
     if (std::isgreaterequal(foldAngle, ANGLE_FLAT_THRESHOLD)) {
-        TLOGD(WmsLogTag::DMS, "NotifyFoldAngleChanged is Expanded");
+        TLOGD(WmsLogTag::DMS, "Events is Expanded");
         events = SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED;
     } else if (std::isless(foldAngle, ANGLE_HALF_FOLD_THRESHOLD) &&
         std::isgreater(foldAngle, ANGLE_MIN_VAL)) {
-        TLOGD(WmsLogTag::DMS, "NotifyFoldAngleChanged is Half Folded");
+        TLOGD(WmsLogTag::DMS, "Events is Half Folded");
         events = SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED;
     } else if (std::islessequal(foldAngle, ANGLE_MIN_VAL)) {
-        TLOGD(WmsLogTag::DMS, "NotifyFoldAngleChanged is Folded");
+        TLOGD(WmsLogTag::DMS, "Events is Folded");
         events = SuperFoldStatusChangeEvents::ANGLE_CHANGE_FOLDED;
     } else {
         if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::UNKNOWN ||
         SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::FOLDED) {
             events = SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED;
         }
-        TLOGD(WmsLogTag::DMS, "NotifyFoldAngleChanged is in BufferArea");
+        TLOGD(WmsLogTag::DMS, "Events is in BufferArea");
     }
-    // notify
+    return events;
+}
+
+void SuperFoldSensorManager::NotifyFoldAngleChanged(float foldAngle, bool isForce)
+{
+    // notify fold angle change to consumers
     std::vector<float> foldAngles;
     foldAngles.push_back(foldAngle);
     ScreenSessionManager::GetInstance().NotifyFoldAngleChanged(foldAngles);
-    if (!ScreenRotationProperty::isDeviceHorizontal() ||
-        events == SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED) {
-        HandleSuperSensorChange(events);
-    }
-    if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::HALF_FOLDED) {
-        TLOGD(WmsLogTag::DMS, "half fold hall change, hall = %{public}u", curHall_);
-        NotifyHallChanged(curHall_, foldAngle, false);
+
+    SuperFoldStatusChangeEvents events = GetFoldStatusChangeEvents(foldAngle);
+    bool shouldNotifyEvents = isForce || events != lastEvents_;
+    if (shouldNotifyEvents) {
+        if (!isForce) {
+            lastEvents_ = events;
+        }
+        if (!ScreenRotationProperty::IsDeviceHorizontal() ||
+            events == SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED) {
+            HandleSuperSensorChange(events);
+        }
+        if (SuperFoldStateManager::GetInstance().GetCurrentStatus() == SuperFoldStatus::HALF_FOLDED) {
+            TLOGD(WmsLogTag::DMS, "half fold hall change, hall = %{public}u", curHall_);
+            NotifyHallChanged(curHall_, foldAngle, false);
+        }
+    } else {
+        TLOGD(WmsLogTag::DMS, "events unchanged, skip handle change.");
     }
 }
 

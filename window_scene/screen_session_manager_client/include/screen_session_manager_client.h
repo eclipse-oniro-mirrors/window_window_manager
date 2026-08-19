@@ -143,8 +143,6 @@ public:
     void NotifyScreenMaskAppear();
     void NotifySwitchUserAnimationFinish(const std::string& description);
     void NotifySwitchUserAnimationFinishByWindow();
-    void SubscribeMotionSensor(int32_t motionType);
-    void UnsubscribeMotionSensor(int32_t motionType);
     void RegisterSwitchUserAnimationNotification(const std::string& description);
     void UnRegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
@@ -190,7 +188,6 @@ private:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
-    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
     void OnScreenOrientationChangedWithOptions(ScreenId screenId,

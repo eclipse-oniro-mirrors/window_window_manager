@@ -119,6 +119,7 @@ if (!ispreview) {
       "../interfaces/kits/napi/window_runtime/window_napi/js_window_utils.cpp",
       "../interfaces/kits/napi/window_runtime/window_stage_napi/js_window_stage.cpp",
       "../utils/src/window_manager_hilog.cpp",
+      "../utils/src/float_window_error_msg.cpp",
 
       # mock
       "mock/js_transition_controller.cpp",

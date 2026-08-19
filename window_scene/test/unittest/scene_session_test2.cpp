@@ -1247,7 +1247,10 @@ HWTEST_F(SceneSessionTest2, SetSessionPiPControlStatusChangeCallback, TestSize.L
     info.bundleName_ = "SetSessionPiPControlStatusChangeCallback";
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
-    NotifySessionPiPControlStatusChangeFunc func;
+    NotifySessionPiPControlStatusChangeFunc func = [] (WsPiPControlType controlType, WsPiPControlStatus status) {
+    };
+    sceneSession->SetSessionPiPControlStatusChangeCallback(func);
+    sceneSession->needUpdatePiPControl_ = true;
     sceneSession->SetSessionPiPControlStatusChangeCallback(func);
 }
 

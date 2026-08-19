@@ -163,6 +163,7 @@ constexpr uint32_t FORCE_LIMIT_MIN_FLOATING_HEIGHT = 40;
 constexpr int32_t API_VERSION_18 = 18;
 constexpr uint32_t REASON_MAXIMIZE_MODE_CHANGE = 1;
 constexpr int32_t SIDEBAR_BLUR_ANIMATION_DURATION = 150;
+const std::string COOPERATION_DISPLAY_NAME = "Cooperation";
 constexpr float NAG_NUM = -1.0f;
 
 bool IsValueInRange(double value, double lowerBound, double upperBound)
@@ -753,13 +754,21 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
     const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
     bool isBlockSubwindow)
 {
+    std::string errMsg;
+    return Create(context, iSession, errMsg, identityToken, isModuleAbilityHookEnd, isBlockSubwindow);
+}
+
+WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+    const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken,
+    bool isModuleAbilityHookEnd, bool isBlockSubwindow)
+{
     TLOGI(WmsLogTag::WMS_LIFE, "Window Create name:%{public}s, state:%{public}u, mode:%{public}u",
         property_->GetWindowName().c_str(), state_, GetWindowMode());
     // allow iSession is nullptr when create window by innerkits
     if (!context) {
         TLOGW(WmsLogTag::WMS_LIFE, "context is nullptr");
     }
-    WMError ret = WindowSessionCreateCheck();
+    WMError ret = WindowSessionCreateCheck(errMsg);
     if (ret != WMError::WM_OK) {
         return ret;
     }
@@ -977,7 +986,7 @@ WMError WindowSceneSessionImpl::SetParentWindowInner(int32_t oldParentWindowId,
     return WMError::WM_OK;
 }
 
-WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
+WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId, std::string& errMsg)
 {
     auto subWindowId = GetPersistentId();
     if (property_->GetPcAppInpadCompatibleMode()) {
@@ -994,6 +1003,7 @@ WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
     if (!WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_SUB, "winId: %{public}d called by invalid window type %{public}d",
             subWindowId, GetType());
+        errMsg = "Invalid window type. Only subwindows are supported";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     auto oldParentWindowId = property_->GetParentPersistentId();
@@ -1017,6 +1027,7 @@ WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
     if (newParentWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "winId: %{public}d can not find new parent window By Id: %{public}d",
             subWindowId, newParentWindowId);
+        errMsg = "The parent window does not exist or has been destroyed";
         return WMError::WM_ERROR_INVALID_PARENT;
     }
     auto newWindowType = newParentWindow->GetType();
@@ -1031,7 +1042,7 @@ WMError WindowSceneSessionImpl::SetParentWindow(int32_t newParentWindowId)
     return SetParentWindowInner(oldParentWindowId, newParentWindow);
 }
 
-WMError WindowSceneSessionImpl::GetParentWindow(sptr<Window>& parentWindow)
+WMError WindowSceneSessionImpl::GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg)
 {
     if (property_->GetPcAppInpadCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_SUB, "This is PcAppInPad, not Supported");
@@ -1043,6 +1054,7 @@ WMError WindowSceneSessionImpl::GetParentWindow(sptr<Window>& parentWindow)
     if (!WindowHelper::IsSubWindow(GetType())) {
         TLOGE(WmsLogTag::WMS_SUB, "winId: %{public}d called by invalid window type %{public}d",
             GetPersistentId(), GetType());
+        errMsg = "Invalid window type, not called from subWindow";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (property_->GetIsUIExtFirstSubWindow()) {
@@ -2099,7 +2111,7 @@ void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<Display
             TLOGE(WmsLogTag::WMS_KEYBOARD, "Update prelayout failed, %{public}" PRIu64, screenId);
         } else {
             std::string dispName = info->GetName();
-            Rect newRect = (info->GetWidth() > info->GetHeight()) ?
+            Rect newRect = (info->GetWidth() > info->GetHeight() || dispName == COOPERATION_DISPLAY_NAME) ?
                             params.LandscapeKeyboardRect_ : params.PortraitKeyboardRect_;
             property_->SetRequestRect(newRect);
         }
@@ -3489,6 +3501,9 @@ WMError WindowSceneSessionImpl::RaiseAboveTarget(int32_t subWindowId)
 WMError WindowSceneSessionImpl::RaiseMainWindowAboveTarget(int32_t targetId)
 {
     TLOGI(WmsLogTag::WMS_HIERARCHY, "source id: %{public}u, target id: %{public}u", GetWindowId(), targetId);
+    if (IsSuperMultiFoldOuterScreen()) {
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "RaiseMainWindowAboveTarget on SPN outer screen");
+    }
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "device type not supported");
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
@@ -4355,6 +4370,12 @@ WMError WindowSceneSessionImpl::SetWindowTitle(const std::string& title)
 
 WMError WindowSceneSessionImpl::Minimize()
 {
+    std::string errMsg;
+    return Minimize(errMsg);
+}
+
+WMError WindowSceneSessionImpl::Minimize(std::string& errMsg)
+{
     WLOGFI("id: %{public}d", GetPersistentId());
     if (IsWindowSessionInvalid()) {
         WLOGFE("session is invalid");
@@ -4369,6 +4390,7 @@ WMError WindowSceneSessionImpl::Minimize()
         hostSession->OnSessionEvent(SessionEvent::EVENT_MINIMIZE);
     } else {
         WLOGFE("This window state is abnormal.");
+        errMsg = "Invalid window type. Only main windows, subwindows, and float windows are supported";
         return WMError::WM_DO_NOTHING;
     }
     return WMError::WM_OK;
@@ -5004,7 +5026,7 @@ WMError WindowSceneSessionImpl::SetSupportedWindowModesInner(
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "WMS::WindowSupportModes::SetInner id=%d", GetPersistentId());
     auto size = supportedWindowModes.size();
-    if (size <= 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
+    if (size == 0 || size > WINDOW_SUPPORT_MODE_MAX_SIZE) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "mode param is invalid");
         return WMError::WM_ERROR_INVALID_PARAM;
     }
@@ -8006,11 +8028,13 @@ bool WindowSceneSessionImpl::IsLandscape(uint64_t displayId)
 {
     int32_t displayWidth = 0;
     int32_t displayHeight = 0;
+    std::string dispName = "UNKNOWN";
     displayId = (displayId == DISPLAY_ID_INVALID) ? property_->GetDisplayId() : displayId;
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(displayId);
     if (display != nullptr) {
         displayWidth = display->GetWidth();
         displayHeight = display->GetHeight();
+        dispName = display->GetName();
     } else {
         auto defaultDisplayInfo = DisplayManager::GetInstance().GetDefaultDisplay();
         if (defaultDisplayInfo != nullptr) {
@@ -8036,8 +8060,9 @@ bool WindowSceneSessionImpl::IsLandscape(uint64_t displayId)
         isLandscape = (orientation == DisplayOrientation::LANDSCAPE ||
             orientation == DisplayOrientation::LANDSCAPE_INVERTED);
     }
-    TLOGI(WmsLogTag::WMS_KEYBOARD, "c-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d",
-        displayId, displayWidth, displayHeight, isLandscape);
+    isLandscape = isLandscape || (dispName == COOPERATION_DISPLAY_NAME);
+    TLOGI(WmsLogTag::WMS_KEYBOARD, "c-displayInfo: %{public}" PRIu64 ", %{public}d|%{public}d|%{public}d, %{public}s",
+        displayId, displayWidth, displayHeight, isLandscape, dispName.c_str());
     return isLandscape;
 }
 

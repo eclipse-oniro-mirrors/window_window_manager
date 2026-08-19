@@ -76,9 +76,10 @@ public:
     JsWindowRegisterManager();
     ~JsWindowRegisterManager();
     WmErrorCode RegisterListener(sptr<Window> window, std::string type,
-        CaseType caseType, napi_env env, napi_value callback, napi_value parameter = nullptr);
+        CaseType caseType, napi_env env, napi_value callback, std::string& errMsg,
+        napi_value parameter = nullptr);
     WmErrorCode UnregisterListener(sptr<Window> window, std::string type,
-        CaseType caseType, napi_env env, napi_value value);
+        CaseType caseType, napi_env env, napi_value value, std::string& errMsg);
     WmErrorCode RegisterWindowPostureModeListener(napi_env env, sptr<Window> window,
         napi_value callback, WindowPostureMode mode);
     WmErrorCode UnregisterWindowPostureModeListener(napi_env env, sptr<Window> window,
@@ -160,7 +161,7 @@ private:
     WmErrorCode ProcessMainWindowCloseRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowWillCloseRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
-        bool isRegister, napi_env env, napi_value parameter = nullptr);
+        bool isRegister, napi_env env, std::string& errMsg, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowHighlightChangeRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, napi_env env, napi_value parameter = nullptr);
     WmErrorCode ProcessWindowRotationChangeRegister(const sptr<JsWindowListener>& listener, const sptr<Window>& window,
@@ -173,7 +174,7 @@ private:
         const sptr<Window>& window, bool isRegister, napi_env env, WindowPostureMode mode);
     WmErrorCode ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
         const sptr<JsWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
-        napi_env env, napi_value parameter);
+        napi_env env, std::string& errMsg, napi_value parameter);
     std::map<std::string, std::map<std::shared_ptr<NativeReference>, sptr<JsWindowListener>>> jsCbMap_;
     std::mutex mtx_;
     std::map<WindowPostureMode, std::map<std::shared_ptr<NativeReference>, sptr<JsWindowListener>>> jsPostureModeCbMap_;

@@ -687,7 +687,7 @@ enum class SizeChangeReason : uint32_t {
     SCENE_WITH_ANIMATION,
     LS_STATE_CHANGE,
     SPLIT_ENABLE_CHANGE,
-    SWITCH_WINDOW_DISPLAY,
+    SWITCH_WINDOW_DISPLAY = 43,
     END,
 };
 

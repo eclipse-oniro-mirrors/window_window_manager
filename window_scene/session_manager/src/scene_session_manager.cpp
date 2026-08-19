@@ -75,6 +75,7 @@
 #include "scene_screen_change_listener.h"
 #include "scene_system_ability_listener.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
+#include "motion_manager.h"
 #include "session/host/include/ability_info_manager.h"
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_controller.h"
@@ -604,6 +605,8 @@ void SceneSessionManager::Init()
 
     // Initialize locale indexing configuration
     OHOS::Rosen::TextConfig::SetLocaleTextBreakEnabled(true);
+
+    MotionManager::GetInstance().Init();
 }
 
 void SceneSessionManager::RegisterBrightnessDataChangeListener()
@@ -2900,7 +2903,7 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
     // The user-specified unit is density-invariant, so the base is taken in the user unit and the other
     // unit is derived. Mirrors the client UpdateDensityInner + CalculateAttachedWindowLimitsIntersection.
     float vpr = targetDensity;
-    auto anchorInfo = sessionProperty->GetWindowAnchorInfo();
+    auto anchorInfo = sceneSession->GetWindowAnchorInfo();
     auto optionsList = sessionProperty->GetAttachedLimitOptionsList();
     auto attachedList = sessionProperty->GetAttachedWindowLimitsList();
     bool hasIntersected = WindowHelper::HasIntersectedAttachLimits(anchorInfo, optionsList);
@@ -5128,6 +5131,11 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
     }
 
     auto parentSession = GetSceneSession(property->GetParentPersistentId());
+    WSError processCheckRet = CheckSubWindowCallingProcess(property, parentSession);
+    if (processCheckRet != WSError::WS_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "sub window calling process check failed!");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "sub window calling process check failed"};
+    }
     if (parentSession) {
         auto parentProperty = parentSession->GetSessionProperty();
         if (parentProperty->GetSubWindowLevel() >= MAX_SUB_WINDOW_LEVEL &&
@@ -5729,6 +5737,37 @@ bool SceneSessionManager::CheckSystemWindowPermission(const sptr<WindowSessionPr
     return false;
 }
 
+WSError SceneSessionManager::CheckSubWindowCallingProcess(const sptr<WindowSessionProperty>& property,
+    const sptr<SceneSession>& parentSession)
+{
+    WindowType type = property->GetWindowType();
+    if (!WindowHelper::IsSubWindow(type)) {
+        return WSError::WS_OK;
+    }
+    if (property->GetIsUIExtFirstSubWindow()) {
+        return WSError::WS_OK;
+    }
+    if (SessionPermission::IsSystemCalling()) {
+        TLOGD(WmsLogTag::WMS_LIFE, "system calling, skip sub window process check");
+        return WSError::WS_OK;
+    }
+    if (parentSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "parent session is nullptr, parentId:%{public}d",
+            property->GetParentPersistentId());
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    auto callingPid = IPCSkeleton::GetCallingRealPid();
+    auto parentPid = parentSession->GetCallingPid();
+    if (callingPid == parentPid) {
+        TLOGD(WmsLogTag::WMS_LIFE, "same process, pid:%{public}d", callingPid);
+        return WSError::WS_OK;
+    }
+    TLOGE(WmsLogTag::WMS_LIFE,
+        "process check failed, callingPid:%{public}d, parentPid:%{public}d, parentId:%{public}d",
+        callingPid, parentPid, property->GetParentPersistentId());
+    return WSError::WS_ERROR_INVALID_OPERATION;
+}
+
 void SceneSessionManager::RecoverSessionInfo(const sptr<WindowSessionProperty>& property)
 {
     if (property == nullptr) {
@@ -5801,16 +5840,9 @@ WSError SceneSessionManager::CheckSessionPropertyOnRecovery(const sptr<WindowSes
         TLOGE(WmsLogTag::WMS_RECOVER, "create system window permission denied!");
         return WSError::WS_ERROR_NOT_SYSTEM_APP;
     }
-    if (isSpecificSession) {
-        if (property->GetParentPersistentId() == INVALID_SESSION_ID) {
-            TLOGE(WmsLogTag::WMS_RECOVER, "no need to recover.");
-            return WSError::WS_ERROR_INVALID_PARAM;
-        }
-    } else {
-        if (property->GetPersistentId() > 0 && !IsNeedRecover(property->GetPersistentId())) {
-            TLOGE(WmsLogTag::WMS_RECOVER, "no need to recover.");
-            return WSError::WS_ERROR_INVALID_PARAM;
-        }
+    if (!isSpecificSession && property->GetPersistentId() > 0 && !IsNeedRecover(property->GetPersistentId())) {
+        TLOGE(WmsLogTag::WMS_RECOVER, "no need to recover.");
+        return WSError::WS_ERROR_INVALID_PARAM;
     }
     return WSError::WS_OK;
 }
@@ -5826,7 +5858,7 @@ WSError SceneSessionManager::RecoverAndConnectSpecificSession(const sptr<ISessio
     auto pid = IPCSkeleton::GetCallingRealPid();
     auto uid = IPCSkeleton::GetCallingUid();
     auto task = [this, sessionStage, eventChannel, surfaceNode, property, &session, token, pid, uid]() {
-        if (recoveringFinished_ || sessionRecoverStateChangeFunc_ == nullptr) {
+        if (sessionRecoverStateChangeFunc_ == nullptr) {
             TLOGNW(WmsLogTag::WMS_RECOVER, "Recover finished, not recovery anymore");
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
@@ -5885,9 +5917,15 @@ void SceneSessionManager::CacheSpecificSessionForRecovering(
         "%{public}d, window type=%{public}d", sceneSession->GetPersistentId(), parentId, windowType);
 
     if (WindowHelper::IsSubWindow(windowType)) {
-        recoverSubSessionCacheMap_[parentId].emplace_back(sceneSession);
+        auto& subCacheList = recoverSubSessionCacheMap_[parentId];
+        if (std::find(subCacheList.begin(), subCacheList.end(), sceneSession) == subCacheList.end()) {
+            subCacheList.emplace_back(sceneSession);
+        }
     } else if (WindowHelper::IsDialogWindow(windowType)) {
-        recoverDialogSessionCacheMap_[parentId].emplace_back(sceneSession);
+        auto& dialogCacheList = recoverDialogSessionCacheMap_[parentId];
+        if (std::find(dialogCacheList.begin(), dialogCacheList.end(), sceneSession) == dialogCacheList.end()) {
+            dialogCacheList.emplace_back(sceneSession);
+        }
     }
 }
 
@@ -22027,6 +22065,49 @@ WMError SceneSessionManager::NotifySupportRotationRegistered()
         TLOGE(WmsLogTag::WMS_ROTATION, "supportRotationRegisteredListener_ is null");
     }
     return WMError::WM_OK;
+}
+
+bool SceneSessionManager::RegisterMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
+    MotionManager::GetInstance().SetMotionEventListener(this);
+    return MotionManager::GetInstance().SubscribeMotionSensor(static_cast<MotionType>(motionType));
+}
+
+bool SceneSessionManager::UnregisterMotionSensor(int32_t motionType)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
+    return MotionManager::GetInstance().UnsubscribeMotionSensor(static_cast<MotionType>(motionType));
+}
+
+void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
+    if (sensorRotationChangeListener_) {
+        sensorRotationChangeListener_(sensorRotation);
+    }
+}
+
+void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation)
+{
+    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
+    if (smartSensorRotationChangeListener_) {
+        smartSensorRotationChangeListener_(sensorRotation);
+    }
+}
+
+void SceneSessionManager::SetSensorRotationChangeListener(NotifySensorRotationChangeFunc&& func)
+{
+    taskScheduler_->PostAsyncTask([this, func] {
+        sensorRotationChangeListener_ = std::move(func);
+    }, __func__);
+}
+
+void SceneSessionManager::SetSmartSensorRotationChangeListener(NotifySmartSensorRotationChangeFunc&& func)
+{
+    taskScheduler_->PostAsyncTask([this, func] {
+        smartSensorRotationChangeListener_ = std::move(func);
+    }, __func__);
 }
 
 WMError SceneSessionManager::GetAllJsonProfile(AppExecFwk::ProfileType profileType, int32_t userId,
