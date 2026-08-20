@@ -24,6 +24,7 @@
 #include "window_manager.h"
 #include "singleton_container.h"
 #include "permission.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -48,6 +49,7 @@ const char* ARKUI_WINDOW_FV_GETFLOATVIEWLIMITS_BOOL = "ArkUI.window.fv.getFloatV
 const char* ARKUI_WINDOW_FV_BIND_BOOL = "ArkUI.window.fv.bind.bool";
 const char* ARKUI_WINDOW_FV_UNBIND_BOOL = "ArkUI.window.fv.unBind.bool";
 }
+
 JsFloatViewManager::JsFloatViewManager()
 {
 }
@@ -103,9 +105,10 @@ napi_value JsFloatViewManager::OnCreateFloatViewController(napi_env env, napi_ca
 napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const FvOption& option)
 {
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
     sptr<FloatViewController> floatViewController = sptr<FloatViewController>::MakeSptr(option, env);
-    NapiAsyncTask::ExecuteCallback execute = [errCodePtr, floatViewController, option] {
-        if (errCodePtr == nullptr) {
+    NapiAsyncTask::ExecuteCallback execute = [errCodePtr, errMsgPtr, floatViewController, option] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
         if (!FloatViewManager::isSupportFloatView_) {
@@ -118,6 +121,7 @@ napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const
         if (option.GetTemplate() >= static_cast<uint32_t>(FloatViewTemplate::END)) {
             TLOGE(WmsLogTag::WMS_SYSTEM, "template type is invalid");
             *errCodePtr = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+            *errMsgPtr = "template type is invalid";
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_CREATE, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
             return;
         }
@@ -129,13 +133,19 @@ napi_value JsFloatViewManager::CreateFloatViewControllerTask(napi_env env, const
         }
     };
     NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr, floatViewController](napi_env env, NapiAsyncTask& task, int32_t status) {
+        [errCodePtr, errMsgPtr, floatViewController](napi_env env, NapiAsyncTask& task, int32_t status) {
+            if (errCodePtr == nullptr || errMsgPtr == nullptr) {
+                task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOAT_VIEW,
+                    "create", WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    "System error, such as a null pointer or insufficient memory."));
+                return;
+            }
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, CreateJsFloatViewControllerObject(env, floatViewController));
                 HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_CREATE_BOOL, 1);
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                    "Failed to create float view controller."));
+                task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env,
+                    FloatWindowModule::FLOAT_VIEW, "create", *errCodePtr, *errMsgPtr));
             }
         };
     napi_value result = nullptr;
@@ -357,48 +367,53 @@ JsFloatViewController* JsFloatViewManager::GetFvControllers(napi_env env, napi_v
     return static_cast<JsFloatViewController*>(fvControllerPtr);
 }
 
+WmErrorCode JsFloatViewManager::Bind(const sptr<FloatViewController> &fvController,
+    const sptr<FloatingBallController> &fbController, const FbOption &option, std::string& errMsg)
+{
+    if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Device do not support float view");
+        return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    if (!Permission::CheckCallingPermission(FLOATING_BALL_PERMISSION) ||
+        !Permission::CheckCallingPermission(FLOAT_VIEW_PERMISSION)) {
+        return WmErrorCode::WM_ERROR_NO_PERMISSION;
+    }
+    if (fvController == nullptr || fbController == nullptr) {
+        errMsg = "The float view or floating ball controller object is null.";
+        TLOGE(WmsLogTag::WMS_SYSTEM, "%{public}s", errMsg.c_str());
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    if (!option.IsValid(errMsg)) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "check floating ball param failed, %{public}s", errMsg.c_str());
+        return WmErrorCode::WM_ERROR_FB_PARAM_INVALID;
+    }
+    auto result = FloatWindowManager::Bind(fvController, fbController, option);
+    errMsg = result.errMsg;
+    return ConvertErrorToCode(result.errCode);
+}
+
 napi_value JsFloatViewManager::BindTask(napi_env env, const sptr<FloatViewController> &fvController,
     const sptr<FloatingBallController> &fbController, const FbOption &option)
 {
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
-    NapiAsyncTask::ExecuteCallback execute = [env, errCodePtr, fvController, fbController, option] {
-        if (errCodePtr == nullptr) {
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
+    NapiAsyncTask::ExecuteCallback execute = [env, errCodePtr, errMsgPtr, fvController, fbController, option] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
-        if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "Device do not support float view");
-            *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
-            return;
+        *errCodePtr = Bind(fvController, fbController, option, *errMsgPtr);
+        if (*errCodePtr != WmErrorCode::WM_OK) {
+            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, *errCodePtr);
         }
-        if (!Permission::CheckCallingPermission(FLOATING_BALL_PERMISSION) ||
-            !Permission::CheckCallingPermission(FLOAT_VIEW_PERMISSION)) {
-            *errCodePtr = WmErrorCode::WM_ERROR_NO_PERMISSION;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_NO_PERMISSION);
-            return;
-        }
-        if (fvController == nullptr || fbController == nullptr) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "fvController or fbController is null");
-            *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-            return;
-        }
-        std::string errMsg = "";
-        if (!option.IsValid(errMsg)) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "check floating ball param failed, %{public}s", errMsg.c_str());
-            *errCodePtr = WmErrorCode::WM_ERROR_FB_PARAM_INVALID;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_BIND, WmErrorCode::WM_ERROR_FB_PARAM_INVALID);
-            return;
-        }
-        *errCodePtr = ConvertErrorToCode(FloatWindowManager::Bind(fvController, fbController, option));
     };
     NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
+        [errCodePtr, errMsgPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
                 HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_BIND_BOOL, 1);
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to bind controllers."));
+                task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env,
+                    FloatWindowModule::FLOAT_VIEW, "bind", *errCodePtr, *errMsgPtr));
             }
         };
     napi_value result = nullptr;
@@ -446,8 +461,9 @@ napi_value JsFloatViewManager::UnBindTask(napi_env env, const sptr<FloatViewCont
     const sptr<FloatingBallController> &fbController)
 {
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
-    NapiAsyncTask::ExecuteCallback execute = [env, errCodePtr, fvController, fbController] {
-        if (errCodePtr == nullptr) {
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
+    NapiAsyncTask::ExecuteCallback execute = [env, errCodePtr, errMsgPtr, fvController, fbController] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
         if (!FloatViewManager::isSupportFloatView_ || !FloatingBallManager::isSupportFloatingBall_) {
@@ -462,15 +478,19 @@ napi_value JsFloatViewManager::UnBindTask(napi_env env, const sptr<FloatViewCont
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FV_UNBIND, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
-        *errCodePtr = ConvertErrorToCode(FloatWindowManager::UnBind(fvController, fbController));
+        auto result = FloatWindowManager::UnBind(fvController, fbController);
+        *errCodePtr = ConvertErrorToCode(result.errCode);
+        *errMsgPtr = result.errMsg;
     };
     NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
+        [errCodePtr, errMsgPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
             if (*errCodePtr == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
-                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_UNBIND, 1);
+                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_UNBIND_BOOL, 1);
             } else {
-                task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Failed to unbind controllers."));
+                task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env,
+                    FloatWindowModule::FLOAT_VIEW, "unbind", *errCodePtr, *errMsgPtr));
+                HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FV_UNBIND_BOOL, 0);
             }
         };
     napi_value result = nullptr;

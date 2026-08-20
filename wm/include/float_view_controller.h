@@ -42,19 +42,19 @@ public:
     virtual ~FloatViewController();
     void UpdateMainWindow(const sptr<Window>& mainWindow);
     uint32_t GetMainWindowId() const;
-    WMError StartFloatView();
-    WMError StartFloatViewSingle(bool showWhenCreate = true);
-    WMError StopFloatViewFromClient();
-    WMError StopFloatViewFromClientSingle(bool isForceStop = false);
-    WMError StopFloatView(const std::string& reason);
-    WMError RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams);
-    WMError SetUIContext(const std::string &contextUrl,
+    WMErrorResult StartFloatView();
+    WMErrorResult StartFloatViewSingle(bool showWhenCreate = true);
+    WMErrorResult StopFloatViewFromClient();
+    WMErrorResult StopFloatViewFromClientSingle(bool isForceStop = false);
+    WMErrorResult StopFloatView(const std::string& reason);
+    WMErrorResult RestoreMainWindow(const std::shared_ptr<AAFwk::WantParams>& wantParams);
+    WMErrorResult SetUIContext(const std::string &contextUrl,
         const std::shared_ptr<NativeReference>& contentStorage, bool isLoadByName);
-    WMError SetUIContext(const std::string &contextUrl,
+    WMErrorResult SetUIContext(const std::string &contextUrl,
         const ani_ref& contentStorage, bool isLoadByName);
-    WMError SetVisibilityInApp(bool visibleInApp);
-    WMError SetWindowSize(const Rect &rect);
-    WMError SetTemplateTypeAndSize(const std::shared_ptr<TemplateProperty>& templateProperty);
+    WMErrorResult SetVisibilityInApp(bool visibleInApp);
+    WMErrorResult SetWindowSize(const Rect &rect);
+    WMErrorResult SetTemplateTypeAndSize(const std::shared_ptr<TemplateProperty>& templateProperty);
     void SyncWindowInfo(uint32_t windowId, const FloatViewWindowInfo& windowInfo, const std::string& reason);
     void SyncLimits(uint32_t windowId, const std::map<uint32_t, FloatViewLimits>& fvLimits);
     FloatViewWindowInfo GetWindowInfo() const;
@@ -68,29 +68,29 @@ public:
     void SetBindWindowId(uint32_t windowId);
     void SetShowWhenCreate(bool showWhenCreate);
 
-    WMError RegisterStateChangeListener(const sptr<IFvStateChangeObserver>& listener);
-    WMError UnregisterStateChangeListener(const sptr<IFvStateChangeObserver>& listener);
-    WMError RegisterRectChangeListener(const sptr<IFvRectChangeObserver>& listener);
-    WMError UnregisterRectChangeListener(const sptr<IFvRectChangeObserver>& listener);
-    WMError RegisterLimitsChangeListener(const sptr<IFvLimitsChangeObserver>& listener);
-    WMError UnregisterLimitsChangeListener(const sptr<IFvLimitsChangeObserver>& listener);
+    WMErrorResult RegisterStateChangeListener(const sptr<IFvStateChangeObserver>& listener);
+    WMErrorResult UnregisterStateChangeListener(const sptr<IFvStateChangeObserver>& listener);
+    WMErrorResult RegisterRectChangeListener(const sptr<IFvRectChangeObserver>& listener);
+    WMErrorResult UnregisterRectChangeListener(const sptr<IFvRectChangeObserver>& listener);
+    WMErrorResult RegisterLimitsChangeListener(const sptr<IFvLimitsChangeObserver>& listener);
+    WMErrorResult UnregisterLimitsChangeListener(const sptr<IFvLimitsChangeObserver>& listener);
 private:
-    WMError StartFloatViewInner();
-    WMError PrepareStartFloatView(bool showWhenCreate);
-    WMError CreateFloatViewWindow();
-    WMError SetFloatViewContext();
-    WMError DestroyFloatViewWindow(const std::string& reason);
-    WMError SetUIContextInner(bool isLoadByName);
-    WMError SetUIContextNAPI(bool isLoadByName, FvSetUIContentEventParams& params);
-    WMError SetUIContextANI(bool isLoadByName, FvSetUIContentEventParams& params);
-    WMError UpdateFloatView();
+    WMErrorResult StartFloatViewInner();
+    WMErrorResult PrepareStartFloatView(bool showWhenCreate);
+    WMErrorResult CreateFloatViewWindow();
+    WMErrorResult SetFloatViewContext();
+    WMErrorResult DestroyFloatViewWindow(const std::string& reason);
+    WMErrorResult SetUIContextInner(bool isLoadByName);
+    WMErrorResult SetUIContextNAPI(bool isLoadByName, FvSetUIContentEventParams& params);
+    WMErrorResult SetUIContextANI(bool isLoadByName, FvSetUIContentEventParams& params);
+    WMErrorResult UpdateFloatView();
     ani_env* GetEnv() const;
     void SetPackageNameFromContext();
     void FillBaseEventParams(FvBaseEventParams& base) const;
 
     std::mutex listenerMutex_;
-    template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
-    template<typename T> WMError UnRegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
+    template<typename T> WMErrorResult RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
+    template<typename T> WMErrorResult UnRegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
 
     void OnStateChange(const FloatViewState& state, std::string stopReason = "");
     void OnRectChange(const Rect& window, double scale, const std::string& reason);

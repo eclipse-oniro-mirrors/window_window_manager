@@ -39,8 +39,8 @@ public:
     MockFloatViewController(const FvOption& option, napi_env env) : FloatViewController(option, env) {}
     virtual ~MockFloatViewController() = default;
 
-    MOCK_METHOD1(StartFloatViewSingle, WMError(bool showWhenCreate));
-    MOCK_METHOD0(StopFloatViewFromClientSingle, WMError());
+    MOCK_METHOD1(StartFloatViewSingle, WMErrorResult(bool showWhenCreate));
+    MOCK_METHOD0(StopFloatViewFromClientSingle, WMErrorResult());
     MOCK_CONST_METHOD0(GetWindow, sptr<Window>());
     MOCK_METHOD0(GetCurState, FvWindowState());
     MOCK_METHOD0(IsBind, bool());
@@ -54,8 +54,8 @@ public:
         : FloatingBallController(mainWindow, mainWindowId, context) {}
     virtual ~MockFloatingBallController() = default;
 
-    MOCK_METHOD2(StartFloatingBallSingle, WMError(const sptr<FbOption>& option, bool showWhenCreate));
-    MOCK_METHOD0(StopFloatingBallFromClientSingle, WMError());
+    MOCK_METHOD2(StartFloatingBallSingle, WMErrorResult(const sptr<FbOption>& option, bool showWhenCreate));
+    MOCK_METHOD0(StopFloatingBallFromClientSingle, WMErrorResult());
     MOCK_METHOD1(SetOption, void(const sptr<FbOption>& option));
     MOCK_METHOD1(SetBindState, void(bool isBind));
     MOCK_METHOD1(SetBindWindowId, void(uint32_t windowId));
@@ -164,38 +164,44 @@ HWTEST_F(FloatWindowManagerTest, Bind, TestSize.Level1)
     fvController_->bindState_ = false;
     fvController_->curState_ = FvWindowState::FV_STATE_UNDEFINED;
 
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
     EXPECT_TRUE(fvController_->bindState_);
     fbController_->bindState_ = false;
     fvController_->bindState_ = false;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE,
+        FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
 
     fbController_->bindState_ = true;
     fvController_->bindState_ = false;
     fbController_->curState_ = FbWindowState::STATE_UNDEFINED;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE,
+        FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
 
     fbController_->bindState_ = true;
     fvController_->bindState_ = false;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE,
+        FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
     fbController_->curState_ = FbWindowState::STATE_UNDEFINED;
 
     fbController_->bindState_ = false;
     fvController_->bindState_ = false;
     fvController_->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE,
+        FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
 
     fbController_->bindState_ = false;
     fvController_->bindState_ = true;
     fvController_->curState_ = FvWindowState::FV_STATE_UNDEFINED;
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE,
+        FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
 
     fbController_->bindState_ = false;
     fvController_->bindState_ = true;
     fvController_->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE,
+        FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
 }
 
 HWTEST_F(FloatWindowManagerTest, UnBind, TestSize.Level1)
@@ -205,42 +211,42 @@ HWTEST_F(FloatWindowManagerTest, UnBind, TestSize.Level1)
     fvController_->bindState_ = true;
     fvController_->curState_ = FvWindowState::FV_STATE_UNDEFINED;
 
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(nullptr, fbController_));
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, nullptr));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(nullptr, fbController_).errCode);
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, nullptr).errCode);
     FloatWindowManager::floatViewToFloatingBallMap_.insert(std::make_pair(fvController_, fbController_));
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
 
     fbController_->bindState_ = true;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
     fvController_->bindState_ = true;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
 
     fbController_->bindState_ = false;
     fbController_->curState_ = FbWindowState::STATE_UNDEFINED;
     fvController_->bindState_ = true;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
 
     fbController_->bindState_ = false;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
     fvController_->bindState_ = true;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
     fbController_->curState_ = FbWindowState::STATE_UNDEFINED;
 
     fbController_->bindState_ = true;
     fvController_->bindState_ = true;
     fvController_->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
 
     fbController_->bindState_ = true;
     fvController_->bindState_ = false;
     fvController_->curState_ = FvWindowState::FV_STATE_UNDEFINED;
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
 
     fbController_->bindState_ = true;
     fvController_->bindState_ = false;
     fvController_->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FV_INVALID_STATE, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
 }
 
 HWTEST_F(FloatWindowManagerTest, GetBoundFloatingBall, TestSize.Level1)
@@ -294,8 +300,6 @@ HWTEST_F(FloatWindowManagerTest, GetBoundFloatView, TestSize.Level1)
 HWTEST_F(FloatWindowManagerTest, StartBindFloatView, TestSize.Level1)
 {
     auto mockFvController = sptr<MockFloatViewController>::MakeSptr(*fvOption_, nullptr);
-    auto mockWindow = sptr<Window>::MakeSptr();
-    auto mockFbWindow = sptr<Window>::MakeSptr();
 
     EXPECT_CALL(*fbController_, GetCurState()).WillRepeatedly(Return(FbWindowState::STATE_UNDEFINED));
     EXPECT_CALL(*fbController_, IsBind()).WillRepeatedly(Return(false));
@@ -305,19 +309,31 @@ HWTEST_F(FloatWindowManagerTest, StartBindFloatView, TestSize.Level1)
     EXPECT_CALL(*mockFvController, IsBind()).WillRepeatedly(Return(false));
     EXPECT_CALL(*mockFvController, SetBindState(true)).WillRepeatedly(Return());
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
+    EXPECT_NE(WMError::WM_OK, FloatWindowManager::StartBindFloatView(mockFvController).errCode);
 
-    EXPECT_CALL(*mockFvController, StartFloatViewSingle(true)).
-        WillRepeatedly(Return(WMError::WM_ERROR_INVALID_OPERATION));
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, FloatWindowManager::StartBindFloatView(mockFvController));
     wptr<FloatViewController> nullController;
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatView(nullController));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatView(nullController).errCode);
+
+    FloatWindowManager::UnBind(mockFvController, fbController_);
+}
+
+/**
+ * @tc.name: StartBindFloatView02
+ * @tc.desc: not bound in map, floatViewToFloatingBallMap_ not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(FloatWindowManagerTest, StartBindFloatView02, TestSize.Level1)
+{
+    auto mockFvController = sptr<MockFloatViewController>::MakeSptr(*fvOption_, nullptr);
+    // not bound, so floatViewToFloatingBallMap_ has no entry
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatView(mockFvController).errCode);
 }
 
 HWTEST_F(FloatWindowManagerTest, StartBindFloatingBall, TestSize.Level1)
 {
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatingBall(fbController_, fbOption_));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatingBall(fbController_, fbOption_).errCode);
     wptr<FloatingBallController> nullController;
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatingBall(nullController, fbOption_));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StartBindFloatingBall(nullController, fbOption_).errCode);
 
     auto mockFvController = sptr<MockFloatViewController>::MakeSptr(*fvOption_, nullptr);
     auto mockWindow = sptr<Window>::MakeSptr();
@@ -331,16 +347,16 @@ HWTEST_F(FloatWindowManagerTest, StartBindFloatingBall, TestSize.Level1)
     
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
     EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, FloatWindowManager::StartBindFloatingBall(fbController_,
-        fbOption_));
+        fbOption_).errCode);
     FloatWindowManager::UnBind(mockFvController, fbController_);
 }
 
 HWTEST_F(FloatWindowManagerTest, StopBindFloatView, TestSize.Level1)
 {
     wptr<MockFloatingBallController> nullFbController;
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatView(nullFbController));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatView(nullFbController).errCode);
     wptr<MockFloatViewController> nullFvController;
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatView(nullFvController));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatView(nullFvController).errCode);
 
     auto mockFvController = sptr<MockFloatViewController>::MakeSptr(*fvOption_, nullptr);
     
@@ -352,24 +368,24 @@ HWTEST_F(FloatWindowManagerTest, StopBindFloatView, TestSize.Level1)
     
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
     mockFvController->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, FloatWindowManager::StopBindFloatView(mockFvController));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, FloatWindowManager::StopBindFloatView(mockFvController).errCode);
 
     EXPECT_CALL(*mw_, Destroy(_, _)).WillRepeatedly(Return(WMError::WM_OK));
     mockFvController->window_ = mw_;
 
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, FloatWindowManager::StopBindFloatView(mockFvController));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, FloatWindowManager::StopBindFloatView(mockFvController).errCode);
     fbController_->window_ = mw_;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
     mockFvController->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::StopBindFloatView(mockFvController));
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::StopBindFloatView(mockFvController).errCode);
     FloatWindowManager::UnBind(mockFvController, fbController_);
 }
 
 HWTEST_F(FloatWindowManagerTest, StopBindFloatingBall, TestSize.Level1)
 {
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatingBall(fbController_));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatingBall(fbController_).errCode);
     wptr<FloatingBallController> nullController;
-    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatingBall(nullController));
+    EXPECT_EQ(WMError::WM_DO_NOTHING, FloatWindowManager::StopBindFloatingBall(nullController).errCode);
 
     auto mockFvController = sptr<MockFloatViewController>::MakeSptr(*fvOption_, nullptr);
     
@@ -380,15 +396,15 @@ HWTEST_F(FloatWindowManagerTest, StopBindFloatingBall, TestSize.Level1)
     EXPECT_CALL(*mockFvController, IsBind()).WillRepeatedly(Return(false));
     
     FloatWindowManager::Bind(mockFvController, fbController_, *fbOption_);
-    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, FloatWindowManager::StopBindFloatingBall(fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_STATE_ABNORMALLY, FloatWindowManager::StopBindFloatingBall(fbController_).errCode);
 
     EXPECT_CALL(*mw_, Destroy(_, _)).WillRepeatedly(Return(WMError::WM_OK));
     fbController_->window_ = mw_;
-    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, FloatWindowManager::StopBindFloatingBall(fbController_));
+    EXPECT_EQ(WMError::WM_ERROR_FB_INTERNAL_ERROR, FloatWindowManager::StopBindFloatingBall(fbController_).errCode);
     mockFvController->window_ = mw_;
     fbController_->curState_ = FbWindowState::STATE_STARTED;
     mockFvController->curState_ = FvWindowState::FV_STATE_STARTED;
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::StopBindFloatingBall(fbController_));
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::StopBindFloatingBall(fbController_).errCode);
     FloatWindowManager::UnBind(mockFvController, fbController_);
 }
 
@@ -398,14 +414,14 @@ HWTEST_F(FloatWindowManagerTest, BindUnBindCycle, TestSize.Level1)
     EXPECT_CALL(*fbController_, IsBind()).WillRepeatedly(Return(false));
     EXPECT_CALL(*fvController_, GetCurState()).WillRepeatedly(Return(FvWindowState::FV_STATE_UNDEFINED));
     EXPECT_CALL(*fvController_, IsBind()).WillRepeatedly(Return(false));
-    
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
     EXPECT_TRUE(fvController_->bindState_);
-    
+
     EXPECT_CALL(*fbController_, IsBind()).WillRepeatedly(Return(true));
     EXPECT_CALL(*fvController_, IsBind()).WillRepeatedly(Return(true));
-    
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::UnBind(fvController_, fbController_));
+
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::UnBind(fvController_, fbController_).errCode);
     EXPECT_FALSE(fvController_->bindState_);
 }
 
@@ -424,8 +440,8 @@ HWTEST_F(FloatWindowManagerTest, MultiplePairsTest, TestSize.Level1)
     EXPECT_CALL(*fvController2, GetCurState()).WillRepeatedly(Return(FvWindowState::FV_STATE_UNDEFINED));
     EXPECT_CALL(*fvController2, IsBind()).WillRepeatedly(Return(false));
     
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController2, fbController2, *fbOption_));
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController2, fbController2, *fbOption_).errCode);
     
     auto boundFb1 = FloatWindowManager::GetBoundFloatingBall(fvController_);
     auto boundFb2 = FloatWindowManager::GetBoundFloatingBall(fvController2);
@@ -591,7 +607,7 @@ HWTEST_F(FloatWindowManagerTest, RemoveRelation_Test, TestSize.Level1)
     EXPECT_CALL(*fvController_, GetCurState()).WillRepeatedly(Return(FvWindowState::FV_STATE_UNDEFINED));
     EXPECT_CALL(*fvController_, IsBind()).WillRepeatedly(Return(false));
 
-    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_));
+    EXPECT_EQ(WMError::WM_OK, FloatWindowManager::Bind(fvController_, fbController_, *fbOption_).errCode);
     EXPECT_NE(nullptr, FloatWindowManager::GetBoundFloatingBall(fvController_));
 
     // branch: it->second != nullptr && fbController == nullptr => do nothing

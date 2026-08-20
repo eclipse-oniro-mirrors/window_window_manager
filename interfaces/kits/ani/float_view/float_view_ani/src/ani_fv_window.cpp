@@ -225,7 +225,7 @@ ani_object AniFvWindow::BindAni(ani_env* env, ani_object fvController, ani_objec
             "Permission denied. Required permissions: ohos.permission.FLOAT_VIEW, ohos.permission.USE_FLOAT_BALL.");
     }
     TLOGI(WmsLogTag::WMS_SYSTEM, "start bind controller");
-    WMError err = FloatWindowManager::Bind(nFvController, nFbController, fbOption);
+    WMError err = FloatWindowManager::Bind(nFvController, nFbController, fbOption).errCode;
     if (err != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "bind controller failed");
         return AniFvUtils::AniThrowError(env, err, "Failed to bind controllers.");
@@ -262,7 +262,7 @@ ani_object AniFvWindow::UnBindAni(ani_env* env, ani_object fvController, ani_obj
         return AniFvUtils::AniThrowError(env, WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
             "Device does not support this operation.");
     }
-    WMError err = FloatWindowManager::UnBind(nFvController, nFbController);
+    WMError err = FloatWindowManager::UnBind(nFvController, nFbController).errCode;
     if (err != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "unbind controller failed");
         return AniFvUtils::AniThrowError(env, err, "Failed to unbind controllers.");
