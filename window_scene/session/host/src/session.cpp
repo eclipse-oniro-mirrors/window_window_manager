@@ -2641,11 +2641,10 @@ void Session::SetPendingSessionToForegroundListener(NotifyPendingSessionToForegr
     }, __func__);
 }
 
-WSError Session::PendingSessionToForeground()
+WSError Session::PendingSessionToForeground(SessionInfo& info)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
     if (pendingSessionActivationFunc_) {
-        SessionInfo info = GetSessionInfo();
         pendingSessionActivationFunc_(info);
     }
     return WSError::WS_OK;

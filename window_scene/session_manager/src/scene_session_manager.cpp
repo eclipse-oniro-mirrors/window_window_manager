@@ -14529,7 +14529,13 @@ WSError SceneSessionManager::PendingSessionToForeground(const sptr<IRemoteObject
                 TLOGI(WmsLogTag::WMS_LIFE, "Modify window mode: %{public}d", windowMode);
                 session->SetSessionInfoWindowMode(windowMode);
             }
-            return session->PendingSessionToForeground();
+            auto displayId = session->GetSessionProperty()->GetDisplayId();
+            auto focusedSessionId = GetFocusedSessionId(displayId);
+            auto focusedSession = GetSceneSession(focusedSessionId);
+            if (focusedSession != nullptr && WindowHelper::IsMainWindow(focusedSession->GetWindowType())) {
+                return focusedSession->PendingSessionToForeground(session->EditSessionInfo());
+            }
+            return session->PendingSessionToForeground(session->EditSessionInfo());
         }
         TLOGNE(WmsLogTag::DEFAULT, "PendingForeground: fail to find token");
         return WSError::WS_ERROR_INVALID_PARAM;

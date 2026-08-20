@@ -234,7 +234,7 @@ public:
     WSError DrawingCompleted() override;
     void ResetSessionConnectState() REQUIRES(SCENE_GUARD);
     void ResetIsActive();
-    WSError PendingSessionToForeground();
+    WSError PendingSessionToForeground(SessionInfo& info);
     WSError PendingSessionToBackground(const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(bool shouldBackToCaller,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
