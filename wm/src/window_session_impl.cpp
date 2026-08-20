@@ -5589,31 +5589,12 @@ bool WindowSessionImpl::IsHitTitleBar(std::shared_ptr<MMI::PointerEvent>& pointe
     }
     Rect windowRect = property_->GetWindowRect();
     int32_t decorHeight = uiContent->GetContainerModalTitleHeight();
-    int32_t statusBarHeight = property_->GetStatusBarHeightInImmersive();
-    int32_t foldCreaseRegionHeight = 0;
-    int32_t displayHeight = 0;
     MMI::PointerEvent::PointerItem pointerItem;
     bool isValidPointItem = pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
-    auto foldCreaseRegion = DisplayManager::GetInstance().GetCurrentFoldCreaseRegion();
-    if (foldCreaseRegion != nullptr) {
-        const auto& creaseRects = foldCreaseRegion->GetCreaseRects();
-        if (!creaseRects.empty()) {
-            foldCreaseRegionHeight = creaseRects.front().height_;
-        }
-    }
-    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
-    if (display != nullptr) {
-        displayHeight = display->GetHeight();
-    }
-    int32_t displayX = pointerItem.GetDisplayX();
-    int32_t displayY = pointerItem.GetDisplayY();
-    if (property_->GetDisplayId() == DISPLAY_ID_C) {
-        displayY -= (displayHeight + foldCreaseRegionHeight);
-    }
-    bool isHitTitleBarX = displayX > windowRect.posX_&&
-        displayX < windowRect.posX_ + static_cast<int32_t>(windowRect.width_);
-    bool isHitTitleBarY = displayY > windowRect.posY_ + statusBarHeight &&
-        displayY < windowRect.posY_ + decorHeight + statusBarHeight;
+    int32_t displayX = pointerItem.GetWindowX();
+    int32_t displayY = pointerItem.GetWindowY();
+    bool isHitTitleBarX = displayX > 0 && displayX < static_cast<int32_t>(windowRect.width_);
+    bool isHitTitleBarY = displayY > 0 && displayY < decorHeight;
     bool isHitTitleBar = isValidPointItem && isHitTitleBarX && isHitTitleBarY;
     if (isHitTitleBar) {
         TLOGI(WmsLogTag::WMS_DECOR, "hitTitleBar success");
@@ -7125,41 +7106,33 @@ std::vector<Rect> WindowSessionImpl::GetAncoWindowHotAreas()
     float cornerArea = WINDOW_FRAME_CORNER_WIDTH * vpr;
     int32_t width = static_cast<int32_t>(property_->GetWindowRect().width_);
     int32_t height = static_cast<int32_t>(property_->GetWindowRect().height_);
-    int32_t posX = property_->GetWindowRect().posX_;
-    int32_t posY = property_->GetWindowRect().posY_;
     int32_t decorHeight = uiContent->GetContainerModalTitleHeight();
-    int32_t statusBarHeight = property_->GetStatusBarHeightInImmersive();
     bool isFullScreen = mode == WindowMode::WINDOW_MODE_FULLSCREEN;
     if (isFullScreen && !isTitleShowInFullScreen_) {
         return rectAreas;
     }
-    Rect titleRect = {posX, posY + statusBarHeight, width * compatScaleX_, decorHeight * compatScaleY_};
+    Rect titleRect = {0, 0, width, decorHeight};
     rectAreas.push_back(titleRect);
     if (isFullScreen) {
         return rectAreas;
     }
-    Rect rectTop = {posX - outsideArea * compatScaleX_, posY - outsideArea * compatScaleY_,
-        (width + outsideArea * 2) * compatScaleX_, (outsideArea + insideArea) * compatScaleY_};
+    Rect rectTop = { -outsideArea, -outsideArea, width + outsideArea * 2, outsideArea + insideArea };
     rectAreas.push_back(rectTop);
-    Rect rectLeft = {posX - outsideArea * compatScaleX_, posY - outsideArea * compatScaleY_,
-        (outsideArea + insideArea) * compatScaleX_, (height + outsideArea * 2) * compatScaleY_};
+    Rect rectLeft = { -outsideArea, -outsideArea, outsideArea + insideArea, height + outsideArea * 2 };
     rectAreas.push_back(rectLeft);
-    Rect rectRight = {posX + width * compatScaleX_ - insideArea, posY - outsideArea,
-        outsideArea + insideArea, height * compatScaleY_ + outsideArea * 2};
+    Rect rectRight = { width - insideArea, -outsideArea,
+        outsideArea + insideArea, height + outsideArea * 2 };
     rectAreas.push_back(rectRight);
-    Rect rectBottom = {posX - outsideArea * compatScaleX_, posY + (height - insideArea) * compatScaleY_,
-        (width + outsideArea * 2) * compatScaleX_, (outsideArea + insideArea) * compatScaleY_};
+    Rect rectBottom = { -outsideArea, height - insideArea,
+        width + outsideArea * 2, outsideArea + insideArea };
     rectAreas.push_back(rectBottom);
-    Rect rectLeftTop = {posX, posY, cornerArea * compatScaleX_, cornerArea * compatScaleY_};
+    Rect rectLeftTop = { 0, 0, cornerArea, cornerArea };
     rectAreas.push_back(rectLeftTop);
-    Rect rectRightTop = {posX + (width - cornerArea) * compatScaleX_, posY,
-        cornerArea * compatScaleX_, cornerArea * compatScaleY_};
+    Rect rectRightTop = { width - cornerArea, 0, cornerArea, cornerArea };
     rectAreas.push_back(rectRightTop);
-    Rect rectLeftBottom = {posX, posY + (height - cornerArea) * compatScaleY_,
-        cornerArea * compatScaleX_, cornerArea * compatScaleY_};
+    Rect rectLeftBottom = { 0, height - cornerArea, cornerArea, cornerArea };
     rectAreas.push_back(rectLeftBottom);
-    Rect rectRightBottom = {posX + (width - cornerArea) * compatScaleX_, posY + (height - cornerArea) * compatScaleY_,
-        cornerArea * compatScaleX_, cornerArea * compatScaleY_};
+    Rect rectRightBottom = { width - cornerArea, height - cornerArea, cornerArea, cornerArea };
     rectAreas.push_back(rectRightBottom);
     return rectAreas;
 }

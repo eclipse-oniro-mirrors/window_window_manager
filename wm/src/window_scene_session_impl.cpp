@@ -9421,7 +9421,6 @@ bool WindowSceneSessionImpl::IsSeparationTouchEnabled()
 }
 
 bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent)
-	
 {
     std::shared_ptr<Ace::UIContent> uiContent = GetUIContentSharedPtr();
     std::lock_guard<std::mutex> lockListener(compatScaleListenerMutex_);
@@ -9434,67 +9433,30 @@ bool WindowSceneSessionImpl::IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& p
     }
     Rect windowRect = property_->GetWindowRect();
     MMI::PointerEvent::PointerItem pointerItem;
-    int32_t foldCreaseRegionHeight = 0;
-    int32_t displayHeight = 0;
     bool isValidPointItem = pointerEvent->GetPointerItem(pointerEvent->GetPointerId(), pointerItem);
-    auto foldCreaseRegion = DisplayManager::GetInstance().GetCurrentFoldCreaseRegion();
-    if (foldCreaseRegion != nullptr) {
-        const auto& creaseRects = foldCreaseRegion->GetCreaseRects();
-        if (!creaseRects.empty()) {
-            foldCreaseRegionHeight = creaseRects.front().height_;
-        }
-    }
-    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
-    if (display != nullptr) {
-        displayHeight = display->GetHeight();
-    }
-    int32_t displayX = pointerItem.GetDisplayX();
-    int32_t displayY = pointerItem.GetDisplayY();
-    if (property_->GetDisplayId() == DISPLAY_ID_C) {
-        displayY -= (displayHeight + foldCreaseRegionHeight);
-    }
-    
+    int32_t displayX = pointerItem.GetWindowX();
+    int32_t displayY = pointerItem.GetWindowY();
     int32_t width = static_cast<int32_t>(windowRect.width_);
     int32_t height = static_cast<int32_t>(windowRect.height_);
-    int32_t posX = windowRect.posX_;
-    int32_t posY = windowRect.posY_;
     float vpr = WindowSessionImpl::GetVirtualPixelRatio();
-    float scaleX = compatScaleX_;
-    float scaleY = compatScaleY_;
     float outsideArea = HOTZONE_TOUCH * vpr;
     float insideArea = WINDOW_FRAME_WIDTH * vpr;
     float cornerArea = WINDOW_FRAME_CORNER_TOUCH_WIDTH * vpr;
  
-        bool isHitTopHotArea = displayX > posX - outsideArea * scaleX &&
-        displayX < posX + (width + outsideArea) * scaleX &&
-        displayY > posY - outsideArea * scaleY &&
-        displayY < posY + (insideArea + outsideArea) * scaleY;
- 
-    bool isHitLeftHotArea = displayX > posX - outsideArea * scaleX &&
-        displayX < posX + (insideArea + outsideArea) * scaleX &&
-        displayY > posY - outsideArea * scaleY &&
-        displayY < posY + (height + outsideArea) * scaleY;
- 
-    bool isHitRightHotArea = displayX > posX + (width - insideArea) * scaleX &&
-        displayX < posX + (width + outsideArea) * scaleX &&
-        displayY > posY - outsideArea * scaleY &&
-        displayY < posY + (height + outsideArea) * scaleY;
-    
-    bool isHitBottomHotArea = displayX > posX - outsideArea * scaleX &&
-        displayX < posX + (width + outsideArea) * scaleX &&
-        displayY > posY + (height - insideArea) * scaleY &&
-        displayY < posY + (height + outsideArea) * scaleY;
- 
-    bool isHitLeftBottomHotArea = displayX > posX &&
-        displayX < posX + cornerArea * scaleX &&
-        displayY > posY + (height - cornerArea) * scaleY &&
-        displayY < posY + height * scaleY;
-
-    bool isHitRightBottomHotArea = displayX > posX + (width - cornerArea) * scaleX &&
-        displayX < posX + width * scaleX &&
-        displayY > posY + (height - cornerArea) * scaleY &&
-        displayY < posY + height * scaleY;
- 
+    bool isHitTopHotArea = displayX > -outsideArea && displayX < (width + outsideArea) &&
+        displayY > -outsideArea && displayY < (insideArea + outsideArea);
+    bool isHitLeftHotArea = displayX > -outsideArea &&
+        displayX < (insideArea + outsideArea) &&
+        displayY > -outsideArea && displayY < (height + outsideArea);
+    bool isHitRightHotArea = displayX > (width - insideArea) &&
+        displayX < (width + outsideArea) &&
+        displayY > -outsideArea && displayY < (height + outsideArea);
+    bool isHitBottomHotArea = displayX > -outsideArea && displayX < (width + outsideArea) &&
+        displayY > (height - insideArea) && displayY < (height + outsideArea);
+    bool isHitLeftBottomHotArea = displayX > 0 && displayX < cornerArea &&
+        displayY > (height - cornerArea) && displayY < height;
+    bool isHitRightBottomHotArea = displayX > (width - cornerArea) &&
+        displayX < width && displayY > (height - cornerArea) && displayY < height;
     bool isHitHotAreas = isHitTopHotArea || isHitLeftHotArea || isHitRightHotArea || isHitBottomHotArea ||
       isHitLeftBottomHotArea || isHitRightBottomHotArea;
     if (isValidPointItem && isHitHotAreas) {
