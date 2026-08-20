@@ -647,7 +647,7 @@ public:
     WSError NotifyEnterRecentTask(bool enterRecent);
     void NotifySCBRecentStateChange(bool isRecent);
     WMError UpdateDisplayHookInfo(int32_t uid, uint32_t width, uint32_t height, float_t density, bool enable);
-    WMError UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable);
+    WMError UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable, int32_t persistentId = -1);
     WMError NotifyHookOrientationChange(int32_t persistentId);
     void InitScheduleUtils();
     void ProcessDisplayScale(sptr<DisplayInfo>& displayInfo);

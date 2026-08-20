@@ -923,6 +923,117 @@ HWTEST_F(SceneSessionManagerLayoutTest, GetHostGlobalScaledRectUseHookedSize, Te
     ssm_->sceneSessionMap_.erase(hostWindowId);
 }
 
+/**
+ * @tc.name: UpdateAppHookDisplayInfo003
+ * @tc.desc: Test update AppHookDisplayInfo with uid<=0 and valid persistentId, session found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, UpdateAppHookDisplayInfo003, TestSize.Level1)
+{
+    int32_t uid = 0;
+    constexpr int32_t persistentId = 100;
+    bool enable = true;
+    HookInfo hookInfo;
+    hookInfo.width_ = 100;
+    hookInfo.height_ = 100;
+    hookInfo.density_ = 2.25;
+    hookInfo.rotation_ = 0;
+    hookInfo.enableHookRotation_ = false;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "UpdateAppHookDisplayInfo003";
+    sessionInfo.abilityName_ = "UpdateAppHookDisplayInfo003";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->persistentId_ = persistentId;
+    ssm_->sceneSessionMap_[persistentId] = sceneSession;
+
+    auto result = ssm_->UpdateAppHookDisplayInfo(uid, hookInfo, enable, persistentId);
+    ASSERT_EQ(result, WMError::WM_OK);
+    EXPECT_TRUE(sceneSession->hasPendingAppHookDisplayInfo_);
+    EXPECT_TRUE(sceneSession->pendingAppHookDisplayInfoEnable_);
+    EXPECT_EQ(sceneSession->pendingAppHookDisplayInfo_.width_, hookInfo.width_);
+    EXPECT_EQ(sceneSession->pendingAppHookDisplayInfo_.height_, hookInfo.height_);
+}
+
+/**
+ * @tc.name: UpdateAppHookDisplayInfo004
+ * @tc.desc: Test update AppHookDisplayInfo with uid<=0 and valid persistentId, session not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, UpdateAppHookDisplayInfo004, TestSize.Level1)
+{
+    int32_t uid = 0;
+    constexpr int32_t persistentId = 999;
+    bool enable = true;
+    HookInfo hookInfo;
+    hookInfo.width_ = 100;
+    hookInfo.height_ = 100;
+    hookInfo.density_ = 2.25;
+
+    auto result = ssm_->UpdateAppHookDisplayInfo(uid, hookInfo, enable, persistentId);
+    ASSERT_EQ(result, WMError::WM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: UpdateAppHookDisplayInfo005
+ * @tc.desc: Test update AppHookDisplayInfo with uid<=0, valid persistentId, enable=true but invalid hookInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, UpdateAppHookDisplayInfo005, TestSize.Level1)
+{
+    int32_t uid = 0;
+    constexpr int32_t persistentId = 100;
+    bool enable = true;
+    HookInfo hookInfo;
+    hookInfo.width_ = 0;
+    hookInfo.height_ = 100;
+    hookInfo.density_ = 2.25;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "UpdateAppHookDisplayInfo005";
+    sessionInfo.abilityName_ = "UpdateAppHookDisplayInfo005";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->persistentId_ = persistentId;
+    ssm_->sceneSessionMap_[persistentId] = sceneSession;
+
+    auto result = ssm_->UpdateAppHookDisplayInfo(uid, hookInfo, enable, persistentId);
+    ASSERT_EQ(result, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateAppHookDisplayInfo006
+ * @tc.desc: Test update AppHookDisplayInfo with uid<=0, valid persistentId, enable=false,
+ *           pending hook info saved to session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest, UpdateAppHookDisplayInfo006, TestSize.Level1)
+{
+    int32_t uid = 0;
+    constexpr int32_t persistentId = 100;
+    bool enable = false;
+    HookInfo hookInfo;
+    hookInfo.width_ = 200;
+    hookInfo.height_ = 300;
+    hookInfo.density_ = 3.0;
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "UpdateAppHookDisplayInfo006";
+    sessionInfo.abilityName_ = "UpdateAppHookDisplayInfo006";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->persistentId_ = persistentId;
+    ssm_->sceneSessionMap_[persistentId] = sceneSession;
+
+    auto result = ssm_->UpdateAppHookDisplayInfo(uid, hookInfo, enable, persistentId);
+    ASSERT_EQ(result, WMError::WM_OK);
+    EXPECT_TRUE(sceneSession->hasPendingAppHookDisplayInfo_);
+    EXPECT_FALSE(sceneSession->pendingAppHookDisplayInfoEnable_);
+    EXPECT_EQ(sceneSession->pendingAppHookDisplayInfo_.width_, hookInfo.width_);
+    EXPECT_EQ(sceneSession->pendingAppHookDisplayInfo_.height_, hookInfo.height_);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
