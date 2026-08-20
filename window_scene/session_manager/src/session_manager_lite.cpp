@@ -484,14 +484,16 @@ WMError SessionManagerLite::InitSceneSessionManagerLiteProxy()
     }
     // Begin init.
     sptr<IRemoteObject> remoteObject = nullptr;
+    sptr<ISessionManagerService> proxy = nullptr;
     {
         std::lock_guard<std::mutex> lock(smsProxyMutex_);
         if (!sessionManagerServiceProxy_) {
             TLOGE(WmsLogTag::DEFAULT, "Session manager proxy is null, userId=%{public}d", userId_);
             return WMError::WM_ERROR_NULLPTR;
         }
-        remoteObject = sessionManagerServiceProxy_->GetSceneSessionManagerLite();
+        proxy = sessionManagerServiceProxy_;
     }
+    remoteObject = proxy->GetSceneSessionManagerLite();
     if (!remoteObject) {
         TLOGE(WmsLogTag::DEFAULT, "Get remote object failed, userId=%{public}d", userId_);
         return WMError::WM_ERROR_NULLPTR;
