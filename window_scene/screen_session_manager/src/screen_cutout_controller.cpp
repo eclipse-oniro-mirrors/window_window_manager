@@ -83,8 +83,8 @@ void ScreenCutoutController::RecoverRealScreenSize(uint32_t& dwidth, uint32_t& d
 
     const RRect& screenBounds = session->GetScreenProperty().GetBounds();
 
-    int32_t width = screenBounds.rect_.GetWidth();
-    int32_t height = screenBounds.rect_.GetHeight();
+    uint32_t width = static_cast<uint32_t>(screenBounds.rect_.GetWidth());
+    uint32_t height = static_cast<uint32_t>(screenBounds.rect_.GetHeight());
 
     TLOGI(WmsLogTag::DMS, "id: %{public}" PRIu64
         ", pw: %{public}u, ph: %{public}u, W: %{public}u, H: %{public}u",
