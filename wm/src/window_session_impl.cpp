@@ -3119,15 +3119,17 @@ void WindowSessionImpl::UpdateDecorEnableToAce(bool isDecorEnable)
     }
 }
 
-void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
+bool WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
 {
     if (mode == WindowMode::WINDOW_MODE_UNDEFINED) {
         mode = GetWindowMode();
     }
+    bool decorEnable = IsDecorEnable();
+    bool decorVisible = false;
     if (needNotify) {
         if (auto uiContent = GetUIContentSharedPtr()) {
             bool isAncoInPcOrPcMode = IsAnco() && windowSystemConfig_.IsPcOrPcMode();
-            bool decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
+            decorVisible = mode == WindowMode::WINDOW_MODE_FLOATING ||
                 WindowHelper::IsSplitWindowMode(mode) ||
                 (mode == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsLayoutFullScreen() &&
                 !isAncoInPcOrPcMode);
@@ -3142,14 +3144,15 @@ void WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
             }
             decorVisible = updateDecorWhenDockAutoHide(decorVisible);
             decorVisible = NeedShowDecorInOtherDisplay(decorVisible);
-            TLOGD(WmsLogTag::WMS_DECOR, "decorVisible:%{public}d, isDockAutoHide:%{public}d, "
-                "isDecorHiddenByApp:%{public}d, isMaximizeInvoked:%{public}d, id:%{public}d", decorVisible,
+            TLOGD(WmsLogTag::WMS_DECOR, "decorEnable:%{public}d, decorVisible:%{public}d, isDockAutoHide:%{public}d, "
+                "isDecorHiddenByApp:%{public}d, isMaximizeInvoked:%{public}d, id:%{public}d", decorEnable, decorVisible,
                 windowSystemConfig_.isDockAutoHide_, isDecorHiddenByApp_, isMaximizeInvoked_, GetPersistentId());
-            uiContent->UpdateDecorVisible(decorVisible, IsDecorEnable());
+            uiContent->UpdateDecorVisible(decorVisible, decorEnable);
             uiContent->NotifyWindowMode(mode);
         }
-        NotifyModeChange(mode, IsDecorEnable());
+        NotifyModeChange(mode, decorEnable);
     }
+    return decorVisible && decorEnable;
 }
 
 bool WindowSessionImpl::updateDecorWhenDockAutoHide(bool decorVisible)
@@ -10548,8 +10551,8 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
             subWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
             subWindowSession->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
             subWindowSession->UpdateTitleButtonVisibility();
-            subWindowSession->UpdateDecorEnable(true);
-            subWindowSession->UpdateSubWindowDragEnabledByDecorVisible();
+            bool decorVisible = subWindowSession->UpdateDecorEnable(true);
+            subWindowSession->UpdateSubWindowDragEnabledByDecorVisible(decorVisible);
             subWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
             subWindowSession->SwitchSubWindow(freeMultiWindowEnable, subWindowSession->GetPersistentId());
             if (!freeMultiWindowEnable && subWindowSession->IsZLevelAboveParentLoosened() &&
