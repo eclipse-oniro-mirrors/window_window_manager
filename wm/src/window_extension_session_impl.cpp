@@ -55,6 +55,7 @@ constexpr int64_t DISPATCH_KEY_EVENT_TIMEOUT_TIME_MS = 1000;
 constexpr int32_t UIEXTENTION_ROTATION_ANIMATION_TIME = 400;
 constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
 constexpr uint64_t INVALID_NODE_ID = 0;
+constexpr const char* UIEXTENSION_CONFIG_WINDOW_MODE = "ohos.system.window.mode";
 }
 
 #define CHECK_HOST_SESSION_RETURN_IF_NULL(hostSession)                         \
@@ -2229,6 +2230,11 @@ void WindowExtensionSessionImpl::UpdateExtensionConfig(const std::shared_ptr<AAF
     auto hostWindowStatus = static_cast<WindowStatus>(configParam.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
         static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
     hostWindowStatus_ = hostWindowStatus;
+    auto windowMode = static_cast<WindowMode>(configParam.GetIntParam(UIEXTENSION_CONFIG_WINDOW_MODE,
+        static_cast<int32_t>(WindowMode::WINDOW_MODE_UNDEFINED)));
+    if (windowMode != WindowMode::WINDOW_MODE_UNDEFINED) {
+        SetWindowMode(windowMode);
+    }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "CrossAxisState: %{public}d, waterfall: %{public}d, "
         "rootHostWindowType: %{public}u, isHostWindowDelayRaiseEnabled: %{public}d, "
         "hostWindowStatus: %{public}u, winId: %{public}u",
