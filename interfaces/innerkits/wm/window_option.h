@@ -703,6 +703,20 @@ public:
      */
     bool IsBlockSubwindow() const;
 
+    /**
+     * @brief Set the caller pid of this window.
+     *
+     * @param callerPid The caller pid of this window.
+     */
+    void SetCallerPid(int32_t callerPid);
+
+    /**
+     * @brief Get the caller pid of this window.
+     *
+     * @return The caller pid of this window.
+     */
+    int32_t GetCallerPid() const;
+
 private:
     Rect windowRect_ { 0, 0, 0, 0 };
     WindowType type_ { WindowType::WINDOW_TYPE_APP_MAIN_WINDOW };
@@ -757,6 +771,7 @@ private:
     int64_t startModalExtensionTimeStamp_ = -1;
     bool followCreatorLifecycle_ = false;
     bool isBlockSubwindow_ = false;
+    int32_t callerPid_ = INVALID_PID;
 };
 } // namespace Rosen
 } // namespace OHOS
