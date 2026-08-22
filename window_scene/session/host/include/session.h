@@ -706,6 +706,7 @@ public:
     int32_t GetAppIndex() const;
     void SetCallingPid(int32_t id) REQUIRES(SCENE_GUARD);
     void SetCallingUid(int32_t id);
+    void SetPendingAppHookDisplayInfo(const HookInfo& hookInfo, bool enable);
     int32_t GetCallingPid() const;
     int32_t GetCallingUid() const;
     void SetAbilityToken(sptr<IRemoteObject> token);
@@ -1358,6 +1359,10 @@ private:
     WSRect preRect_;
     int32_t callingPid_ = -1;
     int32_t callingUid_ = -1;
+    std::mutex pendingAppHookDisplayInfoMutex_;
+    HookInfo pendingAppHookDisplayInfo_;
+    bool pendingAppHookDisplayInfoEnable_ = false;
+    bool hasPendingAppHookDisplayInfo_ = false;
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };
     std::string sceneLastUsedPosition_;
@@ -1430,6 +1435,7 @@ private:
      * @param ctx Prelayout context containing display info.
      */
     void HandleHookDisplay(const PrelayoutContext& ctx);
+    void NotifyPendingAppHookDisplayInfo();
 
     std::optional<bool> clientDragEnable_;
     uint32_t dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;

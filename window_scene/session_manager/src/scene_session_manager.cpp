@@ -19034,9 +19034,25 @@ WMError SceneSessionManager::UpdateDisplayHookInfo(int32_t uid, uint32_t width, 
     return WMError::WM_OK;
 }
 
-WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable)
+WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInfo& hookInfo, bool enable,
+    int32_t persistentId)
 {
-    TLOGI(WmsLogTag::WMS_COMPAT, "hookInfo: [%{private}s], enable: %{public}d", hookInfo.ToString().c_str(), enable);
+    TLOGI(WmsLogTag::WMS_COMPAT, "uid: %{public}d, hookInfo: [%{private}s], enable: %{public}d, "
+        "persistentId: %{public}d", uid, hookInfo.ToString().c_str(), enable, persistentId);
+    if (uid <= 0 && persistentId > 0) {
+        if (enable && (hookInfo.width_ <= 0 || hookInfo.height_ <= 0 || hookInfo.density_ <= 0)) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "App hookInfo param error.");
+            return WMError::WM_ERROR_INVALID_PARAM;
+        }
+        auto session = GetSceneSession(persistentId);
+        if (session == nullptr) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "Session not found for persistentId: %{public}d", persistentId);
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        TLOGI(WmsLogTag::WMS_COMPAT, "Session not connected, hook display info need pending");
+        session->SetPendingAppHookDisplayInfo(hookInfo, enable);
+        return WMError::WM_OK;
+    }
     if (enable && (uid <= 0 || hookInfo.width_ <= 0 || hookInfo.height_ <= 0 || hookInfo.density_ <= 0)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "App hookInfo param error.");
         return WMError::WM_ERROR_INVALID_PARAM;

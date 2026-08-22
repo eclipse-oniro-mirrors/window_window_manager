@@ -1156,6 +1156,14 @@ void Session::SetCallingUid(int32_t id)
     callingUid_ = id;
 }
 
+void Session::SetPendingAppHookDisplayInfo(const HookInfo& hookInfo, bool enable)
+{
+    std::lock_guard<std::mutex> lock(pendingAppHookDisplayInfoMutex_);
+    pendingAppHookDisplayInfo_ = hookInfo;
+    pendingAppHookDisplayInfoEnable_ = enable;
+    hasPendingAppHookDisplayInfo_ = true;
+}
+
 int32_t Session::GetCallingPid() const
 {
     return callingPid_;
@@ -1675,6 +1683,7 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     InitSessionPropertyWhenConnect(property);
     SetCallingPid(pid);
     callingUid_ = uid;
+    NotifyPendingAppHookDisplayInfo();
     UpdateSessionState(SessionState::STATE_CONNECT);
 
     // Window Layout
@@ -1830,6 +1839,7 @@ WSError Session::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<I
     persistentId_ = property->GetPersistentId();
     SetCallingPid(pid);
     callingUid_ = uid;
+    NotifyPendingAppHookDisplayInfo();
     bufferAvailable_ = true;
     auto windowRect = property->GetWindowRect();
     layoutRect_ = { windowRect.posX_, windowRect.posY_,
@@ -6444,6 +6454,26 @@ void Session::HandleInitialRect(const PrelayoutContext& ctx)
         (ctx.enable || GetSessionInfo().isPrelaunch_) ? std::make_optional(ctx.winRect) : std::nullopt;
 
     NotifyClientToUpdateRect("Connect", rect, nullptr);
+}
+
+void Session::NotifyPendingAppHookDisplayInfo()
+{
+    HookInfo pendingHookInfo;
+    bool pendingEnable = false;
+    bool hasPending = false;
+    {
+        std::lock_guard<std::mutex> lock(pendingAppHookDisplayInfoMutex_);
+        hasPending = hasPendingAppHookDisplayInfo_;
+        if (hasPending) {
+            hasPendingAppHookDisplayInfo_ = false;
+            pendingHookInfo = pendingAppHookDisplayInfo_;
+            pendingEnable = pendingAppHookDisplayInfoEnable_;
+        }
+    }
+    if (hasPending && updateAppHookDisplayInfoFunc_) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Id: %{public}d", persistentId_);
+        updateAppHookDisplayInfoFunc_(callingUid_, pendingHookInfo, pendingEnable);
+    }
 }
 
 void Session::HandleHookDisplay(const PrelayoutContext& ctx)
