@@ -649,6 +649,13 @@ ohos_unittest("ws_scene_session_manager_test") {
 ohos_unittest("ws_scene_session_manager_one_test") {
   module_out_path = module_out_path
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+
   include_dirs = [
     "${window_base_path}/test/common/utils/include/",
     "${window_base_path}/window_scene/test/mock",

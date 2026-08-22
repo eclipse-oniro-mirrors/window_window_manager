@@ -2783,6 +2783,83 @@ HWTEST_F(SceneSessionManagerTest2, PendingSessionToForeground, TestSize.Level1)
 }
 
 /**
+ * @tc.name: PendingSessionToForeground01
+ * @tc.desc: Test if pip window can be created;
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, PendingSessionToForeground01, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ASSERT_NE(nullptr, ssm_);
+    SessionInfo info;
+    info.abilityName_ = "BackgroundTask02";
+    info.bundleName_ = "BackgroundTask02";
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ssm_->sceneSessionMap_.insert({100, sceneSession1});
+    ssm_->sceneSessionMap_.insert({0, sceneSession2});
+    const sptr<IRemoteObject>& token = sptr<ISession>(sceneSession1)->AsObject();
+    ssm_->PendingSessionToForeground(token);
+    std::string log = "PendingSessionToForeground: id: " + std::to_string(sceneSession2->GetPersistentId());
+    EXPECT_TRUE(g_logMsg.find(log) != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: PendingSessionToForeground02
+ * @tc.desc: Test if pip window can be created;
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, PendingSessionToForeground02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ASSERT_NE(nullptr, ssm_);
+    SessionInfo info;
+    info.abilityName_ = "BackgroundTask02";
+    info.bundleName_ = "BackgroundTask02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ssm_->sceneSessionMap_.insert({100, sceneSession});
+    const sptr<IRemoteObject>& token = sptr<ISession>(sceneSession)->AsObject();
+    ssm_->PendingSessionToForeground(token);
+    std::string log = "PendingSessionToForeground: id: " + std::to_string(sceneSession->GetPersistentId());
+    EXPECT_TRUE(g_logMsg.find(log) != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: PendingSessionToForeground03
+ * @tc.desc: Test if pip window can be created;
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, PendingSessionToForeground03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    ASSERT_NE(nullptr, ssm_);
+    SessionInfo info;
+    info.abilityName_ = "BackgroundTask02";
+    info.bundleName_ = "BackgroundTask02";
+    sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession2->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
+    ssm_->sceneSessionMap_.insert({100, sceneSession1});
+    ssm_->sceneSessionMap_.insert({0, sceneSession2});
+    const sptr<IRemoteObject>& token = sptr<ISession>(sceneSession1)->AsObject();
+    ssm_->PendingSessionToForeground(token);
+    std::string log = "PendingSessionToForeground: id: " + std::to_string(sceneSession1->GetPersistentId());
+    EXPECT_TRUE(g_logMsg.find(log) != std::string::npos);
+
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: GetFocusSessionToken
  * @tc.desc: Test if pip window can be created;
  * @tc.type: FUNC

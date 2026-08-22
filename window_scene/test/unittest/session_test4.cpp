@@ -530,7 +530,8 @@ HWTEST_F(WindowSessionTest4, SetSessionIcon, TestSize.Level1)
     session_->SetSessionSnapshotListener(nullptr);
     NotifyPendingSessionActivationFunc func = [](const SessionInfo& info) {};
     session_->pendingSessionActivationFunc_ = func;
-    ASSERT_EQ(session_->PendingSessionToForeground(), WSError::WS_OK);
+    SessionInfo info;
+    ASSERT_EQ(session_->PendingSessionToForeground(info), WSError::WS_OK);
 
     session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("SetSessionIcon", 1);
     session_->updateSessionIconFunc_ = nullptr;
