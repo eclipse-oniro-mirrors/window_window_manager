@@ -44,7 +44,7 @@ struct DisplayConfig {
 struct RogResolution {
     bool isSupportRog = false;
     bool notInit = true;
-    int32_t rogMode = 0;
+    uint32_t rogMode = 1; // ScreenSamplingMode::DEVICE_DSS
     float dpi = 0;
     uint32_t width = 0;
     uint32_t height = 0;
@@ -87,6 +87,7 @@ public:
     static void UpdateCutoutBoundRect(uint64_t displayId, float rogRatio);
     static int32_t GetRogDpi();
     static RogResolution GetRogResolution(uint32_t width, uint32_t height);
+    static uint32_t GetRogMode();
     static uint64_t GetUptimeSeconds();
     static uint64_t GetBootTimeThreshold();
     static void SetRogResolution(const RogResolution& rogResolution);
@@ -113,6 +114,7 @@ private:
     static uint32_t offScreenPPIThreshold_;
     static bool enableRog_;
     static int32_t rogDpi_;
+    static uint32_t rogMode_;
     static RogResolution rogResolution_;
     static uint64_t bootTimeThreshold_;
 
