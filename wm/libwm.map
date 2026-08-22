@@ -471,6 +471,8 @@
             OHOS::Rosen::WindowOption::SetIsCrossProcessWindow*;
             OHOS::Rosen::WindowOption::SetIsBlockSubwindow*;
             OHOS::Rosen::WindowOption::IsBlockSubwindow*;
+            OHOS::Rosen::WindowOption::SetCallerPid*;
+            OHOS::Rosen::WindowOption::GetCallerPid*;
             OHOS::Rosen::WindowScene::CreateWindow*;
             OHOS::Rosen::WindowScene::GetContentInfo*;
             OHOS::Rosen::WindowScene::GetMainWindow*;
