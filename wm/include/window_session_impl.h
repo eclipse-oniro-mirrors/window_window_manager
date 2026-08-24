@@ -104,6 +104,9 @@ public:
         const sptr<Rosen::ISession>& iSession,
         const std::string& identityToken = "", bool isModuleAbilityHookEnd = false,
         bool isBlockSubwindow = false) { return WMError::WM_OK; }
+    virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+        const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
+        bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) { return WMError::WM_OK; }
 
     /*
      * inherits from window
@@ -505,8 +508,10 @@ public:
     WMError RegisterMainWindowCloseListeners(const sptr<IMainWindowCloseListener>& listener) override;
     WMError UnregisterMainWindowCloseListeners(const sptr<IMainWindowCloseListener>& listener) override;
     WMError NotifyMainWindowClose(bool& terminateCloseProcess);
-    WMError RegisterWindowWillCloseListeners(const sptr<IWindowWillCloseListener>& listener) override;
-    WMError UnRegisterWindowWillCloseListeners(const sptr<IWindowWillCloseListener>& listener) override;
+    WMError RegisterWindowWillCloseListeners(
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg) override;
+    WMError UnRegisterWindowWillCloseListeners(
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg) override;
     WMError NotifyWindowWillClose(sptr<Window> window);
 
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
@@ -853,7 +858,7 @@ protected:
 
     void ClearVsyncStation();
     void ReleaseSurfaceNode();
-    WMError WindowSessionCreateCheck();
+    WMError WindowSessionCreateCheck(std::string& errMsg);
     void UpdateDecorEnableToAce(bool isDecorEnable);
     bool NeedShowDecorInOtherDisplay(bool decorVisible);
     bool updateDecorWhenDockAutoHide(bool decorVisible);

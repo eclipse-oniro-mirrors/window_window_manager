@@ -314,12 +314,14 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     windowOption->SetOnlySupportSceneBoard(true);
-    auto window = windowScene->CreateWindow(windowName, windowOption);
+    std::string errMsg;
+    auto window = windowScene->CreateWindow(windowName, windowOption, errMsg);
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "create window failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "get window failed");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            errMsg.empty() ? "get window failed" : errMsg);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_SUB, "Create sub window %{public}s end", windowName.c_str());
@@ -332,7 +334,8 @@ ani_ref AniWindowStage::GetMainWindow(ani_env* env)
     std::shared_ptr<WindowScene> weakScene = windowScene_.lock();
     if (weakScene == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] WindowScene_ is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
+            "The window stage is not created or destroyed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
 
@@ -1002,10 +1005,15 @@ ani_ref AniWindowStage::OnCreateSubWindow(ani_env* env, ani_string name)
     sptr<Rosen::WindowOption> windowOption = new Rosen::WindowOption();
     windowOption->SetWindowType(Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     windowOption->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
-    auto window = weakScene->CreateWindow(windowName, windowOption);
+    std::string errMsg;
+    auto window = weakScene->CreateWindow(windowName, windowOption, errMsg);
     if (window == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Create window failed");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        std::string aniErrMsg = "[window][createSubWindow]msg: Failed to create window, name='" + windowName + "'. ";
+            if (!errMsg.empty()) {
+                aniErrMsg += errMsg;
+            }
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, aniErrMsg);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     return CreateAniWindowObject(env, window);
@@ -1040,9 +1048,12 @@ void AniWindowStage::OnRegisterWindowCallback(ani_env* env, ani_string type, ani
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
-    WmErrorCode ret = registerManager_->RegisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback, 0);
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->RegisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback, 0,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        std::string errMsgPrefix = "[window][on('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Register listener failed." : errMsg));
     }
 }
 
@@ -1075,10 +1086,13 @@ void AniWindowStage::OnUnregisterWindowCallback(ani_env* env, ani_string type, a
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
-    WmErrorCode ret = registerManager_->UnregisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback);
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->UnregisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
-        return;
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret,
+            errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
     }
 }
 }  // namespace Rosen

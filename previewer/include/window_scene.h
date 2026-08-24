@@ -38,6 +38,7 @@ public:
     WMError Init(DisplayId displayId, const std::shared_ptr<AbilityRuntime::Context>& context,
         sptr<IWindowLifeCycle>& listener, sptr<WindowOption> option = nullptr);
     sptr<Window> CreateWindow(const std::string& windowName, sptr<WindowOption>& option) const;
+    sptr<Window> CreateWindow(const std::string& windowName, sptr<WindowOption>& option, std::string& errMsg) const;
     const sptr<Window>& GetMainWindow() const;
     std::vector<sptr<Window>> GetSubWindow();
     WMError GoDestroy();
