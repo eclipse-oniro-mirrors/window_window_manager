@@ -110,8 +110,8 @@ uint64_t ScreenSceneConfig::bootTimeThreshold_ =
 static const std::string FOUNDATION_CRASH_REBOOT_KEY = "dms.foundation.restart";
 static const std::string FOUNDATION_CRASH_REBOOT_FLAG = "1";
 int32_t ScreenSceneConfig::rogDpi_ = 0;
-uint32_t ScreenSceneConfig::rogMode_ = 1;
-RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 1, 0, 0, 0 };
+uint32_t ScreenSceneConfig::rogMode_ = 0;
+RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 0, 0, 0, 0 };
 std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {DPI, "dpi"},
     {SUB_DPI, "subDpi"},
