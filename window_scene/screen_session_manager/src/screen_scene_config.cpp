@@ -590,13 +590,15 @@ RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t heigh
                 SetRogResolution(RogResolution{ true, false, rogMode_, apsDpi, apsWidth, apsHeight });
             } else if (!apsUserset && enableRog_ && rogResolution_.width > 0 && rogResolution_.height > 0 &&
                        GetRogDpi() > 0) {
-                SetRogResolution(RogResolution{ true, false, rogMode_, rogDpi_, rogResolution_.width, rogResolution_.height });
+                SetRogResolution(RogResolution{ true, false, rogMode_, rogDpi_, rogResolution_.width, 
+                    rogResolution_.height });
             } else {
                 int32_t densityDpi = 0;
                 if (intNumbersConfig_.count(xmlNodeMap_[DPI]) != 0) {
                     densityDpi = intNumbersConfig_[xmlNodeMap_[DPI]][0];
                 }
-                SetRogResolution(RogResolution{ false, false, rogMode_, static_cast<float>(densityDpi), width, height });
+                SetRogResolution(RogResolution{ false, false, rogMode_, static_cast<float>(densityDpi), width,
+                    height });
             }
             TLOGNFI(WmsLogTag::DMS, "rogResolution Init");
         } else {
