@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_SCREEN_SCENE_H
 #define OHOS_ROSEN_SCREEN_SCENE_H
 
+#include <atomic>
 #include <mutex>
 
 #include "vsync_station.h"
@@ -96,7 +97,7 @@ public:
 
 private:
     void RegisterInputEventListener();
-    static bool isInputEventListenerRegistered_;
+    static std::atomic<bool> isInputEventListenerRegistered_;
     mutable std::mutex mutex_;
     std::unique_ptr<Ace::UIContent> uiContent_;
     float density_ = 1.0f;
