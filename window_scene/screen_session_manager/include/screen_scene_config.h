@@ -44,7 +44,7 @@ struct DisplayConfig {
 struct RogResolution {
     bool isSupportRog = false;
     bool notInit = true;
-    uint32_t rogMode = 1; // ScreenSamplingMode::DEVICE_DSS
+    uint32_t rogMode = 0; // ScreenSamplingMode::DEVICE_DSS
     float dpi = 0;
     uint32_t width = 0;
     uint32_t height = 0;
