@@ -8017,6 +8017,45 @@ void SceneSessionManager::HandleTurnScreenOn(const sptr<SceneSession>& sceneSess
 #endif
 }
 
+std::shared_ptr<PowerMgr::RunningLock> SceneSessionManager::CreateKeepScreenRunningLock(
+    const sptr<SceneSession>& sceneSession, const std::string& screenLockPrefix)
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession is null");
+        return nullptr;
+    }
+    auto displayId = sceneSession->GetDisplayId();
+    if (displayId == DISPLAY_ID_INVALID) {
+        displayId = UINT64_MAX;
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "displayId is invalid, use UINT64_MAX as global");
+    }
+    // reset ipc identity
+    std::string identity = IPCSkeleton::ResetCallingIdentity();
+#ifdef POWER_MANAGER_LOCK_SUPPORT_MULTI_SCREEN
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "CreateRunningLock with displayId=%{public}" PRIu64, displayId);
+    auto screenLock = PowerMgr::PowerMgrClient::GetInstance().CreateRunningLock(
+        screenLockPrefix + std::to_string(sceneSession->GetPersistentId()),
+        PowerMgr::RunningLockType::RUNNINGLOCK_SCREEN,
+        screenLockPrefix == WINDOW_SCREEN_LOCK_PREFIX ? displayId : UINT64_MAX);
+#else
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "CreateRunningLock without displayId");
+    auto screenLock = PowerMgr::PowerMgrClient::GetInstance().CreateRunningLock(
+        screenLockPrefix + std::to_string(sceneSession->GetPersistentId()),
+        PowerMgr::RunningLockType::RUNNINGLOCK_SCREEN);
+#endif
+    // set ipc identity to raw
+    IPCSkeleton::SetCallingIdentity(identity);
+    if (screenLock == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE,
+            "CreateRunningLock failed for displayId: %{public}" PRIu64, displayId);
+    } else {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE,
+            "CreateRunningLock success: lockPrefix=%{public}s, displayId=%{public}" PRIu64,
+            screenLockPrefix.c_str(), displayId);
+    }
+    return screenLock;
+}
+
 void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSession, bool requireLock,
     const std::string& screenLockPrefix, std::shared_ptr<PowerMgr::RunningLock>& screenLock)
 {
@@ -8029,15 +8068,10 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
             return;
         }
         if (requireLock && screenLock == nullptr) {
-            // reset ipc identity
-            std::string identity = IPCSkeleton::ResetCallingIdentity();
-            screenLock = PowerMgr::PowerMgrClient::GetInstance().CreateRunningLock(
-                screenLockPrefix + std::to_string(sceneSession->GetPersistentId()),
-                PowerMgr::RunningLockType::RUNNINGLOCK_SCREEN);
-            // set ipc identity to raw
-            IPCSkeleton::SetCallingIdentity(identity);
+            screenLock = CreateKeepScreenRunningLock(sceneSession, screenLockPrefix);
         }
         if (screenLock == nullptr) {
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "screenLock is null, requireLock=%{public}d", requireLock);
             return;
         }
         auto currScreenId = sceneSession->GetSessionInfo().screenId_;
@@ -8047,9 +8081,10 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
         }
         bool shouldLock = requireLock && IsSessionVisibleAndRealForeground(sceneSession) &&
             sourceMode != ScreenSourceMode::SCREEN_UNIQUE;
-        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "keep screen on: winName=%{public}s, sessionState=%{public}d, "
-            "isVisible=%{public}d, requireLock=%{public}d, shouldLock=%{public}d, screenId=%{public}" PRIu64
-            ", sourceMode=%{public}d, lockPrefix=%{public}s", sceneSession->GetWindowName().c_str(),
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "keep screen on: wid=%{public}d, winName=%{public}s, sessionState=%{public}d, "
+            "isVisible=%{public}d, requireLock=%{public}d, shouldLock=%{public}d, "
+            "screenId=%{public}" PRIu64 ", sourceMode=%{public}d, lockPrefix=%{public}s",
+            sceneSession->GetPersistentId(), sceneSession->GetWindowName().c_str(),
             sceneSession->GetSessionState(), sceneSession->IsVisible(), requireLock, shouldLock, currScreenId,
             sourceMode, screenLockPrefix.c_str());
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:HandleKeepScreenOn");
@@ -8075,8 +8110,10 @@ void SceneSessionManager::HandleKeepScreenOn(const sptr<SceneSession>& sceneSess
 
 bool SceneSessionManager::NotifyVisibleChange(int32_t persistentId)
 {
+    TLOGD(WmsLogTag::DEFAULT, "visible changed, persistentId=%{public}d", persistentId);
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "sceneSession is nullptr");
         return false;
     }
     HandleKeepScreenOn(sceneSession, sceneSession->IsKeepScreenOn(), WINDOW_SCREEN_LOCK_PREFIX,
@@ -11086,6 +11123,7 @@ __attribute__((no_sanitize("cfi"))) void SceneSessionManager::OnSessionStateChan
         case SessionState::STATE_FOREGROUND:
             ProcessFocusWhenForeground(sceneSession);
             if (!IsSessionVisibleForeground(sceneSession)) {
+                TLOGD(WmsLogTag::DEFAULT, "IsSessionVisibleForeground false");
                 sceneSession->SetPostProcessProperty(true);
                 break;
             }
@@ -16162,6 +16200,15 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
         sceneSession->GetPersistentId(), screenId, fromScreenId);
     NotifySessionUpdate(sceneSession->GetSessionInfo(), ActionType::MOVE_DISPLAY, fromScreenId);
     sceneSession->NotifyDisplayMove(fromScreenId, screenId);
+#ifdef POWER_MANAGER_LOCK_SUPPORT_MULTI_SCREEN
+    if (fromScreenId != screenId) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "keepScreenOn migrate lock: displayId %{public}" PRIu64 " -> %{public}" PRIu64,
+            fromScreenId, screenId);
+        HandleKeepScreenOn(sceneSession, false, WINDOW_SCREEN_LOCK_PREFIX, sceneSession->keepScreenLock_);
+        sceneSession->keepScreenLock_.reset();
+        HandleKeepScreenOn(sceneSession, sceneSession->IsKeepScreenOn(), WINDOW_SCREEN_LOCK_PREFIX, sceneSession->keepScreenLock_);
+    }
+#endif
     sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
     if (fromScreenId != screenId) {
