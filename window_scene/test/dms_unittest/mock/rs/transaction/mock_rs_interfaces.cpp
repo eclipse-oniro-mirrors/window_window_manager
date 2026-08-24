@@ -96,7 +96,8 @@ uint32_t RSInterfaces::SetScreenActiveMode(ScreenId id, uint32_t modeId)
 {
     return 0;
 }
-int32_t RSInterfaces::SetRogScreenResolution(ScreenId id, uint32_t width, uint32_t height, ScreenSamplingMode samplingMode)
+int32_t RSInterfaces::SetRogScreenResolution(ScreenId id, uint32_t width, uint32_t height, ScreenSamplingMode 
+    samplingMode)
 {
     return 0;
 }
