@@ -99,6 +99,7 @@ const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
 const std::string MINIMIZE_ALL_CB = "minimizeAll";
 const std::string NOTIFY_PAGE_ENABLE_REGISTERED_CB = "notifyPageEnableRegistered";
 const std::string GET_FLOAT_VIEW_LIMIT_CB = "getFloatViewLimit";
+const std::string UPDATE_ROG_WINDOW_CONFIG_CB = "updateRogWindowConfig";
 
 const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {CREATE_SYSTEM_SESSION_CB,     ListenerFunctionType::CREATE_SYSTEM_SESSION_CB},
@@ -133,6 +134,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,     ListenerFunctionType::MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB},
     {NOTIFY_PAGE_ENABLE_REGISTERED_CB, ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB},
     {GET_FLOAT_VIEW_LIMIT_CB, ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB},
+    {UPDATE_ROG_WINDOW_CONFIG_CB, ListenerFunctionType::UPDATE_ROG_WINDOW_CONFIG_CB},
 };
 } // namespace
 
@@ -2014,6 +2016,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             break;
         case ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB:
             RegisterGetFloatViewLimitCallback();
+            break;
+        case ListenerFunctionType::UPDATE_ROG_WINDOW_CONFIG_CB:
+            RegisterUpdateRogWindowConfigCallback();
             break;
         default:
             break;
@@ -7070,6 +7075,56 @@ napi_value JsSceneSessionManager::GetConfigByKeys(napi_env env, napi_callback_in
 {
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnGetConfigByKeys(env, info) : nullptr;
+}
+
+void JsSceneSessionManager::RegisterUpdateRogWindowConfigCallback()
+{
+    TLOGI(WmsLogTag::WMS_MAIN, "in");
+    auto updateRogWindowConfigCallback = [this](const RogWindowConfig& windowConfig) {
+        OnUpdateRogWindowConfigCallback(windowConfig);
+    };
+    SceneSessionManager::GetInstance().RegisterUpdateRogWindowConfigCallback(updateRogWindowConfigCallback);
+}
+
+static napi_value CreateStringArray(napi_env env, const std::vector<std::string>& stringList)
+{
+    napi_value arrayValue = nullptr;
+    napi_create_array_with_length(env, stringList.size(), &arrayValue);
+    if (arrayValue == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Failed to create napi array");
+        return NapiGetUndefined(env);
+    }
+    int32_t index = 0;
+    for (const auto& str : stringList) {
+        napi_value jsStrObj = CreateJsValue(env, str);
+        napi_set_element(env, arrayValue, index++, jsStrObj);
+    }
+    return arrayValue;
+}
+
+void JsSceneSessionManager::OnUpdateRogWindowConfigCallback(const RogWindowConfig& windowConfig)
+{
+    TLOGI(WmsLogTag::WMS_MAIN, "windowConfig:%{public}s", windowConfig.ToString().c_str());
+    auto task = [this, windowConfig, jsCallBack = GetJSCallback(UPDATE_ROG_WINDOW_CONFIG_CB), env = env_]() {
+        if (jsCallBack == nullptr) {
+            TLOGNE(WmsLogTag::WMS_MAIN, "jsCallBack is nullptr");
+            return;
+        }
+        napi_value jsConfigObj = nullptr;
+        napi_create_object(env, &jsConfigObj);
+        if (jsConfigObj == nullptr) {
+            TLOGNE(WmsLogTag::WMS_MAIN, "Failed to create windowConfig object");
+            return;
+        }
+        napi_set_named_property(env, jsConfigObj, "width", CreateJsValue(env, windowConfig.width));
+        napi_set_named_property(env, jsConfigObj, "height", CreateJsValue(env, windowConfig.height));
+        napi_set_named_property(env, jsConfigObj, "dpi", CreateJsValue(env, windowConfig.dpi));
+        napi_set_named_property(env, jsConfigObj, "scale", CreateJsValue(env, windowConfig.scale));
+        napi_set_named_property(env, jsConfigObj, "xhdpiAppList", CreateStringArray(env, windowConfig.xhdpiAppList));
+        napi_value argv[] = { jsConfigObj };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+    };
+    taskScheduler_->PostMainThreadTask(task, "OnUpdateRogWindowConfigCallback");
 }
 
 napi_value JsSceneSessionManager::OnGetConfigByKeys(napi_env env, napi_callback_info info)

@@ -20674,6 +20674,47 @@ WMError SceneSessionManager::GetAppWindowShowingInfosByBundleName(const Applicat
     return WMError::WM_OK;
 }
 
+WMError SceneSessionManager::UpdateRogWindowConfig(const RogWindowConfig& windowConfig)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "permission denied!");
+        return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
+    if (!windowConfig.IsValid()) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "invalid windowConfig!");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "windowConfig: %{public}s", windowConfig.ToString().c_str());
+    {
+        std::lock_guard<std::mutex> lock(rogWindowConfigMutex_);
+        rogWindowConfig_ = windowConfig;
+    }
+    UpdateRogWindowConfigCallbackFunc callback;
+    {
+        std::lock_guard<std::mutex> lock(updateRogWindowConfigCallbackMutex_);
+        callback = updateRogWindowConfigCallback_;
+    }
+    if (callback) {
+        callback(windowConfig);
+    }
+    return WMError::WM_OK;
+}
+
+void SceneSessionManager::RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func)
+{
+    TLOGI(WmsLogTag::WMS_MAIN, "in");
+    {
+        std::lock_guard<std::mutex> lock(updateRogWindowConfigCallbackMutex_);
+        updateRogWindowConfigCallback_ = func;
+    }
+    {
+        std::lock_guard<std::mutex> lock(rogWindowConfigMutex_);
+        if (rogWindowConfig_.IsValid()) {
+            func(rogWindowConfig_);
+        }
+    }
+}
+
 void SceneSessionManager::ConfigSupportFunctionType(SupportFunctionType funcType)
 {
     systemConfig_.supportFunctionType_ = funcType;

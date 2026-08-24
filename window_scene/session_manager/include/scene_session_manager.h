@@ -191,6 +191,7 @@ using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeW
 using PageEnableFunc = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
 using GetFloatViewLimitFunc = std::function<void()>;
+using UpdateRogWindowConfigCallbackFunc = std::function<void(const RogWindowConfig&)>;
 class AppAnrListener : public IRemoteStub<AppExecFwk::IAppDebugListener> {
 public:
     void OnAppDebugStarted(const std::vector<AppExecFwk::AppDebugInfo>& debugInfos) override;
@@ -848,6 +849,8 @@ public:
     WMError MinimizeMainSession(const std::string& bundleName, int32_t appIndex, int32_t userId);
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig);
+    void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
@@ -2173,6 +2176,11 @@ private:
     GetFloatViewLimitFunc getFloatViewLimitFunc_;
     std::map<uint32_t, FloatViewLimits> floatViewLimits_{};
     std::condition_variable getLimitsFinishCv_;
+
+    std::mutex rogWindowConfigMutex_;
+    RogWindowConfig rogWindowConfig_;
+    std::mutex updateRogWindowConfigCallbackMutex_;
+    UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
 };
 } // namespace OHOS::Rosen
 

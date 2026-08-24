@@ -1817,5 +1817,26 @@ struct PrelayoutContext {
         return oss.str();
     }
 };
+
+struct RogWindowConfig {
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t dpi = 0;
+    float scale = 0.0f;
+    std::vector<std::string> xhdpiAppList;
+
+    bool IsValid() const
+    {
+        return width > 0 && height > 0 && dpi > 0 && scale > 0 && !xhdpiAppList.empty();
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << " width: " << width << " height: " << height << " dpi: " << dpi << " scale: " << scale
+            << " xhdpiAppList size: " << xhdpiAppList.size();
+        return oss.str();
+    }
+};
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_WS_COMMON_H

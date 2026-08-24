@@ -2402,6 +2402,377 @@ HWTEST_F(SceneSessionManagerTest, GetNativeModuleStartMode08, TestSize.Level1)
     bool result = ssm_->GetNativeModuleStartMode(abilityInfo);
     EXPECT_TRUE(result);
 }
+
+/**
+ * @tc.name: UpdateRogWindowConfig01
+ * @tc.desc: Test UpdateRogWindowConfig with valid configuration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig01, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.app1", "com.test.app2"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig02
+ * @tc.desc: Test UpdateRogWindowConfig with 720P configuration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig02, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.720p.app"};
+    windowConfig.width = 1280;
+    windowConfig.height = 720;
+    windowConfig.dpi = 320;
+    windowConfig.scale = 1.0f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig03
+ * @tc.desc: Test UpdateRogWindowConfig with 2K configuration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig03, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.2k.app"};
+    windowConfig.width = 2560;
+    windowConfig.height = 1440;
+    windowConfig.dpi = 640;
+    windowConfig.scale = 2.0f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig04
+ * @tc.desc: Test UpdateRogWindowConfig with large app list
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig04, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = std::vector<std::string>(100, "com.test.app");
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig05
+ * @tc.desc: Test UpdateRogWindowConfig multiple calls with different configs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig05, TestSize.Level1)
+{
+    RogWindowConfig config1;
+    config1.xhdpiAppList = {"com.test.app1"};
+    config1.width = 1280;
+    config1.height = 720;
+    config1.dpi = 320;
+    config1.scale = 1.0f;
+    auto ret1 = ssm_->UpdateRogWindowConfig(config1);
+    EXPECT_EQ(ret1, WMError::WM_OK);
+    RogWindowConfig config2;
+    config2.xhdpiAppList = {"com.test.app2"};
+    config2.width = 1920;
+    config2.height = 1080;
+    config2.dpi = 480;
+    config2.scale = 1.5f;
+    auto ret2 = ssm_->UpdateRogWindowConfig(config2);
+    EXPECT_EQ(ret2, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RegisterUpdateRogWindowConfigCallback01
+ * @tc.desc: Test RegisterUpdateRogWindowConfigCallback basic functionality
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, RegisterUpdateRogWindowConfigCallback01, TestSize.Level1)
+{
+    int callbackCount = 0;
+    RogWindowConfig lastConfig;
+    auto callback = [&callbackCount, &lastConfig](const RogWindowConfig& config) {
+        callbackCount++;
+        lastConfig = config;
+    };
+    ssm_->RegisterUpdateRogWindowConfigCallback(callback);
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.callback.app"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    usleep(100000);
+    EXPECT_GE(callbackCount, 1);
+    EXPECT_EQ(lastConfig.width, 1920u);
+    EXPECT_EQ(lastConfig.height, 1080u);
+    EXPECT_EQ(lastConfig.dpi, 480u);
+    EXPECT_EQ(lastConfig.scale, 1.5f);
+    EXPECT_EQ(lastConfig.xhdpiAppList.size(), 1u);
+}
+
+/**
+ * @tc.name: RegisterUpdateRogWindowConfigCallback02
+ * @tc.desc: Test RegisterUpdateRogWindowConfigCallback with multiple updates
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, RegisterUpdateRogWindowConfigCallback02, TestSize.Level1)
+{
+    std::vector<RogWindowConfig> receivedConfigs;
+    auto callback = [&receivedConfigs](const RogWindowConfig& config) {
+        receivedConfigs.push_back(config);
+    };
+    ssm_->RegisterUpdateRogWindowConfigCallback(callback);
+    RogWindowConfig config1;
+    config1.xhdpiAppList = {"app1"};
+    config1.width = 1280;
+    config1.height = 720;
+    config1.dpi = 480;
+    config1.scale = 1.5f;
+    ssm_->UpdateRogWindowConfig(config1);
+    RogWindowConfig config2;
+    config2.xhdpiAppList = {"app2"};
+    config2.width = 1920;
+    config2.height = 1080;
+    config2.dpi = 480;
+    config2.scale = 1.5f;
+    ssm_->UpdateRogWindowConfig(config2);
+    RogWindowConfig config3;
+    config3.xhdpiAppList = {"app3"};
+    config3.width = 2560;
+    config3.height = 1440;
+    config3.dpi = 480;
+    config3.scale = 1.5f;
+    ssm_->UpdateRogWindowConfig(config3);
+    usleep(100000);
+    EXPECT_GE(receivedConfigs.size(), 3u);
+}
+
+/**
+ * @tc.name: RegisterUpdateRogWindowConfigCallback03
+ * @tc.desc: Test RegisterUpdateRogWindowConfigCallback with existing config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, RegisterUpdateRogWindowConfigCallback03, TestSize.Level1)
+{
+    RogWindowConfig initialConfig;
+    initialConfig.xhdpiAppList = {"initial.app"};
+    initialConfig.width = 1920;
+    initialConfig.height = 1080;
+    initialConfig.dpi = 480;
+    ssm_->UpdateRogWindowConfig(initialConfig);
+    usleep(50000);
+    int callbackCount = 0;
+    auto callback = [&callbackCount](const RogWindowConfig& config) {
+        callbackCount++;
+    };
+    ssm_->RegisterUpdateRogWindowConfigCallback(callback);
+    usleep(100000);
+    EXPECT_GE(callbackCount, 1);
+}
+
+/**
+ * @tc.name: RegisterUpdateRogWindowConfigCallback04
+ * @tc.desc: Test RegisterUpdateRogWindowConfigCallback with existing config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, RegisterUpdateRogWindowConfigCallback04, TestSize.Level1)
+{
+    RogWindowConfig initialConfig;
+    initialConfig.xhdpiAppList = {"initial.app"};
+    initialConfig.width = 1920;
+    initialConfig.height = 1080;
+    initialConfig.dpi = 480;
+    initialConfig.scale = 1.5f;
+    ssm_->UpdateRogWindowConfig(initialConfig);
+    usleep(50000);
+    int callbackCount = 0;
+    auto callback = [&callbackCount](const RogWindowConfig& config) {
+        callbackCount++;
+    };
+    ssm_->RegisterUpdateRogWindowConfigCallback(callback);
+    usleep(100000);
+    EXPECT_GE(callbackCount, 1);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_CallbackAndConfigSync
+ * @tc.desc: Test UpdateRogWindowConfig callback and config synchronization
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_CallbackAndConfigSync, TestSize.Level1)
+{
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool callbackExecuted = false;
+    RogWindowConfig receivedConfig;
+    auto callback = [&mtx, &cv, &callbackExecuted, &receivedConfig](const RogWindowConfig& config) {
+        std::lock_guard<std::mutex> lock(mtx);
+        receivedConfig = config;
+        callbackExecuted = true;
+        cv.notify_one();
+    };
+    ssm_->RegisterUpdateRogWindowConfigCallback(callback);
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"sync.test.app"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait_for(lock, std::chrono::milliseconds(500), [&callbackExecuted]{ return callbackExecuted; });
+    }
+    EXPECT_TRUE(callbackExecuted);
+    EXPECT_EQ(receivedConfig.width, 1920u);
+    EXPECT_EQ(receivedConfig.height, 1080u);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_PermissionDenied
+ * @tc.desc: Test UpdateRogWindowConfig when permission denied (non-SA calling)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_PermissionDenied, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSACalling(false);
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.app"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NOT_SYSTEM_APP);
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_InvalidConfig
+ * @tc.desc: Test UpdateRogWindowConfig with invalid config (width=0)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfig, TestSize.Level1)
+{
+    RogWindowConfig invalidConfig;
+    invalidConfig.width = 0;
+    invalidConfig.height = 1080;
+    invalidConfig.dpi = 480;
+    invalidConfig.scale = 1.5f;
+    invalidConfig.xhdpiAppList = {"test"};
+    auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_InvalidConfigEmptyList
+ * @tc.desc: Test UpdateRogWindowConfig with empty app list
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfigEmptyList, TestSize.Level1)
+{
+    RogWindowConfig invalidConfig;
+    invalidConfig.width = 1920;
+    invalidConfig.height = 1080;
+    invalidConfig.dpi = 480;
+    invalidConfig.scale = 1.5f;
+    invalidConfig.xhdpiAppList.clear();
+    auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_InvalidConfigZeroDpi
+ * @tc.desc: Test UpdateRogWindowConfig with zero dpi
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfigZeroDpi, TestSize.Level1)
+{
+    RogWindowConfig invalidConfig;
+    invalidConfig.width = 1920;
+    invalidConfig.height = 1080;
+    invalidConfig.dpi = 0;
+    invalidConfig.scale = 1.5f;
+    invalidConfig.xhdpiAppList = {"test"};
+    auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_InvalidConfigZeroScale
+ * @tc.desc: Test UpdateRogWindowConfig with zero scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfigZeroScale, TestSize.Level1)
+{
+    RogWindowConfig invalidConfig;
+    invalidConfig.width = 1920;
+    invalidConfig.height = 1080;
+    invalidConfig.dpi = 480;
+    invalidConfig.scale = 0.0f;
+    invalidConfig.xhdpiAppList = {"test"};
+    auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig_NoCallback
+ * @tc.desc: Test UpdateRogWindowConfig when callback is not registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_NoCallback, TestSize.Level1)
+{
+    ssm_->updateRogWindowConfigCallback_ = nullptr;
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.nocallback.app"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = ssm_->UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: RegisterUpdateRogWindowConfigCallback_NoExistingConfig
+ * @tc.desc: Test RegisterUpdateRogWindowConfigCallback when no valid config exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, RegisterUpdateRogWindowConfigCallback_NoExistingConfig, TestSize.Level1)
+{
+    RogWindowConfig emptyConfig;
+    emptyConfig.width = 0;
+    emptyConfig.height = 0;
+    emptyConfig.dpi = 0;
+    emptyConfig.scale = 0.0f;
+    ssm_->rogWindowConfig_ = emptyConfig;
+    usleep(50000);
+    int callbackCount = 0;
+    auto callback = [&callbackCount](const RogWindowConfig& config) {
+        callbackCount++;
+    };
+    ssm_->RegisterUpdateRogWindowConfigCallback(callback);
+    usleep(100000);
+    EXPECT_EQ(callbackCount, 0);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
