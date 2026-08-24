@@ -30,14 +30,13 @@ public:
     sptr<CutoutInfo> GetScreenCutoutInfo(DisplayId displayId, uint32_t width,
                                          uint32_t height, Rotation rotation,
                                          sptr<DisplayInfo> displayInfo = nullptr) const;
-    void GetCutoutArea(DisplayId displayId, uint32_t width, uint32_t height, Rotation rotation,
-                       std::vector<DMRect>& cutoutArea) const;
+    void GetCutoutArea(sptr<DisplayInfo> displayInfo, uint32_t width, uint32_t height,
+        Rotation rotation, std::vector<DMRect>& cutoutArea) const;
     void GetWaterfallArea(uint32_t width, uint32_t height, Rotation rotation,
                           WaterfallDisplayAreaRects& waterfallArea) const;
 
 private:
-    void RecoverDisplayInfo(uint32_t& dwidth, uint32_t& dheight, sptr<DisplayInfo> displayInfo,
-        Rotation rotation) const;
+    void RecoverRealScreenSize(uint32_t& dwidth, uint32_t& dheight, sptr<DisplayInfo> displayInfo) const;
     void HookCutoutInfo(uint32_t hookWidth, uint32_t hookHeight, std::vector<DMRect>& boundaryRects,
         sptr<DisplayInfo> displayInfo) const;
     void CalcWaterfallRects(const std::vector<int>& numberVec, uint32_t displayWidth, uint32_t displayHeight,
