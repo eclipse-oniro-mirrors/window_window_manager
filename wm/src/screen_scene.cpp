@@ -40,6 +40,7 @@ namespace Rosen {
 namespace {
 constexpr float MIN_DPI = 1e-6;
 std::atomic<bool> g_ssIsDestroyed = false;
+std::atomic<bool> g_isInputEventListenerRegistered = false;
 const std::string INPUT_AND_VSYNC_THREAD = "InputAndVsyncThread";
 } // namespace
 
@@ -115,7 +116,9 @@ void ScreenScene::LoadContent(const std::string& contentUrl, napi_env env, napi_
     uiContent_->SetFrameLayoutFinishCallback(std::move(frameLayoutFinishCb_));
     wptr<Window> weakWindow(this);
     RootScene::staticRootScene_->AddRootScene(displayId_, weakWindow);
-    RegisterInputEventListener();
+    if (!g_isInputEventListenerRegistered.exchange(true)) {
+        RegisterInputEventListener();
+    }
 }
 
 void ScreenScene::RegisterInputEventListener()
