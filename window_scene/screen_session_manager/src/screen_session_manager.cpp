@@ -15094,6 +15094,10 @@ DMError ScreenSessionManager::CheckMultiScreen(ScreenId mainScreenId, ScreenId s
         return DMError::DM_ERROR_INVALID_MODE_ID;
     }
     auto screenSession = GetScreenSessionByRsId(secondaryScreenId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
+        return DMError::DM_ERROR_INVALID_MODE_ID;
+    }
     auto screenType = screenSession->GetScreenProperty().GetScreenType();
     if (screenMode == MultiScreenMode::SCREEN_EXTEND && screenType == ScreenType::VIRTUAL &&
         IsExtendVirtualScreenExist()) {
