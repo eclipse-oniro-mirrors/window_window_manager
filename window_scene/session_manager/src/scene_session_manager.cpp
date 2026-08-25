@@ -11217,17 +11217,22 @@ void SceneSessionManager::ProcessFocusWhenForegroundScbCore(sptr<SceneSession>& 
         TLOGD(WmsLogTag::WMS_FOCUS, "session is nullptr");
         return;
     }
-    if (sceneSession->IsFocusableOnShow()) {
-        if (IsSessionVisibleForeground(sceneSession)) {
-            RequestSessionFocus(sceneSession->GetPersistentId(), true, FocusChangeReason::APP_FOREGROUND);
-        } else {
-            PostProcessFocusState state = {true, true, true, FocusChangeReason::APP_FOREGROUND};
-            sceneSession->SetPostProcessFocusState(state);
-        }
-    } else {
+    if (!sceneSession->IsFocusableOnShow()) {
         TLOGD(WmsLogTag::WMS_FOCUS, "win: %{public}d ignore request focus when foreground",
             sceneSession->GetPersistentId());
+        return;
     }
+    if (IsSessionVisibleForeground(sceneSession)) {
+        RequestSessionFocus(sceneSession->GetPersistentId(), true, FocusChangeReason::APP_FOREGROUND);
+        return;
+    }
+    PostProcessFocusState state = sceneSession->GetPostProcessFocusState();
+    if (state.enabled_ && state.reason_ === FocusChangeReason::SCB_START_APP) {
+        TLOGD(WmsLogTag::WMS_FOCUS, "%{public}d has start request focus", sceneSession->GetPersistentId());
+        return;
+    }
+    PostProcessFocusState state = {true, true, true, FocusChangeReason::APP_FOREGROUND};
+    sceneSession->SetPostProcessFocusState(state);
 }
 
 void SceneSessionManager::ProcessWindowModeType()
