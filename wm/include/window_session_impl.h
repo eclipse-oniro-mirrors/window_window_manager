@@ -630,6 +630,7 @@ public:
         return type != AvoidAreaType::TYPE_FLOAT_NAVIGATION ||
             (type == AvoidAreaType::TYPE_FLOAT_NAVIGATION && floatNavigationAvoidAreaEnabled_);
     }
+    bool UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const AvoidArea& avoidArea);
 
     /*
      * Window Property
@@ -1103,6 +1104,7 @@ protected:
     virtual void UpdateDefaultStatusBarColor() { return; }
     WMError UpdateStatusBarColorByColorMode(uint32_t& contentColor);
     std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMap_;
+    mutable std::mutex lastAvoidAreaMapMutex_;
     uint32_t GetStatusBarHeight() const override;
     WindowType rootHostWindowType_ = WindowType::APP_MAIN_WINDOW_BASE;
     SystemBarSettingFlag systemBarSettingFlag_ = SystemBarSettingFlag::DEFAULT_SETTING;

@@ -1338,7 +1338,12 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
     if (!NearEqual(oldDensity, config.density_)) {
         NotifyWindowDensityChange(config.density_);
     }
-    uiContent->UpdateViewportConfig(viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, lastAvoidAreaMap_);
+    std::map<AvoidAreaType, AvoidArea> avoidAreaMap;
+    {
+        std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
+        avoidAreaMap = lastAvoidAreaMap_;
+    }
+    uiContent->UpdateViewportConfig(viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, avoidAreaMap);
     return WSError::WS_OK;
 }
 
