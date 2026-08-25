@@ -107,6 +107,74 @@ HWTEST_F(WindowSessionImplImmersiveTest, UpdateAvoidArea, TestSize.Level1)
     ASSERT_EQ(WSError::WS_OK, window->UpdateAvoidArea(avoidArea, type));
     window->Destroy();
 }
+
+/**
+ * @tc.name: UpdateLastAvoidAreaIfChanged
+ * @tc.desc: test UpdateLastAvoidAreaIfChanged branch coverage
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplImmersiveTest, UpdateLastAvoidAreaIfChanged, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("UpdateLastAvoidAreaIfChanged");
+    ASSERT_NE(window, nullptr);
+
+    AvoidAreaType type = AvoidAreaType::TYPE_SYSTEM;
+    AvoidArea avoidArea1;
+    avoidArea1.topRect_ = { 1, 0, 0, 0 };
+
+    // type not in map, type != TYPE_CUTOUT → should return true
+    EXPECT_TRUE(window->UpdateLastAvoidAreaIfChanged(type, avoidArea1));
+    auto mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy.size(), 1u);
+    EXPECT_EQ(mapCopy[type].topRect_.posX_, 1);
+
+    // same value → should return false
+    EXPECT_FALSE(window->UpdateLastAvoidAreaIfChanged(type, avoidArea1));
+
+    // different value → should return true
+    AvoidArea avoidArea2;
+    avoidArea2.topRect_ = { 2, 0, 0, 0 };
+    EXPECT_TRUE(window->UpdateLastAvoidAreaIfChanged(type, avoidArea2));
+    mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy[type].topRect_.posX_, 2);
+
+    // TYPE_CUTOUT not in map → should return false (type != TYPE_CUTOUT is false, default vs default equal)
+    AvoidArea avoidArea3;
+    EXPECT_FALSE(window->UpdateLastAvoidAreaIfChanged(AvoidAreaType::TYPE_CUTOUT, avoidArea3));
+
+    window->Destroy();
+}
+
+/**
+ * @tc.name: GetLastAvoidAreaMapCopy
+ * @tc.desc: test GetLastAvoidAreaMapCopy
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplImmersiveTest, GetLastAvoidAreaMapCopy, TestSize.Level1)
+{
+    auto window = GetTestWindowImpl("GetLastAvoidAreaMapCopy");
+    ASSERT_NE(window, nullptr);
+
+    // empty map
+    auto mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_TRUE(mapCopy.empty());
+
+    // add an entry
+    AvoidArea avoidArea;
+    avoidArea.topRect_ = { 1, 0, 0, 0 };
+    window->UpdateLastAvoidAreaIfChanged(AvoidAreaType::TYPE_SYSTEM, avoidArea);
+
+    mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy.size(), 1u);
+    EXPECT_EQ(mapCopy[AvoidAreaType::TYPE_SYSTEM].topRect_.posX_, 1);
+
+    // modify copy doesn't affect original
+    mapCopy[AvoidAreaType::TYPE_SYSTEM].topRect_.posX_ = 999;
+    auto mapCopy2 = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy2[AvoidAreaType::TYPE_SYSTEM].topRect_.posX_, 1);
+
+    window->Destroy();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

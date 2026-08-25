@@ -631,7 +631,7 @@ public:
             (type == AvoidAreaType::TYPE_FLOAT_NAVIGATION && floatNavigationAvoidAreaEnabled_);
     }
     bool UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const AvoidArea& avoidArea);
-    std::map<AvoidAreaType, AvoidArea> GetLastAvoidAreaMapCopy();
+    std::map<AvoidAreaType, AvoidArea> GetLastAvoidAreaMapCopy() const;
 
     /*
      * Window Property

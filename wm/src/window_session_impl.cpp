@@ -7273,7 +7273,7 @@ bool WindowSessionImpl::UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const A
     return isChanged;
 }
 
-std::map<AvoidAreaType, AvoidArea> WindowSessionImpl::GetLastAvoidAreaMapCopy()
+std::map<AvoidAreaType, AvoidArea> WindowSessionImpl::GetLastAvoidAreaMapCopy() const
 {
     std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMapCopy;
     {
