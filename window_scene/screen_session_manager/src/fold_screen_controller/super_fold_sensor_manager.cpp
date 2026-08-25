@@ -291,7 +291,7 @@ void SuperFoldSensorManager::SetStateMachineToActived()
     }
     TLOGW(WmsLogTag::DMS, "All locks have been unlocked to start statemachine");
     auto task = [this, curHall = curHall_, curAngle = curAngle_] {
-        NotifyFoldAngleChanged(curAngle);
+        NotifyFoldAngleChanged(curAngle, true);
         NotifyHallChanged(curHall, curAngle);
     };
     if (taskScheduler_) {
@@ -312,7 +312,7 @@ void SuperFoldSensorManager::HandleFoldStatusUnlocked()
         return;
     }
     TLOGI(WmsLogTag::DMS, "All locks have been unlocked to start statemachine.");
-    NotifyFoldAngleChanged(curAngle_);
+    NotifyFoldAngleChanged(curAngle_, true);
     NotifyHallChanged(curHall_, curAngle_);
 }
 
