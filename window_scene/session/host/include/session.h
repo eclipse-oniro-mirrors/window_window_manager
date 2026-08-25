@@ -117,7 +117,7 @@ using RequestVsyncFunc = std::function<void(const std::shared_ptr<VsyncCallback>
 using NotifyWindowMovingFunc = std::function<void(DisplayId displayId, int32_t pointerX, int32_t pointerY)>;
 using UpdateTransitionAnimationFunc = std::function<void(WindowTransitionType type, TransitionAnimation animation)>;
 using NofitySessionLabelAndIconUpdatedFunc = std::function<void(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon, const std::string& updatedIconPath)>;
+    const std::shared_ptr<Media::PixelMap>& icon, const std::string& updatedIconPath, const std::string& groupId)>;
 using NotifySessionGetTargetOrientationConfigInfoFunc = std::function<void(uint32_t targetOrientation)>;
 using NotifyKeyboardStateChangeFunc = std::function<void(SessionState state, const KeyboardEffectOption& effectOption,
     const uint32_t callingSessionId, const DisplayId targetDisplayId)>;

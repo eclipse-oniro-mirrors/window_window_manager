@@ -2114,6 +2114,22 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         sessionInfo.windowCreateParams->isWindowLimitsForcible : false;
     napi_set_named_property(env, objValue, "isWindowLimitsForcible",
         CreateJsValue(env, isWindowLimitsForcible));
+
+    bool windowMinimizedWhenStart = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->windowMinimizedWhenStart : false;
+    napi_set_named_property(env, objValue, "windowMinimizedWhenStart",
+        CreateJsValue(env, windowMinimizedWhenStart));
+
+    bool excludeFromDock = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->excludeFromDock : false;
+    napi_set_named_property(env, objValue, "excludeFromDock",
+        CreateJsValue(env, excludeFromDock));
+
+    bool excludeFromRecent = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->excludeFromRecent : false;
+    napi_set_named_property(env, objValue, "excludeFromRecent",
+        CreateJsValue(env, excludeFromRecent));
+
     napi_set_named_property(env, objValue, "atomicServiceInfo",
         CreateJsAtomicServiceInfo(env, sessionInfo.atomicServiceInfo_));
     napi_set_named_property(env, objValue, "isTargetPlugin",

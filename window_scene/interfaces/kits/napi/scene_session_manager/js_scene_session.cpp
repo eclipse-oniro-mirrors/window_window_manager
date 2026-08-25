@@ -8667,23 +8667,23 @@ void JsSceneSession::ProcessUpdateSessionLabelAndIconRegister()
     }
     const char* const where = __func__;
     session->SetUpdateSessionLabelAndIconListener([weakThis = wptr(this), where](const std::string& label,
-        const std::shared_ptr<Media::PixelMap>& icon, const std::string& updatedIconPath) {
+        const std::shared_ptr<Media::PixelMap>& icon, const std::string& updatedIconPath, const std::string& groupId) {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession) {
             TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s jsSceneSession is null", where);
             return;
         }
-        jsSceneSession->UpdateSessionLabelAndIcon(label, icon, updatedIconPath);
+        jsSceneSession->UpdateSessionLabelAndIcon(label, icon, updatedIconPath, groupId);
     });
     TLOGD(WmsLogTag::WMS_MAIN, "success");
 }
 
 void JsSceneSession::UpdateSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-    const std::string& updatedIconPath)
+    const std::string& updatedIconPath, const std::string& groupId)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "in");
     const char* const where = __func__;
-    auto task = [weakThis = wptr(this), persistentId = persistentId_, label, icon, updatedIconPath, env = env_, where] {
+    auto task = [weakThis = wptr(this), persistentId = persistentId_, label, icon, updatedIconPath, groupId, env = env_, where] {
         auto jsSceneSession = weakThis.promote();
         if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
             TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s jsSceneSession id:%{public}d has been destroyed",
@@ -8710,8 +8710,28 @@ void JsSceneSession::UpdateSessionLabelAndIcon(const std::string& label, const s
             TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s updatedIconPath is nullptr", where);
             return;
         }
-        napi_value argv[] = {jsLabel, jsIcon, jsUpdatedIconPath};
-        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+
+        // 判断 groupId 是否为空
+        napi_value jsGroupId = nullptr;
+        if (!groupId.empty()) {
+            jsGroupId = CreateJsValue(env, groupId);
+            if (jsGroupId == nullptr) {
+                TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s groupId is nullptr", where);
+                return;
+            }
+        }
+
+        // 根据 groupId 是否为空，决定传递参数个数
+        napi_value argv[4];
+        size_t argc = 0;
+        argv[argc++] = jsLabel;
+        argv[argc++] = jsIcon;
+        argv[argc++] = jsUpdatedIconPath;
+        if (jsGroupId != nullptr && !groupId.empty()) {
+            argv[argc++] = jsGroupId;
+        }
+
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), argc, argv, nullptr);
     };
     taskScheduler_->PostMainThreadTask(task, __func__);
 }

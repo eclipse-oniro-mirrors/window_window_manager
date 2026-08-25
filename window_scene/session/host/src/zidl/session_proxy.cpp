@@ -3338,7 +3338,8 @@ WSError SessionProxy::NotifySupportWindowModesChange(
     return WSError::WS_OK;
 }
 
-WSError SessionProxy::SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon)
+WSError SessionProxy::SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
+    const std::string& groupId)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -3353,6 +3354,10 @@ WSError SessionProxy::SetSessionLabelAndIcon(const std::string& label, const std
     }
     if (!data.WriteParcelable(icon.get())) {
         TLOGE(WmsLogTag::WMS_MAIN, "write icon failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(groupId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "write groupId failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 

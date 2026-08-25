@@ -402,7 +402,7 @@ bool MainSession::IsApplicationModal() const
 }
 
 WSError MainSession::SetSessionLabelAndIcon(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon)
+    const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "id: %{public}d", persistentId_);
     int32_t callingPid = IPCSkeleton::GetCallingPid();
@@ -423,14 +423,14 @@ WSError MainSession::SetSessionLabelAndIcon(const std::string& label,
         TLOGE(WmsLogTag::WMS_MAIN, "invalid label");
         return WSError::WS_ERROR_SET_SESSION_LABEL_FAILED;
     }
-    return SetSessionLabelAndIconInner(label, icon);
+    return SetSessionLabelAndIconInner(label, icon, groupId);
 }
 
 WSError MainSession::SetSessionLabelAndIconInner(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon)
+    const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId)
 {
     const char* const where = __func__;
-    PostTask([weakThis = wptr(this), where, label, icon] {
+    PostTask([weakThis = wptr(this), where, label, icon, groupId] {
         auto session = weakThis.promote();
         if (session == nullptr) {
             TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s session is nullptr", where);
@@ -440,7 +440,7 @@ WSError MainSession::SetSessionLabelAndIconInner(const std::string& label,
         session->scenePersistence_->SaveAbilityIcon(icon);
         const std::string updatedIconPath = session->scenePersistence_->GetAbilityIconPath();
         if (session->updateSessionLabelAndIconFunc_) {
-            session->updateSessionLabelAndIconFunc_(label, icon, updatedIconPath);
+            session->updateSessionLabelAndIconFunc_(label, icon, updatedIconPath, groupId);
         }
         return WSError::WS_OK;
     }, __func__);
