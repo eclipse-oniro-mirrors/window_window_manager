@@ -1388,6 +1388,7 @@ private:
     void WindowDestroyNotifyVisibility(const sptr<SceneSession>& sceneSession);
     void RegisterSessionSnapshotFunc(const sptr<SceneSession>& sceneSession);
     void RegisterSessionSaveSnapshotCompleteFunc(const sptr<SceneSession>& sceneSession);
+    bool CheckAndGetRogScale(const std::string bundleName, float& scale);
 
     /*
      * Window Property

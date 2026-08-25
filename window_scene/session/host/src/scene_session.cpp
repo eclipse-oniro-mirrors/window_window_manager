@@ -3169,7 +3169,7 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
     auto displayId = GetSessionProperty()->GetDisplayId();
     float scaleX = DEFAULT_SCALE;
     float scaleY = DEFAULT_SCALE;
-    if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
+    if (GetScale(scaleX, scaleY) == WSError::WS_OK) {
         auto globalRect = GetSessionGlobalRect();
         WSRectF winRectF = { globalRect.posX_, globalRect.posY_,
             globalRect.width_ * scaleX, globalRect.height_ * scaleY };
@@ -3266,6 +3266,13 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
             isFloat ? floatTitleBarHeight : static_cast<int32_t>(vpr * MULTI_WINDOW_TITLE_BAR_DEFAULT_HEIGHT_VP);
         avoidArea.topRect_.height_ = static_cast<uint32_t>(height);
         avoidArea.topRect_.width_ = static_cast<uint32_t>(rect.width_);
+        float scaleX = DEFAULT_SCALE;
+        float scaleY = DEFAULT_SCALE;
+        if (GetScaleInRog(scaleX, scaleY) == WSError::WS_OK && scaleY > 0) {
+            avoidArea.topRect_.height_ = std::ceil(avoidArea.topRect_.height_ / scaleY);
+        } else if (scaleY <= 0) {
+            TLOGE(WmsLogTag::WMS_IMMS, "unexpected scale %{public}f in rog", scaleY);
+        }
         return;
     }
     std::vector<sptr<SceneSession>> statusBarVector;
@@ -3814,13 +3821,46 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
     return WSError::WS_OK;
 }
 
+bool SceneSession::CheckAndGetRogScale(float& scale) const
+{
+    bool isAppInRog = false;
+    if (specificCallback_ && specificCallback_->onCheckAndGetRogScaleCallback_) {
+        isAppInRog = specificCallback_->onCheckAndGetRogScaleCallback_(GetSessionInfo().bundleName_, scale);
+    }
+    return isAppInRog;
+}
+
+WSError SceneSession::GetScaleInRog(float& scaleX, float& scaleY) const
+{
+    float scale = DEFAULT_SCALE;
+    if (!CheckAndGetRogScale(scale)) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, not in rog window config", GetPersistentId());
+        return WSError::WS_DO_NOTHING;
+    }
+    scaleX = scale;
+    scaleY = scale;
+    return WSError::WS_OK;
+}
+
+WSError SceneSession::GetScale(float& scaleX, float& scaleY) const
+{
+    if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, get scale in LS", GetPersistentId());
+        return WSError::WS_OK;
+    } else if (GetScaleInRog(scaleX, scaleY) == WSError::WS_OK) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, get scale in Rog", GetPersistentId());
+        return WSError::WS_OK;
+    }
+    return WSError::WS_DO_NOTHING;
+}
+
 template<typename T>
 Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {
     float scaleX = DEFAULT_SCALE;
     float scaleY = DEFAULT_SCALE;
     Rect avoidArea = { avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_ };
-    if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
+    if (GetScale(scaleX, scaleY) != WSError::WS_OK) {
         return avoidArea;
     }
     avoidArea.posX_ = std::floor(avoidAreaRect.posX_ / scaleX);
