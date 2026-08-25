@@ -513,7 +513,8 @@ public:
 
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
     void GetSceneSessionPrivacyModeBundles(DisplayId displayId,
-        std::unordered_map<DisplayId, std::unordered_set<std::string>>& privacyBundles);
+        std::unordered_map<DisplayId, std::unordered_set<std::string>>& privacyBundles,
+        std::unordered_map<DisplayId, std::unordered_set<std::string>>& notifyPrivacyBundleList);
     BrokerStates CheckIfReuseSession(SessionInfo& sessionInfo);
     BrokerStates NotifyStartWindowsAbility(SessionInfo& sessionInfo);
     sptr<SceneSession> FindSessionByAffinity(const std::string& affinity);

@@ -236,17 +236,18 @@ HWTEST_F(SceneSessionManagerTest, GerPrivacyBundleListTwoWindow, TestSize.Level1
     sceneSessionSecond->state_ = SessionState::STATE_FOREGROUND;
 
     std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundleList;
-    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList);
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> notifyPrivacyBundleList;
+    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList.size(), 1);
     EXPECT_EQ(privacyBundleList[0].size(), 2);
 
     sceneSessionSecond->GetSessionProperty()->displayId_ = 1;
     privacyBundleList.clear();
-    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList);
+    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList.size(), 1);
 
     privacyBundleList.clear();
-    ssm_->GetSceneSessionPrivacyModeBundles(1, privacyBundleList);
+    ssm_->GetSceneSessionPrivacyModeBundles(1, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList.size(), 1);
 }
 
