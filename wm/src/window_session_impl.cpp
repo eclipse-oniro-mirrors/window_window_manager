@@ -2380,12 +2380,7 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     if (reason == WindowSizeChangeReason::OCCUPIED_AREA_CHANGE && !avoidAreas.empty()) {
         uiContent->UpdateViewportConfig(config, reason, rsTransaction, avoidAreas, occupiedAreaInfo_);
     } else {
-        std::map<AvoidAreaType, AvoidArea> avoidAreaMap;
-        {
-            std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
-            avoidAreaMap = lastAvoidAreaMap_;
-        }
-        uiContent->UpdateViewportConfig(config, reason, rsTransaction, avoidAreaMap, occupiedAreaInfo_);
+        uiContent->UpdateViewportConfig(config, reason, rsTransaction, GetLastAvoidAreaMapCopy(), occupiedAreaInfo_);
     }
     if (WindowHelper::IsUIExtensionWindow(GetType())) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id: %{public}d, reason: %{public}d, viewportRect: %{public}s, "
@@ -7266,13 +7261,26 @@ WSErrorCode WindowSessionImpl::NotifyTransferComponentDataSync(const AAFwk::Want
 
 bool WindowSessionImpl::UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const AvoidArea& avoidArea)
 {
-    std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
-    if ((lastAvoidAreaMap_.find(type) == lastAvoidAreaMap_.end() && type != AvoidAreaType::TYPE_CUTOUT) ||
-        lastAvoidAreaMap_[type] != avoidArea) {
-        lastAvoidAreaMap_[type] = avoidArea;
-        return true;
+    bool isChanged = false;
+    {
+        std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
+        if ((lastAvoidAreaMap_.find(type) == lastAvoidAreaMap_.end() && type != AvoidAreaType::TYPE_CUTOUT) ||
+            lastAvoidAreaMap_[type] != avoidArea) {
+            lastAvoidAreaMap_[type] = avoidArea;
+            isChanged = true;
+        }
     }
-    return false;
+    return isChanged;
+}
+
+std::map<AvoidAreaType, AvoidArea> WindowSessionImpl::GetLastAvoidAreaMapCopy()
+{
+    std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMapCopy;
+    {
+        std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
+        lastAvoidAreaMapCopy = lastAvoidAreaMap_;
+    }
+    return lastAvoidAreaMapCopy;
 }
 
 WSError WindowSessionImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type)
