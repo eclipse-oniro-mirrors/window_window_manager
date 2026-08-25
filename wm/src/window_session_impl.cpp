@@ -420,9 +420,6 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
  	        nodeId_ = surfaceNode_->GetId();
  	    }
     }
-    if (optionWindowType == WindowType::WINDOW_TYPE_UI_EXTENSION) {
-        RSInterfaces::GetInstance().AuthorizeUIExtensionPid(nodeId_, option->GetCallerPid(), true);
-    } 
     WindowHelper::SplitStringByDelimiter(
         system::GetParameter("const.window.containerColorLists", ""), ",", containerColorList_);
 }

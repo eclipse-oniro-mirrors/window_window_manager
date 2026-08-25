@@ -502,15 +502,5 @@ bool WindowOption::IsCrossProcessWindow() const
 {
     return isCrossProcessWindow_;
 }
-
-void WindowOption::SetCallerPid(int32_t callerPid)
-{
-    callerPid_ = callerPid;
-}
-
-int32_t WindowOption::GetCallerPid() const
-{
-    return callerPid_;
-}
 } // namespace Rosen
 } // namespace OHOS
