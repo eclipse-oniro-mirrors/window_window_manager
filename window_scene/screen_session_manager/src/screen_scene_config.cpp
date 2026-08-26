@@ -853,7 +853,7 @@ int32_t ScreenSceneConfig::GetRogDpi()
     return rogDpi_;
 }
 
-int32_t ScreenSceneConfig::GetRogMode()
+uint32_t ScreenSceneConfig::GetRogMode()
 {
     if (enableRog_ && intNumbersConfig_[xmlNodeMap_[ROG_MODE]].size() > 0) {
         rogMode_ = static_cast<int32_t>(intNumbersConfig_[xmlNodeMap_[ROG_MODE]][0]);
