@@ -2799,7 +2799,7 @@ HWTEST_F(SceneSessionManagerTest2, PendingSessionToForeground01, TestSize.Level1
     sptr<SceneSession> sceneSession1 = sptr<SceneSession>::MakeSptr(info, nullptr);
     sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info, nullptr);
     ssm_->sceneSessionMap_.insert({100, sceneSession1});
-    ssm_->sceneSessionMap_.insert({0, sceneSession2});
+    ssm_->sceneSessionMap_.insert({ssm_->GetFocusedSessionId(0), sceneSession2});
     const sptr<IRemoteObject>& token = sptr<ISession>(sceneSession1)->AsObject();
     ssm_->PendingSessionToForeground(token);
     std::string log = "PendingSessionToForeground: id: " + std::to_string(sceneSession2->GetPersistentId());
@@ -2850,7 +2850,7 @@ HWTEST_F(SceneSessionManagerTest2, PendingSessionToForeground03, TestSize.Level1
     sptr<SceneSession> sceneSession2 = sptr<SceneSession>::MakeSptr(info, nullptr);
     sceneSession2->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_END);
     ssm_->sceneSessionMap_.insert({100, sceneSession1});
-    ssm_->sceneSessionMap_.insert({0, sceneSession2});
+    ssm_->sceneSessionMap_.insert({ssm_->GetFocusedSessionId(0), sceneSession2});
     const sptr<IRemoteObject>& token = sptr<ISession>(sceneSession1)->AsObject();
     ssm_->PendingSessionToForeground(token);
     std::string log = "PendingSessionToForeground: id: " + std::to_string(sceneSession1->GetPersistentId());
