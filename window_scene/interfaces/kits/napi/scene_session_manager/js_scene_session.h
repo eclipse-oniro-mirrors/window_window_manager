@@ -597,7 +597,7 @@ private:
     void OnUpdateAppUseControl(ControlAppType type, bool isNeedControl, bool isControlRecentOnly);
     void OnWindowMoving(DisplayId displayId, int32_t pointerX, int32_t pointerY);
     void UpdateSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-        const std::string& updatedIconPath, const std::string& groupId);
+        const std::string& updatedIconPath, const std::string& groupId = "");
     void OnKeyboardStateChange(SessionState state, const KeyboardEffectOption& effectOption,
         const uint32_t callingSessionId, const DisplayId targetDisplayId);
     void OnKeyboardEffectOptionChange(const KeyboardEffectOption& effectOption);

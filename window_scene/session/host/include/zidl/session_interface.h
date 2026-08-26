@@ -555,7 +555,7 @@ public:
      * @scene 15
      */
     virtual WSError SetSessionLabelAndIcon(const std::string& label,
-        const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId) { return WSError::WS_OK; }
+        const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId = "") { return WSError::WS_OK; }
 
     virtual WSError ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption) { return WSError::WS_OK; };
 

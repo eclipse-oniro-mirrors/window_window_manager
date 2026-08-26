@@ -2364,8 +2364,8 @@ int SessionStub::HandleSetSessionLabelAndIcon(MessageParcel& data, MessageParcel
     }
     std::string groupId;
     if (!data.ReadString(groupId)) {
-        TLOGE(WmsLogTag::WMS_MAIN, "read groupId failed");
-        return ERR_INVALID_DATA;
+        TLOGE(WmsLogTag::WMS_MAIN, "read groupId failed, use default empty string");
+        groupId = "";
     }
 
     WSError errCode = SetSessionLabelAndIcon(label, icon, groupId);
