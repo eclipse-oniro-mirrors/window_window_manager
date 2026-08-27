@@ -828,6 +828,19 @@ void ScreenSessionManager::OneScreenConnect(sptr<ScreenSession> connectScreenSes
         ChangeDisplayNode(firstScreenRsId);
         NotifyInfoChange(connectScreenSession);
         NotifyScreenConnected(connectScreenSession->ConvertToScreenInfo());
+        // VGA (analog signal) may briefly lose sync during sleep and re-trigger a hot-plug
+        // cycle when the device wakes up. The hot-plug races with WakeUpBegin and can leave
+        // screenSessionMap_ empty at the moment WakeUpBegin dispatches the power event, so
+        // SCB never receives the wake-up notification and the lock-screen user avatar is not
+        // redrawn. By the time we reach this branch the physical screen has taken over
+        // SCREEN_ID_DEFAULT, so we replay the power event for SCB here. DISPLAY_OFF_CANCELED
+        // is the only event that reliably triggers SCB to redraw the avatar. The replay is
+        // gated by wakeupPowerEventDropped_ to avoid spamming SCB on every normal hot-plug.
+        if (wakeupPowerEventDropped_.exchange(false)) {
+            TLOGNFI(WmsLogTag::DMS, "[UL_POWER]replay wake-up power event after OneScreenConnect");
+            NotifyDisplayPowerEvent(DisplayPowerEvent::DISPLAY_OFF_CANCELED, EventStatus::END,
+                PowerStateChangeReason::STATE_CHANGE_REASON_INIT);
+        }
     } else {
         ExtendScreenChangetoMainScreen(connectScreenSession);
     }
@@ -1836,6 +1849,13 @@ void ScreenSessionManager::OnScreenChangeForPC(ScreenId screenId, ScreenEvent sc
     OnFoldScreenChange(screenSession);
     if (screenEvent == ScreenEvent::CONNECTED) {
         connectScreenNumber_ ++;
+        bool needChangesScreenSession =false;
+        OneScreenConnect(screenSession, screenId, needChangesScreenSession);
+        if (needChangesScreenSession) {
+            UpdateScreenTypeInfo(screenSession);
+            TLOGNFE(WmsLogTag::DMS, "no need connect");
+            return;
+        }
         DestroyExtendVirtualScreen();
         HandleScreenConnectEvent(screenSession, screenId, screenEvent);
     } else if (screenEvent == ScreenEvent::DISCONNECTED) {
@@ -5900,7 +5920,15 @@ bool ScreenSessionManager::DoWakeUpBegin(PowerStateChangeReason reason)
         return true;
     }
     lastWakeUpReason_ = reason;
-    return NotifyDisplayPowerEvent(DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN, reason);
+    bool ret = NotifyDisplayPowerEvent(DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN, reason);
+    // On PC, a hot-plug event can empty screenSessionMap_ right before WakeUpBegin fires,
+    // which makes NotifyDisplayPowerEvent fail. Remember the dropped state so OneScreenConnect
+    // can replay the power event after the physical screen takes over SCREEN_ID_DEFAULT.
+    wakeupPowerEventDropped_.store(!ret);
+    if (!ret) {
+        TLOGNFE(WmsLogTag::DMS, "[UL_POWER]wake-up power event dropped, will replay on next OneScreenConnect");
+    }
+    return ret;
 }
 
 bool ScreenSessionManager::WakeUpEnd()
