@@ -9880,6 +9880,7 @@ bool SceneSession::UpdateVisibilityInner(bool visibility)
     }
     TLOGI(WmsLogTag::WMS_PIPELINE, "id: %{public}d, visibility: %{public}u -> %{public}u",
         GetPersistentId(), isVisible_.load(), visibility);
+    CheckRemoveSnapshotForUseControl(visibility);
     if (visibilityChangedDetectFunc_) {
         visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), visibility);
     }
@@ -9923,6 +9924,22 @@ void SceneSession::NotifyAddOrRemoveSnapshotWindow(bool interactive)
             }
             interactive ? session->NotifyRemoveSnapshot() : session->NotifyAddSnapshot(false, false, false);
         }, __func__);
+    }
+}
+
+void SceneSession::CheckRemoveSnapshotForUseControl(bool visibility)
+{
+    if (!visibility) {
+        return;
+    }
+    ControlInfo controlInfo;
+    bool isAppControl = GetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+    bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
+    TLOGD(WmsLogTag::WMS_PATTERN, "id: %{public}d, [%{public}d,%{public}d,%{public}d]", GetPersistentId(),
+        isAppControl, controlInfo.isNeedControl, controlInfo.isControlRecentOnly);
+    if (controlInfo.isControlRecentOnly) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d", GetPersistentId());
+        NotifyRemoveSnapshot(true);
     }
 }
 
