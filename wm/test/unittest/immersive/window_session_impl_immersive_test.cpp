@@ -91,20 +91,38 @@ sptr<WindowSessionImpl> GetTestWindowImpl(const std::string& name)
 
 /**
  * @tc.name: UpdateAvoidArea
- * @tc.desc: UpdateAvoidArea
+ * @tc.desc: UpdateAvoidArea branch coverage
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplImmersiveTest, UpdateAvoidArea, TestSize.Level1)
 {
     auto window = GetTestWindowImpl("UpdateAvoidArea");
     ASSERT_NE(window, nullptr);
+
+    auto runner = AppExecFwk::EventRunner::Create("UpdateAvoidArea");
+    auto handler = std::make_shared<AppExecFwk::EventHandler>(runner);
+    runner->Run();
+    window->handler_ = handler;
+
     sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
     avoidArea->topRect_ = { 1, 0, 0, 0 };
     avoidArea->leftRect_ = { 0, 1, 0, 0 };
     avoidArea->rightRect_ = { 0, 0, 1, 0 };
     avoidArea->bottomRect_ = { 0, 0, 0, 1 };
     AvoidAreaType type = AvoidAreaType::TYPE_SYSTEM;
-    ASSERT_EQ(WSError::WS_OK, window->UpdateAvoidArea(avoidArea, type));
+
+    // first update changes lastAvoidAreaMap_
+    EXPECT_EQ(WSError::WS_OK, window->UpdateAvoidArea(avoidArea, type));
+    usleep(200000);
+    auto mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy.size(), 1u);
+
+    // same avoid area does not change lastAvoidAreaMap_
+    EXPECT_EQ(WSError::WS_OK, window->UpdateAvoidArea(avoidArea, type));
+    usleep(200000);
+    mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy.size(), 1u);
+
     window->Destroy();
 }
 
@@ -141,6 +159,9 @@ HWTEST_F(WindowSessionImplImmersiveTest, UpdateLastAvoidAreaIfChanged, TestSize.
     // TYPE_CUTOUT not in map → should return false (type != TYPE_CUTOUT is false, default vs default equal)
     AvoidArea avoidArea3;
     EXPECT_FALSE(window->UpdateLastAvoidAreaIfChanged(AvoidAreaType::TYPE_CUTOUT, avoidArea3));
+    mapCopy = window->GetLastAvoidAreaMapCopy();
+    EXPECT_EQ(mapCopy.size(), 1u);
+    EXPECT_EQ(mapCopy.find(AvoidAreaType::TYPE_CUTOUT), mapCopy.end());
 
     window->Destroy();
 }

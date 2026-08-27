@@ -7261,16 +7261,14 @@ WSErrorCode WindowSessionImpl::NotifyTransferComponentDataSync(const AAFwk::Want
 
 bool WindowSessionImpl::UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const AvoidArea& avoidArea)
 {
-    bool isChanged = false;
-    {
-        std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
-        if ((lastAvoidAreaMap_.find(type) == lastAvoidAreaMap_.end() && type != AvoidAreaType::TYPE_CUTOUT) ||
-            lastAvoidAreaMap_[type] != avoidArea) {
-            lastAvoidAreaMap_[type] = avoidArea;
-            isChanged = true;
-        }
+    std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
+    auto iter = lastAvoidAreaMap_.find(type);
+    if ((iter != lastAvoidAreaMap_.end() && iter->second == avoidArea) ||
+        (iter == lastAvoidAreaMap_.end() && type == AvoidAreaType::TYPE_CUTOUT && avoidArea.isEmptyAvoidArea())) {
+        return false;
     }
-    return isChanged;
+    lastAvoidAreaMap_[type] = avoidArea;
+    return true;
 }
 
 std::map<AvoidAreaType, AvoidArea> WindowSessionImpl::GetLastAvoidAreaMapCopy() const
@@ -7287,7 +7285,7 @@ WSError WindowSessionImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, Avo
 {
     auto task = [weak = wptr(this), avoidArea, type] {
         auto window = weak.promote();
-        if (!window) {
+        if (!window || !avoidArea) {
             return;
         }
         if (!window->IsFloatNavigationAvoidAreaEnabled(type)) {
