@@ -7278,6 +7278,7 @@ void ScreenSessionManager::HandleCustomResolutionChange()
     uint32_t height = 0;
     if (!ScreenSettingHelper::GetCustomResolution(width, height)) {
         TLOGNFE(WmsLogTag::DMS, "GetCustomResolution failed");
+        RecoveryCustomResolutionEffect();
         return;
     }
     if (width <= 0 || height <= 0) {
