@@ -11227,12 +11227,12 @@ void SceneSessionManager::ProcessFocusWhenForegroundScbCore(sptr<SceneSession>& 
         return;
     }
     PostProcessFocusState state = sceneSession->GetPostProcessFocusState();
-    if (state.enabled_ && state.reason_ === FocusChangeReason::SCB_START_APP) {
+    if (state.enabled_ && state.reason_ == FocusChangeReason::SCB_START_APP) {
         TLOGD(WmsLogTag::WMS_FOCUS, "%{public}d has start request focus", sceneSession->GetPersistentId());
         return;
     }
-    PostProcessFocusState state = {true, true, true, FocusChangeReason::APP_FOREGROUND};
-    sceneSession->SetPostProcessFocusState(state);
+    PostProcessFocusState newState = {true, true, true, FocusChangeReason::APP_FOREGROUND};
+    sceneSession->SetPostProcessFocusState(newState);
 }
 
 void SceneSessionManager::ProcessWindowModeType()
