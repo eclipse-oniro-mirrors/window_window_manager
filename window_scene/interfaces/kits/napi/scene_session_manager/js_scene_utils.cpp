@@ -2115,10 +2115,10 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     napi_set_named_property(env, objValue, "isWindowLimitsForcible",
         CreateJsValue(env, isWindowLimitsForcible));
 
-    bool windowMinimizedWhenStart = sessionInfo.windowCreateParams ?
-        sessionInfo.windowCreateParams->windowMinimizedWhenStart : false;
-    napi_set_named_property(env, objValue, "windowMinimizedWhenStart",
-        CreateJsValue(env, windowMinimizedWhenStart));
+    bool minimizeOnStart = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->minimizeOnStart : false;
+    napi_set_named_property(env, objValue, "minimizeOnStart",
+        CreateJsValue(env, minimizeOnStart));
 
     bool excludeFromDock = sessionInfo.windowCreateParams ?
         sessionInfo.windowCreateParams->excludeFromDock : false;

@@ -427,7 +427,7 @@ WSError MainSession::SetSessionLabelAndIcon(const std::string& label,
 }
 
 WSError MainSession::SetSessionLabelAndIconInner(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId = "")
+    const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId)
 {
     const char* const where = __func__;
     PostTask([weakThis = wptr(this), where, label, icon, groupId] {

@@ -244,7 +244,7 @@ struct WindowCreateParams : public Parcelable {
      * @brief Whether application-defined window size limits are allowed to exceed system limits.
      */
     bool isWindowLimitsForcible = false;
-    bool windowMinimizedWhenStart = false;
+    bool minimizeOnStart = false;
     bool excludeFromDock = false;
     bool excludeFromRecent = false;
 
@@ -268,7 +268,7 @@ struct WindowCreateParams : public Parcelable {
         if (!parcel.WriteBool(isWindowLimitsForcible)) {
             return false;
         }
-        if (!parcel.WriteBool(windowMinimizedWhenStart)) {
+        if (!parcel.WriteBool(minimizeOnStart)) {
             return false;
         }
         if (!parcel.WriteBool(excludeFromDock)) {
@@ -303,7 +303,7 @@ struct WindowCreateParams : public Parcelable {
         if (!parcel.ReadBool(windowCreateParams->isWindowLimitsForcible)) {
             return nullptr;
         }
-        if (!parcel.ReadBool(windowCreateParams->windowMinimizedWhenStart)) {
+        if (!parcel.ReadBool(windowCreateParams->minimizeOnStart)) {
             return nullptr;
         }
         if (!parcel.ReadBool(windowCreateParams->excludeFromDock)) {

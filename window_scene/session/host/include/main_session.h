@@ -153,7 +153,7 @@ private:
      * Window LifeCycle
      */
     WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-        const std::string& groupId);
+        const std::string& groupId = "");
     NotifySessionLockStateChangeCallback onSessionLockStateChangeCallback_;
     bool isLockedState_ = false;
     NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;

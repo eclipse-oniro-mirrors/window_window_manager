@@ -420,8 +420,8 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
         windowCreateParams.isWindowLimitsForcible = false;
     }
 
-    windowCreateParams.windowMinimizedWhenStart =
-        GetOptionalBoolProp(env, jsObject, "windowMinimizedWhenStart").value_or(false);
+    windowCreateParams.minimizeOnStart =
+        GetOptionalBoolProp(env, jsObject, "minimizeOnStart").value_or(false);
     windowCreateParams.excludeFromDock =
         GetOptionalBoolProp(env, jsObject, "excludeFromDock").value_or(false);
     windowCreateParams.excludeFromRecent =
