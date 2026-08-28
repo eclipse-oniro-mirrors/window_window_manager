@@ -28,6 +28,7 @@
 #include "js_window_animation_utils.h"
 #include "js_window_utils.h"
 #include "window.h"
+#include "window_focus_error_msg_helper.h"
 #include "window_helper.h"
 #include "window_histogram_management.h"
 #include "window_manager_hilog.h"
@@ -5242,18 +5243,20 @@ napi_value JsWindow::OnSetWindowFocusable(napi_env env, napi_callback_info info)
             if (window == nullptr) {
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowFocusable",
                     WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-                task->Reject(env,
-                    JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                        "[window][setWindowFocusable]msg: Window is nullptr"));
+                task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_FOCUSABLE,
+                        WMError::WM_ERROR_NULLPTR)));
                 return;
             }
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFocusable(focusable));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError wmError = window->SetFocusable(focusable);
+            if (wmError == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
             } else {
+                WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowFocusable", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                    "[window][setWindowFocusable]msg: Window set focusable failed"));
+                std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(
+                    WindowFocusApiType::SET_WINDOW_FOCUSABLE, wmError);
+                task->Reject(env, JsErrUtils::CreateJsError(env, ret, errMsg));
             }
             TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: Window [%{public}u, %{public}s] set focusable end",
                 where, window->GetWindowId(), window->GetWindowName().c_str());
@@ -5316,7 +5319,7 @@ napi_value JsWindow::OnSetTopmost(napi_env env, napi_callback_info info)
             if (errCodePtr == nullptr) {
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTopmost", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][setTopmost]msg: System abnormal"));
+                    "[window][setTopmost]msg: The window is not created or destroyed."));
                 return;
             }
             if (*errCodePtr == WmErrorCode::WM_OK) {
@@ -5339,7 +5342,8 @@ napi_value JsWindow::OnSetWindowTopmost(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_HIERARCHY, "windowToken is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowTopmost]msg: WindowToken is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_TOPMOST,
+                WMError::WM_ERROR_INVALID_WINDOW));
     }
     if (windowToken_->IsPadAndNotFreeMultiWindowCompatibleMode()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "This is PcAppInPad, not support");
@@ -5349,13 +5353,14 @@ napi_value JsWindow::OnSetWindowTopmost(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_HIERARCHY, "device not support");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][setWindowTopmost]msg: Device not support");
+            "[window][setWindowTopmost]msg: Device not support.");
     }
     if (!WindowHelper::IsMainWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "not allowed since window is not main window");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", WmErrorCode::WM_ERROR_INVALID_CALLING);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setWindowTopmost]msg: Not allowed since window is not main window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_TOPMOST,
+                WMError::WM_ERROR_INVALID_CALLING));
     }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
@@ -5378,13 +5383,17 @@ napi_value JsWindow::OnSetWindowTopmost(napi_env env, napi_callback_info info)
             TLOGNE(WmsLogTag::WMS_HIERARCHY, "%{public}s window is nullptr", where);
             WmErrorCode wmErrorCode = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", wmErrorCode);
-            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "window is nullptr"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, 
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_TOPMOST,
+                    WMError::WM_ERROR_INVALID_WINDOW)));
             return;
         }
-        auto ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetMainWindowTopmost(isMainWindowTopmost));
-        if (ret != WmErrorCode::WM_OK) {
+        WMError wmError = window->SetMainWindowTopmost(isMainWindowTopmost);
+        if (wmError != WMError::WM_OK) {
+            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTopmost", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window set main window topmost failed"));
+            std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_TOPMOST, wmError);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errMsg));
             return;
         }
         task->Resolve(env, NapiGetUndefined(env));
@@ -5407,13 +5416,15 @@ napi_value JsWindow::OnSetSubWindowZLevel(napi_env env, napi_callback_info info)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setSubWindowZLevel]msg: WindowToken is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+                    WMError::WM_ERROR_INVALID_WINDOW));
     }
     if (!WindowHelper::IsSubWindow(windowToken_->GetType())) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "not allowed since window is not sub window");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel", WmErrorCode::WM_ERROR_INVALID_CALLING);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
-            "[window][setSubWindowZLevel]msg: Not allowed since window is not sub window");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+                    WMError::WM_ERROR_INVALID_CALLING));
     }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     size_t argc = FOUR_PARAMS_SIZE;
@@ -5442,20 +5453,22 @@ napi_value JsWindow::OnSetSubWindowZLevel(napi_env env, napi_callback_info info)
             TLOGNE(WmsLogTag::WMS_HIERARCHY, "%{public}s window is nullptr", where);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-            task->Reject(env, JsErrUtils::CreateJsError(env,
-                WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "[window][setSubWindowZLevel]msg: Window is nullptr"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,
+                    WMError::WM_ERROR_NULLPTR)));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSubWindowZLevel(zLevel));
-        if (ret == WmErrorCode::WM_OK) {
+        WMError wmError = window->SetSubWindowZLevel(zLevel);
+        if (wmError == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
+            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setSubWindowZLevel]msg: Set sub window zLevel failed"));
+            std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL, wmError);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errMsg));
         }
         TLOGNI(WmsLogTag::WMS_HIERARCHY, "window [%{public}u, %{public}s], zLevel = %{public}d, ret = %{public}d",
-            window->GetWindowId(), window->GetWindowName().c_str(), zLevel, ret);
+            window->GetWindowId(), window->GetWindowName().c_str(), zLevel, wmError);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetSubWindowZLevel") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowZLevel", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
@@ -5480,13 +5493,16 @@ napi_value JsWindow::OnGetSubWindowZLevel(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_HIERARCHY, "window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSubWindowZLevel", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][getSubWindowZLevel]msg: Window is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL,
+                WMError::WM_ERROR_NULLPTR));
     }
     int32_t zLevel = 0;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetSubWindowZLevel(zLevel));
-    if (ret != WmErrorCode::WM_OK) {
+    WMError wmError = windowToken_->GetSubWindowZLevel(zLevel);
+    if (wmError != WMError::WM_OK) {
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSubWindowZLevel", ret);
-        return NapiThrowError(env, ret, "[window][getSubWindowZLevel]msg: Get sub window zLevel failed");
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL, wmError);
+        return NapiThrowError(env, ret, errMsg);
     }
     return CreateJsValue(env, zLevel);
 }
@@ -5498,7 +5514,8 @@ napi_value JsWindow::OnSetWindowDelayRaiseOnDrag(napi_env env, napi_callback_inf
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDelayRaiseOnDrag",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowDelayRaiseOnDrag]msg: WindowToken is nullptr");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED,
+                WMError::WM_ERROR_INVALID_WINDOW));
     }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
@@ -5519,12 +5536,12 @@ napi_value JsWindow::OnSetWindowDelayRaiseOnDrag(napi_env env, napi_callback_inf
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][setWindowDelayRaiseOnDrag]msg: Failed to convert parameter from jsValue");
     }
-    auto result = windowToken_->SetWindowDelayRaiseEnabled(isDelayRaise);
+    WMError result = windowToken_->SetWindowDelayRaiseEnabled(isDelayRaise);
     if (result != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_FOCUS, "failed");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WM_JS_TO_ERROR_CODE_MAP.at(result));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowDelayRaiseOnDrag", WM_JS_TO_ERROR_CODE_MAP.at(result));
         return NapiThrowError(env, WM_JS_TO_ERROR_CODE_MAP.at(result),
-            "[window][setWindowDelayRaiseOnDrag]");
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED, result));
     }
     return NapiGetUndefined(env);
 }
@@ -6009,7 +6026,6 @@ napi_value JsWindow::OnSetRaiseByClickEnabled(napi_env env, napi_callback_info i
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < 1 || argc > 2) { // 2: maximum params num
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "Argc is invalid: %{public}zu", argc);
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     bool raiseEnabled = true;
@@ -6025,8 +6041,9 @@ napi_value JsWindow::OnSetRaiseByClickEnabled(napi_env env, napi_callback_info i
         [weakToken = wptr<Window>(windowToken_), raiseEnabled, env, errCode, task = napiAsyncTask, where = __func__] {
             auto window = weakToken.promote();
             if (window == nullptr) {
-                TLOGNE(WmsLogTag::WMS_HIERARCHY, "%{public}s: window is nullptr", where);
-                task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+                task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED,
+                        WMError::WM_ERROR_INVALID_WINDOW)));
                 return;
             }
             if (errCode != WMError::WM_OK) {
@@ -6035,21 +6052,22 @@ napi_value JsWindow::OnSetRaiseByClickEnabled(napi_env env, napi_callback_info i
                 task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "Invalidate params."));
                 return;
             }
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetRaiseByClickEnabled(raiseEnabled));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError ret = window->SetRaiseByClickEnabled(raiseEnabled);
+            if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
             } else {
-                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnabled", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret, "set raiseEnabled failed"));
+                WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnabled", wmErrorCode);
+                task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED, ret)));
             }
             TLOGNI(WmsLogTag::WMS_HIERARCHY, "%{public}s: Window [%{public}u, %{public}s] set raiseEnabled end",
                 where, window->GetWindowId(), window->GetWindowName().c_str());
         };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetRaiseByClickEnabled") != napi_status::napi_ok) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnabled",
-            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        napiAsyncTask->Reject(env,
-            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "failed to send event"));
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRaiseByClickEnable", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][setRaiseByClickEnabled]msg: failed to send event"));
     }
     return result;
 }
@@ -6084,7 +6102,9 @@ napi_value JsWindow::OnSetMainWindowRaiseByClickEnabled(napi_env env, napi_callb
             auto window = weakToken.promote();
             if (window == nullptr) {
                 TLOGNE(WmsLogTag::WMS_HIERARCHY, "%{public}s: window is nullptr", where);
-                task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+                task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED,
+                        WMError::WM_ERROR_INVALID_WINDOW)));
                 return;
             }
             if (errCode != WMError::WM_OK) {
@@ -6094,13 +6114,15 @@ napi_value JsWindow::OnSetMainWindowRaiseByClickEnabled(napi_env env, napi_callb
                     "[window][setMainWindowRaiseByClickEnabled]msg: Invalidate params."));
                 return;
             }
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetMainWindowRaiseByClickEnabled(raiseEnabled));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError ret = window->SetMainWindowRaiseByClickEnabled(raiseEnabled);
+            if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
             } else {
-                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setMainWindowRaiseByClickEnabled", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                    "[window][setMainWindowRaiseByClickEnabled]msg: set raiseEnabled failed"));
+                WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setMainWindowRaiseByClickEnabled", wmErrorCode);
+                task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(
+                        WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED, ret)));
             }
             TLOGNI(WmsLogTag::WMS_HIERARCHY, "%{public}s: main window %{public}u set raiseEnabled : %{public}d",
                 where, window->GetWindowId(), raiseEnabled);
@@ -6305,7 +6327,8 @@ napi_value JsWindow::OnRaiseAboveTarget(napi_env env, napi_callback_info info)
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget",
                     WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
                 task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][raiseAboveTarget]msg: Window is nullptr"));
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_ABOVE_TARGET,
+                        WMError::WM_ERROR_NULLPTR)));
                 return;
             }
             if (errCode != WmErrorCode::WM_OK) {
@@ -6314,13 +6337,14 @@ napi_value JsWindow::OnRaiseAboveTarget(napi_env env, napi_callback_info info)
                     "[window][raiseAboveTarget]msg: Invalidate params."));
                 return;
             }
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseAboveTarget(subWindowId));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError ret = window->RaiseAboveTarget(subWindowId);
+            if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
             } else {
-                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                    "[window][raiseAboveTarget]msg: Window set raiseAboveTarget failed"));
+                WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseAboveTarget", wmErrorCode);
+                task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_ABOVE_TARGET, ret)));
             }
         };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnRaiseAboveTarget") != napi_status::napi_ok) {
@@ -6373,7 +6397,8 @@ napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_in
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][raiseMainWindowAboveTarget]msg: Window is nullptr"));
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET,
+                    WMError::WM_ERROR_INVALID_WINDOW)));
             return;
         }
         if (targetId == static_cast<int32_t>(window->GetWindowId())) {
@@ -6386,13 +6411,14 @@ napi_value JsWindow::OnRaiseMainWindowAboveTarget(napi_env env, napi_callback_in
                 "[window][raiseMainWindowAboveTarget]msg: Invalidate params."));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseMainWindowAboveTarget(targetId));
-        if (ret == WmErrorCode::WM_OK) {
+        WMError ret = window->RaiseMainWindowAboveTarget(targetId);
+        if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][raiseMainWindowAboveTarget]msg: Raise main window above target failed"));
+            WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseMainWindowAboveTarget", wmErrorCode);
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET, ret)));
         }
         TLOGNI(WmsLogTag::WMS_HIERARCHY, "source window: %{public}u, target window: %{public}u, ret = %{public}d",
             window->GetWindowId(), targetId, ret);
@@ -7144,16 +7170,19 @@ napi_value JsWindow::OnRaiseToAppTop(napi_env env, napi_callback_info info)
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseToAppTop",
                     WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
                 task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][raiseToAppTop]msg: Window is nullptr"));
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::RAISE_TO_APP_TOP,
+                        WMError::WM_ERROR_NULLPTR)));
                 return;
             }
 
-            WmErrorCode errCode = WM_JS_TO_ERROR_CODE_MAP.at(window->RaiseToAppTop());
-            if (errCode != WmErrorCode::WM_OK) {
+            WMError wmError = window->RaiseToAppTop();
+            if (wmError != WMError::WM_OK) {
+                WmErrorCode errCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
                 TLOGNE(WmsLogTag::WMS_HIERARCHY, "raise window zorder failed");
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.raiseToAppTop", errCode);
-                task->Reject(env, JsErrUtils::CreateJsError(env, errCode,
-                    "[window][raiseToAppTop]msg: Raise window zorder failed"));
+                std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(
+                    WindowFocusApiType::RAISE_TO_APP_TOP, wmError);
+                task->Reject(env, JsErrUtils::CreateJsError(env, errCode, errMsg));
                 return;
             }
             task->Resolve(env, NapiGetUndefined(env));
@@ -9297,7 +9326,7 @@ napi_value JsWindow::OnSetSubWindowModal(napi_env env, napi_callback_info info)
             TLOGE(WmsLogTag::WMS_SUB, "Failed to convert parameter to modalityType");
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal", WmErrorCode::WM_ERROR_INVALID_PARAM);
             return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-                "[window][setPrivacyMode]msg: Convert parameter to modality type failed");
+                "[window][setSubWindowModal]msg: Convert parameter to modality type failed");
         }
     }
     napi_value result = nullptr;
@@ -9310,7 +9339,8 @@ napi_value JsWindow::OnSetSubWindowModal(napi_env env, napi_callback_info info)
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal", wmErrorCode);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
-                "[window][setSubWindowModal]msg: invalid window"));
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL,
+                    WMError::WM_ERROR_NULLPTR)));
             return;
         }
         if (!WindowHelper::IsSubWindow(window->GetType())) {
@@ -9319,18 +9349,20 @@ napi_value JsWindow::OnSetSubWindowModal(napi_env env, napi_callback_info info)
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal",
                 WmErrorCode::WM_ERROR_INVALID_CALLING);
             task->Reject(env, JsErrUtils::CreateJsError(env,
-                WmErrorCode::WM_ERROR_INVALID_CALLING, "[window][setSubWindowModal]msg: Invalid window type"));
+                WmErrorCode::WM_ERROR_INVALID_CALLING,
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL,
+                    WMError::WM_ERROR_INVALID_CALLING)));
             return;
         }
-        WMError ret = window->SetSubWindowModal(isModal, modalityType);
-        if (ret == WMError::WM_OK) {
+        WMError wmError = window->SetSubWindowModal(isModal, modalityType);
+        if (wmError == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+            WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s set failed, ret is %{public}d", where, wmErrorCode);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSubWindowModal", wmErrorCode);
-            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
-                "[window][setSubWindowModal]msg: set subwindow modal failed"));
+            std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_SUB_WINDOW_MODAL, wmError);
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errMsg));
             return;
         }
         TLOGNI(WmsLogTag::WMS_SUB,
@@ -10458,7 +10490,7 @@ napi_value JsWindow::OnIsFocused(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_FOCUS, "window is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isFocused", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][isFocused]msg: Window is nullptr");
+            "[window][isFocused]msg: The window is not created or destroyed.");
     }
 
     bool isFocused = window->IsFocused();
@@ -11332,7 +11364,8 @@ napi_value JsWindow::OnSetExclusivelyHighlighted(napi_env env, napi_callback_inf
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setExclusivelyHighlighted",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][setExclusivelyHighlighted]msg: Window is nullptr"));
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED,
+                    WMError::WM_ERROR_INVALID_WINDOW)));
             return;
         }
         WMError ret = window->SetExclusivelyHighlighted(exclusivelyHighlighted);
@@ -11342,7 +11375,7 @@ napi_value JsWindow::OnSetExclusivelyHighlighted(napi_env env, napi_callback_inf
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setExclusivelyHighlighted", wmErrorCode);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
-                "[window][setExclusivelyHighlighted]msg: Set exclusively highlighted failed"));
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED, ret)));
         }
         TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: end, window: [%{public}u, %{public}s]",
             where, window->GetWindowId(), window->GetWindowName().c_str());
@@ -11363,7 +11396,7 @@ napi_value JsWindow::OnIsWindowHighlighted(napi_env env, napi_callback_info info
         TLOGE(WmsLogTag::WMS_FOCUS, "windowToken is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.isWindowHighlighted", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][isWindowHighlighted]msg: WindowToken is nullptr");
+            "[window][isWindowHighlighted]msg: The window is not created or destroyed.");
     }
     bool isHighlighted = false;
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->IsWindowHighlighted(isHighlighted));

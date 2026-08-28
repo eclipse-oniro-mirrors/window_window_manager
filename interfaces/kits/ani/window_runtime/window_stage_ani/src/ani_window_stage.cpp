@@ -27,6 +27,7 @@
 #include "window_histogram_management.h"
 #include "window_manager_hilog.h"
 #include "window_scene.h"
+#include "window_focus_error_msg_helper.h"
 #include "interop_js/arkts_esvalue.h"
 #include "interop_js/arkts_interop_js_api.h"
 #include "interop_js/hybridgref_ani.h"
@@ -615,7 +616,7 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowModal]msg: windowScene is nullptr");
+            "[window][setWindowModal]msg: The window is not created or destroyed.");
         return;
     }
     auto window = windowScene->GetMainWindow();
@@ -632,15 +633,16 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][setWindowModal]msg: device not support");
+            "[window][setWindowModal]msg: Device not support.");
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowModal(isModal));
-    if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "failed, ret is %{public}d", ret);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "window][setWindowModal]msg: Set main window modal failed");
+    WMError ret = window->SetWindowModal(isModal);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "failed, ret is %{public}d", wmErrorCode);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_MODAL, ret));
         return;
     }
     TLOGI(WmsLogTag::WMS_HIERARCHY, "id:%{public}u, name:%{public}s, isModal:%{public}d",
