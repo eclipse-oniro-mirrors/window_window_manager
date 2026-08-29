@@ -1135,6 +1135,8 @@ private:
      * @return Returns true if the config is valid and applied; returns false otherwise.
      */
     bool ConfigDisplayIsolation(const WindowSceneConfig::ConfigItem& displayIsolationConfig);
+    bool ConfigWindowLimitsThreshold(const WindowSceneConfig::ConfigItem& limitsThresholdConfig);
+    bool ConfigWindowLimitsPercentage(const WindowSceneConfig::ConfigItem& limitsThresholdPercentageConfig);
 
     void ConfigWindowSizeLimits();
     void ConfigMainWindowSizeLimits(const WindowSceneConfig::ConfigItem& mainWindowSizeConifg);

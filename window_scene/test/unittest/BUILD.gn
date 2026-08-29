@@ -47,6 +47,7 @@ group("unittest") {
     ":ws_task_scheduler_test",
     ":ws_window_coordinate_helper_test",
     ":ws_window_display_isolation_policy_test",
+    ":ws_window_limits_threshold_test",
     ":ws_window_manager_lru_test",
     ":ws_window_scene_config_test",
     "animation:ws_scene_session_animation_test",
@@ -1911,6 +1912,20 @@ ohos_unittest("ws_window_display_isolation_policy_test") {
   ]
 
   external_deps = test_external_deps
+}
+
+ohos_unittest("ws_window_limits_threshold_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_limits_threshold_test.cpp" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/common:window_scene_common",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("ws_session_utils_test") {

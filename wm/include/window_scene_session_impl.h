@@ -471,6 +471,38 @@ protected:
     void UpdateWindowSizeLimits(bool needNotifySession = false);
 
     /**
+     * @brief Cap min size limits by ratio of display work area.
+     *
+     * Gate: returns immediately (no work area query, no capping) when
+     * `isMinLimitOfWorkAreaEnabled` is false or the ratio is not in (0, 1).
+     * Trigger: resulting min width or height exceeds ratio x work area size.
+     * Aspect ratio: `setAspectRatio`/`setContentAspectRatio` value first,
+     * built-in limits minRatio_ as fallback.
+     *
+     * @param newLimits Reference to WindowLimits (PX unit) to be capped.
+     * @param newLimitsVP Reference to WindowLimits (VP unit), recalculated after capping.
+     * @param vpr Virtual pixel ratio for unit conversion.
+     * @return Returns true if the min limits were actually capped.
+     */
+    bool AdjustMinLimitsByWorkArea(WindowLimits& newLimits, WindowLimits& newLimitsVP, float vpr);
+
+    /**
+     * @brief Cap min limits by work area caps, respecting the aspect ratio rules.
+     * Rule 1/2/3: cap width and height independently when no ratio;
+     * Rule 4/4.1/4.2: cap height, derive width by ratio, cap takes priority.
+     * @param newLimits Reference to WindowLimits (PX unit) to be capped.
+     * @param capWidth Cap of min width (workAreaWidth * ratio).
+     * @param capHeight Cap of min height (workAreaHeight * ratio).
+     */
+    void CapMinLimitsByAspectRatio(WindowLimits& newLimits, uint32_t capWidth, uint32_t capHeight);
+
+    /**
+     * @brief Get the effective aspect ratio for work area capping.
+     * @return aspect ratio set via set interfaces, or limits minRatio_ as fallback.
+     */
+    float GetEffectiveAspectRatio(const WindowLimits& limits) const;
+
+    /**
      * @brief Calculate window limits intersection with attached windows.
      * @param newLimits Reference to WindowLimits (PX unit) to be updated with intersected values.
      * @param newLimitsVP Reference to WindowLimits (VP unit) to be updated with intersected values.
@@ -658,6 +690,8 @@ private:
     void UpdateDefaultStatusBarColor() override;
     std::atomic<bool> userLimitsSet_ = false;
     std::atomic<bool> forceLimits_ = false;
+    // True when the last UpdateWindowSizeLimits call capped min limits by work area rule
+    std::atomic<bool> isMinLimitsAdjusted_ = false;
     uint32_t setSameSystembarPropertyCnt_ = 0;
     std::atomic<uint32_t> getAvoidAreaCnt_ = 0;
     std::atomic<bool> enableImmersiveMode_ = false;
