@@ -289,7 +289,7 @@ public:
     void NotifyRemoveBlank();
     void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true,
         std::function<void()>&& callback = nullptr);
-    void NotifyRemoveSnapshot();
+    void NotifyRemoveSnapshot(bool forceRemove = false);
     void NotifyUpdateSnapshotWindow();
     void NotifyPreLoadStartingWindowFinished();
     void NotifyRestart();

@@ -1825,6 +1825,7 @@ private:
      * Window pattern
      */
     void NotifyAddOrRemoveSnapshotWindow(bool interactive);
+    void CheckRemoveSnapshotForUseControl(bool visibility);
 
     /*
      * Window Property

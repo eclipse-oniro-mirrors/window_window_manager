@@ -794,9 +794,9 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist,
     }
 }
 
-void Session::NotifyRemoveSnapshot()
+void Session::NotifyRemoveSnapshot(bool forceRemove)
 {
-    if (GetAppLockControl()) {
+    if (!forceRemove && GetAppLockControl()) {
         TLOGI(WmsLogTag::WMS_PATTERN, "not allowed");
         return;
     }
