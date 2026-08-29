@@ -21,6 +21,7 @@
 #include "permission.h"
 #include "pixel_map_napi.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -711,7 +712,7 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
     if (windowScene == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "WindowScene is null");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
-            "[window][setWindowModal]msg: Invalid window scene"));
+            "[window][setWindowModal]msg: The window is not created or destroyed."));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return NapiGetUndefined(env);
     }
@@ -719,7 +720,7 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "window is nullptr");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
-            "[window][setWindowModal]msg: Invalid main window"));
+            "[window][setWindowModal]msg: The window is not created or destroyed."));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
         return NapiGetUndefined(env);
     }
@@ -731,7 +732,7 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
     if (!window->IsPcOrPadFreeMultiWindowMode()) {
         TLOGE(WmsLogTag::WMS_MAIN, "device not support");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][setWindowModal]msg: Device not support"));
+            "[window][setWindowModal]msg: Device not support."));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         return NapiGetUndefined(env);
     }
@@ -761,7 +762,8 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s failed, window is null", where);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][setWindowModal]msg: window is not valid"));
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_MODAL,
+                    WMError::WM_ERROR_INVALID_WINDOW)));
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
@@ -770,7 +772,7 @@ napi_value JsWindowStage::OnSetWindowModal(napi_env env, napi_callback_info info
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s failed, ret is %{public}d", where, wmErrorCode);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
-                "[window][setWindowModal]msg: set main window modal failed"));
+                WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_MODAL, ret)));
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", wmErrorCode);
             return;
         }

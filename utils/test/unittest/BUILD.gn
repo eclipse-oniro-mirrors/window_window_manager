@@ -36,6 +36,7 @@ group("unittest") {
     ":utils_string_test",
     ":utils_surface_reader_test",
     ":utils_task_sequence_process_test",
+    ":utils_window_focus_error_msg_helper_test",
     ":utils_window_error_msg_test",
     ":utils_window_helper_test",
     ":utils_window_property_test",
@@ -212,6 +213,16 @@ ohos_unittest("utils_float_window_error_msg_test") {
   module_out_path = module_out_path
 
   sources = [ "float_window_error_msg_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("utils_window_focus_error_msg_helper_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_focus_error_msg_helper_test.cpp" ]
 
   deps = [ ":utils_unittest_common" ]
 
