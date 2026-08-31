@@ -702,7 +702,9 @@ int SessionStub::HandleDrawingCompleted(MessageParcel& data, MessageParcel& repl
 int SessionStub::HandleRemoveStartingWindow(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_STARTUP_PAGE, "Called!");
-    WSError errCode = RemoveStartingWindow();
+    std::string errMsg;
+    WSError errCode = RemoveStartingWindow(errMsg);
+    reply.WriteString(errMsg);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }

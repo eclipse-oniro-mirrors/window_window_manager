@@ -2829,6 +2829,12 @@ WSError WindowSessionImpl::SetStageKeyFramePolicy(const KeyFramePolicy& keyFrame
 
 WMError WindowSessionImpl::SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy)
 {
+     std::string errMsg;
+     return SetDragKeyFramePolicy(keyFramePolicy, errMsg);
+}
+
+WMError WindowSessionImpl::SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy, std::string& errMsg)
+{
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::SetDragKeyFramePolicy");
     TLOGD(WmsLogTag::WMS_LAYOUT_PC, "in");
     if (!IsPhonePadOrPcWindow()) {
@@ -2836,6 +2842,7 @@ WMError WindowSessionImpl::SetDragKeyFramePolicy(const KeyFramePolicy& keyFrameP
     }
     if (!WindowHelper::IsMainWindow(GetType())) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "only main window is valid");
+        errMsg = "only main window is valid";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     if (IsWindowSessionInvalid()) {
@@ -2846,6 +2853,7 @@ WMError WindowSessionImpl::SetDragKeyFramePolicy(const KeyFramePolicy& keyFrameP
 
     if (!IsPcWindow()) {
         TLOGI(WmsLogTag::WMS_LAYOUT_PC, "ignore not pc window type");
+        errMsg = "ignore not pc window type";
         return WMError::WM_OK;
     }
     WSError errorCode = hostSession->SetDragKeyFramePolicy(keyFramePolicy);
@@ -3242,10 +3250,18 @@ Rect WindowSessionImpl::GetGlobalDisplayRect(bool useHookedSize) const
 
 WMError WindowSessionImpl::ClientToGlobalDisplay(const Position& inPosition, Position& outPosition) const
 {
+    std::string errMsg;
+    return ClientToGlobalDisplay(inPosition, outPosition, errMsg);
+}
+
+WMError WindowSessionImpl::ClientToGlobalDisplay(const Position& inPosition, Position& outPosition,
+    std::string& errMsg) const
+{
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::ClientToGlobalDisplay");
     const auto windowId = GetWindowId();
     const auto transform = GetCurrentTransform();
     if (WindowHelper::IsScaled(transform)) {
+        errMsg = "Scaled window is not supported";
         TLOGW(WmsLogTag::WMS_LAYOUT,
             "Scaled window is not supported, windowId: %{public}u, scaleX: %{public}f, scaleY: %{public}f",
             windowId, transform.scaleX_, transform.scaleY_);
@@ -3254,6 +3270,7 @@ WMError WindowSessionImpl::ClientToGlobalDisplay(const Position& inPosition, Pos
     const auto globalDisplayRect = GetGlobalDisplayRect();
     const Position& basePosition = {globalDisplayRect.posX_, globalDisplayRect.posY_};
     if (!inPosition.SafeAdd(basePosition, outPosition)) {
+        errMsg = "Position overflow";
         TLOGW(WmsLogTag::WMS_LAYOUT,
             "Position overflow, windowId: %{public}u, inPosition: %{public}s, basePosition: %{public}s",
             windowId, inPosition.ToString().c_str(), basePosition.ToString().c_str());
@@ -3268,10 +3285,18 @@ WMError WindowSessionImpl::ClientToGlobalDisplay(const Position& inPosition, Pos
 
 WMError WindowSessionImpl::GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const
 {
+    std::string errMsg;
+    return GlobalDisplayToClient(inPosition, outPosition, errMsg);
+}
+
+WMError WindowSessionImpl::GlobalDisplayToClient(const Position& inPosition, Position& outPosition,
+    std::string& errMsg) const
+{
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSessionImpl::GlobalDisplayToClient");
     const auto windowId = GetWindowId();
     const auto transform = GetCurrentTransform();
     if (WindowHelper::IsScaled(transform)) {
+        errMsg = "Scaled window is not supported";
         TLOGW(WmsLogTag::WMS_LAYOUT,
             "Scaled window is not supported, windowId: %{public}u, scaleX: %{public}f, scaleY: %{public}f",
             windowId, transform.scaleX_, transform.scaleY_);
@@ -3280,6 +3305,7 @@ WMError WindowSessionImpl::GlobalDisplayToClient(const Position& inPosition, Pos
     const auto globalDisplayRect = GetGlobalDisplayRect();
     const Position& basePosition = {globalDisplayRect.posX_, globalDisplayRect.posY_};
     if (!inPosition.SafeSub(basePosition, outPosition)) {
+        errMsg = "Position overflow";
         TLOGW(WmsLogTag::WMS_LAYOUT,
             "Position overflow, windowId: %{public}u, inPosition: %{public}s, basePosition: %{public}s",
             windowId, inPosition.ToString().c_str(), basePosition.ToString().c_str());
@@ -3654,9 +3680,17 @@ bool WindowSessionImpl::IsWindowDelayRaiseEnabled() const
 
 WMError WindowSessionImpl::SetResizeByDragEnabled(bool dragEnabled)
 {
+    std::string errMsg;
+    return SetResizeByDragEnabled(dragEnabled, errMsg);
+}
+
+WMError WindowSessionImpl::SetResizeByDragEnabled(bool dragEnabled, std::string& errMsg)
+{
+    errMsg.clear();
     TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}d", dragEnabled);
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Session is invalid");
+        errMsg = "Session is invalid";
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (WindowHelper::IsMainWindow(GetType()) ||
@@ -3665,6 +3699,7 @@ WMError WindowSessionImpl::SetResizeByDragEnabled(bool dragEnabled)
         hasSetEnableDrag_.store(true);
     } else {
         TLOGE(WmsLogTag::WMS_LAYOUT, "This is not main window or decor enabled sub window.");
+        errMsg = "This is not main window or decor enabled sub window";
         return WMError::WM_ERROR_INVALID_TYPE;
     }
     return UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
@@ -4182,13 +4217,22 @@ bool WindowSessionImpl::CheckCanDragWindowType()
  */
 WMError WindowSessionImpl::EnableDrag(bool enableDrag)
 {
+    std::string errMsg;
+    return EnableDrag(enableDrag, errMsg);
+}
+
+WMError WindowSessionImpl::EnableDrag(bool enableDrag, std::string& errMsg)
+{
+    errMsg.clear();
     if (!IsWindowShouldDrag()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "The device is not supported");
+        errMsg = "The device is not supported";
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }
     if (!CheckCanDragWindowType()) {
         TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, invalid window type:%{public}u",
             GetPersistentId(), GetType());
+        errMsg = "invalid window type";
         return WMError::WM_ERROR_INVALID_CALLING;
     }
     property_->SetDragEnabled(enableDrag);

@@ -168,6 +168,7 @@ public:
      * Starting Window
      */
     WSError RemoveStartingWindow() override;
+    WSError RemoveStartingWindow(std::string& errMsg) override;
 
     /*
      * Window Property

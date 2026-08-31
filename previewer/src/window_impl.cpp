@@ -618,6 +618,14 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
 
 WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfiguration moveConfiguration)
 {
+    std::string errMsg;
+    return MoveTo(x, y, isMoveToGlobal, moveConfiguration, errMsg);
+}
+
+WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+    MoveConfiguration moveConfiguration, std::string& errMsg)
+{
+    errMsg.clear();
     return WMError::WM_OK;
 }
 
@@ -722,7 +730,27 @@ WMError WindowImpl::Minimize(std::string& errMsg)
 
 WMError WindowImpl::Recover()
 {
+    std::string errMsg;
+    return Recover(errMsg);
+}
+
+WMError WindowImpl::Recover(std::string& errMsg)
+{
+    errMsg.clear();
     return WMError::WM_OK;
+}
+
+WMError WindowImpl::Recover(uint32_t reason, std::string& errMsg)
+{
+    errMsg.clear();
+    return Recover(errMsg);
+}
+
+WMError WindowImpl::Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+    std::string& errMsg)
+{
+    errMsg.clear();
+    return Recover(errMsg);
 }
 
 WMError WindowImpl::Close()

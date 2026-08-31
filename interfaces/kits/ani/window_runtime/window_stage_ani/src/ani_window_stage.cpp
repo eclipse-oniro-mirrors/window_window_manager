@@ -46,6 +46,12 @@ static std::map<ani_object, AniWindowStage*> localObjs;
 const uint32_t MIN_RESOURCE_ID = 0x1000000;
 const uint32_t MAX_RESOURCE_ID = 0xffffffff;
 constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 } // namespace
 
 AniWindowStage::AniWindowStage(const std::shared_ptr<Rosen::WindowScene>& windowScene)
@@ -716,13 +722,14 @@ void AniWindowStage::OnSetImageForRecent(ani_env* env, ani_object imageResource,
     ConvertImageFit(imageFit, arkImageFit);
     TLOGI(WmsLogTag::WMS_PATTERN, "value: %{public}d, imageFit: %{public}d", value, imageFit);
     WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsg;
     if (pixelMap) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecentPixelMap(pixelMap, imageFit));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecentPixelMap(pixelMap, imageFit, errMsg));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecent(imageResourceId, imageFit));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecent(imageResourceId, imageFit, errMsg));
     }
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, ConcatErrorMsg("SetImageForRecent", errMsg));
         return;
     }
 }
@@ -775,9 +782,10 @@ void AniWindowStage::OnRemoveImageForRecent(ani_env* env)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->RemoveImageForRecent());
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->RemoveImageForRecent(errMsg));
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, ConcatErrorMsg("RemoveImageForRecent", errMsg));
         return;
     }
 }
@@ -897,10 +905,11 @@ void AniWindowStage::OnRemoveStartingWindow(ani_env* env)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->NotifyRemoveStartingWindow());
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->NotifyRemoveStartingWindow(errMsg));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "[ANI] Notify remove starting window failed");
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, ConcatErrorMsg("NotifyRemoveStartingWindow", errMsg));
     }
 }
 

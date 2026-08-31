@@ -70,6 +70,20 @@ constexpr DisplayId VIRTUAL_DISPLAY_ID_MIN = 500;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_MAX = 900;
 constexpr DisplayId VIRTUAL_DISPLAY_ID_EXT_MIN = 1000;
 
+#define APPEND_ERROR_MESSAGE(errorMsg, errMsg)    \
+    do {                                          \
+        if (!(errMsg).empty()) {                  \
+            (errorMsg) += ": " + (errMsg);        \
+        }                                         \
+    } while (0)
+
+#define APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr)    \
+    do {                                                 \
+        if ((errMsgPtr) && !(errMsgPtr)->empty()) {      \
+            (errorMsg) += ": " + *(errMsgPtr);           \
+        }                                                \
+    } while (0)
+
 static bool IsVirtualDisplay(DisplayId displayId)
 {
     return (displayId >= VIRTUAL_DISPLAY_ID_MIN && displayId <= VIRTUAL_DISPLAY_ID_MAX) ||
@@ -2076,13 +2090,16 @@ napi_value JsWindow::OnRecover(napi_env env, napi_callback_info info)
                 "[window][recover]msg: Failed to parse SnapshotAnimationConfig"));
             return;
         }
-        WMError ret = configOpt.has_value() ? window->Recover(1, *configOpt) : window->Recover(1);
+        std::string errMsg;
+        WMError ret = configOpt.has_value() ? window->Recover(1, *configOpt, errMsg) : window->Recover(1, errMsg);
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.recover", wmErrorCode);
-            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "[window][recover]msg: Failed"));
+            std::string errorMsg = "[window][recover]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errorMsg));
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s end, window [%{public}u] ret=%{public}d",
             where, window->GetWindowId(), static_cast<int32_t>(ret));
@@ -2237,13 +2254,15 @@ napi_value JsWindow::OnMoveWindowTo(napi_env env, napi_callback_info info)
                  "[window][moveWindowTo]msg: Window is nullptr"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->MoveTo(x, y));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->MoveTo(x, y, false, {}, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowTo", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-            "[window][moveWindowTo]msg: failed"));
+            std::string errorMsg = "[window][moveWindowTo]msg: failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
         TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: window [%{public}u, %{public}s] ret=%{public}d",
                where, window->GetWindowId(), window->GetWindowName().c_str(), ret);
@@ -2262,8 +2281,9 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
     const wptr<Window>& weakToken, int32_t x, int32_t y, MoveConfiguration moveConfiguration)
 {
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>();
     const char* const where = __func__;
-    execute = [weakToken, errCodePtr, x, y, moveConfiguration, where] {
+    execute = [weakToken, errCodePtr, errMsgPtr, x, y, moveConfiguration, where] {
         if (errCodePtr == nullptr) {
             return;
         }
@@ -2276,11 +2296,11 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->MoveToAsync(x, y, moveConfiguration));
+        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->MoveToAsync(x, y, moveConfiguration, *errMsgPtr));
         TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s end, window [%{public}u, %{public}s] err=%{public}d",
             where, window->GetWindowId(), window->GetWindowName().c_str(), *errCodePtr);
     };
-    complete = [weakToken, errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
+    complete = [weakToken, errCodePtr, errMsgPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
         if (errCodePtr == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
@@ -2291,7 +2311,9 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "JsWindow::OnMoveWindowToAsync failed"));
+            std::string errorMsg = "JsWindow::OnMoveWindowToAsync failed";
+            APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr);
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, errorMsg));
         }
     };
 }
@@ -2593,14 +2615,16 @@ napi_value JsWindow::OnResize(napi_env env, napi_callback_info info)
                 "[window][resize]msg: Window is nullptr"));
             return;
         }
-        WMError ret = window->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        std::string errMsg;
+        WMError ret = window->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height), errMsg);
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.resetSize",
                 WM_JS_TO_ERROR_CODE_MAP.at(ret));
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][resize]msg: Failed"));
+            std::string errorMsg = "[window][resize]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
         TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: end, window [%{public}u, %{public}s] ret=%{public}d",
                where, window->GetWindowId(), window->GetWindowName().c_str(), ret);
@@ -2660,13 +2684,16 @@ napi_value JsWindow::OnResizeWindow(napi_env env, napi_callback_info info)
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
             return;
         }
+        std::string errMsg;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-            window->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height)));
+            window->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height), errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.resize", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window resize failed"));
+            std::string errorMsg = "Window resize failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
         TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: window [%{public}u, %{public}s] ret=%{public}d",
                where, window->GetWindowId(), window->GetWindowName().c_str(), ret);
@@ -2834,10 +2861,11 @@ napi_value JsWindow::HandlePositionTransform(
 /** @note @window.layout */
 napi_value JsWindow::OnClientToGlobalDisplay(napi_env env, napi_callback_info info)
 {
+    std::string errMsg;
     return HandlePositionTransform(
         env, info,
-        [](const sptr<Window>& window, const Position& inPosition, Position& outPosition) {
-            return window->ClientToGlobalDisplay(inPosition, outPosition);
+        [&errMsg](const sptr<Window>& window, const Position& inPosition, Position& outPosition) {
+            return window->ClientToGlobalDisplay(inPosition, outPosition, errMsg);
         },
         __func__);
 }
@@ -2845,10 +2873,11 @@ napi_value JsWindow::OnClientToGlobalDisplay(napi_env env, napi_callback_info in
 /** @note @window.layout */
 napi_value JsWindow::OnGlobalDisplayToClient(napi_env env, napi_callback_info info)
 {
+    std::string errMsg;
     return HandlePositionTransform(
         env, info,
-        [](const sptr<Window>& window, const Position& inPosition, Position& outPosition) {
-            return window->GlobalDisplayToClient(inPosition, outPosition);
+        [&errMsg](const sptr<Window>& window, const Position& inPosition, Position& outPosition) {
+            return window->GlobalDisplayToClient(inPosition, outPosition, errMsg);
         },
         __func__);
 }
@@ -2967,13 +2996,15 @@ napi_value JsWindow::OnSetWindowMode(napi_env env, napi_callback_info info)
                 "[window][setWindowMode]msg: Window is nullptr"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowMode(winMode));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowMode(winMode, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowMode", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setwindowMode]msg: Failed"));
+            std::string errorMsg = "[window][setwindowMode]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s: end, window [%{public}u, %{public}s] ret=%{public}d",
                where, window->GetWindowId(), window->GetWindowName().c_str(), ret);
@@ -5999,12 +6030,15 @@ napi_value JsWindow::OnSetResizeByDragEnabled(napi_env env, napi_callback_info i
                 "[window][setResizeByDragEnabled]msg: Window is nullptr"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetResizeByDragEnabled(dragEnabled));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetResizeByDragEnabled(dragEnabled, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setResizeByDragEnabled", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setResizeByDragEnabled]: Failed"));
+            std::string errorMsg = "[window][setResizeByDragEnabled]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
         TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: Window [%{public}u, %{public}s] set dragEnabled end",
                where, window->GetWindowId(), window->GetWindowName().c_str());
@@ -8144,13 +8178,15 @@ napi_value JsWindow::OnSetAspectRatio(napi_env env, napi_callback_info info)
                     "[window][setAspectRatio]msg: window is nullptr"));
                 return;
             }
-            WMError ret = window->SetAspectRatio(aspectRatio);
+            std::string errMsg;
+            WMError ret = window->SetAspectRatio(aspectRatio, errMsg);
             if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
             } else {
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setAspectRatio", WM_JS_TO_ERROR_CODE_MAP.at(ret));
-                task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(ret),
-                    "[window][setAspectRatio]msg: Failed"));
+                std::string errorMsg = "[window][setAspectRatio]msg: Failed";
+                APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+                task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(ret), errorMsg));
             }
             TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s: end, window [%{public}u, %{public}s] ret=%{public}d",
                 where, window->GetWindowId(), window->GetWindowName().c_str(), ret);
@@ -8206,13 +8242,16 @@ napi_value JsWindow::OnResetAspectRatio(napi_env env, napi_callback_info info)
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "[window][resetAspectRatio]msg: Window is nullptr"));
             return;
         }
-        WMError ret = window->ResetAspectRatio();
+        std::string errMsg;
+        WMError ret = window->ResetAspectRatio(errMsg);
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.resetAspectRatio",
                 WM_JS_TO_ERROR_CODE_MAP.at(ret));
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][resetAspectRatio]msg: Failed."));
+            std::string errorMsg = "[window][resetAspectRatio]msg: Failed.";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
         TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s end, window [%{public}u, %{public}s] ret=%{public}d",
             where, window->GetWindowId(), window->GetWindowName().c_str(), ret);
@@ -8271,14 +8310,17 @@ napi_value JsWindow::OnSetContentAspectRatio(napi_env env, napi_callback_info in
                 env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, errMsgPrefix + "Window is nullptr"));
             return;
         }
-        WMError ret = window->SetContentAspectRatio(aspectRatio, isPersistent, needUpdateRect);
+        std::string errMsg;
+        WMError ret = window->SetContentAspectRatio(aspectRatio, isPersistent, needUpdateRect, errMsg);
         auto it = WM_JS_TO_ERROR_CODE_MAP.find(ret);
         WmErrorCode code = (it != WM_JS_TO_ERROR_CODE_MAP.end()) ? it->second : WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
         if (code == WmErrorCode::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setContentAspectRatio", code);
-            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, code, errMsgPrefix + "Failed"));
+            std::string errorMsg = errMsgPrefix + "Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, code, errorMsg));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, __func__) != napi_status::napi_ok) {
@@ -8421,14 +8463,17 @@ napi_value JsWindow::OnMaximize(napi_env env, napi_callback_info info)
                 "[window][maximize]msg: The window is not created or destroyed."));
             return;
         }
+        std::string errMsg;
         WMError ret = window->MaximizeWithOptions(presentation, acrossDisplay,
-            { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET });
+            { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET }, errMsg);
         if (ret == WMError::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
         } else {
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.maximize", wmErrorCode);
-            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "[window][maximize]msg: Failed"));
+            std::string errorMsg = "[window][maximize]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errorMsg));
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT_PC,
             "%{public}s: windowId: %{public}u, presentation: %{public}d, acrossDisplay: %{public}u",
@@ -8523,15 +8568,18 @@ napi_value JsWindow::OnMaximizeWithOptions(napi_env env, napi_callback_info info
                 "[window][maximizeWithOptions]msg: Failed to parse MaximizeOptions"));
             return;
         }
+        std::string errMsg;
         WMError ret = window->MaximizeWithOptions(
             optionsOpt->maximizePresentation,
             optionsOpt->acrossDisplayPresentation,
-            optionsOpt->snapshotAnimationConfig);
+            optionsOpt->snapshotAnimationConfig, errMsg);
         if (ret == WMError::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
         } else {
+            std::string errorMsg = "[window][maximizeWithOptions]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
             napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env,
-                WM_JS_TO_ERROR_CODE_MAP.at(ret), "[window][maximizeWithOptions]msg: Failed"));
+                WM_JS_TO_ERROR_CODE_MAP.at(ret), errorMsg));
         }
         TLOGNI(WmsLogTag::WMS_LAYOUT,
             "%{public}s: windowId: %{public}u, present: %{public}d, acrossDisplayPresentation: %{public}u",
@@ -8727,9 +8775,10 @@ bool JsWindow::ParseWindowAttachOptions(napi_env env, napi_value jsObject,
 
 
 static NapiAsyncTask::ExecuteCallback GetEnableDragExecuteCallback(bool enableDrag,
-    const wptr<Window>& weakToken, const std::shared_ptr<WmErrorCode>& errCodePtr)
+    const wptr<Window>& weakToken, const std::shared_ptr<WmErrorCode>& errCodePtr,
+    const std::shared_ptr<std::string>& errMsgPtr)
 {
-    NapiAsyncTask::ExecuteCallback execute = [weakToken, enableDrag, errCodePtr] {
+    NapiAsyncTask::ExecuteCallback execute = [weakToken, enableDrag, errCodePtr, errMsgPtr] {
         if (errCodePtr == nullptr) {
             return;
         }
@@ -8743,7 +8792,11 @@ static NapiAsyncTask::ExecuteCallback GetEnableDragExecuteCallback(bool enableDr
             *errCodePtr = WmErrorCode::WM_ERROR_INVALID_CALLING;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->EnableDrag(enableDrag));
+        std::string errMsg;
+        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->EnableDrag(enableDrag, errMsg));
+        if (errMsgPtr != nullptr) {
+            *errMsgPtr = errMsg;
+        }
         TLOGNI(WmsLogTag::WMS_LAYOUT, "Window [%{public}u, %{public}s] set enable drag end",
             window->GetWindowId(), window->GetWindowName().c_str());
     };
@@ -8751,9 +8804,9 @@ static NapiAsyncTask::ExecuteCallback GetEnableDragExecuteCallback(bool enableDr
 }
 
 static NapiAsyncTask::CompleteCallback GetEnableDragCompleteCallback(
-    const std::shared_ptr<WmErrorCode>& errCodePtr)
+    const std::shared_ptr<WmErrorCode>& errCodePtr, const std::shared_ptr<std::string>& errMsgPtr)
 {
-    NapiAsyncTask::CompleteCallback complete = [errCodePtr](napi_env env, NapiAsyncTask& task, int32_t status) {
+    NapiAsyncTask::CompleteCallback complete = [errCodePtr, errMsgPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
         if (errCodePtr == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.enableDrag", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task.Reject(env,
@@ -8765,7 +8818,11 @@ static NapiAsyncTask::CompleteCallback GetEnableDragCompleteCallback(
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.enableDrag", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "Set enable drag failed."));
+            std::string errorMsg = "Set enable drag failed.";
+            if (errMsgPtr != nullptr && !errMsgPtr->empty()) {
+                errorMsg += ": " + *errMsgPtr;
+            }
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, errorMsg));
         }
     };
     return complete;
@@ -8791,9 +8848,10 @@ napi_value JsWindow::OnEnableDrag(napi_env env, napi_callback_info info)
             "[window][enableDrag]msg: Failed to convert parameter to enableDrag");
     }
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>();
     NapiAsyncTask::ExecuteCallback execute =
-        GetEnableDragExecuteCallback(enableDrag, wptr<Window>(windowToken_), errCodePtr);
-    NapiAsyncTask::CompleteCallback complete = GetEnableDragCompleteCallback(errCodePtr);
+        GetEnableDragExecuteCallback(enableDrag, wptr<Window>(windowToken_), errCodePtr, errMsgPtr);
+    NapiAsyncTask::CompleteCallback complete = GetEnableDragCompleteCallback(errCodePtr, errMsgPtr);
 
     napi_value result = nullptr;
     NapiAsyncTask::Schedule("JsWindow::OnEnableDrag",
@@ -8871,7 +8929,8 @@ napi_value JsWindow::OnSetWindowLimits(napi_env env, napi_callback_info info)
                 "[window][setWindowLimits]msg: Window is nullptr"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowLimits(windowLimits, isForcible));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowLimits(windowLimits, isForcible, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             auto objValue = GetWindowLimitsAndConvertToJsValue(env, windowLimits);
             if (objValue == nullptr) {
@@ -8884,8 +8943,9 @@ napi_value JsWindow::OnSetWindowLimits(napi_env env, napi_callback_info info)
             }
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLimits", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setWindowLimits]msg: Failed"));
+            std::string errorMsg = "[window][setWindowLimits]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetWindowLimits") != napi_status::napi_ok) {
@@ -8918,10 +8978,13 @@ napi_value JsWindow::OnGetWindowLimits(napi_env env, napi_callback_info info)
             "[window][getWindowLimits]msg: Window is nullptr");
     }
     WindowLimits windowLimits;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetWindowLimits(windowLimits));
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetWindowLimits(windowLimits, false, errMsg));
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowLimits", ret);
-        return NapiThrowError(env, ret, "[window][getWindowLimits]msg: Failed");
+        std::string errorMsg = "[window][getWindowLimits]msg: Failed";
+        APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+        return NapiThrowError(env, ret, errorMsg);
     }
     auto objValue = GetWindowLimitsAndConvertToJsValue(env, windowLimits);
     TLOGI(WmsLogTag::WMS_LAYOUT, "Window [%{public}u, %{public}s] get window limits end",
@@ -8954,10 +9017,13 @@ napi_value JsWindow::OnGetWindowLimitsVP(napi_env env, napi_callback_info info)
             "[window][getWindowLimitsVP]msg: Window is nullptr");
     }
     WindowLimits windowLimits;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetWindowLimits(windowLimits, true));
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetWindowLimits(windowLimits, true, errMsg));
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowLimitsVP", ret);
-        return NapiThrowError(env, ret, "[window][getWindowLimitsVP]msg: Failed");
+        std::string errorMsg = "[window][getWindowLimitsVP]msg: Failed";
+        APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+        return NapiThrowError(env, ret, errorMsg);
     }
     auto objValue = GetWindowLimitsAndConvertToJsValue(env, windowLimits);
     TLOGI(WmsLogTag::WMS_LAYOUT, "Id: %{public}u, name: %{public}s, getWindowLimitsVP end",
@@ -9111,14 +9177,16 @@ napi_value JsWindow::OnAttachToParentWindow(napi_env env, napi_callback_info inf
             return;
         }
 
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowAnchorInfo(acceptAnchorInfo));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowAnchorInfo(acceptAnchorInfo, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGI(WmsLogTag::WMS_LAYOUT, "%{public}s failed, ret %{public}d", where, ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.attachLayoutToParentWindow", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][attachLayoutToParentWindow]msg: attach window anchor failed."));
+            std::string errorMsg = "[window][attachLayoutToParentWindow]msg: attach window anchor failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     napi_status status = napi_send_event(env, asyncTask, napi_eprio_high, "attachLayoutToParentWindow");
@@ -9164,14 +9232,16 @@ napi_value JsWindow::OnDetachLayoutToParentWindow(napi_env env, napi_callback_in
                 "[window][detachLayoutToParentWindow]msg: Only sub window is valid."));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowAnchorInfo(acceptAnchorInfo));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowAnchorInfo(acceptAnchorInfo, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGI(WmsLogTag::WMS_LAYOUT, "%{public}s failed, ret %{public}d", where, ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.detachLayoutToParentWindow", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][detachLayoutToParentWindow]msg: attach window anchor failed."));
+            std::string errorMsg = "[window][detachLayoutToParentWindow]msg: attach window anchor failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     napi_status status = napi_send_event(env, asyncTask, napi_eprio_high, "detachLayoutToParentWindow");
@@ -9400,13 +9470,15 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
                 WmErrorCode::WM_ERROR_INVALID_CALLING, "invalid window type"));
             return;
         }
-        WMError ret = window->SetFollowParentMultiScreenPolicy(enabled);
+        std::string errMsg;
+        WMError ret = window->SetFollowParentMultiScreenPolicy(enabled, errMsg);
         if (ret != WMError::WM_OK) {
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             TLOGNE(WmsLogTag::WMS_MAIN, "OnSetFollowParentMultiScreenPolicy failed, ret is %{public}d", wmErrorCode);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy", wmErrorCode);
-            task->Reject(env, JsErrUtils::CreateJsError(env,
-                wmErrorCode, "Set multi-screen simultaneous display failed"));
+            std::string errorMsg = "Set multi-screen simultaneous display failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errorMsg));
             return;
         }
         task->Resolve(env, NapiGetUndefined(env));
@@ -10238,7 +10310,8 @@ bool JsWindow::CheckWindowMaskParams(napi_env env, napi_value jsObject)
     uint32_t size = 0;
     napi_get_array_length(env, jsObject, &size);
     WindowLimits windowLimits;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetWindowLimits(windowLimits));
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetWindowLimits(windowLimits, false, errMsg));
     if (ret == WmErrorCode::WM_OK) {
         if (size == 0 || size > windowLimits.maxWidth_) {
             TLOGE(WmsLogTag::WMS_PC, "Invalid windowMask size:%{public}u, vpRatio:%{public}f, maxWidth:%{public}u",
@@ -10464,12 +10537,14 @@ napi_value JsWindow::OnGetWindowStatus(napi_env env, napi_callback_info info)
             "[window][getWindowStatus]msg: Window is nullptr. The window is not created or destroyed.");
     }
     WindowStatus windowStatus;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->GetWindowStatus(windowStatus));
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->GetWindowStatus(windowStatus, errMsg));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PC, "failed, ret=%{public}d", ret);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowStatus", ret);
-        return NapiThrowError(env, ret,
-            "[window][getWindowStatus]msg: Failed");
+        std::string errorMsg = "[window][getWindowStatus]msg: Failed";
+        APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+        return NapiThrowError(env, ret, errorMsg);
     }
     auto objValue = CreateJsValue(env, windowStatus);
     if (objValue != nullptr) {
@@ -10596,8 +10671,9 @@ napi_value JsWindow::OnStartMoving(napi_env env, napi_callback_info info)
             "[window][startMoving]msg: Not allowed since input window");
     }
     std::shared_ptr<WmErrorCode> err = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>();
     const char* const funcName = __func__;
-    NapiAsyncTask::ExecuteCallback execute = [this, weakToken = wptr<Window>(windowToken_), err, funcName] {
+    NapiAsyncTask::ExecuteCallback execute = [this, weakToken = wptr<Window>(windowToken_), err, errMsgPtr, funcName] {
         if (err == nullptr) {
             TLOGNE(WmsLogTag::WMS_LAYOUT, "%{public}s: wm error code is null.", funcName);
             return;
@@ -10608,10 +10684,10 @@ napi_value JsWindow::OnStartMoving(napi_env env, napi_callback_info info)
             *err = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *err = window->StartMoveWindow();
+        *err = window->StartMoveWindow(*errMsgPtr);
     };
 
-    NapiAsyncTask::CompleteCallback complete = [err](napi_env env, NapiAsyncTask& task, int32_t status) {
+    NapiAsyncTask::CompleteCallback complete = [err, errMsgPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
         if (err == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.startMoving",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
@@ -10623,8 +10699,9 @@ napi_value JsWindow::OnStartMoving(napi_env env, napi_callback_info info)
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.startMoving", *err);
-            task.Reject(env, CreateJsError(env, static_cast<int32_t>(*err),
-                "[window][startMoving]msg: Failed"));
+            std::string errorMsg = "[window][startMoving]msg: Failed";
+            APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr);
+            task.Reject(env, CreateJsError(env, static_cast<int32_t>(*err), errorMsg));
         }
     };
     napi_value result = nullptr;
@@ -10682,14 +10759,17 @@ napi_value JsWindow::OnStartMovingWithOptions(napi_env env, napi_callback_info i
             napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
             return;
         }
-        auto ret = window->StartMovingWithOptions(options);
+        std::string errMsg;
+        auto ret = window->StartMovingWithOptions(options, errMsg);
         if (ret == WMError::WM_OK) {
             napiAsyncTask->Resolve(env, NapiGetUndefined(env));
             TLOGND(WmsLogTag::WMS_LAYOUT, "%{public}s: Success, windowId: %{public}u, options: %{public}s",
                    where, window->GetWindowId(), options.ToString().c_str());
         } else {
             auto errCode = MappingWmErrorCodeSafely(ret);
-            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, errCode, "Failed to start moving with options"));
+            std::string errorMsg = "Failed to start moving with options";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, errCode, errorMsg));
             TLOGE(WmsLogTag::WMS_LAYOUT, "%{public}s: Failed, windowId: %{public}u, ret: %{public}d",
                   where, window->GetWindowId(), static_cast<int32_t>(errCode));
         }
@@ -10722,21 +10802,24 @@ napi_value JsWindow::OnStartMoveWindowWithCoordinate(napi_env env, size_t argc, 
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "failed to convert parameter to offsetY");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
-    napi_value result = nullptr;
+napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [windowToken = wptr<Window>(windowToken_), offsetX, offsetY,
-                      env, task = napiAsyncTask, where = __func__] {
+                       env, task = napiAsyncTask, where = __func__] {
         auto window = windowToken.promote();
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s window is nullptr.", where);
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
             return;
         }
-        WmErrorCode ret = window->StartMoveWindowWithCoordinate(offsetX, offsetY);
+        std::string errMsg;
+        WmErrorCode ret = window->StartMoveWindowWithCoordinate(offsetX, offsetY, errMsg);
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "move window failed"));
+            std::string errorMsg = "move window failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     napi_status status = napi_send_event(env, std::move(asyncTask),
@@ -10770,13 +10853,15 @@ napi_value JsWindow::OnStopMoving(napi_env env, napi_callback_info info)
                 "[window][stopMoving]msg: Window is nullptr"));
             return;
         }
-        WmErrorCode ret = window->StopMoveWindow();
+        std::string errMsg;
+        WmErrorCode ret = window->StopMoveWindow(errMsg);
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.stopMoving", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][stopMoving]msg: Failed"));
+            std::string errorMsg = "[window][stopMoving]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     if (napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnStopMoving") != napi_status::napi_ok) {
@@ -11421,7 +11506,8 @@ static void SetDragKeyFramePolicyTask(NapiAsyncTask::ExecuteCallback& execute,
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        auto result = window->SetDragKeyFramePolicy(keyFramePolicy);
+        std::string errMsg;
+        auto result = window->SetDragKeyFramePolicy(keyFramePolicy, errMsg);
         auto iter = WM_JS_TO_ERROR_CODE_MAP.find(result);
         if (iter == WM_JS_TO_ERROR_CODE_MAP.end()) {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s convert to WmErrorCode failed: %{public}d", where, result);
@@ -11507,10 +11593,13 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
                 "The window is not created or destoryed."));
             return;
         }
+        std::string errMsg;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(
-            supportedWindowModes, grayOutMaximizeButton));
+            supportedWindowModes, grayOutMaximizeButton, errMsg));
         if (ret != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setSupportedWindowModes]"));
+            std::string errorMsg = "[window][setSupportedWindowModes]";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         } else {
             task->Resolve(env, NapiGetUndefined(env));
         }
@@ -11588,14 +11677,16 @@ napi_value JsWindow::OnSetRelativePositionToParentWindowEnabled(napi_env env, na
                 "[window][setRelativePositionToParentWindowEnabled]msg: Only sub window is valid."));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowAnchorInfo(windowAnchorInfo));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowAnchorInfo(windowAnchorInfo, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s failed, ret %{public}d", where, ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setRelativePositionToParentWindowEnabled", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setRelativePositionToParentWindowEnabled]msg: Set window anchor info failed."));
+            std::string errorMsg = "[window][setRelativePositionToParentWindowEnabled]msg: Set window anchor info failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     napi_status status = napi_send_event(env, asyncTask, napi_eprio_high, "OnSetRelativePositionToParentWindowEnabled");
@@ -11650,14 +11741,16 @@ napi_value JsWindow::OnSetFollowParentWindowLayoutEnabled(napi_env env, napi_cal
             "[window][setFollowParentWindowLayoutEnabled]msg: Only support sub window or dialog only"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFollowParentWindowLayoutEnabled(isFollow));
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFollowParentWindowLayoutEnabled(isFollow, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s failed, ret %{public}d", where, ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentWindowLayoutEnabled", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setFollowParentWindowLayoutEnabled]msg: Failed"));
+            std::string errorMsg = "[window][setFollowParentWindowLayoutEnabled]msg: Failed";
+            APPEND_ERROR_MESSAGE(errorMsg, errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         }
     };
     napi_status status = napi_send_event(env, asyncTask, napi_eprio_high, "SetFollowParentWindowLayoutEnabled");

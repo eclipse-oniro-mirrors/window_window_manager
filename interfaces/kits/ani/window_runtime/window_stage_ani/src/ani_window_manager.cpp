@@ -45,6 +45,12 @@ constexpr int32_t MAIN_WINDOW_SNAPSGOT_TIMEOUT = 5000;
 const std::string PIP_WINDOW = "pip_window";
 constexpr int32_t INVALID_COORDINATE = -1;
 constexpr uint32_t API_VERSION_18 = 18;
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 }
 
 AniWindowManager::AniWindowManager() : registerManager_(std::make_unique<AniWindowRegisterManager>())
@@ -416,14 +422,16 @@ void AniWindowManager::OnSetStartWindowBackgroundColor(ani_env* env, ani_string 
         return;
     }
     uint32_t colorValue = static_cast<uint32_t>(color);
+    std::string errMsg;
     auto retCode = SingletonContainer::Get<WindowManager>().SetStartWindowBackgroundColor(
-        moduleNameStr, abilityNameStr, colorValue);
+        moduleNameStr, abilityNameStr, colorValue, errMsg);
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] module=%{public}s, ability=%{public}s, color=%{public}u, ret=%{public}d",
             moduleNameStr.c_str(), abilityNameStr.c_str(), colorValue, static_cast<int32_t>(retCode));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
-        AniWindowUtils::AniThrowError(env, ret, "setStartWindowBackgroundColorSync failed.");
+        AniWindowUtils::AniThrowError(env, ret,
+            ConcatErrorMsg("setStartWindowBackgroundColorSync", errMsg));
         return;
     }
 }

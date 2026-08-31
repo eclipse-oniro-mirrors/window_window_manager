@@ -2052,6 +2052,13 @@ WSError Session::DrawingCompleted()
 
 WSError Session::RemoveStartingWindow()
 {
+    std::string errMsg;
+    return RemoveStartingWindow(errMsg);
+}
+
+WSError Session::RemoveStartingWindow(std::string& errMsg)
+{
+    errMsg.clear();
     auto lifecycleListeners = GetListeners<ILifecycleListener>();
     for (auto& listener : lifecycleListeners) {
         if (auto listenerPtr = listener.lock()) {

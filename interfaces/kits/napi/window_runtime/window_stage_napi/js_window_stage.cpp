@@ -57,6 +57,12 @@ constexpr size_t INDEX_ONE = 1;
 constexpr size_t FOUR_PARAMS_SIZE = 4;
 constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
+
 WmErrorCode ParseImageSourceForRecent(napi_env env, napi_value imageSource, uint32_t& imgResourceId,
     std::shared_ptr<Media::PixelMap>& pixelMap)
 {
@@ -1097,12 +1103,14 @@ napi_value JsWindowStage::OnRemoveStartingWindow(napi_env env, napi_callback_inf
                 "[window][removeStartingWindow]msg: The main window is not created or destroyed"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->NotifyRemoveStartingWindow());
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->NotifyRemoveStartingWindow(errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.removeStartingWindow", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][removeStartingWindow]"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                ConcatErrorMsg("NotifyRemoveStartingWindow", errMsg)));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnRemoveStartingWindow") != napi_status::napi_ok) {
@@ -1326,10 +1334,11 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
             return;
         }
         WmErrorCode ret = WmErrorCode::WM_OK;
+        std::string errMsg;
         if (pixelMap) {
-            ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetImageForRecentPixelMap(pixelMap, imageFit));
+            ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetImageForRecentPixelMap(pixelMap, imageFit, errMsg));
         } else {
-            ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetImageForRecent(imgResourceId, imageFit));
+            ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetImageForRecent(imgResourceId, imageFit, errMsg));
         }
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
@@ -1338,7 +1347,8 @@ napi_value JsWindowStage::OnSetImageForRecent(napi_env env, napi_callback_info i
                 "%{public}s set imageForRecent failed, ret=%{public}d, type=%{public}s",
                 where, ret, pixelMap ? "pixelMap" : "resId");
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setImageForRecent", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "set image for recent failed."));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                ConcatErrorMsg("SetImageForRecent", errMsg)));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetImageForRecent") != napi_status::napi_ok) {
@@ -1371,12 +1381,14 @@ napi_value JsWindowStage::OnRemoveImageForRecent(napi_env env, napi_callback_inf
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErroeCode, "window is nullptr."));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RemoveImageForRecent());
+        std::string errMsg;
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RemoveImageForRecent(errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.removeImageForRecent", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "remove image for recent failed."));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                ConcatErrorMsg("RemoveImageForRecent", errMsg)));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnRemoveImageForRecent") != napi_status::napi_ok) {

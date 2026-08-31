@@ -46,6 +46,12 @@ using namespace AbilityRuntime;
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "JsWindowManager"};
 const std::string PIP_WINDOW = "pip_window";
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 constexpr size_t INDEX_ZERO = 0;
 constexpr size_t INDEX_ONE = 1;
 constexpr size_t INDEX_TWO = 2;
@@ -1689,14 +1695,15 @@ napi_value JsWindowManager::OnSetStartWindowBackgroundColor(napi_env env, napi_c
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [moduleName, abilityName, color, env, task = napiAsyncTask] {
+        std::string errMsg;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
-            SetStartWindowBackgroundColor(moduleName, abilityName, color));
+            SetStartWindowBackgroundColor(moduleName, abilityName, color, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setStartWindowBackgroundColor]"));
+                ConcatErrorMsg("[window][setStartWindowBackgroundColor]", errMsg)));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetStartWindowBackgroundColor") != napi_status::napi_ok) {
