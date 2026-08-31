@@ -548,6 +548,47 @@ HWTEST_F(WindowPatternStartingWindowTest, GetBundleStartingWindowInfos, TestSize
 }
 
 /**
+ * @tc.name: PostProcessStartingWindowInfo
+ * @tc.desc: PostProcessStartingWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, PostProcessStartingWindowInfo, TestSize.Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    AppExecFwk::AbilityInfo abilityInfo1;
+    abilityInfo1.bundleName = "test";
+
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "test";
+    metadata1.value = "false";
+    abilityInfo1.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "enable.optional.starting.window";
+    metadata2.value = "false";
+    abilityInfo1.metadata.push_back(metadata2);
+
+    StartingWindowInfo startingWindowInfo;
+    startingWindowInfo.backgroundColorEarlyVersion_ = 0xff000000;
+    startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.png";
+
+    ssm_->PostProcessStartingWindowInfo(abilityInfo1, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "resource:///12345678.png");
+
+    AppExecFwk::AbilityInfo abilityInfo2;
+    abilityInfo2.bundleName = "test";
+
+    AppExecFwk::Metadata metadata3;
+    metadata3.name = "enable.optional.starting.window";
+    metadata3.value = "true";
+    abilityInfo2.metadata.push_back(metadata3);
+
+    ssm_->PostProcessStartingWindowInfo(abilityInfo2, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "resource:///12345678.png");
+}
+
+/**
  * @tc.name: GetPreloadStartingWindow_WithoutAnyData
  * @tc.desc: Test GetPreloadStartingWindow when neither PixelMap nor SVG buffer is set
  * @tc.type: FUNC

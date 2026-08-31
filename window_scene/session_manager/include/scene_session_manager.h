@@ -2110,6 +2110,8 @@ private:
         const std::string& abilityName, StartingWindowInfo& startingWindowInfo);
     bool GetStartingWindowInfoFromRdb(const SessionInfo& sessionInfo, StartingWindowInfo& startingWindowInfo,
         bool darkMode);
+    void PostProcessStartingWindowInfo(const AppExecFwk::AbilityInfo& abilityInfo,
+        StartingWindowInfo& startingWindowInfo);
     bool GetStartWindowColorFollowApp(const SessionInfo& sessionInfo);
     void ClearStartWindowColorFollowApp(const std::string& bundleName);
     bool GetPathInfoFromResource(const std::shared_ptr<Global::Resource::ResourceManager> resourceMgr,
