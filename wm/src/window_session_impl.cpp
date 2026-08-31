@@ -2297,9 +2297,7 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
             if (!IsFloatNavigationAvoidAreaEnabled(type)) {
                 continue;
             }
-            if ((lastAvoidAreaMap_.find(type) == lastAvoidAreaMap_.end() && type != AvoidAreaType::TYPE_CUTOUT) ||
-                lastAvoidAreaMap_[type] != avoidArea) {
-                lastAvoidAreaMap_[type] = avoidArea;
+            if (UpdateLastAvoidAreaIfChanged(type, avoidArea)) {
                 NotifyAvoidAreaChange(new AvoidArea(avoidArea), type);
             }
         }
@@ -2382,7 +2380,7 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     if (reason == WindowSizeChangeReason::OCCUPIED_AREA_CHANGE && !avoidAreas.empty()) {
         uiContent->UpdateViewportConfig(config, reason, rsTransaction, avoidAreas, occupiedAreaInfo_);
     } else {
-        uiContent->UpdateViewportConfig(config, reason, rsTransaction, lastAvoidAreaMap_, occupiedAreaInfo_);
+        uiContent->UpdateViewportConfig(config, reason, rsTransaction, GetLastAvoidAreaMapCopy(), occupiedAreaInfo_);
     }
     if (WindowHelper::IsUIExtensionWindow(GetType())) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id: %{public}d, reason: %{public}d, viewportRect: %{public}s, "
@@ -7261,20 +7259,39 @@ WSErrorCode WindowSessionImpl::NotifyTransferComponentDataSync(const AAFwk::Want
     return WSErrorCode::WS_OK;
 }
 
+bool WindowSessionImpl::UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const AvoidArea& avoidArea)
+{
+    std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
+    auto iter = lastAvoidAreaMap_.find(type);
+    if ((iter != lastAvoidAreaMap_.end() && iter->second == avoidArea) ||
+        (iter == lastAvoidAreaMap_.end() && type == AvoidAreaType::TYPE_CUTOUT && avoidArea.isEmptyAvoidArea())) {
+        return false;
+    }
+    lastAvoidAreaMap_[type] = avoidArea;
+    return true;
+}
+
+std::map<AvoidAreaType, AvoidArea> WindowSessionImpl::GetLastAvoidAreaMapCopy() const
+{
+    std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMapCopy;
+    {
+        std::lock_guard<std::mutex> lock(lastAvoidAreaMapMutex_);
+        lastAvoidAreaMapCopy = lastAvoidAreaMap_;
+    }
+    return lastAvoidAreaMapCopy;
+}
+
 WSError WindowSessionImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type)
 {
     auto task = [weak = wptr(this), avoidArea, type] {
         auto window = weak.promote();
-        if (!window) {
+        if (!window || !avoidArea) {
             return;
         }
         if (!window->IsFloatNavigationAvoidAreaEnabled(type)) {
             return;
         }
-        if ((window->lastAvoidAreaMap_.find(type) == window->lastAvoidAreaMap_.end() &&
-             type != AvoidAreaType::TYPE_CUTOUT) ||
-            window->lastAvoidAreaMap_[type] != *avoidArea) {
-            window->lastAvoidAreaMap_[type] = *avoidArea;
+        if (window->UpdateLastAvoidAreaIfChanged(type, *avoidArea)) {
             window->NotifyAvoidAreaChange(avoidArea, type);
             window->UpdateViewportConfig(window->GetRect(), WindowSizeChangeReason::AVOID_AREA_CHANGE);
         }
