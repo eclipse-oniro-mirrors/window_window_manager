@@ -4307,7 +4307,7 @@ WSError SceneSession::TransferPointerEventInner(const std::shared_ptr<MMI::Point
                 ReportDragEndDirection(GetSessionInfo().bundleName_, moveDragController_->GetResizeAreaType());
             }
             PresentFocusIfNeed(pointerEvent->GetPointerAction());
-            if (isSubWindow) {
+            if (isPointDown && isSubWindow) {
                 RaiseToAppTopForPointDown();
             }
             pointerEvent->MarkProcessed();
