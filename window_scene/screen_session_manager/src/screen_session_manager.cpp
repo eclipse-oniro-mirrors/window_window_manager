@@ -3245,6 +3245,8 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
     displayInfo->SetActualPosY(info.actualRect_.posY_);
     displayInfo->SetActualWidth(info.actualRect_.width_);
     displayInfo->SetActualHeight(info.actualRect_.height_);
+    displayInfo->SetAvailableWidth(info.width_);
+    displayInfo->SetAvailableHeight(info.height_);
     return displayInfo;
 }
 
@@ -14019,6 +14021,11 @@ DMError ScreenSessionManager::GetAvailableArea(DisplayId displayId, DMRect& area
     if (displayInfo == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "can not get displayInfo.");
         return DMError::DM_ERROR_NULLPTR;
+    }
+    if (IsHook()) {
+        area = { 0, 0, displayInfo->GetAvailableWidth(), displayInfo->GetAvailableHeight() };
+        TLOGNFI(WmsLogTag::DMS, "hook availablearea.");
+        return DMError::DM_OK;
     }
     sptr<ScreenSession> screenSession;
     if (displayId == DISPLAY_ID_FAKE) {
