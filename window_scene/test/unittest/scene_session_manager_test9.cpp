@@ -901,6 +901,97 @@ HWTEST_F(SceneSessionManagerTest9, ProcessFocusWhenForegroundScbCore, TestSize.L
 }
 
 /**
+ * @tc.name: ProcessFocusWhenForegroundScbCore02
+ * @tc.desc: Test SCB_START_APP reason early return
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest9, ProcessFocusWhenForegroundScbCore02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    focusGroup->SetFocusedSessionId(0);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest9";
+    sessionInfo.abilityName_ = "ProcessFocusWhenForegroundScbCore02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->persistentId_ = 1;
+    ASSERT_NE(nullptr, sceneSession->property_);
+    sceneSession->SetFocusableOnShow(true);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    PostProcessFocusState existingState = {true, false, true, FocusChangeReason::SCB_START_APP};
+    sceneSession->SetPostProcessFocusState(existingState);
+
+    ssm_->ProcessFocusWhenForegroundScbCore(sceneSession);
+
+    PostProcessFocusState result = sceneSession->GetPostProcessFocusState();
+    ASSERT_EQ(result.isFocused_, false);
+    ASSERT_EQ(focusGroup->GetFocusedSessionId(), 0);
+}
+
+/**
+ * @tc.name: ProcessFocusWhenForegroundScbCore03
+ * @tc.desc: Test PostProcessFocusState with enabled_ false should not early return
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest9, ProcessFocusWhenForegroundScbCore03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    focusGroup->SetFocusedSessionId(0);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest9";
+    sessionInfo.abilityName_ = "ProcessFocusWhenForegroundScbCore03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->persistentId_ = 1;
+    ASSERT_NE(nullptr, sceneSession->property_);
+    sceneSession->SetFocusableOnShow(true);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    PostProcessFocusState existingState = {false, false, true, FocusChangeReason::SCB_START_APP};
+    sceneSession->SetPostProcessFocusState(existingState);
+
+    ssm_->ProcessFocusWhenForegroundScbCore(sceneSession);
+
+    PostProcessFocusState result = sceneSession->GetPostProcessFocusState();
+    ASSERT_EQ(result.enabled_, true);
+    ASSERT_EQ(result.isFocused_, true);
+    ASSERT_EQ(result.byForeground_, true);
+    ASSERT_EQ(result.reason_, FocusChangeReason::APP_FOREGROUND);
+}
+
+/**
+ * @tc.name: ProcessFocusWhenForegroundScbCore04
+ * @tc.desc: Test PostProcessFocusState with enabled_ true but reason not SCB_START_APP
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest9, ProcessFocusWhenForegroundScbCore04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    focusGroup->SetFocusedSessionId(0);
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SceneSessionManagerTest9";
+    sessionInfo.abilityName_ = "ProcessFocusWhenForegroundScbCore04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->persistentId_ = 1;
+    ASSERT_NE(nullptr, sceneSession->property_);
+    sceneSession->SetFocusableOnShow(true);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    PostProcessFocusState existingState = {true, false, true, FocusChangeReason::APP_FOREGROUND};
+    sceneSession->SetPostProcessFocusState(existingState);
+
+    ssm_->ProcessFocusWhenForegroundScbCore(sceneSession);
+
+    PostProcessFocusState result = sceneSession->GetPostProcessFocusState();
+    ASSERT_EQ(result.enabled_, true);
+    ASSERT_EQ(result.isFocused_, true);
+    ASSERT_EQ(result.byForeground_, true);
+    ASSERT_EQ(result.reason_, FocusChangeReason::APP_FOREGROUND);
+}
+
+/**
  * @tc.name: ProcessModalTopmostRequestFocusImmediately02
  * @tc.desc: ProcessModalTopmostRequestFocusImmediately
  * @tc.type: FUNC
