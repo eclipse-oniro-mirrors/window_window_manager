@@ -6480,9 +6480,13 @@ void Session::HandleInitialRect(const PrelayoutContext& ctx)
     }
 
     const std::optional<WSRect> rect =
-        (ctx.enable || GetSessionInfo().isPrelaunch_) ? std::make_optional(ctx.winRect) : std::nullopt;
+        (ctx.enable || sessionInfo_.isPrelaunch_) ? std::make_optional(ctx.winRect) : std::nullopt;
 
     NotifyClientToUpdateRect("Connect", rect, nullptr);
+
+    if (sessionInfo_.isPrelaunch_ && sessionInfo_.frameNum_ == 0) {
+        layoutRect_ = ctx.winRect;
+    }
 }
 
 void Session::NotifyPendingAppHookDisplayInfo()
