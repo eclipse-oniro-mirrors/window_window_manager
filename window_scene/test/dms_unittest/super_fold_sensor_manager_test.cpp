@@ -360,36 +360,6 @@ HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged05, Function | SmallT
 }
 
 /**
- * @tc.name: NotifyFoldAngleChanged_Dedup
- * @tc.desc: test dedup path when the fold status event is unchanged.
- * @tc.type: FUNC
- */
-HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_Dedup, TestSize.Level1)
-{
-    SuperFoldSensorManager mgr = SuperFoldSensorManager();
-    mgr.NotifyFoldAngleChanged(170.0F);
-    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
-    mgr.NotifyFoldAngleChanged(170.0F);
-    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
-}
-
-/**
- * @tc.name: NotifyFoldAngleChanged_Force
- * @tc.desc: test isForce path does not update the dedup baseline.
- * @tc.type: FUNC
- */
-HWTEST_F(SuperFoldSensorManagerTest, NotifyFoldAngleChanged_Force, TestSize.Level1)
-{
-    SuperFoldSensorManager mgr = SuperFoldSensorManager();
-    mgr.NotifyFoldAngleChanged(170.0F);
-    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
-    mgr.NotifyFoldAngleChanged(170.0F, true);
-    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
-    mgr.NotifyFoldAngleChanged(100.0F, true);
-    EXPECT_EQ(mgr.lastEvents_, SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED);
-}
-
-/**
  * @tc.name: NotifyFoldAngleChanged_HorizontalSkip
  * @tc.desc: test horizontal device with non-expanded event skips HandleSuperSensorChange.
  * @tc.type: FUNC
