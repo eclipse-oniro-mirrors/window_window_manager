@@ -73,7 +73,7 @@ declare namespace window {
   }
 
   enum FocusChangeReason {
-    OTHER = 0,
+    DEFAULT = 0,
     CLICK = 1
   }
 
