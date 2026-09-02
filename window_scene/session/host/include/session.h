@@ -234,6 +234,7 @@ public:
     WSError DrawingCompleted() override;
     void ResetSessionConnectState() REQUIRES(SCENE_GUARD);
     void ResetIsActive();
+    void SetIsGamePrelaunch(bool isGamePrelaunch);
     WSError PendingSessionToForeground(SessionInfo& info);
     WSError PendingSessionToBackground(const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(bool shouldBackToCaller,
@@ -1364,6 +1365,11 @@ private:
     HookInfo pendingAppHookDisplayInfo_;
     bool pendingAppHookDisplayInfoEnable_ = false;
     bool hasPendingAppHookDisplayInfo_ = false;
+
+    // Indicates whether the game prelaunch display hook has been successfully set
+    // for this session and has not yet been cleared.
+    bool prelaunchDisplayHookEnabled_ = false;
+
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };
     std::string sceneLastUsedPosition_;
@@ -1428,14 +1434,25 @@ private:
     void HandleInitialRect(const PrelayoutContext& ctx);
 
     /**
-     * @brief Apply prelayout display info to application via hook.
+     * @brief Apply the prelayout display info for game prelaunch.
      *
-     * Updates display parameters (size, density, rotation) when prelayout is enabled
-     * and hook function is available.
+     * Hooks the display size, density, and rotation for the application UID
+     * when prelayout is enabled, allowing the application to obtain the expected
+     * display information during background prelaunch. A successful update is
+     * recorded so the hook can be cleared when game prelaunch ends.
      *
      * @param ctx Prelayout context containing display info.
      */
-    void HandleHookDisplay(const PrelayoutContext& ctx);
+    void HandlePrelaunchDisplayHook(const PrelayoutContext& ctx);
+
+    /**
+     * @brief Clear the display hook installed for game prelaunch.
+     *
+     * Disables the display hook for the application UID so subsequent display
+     * queries return the real display information.
+     */
+    void ClearPrelaunchDisplayHook();
+
     void NotifyPendingAppHookDisplayInfo();
 
     std::optional<bool> clientDragEnable_;
