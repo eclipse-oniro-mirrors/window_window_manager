@@ -415,45 +415,50 @@ struct SingleIntersectResult {
 };
 
 // Intersect against one attached window. Density/intersection math is shared via WindowHelper so the
-// server produces the same numbers as the client CalcSingleWinIntersect.
+// server produces the same numbers as the client CalcSingleWinIntersect. The density basis maps
+// displayVpr to the current display density (query stand-in) and effectiveVpr to the queried
+// window's effective density, mirroring the client two-density split.
 SingleIntersectResult CalcSingleIntersect(const WindowLimits& curPx, const WindowLimits& curVp,
-    const WindowLimits& attached, const AttachLimitOptions& options, float vpr)
+    const WindowLimits& attached, const AttachLimitOptions& options, const AttachDensityBasis& density)
 {
     SingleIntersectResult result;
     bool intersectHeight = options.isIntersectedHeightLimit;
     bool intersectWidth = options.isIntersectedWidthLimit;
+    // Convert the attached limits to PX with the density snapshot they carry (the provider's
+    // effective density when it computed them); fall back to the query display density when
+    // invalid, mirroring the client rule (snapshot-invalid providers follow the display).
+    const float attachedVpr = attached.vpRatio_ > 0.0f ? attached.vpRatio_ : density.displayVpr;
     WindowLimits attachedPx;
     if (attached.pixelUnit_ == PixelUnit::VP) {
-        WindowHelper::RecalculatePxLimitsByVp(attached, attachedPx, vpr);
+        WindowHelper::RecalculatePxLimitsByVp(attached, attachedPx, attachedVpr);
     } else {
         attachedPx = attached;
     }
     result.pxLimits = WindowHelper::CalculateLimitsIntersection(curPx, attachedPx, intersectHeight,
         intersectWidth);
-    result.pxValid = WindowHelper::IsLimitsIntersectionValid(result.pxLimits, intersectHeight, intersectWidth);
-    WindowLimits attachedVp;
-    if (attached.pixelUnit_ == PixelUnit::PX) {
-        WindowHelper::RecalculateVpLimitsByPx(attached, attachedVp, vpr);
-    } else {
-        attachedVp = attached;
-    }
-    result.vpLimits = WindowHelper::CalculateLimitsIntersection(curVp, attachedVp, intersectHeight,
+    result.pxValid = WindowHelper::IsLimitsIntersectionValid(result.pxLimits, intersectHeight,
         intersectWidth);
-    result.vpValid = WindowHelper::IsLimitsIntersectionValid(result.vpLimits, intersectHeight, intersectWidth);
+    // Derive the VP view from the PX result in the queried window's own effective density; only PX
+    // validity decides whether the intersection is committed, mirroring the client.
+    result.vpLimits = curVp;
+    WindowHelper::RecalculateVpLimitsByPx(result.pxLimits, result.vpLimits, density.effectiveVpr);
+    result.vpValid = result.pxValid;
     return result;
 }
 
 // Re-run the attached-limits intersection loop. Mirrors the client
-// CalculateAttachedWindowLimitsIntersection: only commit a source when both PX and VP intersections valid.
-void IntersectAttachedLimits(const WindowSessionProperty& prop, WindowLimits& pxLimits,
-    WindowLimits& vpLimits, float vpr)
+// CalculateAttachedWindowLimitsIntersection: only commit a source when the PX intersection is valid.
+// anchorInfo must come from the SceneSession (sceneSession->GetWindowAnchorInfo()), the server-side
+// authoritative attach state: the property copy is only populated at creation/recovery and goes
+// stale after attach, so using it here would silently skip every source for sub windows.
+void IntersectAttachedLimits(const WindowSessionProperty& prop, const WindowAnchorInfo& anchorInfo,
+    WindowLimits& pxLimits, WindowLimits& vpLimits, const AttachDensityBasis& density)
 {
     auto attachedList = prop.GetAttachedWindowLimitsList();
     if (attachedList.empty()) {
         return;
     }
     bool isMainWindow = WindowHelper::IsMainWindow(prop.GetWindowType());
-    auto anchorInfo = prop.GetWindowAnchorInfo();
     for (const auto& item : attachedList) {
         AttachLimitOptions options = isMainWindow ? prop.GetAttachedLimitOptions(item.first) :
             AttachLimitOptions { anchorInfo.attachOptions.isIntersectedHeightLimit,
@@ -463,12 +468,17 @@ void IntersectAttachedLimits(const WindowSessionProperty& prop, WindowLimits& px
         if (!intersectHeight && !intersectWidth) {
             continue;
         }
-        auto result = CalcSingleIntersect(pxLimits, vpLimits, item.second, options, vpr);
-        bool committed = result.pxValid && result.vpValid;
+        auto result = CalcSingleIntersect(pxLimits, vpLimits, item.second, options, density);
+        bool committed = result.pxValid;
+        const float attachedVpr = item.second.vpRatio_ > 0.0f ? item.second.vpRatio_ : density.displayVpr;
         TLOGD(WmsLogTag::WMS_LAYOUT, "intersect id:%{public}d, srcId:%{public}d, attachedUnit:%{public}u, "
-            "attachedMinH:%{public}u, hIntersect:%{public}d, wIntersect:%{public}d, committed:%{public}d",
-            prop.GetPersistentId(), item.first, item.second.pixelUnit_, item.second.minHeight_,
-            intersectHeight, intersectWidth, committed);
+            "attachedDensitySnapshot=%{public}f, screenVpr:%{public}f, ownVpr:%{public}f, "
+            "attachedVpr:%{public}f, hIntersect:%{public}d, wIntersect:%{public}d, committed:%{public}d, "
+            "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+            prop.GetPersistentId(), item.first, item.second.pixelUnit_, item.second.vpRatio_,
+            density.displayVpr, density.effectiveVpr, attachedVpr, intersectHeight, intersectWidth, committed,
+            result.pxLimits.minWidth_, result.pxLimits.minHeight_, result.pxLimits.maxWidth_,
+            result.pxLimits.maxHeight_);
         if (!committed) {
             continue;
         }
@@ -3032,14 +3042,21 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
     bool useVPLimits = (sessionProperty->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP);
     // The user-specified unit is density-invariant, so the base is taken in the user unit and the other
     // unit is derived. Mirrors the client UpdateDensityInner + CalculateAttachedWindowLimitsIntersection.
-    float vpr = targetDensity;
+    // The density basis maps displayVpr to the query target density (the client reads the display
+    // density) and effectiveVpr to the queried window's effective density: an independent-density
+    // window (custom / default / unique) uses the density snapshot pushed by the client and does NOT
+    // follow the display density, mirroring the client GetVirtualPixelRatio resolution.
+    const float densitySnapshot = sessionProperty->GetLimitsForAttachedWindows().vpRatio_;
+    const AttachDensityBasis density { densitySnapshot > 0.0f ? densitySnapshot : targetDensity,
+                                       targetDensity };
     auto anchorInfo = sceneSession->GetWindowAnchorInfo();
     auto optionsList = sessionProperty->GetAttachedLimitOptionsList();
     auto attachedList = sessionProperty->GetAttachedWindowLimitsList();
     bool hasIntersected = WindowHelper::HasIntersectedAttachLimits(anchorInfo, optionsList);
-    TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, vpr:%{public}f, useVP:%{public}d, "
-        "hasIntersected:%{public}d, anchorH:%{public}d, anchorW:%{public}d, optionsSize:%{public}zu, "
-        "attachedSize:%{public}zu", winId, vpr, useVPLimits, hasIntersected,
+    TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, screenVpr:%{public}f, ownVpr:%{public}f, "
+        "densitySnapshot:%{public}f, useVP:%{public}d, hasIntersected:%{public}d, "
+        "anchorH:%{public}d, anchorW:%{public}d, optionsSize:%{public}zu, attachedSize:%{public}zu",
+        winId, density.displayVpr, density.effectiveVpr, densitySnapshot, useVPLimits, hasIntersected,
         anchorInfo.attachOptions.isIntersectedHeightLimit, anchorInfo.attachOptions.isIntersectedWidthLimit,
         optionsList.size(), attachedList.size());
     WindowLimits limitsPx;
@@ -3047,21 +3064,21 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
     if (useVPLimits) {
         limitsVp = hasIntersected ? sessionProperty->GetLimitsForAttachedWindows()
                                   : sessionProperty->GetWindowLimitsVP();
-        WindowHelper::RecalculatePxLimitsByVp(limitsVp, limitsPx, vpr);
+        WindowHelper::RecalculatePxLimitsByVp(limitsVp, limitsPx, density.effectiveVpr);
     } else {
         limitsPx = hasIntersected ? sessionProperty->GetLimitsForAttachedWindows()
                                   : sessionProperty->GetWindowLimits();
         limitsVp = WindowLimits::DEFAULT_VP_LIMITS();
-        WindowHelper::RecalculateVpLimitsByPx(limitsPx, limitsVp, vpr);
+        WindowHelper::RecalculateVpLimitsByPx(limitsPx, limitsVp, density.effectiveVpr);
     }
-    limitsPx.vpRatio_ = vpr;
-    limitsVp.vpRatio_ = vpr;
+    limitsPx.vpRatio_ = density.effectiveVpr;
+    limitsVp.vpRatio_ = density.effectiveVpr;
     bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(sessionProperty->GetDisplayId());
     TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, base:%{public}s, displayInFreeMulti:%{public}d, "
         "willIntersect:%{public}d", winId, hasIntersected ? "LimitsForAttached" : "Stored", displayInFreeMulti,
         hasIntersected && displayInFreeMulti);
     if (hasIntersected && displayInFreeMulti) {
-        IntersectAttachedLimits(*sessionProperty, limitsPx, limitsVp, vpr);
+        IntersectAttachedLimits(*sessionProperty, anchorInfo, limitsPx, limitsVp, density);
     }
     return useVPLimits ? limitsVp : limitsPx;
 }

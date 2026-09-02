@@ -1711,7 +1711,8 @@ void WindowSceneSessionImpl::ApplyConfiguredMinSizeToLimits(WindowLimits& system
 void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
                                                         WindowLimits& newLimitsVP,
                                                         WindowLimits& customizedLimits,
-                                                        float& virtualPixelRatio)
+                                                        float& virtualPixelRatio,
+                                                        float& displayPixelRatio)
 {
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
     if (display == nullptr) {
@@ -1737,6 +1738,10 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
     if (MathHelper::NearZero(virtualPixelRatio)) {
         return;
     }
+    // The raw display density differs from the effective density when an independent density is
+    // set; snapshot-invalid attached limits must be converted with this one (see
+    // CalculateAttachedWindowLimitsIntersection), so thread it out from the same displayInfo.
+    displayPixelRatio = displayInfo->GetVirtualPixelRatio();
 
     // systemLimits: physical pixels, systemLimitsVP: virtual pixels
     const auto& [systemLimits, systemLimitsVP] = GetSystemSizeLimits(displayWidth, displayHeight, virtualPixelRatio);
@@ -1901,6 +1906,20 @@ void WindowSceneSessionImpl::RecalculateSizeLimitsWithRatios(WindowLimits& limit
     }
 }
 
+float WindowSceneSessionImpl::GetDensitySnapshotForAttachedWindows(float effectiveVpr)
+{
+    const float customDensity = GetMainWindowCustomDensity();
+    const bool defaultEnabled = IsDefaultDensityEnabled();
+    const bool hasIndependentDensity = defaultEnabled || useUniqueDensity_ ||
+        (customDensity >= MINIMUM_CUSTOM_DENSITY && customDensity <= MAXIMUM_CUSTOM_DENSITY);
+    const float snapshot = hasIndependentDensity ? effectiveVpr : 0.0f;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, density snapshot for attached windows: "
+        "independent=%{public}d (default=%{public}d, unique=%{public}d, custom=%{public}f), "
+        "effectiveVpr=%{public}f, snapshot=%{public}f", GetPersistentId(), hasIndependentDensity,
+        defaultEnabled, useUniqueDensity_, customDensity, effectiveVpr, snapshot);
+    return snapshot;
+}
+
 /** @note @window.layout */
 void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
 {
@@ -1910,8 +1929,9 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     WindowLimits newLimits;
     WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
     float virtualPixelRatio = 0.0f;
+    float displayVpr = 0.0f;
 
-    CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
+    CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio, displayVpr);
     if (MathHelper::NearZero(virtualPixelRatio)) {
         TLOGE(WmsLogTag::WMS_LAYOUT,
             "[WindowLimitsUpdate:CalcLimits] vpr is zero, id:%{public}u", GetWindowId());
@@ -1951,9 +1971,17 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     // Notify session side about window limits change before calculating attached windows intersection
     // Save the limits regardless of needNotifySession flag
     // Determine which limits to notify based on user's pixelUnit setting
-    const WindowLimits& limitsToNotify =
+    WindowLimits limitsToNotify =
         (property_->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP) ? newLimitsVP : newLimits;
+    // Carry the density snapshot with the shared limits so attached windows convert them with the
+    // provider's density instead of their own (invalid marker when density is not independent).
+    limitsToNotify.vpRatio_ = GetDensitySnapshotForAttachedWindows(virtualPixelRatio);
     property_->SetLimitsForAttachedWindows(limitsToNotify);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, save shared limits for attached windows: unit=%{public}u, "
+        "densitySnapshot=%{public}f, [minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+        GetPersistentId(), static_cast<uint32_t>(limitsToNotify.pixelUnit_), limitsToNotify.vpRatio_,
+        limitsToNotify.minWidth_, limitsToNotify.minHeight_, limitsToNotify.maxWidth_,
+        limitsToNotify.maxHeight_);
 
     // Only notify session side when triggered by SetWindowLimits
     if (needNotifySession) {
@@ -1961,7 +1989,7 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     }
 
     // Calculate intersection with attached windows' limits if configured
-    CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { virtualPixelRatio, displayVpr });
 
     TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetPersistentId(), WmsLogTag::WMS_LAYOUT,
         "[WindowLimitsUpdate:CalcLimits] SaveLimits id:%{public}d, "
@@ -2073,16 +2101,26 @@ float WindowSceneSessionImpl::GetEffectiveAspectRatio(const WindowLimits& limits
 
 /** @note @window.layout */
 void WindowSceneSessionImpl::CalculateAttachedWindowLimitsIntersection(
-    WindowLimits& newLimits, WindowLimits& newLimitsVP, float virtualPixelRatio)
+    WindowLimits& newLimits, WindowLimits& newLimitsVP, const AttachDensityBasis& density)
 {
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, not in PC or free multi-window mode",
             GetPersistentId());
         return;
     }
-    if (MathHelper::NearZero(virtualPixelRatio)) {
+    if (MathHelper::NearZero(density.effectiveVpr)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "windowId:%{public}u, virtual pixel ratio is zero", GetWindowId());
         return;
+    }
+    // The display density is the conversion basis for snapshot-invalid (0) attached limits. It is
+    // the RAW display density, not this window's effective density: an independent-density
+    // receiver must still convert non-independent sources with the density those sources actually
+    // use. Degraded fallback keeps the previous behaviour when the display is unresolvable.
+    AttachDensityBasis basis = density;
+    if (MathHelper::NearZero(basis.displayVpr)) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, display density unavailable, fallback to effective vpr",
+            GetPersistentId());
+        basis.displayVpr = basis.effectiveVpr;
     }
 
     auto attachedLimitsList = property_->GetAttachedWindowLimitsList();
@@ -2092,8 +2130,10 @@ void WindowSceneSessionImpl::CalculateAttachedWindowLimitsIntersection(
     }
 
     const bool isMainWindow = WindowHelper::IsMainWindow(GetType());
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc with %{public}zu wins, type=%{public}u",
-        GetPersistentId(), attachedLimitsList.size(), static_cast<uint32_t>(GetType()));
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc with %{public}zu wins, type=%{public}u, "
+        "effectiveVpr=%{public}f, displayVpr=%{public}f",
+        GetPersistentId(), attachedLimitsList.size(), static_cast<uint32_t>(GetType()),
+        basis.effectiveVpr, basis.displayVpr);
 
     for (const auto& [sourceId, attachedLimits] : attachedLimitsList) {
         AttachLimitOptions limitOptions = isMainWindow ? property_->GetAttachedLimitOptions(sourceId) :
@@ -2102,11 +2142,10 @@ void WindowSceneSessionImpl::CalculateAttachedWindowLimitsIntersection(
         if (!limitOptions.isIntersectedHeightLimit && !limitOptions.isIntersectedWidthLimit) {
             continue;
         }
-        auto result = CalcSingleWinIntersect(
-            newLimits, newLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
-        if (!result.pxValid || !result.vpValid) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, no intersect srcId=%{public}d (%{public}s)",
-                GetPersistentId(), sourceId, !result.pxValid ? "PX" : "VP");
+        auto result = CalcSingleWinIntersect(newLimits, newLimitsVP, attachedLimits, limitOptions, basis);
+        if (!result.pxValid) {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, no intersect srcId=%{public}d (PX)",
+                GetPersistentId(), sourceId);
             continue;
         }
 
@@ -2126,16 +2165,30 @@ WindowSceneSessionImpl::WinIntersectResult WindowSceneSessionImpl::CalcSingleWin
     const WindowLimits& currentLimitsVP,
     const WindowLimits& attachedLimits,
     const AttachLimitOptions& limitOptions,
-    float virtualPixelRatio)
+    const AttachDensityBasis& density)
 {
     WinIntersectResult result;
     const bool intersectHeight = limitOptions.isIntersectedHeightLimit;
     const bool intersectWidth = limitOptions.isIntersectedWidthLimit;
 
-    // Convert to PX and calculate intersection
+    // Convert the attached limits to PX with the density snapshot they carry (the provider's
+    // effective density when it computed them); fall back to the raw display density when the
+    // snapshot is invalid: a snapshot-invalid provider follows the display, and all collaborating
+    // windows sit on the same display, so the receiver's display density equals the density the
+    // provider used for its own base. The effective density must NOT be used here, because an
+    // independent-density receiver would convert the source with a density the source never used.
+    const float attachedVpr = attachedLimits.vpRatio_ > 0.0f ? attachedLimits.vpRatio_ : density.displayVpr;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc single intersect basis: effectiveVpr=%{public}f, "
+        "displayVpr=%{public}f, attachedDensitySnapshot=%{public}f, useSnapshot=%{public}d, "
+        "attachedVpr=%{public}f, attachedUnit=%{public}u, "
+        "attached[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+        GetPersistentId(), density.effectiveVpr, density.displayVpr, attachedLimits.vpRatio_,
+        attachedLimits.vpRatio_ > 0.0f, attachedVpr, static_cast<uint32_t>(attachedLimits.pixelUnit_),
+        attachedLimits.minWidth_, attachedLimits.minHeight_, attachedLimits.maxWidth_,
+        attachedLimits.maxHeight_);
     WindowLimits attachedLimitsPX;
     if (attachedLimits.pixelUnit_ == PixelUnit::VP) {
-        RecalculatePxLimitsByVp(attachedLimits, attachedLimitsPX, virtualPixelRatio);
+        RecalculatePxLimitsByVp(attachedLimits, attachedLimitsPX, attachedVpr);
     } else {
         attachedLimitsPX = attachedLimits;
     }
@@ -2143,16 +2196,18 @@ WindowSceneSessionImpl::WinIntersectResult WindowSceneSessionImpl::CalcSingleWin
         intersectWidth);
     result.pxValid = IsLimitsIntersectionValid(result.pxLimits, intersectHeight, intersectWidth);
 
-    // Convert to VP and calculate intersection
-    WindowLimits attachedLimitsVP;
-    if (attachedLimits.pixelUnit_ == PixelUnit::PX) {
-        RecalculateVpLimitsByPx(attachedLimits, attachedLimitsVP, virtualPixelRatio);
-    } else {
-        attachedLimitsVP = attachedLimits;
-    }
-    result.vpLimits = CalculateLimitsIntersection(currentLimitsVP, attachedLimitsVP, intersectHeight,
-        intersectWidth);
-    result.vpValid = IsLimitsIntersectionValid(result.vpLimits, intersectHeight, intersectWidth);
+    // Derive the VP view from the PX result in the local density. PX is the absolute unit shared
+    // by all collaborating windows, so only the PX validity decides whether the intersection is
+    // committed; rounding is monotonic, keeping the derived VP result valid whenever PX is valid.
+    result.vpLimits = currentLimitsVP;
+    RecalculateVpLimitsByPx(result.pxLimits, result.vpLimits, density.effectiveVpr);
+    result.vpValid = result.pxValid;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc single intersect result: pxValid=%{public}d, "
+        "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u], "
+        "vp[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]", GetPersistentId(),
+        result.pxValid, result.pxLimits.minWidth_, result.pxLimits.minHeight_,
+        result.pxLimits.maxWidth_, result.pxLimits.maxHeight_, result.vpLimits.minWidth_,
+        result.vpLimits.minHeight_, result.vpLimits.maxWidth_, result.vpLimits.maxHeight_);
 
     return result;
 }
@@ -2198,9 +2253,9 @@ void WindowSceneSessionImpl::NotifySessionSideLimitsChanged(const WindowLimits& 
     GetHostSession()->NotifyAttachedWindowsLimitsChanged(limitsToNotify);
     TLOGI(WmsLogTag::WMS_LAYOUT, "Notified session side about window limits change for window "
         "id=%{public}u, limitsToNotify: maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, "
-        "pixelUnit=%{public}u", GetWindowId(), limitsToNotify.maxWidth_, limitsToNotify.maxHeight_,
-        limitsToNotify.minWidth_, limitsToNotify.minHeight_,
-        static_cast<uint32_t>(limitsToNotify.pixelUnit_));
+        "pixelUnit=%{public}u, densitySnapshot=%{public}f", GetWindowId(), limitsToNotify.maxWidth_,
+        limitsToNotify.maxHeight_, limitsToNotify.minWidth_, limitsToNotify.minHeight_,
+        static_cast<uint32_t>(limitsToNotify.pixelUnit_), limitsToNotify.vpRatio_);
 }
 
 void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<DisplayInfo>& info)
@@ -8181,11 +8236,29 @@ void WindowSceneSessionImpl::UpdateDensityInner(const sptr<DisplayInfo>& info)
             }
         }
     }
+    const WindowLimits oldSharedLimits = property_->GetLimitsForAttachedWindows();
     if (property_->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP) {
         UpdateWindowSizeLimits();
         UpdateNewSize();
     } else {
-        RecalcPxLimitsOnDensity();
+        RecalcPxLimitsOnDensity(info);
+    }
+    // Re-notify attached windows when the shared limits actually changed: the density snapshot
+    // (independent density gained, lost, or re-valued), or the shared values themselves (e.g. a
+    // system-density change flipping the system-bound clamps of a VP user). Ordinary density
+    // changes of non-independent windows keep the shared limits identical, so no traffic is sent.
+    const WindowLimits& newSharedLimits = property_->GetLimitsForAttachedWindows();
+    const bool snapshotChanged = !MathHelper::NearZero(oldSharedLimits.vpRatio_ - newSharedLimits.vpRatio_);
+    const bool valuesChanged = oldSharedLimits.minWidth_ != newSharedLimits.minWidth_ ||
+        oldSharedLimits.minHeight_ != newSharedLimits.minHeight_ ||
+        oldSharedLimits.maxWidth_ != newSharedLimits.maxWidth_ ||
+        oldSharedLimits.maxHeight_ != newSharedLimits.maxHeight_ ||
+        oldSharedLimits.pixelUnit_ != newSharedLimits.pixelUnit_;
+    if (snapshotChanged || valuesChanged) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, shared limits for attached windows changed "
+            "(snapshot %{public}f -> %{public}f, valuesChanged=%{public}d), re-notify attached windows",
+            GetPersistentId(), oldSharedLimits.vpRatio_, newSharedLimits.vpRatio_, valuesChanged);
+        NotifySessionSideLimitsChanged(newSharedLimits);
     }
     WMError ret = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
     if (ret != WMError::WM_OK) {
@@ -8202,14 +8275,19 @@ void WindowSceneSessionImpl::UpdateDensityInner(const sptr<DisplayInfo>& info)
 }
 
 /** @note @window.layout */
-void WindowSceneSessionImpl::RecalcPxLimitsOnDensity()
+void WindowSceneSessionImpl::RecalcPxLimitsOnDensity(const sptr<DisplayInfo>& info)
 {
     float vpr = 1.0f;
-    WMError ret = GetVirtualPixelRatio(vpr);
+    sptr<DisplayInfo> displayInfo = info;
+    WMError ret = GetVirtualPixelRatio(vpr, &displayInfo);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "Id:%{public}d, get vpr failed", GetPersistentId());
         return;
     }
+    // Resolve the raw display density for converting snapshot-invalid attached limits; it is
+    // NOT the effective density (see CalculateAttachedWindowLimitsIntersection). Stays 0 when
+    // the display info is unavailable so the intersection falls back to the effective density.
+    const float displayVpr = displayInfo != nullptr ? displayInfo->GetVirtualPixelRatio() : 0.0f;
     bool hasIntersectedLimits = HasIntersectedAttachLimits();
     WindowLimits limitsPx = hasIntersectedLimits ?
         property_->GetLimitsForAttachedWindows() : property_->GetWindowLimits();
@@ -8218,8 +8296,19 @@ void WindowSceneSessionImpl::RecalcPxLimitsOnDensity()
     limitsPx.vpRatio_ = vpr;
     limitsVp.vpRatio_ = vpr;
     isMinLimitsAdjusted_ = AdjustMinLimitsByWorkArea(limitsPx, limitsVp, vpr);
+    // Refresh the density snapshot carried by the shared limits; the shared values themselves
+    // are density-stable so only the snapshot needs to be updated in place.
+    const float newSnapshot = GetDensitySnapshotForAttachedWindows(vpr);
+    WindowLimits sharedLimits = property_->GetLimitsForAttachedWindows();
+    if (!MathHelper::NearZero(sharedLimits.vpRatio_ - newSnapshot)) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, density changed, refresh snapshot of shared "
+            "limits %{public}f -> %{public}f (effectiveVpr=%{public}f)", GetPersistentId(),
+            sharedLimits.vpRatio_, newSnapshot, vpr);
+        sharedLimits.vpRatio_ = newSnapshot;
+        property_->SetLimitsForAttachedWindows(sharedLimits);
+    }
     if (hasIntersectedLimits) {
-        CalculateAttachedWindowLimitsIntersection(limitsPx, limitsVp, vpr);
+        CalculateAttachedWindowLimitsIntersection(limitsPx, limitsVp, { vpr, displayVpr });
     }
     property_->SetWindowLimits(limitsPx);
     property_->SetWindowLimitsVP(limitsVp);
@@ -9438,8 +9527,12 @@ WSError WindowSceneSessionImpl::UpdateAttachedWindowLimits(int32_t sourcePersist
     bool isIntersectedWidthLimit)
 {
     TLOGI(WmsLogTag::WMS_LAYOUT, "called for window id=%{public}u, sourcePersistentId=%{public}d, "
-        "isIntersectedHeightLimit=%{public}d, isIntersectedWidthLimit=%{public}d",
-        GetWindowId(), sourcePersistentId, isIntersectedHeightLimit, isIntersectedWidthLimit);
+        "isIntersectedHeightLimit=%{public}d, isIntersectedWidthLimit=%{public}d, "
+        "limits[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u], unit=%{public}u, "
+        "sourceDensitySnapshot=%{public}f", GetWindowId(), sourcePersistentId,
+        isIntersectedHeightLimit, isIntersectedWidthLimit, attachedWindowLimits.minWidth_,
+        attachedWindowLimits.minHeight_, attachedWindowLimits.maxWidth_, attachedWindowLimits.maxHeight_,
+        static_cast<uint32_t>(attachedWindowLimits.pixelUnit_), attachedWindowLimits.vpRatio_);
 
     const auto& property = GetProperty();
 
@@ -9474,6 +9567,10 @@ WSError WindowSceneSessionImpl::SyncAllAttachedLimitsToChild(
     property->ClearAttachedLimitOptionsList();
 
     for (const auto& [sourceId, limits] : limitsList) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, sync attached entry srcId=%{public}d, unit=%{public}u, "
+            "sourceDensitySnapshot=%{public}f, [minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+            GetWindowId(), sourceId, static_cast<uint32_t>(limits.pixelUnit_), limits.vpRatio_,
+            limits.minWidth_, limits.minHeight_, limits.maxWidth_, limits.maxHeight_);
         property->SetAttachedWindowLimits(sourceId, limits);
     }
 

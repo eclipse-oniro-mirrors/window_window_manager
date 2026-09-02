@@ -579,7 +579,7 @@ private:
     WindowLimits limitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
     WindowLimits userLimits_ = WindowLimits::DEFAULT_VP_LIMITS();
     WindowLimits configLimitsVP_ = WindowLimits::DEFAULT_VP_LIMITS();
-    WindowLimits limitsForAttachedWindows_ = WindowLimits::DEFAULT_VP_LIMITS();
+    WindowLimits limitsForAttachedWindows_ = WindowLimits::DEFAULT_VP_LIMITS(true);
     float lastVpr_ = 0.0f;
     PiPTemplateInfo pipTemplateInfo_ = {};
     FloatingBallTemplateInfo fbTemplateInfo_ = {};

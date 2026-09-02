@@ -1091,7 +1091,10 @@ protected:
     sptr<FutureCallback> getRotationResultFuture_ = nullptr;
     sptr<FutureCallback> updateRectCallback_ = nullptr;
     void UpdateVirtualPixelRatio(const sptr<Display>& display);
-    virtual WMError GetVirtualPixelRatio(float& vpr);
+    // displayInfo is an optional in/out parameter: a provided non-null value is used directly
+    // (no display fetch); otherwise the display info is resolved from the display manager and
+    // written back through the pointer when given.
+    virtual WMError GetVirtualPixelRatio(float& vpr, sptr<DisplayInfo>* displayInfo = nullptr);
     void SetCurrentTransform(const Transform& transform);
     Transform GetCurrentTransform() const;
     void NotifyAfterUIContentReady();

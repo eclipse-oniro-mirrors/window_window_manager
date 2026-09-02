@@ -551,8 +551,10 @@ protected:
      *
      * Keeps the stored PX values (vpr-independent), re-applies work-area capping and
      * attached intersection with the new vpr, and refreshes the VP view.
+     * @param info Display info from the density event; passed to GetVirtualPixelRatio so the
+     * display is fetched only when it is null, and reused for the raw display density.
      */
-    void RecalcPxLimitsOnDensity();
+    void RecalcPxLimitsOnDensity(const sptr<DisplayInfo>& info);
 
     /**
      * @brief Cap min limits by work area caps, respecting the aspect ratio rules.
@@ -571,13 +573,26 @@ protected:
     float GetEffectiveAspectRatio(const WindowLimits& limits) const;
 
     /**
+     * @brief Get the density snapshot carried with the limits shared to attached windows.
+     * @param effectiveVpr The window's effective density (result of GetVirtualPixelRatio).
+     * @return effectiveVpr when the window's density is independent of the local display density
+     *         (default-density / unique-density / custom-density mode), or an invalid marker (0.0f)
+     *         otherwise. Attached windows convert the shared limits between units with this
+     *         snapshot instead of their own density, so all collaborating windows derive the same
+     *         physical-pixel limits.
+     */
+    float GetDensitySnapshotForAttachedWindows(float effectiveVpr);
+
+    /**
      * @brief Calculate window limits intersection with attached windows.
      * @param newLimits Reference to WindowLimits (PX unit) to be updated with intersected values.
      * @param newLimitsVP Reference to WindowLimits (VP unit) to be updated with intersected values.
-     * @param virtualPixelRatio Virtual pixel ratio for unit conversion.
+     * @param density The density basis for the intersection (see AttachDensityBasis): the
+     *        effective density derives the VP view, and the raw display density converts
+     *        snapshot-invalid (0) attached limits shared by non-independent-density providers.
      */
     void CalculateAttachedWindowLimitsIntersection(WindowLimits& newLimits, WindowLimits& newLimitsVP,
-        float virtualPixelRatio);
+        const AttachDensityBasis& density);
 
     /**
      * @brief Result of calculating intersection with a single attached window.
@@ -595,12 +610,12 @@ protected:
      * @param currentLimitsVP Current VP limits.
      * @param attachedLimits Attached window limits (may be PX or VP).
      * @param limitOptions Options for which limits (height/width) to intersect.
-     * @param virtualPixelRatio Virtual pixel ratio for conversion.
+     * @param density The density basis for the intersection (see AttachDensityBasis).
      * @return Intersection result containing validity and calculated limits.
      */
     WinIntersectResult CalcSingleWinIntersect(
         const WindowLimits& currentLimits, const WindowLimits& currentLimitsVP, const WindowLimits& attachedLimits,
-        const AttachLimitOptions& limitOptions, float virtualPixelRatio);
+        const AttachLimitOptions& limitOptions, const AttachDensityBasis& density);
 
     /**
      * @brief Notify session side about window limits change.
@@ -715,7 +730,8 @@ private:
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
     uint32_t UpdateConfigValInVP(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
     void CalculateNewLimitsByLimits(
-        WindowLimits& newLimits, WindowLimits& newLimitsVP, WindowLimits& customizedLimits, float& virtualPixelRatio);
+        WindowLimits& newLimits, WindowLimits& newLimitsVP, WindowLimits& customizedLimits,
+        float& virtualPixelRatio, float& displayPixelRatio);
     void ProcessVirtualPixelLimits(WindowLimits& newLimits, WindowLimits& newLimitsVP,
         const WindowLimits& customizedLimits, const WindowLimits& systemLimitsVP, float virtualPixelRatio);
     void ProcessPhysicalPixelLimits(WindowLimits& newLimits, WindowLimits& newLimitsVP,
