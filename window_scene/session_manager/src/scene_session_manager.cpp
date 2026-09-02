@@ -2024,19 +2024,16 @@ void ParseLimitsThresholdPercentageConfig(
 {
     const auto& limitsThresholdPercentageConfig = limitsThresholdConfig["limitsThresholdPercentage"];
     if (!limitsThresholdPercentageConfig.IsInts() || !limitsThresholdPercentageConfig.intsValue_) {
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "The limitsThresholdPercentage config is invalid (not int array), leave limits threshold percentage unlimited.");
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config is invalid (not int array).");
         return;
     }
     if (limitsThresholdPercentageConfig.intsValue_->size() != 1) {
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "The limitsThresholdPercentage config size is invalid (expect 2), leave limits threshold percentage unlimited.");
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config size is invalid (expect 1).");
         return;
     }
     int thresholdPercentage = (*limitsThresholdPercentageConfig.intsValue_)[0];
     if (thresholdPercentage < 0 || thresholdPercentage > 100) {
-        TLOGW(WmsLogTag::WMS_LAYOUT,
-              "The limitsThresholdPercentage config contains negative values, leave limits threshold percentage unlimited.");
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config is out of range.");
         return;
     }
     config.limitsThresholdPercentage = static_cast<int32_t>(thresholdPercentage);

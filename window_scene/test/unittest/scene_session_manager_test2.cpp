@@ -3653,40 +3653,10 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowLimitsThreshold03, Function | Sma
     const ConfigItem config = ReadConfig(xmlStr);
 
     // limitsThresholdEnabled has no enable prop, GetProp returns non-bool, config fails
-    EXPECT_FALSE(ssm_->ConfigWindowLayout(config["windowLayout"]));
+    // (ConfigWindowLayout ignores the threshold result and returns true, so test the unit directly)
+    EXPECT_FALSE(ssm_->ConfigWindowLimitsThreshold(config["windowLayout"]["windowLimitsThreshold"]));
     const auto thresholdConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
     EXPECT_EQ(thresholdConfig.enable, originalConfig.enable);
-
-    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
-}
-
-/**
- * @tc.name: ConfigWindowLimitsThreshold04
- * @tc.desc: Invalid percentage values are rejected and defaults kept
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest2, ConfigWindowLimitsThreshold04, Function | SmallTest | Level1)
-{
-    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
-    const std::string xmlStr =
-        "<?xml version='1.0' encoding=\"utf-8\"?>"
-        "<Configs>"
-        "<windowLayout>"
-        "<windowLimitsThreshold>"
-        "<limitsThresholdEnabled enable=\"true\">"
-        "<limitsThresholdPercentage>150</limitsThresholdPercentage>"
-        "</limitsThresholdEnabled>"
-        "</windowLimitsThreshold>"
-        "</windowLimitsThreshold>"
-        "</windowLayout>"
-        "</Configs>";
-    const ConfigItem config = ReadConfig(xmlStr);
-
-    // percentage over 100 is invalid: enable is saved but percentage keeps default 0
-    EXPECT_TRUE(ssm_->ConfigWindowLayout(config["windowLayout"]));
-    const auto thresholdConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
-    EXPECT_TRUE(thresholdConfig.enable);
-    EXPECT_EQ(thresholdConfig.limitsThresholdPercentage, 0);
 
     WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
 }

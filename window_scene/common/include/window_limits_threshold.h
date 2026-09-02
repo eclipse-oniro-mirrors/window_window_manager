@@ -25,7 +25,7 @@
 namespace OHOS::Rosen {
 
 /**
- * @brief Configuration of display isolation for window operations.
+ * @brief Configuration of limits threshold for window operations.
  */
 struct WindowLimitsThresholdConfig {
     bool enable = false;
@@ -44,7 +44,7 @@ struct WindowLimitsThresholdConfig {
 };
 
 /**
- * @brief Provides display isolation policy checks for window operations.
+ * @brief Provides limits threshold check ablity for window operations.
  */
 class WindowLimitsThreshold final {
 public:

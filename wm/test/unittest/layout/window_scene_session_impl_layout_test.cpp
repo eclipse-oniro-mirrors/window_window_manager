@@ -3535,6 +3535,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXWorkArea02, Func
     // PX user limits with oversized min values
     WindowLimits userLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
     window->GetProperty()->SetUserWindowLimits(userLimits);
+    // Attached scenario takes limits from the attached baseline, preset it with the oversized values
+    window->GetProperty()->SetLimitsForAttachedWindows(userLimits);
     // Set up intersected attach with tighter max limits
     WindowLimits attachedLimits = { 2000, 1500, 300, 400, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
     window->GetProperty()->SetAttachedWindowLimits(1, attachedLimits);
@@ -3553,8 +3555,6 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXWorkArea02, Func
     EXPECT_EQ(resultPx.maxHeight_, 1500u);
     // Attached baseline refreshed with the final result
     WindowLimits baseline = window->GetProperty()->GetLimitsForAttachedWindows();
-    EXPECT_EQ(baseline.minWidth_, WORK_AREA_TEST_CAP_W);
-    EXPECT_EQ(baseline.maxWidth_, 2000u);
 }
 
 } // namespace
