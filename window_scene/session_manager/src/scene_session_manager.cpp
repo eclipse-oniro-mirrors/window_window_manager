@@ -4702,7 +4702,7 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
         if (sceneSession->GetSessionInfo().isGamePrelaunch_) {
             TLOGNI(WmsLogTag::WMS_LIFE, "[gameprelaunch]Reset scene session isGamePrelaunch_ to false, id: %{public}d",
                 sceneSession->GetPersistentId());
-            sceneSession->EditSessionInfo().isGamePrelaunch_ = false;
+            sceneSession->SetIsGamePrelaunch(false);
         }
 
         sceneSession->BackgroundTask(isSaveSnapshot, reason);
