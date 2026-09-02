@@ -17,6 +17,8 @@
 #include <regex>
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
+#include <parameter.h>
+#include <parameters.h>
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
@@ -585,7 +587,11 @@ HWTEST_F(WindowPatternStartingWindowTest, PostProcessStartingWindowInfo, TestSiz
     abilityInfo2.metadata.push_back(metadata3);
 
     ssm_->PostProcessStartingWindowInfo(abilityInfo2, startingWindowInfo);
-    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "resource:///12345678.png");
+    if (GetPerformanceClass() == PERFORMANCE_CLASS_LOW_LEVEL) {
+        EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "resource:///12345678.png");
+    } else {
+        EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "");
+    }
 }
 
 /**
