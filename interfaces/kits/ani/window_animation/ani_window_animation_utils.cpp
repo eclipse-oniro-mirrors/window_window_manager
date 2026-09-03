@@ -701,6 +701,13 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
     } else {
         windowCreateParams.isWindowLimitsForcible = false;
     }
+
+    windowCreateParams.minimizeOnStart =
+        GetOptionalBoolProp(env, aniObject, "minimizeOnStart").value_or(false);
+    windowCreateParams.excludeFromDock =
+        GetOptionalBoolProp(env, aniObject, "excludeFromDock").value_or(false);
+    windowCreateParams.excludeFromRecent =
+        GetOptionalBoolProp(env, aniObject, "excludeFromRecent").value_or(false);
     return true;
 }
 

@@ -92,7 +92,7 @@ public:
     WSError RaiseMainWindowAboveTarget(int32_t targetId) override;
     WSError RaiseAppMainWindowToTop() override;
     WSError SetSessionLabelAndIcon(const std::string& label,
-        const std::shared_ptr<Media::PixelMap>& icon) override;
+        const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId = "") override;
     WSError SetSubWindowSource(SubWindowSource source) override;
     WSError WriteOneSessionInfo(MessageParcel& data, const sptr<AAFwk::SessionInfo>& abilitySessionInfo);
     WSError WriteOneSessionInfoPart(MessageParcel& data, const sptr<AAFwk::SessionInfo>& abilitySessionInfo);

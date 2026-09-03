@@ -6805,6 +6805,14 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         info.windowCreateParams->needAnimation = std::make_shared<bool>(withAnimation);
     }
 
+    if (!session->IsPcWindow()) {
+        if (info.windowCreateParams) {
+            info.windowCreateParams->minimizeOnStart = false;
+            info.windowCreateParams->excludeFromDock = false;
+            info.windowCreateParams->excludeFromRecent = false;
+        }
+    }
+
     if (abilitySessionInfo->want.HasParameter(WANT_PARAM_GAME_PRELAUNCH)) {
         bool isGamePreLaunch = abilitySessionInfo->want.GetBoolParam(WANT_PARAM_GAME_PRELAUNCH, false);
         info.isGamePrelaunch_ = isGamePreLaunch;

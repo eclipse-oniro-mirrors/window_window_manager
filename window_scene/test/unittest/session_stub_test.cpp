@@ -1161,6 +1161,8 @@ HWTEST_F(SessionStubTest, HandleSetSessionLabelAndIcon01, TestSize.Level1)
     MessageParcel reply;
     std::shared_ptr<Media::PixelMap> icon = std::make_shared<Media::PixelMap>();
     data.WriteParcelable(icon.get());
+    std::string groupId = "test_group";
+    data.WriteString(groupId);
 
     auto res = session_->HandleSetSessionLabelAndIcon(data, reply);
     ASSERT_EQ(ERR_INVALID_DATA, res);

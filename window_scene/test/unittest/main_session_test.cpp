@@ -680,7 +680,7 @@ HWTEST_F(MainSessionTest, SetSessionLabelAndIconInner, TestSize.Level1)
 
     mainSession_->SetUpdateSessionLabelAndIconListener(
         [](const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-        const std::string& updatedIconPath) {
+        const std::string& updatedIconPath, const std::string& groupId) {
     });
     ASSERT_EQ(WSError::WS_OK, mainSession_->SetSessionLabelAndIconInner(label, icon));
 }
@@ -696,7 +696,7 @@ HWTEST_F(MainSessionTest, SetUpdateSessionLabelAndIconListener, TestSize.Level1)
     std::shared_ptr<Media::PixelMap> icon;
     mainSession_->SetUpdateSessionLabelAndIconListener(
         [](const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-        const std::string& updatedIconPath) {
+        const std::string& updatedIconPath, const std::string& groupId) {
     });
     ASSERT_NE(nullptr, mainSession_->updateSessionLabelAndIconFunc_);
 }

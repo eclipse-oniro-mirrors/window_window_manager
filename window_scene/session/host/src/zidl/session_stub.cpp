@@ -2364,7 +2364,13 @@ int SessionStub::HandleSetSessionLabelAndIcon(MessageParcel& data, MessageParcel
         TLOGE(WmsLogTag::WMS_MAIN, "read icon failed");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = SetSessionLabelAndIcon(label, icon);
+    std::string groupId;
+    if (!data.ReadString(groupId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read groupId failed");
+        return ERR_INVALID_DATA;
+    }
+
+    WSError errCode = SetSessionLabelAndIcon(label, icon, groupId);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_MAIN, "write errCode fail.");
         return ERR_INVALID_DATA;

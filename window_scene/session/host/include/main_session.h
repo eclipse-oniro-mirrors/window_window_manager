@@ -65,7 +65,8 @@ public:
     /*
      * Window LifeCycle
      */
-    WSError SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon) override;
+    WSError SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
+        const std::string& groupId = "") override;
     void SetUpdateSessionLabelAndIconListener(NofitySessionLabelAndIconUpdatedFunc&& func) override;
     void RegisterSessionLockStateChangeCallback(NotifySessionLockStateChangeCallback&& callback) override;
     void NotifySessionLockStateChange(bool isLockedState) override;
@@ -151,7 +152,8 @@ private:
     /*
      * Window LifeCycle
      */
-    WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon);
+    WSError SetSessionLabelAndIconInner(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
+        const std::string& groupId = "");
     NotifySessionLockStateChangeCallback onSessionLockStateChangeCallback_;
     bool isLockedState_ = false;
     NotifySceneSessionDestructFunc notifySceneSessionDestructFunc_;
