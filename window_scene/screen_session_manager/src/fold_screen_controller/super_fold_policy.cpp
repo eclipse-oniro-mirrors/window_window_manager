@@ -517,6 +517,8 @@ void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
 
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
 {
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_FULL, true);
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_MAIN, true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
     SetScreenIsInUse(SCREEN_ID_MAIN, true);
@@ -542,6 +544,8 @@ void SuperFoldPolicy::CloseCoordination()
         TLOGI(WmsLogTag::DMS, "not in coordination");
         return;
     }
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_FULL, false);
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_MAIN, false);
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);
     NotifyRefreshRateEvent(false);
