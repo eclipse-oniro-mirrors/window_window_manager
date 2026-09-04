@@ -156,7 +156,7 @@ public:
     void OnWaterMarkFlagUpdate(bool showWaterMark) override;
     void OnApplicationFocusUpdate(bool isFocused) override;
     void OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
-        int32_t nextFocusedWindowId, int32_t preFocusedWindowId) override;
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId) override;
     napi_value CallJsMethod(const char* methodName, napi_value const * argv = nullptr, size_t argc = 0);
     void SetMainEventHandler();
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;

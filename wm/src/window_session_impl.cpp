@@ -2120,18 +2120,18 @@ void WindowSessionImpl::UpdateFocusState(bool isFocused, const sptr<FocusNotifyI
 
     WindowFocusChangeReason reason = WindowFocusChangeReason::DEFAULT;
     int32_t nextFocusedWindowId = INVALID_WINDOW_ID;
-    int32_t preFocusedWindowId = INVALID_WINDOW_ID;
+    int32_t prevFocusedWindowId = INVALID_WINDOW_ID;
     if (focusNotifyInfo != nullptr) {
         reason = focusNotifyInfo->reason_;
         if (focusNotifyInfo->isSameCallingPid_) {
             if (!isFocused) {
                 nextFocusedWindowId = focusNotifyInfo->focusWindowId_;
             } else {
-                preFocusedWindowId = focusNotifyInfo->unfocusWindowId_;
+                prevFocusedWindowId = focusNotifyInfo->unfocusWindowId_;
             }
         }
     }
-    NotifyFocusStateChanged(isFocused, reason, nextFocusedWindowId, preFocusedWindowId);
+    NotifyFocusStateChanged(isFocused, reason, nextFocusedWindowId, prevFocusedWindowId);
 }
 
 bool WindowSessionImpl::IsFocused() const
@@ -6509,17 +6509,17 @@ void WindowSessionImpl::NotifyWindowAfterUnfocused()
 }
 
 void WindowSessionImpl::NotifyFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
-        int32_t nextFocusedWindowId, int32_t preFocusedWindowId)
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId)
 {
     std::lock_guard<std::recursive_mutex> lockListener(focusStateChangedListenerMutex_);
     auto listeners = GetListeners<IFocusStateChangedListener>();
     TLOGI(WmsLogTag::WMS_FOCUS, "windowId: %{public}d, isFocused: %{public}d, reason: %{public}d, "
-        "nextFocusedWindowId: %{public}d, preFocusedWindowId: %{public}d, listenerCnt: %{public}zu",
+        "nextFocusedWindowId: %{public}d, prevFocusedWindowId: %{public}d, listenerCnt: %{public}zu",
         GetPersistentId(), isFocused, static_cast<int32_t>(reason), nextFocusedWindowId,
-        preFocusedWindowId, listeners.size());
+        prevFocusedWindowId, listeners.size());
     for (auto& listener : listeners) {
         if (listener != nullptr) {
-            listener->OnFocusStateChanged(isFocused, reason, nextFocusedWindowId, preFocusedWindowId);
+            listener->OnFocusStateChanged(isFocused, reason, nextFocusedWindowId, prevFocusedWindowId);
         }
     }
 }

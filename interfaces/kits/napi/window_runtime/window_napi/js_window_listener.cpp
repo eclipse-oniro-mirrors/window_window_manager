@@ -648,9 +648,9 @@ void JsWindowListener::OnApplicationFocusUpdate(bool isFocused)
 }
 
 void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
-    int32_t nextFocusedWindowId, int32_t preFocusedWindowId)
+    int32_t nextFocusedWindowId, int32_t prevFocusedWindowId)
 {
-    auto jsCallback = [self = weakRef_, isFocused, reason, nextFocusedWindowId, preFocusedWindowId, env = env_] {
+    auto jsCallback = [self = weakRef_, isFocused, reason, nextFocusedWindowId, prevFocusedWindowId, env = env_] {
         auto thisListener = self.promote();
         if (thisListener == nullptr || env == nullptr) {
             TLOGE(WmsLogTag::WMS_FOCUS, "this listener or env is nullptr");
@@ -664,8 +664,8 @@ void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReas
         if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {
             napi_set_named_property(env, objValue, "nextFocusedWindowId", CreateJsValue(env, nextFocusedWindowId));
         }
-        if (isFocused && preFocusedWindowId != INVALID_WINDOW_ID) {
-            napi_set_named_property(env, objValue, "preFocusedWindowId", CreateJsValue(env, preFocusedWindowId));
+        if (isFocused && prevFocusedWindowId != INVALID_WINDOW_ID) {
+            napi_set_named_property(env, objValue, "prevFocusedWindowId", CreateJsValue(env, prevFocusedWindowId));
         }
         napi_value argv[] = { objValue };
         thisListener->CallJsMethod(WINDOW_FOCUS_STATE_CHANGE_CB.c_str(), argv, ArraySize(argv));

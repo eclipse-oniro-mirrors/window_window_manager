@@ -81,7 +81,7 @@ declare namespace window {
     focused: boolean;
     focusChangeReason: FocusChangeReason;
     nextFocusedWindowId?: number;
-    preFocusedWindowId?: number;
+    prevFocusedWindowId?: number;
   }
 
   interface WindowDensityInfo {

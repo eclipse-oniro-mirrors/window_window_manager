@@ -221,10 +221,10 @@ public:
      * @param isFocused Whether the window is focused.
      * @param reason Focus change reason
      * @param nextFocusedWindowId next focused window id, valid only when unfocused and same process.
-     * @param preFocusedWindowId pre focused window id, valid only when focused and same process.
+     * @param prevFocusedWindowId previous focused window id, valid only when focused and same process.
      */
     virtual void OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
-        int32_t nextFocusedWindowId, int32_t preFocusedWindowId = INVALID_WINDOW_ID) {}
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId = INVALID_WINDOW_ID) {}
 };
 
 /**

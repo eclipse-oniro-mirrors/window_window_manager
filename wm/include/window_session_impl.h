@@ -1278,7 +1278,7 @@ private:
     void NotifyAfterPaused();
     void NotifyUIContentHighlightStatus(bool isHighlighted);
     void NotifyFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
-        int32_t nextFocusedWindowId, int32_t preFocusedWindowId);
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId);
 
     /*
      * Window Decor listener

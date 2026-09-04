@@ -3881,7 +3881,7 @@ HWTEST_F(WindowSessionImplTest, UpdateFocusState02, TestSize.Level1)
 
 /**
  * @tc.name: UpdateFocusState03
- * @tc.desc: UpdateFocusState focused with same PID, preFocusedWindowId set to unfocusWindowId
+ * @tc.desc: UpdateFocusState focused with same PID, prevFocusedWindowId set to unfocusWindowId
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplTest, UpdateFocusState03, TestSize.Level1)
@@ -3917,7 +3917,7 @@ HWTEST_F(WindowSessionImplTest, UpdateFocusState03, TestSize.Level1)
 
 /**
  * @tc.name: UpdateFocusState04
- * @tc.desc: UpdateFocusState focused with diff PID, preFocusedWindowId NOT set
+ * @tc.desc: UpdateFocusState focused with diff PID, prevFocusedWindowId NOT set
  * @tc.type: FUNC
  */
 HWTEST_F(WindowSessionImplTest, UpdateFocusState04, TestSize.Level1)
