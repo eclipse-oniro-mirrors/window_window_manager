@@ -59,6 +59,7 @@
 #include "common/include/fold_screen_state_internel.h"
 #include "common/include/session_permission.h"
 #include "common/include/window_display_isolation_policy.h"
+#include "common/include/window_limits_threshold.h"
 #include "display_manager.h"
 #ifdef WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK
 #include "distributed_client.h"
@@ -1862,6 +1863,7 @@ bool SceneSessionManager::ConfigWindowLayout(const WindowSceneConfig::ConfigItem
     }
     ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
     ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
+    ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
     return true;
 }
 
@@ -2027,6 +2029,56 @@ bool SceneSessionManager::ConfigDisplayIsolation(const WindowSceneConfig::Config
     ParseIsolatedDisplayIdsConfig(
         displayIsolationConfig["dragIsolatedDisplayIds"], "dragIsolatedDisplayIds", config.dragIsolatedDisplayIds);
     WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(config);
+    return true;
+}
+
+void ParseLimitsThresholdPercentageConfig(
+    const WindowSceneConfig::ConfigItem& limitsThresholdConfig, WindowLimitsThresholdConfig& config)
+{
+    const auto& limitsThresholdPercentageConfig = limitsThresholdConfig["limitsThresholdPercentage"];
+    if (!limitsThresholdPercentageConfig.IsInts() || !limitsThresholdPercentageConfig.intsValue_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config is invalid (not int array).");
+        return;
+    }
+    if (limitsThresholdPercentageConfig.intsValue_->size() != 1) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config size is invalid (expect 1).");
+        return;
+    }
+    int thresholdPercentage = (*limitsThresholdPercentageConfig.intsValue_)[0];
+    if (thresholdPercentage < 0 || thresholdPercentage > 100) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config is out of range.");
+        return;
+    }
+    config.limitsThresholdPercentage = static_cast<int32_t>(thresholdPercentage);
+    return;
+}
+
+bool SceneSessionManager::ConfigWindowLimitsThreshold(const WindowSceneConfig::ConfigItem& limitsThresholdConfig)
+{
+    if (!limitsThresholdConfig.IsMap()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThreshold config is invalid (not a map).");
+        return false;
+    }
+    return ConfigWindowLimitsPercentage(limitsThresholdConfig["limitsThresholdEnabled"]);
+}
+
+bool SceneSessionManager::ConfigWindowLimitsPercentage(const WindowSceneConfig::ConfigItem& limitsPercentageConfig)
+{
+    if (!limitsPercentageConfig.IsMap()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsThresholdPercentage config is invalid (not a map).");
+        return false;
+    }
+
+    const auto& limitsEnableProp = limitsPercentageConfig.GetProp("enable");
+    if (!limitsEnableProp.IsBool()) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "The limitsPercentageCofig.enable prop is missing or not a bool.");
+        return false;
+    }
+    bool enable = limitsEnableProp.boolValue_;
+    WindowLimitsThresholdConfig config;
+    config.enable = enable;
+    ParseLimitsThresholdPercentageConfig(limitsPercentageConfig, config);
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(config);
     return true;
 }
 

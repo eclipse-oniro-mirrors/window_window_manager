@@ -122,6 +122,9 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "displayIsolation",                             WindowSceneConfig::ValueType::MAP },
     { "moveIsolatedDisplayIds",                       WindowSceneConfig::ValueType::INTS },
     { "dragIsolatedDisplayIds",                       WindowSceneConfig::ValueType::INTS },
+    { "windowLimitsThreshold",                        WindowSceneConfig::ValueType::MAP },
+    { "limitsThresholdEnabled",                       WindowSceneConfig::ValueType::MAP },
+    { "limitsThresholdPercentage",                    WindowSceneConfig::ValueType::INTS },
     // ========================================================================
     { "singleHandBackgroundLayout",                   WindowSceneConfig::ValueType::MAP },
     { "singleHandBackgroundSettingButton",            WindowSceneConfig::ValueType::MAP },

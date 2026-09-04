@@ -29,6 +29,7 @@
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_controller.h"
 #include "window_display_isolation_policy.h"
+#include "window_limits_threshold.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "session_manager.h"
@@ -3582,6 +3583,82 @@ HWTEST_F(SceneSessionManagerTest2, ParseWindowModeFromMetaData, Function | Small
                                                                      AppExecFwk::SupportWindowMode::SPLIT,
                                                                      AppExecFwk::SupportWindowMode::FLOATING };
     ASSERT_EQ(updateWindowModes, ssm_->ParseWindowModeFromMetaData("fullscreen,split,floating"));
+}
+
+/**
+ * @tc.name: ConfigWindowLimitsThreshold01
+ * @tc.desc: Verify limits threshold XML config is saved to system parameters
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigWindowLimitsThreshold01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    const std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<windowLayout>"
+        "<windowLimitsThreshold>"
+        "<limitsThresholdEnabled enable=\"true\">"
+        "<limitsThresholdPercentage>81</limitsThresholdPercentage>"
+        "</limitsThresholdEnabled>"
+        "</windowLimitsThreshold>"
+        "</windowLayout>"
+        "</Configs>";
+    const ConfigItem config = ReadConfig(xmlStr);
+
+    EXPECT_TRUE(ssm_->ConfigWindowLayout(config["windowLayout"]));
+    const auto thresholdConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    EXPECT_TRUE(thresholdConfig.enable);
+    EXPECT_EQ(thresholdConfig.limitsThresholdPercentage, 81);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: ConfigWindowLimitsThreshold02
+ * @tc.desc: ConfigWindowLimitsThreshold with invalid (non-map) config item
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigWindowLimitsThreshold02, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    const ConfigItem config = ReadConfig("<Configs></Configs>");
+
+    // Non-map item (UNDIFINED default), config fails and no parameter is written
+    EXPECT_FALSE(ssm_->ConfigWindowLimitsThreshold(config["windowLimitsThreshold"]));
+    const auto thresholdConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    EXPECT_EQ(thresholdConfig.enable, originalConfig.enable);
+    EXPECT_EQ(thresholdConfig.limitsThresholdPercentage, originalConfig.limitsThresholdPercentage);
+}
+
+/**
+ * @tc.name: ConfigWindowLimitsThreshold03
+ * @tc.desc: Enabled node without enable prop, config fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigWindowLimitsThreshold03, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    const std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<windowLayout>"
+        "<windowLimitsThreshold>"
+        "<limitsThresholdEnabled>"
+        "<limitsThresholdPercentage>81</limitsThresholdPercentage>"
+        "</limitsThresholdEnabled>"
+        "</windowLimitsThreshold>"
+        "</windowLayout>"
+        "</Configs>";
+    const ConfigItem config = ReadConfig(xmlStr);
+
+    // limitsThresholdEnabled has no enable prop, GetProp returns non-bool, config fails
+    // (ConfigWindowLayout ignores the threshold result and returns true, so test the unit directly)
+    EXPECT_FALSE(ssm_->ConfigWindowLimitsThreshold(config["windowLayout"]["windowLimitsThreshold"]));
+    const auto thresholdConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    EXPECT_EQ(thresholdConfig.enable, originalConfig.enable);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
 }
 } // namespace
 } // namespace Rosen

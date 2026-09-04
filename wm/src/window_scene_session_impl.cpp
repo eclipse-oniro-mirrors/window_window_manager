@@ -50,6 +50,7 @@
 #include "sys_cap_util.h"
 #include "window_adapter.h"
 #include "window_display_isolation_policy.h"
+#include "window_limits_threshold.h"
 #include "window_helper.h"
 #include "window_inspector.h"
 #include "window_manager_hilog.h"
@@ -1933,6 +1934,8 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
         newLimitsVP.minWidth_, newLimitsVP.minHeight_,
         newLimitsVP.maxWidth_, newLimitsVP.maxHeight_);
 
+    isMinLimitsAdjusted_ = AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, virtualPixelRatio);
+
     // When the system window has not been set with 'setWindowLimits',
     // manually change its minimum width and height limit to 1 px.
     if (WindowHelper::IsSystemWindowButNotDialog(GetType()) && !userLimitsSet_) {
@@ -1968,6 +1971,80 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     property_->SetWindowLimits(newLimits);
     property_->SetWindowLimitsVP(newLimitsVP);
     property_->SetLastLimitsVpr(virtualPixelRatio);
+}
+
+/** @note @window.layout */
+bool WindowSceneSessionImpl::AdjustMinLimitsByWorkArea(WindowLimits& newLimits,
+    WindowLimits& newLimitsVP, float vpr)
+{
+    float ratioOfWorkArea = WindowLimitsThreshold::LoadLimitsThresholdConfig().limitsThresholdPercentage / 100.0f;
+    if (!WindowLimitsThreshold::LimitsThresholdEnabled() ||
+        ratioOfWorkArea <= 0.0f || ratioOfWorkArea >= 1.0f || MathHelper::NearZero(vpr)) {
+        return false;
+    }
+    DMRect workArea = { 0, 0, 0, 0 };
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+    if (display == nullptr || display->GetAvailableArea(workArea) != DMError::DM_OK ||
+        workArea.width_ == 0 || workArea.height_ == 0) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "id:%{public}d, get available area failed", GetPersistentId());
+        return false;
+    }
+    uint32_t capWidth = static_cast<uint32_t>(workArea.width_ * ratioOfWorkArea);
+    uint32_t capHeight = static_cast<uint32_t>(workArea.height_ * ratioOfWorkArea);
+    if (newLimits.minWidth_ <= capWidth && newLimits.minHeight_ <= capHeight) {
+        return false;
+    }
+    uint32_t preMinWidth = newLimits.minWidth_;
+    uint32_t preMinHeight = newLimits.minHeight_;
+    CapMinLimitsByAspectRatio(newLimits, capWidth, capHeight);
+    if (!newLimits.IsValid()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "id:%{public}d, invalid limits after capping, rollback", GetPersistentId());
+        newLimits.minWidth_ = preMinWidth;
+        newLimits.minHeight_ = preMinHeight;
+        return false;
+    }
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+        "id:%{public}d, AdjustMinLimitsByWorkArea, ratioOfWorkArea:%{public}f, workArea[%{public}u,%{public}u], "
+        "pre[minW:%{public}u,minH:%{public}u], post[minW:%{public}u,minH:%{public}u]",
+        GetPersistentId(), ratioOfWorkArea, workArea.width_, workArea.height_,
+        preMinWidth, preMinHeight, newLimits.minWidth_, newLimits.minHeight_);
+    RecalculateVpLimitsByPx(newLimits, newLimitsVP, vpr);
+    return true;
+}
+
+/** @note @window.layout */
+void WindowSceneSessionImpl::CapMinLimitsByAspectRatio(WindowLimits& newLimits,
+    uint32_t capWidth, uint32_t capHeight)
+{
+    // Rule 1/2/3: cap width and height independently when no aspect ratio constraint
+    float aspectRatio = GetEffectiveAspectRatio(newLimits);
+    if (MathHelper::NearZero(aspectRatio)) {
+        newLimits.minWidth_ = std::min(newLimits.minWidth_, capWidth);
+        newLimits.minHeight_ = std::min(newLimits.minHeight_, capHeight);
+        return;
+    }
+    // Rule 4: cap min height first, then derive min width by aspect ratio
+    uint32_t cappedMinHeight = std::min(newLimits.minHeight_, capHeight);
+    uint32_t derivedMinWidth = static_cast<uint32_t>(std::ceil(cappedMinHeight * aspectRatio));
+    if (derivedMinWidth <= capWidth) {
+        // Rule 4.2: keep the derived width
+        newLimits.minWidth_ = derivedMinWidth;
+        newLimits.minHeight_ = cappedMinHeight;
+        return;
+    }
+    // Rule 4.1: cap width, derive height back, work area cap takes priority
+    newLimits.minWidth_ = capWidth;
+    newLimits.minHeight_ = std::min(static_cast<uint32_t>(std::ceil(capWidth / aspectRatio)), capHeight);
+}
+
+/** @note @window.layout */
+float WindowSceneSessionImpl::GetEffectiveAspectRatio(const WindowLimits& limits) const
+{
+    float aspectRatio = property_->GetAspectRatio();
+    if (!MathHelper::NearZero(aspectRatio)) {
+        return aspectRatio;
+    }
+    return limits.minRatio_;
 }
 
 /** @note @window.layout */
@@ -3138,7 +3215,13 @@ void WindowSceneSessionImpl::LimitWindowSize(uint32_t& width, uint32_t& height)
     LimitCameraFloatWindowMininumSize(width, height, vpr);
 
     if (!MathHelper::NearZero(vpr) || !MathHelper::NearZero(property_->GetLastLimitsVpr() - vpr)) {
+        isMinLimitsAdjusted_ = false;
         UpdateWindowSizeLimits();
+        if (isMinLimitsAdjusted_) {
+            // Sync the work-area-capped limits to the server side for layout and drag consuming
+            UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
+            isMinLimitsAdjusted_ = false;
+        }
     }
     UpdateFloatingWindowSizeBySizeLimits(width, height);
 }
@@ -8048,13 +8131,14 @@ void WindowSceneSessionImpl::UpdateDensityInner(const sptr<DisplayInfo>& info)
         RecalculateVpLimitsByPx(limitsPx, limitsVp, vpr);
         limitsPx.vpRatio_ = vpr;
         limitsVp.vpRatio_ = vpr;
+        isMinLimitsAdjusted_ = AdjustMinLimitsByWorkArea(limitsPx, limitsVp, vpr);
         if (hasIntersectedLimits) {
             CalculateAttachedWindowLimitsIntersection(limitsPx, limitsVp, vpr);
         }
         property_->SetWindowLimits(limitsPx);
         property_->SetWindowLimitsVP(limitsVp);
         property_->SetLastLimitsVpr(vpr);
-        if (hasIntersectedLimits) {
+        if (hasIntersectedLimits || isMinLimitsAdjusted_) {
             UpdateNewSize();
         }
     }
