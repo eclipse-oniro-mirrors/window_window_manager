@@ -1342,6 +1342,7 @@ WmErrorCode ParseTouchableAreas(napi_env env, napi_callback_info info,
             touchableAreas.emplace_back(touchableArea);
         } else {
             errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+            TLOGE(WmsLogTag::WMS_EVENT, "Failed to check the window rect");
             break;
         }
     }

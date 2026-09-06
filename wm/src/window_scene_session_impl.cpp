@@ -9536,5 +9536,65 @@ WSError WindowSceneSessionImpl::DestroySubWindowZLevelAboveParentLoosened()
     }, __func__);
     return WSError::WS_OK;
 }
+
+WMError WindowSceneSessionImpl::SaveNativeKeyEventFilter(NativeKeyEventFilter nativeFilter)
+{
+    std::unique_lock<std::shared_mutex> lock(nativeKeyEventFilterMutex_);
+    nativeKeyEventFilter_ = nativeFilter;
+    return WMError::WM_OK;
+}
+
+NativeKeyEventFilter WindowSceneSessionImpl::GetNativeKeyEventFilter() const
+{
+    std::shared_lock<std::shared_mutex> lock(nativeKeyEventFilterMutex_);
+    return nativeKeyEventFilter_;
+}
+
+WMError WindowSceneSessionImpl::ClearNativeKeyEventFilter()
+{
+    std::unique_lock<std::shared_mutex> lock(nativeKeyEventFilterMutex_);
+    nativeKeyEventFilter_ = nullptr;
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::SaveNativeMouseEventFilter(NativeMouseEventFilter nativeFilter)
+{
+    std::unique_lock<std::shared_mutex> lock(nativeMouseEventFilterMutex_);
+    nativeMouseEventFilter_ = nativeFilter;
+    return WMError::WM_OK;
+}
+
+NativeMouseEventFilter WindowSceneSessionImpl::GetNativeMouseEventFilter() const
+{
+    std::shared_lock<std::shared_mutex> lock(nativeMouseEventFilterMutex_);
+    return nativeMouseEventFilter_;
+}
+
+WMError WindowSceneSessionImpl::ClearNativeMouseEventFilter()
+{
+    std::unique_lock<std::shared_mutex> lock(nativeMouseEventFilterMutex_);
+    nativeMouseEventFilter_ = nullptr;
+    return WMError::WM_OK;
+}
+
+WMError WindowSceneSessionImpl::SaveNativeTouchEventFilter(NativeTouchEventFilter nativeFilter)
+{
+    std::unique_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
+    nativeTouchEventFilter_ = nativeFilter;
+    return WMError::WM_OK;
+}
+
+NativeTouchEventFilter WindowSceneSessionImpl::GetNativeTouchEventFilter() const
+{
+    std::shared_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
+    return nativeTouchEventFilter_;
+}
+
+WMError WindowSceneSessionImpl::ClearNativeTouchEventFilter()
+{
+    std::unique_lock<std::shared_mutex> lock(nativeTouchEventFilterMutex_);
+    nativeTouchEventFilter_ = nullptr;
+    return WMError::WM_OK;
+}
 } // namespace Rosen
 } // namespace OHOS

@@ -112,7 +112,7 @@ constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_OK = 0;
 constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_NO_PERMISSION = 51;
 constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_INVALID_PARAM = 52;
 constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_DEVICE_NOT_SUPPORTED = 53;
-constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_INVAILD_WINDOW_ID = 54;
+constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_INVALID_WINDOW_ID = 54;
 constexpr int32_t WM_MANAGER_ERROR_HISTOGRAM_INDEX_SERVICE_ERROR = 55;
 
 /**
@@ -171,7 +171,7 @@ constexpr int32_t WmErrorCodeToIndex(WmErrorCode error)
  *         - NO_PERMISSION (201) -> 51
  *         - INVALID_PARAM (401) -> 52
  *         - DEVICE_NOT_SUPPORTED (801) -> 53
- *         - INVAILD_WINDOW_ID (1000) -> 54
+ *         - INVALID_WINDOW_ID (1000) -> 54
  *         - SERVICE_ERROR (2000) -> 55
  *         - values >= WM_ERROR_BASE (1300000) -> value - WM_ERROR_BASE (1, 2, 3, ...)
  * @note constexpr function enables compile-time evaluation when error is a compile-time constant
@@ -187,8 +187,8 @@ constexpr int32_t WindowManagerErrorCodeToIndex(WindowManager_ErrorCode error)
             return WM_MANAGER_ERROR_HISTOGRAM_INDEX_INVALID_PARAM;
         case WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_DEVICE_NOT_SUPPORTED:
             return WM_MANAGER_ERROR_HISTOGRAM_INDEX_DEVICE_NOT_SUPPORTED;
-        case WindowManager_ErrorCode::INVAILD_WINDOW_ID:
-            return WM_MANAGER_ERROR_HISTOGRAM_INDEX_INVAILD_WINDOW_ID;
+        case WindowManager_ErrorCode::INVALID_WINDOW_ID:
+            return WM_MANAGER_ERROR_HISTOGRAM_INDEX_INVALID_WINDOW_ID;
         case WindowManager_ErrorCode::SERVICE_ERROR:
             return WM_MANAGER_ERROR_HISTOGRAM_INDEX_SERVICE_ERROR;
         default: {
