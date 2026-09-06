@@ -18,7 +18,7 @@
 #include "display_manager_service_inner.h"
 #include "display_manager_agent_default.h"
 #include "display_manager_agent_controller.h"
-#include "fold_screen_state_internel.h" 
+#include "fold_screen_state_internel.h"
 
 using namespace testing;
 using namespace testing::ext;
