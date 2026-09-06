@@ -19,9 +19,13 @@
 #include <iservice_registry.h>
 
 #include "display_manager_service.h"
+#include "fold_screen_state_internel.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
+namespace {
+constexpr ScreenId SCREEN_ID_MAIN = 5;
+}
 WM_IMPLEMENT_SINGLE_INSTANCE(DisplayManagerServiceInner)
 
 DisplayId DisplayManagerServiceInner::GetDefaultDisplayId() const
@@ -65,6 +69,11 @@ std::vector<sptr<DisplayInfo>> DisplayManagerServiceInner::GetAllDisplays() cons
     for (auto displayId : displayIds) {
         sptr<DisplayInfo> display = DisplayManagerService::GetInstance().GetDisplayInfoById(displayId);
         if (display != nullptr) {
+            if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                display->GetScreenId() == SCREEN_ID_MAIN) {
+                TLOGI(WmsLogTag::DMS, "GetAllDisplays filter SPN outer screen, displayId: %{public}" PRIu64, displayId);
+                continue;
+            }
             res.emplace_back(display);
         } else {
             TLOGE(WmsLogTag::DMS, "GetAllDisplays display %" PRIu64" nullptr!", displayId);

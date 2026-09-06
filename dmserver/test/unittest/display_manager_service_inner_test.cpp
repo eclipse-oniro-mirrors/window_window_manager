@@ -18,6 +18,7 @@
 #include "display_manager_service_inner.h"
 #include "display_manager_agent_default.h"
 #include "display_manager_agent_controller.h"
+#include "fold_screen_state_internel.h" 
 
 using namespace testing;
 using namespace testing::ext;
@@ -26,6 +27,7 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr uint32_t SLEEP_TIME_US = 100000;
+constexpr ScreenId SCREEN_ID_MAIN = 5;
 }
 class DisplayManagerServiceInnerTest : public testing::Test {
 public:
@@ -76,6 +78,24 @@ HWTEST_F(DisplayManagerServiceInnerTest, GetAllDisplays, TestSize.Level1)
     DisplayManagerServiceInner inner;
     auto ret = inner.GetAllDisplays();
     EXPECT_EQ(true, ret.empty());
+}
+
+/**
+ * @tc.name: GetAllDisplaysFilterSpnOuterScreen
+ * @tc.desc: Test GetAllDisplays filters SPN outer screen when device is SPN multi-display
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerServiceInnerTest, GetAllDisplaysFilterSpnOuterScreen, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "not spn device, skipping test.";
+    }
+    DisplayManagerServiceInner inner;
+    auto ret = inner.GetAllDisplays();
+    for (auto display : ret) {
+        ASSERT_NE(display, nullptr);
+        EXPECT_NE(display->GetScreenId(), SCREEN_ID_MAIN);
+    }
 }
 
 /**

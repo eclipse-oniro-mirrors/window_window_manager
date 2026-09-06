@@ -24,6 +24,7 @@
 #include "display_manager_proxy.h"
 #include "dm_common.h"
 #include "mock_display_manager_adapter.h"
+#include "fold_screen_state_internel.h"
 #include "scene_board_judgement.h"
 #include "singleton_mocker.h"
 #include "window_scene.h"
@@ -3829,6 +3830,23 @@ HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_UnknownMode, TestSize.Level1)
 
     FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::UNKNOWN);
     EXPECT_EQ(result, FoldDisplayMode::UNKNOWN);
+}
+
+/**
+ * @tc.name: GetAllDisplaysFilterSpnOuterScreen
+ * @tc.desc: Test GetAllDisplays filters SPN outer screen when device is SPN multi-display
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetAllDisplaysFilterSpnOuterScreen, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "not spn device, skipping test.";
+    }
+    auto displays = DisplayManager::GetInstance().GetAllDisplays();
+    for (auto display : displays) {
+        ASSERT_NE(display, nullptr);
+        EXPECT_NE(display->GetScreenId(), 5);
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

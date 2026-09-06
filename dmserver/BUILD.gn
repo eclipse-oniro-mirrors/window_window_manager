@@ -21,6 +21,7 @@ config("libdms_private_config") {
     "../dm/include",
     "../interfaces/innerkits/dm",
     "../utils/include",
+    "${window_base_path}/window_scene/common/include",
     "${target_gen_dir}",
   ]
 }

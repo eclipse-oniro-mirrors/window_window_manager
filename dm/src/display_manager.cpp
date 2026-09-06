@@ -37,6 +37,7 @@ const static uint32_t SCB_GET_DISPLAY_INTERVAL_US = 5000;
 const static uint32_t APP_GET_DISPLAY_INTERVAL_US = 25000;
 const static float INVALID_DEFAULT_DENSITY = 1.0f;
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
+constexpr ScreenId SCREEN_ID_MAIN = 5;
 std::atomic<bool> g_dmIsDestroyed = false;
 std::mutex snapBypickerMutex;
 
@@ -1252,6 +1253,11 @@ std::vector<sptr<Display>> DisplayManager::GetAllDisplays(int32_t userId)
     for (auto displayId : displayIds) {
         const sptr<Display> display = GetDisplayById(displayId);
         if (display != nullptr) {
+            if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                display->GetScreenId() == SCREEN_ID_MAIN) {
+                TLOGI(WmsLogTag::DMS, "GetAllDisplays filter SPN outer screen, displayId: %{public}" PRIu64, displayId);
+                continue;
+            }
             res.emplace_back(display);
         } else {
             TLOGE(WmsLogTag::DMS, "display %" PRIu64" nullptr!", displayId);

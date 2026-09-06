@@ -20,6 +20,7 @@ config("libdm_private_config") {
     "../dmserver/include",
     "${window_base_path}/interfaces/innerkits/wm",
     "${window_base_path}/window_scene",
+    "${window_base_path}/window_scene/common/include",
     "${window_base_path}/window_scene/screen_session_manager/include",
     "${window_base_path}/window_scene/screen_session_manager_client/include",
     "${window_base_path}/window_scene/session_manager/include",

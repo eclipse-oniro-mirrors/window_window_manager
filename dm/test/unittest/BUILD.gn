@@ -210,6 +210,11 @@ ohos_unittest("dm_display_manager_test") {
   deps += dm_unittest_common_deps
 
   external_deps = test_external_deps
+  if (is_standard_system) {
+    external_deps += [ "init:libbegetutil" ]
+  } else {
+    external_deps += [ "init_lite:libbegetutil" ]
+  }
 }
 
 ohos_unittest("dm_display_manager_agent_stub_test") {
@@ -268,6 +273,7 @@ config("dm_unittest_common_public_config") {
     "../../../interfaces/innerkits/dm",
     "../../../test/common/utils/include",
     "../../../utils/include",
+    "../../../window_scene/common/include",
     "../../../window_scene/screen_session_manager/include",
     "../../../window_scene/screen_session_manager_client/include",
     "${dmserver_gen_path}",
