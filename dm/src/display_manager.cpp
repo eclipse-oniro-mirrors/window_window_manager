@@ -24,6 +24,7 @@
 #include "display_manager_adapter.h"
 #include "display_manager_agent_default.h"
 #include "dm_common.h"
+#include "fold_screen_state_internel.h"
 #include "screen_manager.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
