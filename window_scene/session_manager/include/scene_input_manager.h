@@ -78,6 +78,14 @@ private:
         const std::vector<MMI::WindowInfo>& windowInfoList,
         const std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList, bool isOverBatchSize = false);
     void FlushChangeInfoToMMI(const std::map<uint64_t, std::vector<MMI::WindowInfo>>& screenId2Windows);
+
+    /**
+     * Filter screens and windows currently in use.
+     */
+    void FilterSyncedScreens(std::map<ScreenId, ScreenProperty>& screensProperties);
+    void FilterWindowInfoList(const std::map<ScreenId, ScreenProperty>& screensProperties,
+        std::vector<MMI::WindowInfo>& windowInfoList);
+
     std::vector<MMI::ScreenInfo> ConstructScreenInfos(std::map<ScreenId, ScreenProperty>& screensProperties);
     void ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProperty>& screensProperties,
         std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap);

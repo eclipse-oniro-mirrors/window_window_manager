@@ -1617,31 +1617,54 @@ WMError WindowAdapter::IsWindowRectAutoSave(const std::string& key, bool& enable
 
 WMError WindowAdapter::SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit, int32_t persistentId)
 {
+    std::string errMsg;
+    return SetImageForRecent(imgResourceId, imageFit, persistentId, errMsg);
+}
+
+WMError WindowAdapter::SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
+    int32_t persistentId, std::string& errMsg)
+{
+    errMsg.clear();
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->SetImageForRecent(imgResourceId, imageFit, persistentId);
+    return wmsProxy->SetImageForRecent(imgResourceId, imageFit, persistentId, errMsg);
 }
 
 WMError WindowAdapter::SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap,
     ImageFit imageFit, int32_t persistentId)
 {
+    std::string errMsg;
+    return SetImageForRecentPixelMap(pixelMap, imageFit, persistentId, errMsg);
+}
+
+WMError WindowAdapter::SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap,
+    ImageFit imageFit, int32_t persistentId, std::string& errMsg)
+{
+    errMsg.clear();
     TLOGI(WmsLogTag::WMS_PATTERN,
         "enter, persistentId=%{public}d", persistentId);
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->SetImageForRecentPixelMap(pixelMap, imageFit, persistentId);
+    return wmsProxy->SetImageForRecentPixelMap(pixelMap, imageFit, persistentId, errMsg);
 }
 
 WMError WindowAdapter::RemoveImageForRecent(int32_t persistentId)
 {
+    std::string errMsg;
+    return RemoveImageForRecent(persistentId, errMsg);
+}
+
+WMError WindowAdapter::RemoveImageForRecent(int32_t persistentId, std::string& errMsg)
+{
+    errMsg.clear();
     TLOGI(WmsLogTag::WMS_PATTERN,
         "enter, persistentId=%{public}d", persistentId);
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->RemoveImageForRecent(persistentId);
+    return wmsProxy->RemoveImageForRecent(persistentId, errMsg);
 }
 
 WMError WindowAdapter::ShiftAppWindowPointerEvent(int32_t sourceWindowId, int32_t targetWindowId, int32_t fingerId)
@@ -1663,10 +1686,18 @@ WMError WindowAdapter::NotifyScreenshotEvent(ScreenshotEventType type)
 WMError WindowAdapter::SetStartWindowBackgroundColor(
     const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid)
 {
+    std::string errMsg;
+    return SetStartWindowBackgroundColor(moduleName, abilityName, color, uid, errMsg);
+}
+
+WMError WindowAdapter::SetStartWindowBackgroundColor(
+    const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid, std::string& errMsg)
+{
+    errMsg.clear();
     INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
-    return wmsProxy->SetStartWindowBackgroundColor(moduleName, abilityName, color, uid);
+    return wmsProxy->SetStartWindowBackgroundColor(moduleName, abilityName, color, uid, errMsg);
 }
 
 WMError WindowAdapter::GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,

@@ -39,8 +39,9 @@ public:
 private:
     static std::string GetProcessName();
     static std::shared_mutex pidBundleNameMutex_;
-    static std::map<uint32_t, std::shared_ptr<BundleInfo>> pidBundleInfoMap_;
-    static std::map<sptr<IRemoteObject>, uint32_t> agentPidMap_;
+    static constexpr int32_t INVALID_PID = -1;
+    static std::map<uint32_t, std::shared_ptr<BundleInfo>>& GetPidBundleInfoMap();
+    static std::map<sptr<IRemoteObject>, uint32_t>& GetAgentPidMap();
 };
 } // Rosen
 } // OHOS

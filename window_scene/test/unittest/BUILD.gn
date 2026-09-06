@@ -37,7 +37,6 @@ group("unittest") {
     ":ws_scene_session_manager_supplement_test",
     ":ws_scene_system_ability_listener_test",
     ":ws_session_change_recorder_test",
-    ":ws_session_coordinate_helper_test",
     ":ws_session_helper_test",
     ":ws_session_manager_agent_controller_test",
     ":ws_session_manager_agent_controller_multi_user_test",
@@ -46,6 +45,9 @@ group("unittest") {
     ":ws_session_utils_test",
     ":ws_ssmgr_specific_window_test",
     ":ws_task_scheduler_test",
+    ":ws_window_coordinate_helper_test",
+    ":ws_window_display_isolation_policy_test",
+    ":ws_window_limits_threshold_test",
     ":ws_window_manager_lru_test",
     ":ws_window_scene_config_test",
     "animation:ws_scene_session_animation_test",
@@ -97,6 +99,7 @@ group("unittest") {
       ":ws_scene_session_manager_proxy_test",
       ":ws_scene_session_manager_stub_test",
       ":ws_scene_session_manager_stub_test2",
+      ":ws_scene_session_manager_motion_test",
       ":ws_scene_session_manager_three_test",
       ":ws_scene_session_manager_outline_test",
       ":ws_scene_session_manager_test",
@@ -108,6 +111,8 @@ group("unittest") {
       ":ws_session_manager_lite_test",
       ":ws_session_manager_service_recover_proxy_test",
       ":ws_session_manager_test",
+      ":ws_session_sensor_plugin_test",
+      ":ws_motion_manager_test",
       ":ws_session_proxy_immersive_test",
       ":ws_session_proxy_layout_test",
       ":ws_session_proxy_lifecycle_test",
@@ -208,6 +213,7 @@ ohos_unittest("ws_ability_info_manager_test") {
     "bundle_framework:appexecfwk_core",
     "bundle_framework:libappexecfwk_common",
     "hilog:libhilog",
+    "cJSON:cjson",
   ]
 }
 
@@ -644,6 +650,13 @@ ohos_unittest("ws_scene_session_manager_test") {
 ohos_unittest("ws_scene_session_manager_one_test") {
   module_out_path = module_out_path
 
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+
   include_dirs = [
     "${window_base_path}/test/common/utils/include/",
     "${window_base_path}/window_scene/test/mock",
@@ -1045,6 +1058,54 @@ ohos_unittest("ws_scene_session_manager_stub_test2") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("ws_scene_session_manager_motion_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "${window_base_path}/window_scene/session_manager/src/motion_manager.cpp",
+    "scene_session_manager_motion_test.cpp",
+    "mock/session_sensor_plugin_mock.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+}
+
+ohos_unittest("ws_session_sensor_plugin_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "${window_base_path}/window_scene/session_manager/src/motion_manager.cpp",
+    "session_sensor_plugin_test.cpp",
+    "mock/session_sensor_plugin_mock.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+}
+
+ohos_unittest("ws_motion_manager_test") {
+  module_out_path = module_out_path
+
+  sources = [
+    "${window_base_path}/window_scene/session_manager/src/motion_manager.cpp",
+    "motion_manager_test.cpp",
+    "mock/session_sensor_plugin_mock.cpp",
+  ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+
+  defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+}
+
 ohos_unittest("ws_scene_session_manager_supplement_test") {
   module_out_path = module_out_path
   include_dirs = [
@@ -1194,6 +1255,7 @@ ohos_unittest("ws_move_drag_controller_test") {
 
   deps = [
     ":ws_unittest_common",
+    "${window_base_path}/window_scene/common:window_scene_common",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
@@ -1822,7 +1884,7 @@ ohos_unittest("ws_scene_screen_change_listener_test") {
   external_deps += [ "ability_base:session_info" ]
 }
 
-ohos_unittest("ws_session_coordinate_helper_test") {
+ohos_unittest("ws_window_coordinate_helper_test") {
   module_out_path = module_out_path
 
   include_dirs = [
@@ -1830,13 +1892,40 @@ ohos_unittest("ws_session_coordinate_helper_test") {
     "${window_base_path}/window_scene/test/mock/",
   ]
 
-  sources = [ "session_coordinate_helper_test.cpp" ]
+  sources = [ "window_coordinate_helper_test.cpp" ]
 
   cflags_cc = [ "-Wno-thread-safety" ]
 
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
+}
+
+ohos_unittest("ws_window_display_isolation_policy_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_display_isolation_policy_test.cpp" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/common:window_scene_common",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("ws_window_limits_threshold_test") {
+  module_out_path = module_out_path
+
+  sources = [ "window_limits_threshold_test.cpp" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/window_scene/common:window_scene_common",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [ "init:libbegetutil" ]
 }
 
 ohos_unittest("ws_session_utils_test") {

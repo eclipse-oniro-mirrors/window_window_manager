@@ -43,6 +43,7 @@ public:
     MOCK_METHOD0(Hide, WSError(void));
     MOCK_METHOD0(DrawingCompleted, WSError(void));
     MOCK_METHOD0(RemoveStartingWindow, WSError(void));
+    MOCK_METHOD1(RemoveStartingWindow, WSError(std::string& errMsg));
     MOCK_METHOD(WSError, OnSessionEvent, (SessionEvent event, const SessionEventParam& param), (override));
 
     MOCK_METHOD4(OnRemoteRequest, int(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option));

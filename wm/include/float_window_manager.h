@@ -27,15 +27,15 @@ class FloatWindowManager {
 public:
     FloatWindowManager() = default;
     virtual ~FloatWindowManager() = default;
-    static WMError Bind(const sptr<FloatViewController> &fvController, const sptr<FloatingBallController> &fbController,
-        const FbOption &fbOption);
-    static WMError UnBind(const sptr<FloatViewController> &fvController,
+    static WMErrorResult Bind(const sptr<FloatViewController> &fvController,
+        const sptr<FloatingBallController> &fbController, const FbOption &fbOption);
+    static WMErrorResult UnBind(const sptr<FloatViewController> &fvController,
         const sptr<FloatingBallController> &fbController);
-    static WMError StartBindFloatView(const wptr<FloatViewController> &fvControllerWeak);
-    static WMError StartBindFloatingBall(const wptr<FloatingBallController> &fbControllerWeak,
+    static WMErrorResult StartBindFloatView(const wptr<FloatViewController> &fvControllerWeak);
+    static WMErrorResult StartBindFloatingBall(const wptr<FloatingBallController> &fbControllerWeak,
         const sptr<FbOption> &option);
-    static WMError StopBindFloatView(const wptr<FloatViewController> &fvControllerWeak);
-    static WMError StopBindFloatingBall(const wptr<FloatingBallController> &fbControllerWeak);
+    static WMErrorResult StopBindFloatView(const wptr<FloatViewController> &fvControllerWeak);
+    static WMErrorResult StopBindFloatingBall(const wptr<FloatingBallController> &fbControllerWeak);
     static std::string GetControllerId();
 
     // Bound-pair helpers

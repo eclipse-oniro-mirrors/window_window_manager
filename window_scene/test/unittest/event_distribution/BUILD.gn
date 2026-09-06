@@ -197,6 +197,7 @@ ohos_unittest("ws_scene_session_event_test") {
     "googletest:gtest_main",
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
+    "hilog:libhilog",
     "input:libmmi-client",
     "libxml2:libxml2",
   ]
@@ -231,6 +232,7 @@ ohos_unittest("ws_session_proxy_event_test") {
     "googletest:gtest_main",
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
+    "hilog:libhilog",
     "input:libmmi-client",
     "ipc:ipc_single",
   ]
@@ -265,6 +267,7 @@ ohos_unittest("ws_session_stub_event_test") {
     "googletest:gtest_main",
     "graphic_2d:librender_service_client",
     "graphic_2d:window_animation",
+    "hilog:libhilog",
     "input:libmmi-client",
     "ipc:ipc_single",
   ]

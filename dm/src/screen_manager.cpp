@@ -45,7 +45,7 @@ public:
     ScreenId CreateVirtualScreen(VirtualScreenOption option);
     sptr<Screen> GetScreen(ScreenId screenId);
     sptr<ScreenGroup> GetScreenGroup(ScreenId screenId);
-    DMError GetAllScreens(std::vector<sptr<Screen>>& screens);
+    DMError GetAllScreens(std::vector<sptr<Screen>>& screens, bool isNeedUnused = false);
     DMError RegisterScreenListener(sptr<IScreenListener> listener);
     DMError UnregisterScreenListener(sptr<IScreenListener> listener);
     DMError RegisterScreenGroupListener(sptr<IScreenGroupListener> listener);
@@ -285,10 +285,10 @@ sptr<ScreenGroup> ScreenManager::GetScreenGroup(ScreenId screenId)
     return pImpl_->GetScreenGroup(screenId);
 }
 
-DMError ScreenManager::Impl::GetAllScreens(std::vector<sptr<Screen>>& screens)
+DMError ScreenManager::Impl::GetAllScreens(std::vector<sptr<Screen>>& screens, bool isNeedUnused)
 {
     std::vector<sptr<ScreenInfo>> screenInfos;
-    DMError ret  = SingletonContainer::Get<ScreenManagerAdapter>().GetAllScreenInfos(screenInfos);
+    DMError ret  = SingletonContainer::Get<ScreenManagerAdapter>().GetAllScreenInfos(screenInfos, isNeedUnused);
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     for (auto info: screenInfos) {
         if (UpdateScreenInfoLocked(info)) {
@@ -302,9 +302,9 @@ DMError ScreenManager::Impl::GetAllScreens(std::vector<sptr<Screen>>& screens)
     return ret;
 }
 
-DMError ScreenManager::GetAllScreens(std::vector<sptr<Screen>>& screens)
+DMError ScreenManager::GetAllScreens(std::vector<sptr<Screen>>& screens, bool isNeedUnused)
 {
-    return pImpl_->GetAllScreens(screens);
+    return pImpl_->GetAllScreens(screens, isNeedUnused);
 }
 
 DMError ScreenManager::Impl::RegisterScreenListener(sptr<IScreenListener> listener)

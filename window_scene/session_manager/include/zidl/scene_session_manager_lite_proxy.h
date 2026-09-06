@@ -147,6 +147,7 @@ public:
     WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) override;
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

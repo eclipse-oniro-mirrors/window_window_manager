@@ -29,6 +29,8 @@ using ScreenPhysicalId = uint32_t;
 
 constexpr ScreenId INVALID_SCREEN_ID = ~(static_cast<ScreenId>(0));
 
+constexpr ScreenId NONE_PHYSICAL_SCREEN_ID = ~(static_cast<ScreenId>(0)) - 1;
+
 constexpr int32_t INVALID_BACKLIGHT_VALUE = -1;
 
 constexpr uint32_t LAYER_COMPOSITION_CAPACITY = 12;
@@ -92,6 +94,12 @@ enum class ScreenScaleMode : uint32_t {
     FILL_MODE = 0,
     UNISCALE_MODE,
     INVALID_MODE,
+};
+
+enum class ScreenSamplingMode : uint32_t {
+    DEVICE_DSS = 0,
+    DEVICE_GPU,
+    OFFSCREEN,
 };
 
 typedef enum : uint32_t {

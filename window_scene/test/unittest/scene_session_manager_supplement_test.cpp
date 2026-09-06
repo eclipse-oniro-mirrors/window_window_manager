@@ -1376,7 +1376,7 @@ HWTEST_F(SceneSessionManagerSupplementTest, TestCacheSpecificSessionForRecoverin
     ssm_->recoverDialogSessionCacheMap_.clear();
     property->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
     property->SetParentPersistentId(1);
-    NotifyCreateSubSessionFunc func;
+    NotifyBindDialogSessionFunc func;
     ssm_->bindDialogTargetFuncMap_.clear();
     ssm_->bindDialogTargetFuncMap_.insert({ 1, func });
     ssm_->CacheSpecificSessionForRecovering(sceneSession, property);

@@ -150,7 +150,7 @@ bool PictureInPictureManager::HasActiveController()
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     for (auto& pair : windowToControllerMap_) {
-        if (IsControllerStateActive(pair.second->GetControllerState())) {
+        if (pair.second != nullptr && IsControllerStateActive(pair.second->GetControllerState())) {
             return true;
         }
     }

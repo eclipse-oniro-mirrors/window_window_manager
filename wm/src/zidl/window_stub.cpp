@@ -182,7 +182,11 @@ int WindowStub::OnRemoteRequest(uint32_t code, MessageParcel& data, MessageParce
                 TLOGE(WmsLogTag::WMS_KEYBOARD, "Parse avoid areas failed, code: %{public}d", res);
                 return res;
             }
-            bool hasRSTransaction = data.ReadBool();
+            bool hasRSTransaction = false;
+            if (!data.ReadBool(hasRSTransaction)) {
+                TLOGE(WmsLogTag::DEFAULT, "Read hasRSTransaction failed");
+                return ERR_INVALID_DATA;
+            }
             if (hasRSTransaction) {
                 auto rsTransaction = data.ReadParcelable<RSTransaction>();
                 if (!rsTransaction) {

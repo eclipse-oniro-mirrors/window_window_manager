@@ -143,8 +143,6 @@ public:
     void NotifyScreenMaskAppear();
     void NotifySwitchUserAnimationFinish(const std::string& description);
     void NotifySwitchUserAnimationFinishByWindow();
-    void SubscribeMotionSensor(int32_t motionType);
-    void UnsubscribeMotionSensor(int32_t motionType);
     void RegisterSwitchUserAnimationNotification(const std::string& description);
     void UnRegisterSwitchUserAnimationNotification(const std::string& description);
     void OnAnimationFinish() override;
@@ -171,6 +169,7 @@ public:
     std::shared_ptr<RSUIContext> GetRSUIContext(ScreenId screenId);
     sptr<IRemoteObject> GetRenderSessionToken();
     bool GetSupportsFocus(DisplayId displayId);
+    void SetHoverBlockList(const std::vector<std::string>& hoverBlockList);
 
 protected:
     ScreenSessionManagerClient() = default;
@@ -189,7 +188,6 @@ private:
     void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) override;
     void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
-    void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) override;
     void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) override;
     void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) override;
     void OnScreenOrientationChangedWithOptions(ScreenId screenId,
@@ -206,7 +204,8 @@ private:
 
     void SetDisplayNodeScreenId(ScreenId screenId, ScreenId displayNodeScreenId) override;
     void SetDisplayNodeRSScreenId(ScreenId screenId, ScreenId rsScreenId) override;
-    void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) override;
+    void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions) override;
     void NotifyClientScreenConnect(sptr<ScreenSession>& screenSession);
 
     void NotifyScreenConnect(const sptr<ScreenSession>& screenSession);

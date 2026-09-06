@@ -96,6 +96,7 @@ private:
     FoldCreaseRegion GetFoldCreaseRegion(bool isVertical, bool isNeedReverse) const;
     void GetFoldCreaseRect(bool isVertical, bool isNeedReverse, const std::vector<int32_t>& foldRect,
         std::vector<DMRect>& foldCreaseRect) const;
+    mutable std::mutex liveCreaseRegionMutex_;
     std::mutex superStatusMutex_;
     std::vector<SuperFoldCreaseRegionItem> superFoldCreaseRegionItems_;
 

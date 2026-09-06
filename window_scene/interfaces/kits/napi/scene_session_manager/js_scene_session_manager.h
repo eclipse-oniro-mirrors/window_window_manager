@@ -56,10 +56,13 @@ enum class ListenerFunctionType : uint32_t {
     VIRTUAL_DENSITY_CHANGE_CB,
     SET_SPECIFIC_SESSION_ZINDEX_CB,
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
+    SENSOR_ROTATION_CHANGE_CB,
+    SMART_SENSOR_ROTATION_CHANGE_CB,
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
     GET_FLOAT_VIEW_LIMIT_CB,
+    UPDATE_ROG_WINDOW_CONFIG_CB,
 };
 
 class JsSceneSessionManager final {
@@ -137,6 +140,8 @@ public:
     static napi_value RegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationChange(napi_env env, napi_callback_info info);
     static napi_value NotifyRotationBegin(napi_env env, napi_callback_info info);
+    static napi_value RegisterMotionSensor(napi_env env, napi_callback_info info);
+    static napi_value UnregisterMotionSensor(napi_env env, napi_callback_info info);
     static napi_value SupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     static napi_value SupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
     static napi_value SetStatusBarHeightMode(napi_env env, napi_callback_info info);
@@ -203,6 +208,7 @@ public:
     static napi_value SupportCacheLockedSessionSnapshot(napi_env env, napi_callback_info info);
     static napi_value SupportPreloadStartingWindow(napi_env env, napi_callback_info info);
     static napi_value PreloadStartingWindow(napi_env env, napi_callback_info info);
+    static napi_value SetPreloadStartingWindowPixelMap(napi_env env, napi_callback_info info);
 
     /*
      * Window Event
@@ -302,6 +308,8 @@ private:
     napi_value OnRegisterSingleHandContainerNode(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationChange(napi_env env, napi_callback_info info);
     napi_value OnNotifyRotationBegin(napi_env env, napi_callback_info info);
+    napi_value OnRegisterMotionSensor(napi_env env, napi_callback_info info);
+    napi_value OnUnregisterMotionSensor(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowParentWindowLayout(napi_env env, napi_callback_info info);
     napi_value OnSupportFollowRelativePositionToParent(napi_env env, napi_callback_info info);
     napi_value OnSetStatusBarHeightMode(napi_env env, napi_callback_info info);
@@ -484,6 +492,10 @@ private:
         const RotationChangeInfo& rotationChangeInfo, bool isRestrictNotify = false);
     void ProcessSupportRotationRegister();
     void OnSupportRotationRegistered();
+    void ProcessSensorRotationRegister();
+    void OnSensorRotationChange(float sensorRotation);
+    void ProcessSmartSensorRotationRegister();
+    void OnSmartSensorRotationChange(float sensorRotation);
 
     /*
      * Window Pattern
@@ -492,6 +504,7 @@ private:
     napi_value OnSupportCacheLockedSessionSnapshot(napi_env env, napi_callback_info info);
     napi_value OnSupportPreloadStartingWindow(napi_env env, napi_callback_info info);
     napi_value OnPreloadStartingWindow(napi_env env, napi_callback_info info);
+    napi_value OnSetPreloadStartingWindowPixelMap(napi_env env, napi_callback_info info);
 
     /*
      * Compatible Mode
@@ -506,6 +519,9 @@ private:
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
     void OnGetFloatViewLimitCallback();
+    
+    void RegisterUpdateRogWindowConfigCallback();
+    void OnUpdateRogWindowConfigCallback(const RogWindowConfig& windowConfig);
 
     /**
      * Config

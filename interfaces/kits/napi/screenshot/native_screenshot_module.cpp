@@ -37,6 +37,18 @@
 #include "dm_napi_common.h"
 
 namespace OHOS::Rosen {
+namespace {
+const std::map<DmErrorCode, std::string> snapShotErrCodeMap = {
+    { DmErrorCode::DM_ERROR_NO_PERMISSION,
+      "Permission verification failed. The application does not have the permission required to call the API." },
+    { DmErrorCode::DM_ERROR_NOT_SYSTEM_APP,
+      "Permission verification failed. A non-system application calls a system API." },
+    { DmErrorCode::DM_ERROR_DEVICE_NOT_SUPPORT, "Capability not supported." },
+    { DmErrorCode::DM_ERROR_INVALID_SCREEN, "Invalid display or screen." },
+    { DmErrorCode::DM_ERROR_SYSTEM_INNORMAL, "This display manager service works abnormally." },
+    { DmErrorCode::DM_ERROR_ILLEGAL_PARAM, "Parameter error." }
+};
+}
 namespace save {
 constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
 static const uint32_t PIXMAP_VECTOR_ONLY_SDR_SIZE = 1;
@@ -305,6 +317,16 @@ static void GetScreenshotParam(napi_env env, std::unique_ptr<Param> &param, napi
     GetDisplayIntent(env, param, argv);
 }
 
+std::string GetSnapShotErrorMsg(DmErrorCode errCode)
+{
+    auto it = snapShotErrCodeMap.find(errCode);
+    if (it != snapShotErrCodeMap.end()) {
+        return it->second;
+    } else {
+        return "Unknown error code.";
+    }
+}
+
 static void AsyncGetScreenshot(napi_env env, std::unique_ptr<Param> &param)
 {
     if (!param->validInputParam) {
@@ -348,6 +370,9 @@ static void AsyncGetScreenshot(napi_env env, std::unique_ptr<Param> &param)
         param->errMessage = "[screenshot][pick]msg: Get Screenshot failed: Screenshot image is nullptr";
         return;
     }
+    if (param->wret != DmErrorCode::DM_OK) {
+        param->errMessage = "Get Screenshot Failed: " + GetSnapShotErrorMsg(param->wret);
+    }
 }
 
 static void AsyncGetScreenHDRshot(napi_env env, std::unique_ptr<HdrParam>& param)
@@ -374,6 +399,9 @@ static void AsyncGetScreenHDRshot(napi_env env, std::unique_ptr<HdrParam>& param
         param->wret = DmErrorCode::DM_ERROR_INVALID_SCREEN;
         param->errMessage = "Get Screenshot failed: Screenshot imageVec is nullptr";
         return;
+    }
+    if (param->wret != DmErrorCode::DM_OK) {
+        param->errMessage = "Get Screenshot Failed: " + GetSnapShotErrorMsg(param->wret);
     }
 }
 
@@ -606,6 +634,9 @@ static void AsyncGetScreenCapture(napi_env env, std::unique_ptr<Param> &param)
         param->wret = DmErrorCode::DM_ERROR_SYSTEM_INNORMAL;
         param->errMessage = "[screenshot][capture]msg: ScreenCapture failed: image is null.";
         return;
+    }
+    if (param->wret != DmErrorCode::DM_OK) {
+        param->errMessage = "[screenshot][capture]msg: Get Screenshot Failed: " + GetSnapShotErrorMsg(param->wret);
     }
 }
 

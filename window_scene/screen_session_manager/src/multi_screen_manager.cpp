@@ -137,7 +137,7 @@ DMError MultiScreenManager::PhysicalScreenMirrorSwitch(const ScreenId mainScreen
             TLOGW(WmsLogTag::DMS, "already mirror and get a same region.");
             return DMError::DM_OK;
         }
-        RSDisplayNodeConfig config = { screenSession->rsId_, true, nodeId, true};
+        RSDisplayNodeConfig config = { screenSession->rsId_, DisplayMode::MIRROR, nodeId, true };
         if (rotationOption.needSetRotation_) {
             config.mirrorSourceRotation = static_cast<uint32_t>(rotationOption.rotation_);
         }
@@ -169,7 +169,7 @@ DMError MultiScreenManager::PhysicalScreenUniqueSwitch(const std::vector<ScreenI
             continue;
         }
         TLOGW(WmsLogTag::DMS, "switch to unique physical ScreenId: %{public}" PRIu64, physicalScreenId);
-        RSDisplayNodeConfig config = { screenSession->rsId_, false, INVALID_NODEID };
+        RSDisplayNodeConfig config = { screenSession->rsId_,  DisplayMode::INDEPENDENT, INVALID_NODEID };
         screenSession->ReuseDisplayNode(config);
         screenSession->SetScreenCombination(ScreenCombination::SCREEN_UNIQUE);
         screenSession->SetVirtualPixelRatio(screenSession->GetScreenProperty().GetDefaultDensity());

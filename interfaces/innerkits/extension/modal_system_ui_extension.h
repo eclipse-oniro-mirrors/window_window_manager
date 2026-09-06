@@ -22,8 +22,10 @@
 #include <ability_connect_callback_stub.h>
 
 namespace OHOS {
+namespace AppExecFwk {
+class EventHandler;
+}
 namespace Rosen {
-class TaskScheduler;
 class ModalSystemUiExtension {
 public:
     ModalSystemUiExtension();
@@ -44,7 +46,7 @@ private:
 
     private:
         AAFwk::Want want_;
-        std::shared_ptr<TaskScheduler> taskScheduler_;
+        std::shared_ptr<AppExecFwk::EventHandler> handler_;
         bool SendWant(const sptr<IRemoteObject>& remoteObject);
         std::string ToString(const AAFwk::Want& want);
         void ReportJsonStringParamsUsage(const std::string& bundleName, const std::string& abilityName);

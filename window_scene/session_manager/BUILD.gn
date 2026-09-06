@@ -58,6 +58,7 @@ scene_session_manager_sources = [
   "src/anomaly_detection.cpp",
   "src/extension_session_manager.cpp",
   "src/hidump_controller.cpp",
+  "src/motion_manager.cpp",
   "src/pip_controller.cpp",
   "src/publish/scb_dump_subscriber.cpp",
   "src/rdb/starting_window_rdb_manager.cpp",
@@ -85,6 +86,7 @@ scene_session_manager_sources = [
   "src/zidl/session_lifecycle_listener_stub.cpp",
   "src/zidl/session_router_stack_listener_proxy.cpp",
   "src/zidl/session_router_stack_listener_stub.cpp",
+  "src/session_sensor_plugin.cpp",
 ]
 
 scene_session_manager_deps = [
@@ -143,6 +145,7 @@ scene_session_manager_external_deps = [
   "egl:libEGL",
   "opengles:libGLES",
   "node:node_header_notice",
+  "libuv:uv",
 ]
 
 ## Build libscene_session_manager_static.a
@@ -169,6 +172,11 @@ ohos_static_library("scene_session_manager_static") {
   ]
 
   defines = []
+  if (window_manager_feature_subscribe_motion) {
+    if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
+      defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+    }
+  }
   if (window_manager_feature_support_dmsfwk) {
     sources +=[ "src/distributed_client.cpp" ]
     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
@@ -189,6 +197,10 @@ ohos_static_library("scene_session_manager_static") {
       defined(global_parts_info.powermgr_power_manager)) {
     external_deps += [ "power_manager:powermgr_client" ]
     defines += [ "POWER_MANAGER_ENABLE" ]
+  }
+
+  if (target_platform == "car") {
+    defines += [ "POWER_MANAGER_LOCK_SUPPORT_MULTI_SCREEN" ]
   }
 
   if (defined(global_parts_info) &&
@@ -258,6 +270,11 @@ ohos_shared_library("scene_session_manager") {
   version_script = "libscene_session_manager.map"
 
   defines = []
+  if (window_manager_feature_subscribe_motion) {
+    if (defined(global_parts_info) && defined(global_parts_info.msdp_motion)) {
+      defines += [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+    }
+  }
   if (window_manager_feature_support_dmsfwk) {
     sources +=[ "src/distributed_client.cpp" ]
     defines += [ "WINDOW_MANAGER_FEATURE_SUPPORT_DMSFWK" ]
@@ -278,6 +295,10 @@ ohos_shared_library("scene_session_manager") {
       defined(global_parts_info.powermgr_power_manager)) {
     external_deps += [ "power_manager:powermgr_client" ]
     defines += [ "POWER_MANAGER_ENABLE" ]
+  }
+
+  if (target_platform == "car") {
+    defines += [ "POWER_MANAGER_LOCK_SUPPORT_MULTI_SCREEN" ]
   }
 
   if (defined(global_parts_info) &&
@@ -372,6 +393,9 @@ ohos_static_library("session_manager_static") {
     "samgr:samgr_proxy",
     "egl:libEGL",
     "opengles:libGLES",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"
@@ -425,6 +449,9 @@ ohos_shared_library("session_manager") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
@@ -479,6 +506,9 @@ ohos_shared_library("session_manager_lite") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]

@@ -15,8 +15,10 @@
 
 #include "js_pip_controller.h"
 #include "js_pip_utils.h"
+#include "js_err_utils.h"
 #include "picture_in_picture_manager.h"
 #include "window_manager_hilog.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -137,16 +139,17 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         weak = wptr<PictureInPictureController>(pipController_)]() {
         auto pipController = weak.promote();
         if (pipController == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY),
-                "[PiPWindow][startPiP]msg: The window is already started or is about to start."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "startPiP", WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY, "The PiP controller has been destroyed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_STARTPIP, WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY);
             return;
         }
         pipController->SetStateChangeReason(PiPStateChangeReason::REQUEST_START);
-        WMError errCode = pipController->StartPictureInPicture(StartPipType::USER_START);
-        if (errCode != WMError::WM_OK) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(errCode)),
-                "[PiPWindow][startPiP]msg: The window is already started or is about to start."));
+        WMErrorResult result = pipController->StartPictureInPicture(StartPipType::USER_START);
+        if (result.errCode != WMError::WM_OK) {
+            WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(result.errCode);
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "startPiP", errorCode, result.errMsg));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STARTPIP_BOOL, 0);
             return;
         }
@@ -154,8 +157,8 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STARTPIP_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStartPictureInPicture") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][startPiP]msg: Send event failed"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "startPiP", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
     }
     return result;
 }
@@ -175,16 +178,17 @@ napi_value JsPipController::OnStopPictureInPicture(napi_env env, napi_callback_i
         weak = wptr<PictureInPictureController>(pipController_)]() {
         auto pipController = weak.promote();
         if (pipController == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
-                "[PiPWindow][stopPiP]msg: JsPipController::OnStopPictureInPicture failed."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "stopPiP", WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "The PiP controller has been destroyed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_STOPPIP, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
         pipController->SetStateChangeReason(PiPStateChangeReason::REQUEST_DELETE);
-        WMError errCode = pipController->StopPictureInPictureFromClient();
-        if (errCode != WMError::WM_OK) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(errCode)),
-                "[PiPWindow][stopPiP]msg: The window is not created or destroyed."));
+        WMErrorResult result = pipController->StopPictureInPictureFromClient();
+        if (result.errCode != WMError::WM_OK) {
+            WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(result.errCode);
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "stopPiP", errorCode, result.errMsg));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STOPPIP_BOOL, 0);
             return;
         }
@@ -192,8 +196,8 @@ napi_value JsPipController::OnStopPictureInPicture(napi_env env, napi_callback_i
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STOPPIP_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStopPictureInPicture") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][stopPiP]msg: Send event failed"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "stopPiP", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
     }
     return result;
 }
@@ -260,16 +264,16 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
     auto asyncTask = [env, task = napiAsyncTask, typeNodeRef,
             weak = wptr<PictureInPictureController>(pipController_)]() {
         if (!PictureInPictureManager::IsSupportPiP()) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][updateContentNode]msg: Failed to call the API due to limited device capabilities."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "updateContentNode", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT, ""));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
         }
         auto pipController = weak.promote();
         if (pipController == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                "[PiPWindow][updateContentNode]msg: PiP internal error."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP, "updateContentNode",
+                WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "The PiP controller has been destroyed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
@@ -279,8 +283,8 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnUpdateContentNode") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][updateContentNode]msg: Send event failed"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "updateContentNode", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
                                          WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
@@ -433,16 +437,18 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
     auto asyncTask = [this, env, task = napiAsyncTask,
         weak = wptr<PictureInPictureController>(pipController_)]() {
         if (!PictureInPictureManager::IsSupportPiP()) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][getPiPWindowInfo]msg:Failed to call the API due to limited device capabilities."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "getPiPWindowInfo", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
+                "Failed to call the API due to limited device capabilities."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
         }
         auto pipController = weak.promote();
         if (pipController == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                "[PiPWindow][getPiPWindowInfo]msg:PiP internal error."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "getPiPWindowInfo", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
+                "The PiP controller has been destroyed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
@@ -450,8 +456,9 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         const sptr<Window>& pipWindow = pipController->GetPipWindow();
         if (pipWindow == nullptr) {
             TLOGE(WmsLogTag::WMS_PIP, "Failed to get pip window");
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                "[PiPWindow][getPiPWindowInfo]msg:PiP internal error."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "getPiPWindowInfo", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
+                "The PiP window is not created or has been destroyed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
@@ -460,8 +467,8 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetPiPWindowInfo") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][getPiPWindowInfo]msg:Send event failed"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "getPiPWindowInfo", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
                                          WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
@@ -483,15 +490,17 @@ napi_value JsPipController::OnGetPiPSettingSwitch(napi_env env, napi_callback_in
         weak = wptr<PictureInPictureController>(pipController_)]() {
         auto pipController = weak.promote();
         if (pipController == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                "[PiPWindow][getPiPSettingSwitch]msg: PiP internal error."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "getPiPSettingSwitch", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
+                "The PiP controller has been destroyed."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
         if (!pipController->GetPipSettingSwitchStatusEnabled()) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT),
-                "[PiPWindow][getPiPSettingSwitch]msg: Failed to call the API due to limited device capabilities."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "getPiPSettingSwitch", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
+                "Failed to call the API due to limited device capabilities."));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
                                              WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
@@ -500,8 +509,8 @@ napi_value JsPipController::OnGetPiPSettingSwitch(napi_env env, napi_callback_in
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetPiPSettingSwitch") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][getPiPSettingSwitch]msg: Send event failed"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "getPiPSettingSwitch", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
                                          WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
@@ -518,42 +527,42 @@ napi_value JsPipController::OnIsPiPActive(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::WMS_PIP, "called");
     wptr<PictureInPictureController> weakController(pipController_);
-    std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<WMErrorResult> resultPtr = std::make_shared<WMErrorResult>();
     std::shared_ptr<bool> statusPtr = std::make_shared<bool>(false);
-    NapiAsyncTask::ExecuteCallback execute = [weakController, errCodePtr, statusPtr] {
-        if (errCodePtr == nullptr || statusPtr == nullptr) {
+    NapiAsyncTask::ExecuteCallback execute = [weakController, resultPtr, statusPtr] {
+        if (resultPtr == nullptr || statusPtr == nullptr) {
             return;
         }
         auto pipController = weakController.promote();
         if (pipController == nullptr) {
-            *errCodePtr = WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR;
+            *resultPtr = WMErrorResult{WMError::WM_ERROR_PIP_INTERNAL_ERROR,
+                "The PiP controller has been destroyed."};
             return;
         }
         bool status = false;
-        *errCodePtr = ConvertErrorToCode(pipController->IsPiPActive(status));
-        if (*errCodePtr == WmErrorCode::WM_OK) {
+        *resultPtr = pipController->IsPiPActive(status);
+        if (resultPtr->errCode == WMError::WM_OK) {
             *statusPtr = status;
         } else {
             *statusPtr = false;
         }
     };
-    NapiAsyncTask::CompleteCallback complete = [errCodePtr,
+    NapiAsyncTask::CompleteCallback complete = [resultPtr,
                                                 statusPtr](napi_env env, NapiAsyncTask& task, int32_t status) {
-        if (errCodePtr == nullptr || statusPtr == nullptr) {
-            task.Reject(env,
-                        CreateJsError(env,
-                                      static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-                                      "PiP internal error."));
+        if (resultPtr == nullptr || statusPtr == nullptr) {
+            task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                        "isPiPActive", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONISPIPACTIVE,
                                              WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
-        if (*errCodePtr == WmErrorCode::WM_OK) {
+        if (resultPtr->errCode == WMError::WM_OK) {
             task.Resolve(env, CreateJsValue(env, *statusPtr));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONISPIPACTIVE_BOOL, 1);
         } else {
-            task.Reject(
-                env, CreateJsError(env, static_cast<int32_t>(*errCodePtr), "JsPipController::OnIsPiPActive failed."));
+            WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(resultPtr->errCode);
+            task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "isPiPActive", errorCode, resultPtr->errMsg));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONISPIPACTIVE_BOOL, 0);
         }
     };
@@ -881,8 +890,9 @@ napi_value JsPipController::OnPictureInPicturePossible(napi_env env, napi_callba
     TLOGI(WmsLogTag::WMS_PIP, "called");
     bool isPiPSupported = false;
     if (pipController_ == nullptr) {
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR),
-            "[PiPWindow][isPiPSupported]msg: PiP internal error."));
+        napi_throw(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "isPiPSupported", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
+            "The PiP controller has been destroyed."));
         TLOGE(WmsLogTag::WMS_PIP, "error, controller is nullptr");
         HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE,
             WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);

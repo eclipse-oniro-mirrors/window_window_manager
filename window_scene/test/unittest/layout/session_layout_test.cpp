@@ -455,6 +455,92 @@ HWTEST_F(SessionLayoutTest, SetDragActivated02, TestSize.Level1)
     session->SetDragActivated(DragActivateSource::APP_LOCK, false);
     EXPECT_EQ(DRAG_ACTIVATE_ALL_MASK & ~layoutBit & ~appLockBit, session->GetDragActivatedBitmap());
 }
+
+/**
+ * @tc.name: SetPendingAppHookDisplayInfo001
+ * @tc.desc: Test SetPendingAppHookDisplayInfo saves hookInfo and enable to session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, SetPendingAppHookDisplayInfo001, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetPendingAppHookDisplayInfo001";
+    info.bundleName_ = "SetPendingAppHookDisplayInfo001";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+    HookInfo hookInfo;
+    hookInfo.width_ = 100;
+    hookInfo.height_ = 200;
+    hookInfo.density_ = 2.0;
+    bool enable = true;
+
+    session->SetPendingAppHookDisplayInfo(hookInfo, enable);
+    EXPECT_TRUE(session->hasPendingAppHookDisplayInfo_);
+    EXPECT_TRUE(session->pendingAppHookDisplayInfoEnable_);
+    EXPECT_EQ(session->pendingAppHookDisplayInfo_.width_, hookInfo.width_);
+    EXPECT_EQ(session->pendingAppHookDisplayInfo_.height_, hookInfo.height_);
+}
+
+/**
+ * @tc.name: NotifyPendingAppHookDisplayInfo001
+ * @tc.desc: Test NotifyPendingAppHookDisplayInfo triggers callback when pending info exists
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, NotifyPendingAppHookDisplayInfo001, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyPendingAppHookDisplayInfo001";
+    info.bundleName_ = "NotifyPendingAppHookDisplayInfo001";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+    HookInfo hookInfo;
+    hookInfo.width_ = 150;
+    hookInfo.height_ = 250;
+    hookInfo.density_ = 3.0;
+    bool enable = true;
+    session->callingUid_ = 20221524;
+    session->SetPendingAppHookDisplayInfo(hookInfo, enable);
+
+    bool callbackCalled = false;
+    HookInfo receivedHookInfo;
+    session->SetUpdateAppHookDisplayInfoFunc(
+        [&callbackCalled, &receivedHookInfo](int32_t uid, const HookInfo& info, bool en) -> WMError {
+            callbackCalled = true;
+            receivedHookInfo = info;
+            return WMError::WM_OK;
+        });
+
+    session->NotifyPendingAppHookDisplayInfo();
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(receivedHookInfo.width_, hookInfo.width_);
+    EXPECT_EQ(receivedHookInfo.height_, hookInfo.height_);
+    EXPECT_FALSE(session->hasPendingAppHookDisplayInfo_);
+}
+
+/**
+ * @tc.name: NotifyPendingAppHookDisplayInfo002
+ * @tc.desc: Test NotifyPendingAppHookDisplayInfo does nothing when no pending info
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionLayoutTest, NotifyPendingAppHookDisplayInfo002, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyPendingAppHookDisplayInfo002";
+    info.bundleName_ = "NotifyPendingAppHookDisplayInfo002";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+    session->hasPendingAppHookDisplayInfo_ = false;
+
+    bool callbackCalled = false;
+    session->SetUpdateAppHookDisplayInfoFunc(
+        [&callbackCalled](int32_t uid, const HookInfo& info, bool en) -> WMError {
+            callbackCalled = true;
+            return WMError::WM_OK;
+        });
+
+    session->NotifyPendingAppHookDisplayInfo();
+    EXPECT_FALSE(callbackCalled);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

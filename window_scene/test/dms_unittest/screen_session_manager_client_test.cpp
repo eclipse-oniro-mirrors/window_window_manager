@@ -743,36 +743,6 @@ HWTEST_F(ScreenSessionManagerClientTest, OnSensorRotationChanged02, TestSize.Lev
 }
 
 /**
- * @tc.name: OnSmartSensorRotationChanged01
- * @tc.desc: OnSmartSensorRotationChanged test
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged01, TestSize.Level1)
-{
-    ScreenId screenId = 0;
-    float sensorRotation = 90.0f;
-    bool isSwitchUser = false;
-
-    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
-    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-}
-
-/**
- * @tc.name: OnSmartSensorRotationChanged02
- * @tc.desc: OnSmartSensorRotationChanged test with isSwitchUser true
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, OnSmartSensorRotationChanged02, TestSize.Level1)
-{
-    ScreenId screenId = 1;
-    float sensorRotation = 180.0f;
-    bool isSwitchUser = true;
-
-    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
-    screenSessionManagerClient_->OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-}
-
-/**
  * @tc.name: OnHoverStatusChanged01
  * @tc.desc: OnHoverStatusChanged test
  * @tc.type: FUNC
@@ -1659,7 +1629,7 @@ HWTEST_F(ScreenSessionManagerClientTest, ScreenCaptureNotify, TestSize.Level1)
     int32_t uid = 0;
     std::string clientName = "test";
     ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
-    screenSessionManagerClient_->ScreenCaptureNotify(screenId, uid, clientName);
+    screenSessionManagerClient_->ScreenCaptureNotify(screenId, uid, clientName, 0, {});
 }
 
 /**
@@ -3022,52 +2992,6 @@ HWTEST_F(ScreenSessionManagerClientTest, OnScreenClosedStateChangeWithoutListene
     EXPECT_EQ(screenSessionManagerClient_->screenClosedState_, state);
 }
 
-/*
- * @tc.name: SubscribeMotionSensor01
- * @tc.desc: SubscribeMotionSensor test with DEVICE_MOTION_TYPE
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor01, TestSize.Level1)
-{
-    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
-    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
-}
-
-/**
- * @tc.name: SubscribeMotionSensor02
- * @tc.desc: SubscribeMotionSensor test with SMART_MOTION_TYPE
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, SubscribeMotionSensor02, TestSize.Level1)
-{
-    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
-    ASSERT_TRUE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
-}
-
-/**
- * @tc.name: UnsubscribeMotionSensor01
- * @tc.desc: UnsubscribeMotionSensor test with DEVICE_MOTION_TYPE
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor01, TestSize.Level1)
-{
-    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
-    screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE));
-    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::DEVICE_MOTION_TYPE));
-}
-
-/**
- * @tc.name: UnsubscribeMotionSensor02
- * @tc.desc: UnsubscribeMotionSensor test with SMART_MOTION_TYPE
- * @tc.type: FUNC
- */
-HWTEST_F(ScreenSessionManagerClientTest, UnsubscribeMotionSensor02, TestSize.Level1)
-{
-    screenSessionManagerClient_->SubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
-    screenSessionManagerClient_->UnsubscribeMotionSensor(static_cast<int32_t>(MotionType::SMART_MOTION_TYPE));
-    ASSERT_FALSE(MotionManager::GetInstance().NeedMotionSensorSubscribe(MotionType::SMART_MOTION_TYPE));
-}
-
 /**
  * @tc.name: UnRegisterSwitchUserAnimationNotification01
  * @tc.desc: UnRegisterSwitchUserAnimationNotification test, unregister successfully
@@ -3109,6 +3033,30 @@ HWTEST_F(ScreenSessionManagerClientTest, UnRegisterSwitchUserAnimationNotificati
     EXPECT_TRUE(logMsg.find("not find") != std::string::npos);
 
     logMsg.clear();
+}
+
+/**
+  * @tc.name: SetHoverBlockList
+  * @tc.desc: SetHoverBlockList test
+  * @tc.type: FUNC
+  */
+HWTEST_F(ScreenSessionManagerClientTest, SetHoverBlockList, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ASSERT_TRUE(screenSessionManagerClient_ != nullptr);
+    screenSessionManagerClient_->screenSessionManager_ = nullptr;
+    screenSessionManagerClient_->SetHoverBlockList({"11", "22"});
+    EXPECT_TRUE(logMsg.find("screenSessionManager is null") != std::string::npos);
+    logMsg.clear();
+
+    sptr<IRemoteObject> iRemoteObjectMocker = new IRemoteObjectMocker();
+    screenSessionManagerClient_->screenSessionManager_ = new ScreenSessionManagerProxy(iRemoteObjectMocker);
+    EXPECT_NE(screenSessionManagerClient_->screenSessionManager_, nullptr);
+    screenSessionManagerClient_->SetHoverBlockList({"11", "22"});
+    EXPECT_FALSE(logMsg.find("screenSessionManager is null") != std::string::npos);
+    logMsg.clear();
+    screenSessionManagerClient_->screenSessionManager_ = nullptr;
     LOG_SetCallback(nullptr);
 }
 } // namespace Rosen

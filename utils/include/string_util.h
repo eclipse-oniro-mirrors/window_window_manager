@@ -122,12 +122,14 @@ template<typename T>
 std::string StringUtil::JoinValueSet(const std::set<T>& values, char delimiter)
 {
     std::ostringstream oss;
+    bool isFirst = true;
 
-    for (auto iter = values.begin(); iter != values.end(); ++iter) {
-        if (iter != values.begin()) {
+    for (const auto& value : values) {
+        if (!isFirst) {
             oss << delimiter;
         }
-        oss << *iter;
+        oss << value;
+        isFirst = false;
     }
 
     return oss.str();
@@ -146,9 +148,11 @@ std::set<T> StringUtil::ParseValueSet(const std::string& str, char delimiter)
         }
 
         std::istringstream tokenStream(token);
-
         T value {};
-        tokenStream >> value;
+
+        if (!(tokenStream >> value)) {
+            continue;
+        }
 
         tokenStream >> std::ws;
         if (!tokenStream.eof()) {

@@ -2258,6 +2258,77 @@ HWTEST_F(WindowSessionTest, UpdateLSStateInfo, TestSize.Level1)
     EXPECT_CALL(*(mockSessionStage), UpdateLSState(_)).WillOnce(Return(WSError::WS_OK));
     ASSERT_EQ(WSError::WS_OK, session->UpdateLSStateInfo(true));
 }
+
+/**
+ * @tc.name: UpdateSupportMultiWindowScreenSet
+ * @tc.desc: Test UpdateSupportMultiWindowScreenSet updates systemConfig_
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateSupportMultiWindowScreenSet, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateSupportMultiWindowScreenSet";
+    info.moduleName_ = "UpdateSupportMultiWindowScreenSet";
+    info.bundleName_ = "UpdateSupportMultiWindowScreenSet";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+ 
+    std::set<ScreenId> screenSet = {100, 200, 300};
+    session->UpdateSupportMultiWindowScreenSet(screenSet);
+    EXPECT_EQ(session->systemConfig_.supportMultiWindowScreenSet_.size(), 3u);
+    EXPECT_EQ(session->systemConfig_.supportMultiWindowScreenSet_.count(100), 1u);
+    EXPECT_EQ(session->systemConfig_.supportMultiWindowScreenSet_.count(200), 1u);
+    EXPECT_EQ(session->systemConfig_.supportMultiWindowScreenSet_.count(300), 1u);
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindowToClient
+ * @tc.desc: Test UpdateScreenSupportMultiWindowToClient with sessionStage_ nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateScreenSupportMultiWindowToClient, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateScreenSupportMultiWindowToClient";
+    info.moduleName_ = "UpdateScreenSupportMultiWindowToClient";
+    info.bundleName_ = "UpdateScreenSupportMultiWindowToClient";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+ 
+    session->sessionInfo_.isSystem_ = false;
+    session->state_ = SessionState::STATE_FOREGROUND;
+    session->sessionStage_ = nullptr;
+    auto result = session->UpdateScreenSupportMultiWindowToClient();
+    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindowToClient01
+ * @tc.desc: Test UpdateScreenSupportMultiWindowToClient with valid sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, UpdateScreenSupportMultiWindowToClient01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateScreenSupportMultiWindowToClient01";
+    info.moduleName_ = "UpdateScreenSupportMultiWindowToClient01";
+    info.bundleName_ = "UpdateScreenSupportMultiWindowToClient01";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(session, nullptr);
+    session->surfaceNode_ = CreateRSSurfaceNode();
+ 
+    session->sessionInfo_.isSystem_ = false;
+    session->state_ = SessionState::STATE_FOREGROUND;
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+ 
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(100);
+    EXPECT_CALL(*mockSessionStage, UpdateScreenSupportMultiWindow(_))
+        .WillOnce(Return(WSError::WS_OK));
+    auto result = session->UpdateScreenSupportMultiWindowToClient();
+    EXPECT_EQ(result, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

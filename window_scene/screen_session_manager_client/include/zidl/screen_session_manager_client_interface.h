@@ -33,7 +33,6 @@ public:
         TRANS_ID_ON_PROPERTY_CHANGED,
         TRANS_ID_ON_POWER_STATUS_CHANGED,
         TRANS_ID_ON_SENSOR_ROTATION_CHANGED,
-        TRANS_ID_ON_SMART_SENSOR_ROTATION_CHANGED,
         TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED,
         TRANS_ID_ON_SCREEN_ORIENTATION_CHANGED_WITH_OPTIONS,
         TRANS_ID_ON_SCREEN_ROTATION_LOCKED_CHANGED,
@@ -80,7 +79,6 @@ public:
     virtual void OnPowerStatusChanged(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) = 0;
     virtual void OnSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) = 0;
-    virtual void OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation, bool isSwitchUser) = 0;
     virtual void OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate = true) = 0;
     virtual void OnScreenOrientationChanged(ScreenId screenId, float screenOrientation) = 0;
     virtual void OnScreenOrientationChangedWithOptions(ScreenId screenId,
@@ -104,7 +102,8 @@ public:
     virtual void OnUpdateFoldDisplayMode(FoldDisplayMode displayMode) = 0;
     virtual void SetVirtualPixelRatioSystem(ScreenId screenId, float virtualPixelRatio) = 0;
     virtual void OnFoldStatusChangedReportUE(const std::vector<std::string>& screenFoldInfo) = 0;
-    virtual void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) = 0;
+    virtual void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions) = 0;
     virtual void OnCameraBackSelfieChanged(ScreenId screenId, bool isCameraBackSelfie) = 0;
     virtual void OnExtendScreenConnectStatusChanged(ScreenId screenId,
         ExtendScreenConnectStatus extendScreenConnectStatus) = 0;

@@ -195,6 +195,7 @@
             OHOS::Rosen::SceneSessionManager::SetTrayAppList*;
             OHOS::Rosen::SceneSessionManager::SetUserAuthPassed*;
             OHOS::Rosen::SceneSessionManager::SetVirtualPixelRatioChangeListener*;
+            OHOS::Rosen::SceneSessionManager::SetUpdateDisplayDpiChangeCallback*;
             OHOS::Rosen::SceneSessionManager::SetVmaCacheStatus*;
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;
@@ -228,6 +229,7 @@
             OHOS::Rosen::SceneSessionManager::NotifyRotationBegin*;
             OHOS::Rosen::SceneSessionManager::KioskModeChange*;
             OHOS::Rosen::SceneSessionManager::RegisterPageEnableFunc*;
+            OHOS::Rosen::SceneSessionManager::RegisterUpdateRogWindowConfigCallback*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SceneSessionManager::SyncFloatViewLimits*;
             OHOS::Rosen::SceneSessionManager::RegisterGetFloatViewLimitCallback*;
@@ -238,6 +240,12 @@
             OHOS::Rosen::UIEffectManager::RegisterUIEffectSetParamsCallback*;
             OHOS::Rosen::UIEffectManager::SetUIEffectControllerAliveState*;
             OHOS::Rosen::UIEffectParams::ConvertToJsValue*;
+            OHOS::Rosen::MotionManager::GetInstance*;
+            OHOS::Rosen::IMotionEventListener*;
+            OHOS::Rosen::SceneSessionManager::SetSensorRotationChangeListener*;
+            OHOS::Rosen::SceneSessionManager::SetSmartSensorRotationChangeListener*;
+            OHOS::Rosen::SceneSessionManager::RegisterMotionSensor*;
+            OHOS::Rosen::SceneSessionManager::UnregisterMotionSensor*;
 
             VTT*OHOS::Rosen::SessionLifecycleListenerStub*;
             VTT*OHOS::Rosen::SessionRouterStackListenerStub*;

@@ -1822,6 +1822,67 @@ HWTEST_F(SessionStageProxyTest, UpdateLSState, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateScreenSupportMultiWindow
+ * @tc.desc: Test UpdateScreenSupportMultiWindow normal IPC call
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateScreenSupportMultiWindow, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    std::set<ScreenId> screenSet = {0, 1, 2};
+    WSError res = sessionStage_->UpdateScreenSupportMultiWindow(screenSet);
+    ASSERT_EQ(WSError::WS_OK, res);
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow01
+ * @tc.desc: Test UpdateScreenSupportMultiWindow with write interface token failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateScreenSupportMultiWindow01, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    std::set<ScreenId> screenSet = {0};
+    WSError res = sessionStage_->UpdateScreenSupportMultiWindow(screenSet);
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow02
+ * @tc.desc: Test UpdateScreenSupportMultiWindow with write uint32 failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateScreenSupportMultiWindow02, TestSize.Level1)
+{
+    ASSERT_TRUE((sessionStage_ != nullptr));
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    std::set<ScreenId> screenSet = {0};
+    WSError res = sessionStage_->UpdateScreenSupportMultiWindow(screenSet);
+    MockMessageParcel::ClearAllErrorFlag();
+    ASSERT_EQ(WSError::WS_ERROR_IPC_FAILED, res);
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow03
+ * @tc.desc: Test UpdateScreenSupportMultiWindow with remote null and send request failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, UpdateScreenSupportMultiWindow03, TestSize.Level1)
+{
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    std::set<ScreenId> screenSet = {0};
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failProxy->UpdateScreenSupportMultiWindow(screenSet));
+ 
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->UpdateScreenSupportMultiWindow(screenSet));
+}
+
+/**
  * @tc.name: SwitchFreeMultiWindow
  * @tc.desc: SwitchFreeMultiWindow
  * @tc.type: FUNC

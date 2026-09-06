@@ -16,10 +16,10 @@
 #include "screen_sensor_connector.h"
 #include "screen_session_manager.h"
 #include "dms_global_mutex.h"
+#include "fold_screen_state_internel.h"
 #include <chrono>
 #include <securec.h>
 #include <parameters.h>
-#include "motion_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -80,17 +80,14 @@ void ScreenSensorConnector::SubscribeRotationSensor()
     GravitySensorSubscriber::SubscribeGravitySensor();
 #endif
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    // MotionSubscriber::SubscribeMotionSensor();
-    MotionManager::GetInstance().Init();
-    MotionManager::GetInstance().OnScreenOn();
+    MotionSubscriber::SubscribeMotionSensor();
 #endif
 }
 
 void ScreenSensorConnector::UnsubscribeRotationSensor()
 {
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
-    // MotionSubscriber::UnsubscribeMotionSensor();
-    MotionManager::GetInstance().OnScreenOff();
+    MotionSubscriber::UnsubscribeMotionSensor();
 #endif
 }
 
@@ -217,21 +214,20 @@ bool GravitySensorSubscriber::CheckCallbackTimeInterval()
 #ifdef WM_SUBSCRIBE_MOTION_ENABLE
 void MotionSubscriber::SubscribeMotionSensor()
 {
-    return;
     TLOGI(WmsLogTag::DMS, "start");
+    // The rotation motion sensor only feeds the physical-posture flag (isDeviceHorizontal_)
+    // consumed by the super-fold fold-angle gate, so subscribe it on super-fold devices only.
+    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        TLOGI(WmsLogTag::DMS, "not a super-fold device, skip motion sensor subscribe");
+        return;
+    }
     if (isMotionSensorSubscribed_) {
         TLOGE(WmsLogTag::DMS, "motion sensor's already subscribed");
         return;
     }
-
-    int32_t sensorType = MOTION_TYPE_ROTATION;
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
-        DISABLE_SMART_ROTATION);
-    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
-        TLOGNFI(WmsLogTag::DMS, "start subscribe smart rotation");
-        sensorType = SMART_MOTION_TYPE_ROTATION;
-    }
-    if (!SubscribeCallback(sensorType, RotationMotionEventCallback)) {
+    // Subscribe only the rotation motion sensor (MOTION_TYPE_ROTATION) to feed the physical
+    // posture (isDeviceHorizontal_) used by the super-fold fold-angle gate.
+    if (!SubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor subscribe failed");
         return;
     }
@@ -240,20 +236,11 @@ void MotionSubscriber::SubscribeMotionSensor()
 
 void MotionSubscriber::UnsubscribeMotionSensor()
 {
-    return;
     if (!isMotionSensorSubscribed_) {
         TLOGI(WmsLogTag::DMS, "dms: Unsubscribe motion sensor");
         return;
     }
-
-    int32_t sensorType = MOTION_TYPE_ROTATION;
-    int32_t smartRotationEnabled = system::GetIntParameter<int32_t>("const.window.device.default_rotation_sensor",
-        DISABLE_SMART_ROTATION);
-    if (smartRotationEnabled == ENABLE_SMART_ROTATION) {
-        TLOGNFI(WmsLogTag::DMS, "start unsubscribe smart rotation");
-        sensorType = SMART_MOTION_TYPE_ROTATION;
-    }
-    if (!UnsubscribeCallback(sensorType, RotationMotionEventCallback)) {
+    if (!UnsubscribeCallback(MOTION_TYPE_ROTATION, RotationMotionEventCallback)) {
         TLOGE(WmsLogTag::DMS, "dms: motion sensor unsubscribe failed");
         return;
     }

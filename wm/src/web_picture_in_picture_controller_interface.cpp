@@ -140,7 +140,7 @@ WMError WebPictureInPictureControllerInterface::StartPip(uint32_t controllerId)
 {
     if (auto pipController = sptrWebPipController_) {
         pipController->SetControllerId(controllerId);
-        auto res = pipController->StartPictureInPicture(StartPipType::NATIVE_START);
+        auto res = pipController->StartPictureInPicture(StartPipType::NATIVE_START).errCode;
         if (res == WMError::WM_OK) {
             isStarted_ = true;
         }
@@ -154,7 +154,7 @@ WMError WebPictureInPictureControllerInterface::StartPip(uint32_t controllerId)
 WMError WebPictureInPictureControllerInterface::StopPip()
 {
     if (auto pipController = sptrWebPipController_) {
-        auto res = pipController->StopPictureInPictureFromClient();
+        auto res = pipController->StopPictureInPictureFromClient().errCode;
         if (res == WMError::WM_OK) {
             isStarted_ = false;
         }

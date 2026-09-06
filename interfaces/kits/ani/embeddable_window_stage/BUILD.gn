@@ -79,7 +79,6 @@ ohos_shared_library("embeddablewindowstageani_kit") {
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "image_framework:image",
-    "image_framework:image_ani",
     "image_framework:image_taihe",
     "ipc:ipc_single",
     "napi:ace_napi",
@@ -133,16 +132,7 @@ ohos_shared_library("embeddablewindowstageani_module") {
 
   external_deps = [
     "ability_runtime:ability_manager",
-    "ability_runtime:runtime",
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
     "hilog:libhilog",
-    "hitrace:hitrace_meter",
-    "image_framework:image",
-    "image_framework:image_ani",
-    "image_framework:image_taihe",
-    "ipc:ipc_single",
-    "napi:ace_napi",
     "runtime_core:ani",
     "node:node_header_notice",
     "libuv:uv",
@@ -151,6 +141,7 @@ ohos_shared_library("embeddablewindowstageani_module") {
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }
 
 group("embeddable_window_stage_ani") {

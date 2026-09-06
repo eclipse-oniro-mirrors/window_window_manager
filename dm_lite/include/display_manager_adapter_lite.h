@@ -125,7 +125,7 @@ public:
     virtual ScreenPowerState GetScreenPower();
     virtual void SyncScreenPowerState(ScreenPowerState state);
     virtual sptr<ScreenInfo> GetScreenInfo(ScreenId screenId);
-    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
+    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false);
     virtual bool SynchronizePowerStatus(ScreenPowerState state);
     virtual DMError SetResolution(ScreenId screenId, uint32_t width, uint32_t height, float virtualPixelRatio);
 private:

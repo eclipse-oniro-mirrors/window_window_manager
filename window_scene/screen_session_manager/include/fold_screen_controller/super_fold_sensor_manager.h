@@ -15,7 +15,8 @@
  
 #ifndef OHOS_ROSEN_SUPER_FOLD_SENSOR_MANAGER_H
 #define OHOS_ROSEN_SUPER_FOLD_SENSOR_MANAGER_H
- 
+
+#include <atomic>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -49,9 +50,11 @@ public:
  
     void UnregisterHallCallback();
  
-    void HandlePostureData(const SensorEvent * const event);
- 
+    void HandlePostureData(const SensorEvent * const event, bool isForce = false);
+
     void HandleHallData(const SensorEvent * const event);
+
+    void SetSuperSensorLocked(bool isLocked);
 
     void HandleSuperSensorChange(SuperFoldStatusChangeEvents events);
 
@@ -70,14 +73,20 @@ private:
  
     float curAngle_ = 170.0F;
 
+    std::atomic<bool> isSuperSensorLocked_ = false;
+
+    float lockedBaseAngle_ = 170.0F;
+
     int32_t curInterval_ = 0;
 
     uint16_t curHall_ = USHRT_MAX;
 
     uint16_t hallActive_ = 1 << 2;
  
-    void NotifyFoldAngleChanged(float foldAngle);
- 
+    void NotifyFoldAngleChanged(float foldAngle, bool isForce = false);
+
+    SuperFoldStatusChangeEvents GetFoldStatusChangeEvents(float foldAngle);
+
     void NotifyHallChanged(uint16_t hall, float foldAngle, bool isHallEvent = false);
 
     void NotifySoftKeyboardChanged();

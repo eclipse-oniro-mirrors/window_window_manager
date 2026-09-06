@@ -51,7 +51,7 @@ public:
     void ClearSnapshotPath();
     void ClearAbilityIconPath();
     void ClearSnapshot();
-    bool IsSnapshotExisted(SnapshotStatus key = defaultStatus, bool freeMultiWindow = false);
+    bool IsSnapshotExisted(std::string& snapshotPath, SnapshotStatus key = defaultStatus, bool freeMultiWindow = false);
     std::string GetSnapshotFilePath(SnapshotStatus& key, bool useKey = false, bool freeMultiWindow = false);
     std::string GetSnapshotScaledFilePath() { return snapshotScaledPath_; };
     bool FindClosestFormSnapshot(SnapshotStatus& key);
@@ -111,7 +111,6 @@ private:
     float snapshotScaleLow_ = 0.5;
     bool enablePersistentScaledSnapshot_ = false;
 
-    static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper_;
     mutable std::mutex savingSnapshotMutex_;
     mutable std::mutex hasSnapshotMutex_;
     mutable std::mutex snapshotSizeMutex_;

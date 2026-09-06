@@ -418,6 +418,10 @@ ani_status AniWindowUtils::GetPropertyDoubleObject(ani_env* env, const char* pro
 ani_status AniWindowUtils::GetPropertyBoolObject(ani_env* env, const char* propertyName,
     ani_object object, bool& result)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return ANI_ERROR;
+    }
     ani_ref bool_ref;
     ani_status ret = env->Object_GetPropertyByName_Ref(object, propertyName, &bool_ref);
     if (ret != ANI_OK) {
@@ -2073,18 +2077,33 @@ ani_object AniWindowUtils::CreateKeyFramePolicy(ani_env* env, const KeyFramePoli
     return aniKeyFramePolicy;
 }
 
-void AniWindowUtils::GetWindowSnapshotConfiguration(ani_env* env, ani_object config,
+bool AniWindowUtils::GetWindowSnapshotConfiguration(ani_env* env, ani_object config,
     WindowSnapshotConfiguration& windowSnapshotConfiguration)
 {
-    ani_status ret;
     ani_ref nativeObj;
-    if ((ret = env->Object_GetPropertyByName_Ref(config, "useCache", &nativeObj)) != ANI_OK) {
-        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] obj fetch long %{public}u", ret);
-        return;
+    ani_status ret = env->Object_GetPropertyByName_Ref(config, "useCache", &nativeObj);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Object_GetPropertyByName_Ref useCache failed, ret: %{public}u", ret);
+        return false;
+    }
+    ani_boolean isUndefined = ANI_FALSE;
+    ret = env->Reference_IsUndefined(nativeObj, &isUndefined);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Reference_IsUndefined useCache failed, ret: %{public}u", ret);
+        return false;
+    }
+    if (isUndefined) {
+        TLOGI(WmsLogTag::WMS_LIFE, "[ANI] useCache is undefined, use default value");
+        return true;
     }
     ani_boolean value = 0;
-    env->Object_CallMethodByName_Boolean(static_cast<ani_object>(nativeObj), "toBoolean", ":z", &value);
+    ret = env->Object_CallMethodByName_Boolean(static_cast<ani_object>(nativeObj), "toBoolean", ":z", &value);
+    if (ret != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] Object_CallMethodByName_Boolean useCache failed, ret: %{public}u", ret);
+        return false;
+    }
     windowSnapshotConfiguration.useCache = static_cast<bool>(value);
+    return true;
 }
 
 ani_object AniWindowUtils::CreateProperties(ani_env* env, const sptr<Window>& window)

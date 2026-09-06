@@ -438,6 +438,11 @@ ani_object ConvertStartAnimationSystemOptionsToAniValue(ani_env* env,
     ret = env->FindEnum("@ohos.window.window.AnimationType", &animationType);
     CHECK_RET_RETURN_NULLPTR(ret, "[ANI] Find enum AnimationType failed.");
 
+    if (!startAnimationSystemOptions) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] startAnimationSystemOptions is null.");
+        return nullptr;
+    }
+
     ani_enum_item animationTypeItem;
     std::string itemName = GetAnimationTypeItemName(startAnimationSystemOptions->animationType);
     ret = env->Enum_GetEnumItemByName(animationType, itemName.c_str(), &animationTypeItem);
@@ -696,6 +701,13 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
     } else {
         windowCreateParams.isWindowLimitsForcible = false;
     }
+
+    windowCreateParams.minimizeOnStart =
+        GetOptionalBoolProp(env, aniObject, "minimizeOnStart").value_or(false);
+    windowCreateParams.excludeFromDock =
+        GetOptionalBoolProp(env, aniObject, "excludeFromDock").value_or(false);
+    windowCreateParams.excludeFromRecent =
+        GetOptionalBoolProp(env, aniObject, "excludeFromRecent").value_or(false);
     return true;
 }
 

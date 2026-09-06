@@ -45,7 +45,6 @@
 #include "wm_math.h"
 #include "perform_reporter.h"
 #include "hitrace_meter.h"
-#include <hisysevent.h>
 
 namespace OHOS {
 namespace Rosen {
@@ -245,6 +244,25 @@ sptr<Window> WindowImpl::Find(const std::string& name)
 const std::shared_ptr<AbilityRuntime::Context> WindowImpl::GetContext() const
 {
     return context_;
+}
+
+sptr<WindowImpl> WindowImpl::FindMainWindowWithContext() const
+{
+    auto context = GetContext();
+    if (context == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "get context failed");
+        return nullptr;
+    }
+    std::shared_lock<std::shared_mutex> lock(windowMapMutex_);
+    for (const auto& winPair : windowMap_) {
+        auto win = winPair.second.second;
+        if (win && win->GetType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW &&
+            context.get() == win->GetContext().get()) {
+            return static_cast<WindowImpl*>(win.GetRefPtr());
+        }
+    }
+    TLOGW(WmsLogTag::WMS_MAIN, "id:%{public}u, Can not find main window, not app type", GetWindowId());
+    return nullptr;
 }
 
 sptr<Window> WindowImpl::FindWindowById(uint32_t WinId)
@@ -1332,13 +1350,22 @@ WMError WindowImpl::SetFloatingMaximize(bool isEnter)
 
 WMError WindowImpl::SetAspectRatio(float ratio)
 {
+    std::string errMsg;
+    return SetAspectRatio(ratio, errMsg);
+}
+
+WMError WindowImpl::SetAspectRatio(float ratio, std::string& errMsg)
+{
+    errMsg.clear();
     WLOGFI("windowId: %{public}u, ratio: %{public}f", GetWindowId(), ratio);
     if (!WindowHelper::IsMainWindow(GetType())) {
         WLOGFE("Invalid operation, windowId: %{public}u", GetWindowId());
+        errMsg = "Invalid operation";
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     if (MathHelper::NearZero(ratio) || ratio < 0.0f) {
         WLOGFE("Invalid param, ratio: %{public}f", ratio);
+        errMsg = "Invalid ratio value";
         return WMError::WM_ERROR_INVALID_PARAM;
     }
     property_->SetAspectRatio(ratio);
@@ -1349,20 +1376,30 @@ WMError WindowImpl::SetAspectRatio(float ratio)
     auto ret = UpdateProperty(PropertyChangeAction::ACTION_UPDATE_ASPECT_RATIO);
     if (ret != WMError::WM_OK) {
         WLOGFE("Set AspectRatio failed. errorCode: %{public}u", ret);
+        errMsg = "Set AspectRatio failed";
     }
     return ret;
 }
 
 WMError WindowImpl::ResetAspectRatio()
 {
+    std::string errMsg;
+    return ResetAspectRatio(errMsg);
+}
+
+WMError WindowImpl::ResetAspectRatio(std::string& errMsg)
+{
+    errMsg.clear();
     if (!IsWindowValid()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Window is invalid");
+        errMsg = "Window is invalid";
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
 
     WLOGFI("windowId: %{public}u", GetWindowId());
     if (!WindowHelper::IsMainWindow(GetType())) {
         WLOGFE("Invalid operation, windowId: %{public}u", GetWindowId());
+        errMsg = "Invalid operation";
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     property_->SetAspectRatio(0.0);
@@ -1629,6 +1666,14 @@ WMError WindowImpl::Create(uint32_t parentId, const std::shared_ptr<AbilityRunti
     }
     SetDefaultDisplayIdIfNeed();
     context_ = context;
+    if (property_->GetWindowType() == WindowType::WINDOW_TYPE_DIALOG) {
+        if (auto mainWindow = FindMainWindowWithContext()) {
+            property_->SetParentId(mainWindow->GetWindowId());
+            property_->SetDisplayId(mainWindow->GetDisplayId());
+            TLOGI(WmsLogTag::WMS_DIALOG, "id:%{public}u, parentId: %{public}u",
+                GetWindowId(), mainWindow->GetWindowId());
+        }
+    }
     sptr<WindowImpl> window(this);
     sptr<IWindow> windowAgent(new WindowAgent(window));
     static std::atomic<uint32_t> tempWindowId = 0;
@@ -2165,20 +2210,29 @@ void WindowImpl::CustomHideAnimation()
     }
 }
 
-WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfiguration moveConfiguration)
+WMError WindowImpl::MoveTo(int32_t x, int32_t y,
+    bool isMoveToGlobal, MoveConfiguration moveConfiguration)
 {
+    std::string errMsg;
+    return MoveTo(x, y, isMoveToGlobal, moveConfiguration, errMsg);
+}
+
+WMError WindowImpl::MoveTo(int32_t x, int32_t y,
+    bool isMoveToGlobal, MoveConfiguration moveConfiguration, std::string& errMsg)
+{
+    errMsg.clear();
     WLOGFD("id:%{public}d MoveTo %{public}d %{public}d",
           property_->GetWindowId(), x, y);
     if (!IsWindowValid()) {
+        errMsg = "Window is invalid";
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
 
     Rect rect = (WindowHelper::IsMainFloatingWindow(GetType(), GetWindowMode())) ?
         GetRect() : property_->GetRequestRect();
-    Rect moveRect = { x, y, rect.width_, rect.height_ }; // must keep w/h, which may maintain stashed resize info
+    Rect moveRect = { x, y, rect.width_, rect.height_ };
     property_->SetRequestRect(moveRect);
     {
-        // this lock solves the multithreading problem when reading WindowState
         std::lock_guard<std::recursive_mutex> lock(windowStateMutex_);
         if (state_ == WindowState::STATE_HIDDEN || state_ == WindowState::STATE_CREATED) {
         WLOGFD("window is hidden or created! id: %{public}u, oriPos: [%{public}d, %{public}d, "
@@ -2189,6 +2243,7 @@ WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfig
 
     if (GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING) {
         WLOGFE("fullscreen window could not moveto, winId: %{public}u", GetWindowId());
+        errMsg = "fullscreen window could not moveto";
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     property_->SetWindowSizeChangeReason(WindowSizeChangeReason::MOVE);
@@ -2197,9 +2252,16 @@ WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfig
 
 WMError WindowImpl::Resize(uint32_t width, uint32_t height)
 {
+    std::string errMsg;
+    return Resize(width, height, errMsg);
+}
+
+WMError WindowImpl::Resize(uint32_t width, uint32_t height, std::string& errMsg)
+{
     WLOGFD("id:%{public}d Resize %{public}u %{public}u",
           property_->GetWindowId(), width, height);
     if (!IsWindowValid()) {
+        errMsg = "Window is not valid";
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
 
@@ -2220,6 +2282,7 @@ WMError WindowImpl::Resize(uint32_t width, uint32_t height)
     }
 
     if (GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING) {
+        errMsg = "Fullscreen window could not resize";
         WLOGFE("fullscreen window could not resize, winId: %{public}u", GetWindowId());
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
@@ -2537,14 +2600,23 @@ bool WindowImpl::IsDecorEnable() const
 
 WMError WindowImpl::Maximize()
 {
+    std::string errMsg;
+    return Maximize(errMsg);
+}
+
+WMError WindowImpl::Maximize(std::string& errMsg)
+{
+    errMsg.clear();
     WLOGI("id: %{public}u Maximize", property_->GetWindowId());
     if (!IsWindowValid()) {
+        errMsg = "Window is invalid";
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
         return SetFullScreen(true);
     } else {
         WLOGI("Maximize fail, not main window");
+        errMsg = "Not main window";
         return WMError::WM_ERROR_INVALID_PARAM;
     }
 }
@@ -2645,6 +2717,12 @@ WMError WindowImpl::NotifyWindowTransition(TransitionReason reason)
 
 WMError WindowImpl::Minimize()
 {
+    std::string errMsg;
+    return Minimize(errMsg);
+}
+
+WMError WindowImpl::Minimize(std::string& errMsg)
+{
     WLOGI("id: %{public}u Minimize", property_->GetWindowId());
     if (!IsWindowValid()) {
         return WMError::WM_ERROR_INVALID_WINDOW;
@@ -2665,8 +2743,15 @@ WMError WindowImpl::Minimize()
 
 WMError WindowImpl::Recover()
 {
+    std::string errMsg;
+    return Recover(errMsg);
+}
+
+WMError WindowImpl::Recover(std::string& errMsg)
+{
     WLOGI("id: %{public}u Normalize", property_->GetWindowId());
     if (!IsWindowValid()) {
+        errMsg = "Window is invalid";
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (WindowHelper::IsMainWindow(property_->GetWindowType())) {
@@ -2678,6 +2763,17 @@ WMError WindowImpl::Recover()
         SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     }
     return WMError::WM_OK;
+}
+
+WMError WindowImpl::Recover(uint32_t reason, std::string& errMsg)
+{
+    return Recover(errMsg);
+}
+
+WMError WindowImpl::Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+    std::string& errMsg)
+{
+    return Recover(errMsg);
 }
 
 WMError WindowImpl::Close()

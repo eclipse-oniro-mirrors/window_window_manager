@@ -181,6 +181,9 @@ public:
     virtual WMError SetForegroundWindowNum(uint32_t windowNum);
     virtual WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid);
+    virtual WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid,
+        std::string& errMsg);
 
     /*
      * Window Recover
@@ -225,9 +228,14 @@ public:
      * Window Pattern
      */
     virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit, int32_t persistentId);
+    virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg);
     virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId);
+    virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg);
     virtual WMError RemoveImageForRecent(int32_t persistentId);
+    virtual WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg);
 
     /*
      * Window Animation

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1269,8 +1269,12 @@ HWTEST_F(SceneSessionTest4, SetFrameGravity, TestSize.Level1)
 
     struct RSSurfaceNodeConfig config;
     std::shared_ptr<RSSurfaceNode> surfaceNode = RSSurfaceNode::Create(config);
+    auto rsUIDirector = RSUIDirector::Create(nullptr, nullptr);
+    surfaceNode->SetRSUIContext(rsUIDirector->GetRSUIContext());
     session->surfaceNode_ = surfaceNode;
     ASSERT_EQ(true, session->SetFrameGravity(Gravity::RESIZE));
+    ASSERT_EQ(true, session->SetFrameGravity(Gravity::BOTTOM_LEFT, true));
+    EXPECT_EQ(Gravity::BOTTOM_LEFT, surfaceNode->GetStagingProperties().GetFrameGravity());
     session->surfaceNode_ = nullptr;
     ASSERT_EQ(false, session->SetFrameGravity(Gravity::TOP_LEFT));
 }

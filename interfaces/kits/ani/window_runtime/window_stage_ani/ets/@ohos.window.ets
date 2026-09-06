@@ -3764,8 +3764,16 @@ export class WindowInternal implements Window {
       this.setShadow(this.nativeObj, radius, color, offsetX, offsetY);
     }
 
-    public setTouchableAreas(rects: Array<Rect>): void {
-      this.setTouchableAreas(this.nativeObj, rects);
+    public setTouchableAreas(rects: Array<Rect>): Promise<void> {
+      return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void ): void => {
+        taskpool.execute((): void => {
+          this.setTouchableAreas(this.nativeObj, rects);
+        }).then((ret: Any): void => {
+            resolve(undefined);
+        }).catch((err: Any): void => {
+            reject(err as BusinessError);
+        });
+      });
     }
 
     public setBlur(radius: double): void {
@@ -5595,7 +5603,7 @@ export interface Window {
     setWindowMask(windowMask: Array<Array<long>>): Promise<void>;
     setWindowMaskWithAlpha(windowMask: Uint8Array, maskWidth: int, maskHeight: int): Promise<void>;
     clearWindowMask(): Promise<void>;
-    setTouchableAreas(rects: Array<Rect>): void;
+    setTouchableAreas(rects: Array<Rect>): Promise<void>;
     getUIContext(): UIContext;
     getWindowAvoidArea(type: AvoidAreaType): AvoidArea;
     getWindowAvoidAreaIgnoringVisibility(type: AvoidAreaType): AvoidArea;

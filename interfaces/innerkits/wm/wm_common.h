@@ -676,7 +676,7 @@ enum class WindowSizeChangeReason : uint32_t {
     SPLIT_ENABLE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
     HOOK_INFO_CHANGE,
-    SWITCH_WINDOW_DISPLAY,
+    SWITCH_WINDOW_DISPLAY = 43,
     END,
 };
 
@@ -2212,6 +2212,29 @@ struct PiPTemplateInfo : public Parcelable {
         return true;
     }
 
+    void SetPiPControlStatus(PiPControlType controlType, PiPControlStatus status)
+    {
+        if (static_cast<int32_t>(status) < -1) {
+            for (auto& controlEnableInfo : pipControlEnableInfoList) {
+                if (controlType == controlEnableInfo.controlType) {
+                    controlEnableInfo.enabled = status;
+                    return;
+                }
+            }
+            PiPControlEnableInfo newPiPControlEnableInfo {controlType, status};
+            pipControlEnableInfoList.push_back(newPiPControlEnableInfo);
+        } else {
+            for (auto& controlStatusInfo : pipControlStatusInfoList) {
+                if (controlType == controlStatusInfo.controlType) {
+                    controlStatusInfo.status = status;
+                    return;
+                }
+            }
+            PiPControlStatusInfo newPiPControlStatusInfo {controlType, status};
+            pipControlStatusInfoList.push_back(newPiPControlStatusInfo);
+        }
+    }
+
     static bool ReadPiPTemplateBaseInfo(Parcel& parcel, PiPTemplateInfo* pipTemplateInfo, uint32_t& controlStatusSize)
     {
         if (!parcel.ReadUint32(pipTemplateInfo->pipTemplateType) || !parcel.ReadUint32(pipTemplateInfo->priority)) {
@@ -2238,7 +2261,6 @@ struct PiPTemplateInfo : public Parcelable {
             info.status = static_cast<PiPControlStatus>(status);
             pipTemplateInfo->pipControlStatusInfoList.emplace_back(info);
         }
-        return true;
         uint32_t controlEnableSize = 0;
         if (!parcel.ReadUint32(controlEnableSize) || controlEnableSize > MAX_SIZE_PIP_CONTROL) {
             return false;
@@ -4420,5 +4442,15 @@ struct StartMovingOptions {
 
 bool IsMultiInstanceEnabled();
 }
+
+#ifndef VSYNC_TYPE_H
+#define VSYNC_TYPE_H
+enum class FromWhom : uint8_t {
+    INNER = 0,
+    API = 1,
+};
+
+constexpr FromWhom DEFAULT_FROMWHOM = FromWhom::INNER;
+#endif
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

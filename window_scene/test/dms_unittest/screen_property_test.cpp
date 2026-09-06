@@ -351,6 +351,42 @@ HWTEST_F(ScreenPropertyTest, CalculateXYDpi, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateDpi
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenPropertyTest, UpdateDpi, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: UpdateDpi start";
+    ScreenProperty* property = new (std::nothrow) ScreenProperty();
+    RRect Phybounds;
+    Phybounds.rect_.width_ = 100;
+    Phybounds.rect_.height_ = 200;
+    property->SetPhyBounds(Phybounds);
+
+    property->SetDpiPhyBounds(0, 0);
+    property->UpdateXDpi();
+    property->UpdateYDpi();
+    EXPECT_FLOAT_EQ(property->GetXDpi(), 0);
+    EXPECT_FLOAT_EQ(property->GetYDpi(), 0);
+
+    property->SetDpiPhyBounds(UINT32_MAX, UINT32_MAX);
+    property->UpdateXDpi();
+    property->UpdateYDpi();
+    EXPECT_FLOAT_EQ(property->GetXDpi(), 0);
+    EXPECT_FLOAT_EQ(property->GetYDpi(), 0);
+
+    property->SetDpiPhyBounds(1, 1);
+    property->UpdateXDpi();
+    property->UpdateYDpi();
+    EXPECT_FLOAT_EQ(property->GetXDpi(), 2540);
+    EXPECT_FLOAT_EQ(property->GetYDpi(), 5080);
+
+    delete property;
+    GTEST_LOG_(INFO) << "ScreenPropertyTest: UpdateDpi end";
+}
+
+/**
  * @tc.name: SetOffsetX
  * @tc.desc: normal function
  * @tc.type: FUNC

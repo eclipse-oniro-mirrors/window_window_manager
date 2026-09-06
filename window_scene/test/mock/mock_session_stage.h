@@ -80,6 +80,7 @@ public:
     MOCK_METHOD2(SetPiPControlEvent, WSError(WsPiPControlType controlType, WsPiPControlStatus status));
     MOCK_METHOD2(NotifyDisplayMove, void(DisplayId from, DisplayId to));
     MOCK_METHOD2(SwitchFreeMultiWindow, WSError(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet));
+    MOCK_METHOD1(UpdateScreenSupportMultiWindow, WSError(const std::set<ScreenId>& supportMultiWindowScreenSet));
     MOCK_METHOD1(ConfigDockAutoHide, WSError(bool isDockAutoHide));
     MOCK_METHOD2(SetUniqueVirtualPixelRatio, void(bool useUniqueDensity, float virtualPixelRatio));
     MOCK_METHOD1(UpdateAnimationSpeed, void(float speed));

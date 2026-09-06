@@ -3397,6 +3397,31 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionConfig, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateExtensionConfigWindowMode
+ * @tc.desc: UpdateExtensionConfig window mode test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionConfigWindowMode, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateExtensionConfigWindowMode");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    SessionInfo sessionInfo;
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+
+    auto want = std::make_shared<AAFwk::Want>();
+    AAFwk::WantParams configParam;
+    AAFwk::WantParams wantParam(want->GetParams());
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    configParam.SetParam("ohos.system.window.mode",
+        AAFwk::Integer::Box(static_cast<int32_t>(WindowMode::WINDOW_MODE_FLOATING)));
+    wantParam.SetParam(Extension::UIEXTENSION_CONFIG_FIELD, AAFwk::WantParamWrapper::Box(configParam));
+    want->SetParams(wantParam);
+    window->UpdateExtensionConfig(want);
+    EXPECT_EQ(window->property_->GetWindowMode(), WindowMode::WINDOW_MODE_FLOATING);
+}
+
+/**
  * @tc.name: IsComponentFocused
  * @tc.desc: IsComponentFocused test
  * @tc.type: FUNC

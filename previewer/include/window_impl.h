@@ -114,6 +114,8 @@ public:
     virtual WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
+    virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+        MoveConfiguration moveConfiguration, std::string& errMsg) override;
     virtual WMError Resize(uint32_t width, uint32_t height) override;
     virtual WMError SetWindowGravity(WindowGravity gravity, uint32_t percent) override;
     virtual WMError SetKeepScreenOn(bool keepScreenOn) override;
@@ -146,7 +148,12 @@ public:
 
     virtual WMError Maximize() override;
     virtual WMError Minimize() override;
+    virtual WMError Minimize(std::string& errMsg) override;
     virtual WMError Recover() override;
+    virtual WMError Recover(std::string& errMsg) override;
+    virtual WMError Recover(uint32_t reason, std::string& errMsg) override;
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+        std::string& errMsg) override;
     virtual WMError Close() override;
     virtual void StartMove() override;
 
@@ -247,7 +254,7 @@ public:
     virtual WmErrorCode KeepKeyboardOnFocus(bool keepKeyboardFlag) override;
     virtual WMError SetSingleFrameComposerEnabled(bool enable) override;
     virtual WMError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
     virtual void SetTouchEvent(int32_t touchType) override;
 
     /*

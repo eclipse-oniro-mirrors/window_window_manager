@@ -369,7 +369,10 @@ void SuperFoldStateManager::HandleSuperFoldStatusChange(SuperFoldStatusChangeEve
         action = item->second.action;
         isTransfer = true;
     }
-
+    if (ScreenSessionManager::GetInstance().IsSuperFoldMultiPadMode()) {
+        TLOGD(WmsLogTag::DMS, "pad mode cannot transfer state");
+        isTransfer = false;
+    }
     float curAngle = SuperFoldSensorManager::GetInstance().GetCurAngle();
     TLOGD(WmsLogTag::DMS, "curAngle: %{public}f", curAngle);
     if (isTransfer && action) {
@@ -512,6 +515,7 @@ sptr<FoldCreaseRegion> SuperFoldStateManager::GetCurrentFoldCreaseRegion()
 FoldCreaseRegion SuperFoldStateManager::GetLiveCreaseRegion()
 {
     TLOGI(WmsLogTag::DMS, "enter");
+    std::lock_guard<std::mutex> lock_mode(liveCreaseRegionMutex_);
     SuperFoldStatus curFoldState = ScreenSessionManager::GetInstance().GetSuperFoldStatus();
     if (curFoldState == SuperFoldStatus::UNKNOWN || curFoldState == SuperFoldStatus::FOLDED) {
         return FoldCreaseRegion(0, {});
@@ -954,7 +958,7 @@ DMError SuperFoldStateManager::RefreshMirrorRegionInner(
     secondarySession->SetMirrorScreenRegion(secondarySession->GetScreenId(), mirrorRegion);
     secondarySession->SetIsPhysicalMirrorSwitch(true);
     secondarySession->EnableMirrorScreenRegion();
-    RSDisplayNodeConfig config = { secondarySession->rsId_, true, displayNode->GetId() };
+    RSDisplayNodeConfig config = { secondarySession->rsId_, DisplayMode::MIRROR, displayNode->GetId() };
     secondarySession->ReuseDisplayNode(config);
     return DMError::DM_OK;
 }

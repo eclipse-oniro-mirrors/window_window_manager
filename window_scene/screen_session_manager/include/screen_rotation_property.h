@@ -52,7 +52,8 @@ public:
     static void HandleSensorEventInput(DeviceRotation deviceRotation);
     static void HandleHoverStatusEventInput(DeviceHoverStatus hoverStatus, bool needRotate = true);
 
-    static bool isDeviceHorizontal();
+    static bool IsDeviceHorizontal();
+
 private:
     static float ConvertDeviceToFloat(DeviceRotation deviceRotation);
     

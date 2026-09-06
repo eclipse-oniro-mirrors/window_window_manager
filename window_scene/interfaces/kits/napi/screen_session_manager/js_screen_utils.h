@@ -26,6 +26,7 @@ namespace OHOS::Rosen {
 bool ConvertRRectFromJs(napi_env env, napi_value jsObject, RRect& bound);
 bool ConvertDMRectFromJs(napi_env env, napi_value jsObject, DMRect& rect);
 bool ConvertScreenDirectionInfoFromJs(napi_env env, napi_value jsObject, ScreenDirectionInfo& directionInfo);
+bool ParseArrayStringValue(napi_env env, napi_value array, std::vector<std::string>& vector);
 napi_value NapiGetUndefined(napi_env env);
 bool NapiIsCallable(napi_env env, napi_value value);
 class JsScreenUtils {
@@ -37,7 +38,6 @@ public:
     static napi_value CreateJsFoldStatus(napi_env env);
     static napi_value CreateJsScreenPropertyChangeType(napi_env env);
     static napi_value CreateJsScreenClosedState(napi_env env);
-    static napi_value CreateJsMotionType(napi_env env);
     static napi_value CreateJsScreenPowerState(napi_env env);
     static napi_value CreateJsSuperFoldStatus(napi_env env);
     static napi_value CreateJsExtendScreenConnectStatus(napi_env env);

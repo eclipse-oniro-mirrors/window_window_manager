@@ -48,6 +48,7 @@ private:
 
     bool IsValidDigitString(const std::string& idStr) const;
     std::string TransferTypeToString(ScreenType type) const;
+    std::string TransferDisplayModeToString(DisplayMode type) const;
     void GetScreenInfo(const sptr<AbstractScreen>& screen, std::ostringstream& oss) const;
     void GetDisplayInfo(const sptr<AbstractDisplay>& display, std::ostringstream& oss) const;
 

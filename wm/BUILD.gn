@@ -313,7 +313,6 @@ ohos_shared_library("libwm") {
     "ace_engine:ace_uicontent",
     "ace_engine:ace_xcomponent_controller",
     "bundle_framework:appexecfwk_core",
-    "bundle_framework:libappexecfwk_common",
     "c_utils:utils",
     "eventhandler:libeventhandler",
     "graphic_2d:librender_service_base",
@@ -439,6 +438,9 @@ ohos_shared_library("libwm_lite") {
     "init:libbegetutil",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   defines += [ "FRAME_TRACE_ENABLE" ]
@@ -533,6 +535,9 @@ ohos_shared_library("libwm_ndk") {
     "input:libmmi-client",
     "input:oh_input_manager",
     "ipc:ipc_core",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   part_name = "window_manager"
@@ -733,6 +738,8 @@ ohos_shared_library("libmmi_client_adapter") {
     "input:libmmi-client",
     "ipc:ipc_single",
     "hilog:libhilog",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
     part_name = "window_manager"

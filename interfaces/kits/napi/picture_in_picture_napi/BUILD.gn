@@ -19,6 +19,7 @@ config("pip_config") {
   include_dirs = [
     "../../../../wm/include",
     "../../../../utils/include",
+    "../common",
   ]
 }
 
@@ -47,6 +48,7 @@ ohos_shared_library("pipwindow_kit") {
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",
+    "../common:dm_napi_common",
   ]
 
   external_deps = [

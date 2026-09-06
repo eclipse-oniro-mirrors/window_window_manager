@@ -99,6 +99,7 @@ wmutil_sources = [
   "src/window_frame_trace_impl.cpp",
   "src/window_property.cpp",
   "src/window_transition_info.cpp",
+  "src/float_window_error_msg.cpp",
 ]
 
 wmutil_external_deps = [
@@ -127,6 +128,9 @@ wmutil_external_deps = [
   "ipc:ipc_single",
   "preferences:native_preferences",
   "samgr:samgr_proxy",
+  "napi:ace_napi",
+  "node:node_header_notice",
+  "libuv:uv",
 ]
 
 ## build libwmutil_static.a
@@ -208,6 +212,7 @@ ohos_shared_library("libwmutil_base") {
     "src/unreliable_window_info.cpp",
     "src/window_drawing_content_info.cpp",
     "src/window_error_msg.cpp",
+    "src/window_focus_error_msg_helper.cpp",
     "src/window_manager_hilog.cpp",
     "src/window_pid_visibility_info.cpp",
     "src/window_visibility_info.cpp",
@@ -224,6 +229,9 @@ ohos_shared_library("libwmutil_base") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "init:libbegetutil",
+    "napi:ace_napi",
+    "node:node_header_notice",
+    "libuv:uv",
   ]
 
   ldflags = [ "-Wl,-Bsymbolic-functions" ]

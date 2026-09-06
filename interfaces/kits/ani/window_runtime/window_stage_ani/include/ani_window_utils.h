@@ -272,7 +272,7 @@ public:
     static bool ParseAndCheckRect(ani_env* env, ani_object rect, const Rect& windowRect, Rect& touchableRect);
     static ani_object CreateOptionalBool(ani_env *env, ani_boolean value);
     static ani_object CreateOptionalInt(ani_env *env, ani_int value);
-    static void GetWindowSnapshotConfiguration(ani_env* env, ani_object config,
+    static bool GetWindowSnapshotConfiguration(ani_env* env, ani_object config,
         WindowSnapshotConfiguration& windowSnapshotConfiguration);
     static bool ParseWindowLimits(ani_env* env, ani_object aniWindowLimits, WindowLimits& windowLimits);
     static bool ParseWindowAnchorInfo(ani_env* env, ani_object aniWindowAnchorInfo, WindowAnchorInfo& windowAnchorInfo);

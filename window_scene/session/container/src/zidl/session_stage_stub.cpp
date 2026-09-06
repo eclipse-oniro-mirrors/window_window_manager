@@ -308,6 +308,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleSetIsStartMoving(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_LS_STATE):
             return HandleUpdateLSState(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW):
+            return HandleUpdateScreenSupportMultiWindow(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1921,6 +1923,24 @@ int SessionStageStub::HandleUpdateLSState(MessageParcel& data, MessageParcel& re
 {
     bool isLSState = data.ReadBool();
     WSError errCode = UpdateLSState(isLSState);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleUpdateScreenSupportMultiWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT_PC, "called!");
+    std::set<ScreenId> supportMultiWindowScreenSet;
+    uint32_t screenSetSize = data.ReadUint32();
+    if (screenSetSize > MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT_PC, "screenSetSize %{public}u exceed max %{public}u",
+            screenSetSize, MAX_SUPPORT_MULTI_WINDOW_SCREEN_SIZE);
+        return ERR_INVALID_DATA;
+    }
+    for (uint32_t i = 0; i < screenSetSize; ++i) {
+        supportMultiWindowScreenSet.insert(static_cast<ScreenId>(data.ReadUint64()));
+    }
+    WSError errCode = UpdateScreenSupportMultiWindow(supportMultiWindowScreenSet);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }

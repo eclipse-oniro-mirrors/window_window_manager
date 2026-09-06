@@ -45,9 +45,15 @@ public:
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
+    WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+        const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
+        bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
     WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
+    WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+        MoveConfiguration moveConfiguration, std::string& errMsg) override;
     WMError Resize(uint32_t width, uint32_t height) override;
+    WMError Resize(uint32_t width, uint32_t height, std::string& errMsg) override;
     WMError TransferAbilityResult(uint32_t resultCode, const AAFwk::Want& want) override;
     WMError TransferExtensionData(const AAFwk::WantParams& wantParams) override;
     WSError NotifyTransferComponentData(const AAFwk::WantParams& wantParams) override;
@@ -74,6 +80,7 @@ public:
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;
     WMError SetWindowMode(WindowMode mode) override;
+    WMError SetWindowMode(WindowMode mode, std::string& errMsg) override;
 
     /*
      * Window Privacy
@@ -151,6 +158,7 @@ public:
     Rect GetHostWindowRect(int32_t hostWindowId) override;
     Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize, std::string& errMsg) override;
     bool IsComponentFocused() const override;
 
     /*
@@ -228,6 +236,7 @@ public:
     WMError SetStatusBarColorForExtensionInner(uint32_t color);
     bool IsBlockSubwindow() const override;
     WMError GetWindowStatus(WindowStatus& windowStatus) override;
+    WMError GetWindowStatus(WindowStatus& windowStatus, std::string& errMsg) override;
 
 protected:
     NotifyTransferComponentDataFunc notifyTransferComponentDataFunc_;

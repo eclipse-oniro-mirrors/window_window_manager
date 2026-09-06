@@ -539,7 +539,7 @@ private:
     void ChangeSessionVisibilityWithStatusBar(const SessionInfo& info, bool visible);
     void ChangeSessionVisibilityWithStatusBarInner(std::shared_ptr<SessionInfo> sessionInfo, bool visible);
     void OnBufferAvailableChange(const bool isBufferAvailable, bool startWindowInvisible = false);
-    void OnCreateSubSession(const sptr<SceneSession>& sceneSession);
+    void OnCreateSubSession(const sptr<SceneSession>& sceneSession, bool isBoundedSystemTray);
     void OnClearSubSession(int32_t subPersistentId);
     void OnBindDialogTarget(const sptr<SceneSession>& sceneSession);
     void OnSessionRectChange(const WSRect& rect,
@@ -597,7 +597,7 @@ private:
     void OnUpdateAppUseControl(ControlAppType type, bool isNeedControl, bool isControlRecentOnly);
     void OnWindowMoving(DisplayId displayId, int32_t pointerX, int32_t pointerY);
     void UpdateSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-        const std::string& updatedIconPath);
+        const std::string& updatedIconPath, const std::string& groupId = "");
     void OnKeyboardStateChange(SessionState state, const KeyboardEffectOption& effectOption,
         const uint32_t callingSessionId, const DisplayId targetDisplayId);
     void OnKeyboardEffectOptionChange(const KeyboardEffectOption& effectOption);

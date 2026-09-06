@@ -236,6 +236,12 @@ std::vector<sptr<SupportedScreenModes>> Screen::GetSupportedModes() const
     return pImpl_->GetScreenInfo()->GetModes();
 }
 
+bool Screen::GetIsInUse() const
+{
+    UpdateScreenInfo();
+    return pImpl_->GetScreenInfo()->GetIsInUse();
+}
+
 DMError Screen::SetScreenActiveMode(uint32_t modeId)
 {
     ScreenId screenId = GetId();

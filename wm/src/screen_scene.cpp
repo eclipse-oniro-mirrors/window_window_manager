@@ -40,6 +40,7 @@ namespace Rosen {
 namespace {
 constexpr float MIN_DPI = 1e-6;
 std::atomic<bool> g_ssIsDestroyed = false;
+std::atomic<bool> g_isInputEventListenerRegistered = false;
 const std::string INPUT_AND_VSYNC_THREAD = "InputAndVsyncThread";
 } // namespace
 
@@ -51,6 +52,11 @@ ScreenScene::ScreenScene(std::string name) : name_(name)
     handler_ = std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::GetMainEventRunner());
     g_ssIsDestroyed = false;
     displayId_ = DISPLAY_ID_INVALID;
+    densityUpdateCallback_ = [](DisplayId displayId, float density) {
+        if (RootScene::staticRootScene_ != nullptr) {
+            RootScene::staticRootScene_->SetDisplayDensity(density, displayId);
+        }
+    };
 }
 
 ScreenScene::~ScreenScene()
@@ -110,7 +116,9 @@ void ScreenScene::LoadContent(const std::string& contentUrl, napi_env env, napi_
     uiContent_->SetFrameLayoutFinishCallback(std::move(frameLayoutFinishCb_));
     wptr<Window> weakWindow(this);
     RootScene::staticRootScene_->AddRootScene(displayId_, weakWindow);
-    RegisterInputEventListener();
+    if (!g_isInputEventListenerRegistered.exchange(true)) {
+        RegisterInputEventListener();
+    }
 }
 
 void ScreenScene::RegisterInputEventListener()
@@ -245,6 +253,11 @@ void ScreenScene::SetDisplayDensity(float density)
         return;
     }
     density_ = density;
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "screen: hasCallback=%{public}d, dpi=%{public}f, display=%{public}" PRIu64,
+        densityUpdateCallback_ != nullptr, density, displayId_);
+    if (densityUpdateCallback_) {
+        densityUpdateCallback_(displayId_, density);
+    }
 }
 
 uint64_t ScreenScene::GetDisplayId() const

@@ -83,6 +83,7 @@ enum XmlNodeElement {
     ENABLE_ROG,
     ROG_RESOLUTION,
     ROG_DPI,
+    ROG_MODE,
 };
 }
 
@@ -106,7 +107,10 @@ uint32_t ScreenSceneConfig::curvedAreaInLandscape_ = 0;
 uint32_t ScreenSceneConfig::offScreenPPIThreshold_ = 0;
 uint64_t ScreenSceneConfig::bootTimeThreshold_ =
     system::GetIntParameter<int32_t>("persist.window.boot.threshold", 60); // default 60s
+static const std::string FOUNDATION_CRASH_REBOOT_KEY = "dms.foundation.restart";
+static const std::string FOUNDATION_CRASH_REBOOT_FLAG = "1";
 int32_t ScreenSceneConfig::rogDpi_ = 0;
+uint32_t ScreenSceneConfig::rogMode_ = 0;
 RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 0, 0, 0, 0 };
 std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {DPI, "dpi"},
@@ -151,6 +155,7 @@ std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {ENABLE_ROG, "enableRog"},
     {ROG_RESOLUTION, "rogResolution"},
     {ROG_DPI, "rogDpi"},
+    {ROG_MODE, "rogMode"},
 };
 
 std::vector<std::string> ScreenSceneConfig::Split(std::string str, std::string pattern)
@@ -261,6 +266,7 @@ void ScreenSceneConfig::ParseNodeConfig(const xmlNodePtr& currNode)
         (xmlNodeMap_[POSTURE_SIZE] == nodeName) ||
         (xmlNodeMap_[HALL_SIZE] == nodeName) ||
         (xmlNodeMap_[WAIT_COORDINATION_READY_MAX_TIME] == nodeName) ||
+        (xmlNodeMap_[ROG_MODE] == nodeName) ||
         (xmlNodeMap_[ROG_DPI] == nodeName);
     bool stringConfigCheck = (xmlNodeMap_[DEFAULT_DISPLAY_CUTOUT_PATH] == nodeName) ||
         (xmlNodeMap_[SUB_DISPLAY_CUTOUT_PATH] == nodeName) ||
@@ -573,24 +579,26 @@ void ScreenSceneConfig::SetRogResolution(const RogResolution& rogResolution)
 RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t height)
 {
     if (rogResolution_.notInit) {
-        bool isBoot = (GetUptimeSeconds() <= bootTimeThreshold_);
-        if (isBoot) {
+        rogMode_ = GetRogMode();
+        if (GetIsBoot()) {
             bool apsUserset = (system::GetIntParameter<int32_t>("persist.aps.rog.userset", 0) > 0);
             bool apsSupport = (system::GetIntParameter<int32_t>("persist.aps.rog.support", 0) > 0);
             uint32_t apsWidth = system::GetIntParameter<int32_t>("persist.aps.rog.width", 0);
             uint32_t apsHeight = system::GetIntParameter<int32_t>("persist.aps.rog.height", 0);
             float apsDpi = static_cast<float>(system::GetIntParameter<int32_t>("persist.aps.rog.density", 0));
             if (apsUserset && apsSupport && apsWidth > 0 && apsHeight > 0 && apsDpi > 0) {
-                SetRogResolution(RogResolution{ true, false, 0, apsDpi, apsWidth, apsHeight });
+                SetRogResolution(RogResolution{ true, false, rogMode_, apsDpi, apsWidth, apsHeight });
             } else if (!apsUserset && enableRog_ && rogResolution_.width > 0 && rogResolution_.height > 0 &&
                        GetRogDpi() > 0) {
-                SetRogResolution(RogResolution{ true, false, 0, rogDpi_, rogResolution_.width, rogResolution_.height });
+                SetRogResolution(RogResolution{ true, false, rogMode_, rogDpi_, rogResolution_.width,
+                    rogResolution_.height });
             } else {
                 int32_t densityDpi = 0;
                 if (intNumbersConfig_.count(xmlNodeMap_[DPI]) != 0) {
                     densityDpi = intNumbersConfig_[xmlNodeMap_[DPI]][0];
                 }
-                SetRogResolution(RogResolution{ false, false, 0, static_cast<float>(densityDpi), width, height });
+                SetRogResolution(RogResolution{ false, false, rogMode_, static_cast<float>(densityDpi), width,
+                    height });
             }
             TLOGNFI(WmsLogTag::DMS, "rogResolution Init");
         } else {
@@ -603,11 +611,11 @@ RogResolution ScreenSceneConfig::GetRogResolution(uint32_t width, uint32_t heigh
             }
             float dmsDpi =
                 static_cast<float>(system::GetIntParameter<int32_t>("persist.window.screen.dpi", densityDpi));
-            SetRogResolution(RogResolution{ dmsSupport, false, 0, dmsDpi, dmsWidth, dmsHeight });
+            SetRogResolution(RogResolution{ dmsSupport, false, rogMode_, dmsDpi, dmsWidth, dmsHeight });
             TLOGNFI(WmsLogTag::DMS, "rogResolution Recover");
         }
     }
-    TLOGNFI(WmsLogTag::DMS, "rogResolution - [%{public}u, %{public}u, %{public}u, %{public}f, %{public}d]",
+    TLOGNFI(WmsLogTag::DMS, "rogResolution - [%{public}u, %{public}u, %{public}u, %{public}f, %{public}u]",
             rogResolution_.width, rogResolution_.height, rogResolution_.isSupportRog,
             rogResolution_.dpi, rogResolution_.rogMode);
     return rogResolution_;
@@ -845,6 +853,14 @@ int32_t ScreenSceneConfig::GetRogDpi()
     return rogDpi_;
 }
 
+uint32_t ScreenSceneConfig::GetRogMode()
+{
+    if (enableRog_ && intNumbersConfig_[xmlNodeMap_[ROG_MODE]].size() > 0) {
+        rogMode_ = static_cast<int32_t>(intNumbersConfig_[xmlNodeMap_[ROG_MODE]][0]);
+    }
+    return rogMode_;
+}
+
 void ScreenSceneConfig::SetCurvedCompressionAreaInLandscape()
 {
     if (intNumbersConfig_[xmlNodeMap_[CURVED_AREA_IN_LANDSCAPE]].size() > 0) {
@@ -929,5 +945,10 @@ uint32_t ScreenSceneConfig::GetNumberConfigValue(const std::string& name, const 
     }
     TLOGNFI(WmsLogTag::DMS, "default %{public}s = %{public}u", name.c_str(), default_value);
     return default_value;
+}
+
+bool ScreenSceneConfig::GetIsBoot()
+{
+    return (OHOS::system::GetParameter(FOUNDATION_CRASH_REBOOT_KEY, "0") != FOUNDATION_CRASH_REBOOT_FLAG);
 }
 } // namespace OHOS::Rosen

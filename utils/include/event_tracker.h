@@ -69,12 +69,12 @@ public:
         
         std::lock_guard<std::mutex> lock(mutex_);
         for (const auto& info : recordInfos_) {
-            TLOGW(WmsLogTag::DMS, "[%{public}s]: %{public}s",
+            TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "[%{public}s]: %{public}s",
                 formatTimestamp(info.timestamp).c_str(), info.info.c_str());
         }
 
         for (const auto& info : recordBoundsInfos_) {
-            TLOGW(WmsLogTag::DMS, "[%{public}s]: %{public}s",
+            TLOGE_LIMITN_MIN(WmsLogTag::DMS, THREE_TIMES, "[%{public}s]: %{public}s",
                 formatTimestamp(info.timestamp).c_str(), info.info.c_str());
         }
     }
@@ -102,14 +102,14 @@ public:
         return oss.str();
     }
 
-    const std::vector<TrackInfo>& GetRecordInfos()
+    std::vector<TrackInfo> GetRecordInfos()
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        allRecordInfos_ = recordInfos_;
+        std::vector<TrackInfo> result = recordInfos_;
         for (auto info : recordBoundsInfos_) {
-            allRecordInfos_.emplace_back(info);
+            result.emplace_back(info);
         }
-        return allRecordInfos_;
+        return result;
     }
 
 private:
@@ -117,7 +117,6 @@ private:
     mutable std::chrono::system_clock::time_point lastOutputTime_;
     std::vector<TrackInfo> recordInfos_;
     std::list<TrackInfo> recordBoundsInfos_;
-    std::vector<TrackInfo> allRecordInfos_;
 };
 
 

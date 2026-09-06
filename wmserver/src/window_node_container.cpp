@@ -963,7 +963,10 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused)
     }
     node->isFocused_ = focused;
     // change focus window shadow
-    WindowSystemEffect::SetWindowShadow(node);
+    WMError ret = WindowSystemEffect::SetWindowShadow(node);
+    if (ret != WMError::WM_OK) {
+        WLOGFW("SetWindowShadow error, ret: %{public}d", ret);
+    }
     if (node->GetCallingPid() == 0) {
         WLOGFW("focused window is starting window, no need notify");
         return;
@@ -1441,7 +1444,7 @@ void WindowNodeContainer::NotifyIfKeyboardRegionChanged(const sptr<WindowNode>& 
             callingWindow->GetWindowToken()->UpdateOccupiedAreaChangeInfo(info, avoidAreas);
         }
 
-        WLOGD("keyboard size change callingWindow: [%{public}s, %{public}u], "
+        WLOGD("keyboard size change callingWindow: [%{private}s, %{public}u], "
             "overlap rect: [%{public}d, %{public}d, %{public}u, %{public}u]",
             callingWindow->GetWindowName().c_str(), callingWindow->GetWindowId(),
             overlapRect.posX_, overlapRect.posY_, overlapRect.width_, overlapRect.height_);

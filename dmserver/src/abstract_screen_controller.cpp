@@ -110,7 +110,7 @@ std::vector<ScreenId> AbstractScreenController::GetAllValidScreenIds(const std::
     return validScreenIds;
 }
 
-const std::shared_ptr<RSDisplayNode>& AbstractScreenController::GetRSDisplayNodeByScreenId(ScreenId dmsScreenId) const
+const std::shared_ptr<RSDisplayNode> AbstractScreenController::GetRSDisplayNodeByScreenId(ScreenId dmsScreenId) const
 {
     static std::shared_ptr<RSDisplayNode> notFound = nullptr;
     sptr<AbstractScreen> screen = GetAbstractScreen(dmsScreenId);

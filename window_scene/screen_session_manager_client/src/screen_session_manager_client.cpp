@@ -385,17 +385,6 @@ void ScreenSessionManagerClient::OnSensorRotationChanged(ScreenId screenId, floa
     screenSession->SensorRotationChange(sensorRotation, isSwitchUser);
 }
 
-void ScreenSessionManagerClient::OnSmartSensorRotationChanged(ScreenId screenId, float sensorRotation,
-    bool isSwitchUser)
-{
-    auto screenSession = GetScreenSession(screenId);
-    if (!screenSession) {
-        TLOGE(WmsLogTag::DMS, "screenSession is null");
-        return;
-    }
-    screenSession->SmartSensorRotationChange(sensorRotation, isSwitchUser);
-}
-
 void ScreenSessionManagerClient::OnHoverStatusChanged(ScreenId screenId, int32_t hoverStatus, bool needRotate)
 {
     auto screenSession = GetScreenSession(screenId);
@@ -1105,7 +1094,8 @@ void ScreenSessionManagerClient::UpdateDisplayScale(ScreenId id, float scaleX, f
     session->SetScreenScale(scaleX, scaleY, pivotX, pivotY, translateX, translateY);
 }
 
-void ScreenSessionManagerClient::ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName)
+void ScreenSessionManagerClient::ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+    uint32_t tokenId, const std::vector<std::string>& permissions)
 {
     sptr<ScreenSession> screenSession = GetScreenSession(mainScreenId);
     if (!screenSession) {
@@ -1113,7 +1103,7 @@ void ScreenSessionManagerClient::ScreenCaptureNotify(ScreenId mainScreenId, int3
         return;
     }
     TLOGI(WmsLogTag::DMS, "capture screenId: %{public}" PRIu64", uid=%{public}d", mainScreenId, uid);
-    screenSession->ScreenCaptureNotify(mainScreenId, uid, clientName);
+    screenSession->ScreenCaptureNotify(mainScreenId, uid, clientName, tokenId, permissions);
 }
 
 void ScreenSessionManagerClient::OnSuperFoldStatusChanged(ScreenId screenId, SuperFoldStatus superFoldStatus)
@@ -1731,19 +1721,6 @@ void ScreenSessionManagerClient::NotifySwitchUserAnimationFinishByWindow()
     screenSessionManager_->NotifySwitchUserAnimationFinish();
 }
 
-void ScreenSessionManagerClient::SubscribeMotionSensor(int32_t motionType)
-{
-    TLOGI(WmsLogTag::WMS_ROTATION, "SubscribeMotionSensor motionType: %{public}d", motionType);
-    screenSessionManager_->SubscribeMotionSensor(motionType);
-}
-
-void ScreenSessionManagerClient::UnsubscribeMotionSensor(int32_t motionType)
-{
-    TLOGI(WmsLogTag::WMS_ROTATION, "UnsubscribeMotionSensor motionType: %{public}d", motionType);
-    screenSessionManager_->UnsubscribeMotionSensor(motionType);
-}
-
-
 void ScreenSessionManagerClient::OnAnimationFinish()
 {
     std::lock_guard<std::mutex> lock(animateFinishNotificationSetMutex_);
@@ -1782,8 +1759,10 @@ bool ScreenSessionManagerClient::GetSupportsFocus(DisplayId displayId)
         return false;
     }
     bool supportsFocus = screenSession->GetSupportsFocus();
-    TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64", supportsFocus: %{public}d", displayId, supportsFocus);
-    return supportsFocus;
+    bool isInUse = screenSession->isInUse();
+    TLOGD(WmsLogTag::DMS, "displayId: %{public}" PRIu64", supportsFocus: %{public}d, isInUse: %{public}d",
+        displayId, supportsFocus, isInUse);
+    return supportsFocus && isInUse;
 }
 
 void ScreenSessionManagerClient::RegisterTransRSEventListener(
@@ -1865,5 +1844,13 @@ void ScreenSessionManagerClient::OnTransRSEvent(const sptr<RSEventDataBase>& dat
             listener->OnTransRSEvent(data);
         }
     }
+}
+void ScreenSessionManagerClient::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    if (!screenSessionManager_) {
+        TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
+        return;
+    }
+    return screenSessionManager_->SetHoverBlockList(hoverBlockList);
 }
 } // namespace OHOS::Rosen

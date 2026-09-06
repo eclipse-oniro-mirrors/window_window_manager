@@ -252,12 +252,6 @@ HWTEST_F(WindowRecoverSessionTest, CheckSessionPropertyOnRecovery, TestSize.Leve
     result = ssm_->CheckSessionPropertyOnRecovery(property, false);
     ASSERT_EQ(result, WSError::WS_OK);
 
-    // 特殊窗，parentPersistentId无效，不需要恢复
-    property->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
-    property->SetParentPersistentId(INVALID_SESSION_ID);
-    result = ssm_->CheckSessionPropertyOnRecovery(property, true);
-    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
-
     // 特殊窗，parentPersistentId有效，需要恢复
     property->SetParentPersistentId(111);
     result = ssm_->CheckSessionPropertyOnRecovery(property, true);
@@ -343,13 +337,7 @@ HWTEST_F(WindowRecoverSessionTest, RecoverAndConnectSpecificSession, TestSize.Le
     property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     property->SetParentPersistentId(111);
-    ssm_->SetAlivePersistentIds({ 111 });
-    // 1.已经恢复结束
-    ssm_->recoveringFinished_ = true;
-    result = ssm_->RecoverAndConnectSpecificSession(sessionStage, eventChannel, surfaceNode, property, session, token);
-    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_OPERATION);
-
-    ssm_->recoveringFinished_ = false;
+    ssm_->SetAlivePersistentIds({111});
     SessionInfo sessionInfo;
     sessionInfo.abilityName_ = "testSceneSession1";
     sessionInfo.moduleName_ = "testSceneSession2";
@@ -593,7 +581,7 @@ HWTEST_F(WindowRecoverSessionTest, RecoverCachedSubSession, TestSize.Level1)
     parentInfo.abilityName_ = "ParentSession";
     sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(parentInfo, nullptr);
     ssm_->sceneSessionMap_[123] = parentSession;
-    NotifyCreateSubSessionFunc func = [](const sptr<SceneSession>& session) {};
+    NotifyCreateSubSessionFunc func = [](const sptr<SceneSession>& session, bool isBoundedSystemTray) {};
     ssm_->createSubSessionFuncMap_[123] = func;
 
     ssm_->recoverSubSessionCacheMap_[123].emplace_back(sceneSession);
@@ -850,6 +838,91 @@ HWTEST_F(WindowRecoverSessionTest, SetEnableInputEvent, TestSize.Level1)
     EXPECT_EQ(ssm_->displayBrightness_, UNDEFINED_BRIGHTNESS);
     ssm_->SetEnableInputEvent(true);
     EXPECT_EQ(ssm_->displayBrightness_, INVALID_BRIGHTNESS);
+}
+
+/**
+ * @tc.name: RecoverSupportedWindowModes001
+ * @tc.desc: test func RecoverSupportedWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, RecoverSupportedWindowModes001, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "RecoverSupportedWindowModes001";
+    info.abilityName_ = "RecoverSupportedWindowModes001";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes = { AppExecFwk::SupportWindowMode::FLOATING };
+    property->SetSupportedWindowModes(supportedWindowModes);
+
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->RecoverSupportedWindowModes(sceneSession, property);
+    SessionInfo infoResult = property->GetSessionInfo();
+    EXPECT_EQ(infoResult.supportedWindowModes.size(), 1);
+    EXPECT_EQ(sceneSession->GetSessionInfo().supportedWindowModes.size(), 1);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RecoverSupportedWindowModes002
+ * @tc.desc: test func RecoverSupportedWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, RecoverSupportedWindowModes002, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "RecoverSupportedWindowModes002";
+    info.abilityName_ = "RecoverSupportedWindowModes002";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes = { AppExecFwk::SupportWindowMode::FLOATING };
+    sceneSession->SetSessionInfoSupportedWindowModes(supportedWindowModes);
+    property->EditSessionInfo().supportedWindowModes = supportedWindowModes;
+
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    ssm_->RecoverSupportedWindowModes(sceneSession, property);
+    SessionInfo infoResult = property->GetSessionInfo();
+    EXPECT_EQ(infoResult.supportedWindowModes.size(), 0);
+    EXPECT_EQ(sceneSession->GetSessionInfo().supportedWindowModes.size(), 0);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RecoverSupportedWindowModes003
+ * @tc.desc: test func RecoverSupportedWindowModes
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, RecoverSupportedWindowModes003, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "RecoverSupportedWindowModes003";
+    info.abilityName_ = "RecoverSupportedWindowModes003";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    std::vector<AppExecFwk::SupportWindowMode> supportedWindowModes = { AppExecFwk::SupportWindowMode::FLOATING };
+    sceneSession->SetSessionInfoSupportedWindowModes(supportedWindowModes);
+    property->EditSessionInfo().supportedWindowModes = supportedWindowModes;
+
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
+    ssm_->RecoverSupportedWindowModes(sceneSession, property);
+    SessionInfo infoResult = property->GetSessionInfo();
+    EXPECT_EQ(infoResult.supportedWindowModes.size(), 0);
+    EXPECT_EQ(sceneSession->GetSessionInfo().supportedWindowModes.size(), 0);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
 
 } // namespace

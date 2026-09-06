@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include <parameters.h>
 #include "ability_context_impl.h"
+#include "common/include/fold_screen_state_internel.h"
 #include "display_info.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
@@ -2597,6 +2598,84 @@ HWTEST_F(WindowSceneSessionImplTest2, SetFullScreen, TestSize.Level0)
     compatibleModeProperty->SetDisableFullScreen(true);
     window->property_->SetCompatibleModeProperty(compatibleModeProperty);
     ASSERT_EQ(WMError::WM_OK, window->SetFullScreen(true));
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_SpnBranch
+ * @tc.desc: Test RaiseMainWindowAboveTarget on SPN outer screen, should return WM_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnBranch, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnBranch");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    sourceSession->property_->SetPersistentId(301);
+    WMError ret = sourceSession->RaiseMainWindowAboveTarget(302);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_NotSpnBranch
+ * @tc.desc: Test RaiseMainWindowAboveTarget when IsSuperMultiFoldOuterScreen returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_NotSpnBranch, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_NotSpnBranch");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(0);
+    sourceSession->property_->SetPersistentId(303);
+    sourceSession->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    WMError ret = sourceSession->RaiseMainWindowAboveTarget(304);
+    EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT, ret);
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen01
+ * @tc.desc: Test IsSuperMultiFoldOuterScreen with displayId = SCREEN_ID_MAIN on SPN device
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen01, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen01");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(WindowSessionImpl::SCREEN_ID_MAIN);
+    EXPECT_TRUE(sourceSession->IsSuperMultiFoldOuterScreen());
+}
+
+/**
+ * @tc.name: RaiseMainWindowAboveTarget_SpnOuterScreen02
+ * @tc.desc: Test IsSuperMultiFoldOuterScreen with displayId != SCREEN_ID_MAIN
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest2, RaiseMainWindowAboveTarget_SpnOuterScreen02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("RaiseMainWindowAboveTarget_SpnOuterScreen02");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> sourceSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    ASSERT_NE(sourceSession, nullptr);
+    sourceSession->property_->SetDisplayId(0);
+    EXPECT_FALSE(sourceSession->IsSuperMultiFoldOuterScreen());
 }
 }
 } // namespace

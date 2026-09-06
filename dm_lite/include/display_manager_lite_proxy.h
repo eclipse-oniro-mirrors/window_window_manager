@@ -81,7 +81,7 @@ public:
     uint32_t GetScreenBrightness(uint64_t screenId);
     std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     DMError GetPhysicalScreenIds(std::vector<ScreenId>& screenIds);
-    DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
+    DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false);
     DMError SetSystemKeyboardStatus(bool isTpKeyboardOn = false);
     DMError IsOnboardDisplay(DisplayId displayId, bool& isOnboardDisplay);
     sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId);

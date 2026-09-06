@@ -101,6 +101,8 @@ private:
     void UpdateWindowFlagsForWindowSeparation(const sptr<SceneSession>& sceneSession,
         MMI::WindowInfo& windowInfo) const;
     void UpdateWindowFlagsForLockCursor(const sptr<SceneSession>& sceneSession, MMI::WindowInfo& windowInfo) const;
+    void UpdateWindowFlagsForVirtualPad(const sptr<SceneSession>& sceneSession, MMI::WindowInfo& windowInfo) const;
+
     void AddModalExtensionWindowInfo(std::vector<MMI::WindowInfo>& windowInfoList, MMI::WindowInfo windowInfo,
         const sptr<SceneSession>& sceneSession, const ExtensionWindowEventInfo& extensionInfo);
     void GetModalUIExtensionInfo(std::vector<MMI::WindowInfo>& windowInfoList,

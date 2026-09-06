@@ -187,6 +187,8 @@
             OHOS::Rosen::RootScene::RegisterUpdateRootSceneAvoidAreaCallback*;
             OHOS::Rosen::RootScene::RegisterUpdateRootSceneRectCallback*;
             OHOS::Rosen::RootScene::RootScene*;
+            OHOS::Rosen::RootScene::SetDisplayDensity*;
+            OHOS::Rosen::RootScene::GetDisplayDensity*;
             OHOS::Rosen::RootScene::SetDisplayOrientation*;
             OHOS::Rosen::RootScene::SetFrameLayoutFinishCallback*;
             OHOS::Rosen::RootScene::SetOnConfigurationUpdatedCallback*;
@@ -469,6 +471,8 @@
             OHOS::Rosen::WindowOption::SetIsCrossProcessWindow*;
             OHOS::Rosen::WindowOption::SetIsBlockSubwindow*;
             OHOS::Rosen::WindowOption::IsBlockSubwindow*;
+            OHOS::Rosen::WindowOption::SetCallerPid*;
+            OHOS::Rosen::WindowOption::GetCallerPid*;
             OHOS::Rosen::WindowScene::CreateWindow*;
             OHOS::Rosen::WindowScene::GetContentInfo*;
             OHOS::Rosen::WindowScene::GetMainWindow*;

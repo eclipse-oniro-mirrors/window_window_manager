@@ -28,6 +28,7 @@
 #include "session/host/include/pc_fold_screen_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_helper.h"
+#include "motion_manager.h"
 #include "window_visibility_info.h"
 
 namespace OHOS::Rosen {
@@ -1236,7 +1237,9 @@ bool ConvertHookWindowInfoFromJs(napi_env env, napi_value jsObject, HookWindowIn
 
 bool ConvertPointerItemFromJs(napi_env env, napi_value touchObject, int32_t toolType, MMI::PointerEvent& pointerEvent)
 {
-    auto vpr = RootScene::staticRootScene_->GetDisplayDensity();
+    auto vpr = RootScene::staticRootScene_->GetDisplayDensity(
+        static_cast<DisplayId>(pointerEvent.GetTargetDisplayId()));
+    TLOGD(WmsLogTag::WMS_EVENT, "density=%{public}f", vpr);
     MMI::PointerEvent::PointerItem pointerItem;
 
     int32_t id;
@@ -1987,6 +1990,24 @@ napi_value CreateSupportWindowModes(napi_env env,
     return arrayValue;
 }
 
+napi_value CreateJsMotionType(napi_env env)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        WLOGFE("Failed to get jsObject");
+        return nullptr;
+    }
+    
+    napi_set_named_property(env, objValue, "DEVICE_MOTION_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::DEVICE_MOTION_TYPE)));
+    napi_set_named_property(env, objValue, "SMART_MOTION_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::SMART_MOTION_TYPE)));
+    napi_set_named_property(env, objValue, "SMART_MOTION_ENHANCE_TYPE", CreateJsValue(env,
+        static_cast<int32_t>(MotionType::SMART_MOTION_ENHANCE_TYPE)));
+    return objValue;
+}
+
 napi_value CreateJsSessionPendingConfigs(napi_env env, const PendingSessionActivationConfig &config)
 {
     napi_value objValue = nullptr;
@@ -2093,6 +2114,22 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         sessionInfo.windowCreateParams->isWindowLimitsForcible : false;
     napi_set_named_property(env, objValue, "isWindowLimitsForcible",
         CreateJsValue(env, isWindowLimitsForcible));
+
+    bool minimizeOnStart = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->minimizeOnStart : false;
+    napi_set_named_property(env, objValue, "minimizeOnStart",
+        CreateJsValue(env, minimizeOnStart));
+
+    bool excludeFromDock = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->excludeFromDock : false;
+    napi_set_named_property(env, objValue, "excludeFromDock",
+        CreateJsValue(env, excludeFromDock));
+
+    bool excludeFromRecent = sessionInfo.windowCreateParams ?
+        sessionInfo.windowCreateParams->excludeFromRecent : false;
+    napi_set_named_property(env, objValue, "excludeFromRecent",
+        CreateJsValue(env, excludeFromRecent));
+
     napi_set_named_property(env, objValue, "atomicServiceInfo",
         CreateJsAtomicServiceInfo(env, sessionInfo.atomicServiceInfo_));
     napi_set_named_property(env, objValue, "isTargetPlugin",

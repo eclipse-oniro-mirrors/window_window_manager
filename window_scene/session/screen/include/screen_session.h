@@ -52,14 +52,14 @@ public:
     virtual void OnPowerStatusChange(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason) {}
     virtual void OnSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
-    virtual void OnSmartSensorRotationChange(float sensorRotation, ScreenId screenId, bool isSwitchUser) {}
     virtual void OnScreenOrientationChange(float screenOrientation, ScreenId screenId) {}
     virtual void OnScreenOrientationChangeWithOptions(float screenOrientation,
         const OrientationOptions& options, ScreenId screenId) {}
     virtual void OnScreenRotationLockedChange(bool isLocked, ScreenId screenId) {}
     virtual void OnScreenExtendChange(ScreenId mainScreenId, ScreenId extendScreenId) {}
     virtual void OnHoverStatusChange(int32_t hoverStatus, bool needRotate, ScreenId extendScreenId) {}
-    virtual void OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName) {}
+    virtual void OnScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions) {}
     virtual void OnCameraBackSelfieChange(bool isCameraBackSelfie, ScreenId screenId) {}
     virtual void OnSuperFoldStatusChange(ScreenId screenId, SuperFoldStatus superFoldStatus) {}
     virtual void OnSecondaryReflexionChange(ScreenId screenId, bool isSecondaryReflexion) {}
@@ -122,7 +122,7 @@ public:
 
     sptr<DisplayInfo> ConvertToDisplayInfo();
     sptr<DisplayInfo> ConvertToRealDisplayInfo();
-    sptr<ScreenInfo> ConvertToScreenInfo() const;
+    sptr<ScreenInfo> ConvertToScreenInfo(bool isNeedUnused = false) const;
     sptr<SupportedScreenModes> GetActiveScreenMode() const;
     ScreenSourceMode GetSourceMode() const;
     void SetScreenCombination(ScreenCombination combination);
@@ -305,13 +305,10 @@ public:
     DisplaySourceMode GetDisplaySourceMode() const;
     void SetXYPosition(int32_t x, int32_t y);
 
-    void SetScreenInUseStatus(bool isInUse);
-    bool isInUse();
-
     bool isPrimary_ { false };
     bool isInternal_ { false };
     bool isExtended_ { false };
-    bool isInUse_ { false };
+    bool isCurrentInUse_ { false };
     bool isReal_ { false };
     bool isPcUse_ { false };
     bool isFakeSession_ { false };
@@ -351,9 +348,6 @@ public:
     void SensorRotationChange(Rotation sensorRotation);
     void SensorRotationChange(float sensorRotation);
     void SensorRotationChange(float sensorRotation, bool isSwitchUser);
-    void SmartSensorRotationChange(Rotation sensorRotation);
-    void SmartSensorRotationChange(float sensorRotation);
-    void SmartSensorRotationChange(float sensorRotation, bool isSwitchUser);
     float GetValidSensorRotation();
     float GetValidSmartSensorRotation();
     void HoverStatusChange(int32_t hoverStatus, bool needRotate = true);
@@ -382,7 +376,8 @@ public:
     void SetStartPosition(uint32_t startX, uint32_t startY);
     void SetMirrorScreenRegion(ScreenId screenId, DMRect screenRegion);
     std::pair<ScreenId, DMRect> GetMirrorScreenRegion();
-    void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName);
+    void ScreenCaptureNotify(ScreenId mainScreenId, int32_t uid, const std::string& clientName,
+        uint32_t tokenId, const std::vector<std::string>& permissions);
     void SuperFoldStatusChange(ScreenId screenId, SuperFoldStatus superFoldStatus);
     void SecondaryReflexionChange(ScreenId screenId, bool isSecondaryReflexion);
     void EnableMirrorScreenRegion();
@@ -416,8 +411,8 @@ public:
     void SetScreenOffScreenRenderingInner();
     void SetScreenProperty(ScreenProperty property);
 
-    void SetScreenAvailableStatus(bool isScreenAvailable);
-    bool IsScreenAvailable() const;
+    void SetScreenInUseStatus(bool isInUse);
+    bool isInUse() const;
 
     void UpdateDisplayNodeRotation(int rotation);
     void SetIsAvailableAreaNeedNotify(bool isAvailableAreaNeedNotify);
@@ -513,7 +508,7 @@ private:
     bool isFakeInUse_ = false;  // is fakeScreenSession can be used
     bool isBScreenHalf_ = false;
     bool isPhysicalMirrorSwitch_ = false;
-    bool isScreenAvailable_ = true;
+    bool isInUse_ = true;
     std::atomic<bool> isExtendVirtual_ {false};
     mutable std::shared_mutex displayNodeMutex_;
     std::atomic<bool> touchEnabled_ { true };

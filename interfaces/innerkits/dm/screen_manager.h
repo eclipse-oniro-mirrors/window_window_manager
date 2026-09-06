@@ -100,7 +100,7 @@ public:
      * @param screens All screen objects.
      * @return DM_OK means get success, others means get failed.
      */
-    DMError GetAllScreens(std::vector<sptr<Screen>>& screens);
+    DMError GetAllScreens(std::vector<sptr<Screen>>& screens, bool isNeedUnused = false);
 
     /**
      * @brief Make screens as expand-screen.

@@ -72,7 +72,11 @@ public:
     virtual void NotifyRunSensorFoldStateManager();
     virtual float GetSpecialVirtualPixelRatio();
     virtual void PowerkeySetScreenActiveRect();
+    virtual void SetBackSelf(bool isBackSelf);
+    virtual bool GetBackSelf();
     virtual const std::map<FoldDisplayMode, RRect>& GetScreenActiveModeRectMap() const;
+    virtual void SetHoverBlockList(const std::vector<std::string>& hoverBlockList);
+    virtual bool IsHoverBlockPid(const int32_t agentPid);
 private:
     std::vector<FoldCreaseRegionItem> foldCreaseRegionItems_;
 };

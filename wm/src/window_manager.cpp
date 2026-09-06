@@ -307,7 +307,11 @@ void WindowManager::Impl::NotifyAccessibilityWindowInfo(const std::vector<sptr<A
     }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowUpdateListeners.size()));
     for (auto& listener : windowUpdateListeners) {
-        listener->OnWindowUpdate(infos, type);
+        if (listener != nullptr) {
+            listener->OnWindowUpdate(infos, type);
+        } else {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null.");
+        }
     }
 }
 
@@ -321,7 +325,11 @@ void WindowManager::Impl::NotifyWindowVisibilityInfoChanged(
     }
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(visibilityChangeListeners.size()));
     for (auto& listener : visibilityChangeListeners) {
-        listener->OnWindowVisibilityChanged(windowVisibilityInfos);
+        if (listener != nullptr) {
+            listener->OnWindowVisibilityChanged(windowVisibilityInfos);
+        } else {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null.");
+        }
     }
 }
 
@@ -478,7 +486,11 @@ void WindowManager::Impl::NotifyDisplayInfoChanged(const sptr<IRemoteObject>& to
 
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(displayInfoChangedListeners.size()));
     for (auto& listener : displayInfoChangedListeners) {
-        listener->OnDisplayInfoChange(token, displayId, density, orientation);
+        if (listener != nullptr) {
+            listener->OnDisplayInfoChange(token, displayId, density, orientation);
+        } else {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null.");
+        }
     }
 }
 
@@ -683,6 +695,10 @@ void WindowManager::Impl::NotifySupportRotationChange(const SupportRotationInfo&
     }
     for (auto& listener : windowSupportRotationListener) {
         TLOGD(WmsLogTag::WMS_ROTATION, "Notify supportRotationInfo to caller");
+        if (listener == nullptr) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "listener is nullptr");
+            continue;
+        }
         listener->OnSupportRotationChange(supportRotationInfo);
     }
 }
@@ -2043,7 +2059,7 @@ void WindowManager::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChan
         WLOGFE("focusChangeInfo is nullptr.");
         return;
     }
-    TLOGD(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
+    TLOGI(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
     if (focused) {
         pImpl_->NotifyFocused(focusChangeInfo);
     } else {
@@ -2719,9 +2735,17 @@ WMError WindowManager::NotifyScreenshotEvent(ScreenshotEventType type)
 WMError WindowManager::SetStartWindowBackgroundColor(
     const std::string& moduleName, const std::string& abilityName, uint32_t color)
 {
+    std::string errMsg;
+    return SetStartWindowBackgroundColor(moduleName, abilityName, color, errMsg);
+}
+
+WMError WindowManager::SetStartWindowBackgroundColor(
+    const std::string& moduleName, const std::string& abilityName, uint32_t color, std::string& errMsg)
+{
+    errMsg.clear();
     int32_t uid = static_cast<int32_t>(getuid());
     WMError ret = WindowAdapter::GetInstance(userId_).SetStartWindowBackgroundColor(
-        moduleName, abilityName, color, uid);
+        moduleName, abilityName, color, uid, errMsg);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PATTERN, "failed");
     }

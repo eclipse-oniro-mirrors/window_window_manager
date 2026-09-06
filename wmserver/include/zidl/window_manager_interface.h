@@ -392,9 +392,14 @@ public:
         int persistentId) { return WMError::WM_OK; }
     virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
         int32_t persistentId) { return WMError::WM_OK; }
+    virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg) { return WMError::WM_OK; }
     virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId) { return WMError::WM_OK; }
+    virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg) { return WMError::WM_OK; }
     virtual WMError RemoveImageForRecent(int32_t persistentId) { return WMError::WM_OK; }
+    virtual WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg) { return WMError::WM_OK; }
     virtual WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) { return WMError::WM_OK; }
     virtual WMError SetGlobalDragResizeType(DragResizeType dragResizeType) { return WMError::WM_OK; }
@@ -409,6 +414,8 @@ public:
         int32_t fingerId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
         uint32_t color, int32_t uid) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
+        uint32_t color, int32_t uid, std::string& errMsg) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
     virtual WMError NotifyWatchGestureConsumeResult(int32_t keyCode,
         bool isConsumed) { return WMError::WM_OK; }
     virtual WMError NotifyWatchFocusActiveChange(bool isActive) { return WMError::WM_OK; }

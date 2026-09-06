@@ -151,6 +151,10 @@ bool AniExtensionWindowRegisterManager::IsCallbackRegistered(ani_env* env, const
 WmErrorCode AniExtensionWindowRegisterManager::RegisterListener(sptr<Window>& window, const std::string& type,
     CaseType caseType, ani_env* env, ani_object fn)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     std::lock_guard<std::mutex> lock(mtx_);
     if (IsCallbackRegistered(env, type, fn)) {
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
@@ -251,6 +255,10 @@ WmErrorCode AniExtensionWindowRegisterManager::UnregisterSpecificListener(
 WmErrorCode AniExtensionWindowRegisterManager::UnregisterListener(sptr<Window>& window, const std::string& type,
     CaseType caseType, ani_env* env, ani_object fn)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     std::lock_guard<std::mutex> lock(mtx_);
     if (aniCbMap_.empty() || aniCbMap_.find(type) == aniCbMap_.end()) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Type %{public}s listener was not registered", type.c_str());

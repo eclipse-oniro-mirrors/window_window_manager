@@ -187,7 +187,7 @@ public:
     virtual DMError SetOrientation(ScreenId screenId, Orientation orientation,
         const OrientationOptions& options, bool isFromNapi);
     virtual sptr<ScreenGroupInfo> GetScreenGroupInfoById(ScreenId screenId);
-    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos);
+    virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false);
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId, ScreenId& screenGroupId,
         const RotationOption& rotationOption = {Rotation::ROTATION_0, false});
     virtual DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,

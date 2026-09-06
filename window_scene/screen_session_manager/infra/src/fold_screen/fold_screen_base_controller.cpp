@@ -268,8 +268,28 @@ void FoldScreenBaseController::PowerkeySetScreenActiveRect()
     FoldScreenBasePolicy::GetInstance().PowerkeySetScreenActiveRect();
 }
 
+void FoldScreenBaseController::SetBackSelf(bool isBackSelf)
+{
+    FoldScreenBasePolicy::GetInstance().SetBackSelf(isBackSelf);
+}
+
+bool FoldScreenBaseController::GetBackSelf()
+{
+    return FoldScreenBasePolicy::GetInstance().GetBackSelf();
+}
+
 const std::map<FoldDisplayMode, RRect>& FoldScreenBaseController::GetScreenActiveModeRectMap() const
 {
     return FoldScreenBasePolicy::GetInstance().GetScreenActiveModeRectMap();
+}
+
+void FoldScreenBaseController::SetHoverBlockList(const std::vector<std::string>& hoverBlockList)
+{
+    FoldScreenBasePolicy::GetInstance().SetHoverBlockList(hoverBlockList);
+}
+
+bool FoldScreenBaseController::IsHoverBlockPid(const int32_t agentPid)
+{
+    return FoldScreenBasePolicy::GetInstance().IsHoverBlockPid(agentPid);
 }
 } // namespace OHOS::Rosen

@@ -23,6 +23,7 @@
 #include "agent_death_recipient.h"
 #include "window_manager_hilog.h"
 #include "ipc_skeleton.h"
+#include "permission.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -41,6 +42,7 @@ public:
     std::set<sptr<T1>> GetAgentsByType(T2 type);
     void SetAgentDeathCallback(std::function<void(const sptr<IRemoteObject>&)> callback);
     int32_t GetAgentPid(const sptr<T1>& agent);
+    bool GetAgentSystem(const sptr<T1>& agent);
     std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> GetAttributeAgentsMap();
     template <typename Func>
     auto ParseAttributeAgentsMap(Func&& func);
@@ -70,6 +72,7 @@ private:
     std::map<T2, std::set<sptr<T1>>> agentMap_;
     std::map<uintptr_t, std::pair<sptr<T1>, std::set<T2>>> attributeAgentMap_;
     std::map<sptr<T1>, int32_t> agentPidMap_;
+    std::map<sptr<T1>, bool> agentSystemMap_;
     sptr<AgentDeathRecipient> deathRecipient_;
     std::function<void(const sptr<IRemoteObject>&)> deathCallback_;
 };
@@ -88,6 +91,7 @@ bool ClientAgentContainer<T1, T2>::RegisterAgent(const sptr<T1>& agent, T2 type)
     }
     agentMap_[type].insert(agent);
     agentPidMap_[agent] = IPCSkeleton::GetCallingPid();
+    agentSystemMap_[agent] = Permission::IsSystemCalling();
     if (deathRecipient_ == nullptr || !agent->AsObject()->AddDeathRecipient(deathRecipient_)) {
         WLOGFI("failed to add death recipient");
     }
@@ -147,6 +151,10 @@ bool ClientAgentContainer<T1, T2>::UnRegisterAllAttributeAgent(uintptr_t key, co
         int32_t agentPid = agentPidMap_[agent];
         agentPidMap_.erase(agentPidIt);
         WLOGFD("agent pid: %{public}d unregistered", agentPid);
+    }
+    auto agentSystemIt = agentSystemMap_.find(agent);
+    if (agentSystemIt != agentSystemMap_.end()) {
+        agentSystemMap_.erase(agentSystemIt);
     }
     attributeAgentMap_.erase(key);
     agent->AsObject()->RemoveDeathRecipient(deathRecipient_);
@@ -302,6 +310,22 @@ int32_t ClientAgentContainer<T1, T2>::GetAgentPid(const sptr<T1>& agent)
     }
     return agentPidMap_[agent];
 }
+
+template<typename T1, typename T2>
+bool ClientAgentContainer<T1, T2>::GetAgentSystem(const sptr<T1>& agent)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (agent == nullptr) {
+        WLOGFE("agent is invalid");
+        return false;
+    }
+    if (agentSystemMap_.count(agent) == 0) {
+        WLOGFE("agent pid not found");
+        return false;
+    }
+    return agentSystemMap_[agent];
+}
+
 }
 }
 #endif // OHOS_ROSEN_CLIENT_AGENT_MANAGER_H

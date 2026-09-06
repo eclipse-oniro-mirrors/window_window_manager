@@ -22,3 +22,4 @@ persist.window.screen.width = foundation:system:0664
 persist.window.screen.height = foundation:system:0664
 persist.window.screen.dpi = foundation:system:0664
 persist.window.boot.threshold = foundation:system:0664
+dms.foundation.restart = foundation:system:0664

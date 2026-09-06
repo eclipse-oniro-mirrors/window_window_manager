@@ -204,11 +204,9 @@
             OHOS::Rosen::ScreenSession::HandleCameraBackSelfieChange*;
             OHOS::Rosen::ScreenSession::HandleHoverStatusChange*;
             OHOS::Rosen::ScreenSession::HandleSensorRotation*;
-            OHOS::Rosen::ScreenSession::HandleSmartRotation*;
-            OHOS::Rosen::ScreenSession::GetValidSmartSensorRotation*;
             OHOS::Rosen::ScreenSession::HoverStatusChange*;
             OHOS::Rosen::ScreenSession::IsBootingConnect*;
-            OHOS::Rosen::ScreenSession::IsScreenAvailable*;
+            OHOS::Rosen::ScreenSession::isInUse*;
             OHOS::Rosen::ScreenSession::IsScreenRotationLocked*;
             OHOS::Rosen::ScreenSession::IsTouchEnabled*;
             OHOS::Rosen::ScreenSession::ModifyScreenPropertyWithLock*;
@@ -229,7 +227,6 @@
             OHOS::Rosen::ScreenSession::ScreenSession*;
             OHOS::Rosen::ScreenSession::SecondaryReflexionChange*;
             OHOS::Rosen::ScreenSession::SensorRotationChange*;
-            OHOS::Rosen::ScreenSession::SmartSensorRotationChange*;
             OHOS::Rosen::ScreenSession::SetActiveId*;
             OHOS::Rosen::ScreenSession::SetAvailableArea*;
             OHOS::Rosen::ScreenSession::SetBootingConnect*;
@@ -288,7 +285,7 @@
             OHOS::Rosen::ScreenSession::SetScreenAreaHeight*;
             OHOS::Rosen::ScreenSession::SetScreenAreaOffsetY*;
             OHOS::Rosen::ScreenSession::SetScreenAreaWidth*;
-            OHOS::Rosen::ScreenSession::SetScreenAvailableStatus*;
+            OHOS::Rosen::ScreenSession::SetScreenInUseStatus*;
             OHOS::Rosen::ScreenSession::SetScreenColorGamut*;
             OHOS::Rosen::ScreenSession::SetScreenColorSpace*;
             OHOS::Rosen::ScreenSession::SetScreenColorTransform*;

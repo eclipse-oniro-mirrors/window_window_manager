@@ -2164,6 +2164,110 @@ HWTEST_F(SceneSessionTest5, UpdateUIParam, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateUIParamWithPcScenePanel01
+ * @tc.desc: Test UpdateUIParam with PC scene panel and PC window in free multi window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel01";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(0);
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_EQ(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
+ * @tc.name: UpdateUIParamWithPcScenePanel02
+ * @tc.desc: Test UpdateUIParam with non-PC scene panel
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel02";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel02";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(false);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(0);
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_NE(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
+ * @tc.name: UpdateUIParamWithPcScenePanel03
+ * @tc.desc: Test UpdateUIParam with PC scene panel but non-PC window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel03";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel03";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.insert(0);
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_NE(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
+ * @tc.name: UpdateUIParamWithPcScenePanel04
+ * @tc.desc: Test UpdateUIParam with PC scene panel and PC window but not in free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateUIParamWithPcScenePanel04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateUIParamWithPcScenePanel04";
+    info.bundleName_ = "UpdateUIParamWithPcScenePanel04";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(session, nullptr);
+
+    session->SetPcScenePanel(true);
+    session->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->systemConfig_.supportMultiWindowScreenSet_.clear();
+    
+    SessionUIParam uiParam;
+    uiParam.interactive_ = true;
+    uiParam.zOrder_ = 100;
+    session->dirtyFlags_ = 0;
+    
+    uint32_t res = session->UpdateUIParam(uiParam);
+    EXPECT_NE(0, res & static_cast<uint32_t>(SessionUIDirtyFlag::Z_ORDER));
+}
+
+/**
  * @tc.name: UpdateVisibilityInner
  * @tc.desc: UpdateVisibilityInner function01
  * @tc.type: FUNC
@@ -4236,6 +4340,68 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
 }
 
 /**
+ * @tc.name: TransferPointerEventInner_SubWindowDragMove
+ * @tc.desc: Test TransferPointerEventInner with sub window drag move event (isPointDown == false)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDragMove, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "TransferPointerEventInner_SubWindowDragMove";
+    info.bundleName_ = "TransferPointerEventInner_SubWindowDragMove";
+    info.windowType_ = static_cast<uint32_t>(WindowType::APP_SUB_WINDOW_BASE);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_->SetDragEnabled(true);
+    session->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    session->SetSessionState(SessionState::STATE_ACTIVE);
+    session->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
+    WindowLimits limits = {100, 1000, 50, 800, FLT_MAX, 0.0f};
+    session->property_->SetWindowLimits(limits);
+    WSRect rect = {0, 0, 800, 600};
+    session->SetSessionRect(rect);
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->SetSystemConfig(systemConfig);
+
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->limits_ = limits;
+    session->moveDragController_->moveDragProperty_.originalRect_ = rect;
+    session->moveDragController_->decoration_ = {0, 0, 0, 0};
+    int raiseToTopCount = 0;
+    session->SetRaiseToAppTopForPointDownFunc([&raiseToTopCount]() { raiseToTopCount++; });
+
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
+    pointerEvent->SetPointerId(0);
+    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
+    pointerEvent->SetTargetDisplayId(0);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(0);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(100);
+    pointerItem.SetWindowX(-5);
+    pointerItem.SetWindowY(-5);
+    pointerItem.SetOriginPointerId(0);
+    pointerEvent->AddPointerItem(pointerItem);
+
+    // Step 1: POINTER_ACTION_DOWN starts the drag, sub window should raise (isPointDown == true)
+    WSError downResult = session->TransferPointerEventInner(pointerEvent, false);
+    EXPECT_EQ(WSError::WS_OK, downResult);
+    EXPECT_EQ(1, raiseToTopCount);
+
+    // Step 2: POINTER_ACTION_MOVE during ongoing drag (isPointDown == false),
+    // sub window should not raise again
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
+    WSError moveResult = session->TransferPointerEventInner(pointerEvent, false);
+    EXPECT_EQ(WSError::WS_OK, moveResult);
+    EXPECT_EQ(1, raiseToTopCount);
+}
+
+/**
  * @tc.name: TransferPointerEventInner_MainWindowDrag
  * @tc.desc: Test TransferPointerEventInner with main window drag (isSubWindow == false)
  * @tc.type: FUNC
@@ -4289,6 +4455,127 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_MainWindowDrag, TestSize.L
     if (result == WSError::WS_OK) {
         EXPECT_FALSE(raiseToTopCalled);
     }
+}
+
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize01
+ * @tc.desc: EVENT_MAXIMIZE should interrupt ongoing move
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize01";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize01";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->hasPointDown_ = true;
+    session->moveDragController_->SetStartMoveFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartMoveFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_FALSE(session->moveDragController_->GetStartMoveFlag());
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize02
+ * @tc.desc: EVENT_MAXIMIZE should interrupt ongoing drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize02";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize02";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->SetStartDragFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartDragFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_FALSE(session->moveDragController_->GetStartDragFlag());
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize03
+ * @tc.desc: EVENT_MAXIMIZE_FULLSCREEN should interrupt ongoing move
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize03";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize03";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->hasPointDown_ = true;
+    session->moveDragController_->SetStartMoveFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartMoveFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE_FULLSCREEN);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_FALSE(session->moveDragController_->GetStartMoveFlag());
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize04
+ * @tc.desc: EVENT_MAXIMIZE should not interrupt when no drag/move is active
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize04";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize04";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    ASSERT_FALSE(session->moveDragController_->GetStartMoveFlag());
+    ASSERT_FALSE(session->moveDragController_->GetStartDragFlag());
+ 
+    auto ret = session->OnSessionEvent(SessionEvent::EVENT_MAXIMIZE);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: OnSessionEventInterruptDragOnMaximize05
+ * @tc.desc: Other events should not interrupt drag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, OnSessionEventInterruptDragOnMaximize05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "OnSessionEventInterruptDragOnMaximize05";
+    info.bundleName_ = "OnSessionEventInterruptDragOnMaximize05";
+    info.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    auto moveDragController = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_ = moveDragController;
+ 
+    session->moveDragController_->hasPointDown_ = true;
+    session->moveDragController_->SetStartMoveFlag(true);
+    ASSERT_TRUE(session->moveDragController_->GetStartMoveFlag());
+ 
+    session->OnSessionEvent(SessionEvent::EVENT_RECOVER);
+    EXPECT_TRUE(session->moveDragController_->GetStartMoveFlag());
 }
 } // namespace
 } // namespace Rosen

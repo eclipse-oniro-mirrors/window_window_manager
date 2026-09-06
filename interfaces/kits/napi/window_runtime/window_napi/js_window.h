@@ -516,6 +516,7 @@ private:
     std::unique_ptr<JsWindowRegisterManager> registerManager_ = nullptr;
     std::shared_ptr<NativeReference> jsTransControllerObj_ = nullptr;
     napi_env env_;
+    bool isDestroyed_ = false;
     void SetWindowToken(const sptr<Window>& windowToken)
     {
         std::unique_lock<std::shared_mutex> lock(windowTokenMtx_);

@@ -22,6 +22,7 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 static std::map<ani_ref, AniExtensionWindowConfig*> localObjs;
+static std::mutex g_localObjsMutex;
 
 const std::map<ApiWindowType, std::string> API_TO_ANI_STRING_TYPE_MAP {
     {ApiWindowType::TYPE_BASE,                 "TYPE_APP"                  },
@@ -127,7 +128,10 @@ ani_object CreatAniSubWindowOptions(ani_env* env, const std::shared_ptr<Extensio
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(aniOptions, &ref) == ANI_OK) {
         config->SetAniRef(ref);
-        localObjs.insert(std::pair(ref, config.release()));
+        {
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
+            localObjs.insert(std::pair(ref, config.release()));
+        }
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] create global ref fail");
         return AniWindowUtils::CreateAniUndefined(env);
@@ -208,7 +212,10 @@ ani_object CreatAniSystemWindowOptions(ani_env* env,
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(aniOptions, &ref) == ANI_OK) {
         config->SetAniRef(ref);
-        localObjs.insert(std::pair(ref, config.release()));
+        {
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
+            localObjs.insert(std::pair(ref, config.release()));
+        }
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] create global ref fail");
     }
@@ -273,7 +280,10 @@ ani_object CreatAniRect(ani_env* env, const std::shared_ptr<ExtensionWindowConfi
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(aniRect, &ref) == ANI_OK) {
         config->SetAniRef(ref);
-        localObjs.insert(std::pair(ref, config.release()));
+        {
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
+            localObjs.insert(std::pair(ref, config.release()));
+        }
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] create global ref fail");
     }
@@ -318,7 +328,10 @@ ani_object CreateAniExtensionWindowConfig(ani_env* env,
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(aniConfig, &ref) == ANI_OK) {
         config->SetAniRef(ref);
-        localObjs.insert(std::pair(ref, config.release()));
+        {
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
+            localObjs.insert(std::pair(ref, config.release()));
+        }
     } else {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] create global ref fail");
     }
@@ -338,10 +351,13 @@ void AniExtensionWindowConfig::Finalizer(ani_env* env, ani_long nativeObj)
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* config = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (config != nullptr) {
-        auto obj = localObjs.find(reinterpret_cast<ani_ref>(config->GetAniRef()));
-        if (obj != localObjs.end()) {
-            delete obj->second;
-            localObjs.erase(obj);
+        {
+            std::lock_guard<std::mutex> localObjsLock(g_localObjsMutex);
+            auto obj = localObjs.find(reinterpret_cast<ani_ref>(config->GetAniRef()));
+            if (obj != localObjs.end()) {
+                delete obj->second;
+                localObjs.erase(obj);
+            }
         }
         if (env->GlobalReference_Delete(config->GetAniRef()) != ANI_OK) {
             TLOGE(WmsLogTag::WMS_UIEXT, "[ANI] GlobalReference_Delete failed");
@@ -633,6 +649,10 @@ void AniExtensionWindowConfig::OnSetSystemWindowOptionsWindowType(ani_env* env, 
 
 static ani_string GetWindowName(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -650,6 +670,10 @@ static ani_string GetWindowName(ani_env* env, ani_object obj, ani_long nativeObj
 
 static ani_enum_item GetWindowAttribute(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -662,6 +686,10 @@ static ani_enum_item GetWindowAttribute(ani_env* env, ani_object obj, ani_long n
 
 static ani_object GetWindowRect(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -674,6 +702,10 @@ static ani_object GetWindowRect(ani_env* env, ani_object obj, ani_long nativeObj
 
 static ani_int GetWindowRectLeft(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_int>(0);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -686,6 +718,10 @@ static ani_int GetWindowRectLeft(ani_env* env, ani_object obj, ani_long nativeOb
 
 static ani_int GetWindowRectTop(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_int>(0);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -698,6 +734,10 @@ static ani_int GetWindowRectTop(ani_env* env, ani_object obj, ani_long nativeObj
 
 static ani_int GetWindowRectWidth(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_int>(0);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -710,6 +750,10 @@ static ani_int GetWindowRectWidth(ani_env* env, ani_object obj, ani_long nativeO
 
 static ani_int GetWindowRectHeight(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_int>(0);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -722,6 +766,10 @@ static ani_int GetWindowRectHeight(ani_env* env, ani_object obj, ani_long native
 
 static ani_object GetSubWindowOptions(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -734,6 +782,10 @@ static ani_object GetSubWindowOptions(ani_env* env, ani_object obj, ani_long nat
 
 static ani_string GetSubWindowOptionsTitle(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -751,6 +803,10 @@ static ani_string GetSubWindowOptionsTitle(ani_env* env, ani_object obj, ani_lon
 
 static ani_boolean GetSubWindowOptionsDecorEnabled(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_boolean>(false);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -763,6 +819,10 @@ static ani_boolean GetSubWindowOptionsDecorEnabled(ani_env* env, ani_object obj,
 
 static ani_boolean GetSubWindowOptionsIsModal(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_boolean>(false);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -775,6 +835,10 @@ static ani_boolean GetSubWindowOptionsIsModal(ani_env* env, ani_object obj, ani_
 
 static ani_boolean GetSubWindowOptionsIsTopmost(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return static_cast<ani_boolean>(false);
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -787,6 +851,10 @@ static ani_boolean GetSubWindowOptionsIsTopmost(ani_env* env, ani_object obj, an
 
 static ani_object GetSystemWindowOptions(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -799,6 +867,10 @@ static ani_object GetSystemWindowOptions(ani_env* env, ani_object obj, ani_long 
 
 static ani_enum_item GetSystemWindowOptionsWindowType(ani_env* env, ani_object obj, ani_long nativeObj)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return nullptr;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -811,6 +883,10 @@ static ani_enum_item GetSystemWindowOptionsWindowType(ani_env* env, ani_object o
 
 static void SetWindowName(ani_env* env, ani_object obj, ani_long nativeObj, ani_string value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -823,6 +899,10 @@ static void SetWindowName(ani_env* env, ani_object obj, ani_long nativeObj, ani_
 
 static void SetWindowAttribute(ani_env* env, ani_object obj, ani_long nativeObj, ani_enum_item value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -835,6 +915,10 @@ static void SetWindowAttribute(ani_env* env, ani_object obj, ani_long nativeObj,
 
 static void SetWindowRect(ani_env* env, ani_object obj, ani_long nativeObj, ani_object value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -847,6 +931,10 @@ static void SetWindowRect(ani_env* env, ani_object obj, ani_long nativeObj, ani_
 
 static void SetWindowRectLeft(ani_env* env, ani_object obj, ani_long nativeObj, ani_int value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -859,6 +947,10 @@ static void SetWindowRectLeft(ani_env* env, ani_object obj, ani_long nativeObj, 
 
 static void SetWindowRectTop(ani_env* env, ani_object obj, ani_long nativeObj, ani_int value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -871,6 +963,10 @@ static void SetWindowRectTop(ani_env* env, ani_object obj, ani_long nativeObj, a
 
 static void SetWindowRectWidth(ani_env* env, ani_object obj, ani_long nativeObj, ani_int value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -883,6 +979,10 @@ static void SetWindowRectWidth(ani_env* env, ani_object obj, ani_long nativeObj,
 
 static void SetWindowRectHeight(ani_env* env, ani_object obj, ani_long nativeObj, ani_int value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -895,6 +995,10 @@ static void SetWindowRectHeight(ani_env* env, ani_object obj, ani_long nativeObj
 
 static void SetSubWindowOptions(ani_env* env, ani_object obj, ani_long nativeObj, ani_object value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -907,6 +1011,10 @@ static void SetSubWindowOptions(ani_env* env, ani_object obj, ani_long nativeObj
 
 static void SetSubWindowOptionsTitle(ani_env* env, ani_object obj, ani_long nativeObj, ani_string value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -919,6 +1027,10 @@ static void SetSubWindowOptionsTitle(ani_env* env, ani_object obj, ani_long nati
 
 static void SetSubWindowOptionsDecorEnabled(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -931,6 +1043,10 @@ static void SetSubWindowOptionsDecorEnabled(ani_env* env, ani_object obj, ani_lo
 
 static void SetSubWindowOptionsIsModal(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -943,6 +1059,10 @@ static void SetSubWindowOptionsIsModal(ani_env* env, ani_object obj, ani_long na
 
 static void SetSubWindowOptionsIsTopmost(ani_env* env, ani_object obj, ani_long nativeObj, ani_boolean value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -955,6 +1075,10 @@ static void SetSubWindowOptionsIsTopmost(ani_env* env, ani_object obj, ani_long 
 
 static void SetSystemWindowOptions(ani_env* env, ani_object obj, ani_long nativeObj, ani_object value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {
@@ -967,6 +1091,10 @@ static void SetSystemWindowOptions(ani_env* env, ani_object obj, ani_long native
 
 static void SetSystemWindowOptionsWindowType(ani_env* env, ani_object obj, ani_long nativeObj, ani_enum_item value)
 {
+    if (env == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]env is nullptr");
+        return;
+    }
     TLOGD(WmsLogTag::DEFAULT, "[ANI]");
     AniExtensionWindowConfig* aniConfigPtr = reinterpret_cast<AniExtensionWindowConfig*>(nativeObj);
     if (aniConfigPtr == nullptr) {

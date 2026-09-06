@@ -19,10 +19,12 @@
 #include "js_pip_utils.h"
 #include "js_runtime_utils.h"
 #include "permission.h"
+#include "js_err_utils.h"
+#include "window_manager_hilog.h"
 #include "picture_in_picture_manager.h"
 #include "window.h"
-#include "window_manager_hilog.h"
 #include "xcomponent_controller.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -360,23 +362,24 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, &result);
     auto asyncTask = [this, env, task = napiAsyncTask, pipOption]() mutable {
         if (!PictureInPictureManager::IsSupportPiP()) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(
-                WMError::WM_ERROR_DEVICE_NOT_SUPPORT), "device not support pip."));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "create", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
+                "Failed to call the API due to limited device capabilities."));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<PipOption> pipOptionPtr = new PipOption(pipOption);
         auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(pipOptionPtr->GetContext());
         if (context == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(
-                WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Invalid context"));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "create", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "The context is invalid."));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
         sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
         if (mainWindow == nullptr) {
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(
-                WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Invalid mainWindow"));
+            task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+                "create", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "The main window is invalid."));
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 0);
             return;
         }
@@ -389,8 +392,8 @@ napi_value JsPipWindowManager::NapiSendTask(napi_env env, PipOption& pipOption)
         HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_CREATE_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "NapiSendTask") != napi_status::napi_ok) {
-        napiAsyncTask->Reject(env, CreateJsError(env,
-            static_cast<int32_t>(WMError::WM_ERROR_PIP_INTERNAL_ERROR), "Send event failed"));
+        napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
+            "create", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
     }
     return result;
 }

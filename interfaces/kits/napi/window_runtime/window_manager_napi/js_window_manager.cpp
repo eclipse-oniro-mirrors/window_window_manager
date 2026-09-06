@@ -38,6 +38,7 @@
 #include "sys_cap_util.h"
 #include "get_snapshot_callback.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -45,6 +46,12 @@ using namespace AbilityRuntime;
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "JsWindowManager"};
 const std::string PIP_WINDOW = "pip_window";
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 constexpr size_t INDEX_ZERO = 0;
 constexpr size_t INDEX_ONE = 1;
 constexpr size_t INDEX_TWO = 2;
@@ -398,13 +405,15 @@ static void CreateNewSystemWindowTask(void* contextPtr, sptr<WindowOption> windo
         }
     }
     WMError wmError = WMError::WM_OK;
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, context->lock(), wmError);
+    std::string errMsg;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg, context->lock(), wmError);
     WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
     if (window != nullptr && wmErrorCode == WmErrorCode::WM_OK) {
         task.Resolve(env, CreateJsWindowObject(env, window));
     } else {
         WLOGFE("Create window failed");
-        task.Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "Create window failed"));
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        task.Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, msg));
     }
 }
 
@@ -471,13 +480,14 @@ static void CreateNewSubWindowTask(sptr<WindowOption> windowOption, napi_env env
         }
         windowOption->SetParentId(parentId);
     }
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption);
+    std::string errMsg;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg);
     if (window != nullptr) {
         task.Resolve(env, CreateJsWindowObject(env, window));
     } else {
         WLOGFE("Create window failed");
-        task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "Create window failed"));
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg));
     }
 }
 
@@ -1047,10 +1057,14 @@ napi_value JsWindowManager::OnRegisterWindowManagerCallback(napi_env env, napi_c
         return NapiGetUndefined(env);
     }
 
-    WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value);
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
-        napi_throw(env, JsErrUtils::CreateJsError(env, ret, "[window][on]msg: register " + cbType + " failed"));
+        std::string errMsgPrefix = "[window][on('" + cbType + "')]msg: ";
+        napi_throw(env, JsErrUtils::CreateJsError(env, ret,
+            errMsgPrefix + (errMsg.empty() ? "Register listener failed." : errMsg)));
         return NapiGetUndefined(env);
     }
     TLOGD(WmsLogTag::DEFAULT, "Register end, type=%{public}s", cbType.c_str());
@@ -1081,19 +1095,25 @@ napi_value JsWindowManager::OnUnregisterWindowManagerCallback(napi_env env, napi
 
     napi_value value = nullptr;
     WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsg;
     if (argc == 1) {
-        ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value);
+        ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value,
+            errMsg);
     } else {
         value = argv[1];
         if ((value == nullptr) || (!NapiIsCallable(env, value))) {
-            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, nullptr);
+            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, nullptr,
+                errMsg);
         } else {
-            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value);
+            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value,
+                errMsg);
         }
     }
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off", ret);
-        napi_throw(env, JsErrUtils::CreateJsError(env, ret, "[window][off]msg: unregister " + cbType + " failed"));
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        napi_throw(env, JsErrUtils::CreateJsError(env, ret,
+            errMsgPrefix + (errMsg.empty() ? "Unregister listener failed." : errMsg)));
         return NapiGetUndefined(env);
     }
     TLOGD(WmsLogTag::DEFAULT, "Unregister end, type=%{public}s", cbType.c_str());
@@ -1125,7 +1145,9 @@ napi_value JsWindowManager::OnRegisterApplicationFocusStateChangeCallback(napi_e
         return NapiGetUndefined(env);
     }
 
-    WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value);
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.onApplicationFocusStateChange", ret);
         napi_throw(env, JsErrUtils::CreateJsError(env, ret,
@@ -1153,14 +1175,17 @@ napi_value JsWindowManager::OnUnregisterApplicationFocusStateChangeCallback(napi
     std::string cbType = APPLICATION_FOCUS_STATE_CHANGE_CB;
     napi_value value = nullptr;
     WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsg;
     if (argc == 0) {
-        ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value);
+        ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value, errMsg);
     } else {
         value = argv[0];
         if ((value == nullptr) || (!NapiIsCallable(env, value))) {
-            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, nullptr);
+            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, nullptr,
+                errMsg);
         } else {
-            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value);
+            ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER, env, value,
+                errMsg);
         }
     }
     if (ret != WmErrorCode::WM_OK) {
@@ -1196,7 +1221,7 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
     }
     NapiAsyncTask::ExecuteCallback execute = [lists, isOldApi, newApi, contextPtr, ctxRef]() {
         if (isOldApi) {
-            if (lists->ability->GetWindow() == nullptr) {
+            if (lists->ability == nullptr || lists->ability->GetWindow() == nullptr) {
                 lists->errorCode = newApi ? static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY) :
                     static_cast<int32_t>(WMError::WM_ERROR_NULLPTR);
                 lists->errMsg = "[window][getLastWindow]msg: FA mode can not get ability window";
@@ -1241,11 +1266,11 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         if (lists->window == nullptr || lists->window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Top window or main window is not created or destroyed."));
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Top window or main window is not created or destroyed."));
             }
             WLOGFE("Get top window failed, %{public}d", lists->window == nullptr);
             return;
@@ -1571,7 +1596,6 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != 2) { // 2: params num
-        TLOGE(WmsLogTag::WMS_FOCUS, "Argc is invalid: %{public}zu", argc);
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     int32_t sourcePersistentId = static_cast<int32_t>(INVALID_WINDOW_ID);
@@ -1585,31 +1609,33 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     if (errCode == WMError::WM_ERROR_INVALID_PARAM) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][shiftAppWindowFocus]"));
         return NapiGetUndefined(env);
     }
-    // only return promiss<void>
     napi_value lastParam = nullptr;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [env, task = napiAsyncTask, sourcePersistentId, targetPersistentId] {
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-                SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourcePersistentId, targetPersistentId));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError ret = SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(
+                sourcePersistentId, targetPersistentId);
+            if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
                 TLOGND(WmsLogTag::WMS_FOCUS, "OnShiftAppWindowFocus success");
             } else {
-                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret, "ShiftAppWindowFocus failed"));
+                WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", wmErrorCode);
+                task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, ret)));
             }
         };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnShiftAppWindowFocus") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        TLOGE(WmsLogTag::WMS_FOCUS, "window state is abnormal!");
+        napiAsyncTask->Reject(env,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][shiftAppWindowFocus]msg: send event failed"));
     }
     return result;
 }
@@ -1669,14 +1695,15 @@ napi_value JsWindowManager::OnSetStartWindowBackgroundColor(napi_env env, napi_c
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [moduleName, abilityName, color, env, task = napiAsyncTask] {
+        std::string errMsg;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
-            SetStartWindowBackgroundColor(moduleName, abilityName, color));
+            SetStartWindowBackgroundColor(moduleName, abilityName, color, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setStartWindowBackgroundColor]"));
+                ConcatErrorMsg("[window][setStartWindowBackgroundColor]", errMsg)));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetStartWindowBackgroundColor") != napi_status::napi_ok) {
@@ -2441,7 +2468,13 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         return NapiGetUndefined(env);
     }
     napi_ref callbackRef;
-    napi_create_reference(env, callback, 1, &callbackRef);
+    napi_status status = napi_create_reference(env, callback, 1, &callbackRef);
+    if (status != napi_ok) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Failed to napi create reference.");
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][OnCreateSubWindowAndBindParent]msg: Failed to parse window event listener."));
+        return NapiGetUndefined(env);
+    }
 
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
@@ -2482,14 +2515,15 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
 
         napi_value callbackValue;
         napi_get_reference_value(env, callbackRef, &callbackValue);
+        std::string errMsg;
         WmErrorCode registerResult = registerManager_->RegisterListener(subWindow, "parentLifecycleEvent",
-            CaseType::CASE_WINDOW, env, callbackValue);
+            CaseType::CASE_WINDOW, env, callbackValue, errMsg);
         if (registerResult != WmErrorCode::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s register listener failed", where);
             napi_delete_reference(env, callbackRef);
             subWindow->Destroy();
             task->Reject(env, JsErrUtils::CreateJsError(env, registerResult,
-                "[window][CreateSubWindowAndBindParent]msg: Create window failed"));
+                "[window][CreateSubWindowAndBindParent]msg: " + (errMsg.empty()? "Create window failed" : errMsg)));
             return;
         }
         napi_delete_reference(env, callbackRef);

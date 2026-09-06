@@ -1777,7 +1777,8 @@ HWTEST_F(SceneSessionManagerTest3, UpdatePrivateStateAndNotify, TestSize.Level1)
     ssm_->UpdatePrivateStateAndNotify(persistentId);
     auto displayId = sceneSession->GetSessionProperty()->GetDisplayId();
     std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundleList;
-    ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundleList);
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> notifyPrivacyBundleList;
+    ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList[displayId].size(), 0);
 }
 
@@ -1796,7 +1797,8 @@ HWTEST_F(SceneSessionManagerTest3, UpdatePrivateStateAndNotifyForAllScreens, Tes
     ssm_->UpdatePrivateStateAndNotifyForAllScreens();
     auto displayId = sceneSession->GetSessionProperty()->GetDisplayId();
     std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundleList;
-    ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundleList);
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> notifyPrivacyBundleList;
+    ssm_->GetSceneSessionPrivacyModeBundles(displayId, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList[displayId].size(), 0);
 }
 
@@ -1819,25 +1821,26 @@ HWTEST_F(SceneSessionManagerTest3, GerPrivacyBundleListOneWindow, TestSize.Level
     ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
 
     std::unordered_map<DisplayId, std::unordered_set<std::string>> privacyBundleList;
+    std::unordered_map<DisplayId, std::unordered_set<std::string>> notifyPrivacyBundleList;
     sceneSession->GetSessionProperty()->isPrivacyMode_ = false;
     privacyBundleList.clear();
-    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList);
+    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList[0].size(), 0);
 
     sceneSession->GetSessionProperty()->isPrivacyMode_ = true;
     sceneSession->state_ = SessionState::STATE_BACKGROUND;
     privacyBundleList.clear();
-    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList);
+    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList[0].size(), 0);
 
     sceneSession->GetSessionProperty()->isPrivacyMode_ = true;
     sceneSession->state_ = SessionState::STATE_FOREGROUND;
     privacyBundleList.clear();
-    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList);
+    ssm_->GetSceneSessionPrivacyModeBundles(0, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList[0].size(), 1);
 
     privacyBundleList.clear();
-    ssm_->GetSceneSessionPrivacyModeBundles(1, privacyBundleList);
+    ssm_->GetSceneSessionPrivacyModeBundles(1, privacyBundleList, notifyPrivacyBundleList);
     EXPECT_EQ(privacyBundleList[1].size(), 0);
 }
 

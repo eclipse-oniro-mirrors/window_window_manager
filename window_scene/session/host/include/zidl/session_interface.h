@@ -64,6 +64,7 @@ public:
     virtual WSError Hide() = 0;
     virtual WSError DrawingCompleted() = 0;
     virtual WSError RemoveStartingWindow() = 0;
+    virtual WSError RemoveStartingWindow(std::string& errMsg) = 0;
 
     // scene session
     /**
@@ -555,7 +556,7 @@ public:
      * @scene 15
      */
     virtual WSError SetSessionLabelAndIcon(const std::string& label,
-        const std::shared_ptr<Media::PixelMap>& icon) { return WSError::WS_OK; }
+        const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId = "") { return WSError::WS_OK; }
 
     virtual WSError ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption) { return WSError::WS_OK; };
 

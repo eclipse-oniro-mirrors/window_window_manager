@@ -1473,12 +1473,12 @@ sptr<ScreenGroupInfo> ScreenManagerAdapter::GetScreenGroupInfoById(ScreenId scre
     return screenGroupInfo;
 }
 
-DMError ScreenManagerAdapter::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos)
+DMError ScreenManagerAdapter::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
 
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->GetAllScreenInfos(screenInfos);
+        return screenSessionManagerServiceProxy_->GetAllScreenInfos(screenInfos, isNeedUnused);
     }
 
     int32_t dmError;

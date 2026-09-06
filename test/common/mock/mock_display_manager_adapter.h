@@ -43,6 +43,7 @@ public:
     MOCK_METHOD1(GetDisplayState, DisplayState(DisplayId displayId));
     MOCK_METHOD1(NotifyDisplayEvent, void(DisplayEvent event));
     MOCK_METHOD1(GetDisplayInfo, sptr<DisplayInfo>(DisplayId displayId));
+    MOCK_METHOD2(GetDisplayInfo, sptr<DisplayInfo>(DisplayId displayId, bool isGetActualInfo));
     MOCK_METHOD4(GetCutoutInfo, sptr<CutoutInfo>(DisplayId displayId, int32_t width, int32_t height,
         Rotation rotation));
     MOCK_METHOD2(GetAvailableArea, DMError(DisplayId displayId, DMRect& area));
@@ -71,7 +72,7 @@ public:
         const DMRect& surfaceRegion));
     MOCK_METHOD2(RemoveVirtualScreenSurface, DMError(ScreenId screenId, sptr<Surface> surface));
     MOCK_METHOD1(GetScreenGroupInfoById, sptr<ScreenGroupInfo>(ScreenId screenId));
-    MOCK_METHOD1(GetAllScreenInfos, DMError(std::vector<sptr<ScreenInfo>>& screenInfos));
+    MOCK_METHOD2(GetAllScreenInfos, DMError(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused));
     MOCK_METHOD4(MakeMirror, DMError(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenId,
         ScreenId& screenGroupId, const RotationOption& rotationOption));
     MOCK_METHOD3(MakeExpand, DMError(std::vector<ScreenId> screenId, std::vector<Point> startPoint,

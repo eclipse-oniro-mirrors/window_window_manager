@@ -1132,7 +1132,7 @@ std::vector<DisplayId> DisplayManagerLiteProxy::GetAllDisplayIds(int32_t userId)
 #endif
 }
 
-DMError DisplayManagerLiteProxy::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos)
+DMError DisplayManagerLiteProxy::GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused)
 {
 #ifdef SCENE_BOARD_ENABLED
     sptr<IRemoteObject> remote = Remote();

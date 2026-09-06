@@ -512,6 +512,25 @@ HWTEST_F(SuperFoldPolicyTest, ExitCoordination02, TestSize.Level1)
     SuperFoldPolicy::GetInstance().ExitCoordination();
 }
 
+HWTEST_F(SuperFoldPolicyTest, CloseCoordination01, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    SuperFoldPolicy::GetInstance().CloseCoordination();
+    EXPECT_TRUE(g_logMsg.find("not in coordination") != std::string::npos);
+    g_logMsg.clear();
+}
+
+HWTEST_F(SuperFoldPolicyTest, CloseCoordination02, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::COORDINATION);
+    SuperFoldPolicy::GetInstance().CloseCoordination();
+    EXPECT_TRUE(g_logMsg.find("not in coordination") == std::string::npos);
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
 HWTEST_F(SuperFoldPolicyTest, ReportFoldDisplayModeChange01, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
@@ -546,6 +565,7 @@ HWTEST_F(SuperFoldPolicyTest, SetdisplayModeChangeStatus02, TestSize.Level1)
     bool isOnBootAnimation = false;
     SuperFoldPolicy::GetInstance().SetdisplayModeChangeStatus(status, isOnBootAnimation);
     EXPECT_FALSE(SuperFoldPolicy::GetInstance().displayModeChangeRunning_.load());
+    usleep(SLEEP_TIME_US*20);
 }
 
 HWTEST_F(SuperFoldPolicyTest, SetdisplayModeChangeStatus03, TestSize.Level1)

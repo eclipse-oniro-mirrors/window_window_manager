@@ -45,20 +45,18 @@ ohos_shared_library("libmodal_system_ui_extension_client") {
   deps = [
     "../../utils:libwmutil",
     "../../utils:libwmutil_base",
-    "../../window_scene/common:window_scene_common",
     "../../window_scene/session:scene_session",
     "../../wm:libwm",
   ]
 
   external_deps = [
-    "ability_base:session_info",
     "ability_base:want",
     "ability_runtime:ability_connect_callback_stub",
     "ability_runtime:ability_manager",
     "c_utils:utils",
+    "eventhandler:libeventhandler",
     "ffrt:libffrt",
     "hilog:libhilog",
-    "input:libmmi-client",
     "ipc:ipc_single",
   ]
 

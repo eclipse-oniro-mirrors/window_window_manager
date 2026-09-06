@@ -89,6 +89,7 @@ public:
     WSError UpdateDisplayId(uint64_t displayId) override;
     void NotifyDisplayMove(DisplayId from, DisplayId to) override;
     WSError SwitchFreeMultiWindow(bool enable, const std::set<ScreenId>& supportMultiWindowScreenSet) override;
+    WSError UpdateScreenSupportMultiWindow(const std::set<ScreenId>& supportMultiWindowScreenSet) override;
     WSError ConfigDockAutoHide(bool isDockAutoHide) override;
     WSError GetUIContentRemoteObj(sptr<IRemoteObject>& uiContentRemoteObj) override;
     void NotifyKeyboardPanelInfoChange(const KeyboardPanelInfo& keyboardPanelInfo) override;

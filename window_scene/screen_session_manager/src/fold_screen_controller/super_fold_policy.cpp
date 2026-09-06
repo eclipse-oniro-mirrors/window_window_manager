@@ -366,6 +366,7 @@ bool SuperFoldPolicy::GetdisplayModeRunningStatus()
 
 void SuperFoldPolicy::SwitchScreenAndSetScreenPower(ScreenId screenId, bool isScreenOn)
 {
+    CloseCoordination();
     std::string tp = FULL_TP;
     ScreenId offScreenId = GetCurrentScreenId();
     if (screenId == SCREEN_ID_MAIN) {
@@ -524,6 +525,7 @@ void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
         if (!isScreenOn) {
             PowerMgr::PowerMgrClient::GetInstance().WakeupDeviceAsync();
         }
+        NotifyRefreshRateEvent(true);
         TLOGNI(WmsLogTag::DMS, "ChangeScreenDisplayMode: on main screenId");
         ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
             ScreenPowerStatus::POWER_STATUS_ON);
@@ -534,7 +536,7 @@ void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
         PostAsyncTask(taskCoordination, __func__);
 }
 
-void SuperFoldPolicy::ExitCoordination()
+void SuperFoldPolicy::CloseCoordination()
 {
     if (GetCurrentDisplayMode() != FoldDisplayMode::COORDINATION) {
         TLOGI(WmsLogTag::DMS, "not in coordination");
@@ -542,11 +544,34 @@ void SuperFoldPolicy::ExitCoordination()
     }
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);
+    NotifyRefreshRateEvent(false);
     SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_ALONE);
     SetScreenIsInUse(SCREEN_ID_MAIN, false);
     SetScreenPowerState(SCREEN_ID_MAIN, DisplayState::OFF);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(false);
+}
+
+void SuperFoldPolicy::ExitCoordination()
+{
+    if (GetCurrentDisplayMode() != FoldDisplayMode::COORDINATION) {
+        TLOGI(WmsLogTag::DMS, "not in coordination");
+        return;
+    }
+    CloseCoordination();
+    ScreenSessionManager::GetInstance().NotifyScreenModeChange();
     RecoverDisplayMode();
+}
+
+void SuperFoldPolicy::NotifyRefreshRateEvent(bool isEventStatus)
+{
+    EventInfo eventInfo = {
+        .eventName = "VOTER_MULTISELFOWNEDSCREEN",
+        .eventStatus = isEventStatus,
+        .minRefreshRate = 0,
+        .maxRefreshRate = 0,
+    };
+    TLOGI(WmsLogTag::DMS, "isEventStatus:%{public}d", isEventStatus);
+    RSInterfaces::GetInstance().NotifyRefreshRateEvent(eventInfo);
 }
 
 void SuperFoldPolicy::ReportFoldDisplayModeChange(FoldDisplayMode displayMode)

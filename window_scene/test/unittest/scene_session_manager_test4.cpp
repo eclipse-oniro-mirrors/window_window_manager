@@ -718,6 +718,77 @@ HWTEST_F(SceneSessionManagerTest4, UpdateScreenSupportMultiWindow, TestSize.Leve
 }
 
 /**
+ * @tc.name: UpdateScreenSupportMultiWindow02
+ * @tc.desc: UpdateScreenSupportMultiWindow with session in map, ADD operation syncs to session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateScreenSupportMultiWindow02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+ 
+    SessionInfo info;
+    info.persistentId_ = 100;
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_[100] = sceneSession;
+ 
+    auto result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 1);
+    EXPECT_EQ(sceneSession->systemConfig_.supportMultiWindowScreenSet_.count(0), 1);
+ 
+    ssm_->sceneSessionMap_.erase(100);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow03
+ * @tc.desc: UpdateScreenSupportMultiWindow with session in map, DELETE operation syncs to session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateScreenSupportMultiWindow03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_ = {0, 1};
+ 
+    SessionInfo info;
+    info.persistentId_ = 100;
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_[100] = sceneSession;
+    sceneSession->systemConfig_.supportMultiWindowScreenSet_ = {0, 1};
+ 
+    auto result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::DELETE);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 0);
+    EXPECT_EQ(sceneSession->systemConfig_.supportMultiWindowScreenSet_.count(0), 0);
+    EXPECT_EQ(sceneSession->systemConfig_.supportMultiWindowScreenSet_.count(1), 1);
+ 
+    ssm_->sceneSessionMap_.erase(100);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+ 
+/**
+ * @tc.name: UpdateScreenSupportMultiWindow04
+ * @tc.desc: UpdateScreenSupportMultiWindow with nullptr session in map should skip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateScreenSupportMultiWindow04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+    ssm_->sceneSessionMap_[100] = nullptr;
+ 
+    auto result = ssm_->UpdateScreenSupportMultiWindow(0, ScreenSupportMultiWindowReason::ADD);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(ssm_->systemConfig_.supportMultiWindowScreenSet_.count(0), 1);
+ 
+    ssm_->sceneSessionMap_.erase(100);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+
+/**
  * @tc.name: UpdateSessionWindowVisibilityListener02
  * @tc.desc: UpdateSessionWindowVisibilityListener
  * @tc.type: FUNC

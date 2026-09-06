@@ -709,6 +709,22 @@ HWTEST_F(SceneSessionManagerAttributeTest, FilterForGetAllWindowLayoutInfo004, T
 }
 
 /**
+ * @tc.name: ProcessVirtualPixelRatioChange
+ * @tc.desc: test ProcessVirtualPixelRatioChange.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ProcessVirtualPixelRatioChange, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ssm_->SetUpdateDisplayDpiChangeCallback([](DisplayId displayId, float density) {});
+    DisplayId defaultDisplayId = 0;
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    std::map<DisplayId, sptr<DisplayInfo>> displayInfoMap;
+    DisplayStateChangeType type = DisplayStateChangeType::BEFORE_SUSPEND;
+    ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap, type);
+}
+
+/**
  * @tc.name: ShouldProcessVirtualPixelRatioChange
  * @tc.desc: ShouldProcessVirtualPixelRatioChange when displayInfo is nullptr
  * @tc.type: FUNC

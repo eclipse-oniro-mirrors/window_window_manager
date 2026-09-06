@@ -95,7 +95,7 @@ void AniPipController::OnstartPiPAni(ani_env* env)
             TLOGE(WmsLogTag::WMS_PIP, "[pip]GetEnv failed, ret:%{public}u", ret);
             return;
         }
-        vmError = pipController_->StartPictureInPicture(StartPipType::USER_START);
+        vmError = pipController_->StartPictureInPicture(StartPipType::USER_START).errCode;
         TLOGI(WmsLogTag::WMS_PIP, "sync task in mainThread, OnstartPiPAni finish");
     };
     AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::IMMEDIATE;
@@ -132,7 +132,7 @@ void AniPipController::OnstopPiPAni(ani_env* env)
     }
     TLOGI(WmsLogTag::WMS_PIP, "next");
     pipController_->SetStateChangeReason(PiPStateChangeReason::REQUEST_DELETE);
-    WMError error = pipController_->StopPictureInPictureFromClient();
+    WMError error = pipController_->StopPictureInPictureFromClient().errCode;
     if (error != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "pipController is nullptr, errorcode is %{public}u",
             static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(error)));
@@ -365,7 +365,7 @@ bool AniPipController::IsPiPActiveAni(ani_env* env, ani_object obj, ani_long nat
         return false;
     }
     bool status = false;
-    WMError ret = aniPipController->pipController_->IsPiPActive(status);
+    WMError ret = aniPipController->pipController_->IsPiPActive(status).errCode;
     if (ret != WMError::WM_OK) {
         AniPipUtils::AniThrowError(env, ret, "");
         return false;
@@ -465,8 +465,7 @@ void AniPipController::OnStateChangeAni(ani_env* env, ani_object obj, ani_long n
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->RegisterListener(env, AniListenerType::STATE_CHANGE_CB, cb);
@@ -481,8 +480,7 @@ void AniPipController::OnControlPanelActionEventAni(ani_env* env, ani_object obj
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->RegisterListener(env, AniListenerType::CONTROL_PANEL_ACTION_EVENT_CB, cb);
@@ -497,8 +495,7 @@ void AniPipController::OnControlEventAni(ani_env* env, ani_object obj, ani_long 
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->RegisterListener(env, AniListenerType::CONTROL_EVENT_CB, cb);
@@ -513,7 +510,7 @@ void AniPipController::OnPipWindowSizeChangeAni(ani_env* env, ani_object obj, an
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
+        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_PIP_INTERNAL_ERROR,
                                    "aniPipController is null or pipController_ is null");
         return;
     }
@@ -529,7 +526,7 @@ void AniPipController::OnActiveStatusChangeAni(ani_env* env, ani_object obj, ani
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
+        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_PIP_INTERNAL_ERROR,
                                    "aniPipController is null or pipController_ is null");
         return;
     }
@@ -612,8 +609,7 @@ void AniPipController::OffStateChangeAni(ani_env* env, ani_object obj, ani_long 
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->UnregisterListener(env, AniListenerType::STATE_CHANGE_CB, nullptr);
@@ -628,8 +624,7 @@ void AniPipController::OffControlPanelActionEventAni(ani_env* env, ani_object ob
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->UnregisterListener(env, AniListenerType::CONTROL_PANEL_ACTION_EVENT_CB, nullptr);
@@ -644,8 +639,7 @@ void AniPipController::OffControlEventAni(ani_env* env, ani_object obj, ani_long
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->UnregisterListener(env, AniListenerType::CONTROL_EVENT_CB, cb);
@@ -660,8 +654,7 @@ void AniPipController::OffPipWindowSizeChangeAni(ani_env* env, ani_object obj, a
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-                                   "aniPipController is null or pipController_ is null");
+        TLOGI(WmsLogTag::WMS_PIP, "aniPipController is null or pipController_ is null");
         return;
     }
     auto ret = aniPipController->UnregisterListener(env, AniListenerType::SIZE_CHANGE_CB, cb);
@@ -676,7 +669,7 @@ void AniPipController::OffActiveStatusChangeAni(ani_env* env, ani_object obj, an
     TLOGI(WmsLogTag::WMS_PIP, "start");
     AniPipController* aniPipController = reinterpret_cast<AniPipController*>(nativeObj);
     if (!aniPipController || !aniPipController->pipController_) {
-        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
+        AniPipUtils::AniThrowError(env, WMError::WM_ERROR_PIP_INTERNAL_ERROR,
                                    "aniPipController is null or pipController_ is null");
         return;
     }

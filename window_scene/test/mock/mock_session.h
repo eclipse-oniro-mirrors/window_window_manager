@@ -64,6 +64,7 @@ public:
     MOCK_METHOD1(SetActive, WSError(bool active));
     MOCK_METHOD1(SyncSessionEvent, WSError(SessionEvent event));
     MOCK_METHOD0(RemoveStartingWindow, WSError(void));
+    MOCK_METHOD1(RemoveStartingWindow, WSError(std::string& errMsg));
     MOCK_METHOD1(GetGlobalMaximizeMode, WSError(MaximizeMode& mode));
     MOCK_METHOD2(UpdateSessionPropertyByAction, WMError(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action));
@@ -81,6 +82,10 @@ public:
     MOCK_METHOD1(RestoreFloatViewMainWindow, WMError(const std::shared_ptr<AAFwk::WantParams>& wantParams));
     MOCK_METHOD1(GetSelectMode, WMError(SelectMode& selectMode));
     MOCK_METHOD1(NotifySplitRatioChanged, WMError(float newRatio));
+    MOCK_METHOD(WSError, NotifyClientToUpdateRect,
+        (const std::string& updateReason, std::optional<WSRect> updateRect,
+         std::shared_ptr<RSTransaction> rsTransaction), (override));
+    MOCK_METHOD(PreWindowProperty, PreCalcWindowProperty, (), (override));
 };
 } // namespace Rosen
 } // namespace OHOS

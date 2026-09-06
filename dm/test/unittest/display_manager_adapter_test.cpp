@@ -1360,7 +1360,7 @@ HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions02, TestSize.Level1
 
     DMError err =
         SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
-    EXPECT_EQ(err, DMError::DM_OK);
+    EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
 }
 
 /**
@@ -1379,7 +1379,7 @@ HWTEST_F(DisplayManagerAdapterTest, SetOrientationWithOptions03, TestSize.Level1
 
     DMError err =
         SingletonContainer::Get<ScreenManagerAdapter>().SetOrientation(screenId, orientation, options, isFromNapi);
-    EXPECT_EQ(err, DMError::DM_OK);
+    EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
 }
 
 /**

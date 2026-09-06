@@ -17,6 +17,7 @@
 #include "dms_global_mutex.h"
 #include "screen_session_manager/include/screen_session_manager.h"
 #include "window_manager_hilog.h"
+#include "fold_screen_state_internel.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -448,7 +449,26 @@ void ScreenSessionManagerAdapter::OnScreenshot(sptr<ScreenshotInfo> info)
     }
 }
 
-void ScreenSessionManagerAdapter::NotifyFoldStatusChanged(FoldStatus foldStatus)
+FoldStatus ScreenSessionManagerAdapter::FoldStatusTrans(FoldStatus foldStatus)
+{
+    FoldStatus transfoldstatus = foldStatus;
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+        return transfoldstatus;
+    }
+    switch (foldStatus) {
+        case FoldStatus::FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED:
+        case FoldStatus::FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND:
+            transfoldstatus = FoldStatus::EXPAND;
+            break;
+        default : {
+            TLOGW(WmsLogTag::DMS, "foldStatus is unknown.");
+        }
+    }
+    TLOGNFI(WmsLogTag::DMS,   "transfoldstatus:%{public}d ", transfoldstatus);
+    return transfoldstatus;
+}
+
+void ScreenSessionManagerAdapter::NotifyFoldStatusChanged(FoldStatus foldStatus, FoldStatus lastStatus)
 {
     INIT_PROXY_CHECK_RETURN();
     auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::FOLD_STATUS_CHANGED_LISTENER);
@@ -458,12 +478,32 @@ void ScreenSessionManagerAdapter::NotifyFoldStatusChanged(FoldStatus foldStatus)
         TLOGE(WmsLogTag::DMS, "agent is null");
         return;
     }
+    FoldStatus foldStatusNew = FoldStatus::UNKNOWN;
+    bool isSysCall = false;
     for (auto& agent : agents) {
+        foldStatusNew = foldStatus;
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
-        if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid,
-                                                           DisplayManagerAgentType::FOLD_STATUS_CHANGED_LISTENER)) {
-            agent->NotifyFoldStatusChanged(foldStatus);
+        isSysCall = dmAgentContainer_.GetAgentSystem(agent);
+        if (!isSysCall) {
+            foldStatusNew = FoldStatusTrans(foldStatusNew);
         }
+        if (ScreenSessionManager::GetInstance().IsFreezed(agentPid,
+            DisplayManagerAgentType::FOLD_STATUS_CHANGED_LISTENER)) {
+            continue;
+        }
+        bool isBlocked = ScreenSessionManager::GetInstance().IsHoverBlockPid(agentPid);
+        if (!isBlocked) {
+            agent->NotifyFoldStatusChanged(foldStatusNew);
+            continue;
+        }
+        FoldStatus actualNewStatus =
+            (isBlocked && foldStatusNew == FoldStatus::HALF_FOLD) ? FoldStatus::EXPAND : foldStatusNew;
+        FoldStatus actualOldStatus =
+            (isBlocked && lastStatus == FoldStatus::HALF_FOLD) ? FoldStatus::EXPAND : lastStatus;
+        if (actualNewStatus == actualOldStatus) {
+            continue;
+        }
+        agent->NotifyFoldStatusChanged(actualNewStatus);
     }
 }
 

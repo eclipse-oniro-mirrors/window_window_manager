@@ -107,6 +107,7 @@ private:
     std::shared_ptr<VsyncStation> vsyncStation_ = nullptr;
     std::shared_ptr<AppExecFwk::EventHandler> handler_ = nullptr;
     std::function<void(const std::shared_ptr<AppExecFwk::Configuration>&)> configurationUpdateCallback_;
+    std::function<void(DisplayId displayId, float density)> densityUpdateCallback_;
 };
 } // namespace Rosen
 } // namespace OHOS

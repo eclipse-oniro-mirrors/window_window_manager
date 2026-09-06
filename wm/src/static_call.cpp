@@ -21,9 +21,9 @@ namespace Rosen {
 WM_IMPLEMENT_SINGLE_INSTANCE(StaticCall)
 
 sptr<Window> StaticCall::CreateWindow(const std::string& windowName,
-    sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context)
+    sptr<WindowOption>& option, std::string& errMsg, std::shared_ptr<AbilityRuntime::Context> context)
 {
-    return Window::Create(windowName, option, context);
+    return Window::Create(windowName, option, errMsg, context);
 }
 
 sptr<Window> StaticCall::CreateWindow(sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context,

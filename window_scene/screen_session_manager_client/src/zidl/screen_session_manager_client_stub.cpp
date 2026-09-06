@@ -53,10 +53,6 @@ void ScreenSessionManagerClientStub::InitScreenChangeMap()
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnSensorRotationChanged(data, reply);
     };
-    HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_SMART_SENSOR_ROTATION_CHANGED] =
-        [this](MessageParcel& data, MessageParcel& reply) {
-        return HandleOnSmartSensorRotationChanged(data, reply);
-    };
     HandleScreenChangeMap_[ScreenSessionManagerClientMessage::TRANS_ID_ON_HOVER_STATUS_CHANGED] =
         [this](MessageParcel& data, MessageParcel& reply) {
         return HandleOnHoverStatusChanged(data, reply);
@@ -413,16 +409,6 @@ int ScreenSessionManagerClientStub::HandleOnSensorRotationChanged(MessageParcel&
     return ERR_NONE;
 }
 
-int ScreenSessionManagerClientStub::HandleOnSmartSensorRotationChanged(MessageParcel& data, MessageParcel& reply)
-{
-    TLOGD(WmsLogTag::WMS_ROTATION, "enter");
-    auto screenId = static_cast<ScreenId>(data.ReadUint64());
-    auto sensorRotation = data.ReadFloat();
-    auto isSwitchUser = data.ReadBool();
-    OnSmartSensorRotationChanged(screenId, sensorRotation, isSwitchUser);
-    return ERR_NONE;
-}
-
 int ScreenSessionManagerClientStub::HandleOnScreenExtendChanged(MessageParcel& data, MessageParcel& reply)
 {
     auto mainScreenId = static_cast<ScreenId>(data.ReadUint64());
@@ -593,8 +579,11 @@ int ScreenSessionManagerClientStub::HandleScreenCaptureNotify(MessageParcel& dat
     auto screenId = static_cast<ScreenId>(data.ReadUint64());
     auto uid = data.ReadInt32();
     auto clientName = data.ReadString();
+    auto tokenId = data.ReadUint32();
+    std::vector<std::string> permissions;
+    data.ReadStringVector(&permissions);
     TLOGI(WmsLogTag::DMS, "notify scb capture screenId=%{public}" PRIu64", uid=%{public}d.", screenId, uid);
-    ScreenCaptureNotify(screenId, uid, clientName);
+    ScreenCaptureNotify(screenId, uid, clientName, tokenId, permissions);
     return ERR_NONE;
 }
 

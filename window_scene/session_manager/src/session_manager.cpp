@@ -178,13 +178,13 @@ void SessionManager::OnWMSConnectionChanged(
         if (shouldUpdateCurrentState) {
             isWMSConnected_ = isConnected;
         }
+        TLOGI(WmsLogTag::WMS_MULTI_USER,
+            "State updated: inst=%{public}d, shouldUpdate=%{public}d, "
+            "currentServer userId=%{public}d screenId=%{public}d pid=%{public}d, isWMSConnected=%{public}d",
+            userId_, shouldUpdateCurrentState,
+            currentServer_.userId, currentServer_.screenId, currentServer_.pid, isWMSConnected_);
     }
     bool isUserSwitched = fromUserId != INVALID_USER_ID;
-    TLOGI(WmsLogTag::WMS_MULTI_USER,
-        "State updated: inst=%{public}d, shouldUpdate=%{public}d, isUserSwitched=%{public}d, "
-        "currentServer userId=%{public}d screenId=%{public}d pid=%{public}d, isWMSConnected=%{public}d",
-        userId_, shouldUpdateCurrentState, isUserSwitched,
-        currentServer_.userId, currentServer_.screenId, currentServer_.pid, isWMSConnected_);
     if (isConnected && isUserSwitched) {
         OnWMSConnectionChangedCallback(fromUserId, screenId, false, fromPid);
         if (userId_ == INVALID_USER_ID && shouldUpdateCurrentState) {
@@ -327,18 +327,20 @@ __attribute__((no_sanitize("cfi"))) void SessionManager::InitSceneSessionManager
             return;
         }
     }
-    if (!sceneSessionManagerDeath_) {
-        sceneSessionManagerDeath_ = sptr<SSMDeathRecipient>::MakeSptr(userId_);
-    }
+    sptr<SSMDeathRecipient> deathRecipient = nullptr;
     {
         std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
+        if (!sceneSessionManagerDeath_) {
+            sceneSessionManagerDeath_ = sptr<SSMDeathRecipient>::MakeSptr(userId_);
+        }
+        deathRecipient = sceneSessionManagerDeath_;
         sceneSessionManagerProxy_ = iface_cast<ISceneSessionManager>(remoteObject);
         if (sceneSessionManagerProxy_ == nullptr) {
             TLOGE(WmsLogTag::WMS_SCB, "Get scene session manager proxy failed, userId=%{public}d", userId_);
             return;
         }
     }
-    if (remoteObject->IsProxyObject() && !remoteObject->AddDeathRecipient(sceneSessionManagerDeath_)) {
+    if (remoteObject->IsProxyObject() && !remoteObject->AddDeathRecipient(deathRecipient)) {
         TLOGE(WmsLogTag::WMS_SCB, "failed to add death recipient, userId=%{public}d", userId_);
         return;
     }
@@ -453,14 +455,16 @@ void SessionManager::OnUserSwitch(const sptr<ISessionManagerService>& sessionMan
 void SessionManager::RemoveSSMDeathRecipient()
 {
     sptr<IRemoteObject> remoteObject = nullptr;
+    sptr<SSMDeathRecipient> deathRecipient = nullptr;
     {
         std::lock_guard<std::mutex> lock(sceneSessionManagerMutex_);
         if (sceneSessionManagerProxy_) {
             remoteObject = sceneSessionManagerProxy_->AsObject();
         }
+        deathRecipient = sceneSessionManagerDeath_;
     }
     if (remoteObject) {
-        remoteObject->RemoveDeathRecipient(sceneSessionManagerDeath_);
+        remoteObject->RemoveDeathRecipient(deathRecipient);
     }
     TLOGI(WmsLogTag::WMS_SCB, "removed, userId=%{public}d", userId_);
 }
