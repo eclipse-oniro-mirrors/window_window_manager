@@ -4120,6 +4120,9 @@ int32_t SceneSessionManager::StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSes
     }
     ResetSceneMissionInfo(abilitySessionInfo);
     isColdStart = *coldStartFlag;
+    if (sceneSession->GetSessionInfo().processOptions != nullptr) {
+        sceneSession->EditSessionInfo().processOptions->isPreloadStart = false;
+    }
     return *retCode;
 }
 
