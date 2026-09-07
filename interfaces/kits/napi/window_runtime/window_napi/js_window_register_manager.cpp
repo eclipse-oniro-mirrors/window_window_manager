@@ -399,6 +399,10 @@ WmErrorCode JsWindowRegisterManager::ProcessFocusStateChangeRegister(sptr<JsWind
     sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
 {
     TLOGD(WmsLogTag::WMS_FOCUS, "called");
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "window is nullptr");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
     sptr<IFocusStateChangedListener> thisListener(listener);
     WmErrorCode ret;
     if (isRegister) {
