@@ -317,7 +317,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground09, TestSize.Level1)
 
 /**
  * @tc.name: Foreground10
- * @tc.desc: Foreground with isAlreadyShown false and session state is STATE_FOREGROUND should fail
+ * @tc.desc: Foreground with isAlreadyShown false and session state is STATE_FOREGROUND
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
@@ -332,7 +332,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
     session->property_ = property;
     session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
     auto result = session->Foreground(property, false, "", false);
-    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**

@@ -111,6 +111,7 @@ HWTEST_F(SessionStubTest, ProcessRemoteRequestTest01, TestSize.Level1)
     data.WriteBool(false);
     data.WriteBool(true);
     data.WriteString("");
+    data.WriteBool(false);
     res = session_->ProcessRemoteRequest(
         static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_FOREGROUND), data, reply, option);
     ASSERT_EQ(ERR_NONE, res);

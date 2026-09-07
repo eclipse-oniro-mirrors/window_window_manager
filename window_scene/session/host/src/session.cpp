@@ -148,6 +148,13 @@ Session::~Session()
             // do nothing
         });
     }
+    std::vector<std::shared_ptr<ILifecycleListener>> listeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(lifecycleListenersMutex_);
+        listeners.swap(lifecycleListeners_);
+        TLOGD(WmsLogTag::WMS_LIFE, "id:%{public}d, lifecycleListeners cnt:%{public}zu",
+            GetPersistentId(), listeners.size());
+    }
 }
 
 void Session::SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
