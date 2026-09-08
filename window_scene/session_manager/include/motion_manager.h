@@ -69,8 +69,8 @@ public:
     void Reset();
     
     void TestHandleMotionEvent(MotionType motionType, float rotation);
-    WSError SetMotionValueByDump(const std:vector<std::string>& args, std::string& dumpInfo);
-    WSError SetSmartMotionValueByDump(const std:vector<std::string>& args, std::string& dumpInfo);
+    WSError SetMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo);
+    WSError SetSmartMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo);
     
 private:
     MotionManager();
