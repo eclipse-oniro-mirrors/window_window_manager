@@ -20,6 +20,7 @@
 #include <map>
 #include "refbase.h"
 #include "dm_common.h"
+#include "ws_common.h"
 #include "screen_rotation_property.h"
 #include "session_sensor_plugin.h"
 #include "window_manager_hilog.h"
@@ -68,6 +69,8 @@ public:
     void Reset();
     
     void TestHandleMotionEvent(MotionType motionType, float rotation);
+    WSError SetMotionValueByDump(const std:vector<std::string>& args, std::string& dumpInfo);
+    WSError SetSmartMotionValueByDump(const std:vector<std::string>& args, std::string& dumpInfo);
     
 private:
     MotionManager();
@@ -81,6 +84,7 @@ private:
     void HandleMotionEvent(MotionType motionType, float rotation);
     void HandleDeviceSensorRotation(float rotation);
     void HandleSmartSensorRotation(float rotation);
+    bool IsValidDigitString(const std::string& str);
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);
     static float ConvertDeviceMotionToFloat(DeviceRotation deviceRotation);
