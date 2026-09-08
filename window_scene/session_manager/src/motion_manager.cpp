@@ -183,7 +183,7 @@ float MotionManager::ConvertDeviceMotionToFloat(DeviceRotation deviceRotation)
     }
 }
 
-bool WindowDumper::IsValidDigitString(const std::string& str)
+bool MotionManager::IsValidDigitString(const std::string& str)
 {
     if (str.empty()) {
         return false;
