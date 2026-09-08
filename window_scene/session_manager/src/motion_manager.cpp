@@ -289,7 +289,7 @@ void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation)
 
 WSError MotionManager::SetMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo)
 {
-    if (!this->IsValidDigitString(args[1]) || args[1].size() > 1) {// 1:string size
+    if (!this->IsValidDigitString(args[1]) || args[1].size() > 1) { // 1:string size
         TLOGE(WmsLogTag::WMS_ROTATION, "motion value must be digit and length can't above 1");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
@@ -306,7 +306,7 @@ WSError MotionManager::SetMotionValueByDump(const std::vector<std::string>& args
  
 WSError MotionManager::SetSmartMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo)
 {
-    if (!this->IsValidDigitString(args[1]) || args[1].size() > 1) {// 1:string size
+    if (!this->IsValidDigitString(args[1]) || args[1].size() > 1) { // 1:string size
         TLOGE(WmsLogTag::WMS_ROTATION, "smartmotion value must be digit and length can't above 1");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
