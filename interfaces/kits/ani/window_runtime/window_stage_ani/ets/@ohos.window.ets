@@ -492,6 +492,25 @@ namespace window {
     contentColor: string;
   }
 
+  export interface WindowFocusState {
+    focused: boolean;
+    focusChangeReason: FocusChangeReason;
+    nextFocusedWindowId?: number;
+    prevFocusedWindowId?: number;
+  }
+
+  export enum FocusChangeReason {
+    DEFAULT = 0,
+    CLICK = 1,
+  }
+
+  export class WindowFocusStateInternal implements WindowFocusState {
+    focused: boolean = false;
+    focusChangeReason: FocusChangeReason = FocusChangeReason.DEFAULT;
+    nextFocusedWindowId?: number;
+    prevFocusedWindowId?: number;
+  }
+
   export enum RectChangeReason {
     UNDEFINED = 0,
     MAXIMIZE = 1,
@@ -4743,6 +4762,14 @@ export class WindowInternal implements Window {
       this.offSync(this.nativeObj, "windowHighlightChange", callback);
     }
 
+    public onWindowFocusStateChange(callback: Callback<WindowFocusState>): void {
+      this.onSync(this.nativeObj, 'windowFocusStateChange', callback);
+    }
+
+    public offWindowFocusStateChange(callback?: Callback<WindowFocusState>): void {
+      this.offSync(this.nativeObj, 'windowFocusStateChange', callback);
+    }
+
     public setWindowShadowEnabled(enable: boolean): Promise<void> {
       return new Promise<void>(
         (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
@@ -5677,6 +5704,8 @@ export interface Window {
     setShadow(radius: double, color?: string, offsetX?: double, offsetY?: double): void;
     onWindowHighlightChange(callback: Callback<boolean>): void;
     offWindowHighlightChange(callback?: Callback<boolean>): void;
+    onWindowFocusStateChange(callback: Callback<WindowFocusState>): void;
+    offWindowFocusStateChange(callback?: Callback<WindowFocusState>): void;
     setCornerRadius(cornerRadius: double): void;
     getTransitionController(): TransitionController;
     setBlur(radius: double): void;
@@ -6358,6 +6387,11 @@ function runWindowListenerVoidArgCallback(cb: object): void {
 function runWindowListenerBooleanArgCallback(cb: object, cbArg: boolean): void {
   const func = cb as (cbArg: boolean) => void;
   func(cbArg);
+}
+
+function runWindowFocusStateChangeCallback(cb: object, state: object): void {
+  const func = cb as (state: WindowFocusState) => void;
+  func(state as WindowFocusState);
 }
 
 function runWindowWillCloseListenerCallback(cb: object, cbArg: object): void {

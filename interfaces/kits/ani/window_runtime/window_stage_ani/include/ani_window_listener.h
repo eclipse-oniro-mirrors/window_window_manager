@@ -56,6 +56,7 @@ class AniWindowListener : public IWindowChangeListener,
                         public IMainWindowCloseListener,
                         public ISubWindowCloseListener,
                         public IWindowHighlightChangeListener,
+                        public IFocusStateChangedListener,
                         public ISystemDensityChangeListener,
                         public IDisplayIdChangeListener,
                         public IRectChangeInGlobalDisplayListener,
@@ -122,6 +123,8 @@ public:
     void OnRectChange(Rect rect, WindowSizeChangeReason reason) override;
     void OnSubWindowClose(bool& terminateCloseProcess) override;
     void OnWindowHighlightChange(bool isHighlight) override;
+    void OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId) override;
     void OnMainWindowClose(bool& terminateCloseProcess) override;
     void OnWindowWillClose(sptr<Window> window) override;
     void OnRotationChange(const RotationChangeInfo& rotationChangeInfo,
