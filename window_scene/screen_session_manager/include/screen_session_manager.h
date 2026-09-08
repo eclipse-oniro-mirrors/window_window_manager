@@ -654,6 +654,7 @@ public:
     void RemoveUserByPid(int32_t pid);
     bool CheckPidInDeathPidVector(int32_t pid) const;
     void NotifyRSCoordination(bool isEnterCoordination) const;
+    void NotifyRSCoordination(ScreenId id, bool isEnterCoordination) const;
     void CalculateStartWhenTransferState(sptr<ScreenSession> staticSession, sptr<ScreenSession> dynamicSession,
         uint32_t borderingAreaPercent);
     void AdjustTheBorderingAreaPercent(uint32_t adjacentPercent, uint32_t length, uint32_t& adjacentStart);

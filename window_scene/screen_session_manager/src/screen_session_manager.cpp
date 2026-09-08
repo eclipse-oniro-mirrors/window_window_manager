@@ -15701,9 +15701,14 @@ bool ScreenSessionManager::GetCoordinationFlag()
 
 void ScreenSessionManager::NotifyRSCoordination(bool isEnterCoordination) const
 {
-    TLOGNFI(WmsLogTag::DMS, "isEnterCoordination:%{public}d", isEnterCoordination);
-    auto ret = rsInterface_.SetDualScreenState(SCREEN_ID_FULL, isEnterCoordination ?
-        DualScreenStatus::DUAL_SCREEN_ENTER : DualScreenStatus::DUAL_SCREEN_EXIT);
+    NotifyRSCoordination(SCREEN_ID_FULL, isEnterCoordination);
+}
+
+void ScreenSessionManager::NotifyRSCoordination(ScreenId id, bool isEnterCoordination) const
+{
+    TLOGNFI(WmsLogTag::DMS, "ScreenId:%{public}" PRIu64 " isEnterCoordination:%{public}d", id, isEnterCoordination);
+    auto ret = rsInterface_.SetDualScreenState(
+        id, isEnterCoordination ? DualScreenStatus::DUAL_SCREEN_ENTER : DualScreenStatus::DUAL_SCREEN_EXIT);
     if (ret != 0) {
         TLOGNFE(WmsLogTag::DMS, "rsInterface failed! ret:%{public}d", ret);
     }
