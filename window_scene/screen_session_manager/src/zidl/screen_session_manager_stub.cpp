@@ -1766,7 +1766,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
 void ScreenSessionManagerStub::ProcGetAvailableArea(MessageParcel& data, MessageParcel& reply)
 {
     DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
-    DMRect area;
+    DMRect area = DMRect::NONE();
     DMError ret = GetAvailableArea(displayId, area);
     reply.WriteInt32(static_cast<int32_t>(ret));
     reply.WriteInt32(area.posX_);
