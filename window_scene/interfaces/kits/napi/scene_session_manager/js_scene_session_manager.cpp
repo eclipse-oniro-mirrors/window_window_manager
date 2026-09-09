@@ -819,7 +819,6 @@ void JsSceneSessionManager::ProcessRecoverSceneSessionRegister()
 void JsSceneSessionManager::ProcessRestoreSessionToForegroundRegister()
 {
     NotifyRestoreSessionToForegroundFunc func = [this](int32_t persistentId, DisplayId screenId) {
-        TLOGND(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground");
         this->OnRestoreSessionToForeground(persistentId, screenId);
     };
     SceneSessionManager::GetInstance().SetRestoreSessionToForegroundListener(func);

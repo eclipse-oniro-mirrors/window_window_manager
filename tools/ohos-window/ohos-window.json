@@ -60,9 +60,9 @@
                         "type": "boolean",
                         "default": false
                     },
-                    "persistentId": {
+                    "windowId": {
                         "type": "integer",
-                        "description": "persistentId of the session to be restored to foreground"
+                        "description": "windowId of the session to be restored to foreground"
                     }
                 }
             },

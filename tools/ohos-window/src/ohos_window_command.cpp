@@ -43,7 +43,7 @@ const std::string INVALID_OPERATION_SOLUTION =
 
 const size_t RESTORE_SESSION_PARAM_COUNT = 2;
 const size_t HELP_PARAM_COUNT = 1;
-const std::string OPTION_PERSISTENT_ID = "--persistentId";
+const std::string OPTION_WINDOW_ID = "--windowId";
 const std::string OPTION_HELP = "--help";
 }  // namespace
 
@@ -133,7 +133,7 @@ int32_t ClawWindowShellCommand::RunAsHelpCommand()
 
 int32_t ClawWindowShellCommand::RunAsRestoreSession()
 {
-    if (argList_.size() == RESTORE_SESSION_PARAM_COUNT && argList_[0] == OPTION_PERSISTENT_ID) {
+    if (argList_.size() == RESTORE_SESSION_PARAM_COUNT && argList_[0] == OPTION_WINDOW_ID) {
         int32_t persistentId = 0;
         std::string idStr = argList_[1];
         auto res = std::from_chars(idStr.c_str(), idStr.c_str() + idStr.size(), persistentId);

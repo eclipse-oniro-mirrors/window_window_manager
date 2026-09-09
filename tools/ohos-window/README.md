@@ -26,17 +26,17 @@ tools/ohos-window/
 
 | 子命令 | 作用 | 可选参数 | 所需权限 |
 |--------|------|----------|----------|
-| `restore-session` | 将指定主窗口恢复到前台 | `--persistentId`、`--help` | `ohos.permission.CONTROL_DEVICE` |
+| `restore-session` | 将指定主窗口恢复到前台 | `--windowId`、`--help` | `ohos.permission.CONTROL_DEVICE` |
 | `--help` / `help` | 显示帮助信息 | 无 | 无 |
 
 ### restore-session 子命令参数说明
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `--persistentId <id>` | integer | 待恢复到前台的主窗口的 persistentId |
+| `--windowId <id>` | integer | 待恢复到前台的主窗口的 windowId |
 | `--help` | flag | 显示 restore-session 子命令帮助信息 |
 
-> **注意**：`--persistentId` 为必填参数，且必须是非负整数。
+> **注意**：`--windowId` 为必填参数，且必须是非负整数。
 
 ## Claw 规范遵循情况
 
@@ -44,7 +44,7 @@ tools/ohos-window/
 
 - 工具名称采用 `ohos-<domain>` 格式：`ohos-window`
 - 子命令使用小写英文，多词子命令以连字符分隔：`restore-session`
-- 参数采用双连字符前缀的驼峰命名：`--persistentId`
+- 参数采用双连字符前缀的驼峰命名：`--windowId`
 - 命令规范元数据通过 JSON 配置文件 `ohos-window.json` 定义
 
 ### 输入格式规范
@@ -109,5 +109,5 @@ ohos-window restore-session --help
 
 ```bash
 # 恢复指定主窗口到前台
-ohos-window restore-session --persistentId 100
+ohos-window restore-session --windowId 100
 ```

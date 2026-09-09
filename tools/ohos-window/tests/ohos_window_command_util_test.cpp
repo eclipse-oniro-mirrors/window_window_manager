@@ -177,7 +177,7 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_InvalidId_0100)
     char* argv[] = {
         const_cast<char*>("ohos-window"),
         const_cast<char*>("restore-session"),
-        const_cast<char*>("--persistentId"),
+        const_cast<char*>("--windowId"),
         const_cast<char*>("abc"),
         const_cast<char*>(""),
     };
@@ -191,7 +191,7 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_InvalidId_0200)
     char* argv[] = {
         const_cast<char*>("ohos-window"),
         const_cast<char*>("restore-session"),
-        const_cast<char*>("--persistentId"),
+        const_cast<char*>("--windowId"),
         const_cast<char*>("90.1"),
         const_cast<char*>(""),
     };
@@ -205,7 +205,7 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_UnexpectedArg_0100)
     char* argv[] = {
         const_cast<char*>("ohos-window"),
         const_cast<char*>("restore-session"),
-        const_cast<char*>("--persistentId"),
+        const_cast<char*>("--windowId"),
         const_cast<char*>("90"),
         const_cast<char*>("0"),
         const_cast<char*>(""),
@@ -220,7 +220,7 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_NullProxy_0100)
     char* argv[] = {
         const_cast<char*>("ohos-window"),
         const_cast<char*>("restore-session"),
-        const_cast<char*>("--persistentId"),
+        const_cast<char*>("--windowId"),
         const_cast<char*>("100"),
         const_cast<char*>(""),
     };
@@ -346,7 +346,7 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_NegativeId_0100)
     char* argv[] = {
         const_cast<char*>("ohos-window"),
         const_cast<char*>("restore-session"),
-        const_cast<char*>("--persistentId"),
+        const_cast<char*>("--windowId"),
         const_cast<char*>("-90"),
         const_cast<char*>(""),
     };

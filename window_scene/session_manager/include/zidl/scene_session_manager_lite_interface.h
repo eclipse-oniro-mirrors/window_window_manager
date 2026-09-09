@@ -370,9 +370,8 @@ public:
      *
      * This function is used to request session to foreground by persistentId
      *
-     * @caller SA or SystemApp
-     * @permission application requires ohos.permission.CONTROL_DEVICE permission and
-     * SA permission or SystemApp permission
+     * @caller SA or the caller with CONTROL_DEVICE permission
+     * @permission application requires ohos.permission.CONTROL_DEVICE permission and SA permission
      *
      * @param persistentId the session of persistentId
      * @return Successful call returns WSError: WS-OK, otherwise it indicates failure

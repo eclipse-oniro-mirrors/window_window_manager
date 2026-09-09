@@ -704,9 +704,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground05, TestSize.Level
     MockAccesstokenKit::MockIsSACalling(true);
     auto oldUIType = ssm_->systemConfig_.windowUIType_;
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    bool listenerCalled = false;
-    ssm_->SetRestoreSessionToForegroundListener(
-        [&listenerCalled](int32_t, DisplayId) { listenerCalled = true; });
+    ssm_->SetRestoreSessionToForegroundListener([](int32_t, DisplayId) {});
     SessionInfo sessionInfo;
     sessionInfo.persistentId_ = 301;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
@@ -715,7 +713,6 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground05, TestSize.Level
     int32_t persistentId = sceneSession->GetPersistentId();
     ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
     ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId), WSError::WS_OK);
-    EXPECT_TRUE(listenerCalled);
     ssm_->sceneSessionMap_.erase(persistentId);
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }

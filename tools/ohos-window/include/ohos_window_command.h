@@ -38,7 +38,7 @@ const std::string HELP_MSG =
     "  restore-session           restore a main window to foreground\n\n"
     "Examples:\n"
     "  # Restore a main window to foreground\n"
-    "  ohos-window restore-session --persistentId 100\n";
+    "  ohos-window restore-session --windowId 100\n";
 
 const std::string VERSION_MSG = "1.0.0\n";
 
@@ -48,10 +48,10 @@ const std::string HELP_MSG_RESTORE_SESSION =
     "  ohos-window restore-session [options]\n\n"
     "Parameters:\n"
     "  --help                                             Display this help message\n"
-    "  --persistentId <persistentId>                       persistentId of the session to be restored to foreground\n"
+    "  --windowId <windowId>                       windowId of the session to be restored to foreground\n"
     "Examples:\n"
     "  # Restore a main window to foreground\n"
-    "  ohos-window restore-session --persistentId 100\n";
+    "  ohos-window restore-session --windowId 100\n";
 
 const std::string STRING_RESTORE_SESSION_OK = "restore main window to foreground successfully.";
 const std::string STRING_RESTORE_SESSION_NG = "error: failed to restore main window to foreground.";

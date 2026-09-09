@@ -14715,18 +14715,21 @@ WSError SceneSessionManager::RestoreSessionToForeground(int32_t persistentId)
         TLOGE(WmsLogTag::WMS_LIFE, "screen is locked, cannot restore session to foreground");
         return WSError::WS_ERROR_INVALID_OPERATION;
     }
-    return taskScheduler_->PostSyncTask([this, persistentId]() {
-        if (auto session = GetMainSessionByPersistentId(persistentId)) {
-            if (!restoreSessionToForegroundFunc_) {
-                TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
-                return WSError::WS_ERROR_INVALID_OPERATION;
-            }
-            restoreSessionToForegroundFunc_(persistentId, session->GetScreenId());
-            return WSError::WS_OK;
-        }
+    auto session = GetMainSessionByPersistentId(persistentId);
+    if (session == nullptr) {
         TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
         return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    if (!restoreSessionToForegroundFunc_) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
+        return WSError::WS_ERROR_INVALID_OPERATION;
+    }
+    auto func = restoreSessionToForegroundFunc_;
+    auto screenId = session->GetScreenId();
+    taskScheduler_->PostTask([func = std::move(func), persistentId, screenId]() {
+        func(persistentId, screenId);
     }, __func__);
+    return WSError::WS_OK;
 }
 
 WSError SceneSessionManager::PendingSessionToBackground(const sptr<IRemoteObject>& token,
