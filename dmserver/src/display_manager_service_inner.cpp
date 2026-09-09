@@ -20,6 +20,7 @@
 
 #include "display_manager_service.h"
 #include "fold_screen_state_internel.h"
+#include "permission.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -69,7 +70,8 @@ std::vector<sptr<DisplayInfo>> DisplayManagerServiceInner::GetAllDisplays() cons
     for (auto displayId : displayIds) {
         sptr<DisplayInfo> display = DisplayManagerService::GetInstance().GetDisplayInfoById(displayId);
         if (display != nullptr) {
-            if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+            if (!Permission::IsSystemCalling() &&
+                FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
                 display->GetScreenId() == SCREEN_ID_MAIN) {
                 TLOGI(WmsLogTag::DMS, "GetAllDisplays filter SPN outer screen, displayId: %{public}" PRIu64, displayId);
                 continue;

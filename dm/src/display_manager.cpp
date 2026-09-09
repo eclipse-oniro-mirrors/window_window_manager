@@ -25,6 +25,7 @@
 #include "display_manager_agent_default.h"
 #include "dm_common.h"
 #include "fold_screen_state_internel.h"
+#include "permission.h"
 #include "screen_manager.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
@@ -1245,7 +1246,8 @@ std::vector<sptr<Display>> DisplayManager::GetAllDisplays(int32_t userId)
     for (auto displayId : displayIds) {
         const sptr<Display> display = GetDisplayById(displayId);
         if (display != nullptr) {
-            if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+            if (!Permission::IsSystemCalling() &&
+                FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
                 display->GetScreenId() == SCREEN_ID_MAIN) {
                 TLOGI(WmsLogTag::DMS, "GetAllDisplays filter SPN outer screen, displayId: %{public}" PRIu64, displayId);
                 continue;
