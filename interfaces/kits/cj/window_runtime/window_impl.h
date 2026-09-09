@@ -63,6 +63,7 @@ struct CWindowLimits {
 };
 
 class CJWindowImpl : public OHOS::FFI::FFIData {
+    DECL_TYPE(CJWindowImpl, OHOS::FFI::FFIData)
 public:
     explicit CJWindowImpl(sptr<Window> ptr);
     sptr<Window> GetWindowToken();
@@ -118,7 +119,6 @@ public:
     int32_t UnregisterWindowCallback(const std::string& type, int64_t funcId);
     int32_t SetWindowSystemBarProperties(const CBarProperties& cProperties);
     ResWindow CheckWindow();
-    OHOS::FFI::RuntimeType* GetRuntimeType() override { return GetClassType(); }
     int32_t SetSubWindowModal(bool isModal);
     int32_t SetWindowLimits(const CWindowLimits& cWindowLimits, CWindowLimits& retPtr);
     int32_t GetWindowLimits(CWindowLimits& retPtr);
@@ -142,14 +142,6 @@ public:
     int32_t CreateSubWindowWithOptions(std::string name, int64_t &windowId,
                                        CSubWindowOptions option);
 private:
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType =
-            OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("CJWindowImpl");
-        return &runtimeType;
-    }
     sptr<Window> windowToken_;
     std::unique_ptr<CjWindowRegisterManager> registerManager_ = nullptr;
 };
