@@ -130,6 +130,8 @@ using NotifyCreateKeyboardSessionFunc = std::function<void(const sptr<SceneSessi
 using NotifyCreateSubSessionFunc = std::function<void(const sptr<SceneSession>& session, bool isBoundedSystemTray)>;
 using NotifyRecoverSceneSessionFunc =
     std::function<void(const sptr<SceneSession>& session, const SessionInfo& sessionInfo)>;
+using NotifyRestoreSessionToForegroundFunc =
+    std::function<void(int32_t persistentId, DisplayId screenId)>;
 using ProcessStatusBarEnabledChangeFunc = std::function<void(bool enable, const std::string& bundleName)>;
 using ProcessGestureNavigationEnabledChangeFunc = std::function<void(bool enable, const std::string& bundleName,
     GestureBackType type)>;
@@ -295,6 +297,7 @@ public:
     WSError GetBatchAbilityInfos(const std::vector<std::string>& bundleNames, int32_t userId,
         std::vector<SCBAbilityInfo>& scbAbilityInfos);
     void SetRecoverSceneSessionListener(const NotifyRecoverSceneSessionFunc& func);
+    void SetRestoreSessionToForegroundListener(const NotifyRestoreSessionToForegroundFunc& func);
     void UpdateRecoveredSessionInfo(const std::vector<int32_t>& recoveredPersistentIds);
     void NotifyRecoveringFinished();
     bool IsInputEventEnabled() const;
@@ -874,6 +877,7 @@ public:
     void RemoveLifeCycleTaskByPersistentId(int32_t persistentId, const LifeCycleTaskType taskType);
     WSError PendingSessionToForeground(const sptr<IRemoteObject>& token,
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
+    WSError RestoreSessionToForeground(int32_t persistentId);
     WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) override;
@@ -1586,6 +1590,7 @@ private:
      */
     bool recoveringFinished_ = false;
     NotifyRecoverSceneSessionFunc recoverSceneSessionFunc_;
+    NotifyRestoreSessionToForegroundFunc restoreSessionToForegroundFunc_;
     std::set<int32_t> failRecoveredPersistentIdSet_;
 
     /*

@@ -622,5 +622,119 @@ HWTEST_F(SceneSessionManagerTest13, ReportRssFB_NonEmptySetAfterErase, TestSize.
     ssm_->ReportRssFB(false, fbSession2);
     EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), true);
 }
+
+/**
+ * @tc.name: RestoreSessionToForeground01
+ * @tc.desc: Permission denied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground02
+ * @tc.desc: Device not support
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground03
+ * @tc.desc: RestoreSessionToForeground listener is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->restoreSessionToForegroundFunc_ = nullptr;
+
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId), WSError::WS_ERROR_INVALID_OPERATION);
+    ssm_->sceneSessionMap_.erase(persistentId);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground04
+ * @tc.desc: RestoreSessionToForeground main session not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->sceneSessionMap_.erase(301);
+    ssm_->SetRestoreSessionToForegroundListener([](int32_t, DisplayId) {});
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_INVALID_PARAM);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground05
+ * @tc.desc: RestoreSessionToForeground success
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground05, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    bool listenerCalled = false;
+    ssm_->SetRestoreSessionToForegroundListener(
+        [&listenerCalled](int32_t, DisplayId) { listenerCalled = true; });
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId), WSError::WS_OK);
+    EXPECT_TRUE(listenerCalled);
+    ssm_->sceneSessionMap_.erase(persistentId);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground06
+ * @tc.desc: RestoreSessionToForeground screen locked
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground06, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->isScreenLocked_ = true;
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_INVALID_OPERATION);
+    ssm_->isScreenLocked_ = false;
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
 } // namespace Rosen
 } // namespace OHOS

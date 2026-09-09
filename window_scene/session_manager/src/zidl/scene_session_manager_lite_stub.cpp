@@ -192,6 +192,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
         case static_cast<uint32_t>(
             SceneSessionManagerLiteMessage::TRANS_ID_PENDING_SESSION_TO_BACKGROUND_BY_PERSISTENTID):
             return HandlePendingSessionToBackgroundByPersistentId(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RESTORE_SESSION_TO_FOREGROUND):
+            return HandleRestoreSessionToForeground(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_CREATE_NEW_INSTANCE_KEY):
             return HandleCreateNewInstanceKey(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_ROUTER_STACK_INFO):
@@ -1800,6 +1802,19 @@ int SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(
         return ERR_INVALID_DATA;
     }
     WSError errCode = PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleRestoreSessionToForeground(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    int32_t persistentId;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = RestoreSessionToForeground(persistentId);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }

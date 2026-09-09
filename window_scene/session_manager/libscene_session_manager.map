@@ -177,6 +177,7 @@
             OHOS::Rosen::SceneSessionManager::SetPiPSettingSwitchStatus*;
             OHOS::Rosen::SceneSessionManager::SetRecoverSceneSessionListener*;
             OHOS::Rosen::SceneSessionManager::SetRequestVsyncByRootSceneWhenModeChangeFunc*;
+            OHOS::Rosen::SceneSessionManager::SetRestoreSessionToForegroundListener*;
             OHOS::Rosen::SceneSessionManager::SetRootSceneContext*;
             OHOS::Rosen::SceneSessionManager::SetRootSceneProcessBackEventFunc*;
             OHOS::Rosen::SceneSessionManager::SetSCBFocusChangeListener*;

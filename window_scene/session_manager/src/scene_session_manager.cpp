@@ -6161,6 +6161,12 @@ void SceneSessionManager::SetRecoverSceneSessionListener(const NotifyRecoverScen
     recoverSceneSessionFunc_ = func;
 }
 
+void SceneSessionManager::SetRestoreSessionToForegroundListener(const NotifyRestoreSessionToForegroundFunc& func)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    restoreSessionToForegroundFunc_ = func;
+}
+
 void SceneSessionManager::SetCreateSystemSessionListener(const NotifyCreateSystemSessionFunc& func)
 {
     createSystemSessionFunc_ = func;
@@ -14689,6 +14695,36 @@ WSError SceneSessionManager::PendingSessionToForeground(const sptr<IRemoteObject
             return session->PendingSessionToForeground(session->EditSessionInfo());
         }
         TLOGNE(WmsLogTag::DEFAULT, "PendingForeground: fail to find token");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }, __func__);
+}
+
+WSError SceneSessionManager::RestoreSessionToForeground(int32_t persistentId)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "persistentId: %{public}d", persistentId);
+    if (!SessionPermission::IsSACalling() &&
+        !SessionPermission::VerifyCallingPermission("ohos.permission.CONTROL_DEVICE")) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Permission denied for restoring session to foreground!");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    if (!systemConfig_.IsSupportPCMode()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "device not support");
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    if (IsScreenLocked()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "screen is locked, cannot restore session to foreground");
+        return WSError::WS_ERROR_INVALID_OPERATION;
+    }
+    return taskScheduler_->PostSyncTask([this, persistentId]() {
+        if (auto session = GetMainSessionByPersistentId(persistentId)) {
+            if (!restoreSessionToForegroundFunc_) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
+                return WSError::WS_ERROR_INVALID_OPERATION;
+            }
+            restoreSessionToForegroundFunc_(persistentId, session->GetScreenId());
+            return WSError::WS_OK;
+        }
+        TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
         return WSError::WS_ERROR_INVALID_PARAM;
     }, __func__);
 }
