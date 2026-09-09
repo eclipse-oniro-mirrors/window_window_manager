@@ -1873,6 +1873,114 @@ HWTEST_F(WindowSessionTest4, TestHandleInitialRect_NoPrelaunch, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TestHandleInitialRect_PrelaunchSetLayoutRect
+ * @tc.desc: With isPrelaunch_ and frameNum_ == 0, HandleInitialRect sets layoutRect_ to ctx.winRect.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleInitialRect_PrelaunchSetLayoutRect, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleInitialRectPrelaunchSetLayoutRect";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = true;
+    session->sessionInfo_.frameNum_ = 0;
+
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    ctx.winRect = { 10, 20, 300, 400 };
+    session->layoutRect_ = { 0, 0, 1, 1 };
+    EXPECT_CALL(*session, NotifyClientToUpdateRect(testing::StrEq("Connect"),
+        testing::Eq(std::optional<WSRect>(ctx.winRect)), testing::_)).Times(1);
+    session->HandleInitialRect(ctx);
+    // New branch (isPrelaunch_ && frameNum_ == 0) is true -> layoutRect_ is set to ctx.winRect.
+    EXPECT_EQ(ctx.winRect, session->layoutRect_);
+}
+
+/**
+ * @tc.name: TestHandleInitialRect_PrelaunchWithFrameNum
+ * @tc.desc: With isPrelaunch_ but frameNum_ > 0, HandleInitialRect keeps layoutRect_ unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleInitialRect_PrelaunchWithFrameNum, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleInitialRectPrelaunchWithFrameNum";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = true;
+    session->sessionInfo_.frameNum_ = 1;
+
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    ctx.winRect = { 10, 20, 300, 400 };
+    const WSRect oldLayoutRect = { 0, 0, 1, 1 };
+    session->layoutRect_ = oldLayoutRect;
+    EXPECT_CALL(*session, NotifyClientToUpdateRect(testing::StrEq("Connect"),
+        testing::Eq(std::optional<WSRect>(ctx.winRect)), testing::_)).Times(1);
+    session->HandleInitialRect(ctx);
+    // New branch (isPrelaunch_ && frameNum_ == 0) is false -> layoutRect_ keeps old value.
+    EXPECT_EQ(oldLayoutRect, session->layoutRect_);
+}
+
+/**
+ * @tc.name: TestHandleInitialRect_PrelaunchNegativeFrameNum
+ * @tc.desc: With isPrelaunch_ but negative frameNum_, HandleInitialRect keeps layoutRect_
+ *           unchanged: the branch requires frameNum_ == 0 exactly, not frameNum_ <= 0.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleInitialRect_PrelaunchNegativeFrameNum, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleInitialRectPrelaunchNegativeFrameNum";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = true;
+    session->sessionInfo_.frameNum_ = -1;
+
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    ctx.winRect = { 10, 20, 300, 400 };
+    const WSRect oldLayoutRect = { 0, 0, 1, 1 };
+    session->layoutRect_ = oldLayoutRect;
+    EXPECT_CALL(*session, NotifyClientToUpdateRect(testing::StrEq("Connect"),
+        testing::Eq(std::optional<WSRect>(ctx.winRect)), testing::_)).Times(1);
+    session->HandleInitialRect(ctx);
+    // New branch (isPrelaunch_ && frameNum_ == 0) is false for negative frameNum_ -> keeps old value.
+    EXPECT_EQ(oldLayoutRect, session->layoutRect_);
+}
+
+/**
+ * @tc.name: TestHandleInitialRect_NoPrelaunchKeepLayoutRect
+ * @tc.desc: Without isPrelaunch_ and frameNum_ == 0, HandleInitialRect keeps layoutRect_ unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, TestHandleInitialRect_NoPrelaunchKeepLayoutRect, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "HandleInitialRectNoPrelaunchKeepLayoutRect";
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->sessionInfo_.isGamePrelaunch_ = false;
+    session->sessionInfo_.isPrelaunch_ = false;
+    session->sessionInfo_.frameNum_ = 0;
+
+    PrelayoutContext ctx;
+    ctx.enable = false;
+    ctx.winRect = { 10, 20, 300, 400 };
+    const WSRect oldLayoutRect = { 0, 0, 1, 1 };
+    session->layoutRect_ = oldLayoutRect;
+    EXPECT_CALL(*session, NotifyClientToUpdateRect(testing::StrEq("Connect"),
+        testing::Eq(std::optional<WSRect>{}), testing::_)).Times(1);
+    session->HandleInitialRect(ctx);
+    // New branch (isPrelaunch_ && frameNum_ == 0) is false -> layoutRect_ keeps old value.
+    EXPECT_EQ(oldLayoutRect, session->layoutRect_);
+}
+
+/**
  * @tc.name: CheckEmptyKeyboardAvoidAreaIfNeeded 01
  * @tc.desc: Test Case CheckEmptyKeyboardAvoidAreaIfNeeded 01
  * @tc.type: FUNC
