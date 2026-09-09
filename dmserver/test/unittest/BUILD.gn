@@ -114,6 +114,11 @@ ohos_unittest("dmserver_display_manager_service_inner_test") {
   deps += dmserver_unittest_common_deps
 
   external_deps = test_external_deps
+  if (is_standard_system) {
+    external_deps += [ "init:libbegetutil" ]
+  } else {
+    external_deps += [ "init_lite:libbegetutil" ]
+  }
 }
 
 ohos_unittest("dmserver_display_manager_ipc_service_test") {
@@ -271,6 +276,7 @@ config("dmserver_unittest_common_public_config") {
     "../../../test/common/mock",
     "../../../test/common/utils/include",
     "../../../utils/include",
+    "../../../window_scene/common/include",
     "../../../window_scene/screen_session_manager/include",
     "../../../window_scene/screen_session_manager_client/include",
     "${dmserver_gen_path}",
