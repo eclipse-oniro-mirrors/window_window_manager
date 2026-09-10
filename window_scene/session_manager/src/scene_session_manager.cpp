@@ -14699,37 +14699,39 @@ WSError SceneSessionManager::PendingSessionToForeground(const sptr<IRemoteObject
     }, __func__);
 }
 
-WSError SceneSessionManager::RestoreSessionToForeground(int32_t persistentId)
+WSErrorResult SceneSessionManager::RestoreSessionToForeground(int32_t persistentId)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId: %{public}d", persistentId);
     if (!SessionPermission::IsSACalling() &&
         !SessionPermission::VerifyCallingPermission("ohos.permission.CONTROL_DEVICE")) {
         TLOGE(WmsLogTag::WMS_LIFE, "Permission denied for restoring session to foreground!");
-        return WSError::WS_ERROR_INVALID_PERMISSION;
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PERMISSION,
+            "Permission denied for restoring session to foreground!"};
     }
     if (!systemConfig_.IsSupportPCMode()) {
         TLOGE(WmsLogTag::WMS_LIFE, "device not support");
-        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "device not support"};
     }
     if (IsScreenLocked()) {
         TLOGE(WmsLogTag::WMS_LIFE, "screen is locked, cannot restore session to foreground");
-        return WSError::WS_ERROR_INVALID_OPERATION;
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION,
+            "screen is locked, cannot restore session to foreground"};
     }
     auto session = GetMainSessionByPersistentId(persistentId);
     if (session == nullptr) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
-        return WSError::WS_ERROR_INVALID_PARAM;
+        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "fail to find main window"};
     }
     if (!restoreSessionToForegroundFunc_) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
-        return WSError::WS_ERROR_INVALID_OPERATION;
+        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "listener is null"};
     }
     auto func = restoreSessionToForegroundFunc_;
     auto screenId = session->GetScreenId();
     taskScheduler_->PostTask([func = std::move(func), persistentId, screenId]() {
         func(persistentId, screenId);
     }, __func__);
-    return WSError::WS_OK;
+    return WSErrorResult{WSError::WS_OK, ""};
 }
 
 WSError SceneSessionManager::PendingSessionToBackground(const sptr<IRemoteObject>& token,

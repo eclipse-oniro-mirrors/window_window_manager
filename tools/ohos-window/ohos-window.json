@@ -1,7 +1,7 @@
 {
     "name": "ohos-window",
     "version": "1.0.0",
-    "description": "ohos-window - Window management utility for restoring a main window to foreground on the system.",
+    "description": "ohos-window - Window management utility for manipulating windows and querying window information on the system.",
     "executablePath": "/system/bin/cli_tool/executable/ohos-window",
     "requirePermissions": [],
     "inputSchema": {
@@ -47,14 +47,14 @@
     },
     "hasSubCommand": true,
     "subcommands": {
-        "restore-session": {
-            "description": "ohos-window restore-session - Restore a main window to foreground on the system.",
+        "restore-window": {
+            "description": "ohos-window restore-window - Restore a main window to foreground on the system.",
             "requirePermissions": [
                 "ohos.permission.CONTROL_DEVICE"
             ],
             "inputSchema": {
                 "type": "object",
-                "description": "Sub-options of the ohos-window restore-session command.",
+                "description": "Sub-options of the ohos-window restore-window command.",
                 "properties": {
                     "help": {
                         "type": "boolean",
@@ -68,7 +68,7 @@
             },
             "outputSchema": {
                 "type": "object",
-                "description": "Execution result of the ohos-window restore-session command.",
+                "description": "Execution result of the ohos-window restore-window command.",
                 "properties": {
                     "type": {
                         "type": "string",

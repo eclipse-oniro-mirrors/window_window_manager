@@ -1814,8 +1814,9 @@ int SceneSessionManagerLiteStub::HandleRestoreSessionToForeground(MessageParcel&
         TLOGE(WmsLogTag::WMS_LIFE, "read persistentId failed");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = RestoreSessionToForeground(persistentId);
-    reply.WriteInt32(static_cast<int32_t>(errCode));
+    WSErrorResult result = RestoreSessionToForeground(persistentId);
+    reply.WriteInt32(static_cast<uint32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     return ERR_NONE;
 }
 

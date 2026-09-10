@@ -72,7 +72,7 @@ TEST_F(OhosWindowCommandUtilTest, CreateCommandMap_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -80,14 +80,14 @@ TEST_F(OhosWindowCommandUtilTest, CreateCommandMap_0100)
     EXPECT_EQ(cmd.CreateCommandMap(), ERR_OK);
     EXPECT_NE(cmd.commandMap_.find("--help"), cmd.commandMap_.end());
     EXPECT_NE(cmd.commandMap_.find("help"), cmd.commandMap_.end());
-    EXPECT_NE(cmd.commandMap_.find("restore-session"), cmd.commandMap_.end());
+    EXPECT_NE(cmd.commandMap_.find("restore-window"), cmd.commandMap_.end());
 }
 
 TEST_F(OhosWindowCommandUtilTest, CreateErrorInfoMap_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("")
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -109,7 +109,7 @@ TEST_F(OhosWindowCommandUtilTest, GetErrorInfoFromCode_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -123,7 +123,7 @@ TEST_F(OhosWindowCommandUtilTest, GetErrorInfoFromCode_0200)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -137,7 +137,7 @@ TEST_F(OhosWindowCommandUtilTest, GetErrorInfoFromCode_0300)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -147,64 +147,64 @@ TEST_F(OhosWindowCommandUtilTest, GetErrorInfoFromCode_0300)
     EXPECT_EQ(info.code, "ERR_INVALID_OPERATION");
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_Help_0100)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_Help_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("--help"),
         const_cast<char*>(""),
     };
     int argc = ARGC_HELP_OPTION;
     ClawWindowShellCommand cmd(argc, argv);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_OK);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_OK);
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_MissingId_0100)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_MissingId_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
     ClawWindowShellCommand cmd(argc, argv);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_INVALID_VALUE);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_InvalidId_0100)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_InvalidId_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("--windowId"),
         const_cast<char*>("abc"),
         const_cast<char*>(""),
     };
     int argc = ARGC_OPTION_VALUE;
     ClawWindowShellCommand cmd(argc, argv);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_INVALID_VALUE);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_InvalidId_0200)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_InvalidId_0200)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("--windowId"),
         const_cast<char*>("90.1"),
         const_cast<char*>(""),
     };
     int argc = ARGC_OPTION_VALUE;
     ClawWindowShellCommand cmd(argc, argv);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_INVALID_VALUE);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_UnexpectedArg_0100)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_UnexpectedArg_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("--windowId"),
         const_cast<char*>("90"),
         const_cast<char*>("0"),
@@ -212,14 +212,14 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_UnexpectedArg_0100)
     };
     int argc = ARGC_EXTRA_ARG;
     ClawWindowShellCommand cmd(argc, argv);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_INVALID_VALUE);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_NullProxy_0100)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_NullProxy_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("--windowId"),
         const_cast<char*>("100"),
         const_cast<char*>(""),
@@ -228,7 +228,7 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_NullProxy_0100)
     MockClawWindowShellCommand cmd(argc, argv);
     cmd.CreateErrorInfoMap();
     cmd.SetProxy(nullptr);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_INVALID_VALUE);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
 }
 
 TEST_F(OhosWindowCommandUtilTest, ShellCommand_Construct_ArgcTooSmall_0100)
@@ -266,7 +266,7 @@ TEST_F(OhosWindowCommandUtilTest, OnCommand_InitFail_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -280,7 +280,7 @@ TEST_F(OhosWindowCommandUtilTest, ExecCommand_OnCommandFail_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -293,7 +293,7 @@ TEST_F(OhosWindowCommandUtilTest, GetUnknownOptionMsg_OptindOutOfRange_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -307,7 +307,7 @@ TEST_F(OhosWindowCommandUtilTest, GetUnknownOptionMsg_Normal_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>(""),
     };
     int argc = ARGC_SUBCOMMAND_ONLY;
@@ -341,16 +341,16 @@ TEST_F(OhosWindowCommandUtilTest, RunAsHelpCommand_InvalidCommand_0100)
     EXPECT_EQ(cmd.RunAsHelpCommand(), ERR_OK);
 }
 
-TEST_F(OhosWindowCommandUtilTest, RunAsRestoreSession_NegativeId_0100)
+TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_NegativeId_0100)
 {
     char* argv[] = {
         const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-session"),
+        const_cast<char*>("restore-window"),
         const_cast<char*>("--windowId"),
         const_cast<char*>("-90"),
         const_cast<char*>(""),
     };
     int argc = ARGC_OPTION_VALUE;
     ClawWindowShellCommand cmd(argc, argv);
-    EXPECT_EQ(cmd.RunAsRestoreSession(), ERR_INVALID_VALUE);
+    EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
 }

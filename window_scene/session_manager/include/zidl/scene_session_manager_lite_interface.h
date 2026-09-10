@@ -376,7 +376,10 @@ public:
      * @param persistentId the session of persistentId
      * @return Successful call returns WSError: WS-OK, otherwise it indicates failure
      */
-    virtual WSError RestoreSessionToForeground(int32_t persistentId) { return WSError::WS_OK; }
+    virtual WSErrorResult RestoreSessionToForeground(int32_t persistentId)
+    {
+        return WSErrorResult{WSError::WS_OK, ""};
+    }
 
     /**
      * @brief Create a new instanceKey of a specific bundle

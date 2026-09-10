@@ -469,7 +469,7 @@ WSError SceneSessionManagerLite::PendingSessionToBackgroundByPersistentId(const 
         shouldBackToCaller);
 }
 
-WSError SceneSessionManagerLite::RestoreSessionToForeground(int32_t persistentId)
+WSErrorResult SceneSessionManagerLite::RestoreSessionToForeground(int32_t persistentId)
 {
     return SceneSessionManager::GetInstance().RestoreSessionToForeground(persistentId);
 }

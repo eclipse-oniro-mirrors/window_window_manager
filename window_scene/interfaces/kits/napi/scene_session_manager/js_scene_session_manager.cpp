@@ -831,7 +831,7 @@ void JsSceneSessionManager::OnRestoreSessionToForeground(int32_t persistentId, D
     auto task = [persistentId, screenId,
         jsCallBack = GetJSCallback(RESTORE_SESSION_TO_FOREGROUND_CB), env = env_]() {
         if (jsCallBack == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
+            TLOGNE(WmsLogTag::WMS_LIFE, "restoreSessionToForeground jsCallBack is nullptr");
             return;
         }
         napi_value argv[] = { CreateJsValue(env, persistentId),

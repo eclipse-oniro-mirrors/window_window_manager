@@ -41,7 +41,7 @@ const std::string IPC_FAILED_SOLUTION =
 const std::string INVALID_OPERATION_SOLUTION =
     "Check the current device state and try again.";
 
-const size_t RESTORE_SESSION_PARAM_COUNT = 2;
+const size_t RESTORE_WINDOW_PARAM_COUNT = 2;
 const size_t HELP_PARAM_COUNT = 1;
 const std::string OPTION_WINDOW_ID = "--windowId";
 const std::string OPTION_HELP = "--help";
@@ -79,7 +79,7 @@ int32_t ClawWindowShellCommand::CreateCommandMap()
     commandMap_ = {
         {"--help", [this]() { return this->RunAsHelpCommand(); }},
         {"help", [this]() { return this->RunAsHelpCommand(); }},
-        {"restore-session", [this]() { return this->RunAsRestoreSession(); }},
+        {"restore-window", [this]() { return this->RunAsRestoreWindow(); }},
     };
     return ERR_OK;
 }
@@ -131,14 +131,14 @@ int32_t ClawWindowShellCommand::RunAsHelpCommand()
     return ERR_OK;
 }
 
-int32_t ClawWindowShellCommand::RunAsRestoreSession()
+int32_t ClawWindowShellCommand::RunAsRestoreWindow()
 {
-    if (argList_.size() == RESTORE_SESSION_PARAM_COUNT && argList_[0] == OPTION_WINDOW_ID) {
+    if (argList_.size() == RESTORE_WINDOW_PARAM_COUNT && argList_[0] == OPTION_WINDOW_ID) {
         int32_t persistentId = 0;
         std::string idStr = argList_[1];
         auto res = std::from_chars(idStr.c_str(), idStr.c_str() + idStr.size(), persistentId);
         if (res.ec == std::errc() && res.ptr == idStr.c_str() + idStr.size() && persistentId >= 0) {
-            return DoRestoreSession(persistentId);
+            return DoRestoreWindow(persistentId);
         }
         WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
             "The passed parameters are invalid.", {INVALID_PARAM_SOLUTION}};
@@ -146,35 +146,38 @@ int32_t ClawWindowShellCommand::RunAsRestoreSession()
         return ERR_INVALID_VALUE;
     }
     if (argList_.size() == HELP_PARAM_COUNT && argList_[0] == OPTION_HELP) {
-        std::cout << HELP_MSG_RESTORE_SESSION << std::endl;
+        std::cout << HELP_MSG_RESTORE_WINDOW << std::endl;
         return ERR_OK;
     }
     WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT,
-        "Invalid options or parameters for restore-session command.",
-        "Wrong options or Missing parameters or too many parameters.", {HELP_MSG_RESTORE_SESSION}};
+        "Invalid options or parameters for restore-window command.",
+        "Wrong options or Missing parameters or too many parameters.", {HELP_MSG_RESTORE_WINDOW}};
     PrintError(errorInfo);
     return ERR_INVALID_VALUE;
 }
 
-int32_t ClawWindowShellCommand::DoRestoreSession(int32_t persistentId)
+int32_t ClawWindowShellCommand::DoRestoreWindow(int32_t persistentId)
 {
     auto proxy = GetSceneSessionManagerLiteProxy();
     if (proxy == nullptr) {
         WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         PrintError(errorInfo);
-        resultReceiver_ = STRING_RESTORE_SESSION_NG;
+        resultReceiver_ = STRING_RESTORE_WINDOW_NG;
         return ERR_INVALID_VALUE;
     }
 
-    WSError ret = proxy->RestoreSessionToForeground(persistentId);
-    if (ret == WSError::WS_OK) {
-        resultReceiver_.append(STRING_RESTORE_SESSION_OK);
+    WSErrorResult result = proxy->RestoreSessionToForeground(persistentId);
+    if (result.errCode == WSError::WS_OK) {
+        resultReceiver_.append(STRING_RESTORE_WINDOW_OK);
         PrintSuccess(resultReceiver_);
         return ERR_OK;
     }
 
-    resultReceiver_.append(STRING_RESTORE_SESSION_NG);
-    WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
+    resultReceiver_.append(STRING_RESTORE_WINDOW_NG);
+    WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(result.errCode));
+    if (!result.errMsg.empty()) {
+        errorInfo.cause = result.errMsg;
+    }
     PrintError(errorInfo);
     return ERR_INVALID_VALUE;
 }

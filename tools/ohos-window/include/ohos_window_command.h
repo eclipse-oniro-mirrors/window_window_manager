@@ -29,32 +29,32 @@ namespace {
 const std::string TOOL_NAME = "ohos-window";
 
 const std::string HELP_MSG =
-    "ohos-window - Window management utility for restoring a main window to foreground\n\n"
+    "ohos-window - Window management utility for manipulating windows and querying window information\n\n"
     "Usage:\n"
     "  ohos-window [command] [options]\n\n"
     "Parameters:\n"
     "  --help                    Display this help message\n\n"
     "SubCommands:\n"
-    "  restore-session           restore a main window to foreground\n\n"
+    "  restore-window            restore a main window to foreground\n\n"
     "Examples:\n"
     "  # Restore a main window to foreground\n"
-    "  ohos-window restore-session --windowId 100\n";
+    "  ohos-window restore-window --windowId 100\n";
 
 const std::string VERSION_MSG = "1.0.0\n";
 
-const std::string HELP_MSG_RESTORE_SESSION =
-    "ohos-window restore-session - Restore a main window to foreground\n\n"
+const std::string HELP_MSG_RESTORE_WINDOW =
+    "ohos-window restore-window - Restore a main window to foreground\n\n"
     "Usage:\n"
-    "  ohos-window restore-session [options]\n\n"
+    "  ohos-window restore-window [options]\n\n"
     "Parameters:\n"
     "  --help                                             Display this help message\n"
     "  --windowId <windowId>                       windowId of the session to be restored to foreground\n"
     "Examples:\n"
     "  # Restore a main window to foreground\n"
-    "  ohos-window restore-session --windowId 100\n";
+    "  ohos-window restore-window --windowId 100\n";
 
-const std::string STRING_RESTORE_SESSION_OK = "restore main window to foreground successfully.";
-const std::string STRING_RESTORE_SESSION_NG = "error: failed to restore main window to foreground.";
+const std::string STRING_RESTORE_WINDOW_OK = "restore main window to foreground successfully.";
+const std::string STRING_RESTORE_WINDOW_NG = "error: failed to restore main window to foreground.";
 
 }  // namespace
 
@@ -75,8 +75,8 @@ private:
     int32_t CreateCommandMap() override;
 
     int32_t RunAsHelpCommand();
-    int32_t RunAsRestoreSession();
-    int32_t DoRestoreSession(int32_t persistentId);
+    int32_t RunAsRestoreWindow();
+    int32_t DoRestoreWindow(int32_t persistentId);
 
     std::map<int32_t, WmToolErrorInfo> errorInfoMap_;
 };

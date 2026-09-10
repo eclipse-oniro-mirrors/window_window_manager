@@ -633,7 +633,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground01, TestSize.Level
     ASSERT_NE(nullptr, ssm_);
     MockAccesstokenKit::MockIsSACalling(false);
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_INVALID_PERMISSION);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_PERMISSION);
 }
 
 /**
@@ -647,7 +647,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground02, TestSize.Level
     MockAccesstokenKit::MockIsSACalling(true);
     auto oldUIType = ssm_->systemConfig_.windowUIType_;
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
 
@@ -671,7 +671,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground03, TestSize.Level
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     int32_t persistentId = sceneSession->GetPersistentId();
     ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId), WSError::WS_ERROR_INVALID_OPERATION);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_ERROR_INVALID_OPERATION);
     ssm_->sceneSessionMap_.erase(persistentId);
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
@@ -689,7 +689,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground04, TestSize.Level
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ssm_->sceneSessionMap_.erase(301);
     ssm_->SetRestoreSessionToForegroundListener([](int32_t, DisplayId) {});
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_INVALID_PARAM);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_PARAM);
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
 
@@ -712,7 +712,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground05, TestSize.Level
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     int32_t persistentId = sceneSession->GetPersistentId();
     ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId), WSError::WS_OK);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_OK);
     ssm_->sceneSessionMap_.erase(persistentId);
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
@@ -729,7 +729,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground06, TestSize.Level
     auto oldUIType = ssm_->systemConfig_.windowUIType_;
     ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     ssm_->isScreenLocked_ = true;
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(301), WSError::WS_ERROR_INVALID_OPERATION);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_OPERATION);
     ssm_->isScreenLocked_ = false;
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
