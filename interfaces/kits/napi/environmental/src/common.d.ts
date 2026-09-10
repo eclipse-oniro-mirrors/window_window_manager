@@ -108,8 +108,8 @@ declare namespace window {
     off(type: 'avoidAreaChange', callback?: Callback<AvoidAreaOptions>): void;
     on(type: 'windowEvent', callback: Callback<WindowEventType>): void;
     off(type: 'windowEvent', callback?: Callback<WindowEventType>): void;
-    on(type: 'windowFocusStateChange', callback: Callback<WindowFocusState>): void;
-    off(type: 'windowFocusStateChange', callback?: Callback<WindowFocusState>): void;
+    onWindowFocusStateChange(callback: Callback<WindowFocusState>): void;
+    offWindowFocusStateChange(callback?: Callback<WindowFocusState>): void;
     on(type: 'windowHighlightChange', callback: Callback<boolean>): void;
     off(type: 'windowHighlightChange', callback?: Callback<boolean>): void;
     on(type: 'systemDensityChange', callback: Callback<number>): void;
