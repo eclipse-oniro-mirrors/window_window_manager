@@ -383,6 +383,8 @@ public:
     void TriggerDisplayModeUpdate(FoldDisplayMode targetDisplayMode);
     void CallRsSetScreenPowerStatusSync(ScreenId screenId, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
+    void CallRsSetScreenPowerStatusSyncWithFallback(ScreenId screenId, ScreenPowerStatus status,
+        PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
     void CallRsSetScreenPowerStatusSyncForFold(ScreenPowerStatus status, bool isApAod = false);
     void TryToRecoverFoldDisplayMode(ScreenPowerStatus status);
     bool GetScreenLcdStatus(ScreenId screenId, PanelPowerStatus& status);
@@ -1320,6 +1322,7 @@ private:
     void CallRsSetScreenPowerStatusSyncForExtend(
         const std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN);
+    bool isNeedSkipPowerOn(ScreenId screenId);
     void SetRsSetScreenPowerStatusSync(std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
     DisplayState lastDisplayState_ { DisplayState::UNKNOWN };
