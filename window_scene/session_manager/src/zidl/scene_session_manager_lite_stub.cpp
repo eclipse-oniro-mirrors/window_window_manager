@@ -1815,7 +1815,7 @@ int SceneSessionManagerLiteStub::HandleRestoreSessionToForeground(MessageParcel&
         return ERR_INVALID_DATA;
     }
     WSErrorResult result = RestoreSessionToForeground(persistentId);
-    reply.WriteInt32(static_cast<uint32_t>(result.errCode));
+    reply.WriteInt32(static_cast<int32_t>(result.errCode));
     reply.WriteString(result.errMsg);
     return ERR_NONE;
 }
