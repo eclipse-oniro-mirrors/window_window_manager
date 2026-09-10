@@ -2583,9 +2583,14 @@ int SceneSessionManagerStub::HandleSetImageForRecent(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_PATTERN, "Read persistentId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = SetImageForRecent(imgResourceId, static_cast<ImageFit>(imageFit), persistentId);
+    std::string errMsg;
+    WMError errCode = SetImageForRecent(imgResourceId, static_cast<ImageFit>(imageFit), persistentId, errMsg);
     if (!reply.WriteUint32(static_cast<uint32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2608,9 +2613,14 @@ int SceneSessionManagerStub::HandleSetImageForRecentPixelMap(MessageParcel& data
         TLOGE(WmsLogTag::WMS_PATTERN, "Read persistentId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = SetImageForRecentPixelMap(pixelMap, static_cast<ImageFit>(imageFit), persistentId);
+    std::string errMsg;
+    WMError errCode = SetImageForRecentPixelMap(pixelMap, static_cast<ImageFit>(imageFit), persistentId, errMsg);
     if (!reply.WriteUint32(static_cast<uint32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2623,9 +2633,14 @@ int SceneSessionManagerStub::HandleRemoveImageForRecent(MessageParcel& data, Mes
         TLOGE(WmsLogTag::WMS_PATTERN, "Read persistentId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = RemoveImageForRecent(persistentId);
+    std::string errMsg;
+    WMError errCode = RemoveImageForRecent(persistentId, errMsg);
     if (!reply.WriteUint32(static_cast<uint32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2789,9 +2804,14 @@ int SceneSessionManagerStub::HandleSetStartWindowBackgroundColor(MessageParcel& 
         TLOGE(WmsLogTag::WMS_PATTERN, "read uid failed");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = SetStartWindowBackgroundColor(moduleName, abilityName, color, uid);
+    std::string errMsg;
+    WMError errCode = SetStartWindowBackgroundColor(moduleName, abilityName, color, uid, errMsg);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

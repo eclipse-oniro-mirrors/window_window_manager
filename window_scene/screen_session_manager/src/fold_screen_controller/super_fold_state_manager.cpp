@@ -515,6 +515,7 @@ sptr<FoldCreaseRegion> SuperFoldStateManager::GetCurrentFoldCreaseRegion()
 FoldCreaseRegion SuperFoldStateManager::GetLiveCreaseRegion()
 {
     TLOGI(WmsLogTag::DMS, "enter");
+    std::lock_guard<std::mutex> lock_mode(liveCreaseRegionMutex_);
     SuperFoldStatus curFoldState = ScreenSessionManager::GetInstance().GetSuperFoldStatus();
     if (curFoldState == SuperFoldStatus::UNKNOWN || curFoldState == SuperFoldStatus::FOLDED) {
         return FoldCreaseRegion(0, {});

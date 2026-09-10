@@ -2300,6 +2300,268 @@ HWTEST_F(ScreenSessionManagerTest, GetRenderSession, TestSize.Level1)
     auto ret = ssm_->GetRenderSession(invalidScreenId);
     EXPECT_EQ(ret, nullptr);
 }
+
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB01
+ * @tc.desc: Not PC device, returns early without saving
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = false;
+
+    // create a REAL screen to verify it is NOT affected when g_isPcDevice is false
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "SaveScreenCapabilityToDB01";
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenType(ScreenType::REAL);
+
+    ssm_->SaveScreenCapabilityToDB(); // not PC device, returns early
+
+    // screen still exists and type unchanged after early return
+    sptr<ScreenSession> afterSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(afterSession, nullptr);
+    EXPECT_EQ(afterSession->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    g_isPcDevice = originalPcDevice;
+}
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB02
+ * @tc.desc: PC device, empty screenSessionMap, saves empty json array
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = true;
+    std::map<ScreenId, sptr<ScreenSession>> originalMap;
+    {
+        std::lock_guard<std::recursive_mutex> lock(ssm_->screenSessionMapMutex_);
+        originalMap = ssm_->screenSessionMap_;
+        ssm_->screenSessionMap_.clear();
+        EXPECT_EQ(ssm_->screenSessionMap_.size(), 0u);
+    }
+    // verify GetScreenSession returns null for any screenId when map is empty
+    EXPECT_EQ(ssm_->GetScreenSession(DEFAULT_SCREEN_ID), nullptr);
+
+    ssm_->SaveScreenCapabilityToDB(); // iterates empty map, saves "[]"
+
+    // verify map is still empty after call
+    {
+        std::lock_guard<std::recursive_mutex> lock(ssm_->screenSessionMapMutex_);
+        EXPECT_EQ(ssm_->screenSessionMap_.size(), 0u);
+        ssm_->screenSessionMap_ = originalMap;
+    }
+    g_isPcDevice = originalPcDevice;
+}
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB03
+ * @tc.desc: PC device, null session in map is skipped, valid sessions still processed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = true;
+
+    // add a valid REAL screen
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "SaveScreenCapabilityToDB03_valid";
+    ScreenId validScreenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    sptr<ScreenSession> validSession = ssm_->GetScreenSession(validScreenId);
+    ASSERT_NE(validSession, nullptr);
+    validSession->SetScreenType(ScreenType::REAL);
+
+    // add a null session entry
+    ScreenId nullScreenId = 99999;
+    {
+        std::lock_guard<std::recursive_mutex> lock(ssm_->screenSessionMapMutex_);
+        ssm_->screenSessionMap_[nullScreenId] = nullptr;
+    }
+
+    ssm_->SaveScreenCapabilityToDB(); // null skipped, valid REAL screen saved
+
+    // valid session still accessible after call
+    sptr<ScreenSession> afterSession = ssm_->GetScreenSession(validScreenId);
+    ASSERT_NE(afterSession, nullptr);
+    EXPECT_EQ(afterSession->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(ssm_->screenSessionMapMutex_);
+        ssm_->screenSessionMap_.erase(nullScreenId);
+    }
+    ssm_->DestroyVirtualScreen(validScreenId);
+    g_isPcDevice = originalPcDevice;
+}
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB04
+ * @tc.desc: PC device, VIRTUAL screen is skipped (type != REAL)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = true;
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "SaveScreenCapabilityToDB04";
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    // default type is VIRTUAL for CreateVirtualScreen
+    EXPECT_EQ(screenSession->GetScreenProperty().GetScreenType(), ScreenType::VIRTUAL);
+
+    ssm_->SaveScreenCapabilityToDB(); // VIRTUAL skipped
+
+    // screen still exists and type unchanged after call
+    sptr<ScreenSession> afterSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(afterSession, nullptr);
+    EXPECT_EQ(afterSession->GetScreenProperty().GetScreenType(), ScreenType::VIRTUAL);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    g_isPcDevice = originalPcDevice;
+}
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB05
+ * @tc.desc: PC device, single REAL screen, saves one item to json
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = true;
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "SaveScreenCapabilityToDB05";
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    sptr<ScreenSession> screenSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(screenSession, nullptr);
+    screenSession->SetScreenType(ScreenType::REAL);
+    EXPECT_EQ(screenSession->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    // verify GetScreenCapability succeeds for this screen
+    ScreenCapability capability;
+    EXPECT_EQ(ssm_->GetScreenCapability(screenId, capability), DMError::DM_OK);
+
+    ssm_->SaveScreenCapabilityToDB(); // single REAL screen saved
+
+    // screen still accessible and type unchanged
+    sptr<ScreenSession> afterSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(afterSession, nullptr);
+    EXPECT_EQ(afterSession->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    ssm_->DestroyVirtualScreen(screenId);
+    g_isPcDevice = originalPcDevice;
+}
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB06
+ * @tc.desc: PC device, multiple REAL screens, saves multiple items to json
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = true;
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+
+    VirtualScreenOption virtualOption1;
+    virtualOption1.name_ = "SaveScreenCapabilityToDB06_1";
+    ScreenId screenId1 = ssm_->CreateVirtualScreen(virtualOption1, displayManagerAgent->AsObject());
+    sptr<ScreenSession> session1 = ssm_->GetScreenSession(screenId1);
+    ASSERT_NE(session1, nullptr);
+    session1->SetScreenType(ScreenType::REAL);
+    EXPECT_EQ(session1->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    VirtualScreenOption virtualOption2;
+    virtualOption2.name_ = "SaveScreenCapabilityToDB06_2";
+    ScreenId screenId2 = ssm_->CreateVirtualScreen(virtualOption2, displayManagerAgent->AsObject());
+    sptr<ScreenSession> session2 = ssm_->GetScreenSession(screenId2);
+    ASSERT_NE(session2, nullptr);
+    session2->SetScreenType(ScreenType::REAL);
+    EXPECT_EQ(session2->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    // verify both GetScreenCapability succeed
+    ScreenCapability cap1;
+    ScreenCapability cap2;
+    EXPECT_EQ(ssm_->GetScreenCapability(screenId1, cap1), DMError::DM_OK);
+    EXPECT_EQ(ssm_->GetScreenCapability(screenId2, cap2), DMError::DM_OK);
+
+    ssm_->SaveScreenCapabilityToDB(); // both REAL screens saved
+
+    // both screens still accessible
+    EXPECT_NE(ssm_->GetScreenSession(screenId1), nullptr);
+    EXPECT_NE(ssm_->GetScreenSession(screenId2), nullptr);
+
+    ssm_->DestroyVirtualScreen(screenId1);
+    ssm_->DestroyVirtualScreen(screenId2);
+    g_isPcDevice = originalPcDevice;
+}
+
+/**
+ * @tc.name: SaveScreenCapabilityToDB07
+ * @tc.desc: PC device, mixed REAL and VIRTUAL screens, only REAL saved
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SaveScreenCapabilityToDB07, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    bool originalPcDevice = g_isPcDevice;
+    g_isPcDevice = true;
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+
+    VirtualScreenOption realOption;
+    realOption.name_ = "SaveScreenCapabilityToDB07_real";
+    ScreenId realScreenId = ssm_->CreateVirtualScreen(realOption, displayManagerAgent->AsObject());
+    sptr<ScreenSession> realSession = ssm_->GetScreenSession(realScreenId);
+    ASSERT_NE(realSession, nullptr);
+    realSession->SetScreenType(ScreenType::REAL);
+    EXPECT_EQ(realSession->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "SaveScreenCapabilityToDB07_virtual";
+    ScreenId virtualScreenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    sptr<ScreenSession> virtualSession = ssm_->GetScreenSession(virtualScreenId);
+    ASSERT_NE(virtualSession, nullptr);
+    EXPECT_EQ(virtualSession->GetScreenProperty().GetScreenType(), ScreenType::VIRTUAL);
+
+    // verify GetScreenCapability succeeds for REAL screen
+    ScreenCapability capability;
+    EXPECT_EQ(ssm_->GetScreenCapability(realScreenId, capability), DMError::DM_OK);
+
+    ssm_->SaveScreenCapabilityToDB(); // REAL saved, VIRTUAL skipped
+
+    // both screens still exist with correct types after call
+    sptr<ScreenSession> afterReal = ssm_->GetScreenSession(realScreenId);
+    ASSERT_NE(afterReal, nullptr);
+    EXPECT_EQ(afterReal->GetScreenProperty().GetScreenType(), ScreenType::REAL);
+
+    sptr<ScreenSession> afterVirtual = ssm_->GetScreenSession(virtualScreenId);
+    ASSERT_NE(afterVirtual, nullptr);
+    EXPECT_EQ(afterVirtual->GetScreenProperty().GetScreenType(), ScreenType::VIRTUAL);
+
+    ssm_->DestroyVirtualScreen(realScreenId);
+    ssm_->DestroyVirtualScreen(virtualScreenId);
+    g_isPcDevice = originalPcDevice;
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

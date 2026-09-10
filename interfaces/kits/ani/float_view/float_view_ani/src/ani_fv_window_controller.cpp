@@ -126,7 +126,7 @@ void AniFvController::OnStartFloatViewAni(ani_env* env)
             "Float view controller is not available.");
         return;
     }
-    WMError errCode = fvController_->StartFloatView();
+    WMError errCode = fvController_->StartFloatView().errCode;
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]StartFloatView failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to start float view.");
@@ -155,7 +155,7 @@ void AniFvController::OnStopFloatViewAni(ani_env* env)
             "Float view controller is not available.");
         return;
     }
-    WMError errCode = fvController_->StopFloatViewFromClient();
+    WMError errCode = fvController_->StopFloatViewFromClient().errCode;
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]StopFloatView failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to stop float view.");
@@ -217,7 +217,7 @@ void AniFvController::OnSetUIContextAni(ani_env* env,
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "Unexpected internal error.");
         return;
     }
-    WMError errCode = fvController_->SetUIContext(url, ref, isLoadByName);
+    WMError errCode = fvController_->SetUIContext(url, ref, isLoadByName).errCode;
     if (errCode != WMError::WM_OK) {
         env->GlobalReference_Delete(ref);
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetUIContext failed");
@@ -249,7 +249,7 @@ void AniFvController::OnSetFloatViewVisibilityInAppAni(ani_env* env, ani_boolean
         return;
     }
     bool visible = static_cast<bool>(visibleInApp);
-    WMError errCode = fvController_->SetVisibilityInApp(visible);
+    WMError errCode = fvController_->SetVisibilityInApp(visible).errCode;
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetFloatViewVisibilityInApp failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set float view visibility in app.");
@@ -290,7 +290,7 @@ void AniFvController::OnSetWindowSizeAni(ani_env* env, ani_object sizeObj)
         return;
     }
     Rect rect = {0, 0, static_cast<uint32_t>(size.first), static_cast<uint32_t>(size.second)};
-    WMError errCode = fvController_->SetWindowSize(rect);
+    WMError errCode = fvController_->SetWindowSize(rect).errCode;
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetWindowSize failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set window size.");
@@ -338,7 +338,7 @@ void AniFvController::OnSwitchTemplateAni(ani_env* env, ani_object object)
         AniFvUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM, "Template type or size is illegal.");
         return;
     }
-    WMError errCode = fvController_->SetTemplateTypeAndSize(templateProperty);
+    WMError errCode = fvController_->SetTemplateTypeAndSize(templateProperty).errCode;
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]SetTemplateType failed");
         AniFvUtils::AniThrowError(env, errCode, "Failed to set template type.");
@@ -425,10 +425,11 @@ void AniFvController::OnRestoreMainWindowAni(ani_env* env, ani_object wantParame
     }
 
     std::shared_ptr<AAFwk::WantParams> parameters = std::make_shared<AAFwk::WantParams>(wantParams);
-    WmErrorCode errCode = WM_JS_TO_ERROR_CODE_MAP.at(fvController_->RestoreMainWindow(parameters));
+    auto result = fvController_->RestoreMainWindow(parameters);
+    WmErrorCode errCode = ConvertErrorToCode(result.errCode);
     if (errCode != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_SYSTEM, "[FV]RestoreMainWindow failed");
-        AniFvUtils::AniThrowError(env, errCode);
+        AniFvUtils::AniThrowError(env, errCode, result.errMsg);
     }
     return;
 }
@@ -557,13 +558,13 @@ WMError AniFvController::DoRegisterListenerWithType(
     WMError errCode = WMError::WM_OK;
     switch (callbackType) {
         case CallbackType::STATE_CHANGE_CB:
-            errCode = fvController_->RegisterStateChangeListener(listener);
+            errCode = fvController_->RegisterStateChangeListener(listener).errCode;
             break;
         case CallbackType::RECT_CHANGE_CB:
-            errCode = fvController_->RegisterRectChangeListener(listener);
+            errCode = fvController_->RegisterRectChangeListener(listener).errCode;
             break;
         case CallbackType::LIMITS_CHANGE_CB:
-            errCode = fvController_->RegisterLimitsChangeListener(listener);
+            errCode = fvController_->RegisterLimitsChangeListener(listener).errCode;
             break;
         default:
             break;
@@ -581,13 +582,13 @@ WMError AniFvController::DoUnRegisterListenerWithType(
     WMError errCode = WMError::WM_OK;
     switch (callbackType) {
         case CallbackType::STATE_CHANGE_CB:
-            errCode = fvController_->UnregisterStateChangeListener(listener);
+            errCode = fvController_->UnregisterStateChangeListener(listener).errCode;
             break;
         case CallbackType::RECT_CHANGE_CB:
-            errCode = fvController_->UnregisterRectChangeListener(listener);
+            errCode = fvController_->UnregisterRectChangeListener(listener).errCode;
             break;
         case CallbackType::LIMITS_CHANGE_CB:
-            errCode = fvController_->UnregisterLimitsChangeListener(listener);
+            errCode = fvController_->UnregisterLimitsChangeListener(listener).errCode;
             break;
         default:
             break;

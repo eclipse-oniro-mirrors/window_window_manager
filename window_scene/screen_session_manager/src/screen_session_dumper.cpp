@@ -968,6 +968,14 @@ int32_t ScreenSessionDumper::SetFoldDisplayMode()
         return -1;
     }
     ScreenSessionManager::GetInstance().SetFoldDisplayMode(displayMode);
+
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        if (modeParam == ARG_FOLD_DISPLAY_MAIN) {
+            ScreenSessionManager::GetInstance().NotifyScreenClosedStateChange(ScreenClosedState::CLOSE);
+        } else if (modeParam == ARG_FOLD_DISPLAY_FULL) {
+            ScreenSessionManager::GetInstance().NotifyScreenClosedStateChange(ScreenClosedState::OPEN);
+        }
+    }
     return 0;
 }
 

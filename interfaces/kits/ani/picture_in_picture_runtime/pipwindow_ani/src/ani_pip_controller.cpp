@@ -95,7 +95,7 @@ void AniPipController::OnstartPiPAni(ani_env* env)
             TLOGE(WmsLogTag::WMS_PIP, "[pip]GetEnv failed, ret:%{public}u", ret);
             return;
         }
-        vmError = pipController_->StartPictureInPicture(StartPipType::USER_START);
+        vmError = pipController_->StartPictureInPicture(StartPipType::USER_START).errCode;
         TLOGI(WmsLogTag::WMS_PIP, "sync task in mainThread, OnstartPiPAni finish");
     };
     AppExecFwk::EventQueue::Priority priority = AppExecFwk::EventQueue::Priority::IMMEDIATE;
@@ -132,7 +132,7 @@ void AniPipController::OnstopPiPAni(ani_env* env)
     }
     TLOGI(WmsLogTag::WMS_PIP, "next");
     pipController_->SetStateChangeReason(PiPStateChangeReason::REQUEST_DELETE);
-    WMError error = pipController_->StopPictureInPictureFromClient();
+    WMError error = pipController_->StopPictureInPictureFromClient().errCode;
     if (error != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "pipController is nullptr, errorcode is %{public}u",
             static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(error)));
@@ -365,7 +365,7 @@ bool AniPipController::IsPiPActiveAni(ani_env* env, ani_object obj, ani_long nat
         return false;
     }
     bool status = false;
-    WMError ret = aniPipController->pipController_->IsPiPActive(status);
+    WMError ret = aniPipController->pipController_->IsPiPActive(status).errCode;
     if (ret != WMError::WM_OK) {
         AniPipUtils::AniThrowError(env, ret, "");
         return false;

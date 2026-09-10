@@ -75,17 +75,17 @@ ani_env* PictureInPictureControllerAni::GetEnv() const
     return env_;
 }
 
-WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType startType)
+WMErrorResult PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType startType)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "Create pip failed, invalid pipOption");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "PiP configuration parameters are invalid."};
     }
     mainWindowXComponentController_ = pipOption_->GetXComponentController();
     if ((mainWindowXComponentController_ == nullptr && !IsTypeNodeEnabled()) || mainWindow_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindowXComponentController or mainWindow is nullptr");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "The XComponentController or main window is null."};
     }
     TLOGI(WmsLogTag::WMS_PIP, "mainWindow:%{public}u, mainWindowState:%{public}u",
         mainWindowId_, mainWindow_->GetWindowState());
@@ -94,9 +94,14 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     if (startType != StartPipType::AUTO_START && mainWindow_->GetWindowState() != WindowState::STATE_SHOWN) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is not shown. create failed.");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "The main window is not shown."};
     }
     UpdateWinRectByComponent();
+    return DoCreatePipWindow();
+}
+
+WMErrorResult PictureInPictureControllerAni::DoCreatePipWindow()
+{
     auto windowOption = sptr<WindowOption>::MakeSptr();
     windowOption->SetWindowName(MakePipWindowName(createTimestamp_));
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_PIP);
@@ -118,31 +123,36 @@ WMError PictureInPictureControllerAni::CreatePictureInPictureWindow(StartPipType
     sptr<Window> window = FloatWindowManager::CreatePipWindow(windowOption, pipTemplateInfo, context->lock(), errCode);
     if (window == nullptr || errCode != WMError::WM_OK) {
         TLOGW(WmsLogTag::WMS_PIP, "Window create failed, reason: %{public}d", errCode);
-        return errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS ? errCode : WMError::WM_ERROR_PIP_CREATE_FAILED;
+        if (errCode == WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS) {
+            return WMErrorResult{errCode, "App has already started float view."};
+        }
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
+            "Internal error, failed to create PiP window."};
     }
     window_ = window;
     window_->UpdatePiPRect(windowRect_, WindowSizeChangeReason::PIP_START);
     PictureInPictureManager::PutPipControllerInfo(window_->GetWindowId(), this);
-    return WMError::WM_OK;
+    return WMErrorResult{WMError::WM_OK, ""};
 }
 
-WMError PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
+WMErrorResult PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption is null or Get PictureInPictureOption failed");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "PiP configuration parameters are invalid."};
     }
     if (curState_ == PiPWindowState::STATE_STARTING || curState_ == PiPWindowState::STATE_STARTED) {
         TLOGW(WmsLogTag::WMS_PIP, "pipWindow is starting, state: %{public}u, id: %{public}u, mainWindow: %{public}u",
             curState_, (window_ == nullptr) ? INVALID_WINDOW_ID : window_->GetWindowId(), mainWindowId_);
         SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
             pipOption_->GetPipTemplate(), PipConst::FAILED, "Pip window is starting");
-        return WMError::WM_ERROR_PIP_REPEAT_OPERATION;
+        return WMErrorResult{WMError::WM_ERROR_PIP_REPEAT_OPERATION, ""};
     }
     if (!IsPullPiPAndHandleNavigation()) {
         TLOGE(WmsLogTag::WMS_PIP, "Navigation operate failed");
-        return WMError::WM_ERROR_PIP_CREATE_FAILED;
+        return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
+            "Navigation component operation failed."};
     }
     curState_ = PiPWindowState::STATE_STARTING;
     startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -160,17 +170,17 @@ WMError PictureInPictureControllerAni::StartPictureInPicture(StartPipType startT
             UpdateWinRectByComponent();
             UpdateContentSize(windowRect_.width_, windowRect_.height_);
             PictureInPictureManager::PutPipControllerInfo(window_->GetWindowId(), this);
-            WMError err = ShowPictureInPictureWindow(startType);
-            if (err != WMError::WM_OK) {
+            WMErrorResult showResult = ShowPictureInPictureWindow(startType);
+            if (showResult.errCode != WMError::WM_OK) {
                 curState_ = PiPWindowState::STATE_UNDEFINED;
             } else {
                 curState_ = PiPWindowState::STATE_STARTED;
             }
-            return err;
+            return showResult;
         }
     }
-    WMError errCode = StartPictureInPictureInner(startType);
-    if (errCode != WMError::WM_OK) {
+    WMErrorResult errCode = StartPictureInPictureInner(startType);
+    if (errCode.errCode != WMError::WM_OK) {
         DeletePIPMode();
     }
     return errCode;

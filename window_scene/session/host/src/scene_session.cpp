@@ -134,6 +134,9 @@ const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
     "SCBGestureBack",
     "SCBSystemSwipeDownArea"
 };
+const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_MODULE_NAMES = {
+    "virtualtouchpad"
+};
 
 bool CheckIfRectElementIsTooLarge(const WSRect& rect)
 {
@@ -1223,6 +1226,18 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
                 TLOGNI(WmsLogTag::WMS_LIFE, "Reset scene session reuseSessionInGamePreLaunch_ to false, id: %{public}d",
                     session->GetPersistentId());
                 session->EditSessionInfo().reuseSessionInGamePreLaunch_ = false;
+            }
+        }
+        if (event == SessionEvent::EVENT_MAXIMIZE || event == SessionEvent::EVENT_MAXIMIZE_FULLSCREEN) {
+            if (session->moveDragController_ &&
+                (session->moveDragController_->GetStartMoveFlag() ||
+                    session->moveDragController_->GetStartDragFlag())) {
+                TLOGNI(WmsLogTag::WMS_LAYOUT, "Interrupt move/drag on maximize event, id: %{public}d, "
+                    "event: %{public}u, isMove: %{public}d, isDrag: %{public}d",
+                    session->GetPersistentId(), static_cast<uint32_t>(event),
+                    session->moveDragController_->GetStartMoveFlag(),
+                    session->moveDragController_->GetStartDragFlag());
+                session->moveDragController_->MoveDragInterrupted(false);
             }
         }
         if (event == SessionEvent::EVENT_START_MOVE) {
@@ -3154,7 +3169,7 @@ void SceneSession::CalculateAvoidAreaByType(AvoidAreaType type,
     auto displayId = GetSessionProperty()->GetDisplayId();
     float scaleX = DEFAULT_SCALE;
     float scaleY = DEFAULT_SCALE;
-    if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
+    if (GetScale(scaleX, scaleY) == WSError::WS_OK) {
         auto globalRect = GetSessionGlobalRect();
         WSRectF winRectF = { globalRect.posX_, globalRect.posY_,
             globalRect.width_ * scaleX, globalRect.height_ * scaleY };
@@ -3251,6 +3266,13 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
             isFloat ? floatTitleBarHeight : static_cast<int32_t>(vpr * MULTI_WINDOW_TITLE_BAR_DEFAULT_HEIGHT_VP);
         avoidArea.topRect_.height_ = static_cast<uint32_t>(height);
         avoidArea.topRect_.width_ = static_cast<uint32_t>(rect.width_);
+        float scaleX = DEFAULT_SCALE;
+        float scaleY = DEFAULT_SCALE;
+        if (GetScaleInRog(scaleX, scaleY) == WSError::WS_OK && scaleY > 0) {
+            avoidArea.topRect_.height_ = std::ceil(avoidArea.topRect_.height_ / scaleY);
+        } else if (scaleY <= 0) {
+            TLOGE(WmsLogTag::WMS_IMMS, "unexpected scale %{public}f in rog", scaleY);
+        }
         return;
     }
     std::vector<sptr<SceneSession>> statusBarVector;
@@ -3799,13 +3821,46 @@ WSError SceneSession::GetScaleInLSState(float& scaleX, float& scaleY) const
     return WSError::WS_OK;
 }
 
+bool SceneSession::CheckAndGetRogScale(float& scale) const
+{
+    bool isAppInRog = false;
+    if (specificCallback_ && specificCallback_->onCheckAndGetRogScaleCallback_) {
+        isAppInRog = specificCallback_->onCheckAndGetRogScaleCallback_(GetSessionInfo().bundleName_, scale);
+    }
+    return isAppInRog;
+}
+
+WSError SceneSession::GetScaleInRog(float& scaleX, float& scaleY) const
+{
+    float scale = DEFAULT_SCALE;
+    if (!CheckAndGetRogScale(scale)) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, not in rog window config", GetPersistentId());
+        return WSError::WS_DO_NOTHING;
+    }
+    scaleX = scale;
+    scaleY = scale;
+    return WSError::WS_OK;
+}
+
+WSError SceneSession::GetScale(float& scaleX, float& scaleY) const
+{
+    if (GetScaleInLSState(scaleX, scaleY) == WSError::WS_OK) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, get scale in LS", GetPersistentId());
+        return WSError::WS_OK;
+    } else if (GetScaleInRog(scaleX, scaleY) == WSError::WS_OK) {
+        TLOGD(WmsLogTag::WMS_IMMS, "win: %{public}d, get scale in Rog", GetPersistentId());
+        return WSError::WS_OK;
+    }
+    return WSError::WS_DO_NOTHING;
+}
+
 template<typename T>
 Rect SceneSession::CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const
 {
     float scaleX = DEFAULT_SCALE;
     float scaleY = DEFAULT_SCALE;
     Rect avoidArea = { avoidAreaRect.posX_, avoidAreaRect.posY_, avoidAreaRect.width_, avoidAreaRect.height_ };
-    if (GetScaleInLSState(scaleX, scaleY) != WSError::WS_OK) {
+    if (GetScale(scaleX, scaleY) != WSError::WS_OK) {
         return avoidArea;
     }
     avoidArea.posX_ = std::floor(avoidAreaRect.posX_ / scaleX);
@@ -4113,13 +4168,13 @@ WSError SceneSession::ProcessPointDownSession(int32_t posX, int32_t posY)
         return WSError::WS_ERROR_INVALID_TYPE;
     }
 
-    // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
+    // Notify client has been touched outside.
+    if (specificCallback_ && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(id, GetDisplayId());
     }
 
-    // notify outside down event
-    if (specificCallback_ != nullptr && specificCallback_->onOutsideDownEvent_) {
+    // Notify client the outside down position.
+    if (specificCallback_ && specificCallback_->onOutsideDownEvent_ && ShouldNotifyOutsideDownXY()) {
         specificCallback_->onOutsideDownEvent_(posX, posY);
     }
     return WSError::WS_OK;
@@ -4161,13 +4216,13 @@ void SceneSession::NotifyOutsideDownEvent(const std::shared_ptr<MMI::PointerEven
         return;
     }
 
-    // notify touch outside
-    if (specificCallback_ != nullptr && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
+    // Notify client has been touched outside.
+    if (specificCallback_ && specificCallback_->onSessionTouchOutside_ && ShouldNotifyTouchOutside()) {
         specificCallback_->onSessionTouchOutside_(GetPersistentId(), GetDisplayId());
     }
 
-    // notify outside down event
-    if (specificCallback_ != nullptr && specificCallback_->onOutsideDownEvent_) {
+    // Notify client the outside down position.
+    if (specificCallback_ && specificCallback_->onOutsideDownEvent_ && ShouldNotifyOutsideDownXY()) {
         specificCallback_->onOutsideDownEvent_(pointerItem.GetDisplayX(), pointerItem.GetDisplayY());
     }
 }
@@ -4252,7 +4307,7 @@ WSError SceneSession::TransferPointerEventInner(const std::shared_ptr<MMI::Point
                 ReportDragEndDirection(GetSessionInfo().bundleName_, moveDragController_->GetResizeAreaType());
             }
             PresentFocusIfNeed(pointerEvent->GetPointerAction());
-            if (isSubWindow) {
+            if (isPointDown && isSubWindow) {
                 RaiseToAppTopForPointDown();
             }
             pointerEvent->MarkProcessed();
@@ -5899,7 +5954,11 @@ void SceneSession::UpdateRotationAvoidArea()
         if (Session::IsScbCoreEnabled()) {
             MarkAvoidAreaAsDirty();
         } else {
-            specificCallback_->onUpdateAvoidArea_(GetPersistentId());
+            if (specificCallback_->onUpdateAvoidArea_) {
+                specificCallback_->onUpdateAvoidArea_(GetPersistentId());
+            } else {
+                TLOGE(WmsLogTag::DMS, "onUpdateAvoidArea_ is null");
+            }
         }
     }
 }
@@ -6744,6 +6803,14 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
             info.windowCreateParams = std::make_shared<WindowCreateParams>();
         }
         info.windowCreateParams->needAnimation = std::make_shared<bool>(withAnimation);
+    }
+
+    if (!session->IsPcWindow()) {
+        if (info.windowCreateParams) {
+            info.windowCreateParams->minimizeOnStart = false;
+            info.windowCreateParams->excludeFromDock = false;
+            info.windowCreateParams->excludeFromRecent = false;
+        }
     }
 
     if (abilitySessionInfo->want.HasParameter(WANT_PARAM_GAME_PRELAUNCH)) {
@@ -9821,6 +9888,7 @@ bool SceneSession::UpdateVisibilityInner(bool visibility)
     }
     TLOGI(WmsLogTag::WMS_PIPELINE, "id: %{public}d, visibility: %{public}u -> %{public}u",
         GetPersistentId(), isVisible_.load(), visibility);
+    CheckRemoveSnapshotForUseControl(visibility);
     if (visibilityChangedDetectFunc_) {
         visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), visibility);
     }
@@ -9864,6 +9932,22 @@ void SceneSession::NotifyAddOrRemoveSnapshotWindow(bool interactive)
             }
             interactive ? session->NotifyRemoveSnapshot() : session->NotifyAddSnapshot(false, false, false);
         }, __func__);
+    }
+}
+
+void SceneSession::CheckRemoveSnapshotForUseControl(bool visibility)
+{
+    if (!visibility) {
+        return;
+    }
+    ControlInfo controlInfo;
+    bool isAppControl = GetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+    bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
+    TLOGD(WmsLogTag::WMS_PATTERN, "id: %{public}d, [%{public}d,%{public}d,%{public}d]", GetPersistentId(),
+        isAppControl, controlInfo.isNeedControl, controlInfo.isControlRecentOnly);
+    if (controlInfo.isControlRecentOnly) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d", GetPersistentId());
+        NotifyRemoveSnapshot(true);
     }
 }
 
@@ -11658,13 +11742,30 @@ WSError SceneSession::NotifyClientToUpdateLSState(bool isLSState)
 
 bool SceneSession::ShouldNotifyTouchOutside() const
 {
-    for (const auto& excludeName : TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES) {
-        if (sessionInfo_.bundleName_.find(excludeName) != std::string::npos) {
+    for (const auto& bundleName : TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES) {
+        if (sessionInfo_.bundleName_.find(bundleName) != std::string::npos) {
+            return false;
+        }
+    }
+    for (const auto& moduleName : TOUCH_OUTSIDE_EXCLUDE_MODULE_NAMES) {
+        if (sessionInfo_.moduleName_.find(moduleName) != std::string::npos) {
             return false;
         }
     }
     return true;
 }
+
+bool SceneSession::ShouldNotifyOutsideDownXY() const
+{
+    // Currently, only the virtualtouchpad window needs to filter the outside down position.
+    for (const auto& moduleName : TOUCH_OUTSIDE_EXCLUDE_MODULE_NAMES) {
+        if (sessionInfo_.moduleName_.find(moduleName) != std::string::npos) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
  * Window Event end
  */

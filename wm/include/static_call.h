@@ -29,7 +29,7 @@ class StaticCall {
 WM_DECLARE_SINGLE_INSTANCE_BASE(StaticCall);
 public:
     virtual sptr<Window> CreateWindow(const std::string& windowName,
-        sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context = nullptr);
+        sptr<WindowOption>& option, std::string& errMsg, std::shared_ptr<AbilityRuntime::Context> context = nullptr);
     virtual sptr<Window> CreateWindow(sptr<WindowOption>& option, std::shared_ptr<AbilityRuntime::Context> context,
         const sptr<IRemoteObject>& iSession, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false);

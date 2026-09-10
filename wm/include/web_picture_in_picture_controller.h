@@ -36,7 +36,7 @@ class WebPictureInPictureController : public PictureInPictureControllerBase {
 public:
     explicit WebPictureInPictureController(const PiPConfig& config);
     ~WebPictureInPictureController() = default;
-    WMError StartPictureInPicture(StartPipType startType) override;
+    WMErrorResult StartPictureInPicture(StartPipType startType) override;
     void UpdateContentSize(int32_t width, int32_t height) override;
     void SetPipInitialSurfaceRect(int32_t positionX, int32_t positionY, uint32_t width, uint32_t height) override;
     void RestorePictureInPictureWindow() override;
@@ -46,7 +46,7 @@ public:
     void SetAutoStartEnabled(bool enable) override;
 
 protected:
-    WMError CreatePictureInPictureWindow(StartPipType startType) override;
+    WMErrorResult CreatePictureInPictureWindow(StartPipType startType) override;
     void UpdateWinRectByComponent() override;
     void SetUIContent() const override;
     void UpdatePiPSourceRect() const override;

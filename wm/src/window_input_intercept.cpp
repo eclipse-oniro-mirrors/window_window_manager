@@ -81,6 +81,12 @@ bool WindowInputIntercept::IsInputIntercept(const std::shared_ptr<MMI::PointerEv
         TLOGW(WmsLogTag::WMS_EVENT, "IsInputInterceptByPointerEvent pointerEvent is null.");
         return false;
     }
+    // PC game controller request to intercept TOUCHSCREEN event.
+    if (pointerEvent->GetSourceType() == MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN) {
+        TLOGW(WmsLogTag::WMS_EVENT, "Intercept pointer event");
+        return false;
+    }
+
     std::shared_ptr<IInputEventInterceptConsumer> consumer = nullptr;
     {
         std::lock_guard<std::mutex> lock(registerMutex_);

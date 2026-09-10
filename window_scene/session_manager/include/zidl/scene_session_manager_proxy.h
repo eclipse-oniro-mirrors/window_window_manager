@@ -186,9 +186,14 @@ public:
     WMError IsPcOrPadFreeMultiWindowMode(bool& isPcOrPadFreeMultiWindowMode) override;
     WMError IsWindowRectAutoSave(const std::string& key, bool& enabled, int persistentId) override;
     WMError SetImageForRecent(uint32_t imgResourceId, ImageFit ImageFit, int32_t persistentId) override;
+    WMError SetImageForRecent(uint32_t imgResourceId, ImageFit ImageFit,
+        int32_t persistentId, std::string& errMsg) override;
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit ImageFit,
         int32_t persistentId) override;
+    WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit ImageFit,
+        int32_t persistentId, std::string& errMsg) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
+    WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg) override;
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override;
     WMError SetGlobalDragResizeType(DragResizeType dragResizeType) override;
@@ -201,6 +206,9 @@ public:
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override;
     WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid) override;
+    WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid,
+        std::string& errMsg) override;
     WMError MinimizeByWindowId(const std::vector<int32_t>& windowIds) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     WSError UseImplicitAnimation(int32_t hostWindowId, bool useImplicit) override;

@@ -87,7 +87,6 @@ private:
     static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
     static void SmartRotationMotionEventCallback(const MotionSensorEvent& motionData);
     
-    std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;
     
     std::map<MotionType, bool> subscribedMotionTypes_;

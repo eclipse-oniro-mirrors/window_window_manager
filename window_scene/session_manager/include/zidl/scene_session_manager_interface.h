@@ -489,9 +489,14 @@ public:
 
     WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
         int32_t persistentId) override { return WMError::WM_OK; }
+    WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg) override { return WMError::WM_OK; }
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId) override { return WMError::WM_OK; }
+    WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg) override { return WMError::WM_OK; }
     WMError RemoveImageForRecent(int32_t persistentId) override { return WMError::WM_OK; }
+    WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg) override { return WMError::WM_OK; }
 
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override { return WMError::WM_OK; }
@@ -509,6 +514,8 @@ public:
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override { return WMError::WM_OK; }
     WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
         uint32_t color, int32_t uid) override { return WMError::WM_OK; }
+    WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
+        uint32_t color, int32_t uid, std::string& errMsg) override { return WMError::WM_OK; }
     WMError HasFloatingWindowForeground(const sptr<IRemoteObject>& abilityToken,
         bool& hasOrNot) override { return WMError::WM_OK; }
     WSError UseImplicitAnimation(int32_t hostWindowId, bool useImplicit) override { return WSError::WS_OK; };

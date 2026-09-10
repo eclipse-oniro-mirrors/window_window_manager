@@ -85,6 +85,21 @@ public:
     void TearDown() override;
     static sptr<SceneSessionManager> ssm_;
 
+    class TLifecycleListener : public ILifecycleListener {
+    public:
+        virtual ~TLifecycleListener() = default;
+        void OnRemoveSnapshot() override
+        {
+            if (session_ && session_->GetScenePersistence()) {
+                session_->GetScenePersistence()->SetHasSnapshot(false);
+            }
+        }
+        void SetSession(sptr<Session> session) { session_ = session; }
+    private:
+        sptr<Session> session_;
+    };
+    std::shared_ptr<TLifecycleListener> lifecycleListener_ = std::make_shared<TLifecycleListener>();
+
 private:
     RSSurfaceNode::SharedPtr CreateRSSurfaceNode();
     sptr<Session> session_ = nullptr;
@@ -115,13 +130,21 @@ void WindowPatternSnapshotTest::SetUp()
     info.moduleName_ = "testSession2";
     info.bundleName_ = "testSession3";
     session_ = sptr<Session>::MakeSptr(info);
-    ASSERT_NE(nullptr, session_);
     session_->surfaceNode_ = CreateRSSurfaceNode();
-    ssm_->sceneSessionMap_.clear();
+    EXPECT_NE(nullptr, session_);
+    ssm_->taskScheduler_ = std::make_shared<TaskScheduler>("ssm_test");
+    ssm_->eventHandler_ = ssm_->taskScheduler_->GetEventHandler();
+    session_->SetEventHandler(ssm_->taskScheduler_->GetEventHandler(), ssm_->eventHandler_);
+    
+    lifecycleListener_->SetSession(session_);
+    session_->RegisterLifecycleListener(lifecycleListener_);
 }
 
 void WindowPatternSnapshotTest::TearDown()
 {
+    if (session_) {
+        session_->UnregisterLifecycleListener(lifecycleListener_);
+    }
     session_ = nullptr;
     ssm_->sceneSessionMap_.clear();
     usleep(WAIT_SYNC_IN_NS);
@@ -2006,6 +2029,179 @@ HWTEST_F(WindowPatternSnapshotTest, SnapshotWithOptions, TestSize.Level1)
     
     auto result = sceneSession->Snapshot(options);
     ASSERT_EQ(result, nullptr);
+}
+
+/**
+ * @tc.name: NotifyRemoveSnapshotWithForceRemove
+ * @tc.desc: NotifyRemoveSnapshot with forceRemove parameter Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, NotifyRemoveSnapshotWithForceRemove, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("bundleName", 1);
+    session_->state_ = SessionState::STATE_DISCONNECT;
+
+    session_->SetAppLockControl(true);
+    session_->GetScenePersistence()->SetHasSnapshot(true);
+    session_->NotifyRemoveSnapshot(false);
+    ASSERT_EQ(session_->GetScenePersistence()->HasSnapshot(), true);
+
+    session_->NotifyRemoveSnapshot(true);
+    ASSERT_EQ(session_->GetScenePersistence()->HasSnapshot(), false);
+
+    session_->SetAppLockControl(false);
+    session_->GetScenePersistence()->SetHasSnapshot(true);
+    session_->NotifyRemoveSnapshot(false);
+    ASSERT_EQ(session_->GetScenePersistence()->HasSnapshot(), false);
+}
+
+/**
+ * @tc.name: CheckRemoveSnapshotForUseControl01
+ * @tc.desc: CheckRemoveSnapshotForUseControl with visibility false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, CheckRemoveSnapshotForUseControl01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckRemoveSnapshotForUseControl01";
+    info.bundleName_ = "CheckRemoveSnapshotForUseControl01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto listener = std::make_shared<TLifecycleListener>();
+    listener->SetSession(sceneSession);
+    sceneSession->RegisterLifecycleListener(listener);
+
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("bundleName", 1);
+    sceneSession->GetScenePersistence()->SetHasSnapshot(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    ControlInfo controlInfo = { .isNeedControl = true, .isControlRecentOnly = true };
+    sceneSession->SetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+
+    sceneSession->CheckRemoveSnapshotForUseControl(false);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    sceneSession->UnregisterLifecycleListener(listener);
+}
+
+/**
+ * @tc.name: CheckRemoveSnapshotForUseControl02
+ * @tc.desc: CheckRemoveSnapshotForUseControl with visibility true and isControlRecentOnly true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, CheckRemoveSnapshotForUseControl02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckRemoveSnapshotForUseControl02";
+    info.bundleName_ = "CheckRemoveSnapshotForUseControl02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto listener = std::make_shared<TLifecycleListener>();
+    listener->SetSession(sceneSession);
+    sceneSession->RegisterLifecycleListener(listener);
+
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("bundleName", 1);
+    sceneSession->GetScenePersistence()->SetHasSnapshot(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    ControlInfo controlInfo = { .isNeedControl = true, .isControlRecentOnly = true };
+    sceneSession->SetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+
+    sceneSession->CheckRemoveSnapshotForUseControl(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), false);
+
+    sceneSession->UnregisterLifecycleListener(listener);
+}
+
+/**
+ * @tc.name: CheckRemoveSnapshotForUseControl03
+ * @tc.desc: CheckRemoveSnapshotForUseControl with visibility true and isControlRecentOnly false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, CheckRemoveSnapshotForUseControl03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckRemoveSnapshotForUseControl03";
+    info.bundleName_ = "CheckRemoveSnapshotForUseControl03";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto listener = std::make_shared<TLifecycleListener>();
+    listener->SetSession(sceneSession);
+    sceneSession->RegisterLifecycleListener(listener);
+
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("bundleName", 1);
+    sceneSession->GetScenePersistence()->SetHasSnapshot(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    ControlInfo controlInfo = { .isNeedControl = true, .isControlRecentOnly = false };
+    sceneSession->SetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+
+    sceneSession->CheckRemoveSnapshotForUseControl(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    sceneSession->UnregisterLifecycleListener(listener);
+}
+
+/**
+ * @tc.name: CheckRemoveSnapshotForUseControl04
+ * @tc.desc: CheckRemoveSnapshotForUseControl with visibility true and no control info
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, CheckRemoveSnapshotForUseControl04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckRemoveSnapshotForUseControl04";
+    info.bundleName_ = "CheckRemoveSnapshotForUseControl04";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto listener = std::make_shared<TLifecycleListener>();
+    listener->SetSession(sceneSession);
+    sceneSession->RegisterLifecycleListener(listener);
+
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("bundleName", 1);
+    sceneSession->GetScenePersistence()->SetHasSnapshot(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    sceneSession->CheckRemoveSnapshotForUseControl(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    sceneSession->UnregisterLifecycleListener(listener);
+}
+
+/**
+ * @tc.name: UpdateVisibilityInnerWithSnapshotControl
+ * @tc.desc: UpdateVisibilityInner with CheckRemoveSnapshotForUseControl integration
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, UpdateVisibilityInnerWithSnapshotControl, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateVisibilityInnerWithSnapshotControl";
+    info.bundleName_ = "UpdateVisibilityInnerWithSnapshotControl";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+
+    auto listener = std::make_shared<TLifecycleListener>();
+    listener->SetSession(sceneSession);
+    sceneSession->RegisterLifecycleListener(listener);
+
+    sceneSession->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("bundleName", 1);
+    sceneSession->GetScenePersistence()->SetHasSnapshot(true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), true);
+
+    ControlInfo controlInfo = { .isNeedControl = true, .isControlRecentOnly = true };
+    sceneSession->SetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
+
+    bool result = LOCK_GUARD_EXPR(SCENE_GUARD, sceneSession->UpdateVisibilityInner(true));
+    ASSERT_EQ(result, true);
+    ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), false);
+
+    sceneSession->UnregisterLifecycleListener(listener);
 }
 } // namespace
 } // namespace Rosen

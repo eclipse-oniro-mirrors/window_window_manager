@@ -45,7 +45,6 @@ ohos_shared_library("uiextension_napi") {
   ]
 
   external_deps = [
-    "c_utils:utils",
     "hilog:libhilog",
     "napi:ace_napi",
     "node:node_header_notice",
@@ -60,4 +59,5 @@ ohos_shared_library("uiextension_napi") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

@@ -21,6 +21,7 @@
 
 #include "dm_common.h"
 #include "wm_common.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS::Rosen {
 class JsErrUtils {
@@ -29,6 +30,11 @@ public:
     static napi_value CreateJsError(napi_env env, const WmErrorCode& errorCode, std::string msg = "");
     static napi_value CreateJsError(napi_env env, const DMError& errorCode, std::string msg = "");
     static napi_value CreateJsError(napi_env env, const DmErrorCode& errorCode, std::string msg = "");
+
+    static napi_value CreateFloatWindowJsError(napi_env env, FloatWindowModule module,
+                                                const std::string& methodName, WmErrorCode errorCode,
+                                                const std::string& customMessage = "");
+
 private:
     static inline napi_value CreateJsNumber(napi_env env, int32_t value)
     {

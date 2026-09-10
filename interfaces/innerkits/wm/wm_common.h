@@ -676,7 +676,7 @@ enum class WindowSizeChangeReason : uint32_t {
     SPLIT_ENABLE_CHANGE,
     FULL_SCREEN_IN_FORCE_SPLIT,
     HOOK_INFO_CHANGE,
-    SWITCH_WINDOW_DISPLAY,
+    SWITCH_WINDOW_DISPLAY = 43,
     END,
 };
 

@@ -19,10 +19,10 @@
 #include "js_fb_utils.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
-#include "floating_ball_controller.h"
 #include "js_fb_window_controller.h"
 #include "floating_ball_manager.h"
 #include "js_err_utils.h"
+#include "float_window_error_msg.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -76,49 +76,57 @@ napi_value JsFbWindowManager::OnCreateFbController(napi_env env, napi_callback_i
     void* contextPtr = nullptr;
     napi_unwrap(env, contextPtrValue, &contextPtr);
     if (contextPtr == nullptr) {
-        return NapiThrowInvalidParam(env, "[FBWindow][create]msg: Context is null.",
+        return NapiThrowInvalidParam(env, "[FBWindow][create]msg: The context parameter is null.",
             ARKUI_WINDOW_FB_CREATE, ARKUI_WINDOW_FB_CREATE_BOOL);
     }
     return NapiSendTask(env, contextPtr);
 }
 
+WmErrorCode JsFbWindowManager::ValidateAndSetupMainWindow(void* contextPtr,
+    const sptr<FloatingBallController>& fbController, std::string& errMsg)
+{
+    if (!FloatingBallManager::isSupportFloatingBall_) {
+        TLOGE(WmsLogTag::WMS_SYSTEM, "Device is not phone or pad, do not support floating ball");
+        return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
+    if (context == nullptr) {
+        errMsg = "The application context or main window is invalid.";
+        return WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR;
+    }
+    sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
+    if (mainWindow == nullptr) {
+        errMsg = "The application context or main window is invalid.";
+        return WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR;
+    }
+    if (fbController == nullptr) {
+        errMsg = "System internal error, such as null pointer or insufficient memory.";
+        return WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR;
+    }
+    fbController->UpdateMainWindow(mainWindow);
+    return WmErrorCode::WM_OK;
+}
+
 napi_value JsFbWindowManager::NapiSendTask(napi_env env, void* contextPtr)
 {
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
+    std::shared_ptr<std::string> errMsgPtr = std::make_shared<std::string>("");
     sptr<FloatingBallController> fbController = sptr<FloatingBallController>::MakeSptr(nullptr, 0, contextPtr);
-    NapiAsyncTask::ExecuteCallback execute = [contextPtr, errCodePtr, fbController] {
-        if (errCodePtr == nullptr) {
+    NapiAsyncTask::ExecuteCallback execute = [contextPtr, errCodePtr, errMsgPtr, fbController, this] {
+        if (errCodePtr == nullptr || errMsgPtr == nullptr) {
             return;
         }
-        if (!FloatingBallManager::isSupportFloatingBall_) {
-            TLOGE(WmsLogTag::WMS_SYSTEM, "Device is not phone or pad, do not support floating ball");
-            *errCodePtr = WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
-            return;
+        WmErrorCode errCode = ValidateAndSetupMainWindow(contextPtr, fbController, *errMsgPtr);
+        if (errCode != WmErrorCode::WM_OK) {
+            *errCodePtr = errCode;
+            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, errCode);
         }
-        auto context = static_cast<std::weak_ptr<AbilityRuntime::Context>*>(contextPtr);
-        if (context == nullptr) {
-            *errCodePtr = WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR);
-            return;
-        }
-        sptr<Window> mainWindow = Window::GetMainWindowWithContext(context->lock());
-        if (mainWindow == nullptr) {
-            *errCodePtr = WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR);
-            return;
-        }
-        if (fbController == nullptr) {
-            *errCodePtr = WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR;
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_FB_CREATE, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR);
-            return;
-        }
-        fbController->UpdateMainWindow(mainWindow);
     };
     NapiAsyncTask::CompleteCallback complete =
-        [errCodePtr, fbController](napi_env env, NapiAsyncTask& task, int32_t status) {
-            if (errCodePtr == nullptr || fbController == nullptr) {
-                task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR));
+        [errCodePtr, errMsgPtr, fbController](napi_env env, NapiAsyncTask& task, int32_t status) {
+            if (errCodePtr == nullptr || errMsgPtr == nullptr || fbController == nullptr) {
+                task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOATING_BALL,
+                "createFloatingBall", WmErrorCode::WM_ERROR_FB_INTERNAL_ERROR, ""));
                 return;
             }
         if (*errCodePtr == WmErrorCode::WM_OK) {
@@ -126,8 +134,8 @@ napi_value JsFbWindowManager::NapiSendTask(napi_env env, void* contextPtr)
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_CREATE_BOOL, 1);
         } else {
             HISTOGRAM_BOOLEAN(ARKUI_WINDOW_FB_CREATE_BOOL, 0);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                "JsFbController::OnStartFloatingBall failed."));
+            task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::FLOATING_BALL,
+                            "createFloatingBall", *errCodePtr, *errMsgPtr));
         }
     };
     napi_value result = nullptr;

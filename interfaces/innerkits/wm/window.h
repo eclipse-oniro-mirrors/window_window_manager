@@ -1093,6 +1093,22 @@ public:
         const std::shared_ptr<RSUIContext>& rsUiContext = nullptr);
 
     /**
+     * @brief create window instance.
+     *
+     * @param windowName window name, identify window instance
+     * @param option window propertion
+     * @param errMsg error message of create window
+     * @param context ability context
+     * @param errCode error code of create window
+     * @param rsUiContext rsUiContext
+     * @return sptr<Window> If create window success,return window instance;Otherwise, return nullptr
+     */
+    static sptr<Window> Create(const std::string& windowName,
+        sptr<WindowOption>& option, std::string& errMsg,
+        const std::shared_ptr<AbilityRuntime::Context>& context = nullptr, WMError& errCode = DefaultCreateErrCode,
+        const std::shared_ptr<RSUIContext>& rsUiContext = nullptr);
+
+    /**
      * @brief create main/uiextension window with session
      *
      * @param option window propertion
@@ -1310,6 +1326,21 @@ public:
     }
 
     /**
+     * @brief Convert a position from client (window-relative) coordinates to global coordinates with error message.
+     *
+     * @param inPosition The position relative to the window.
+     * @param outPosition [out] The corresponding position in global coordinates.
+     * @param errMsg [out] The error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const
+    {
+        errMsg.clear();
+        return ClientToGlobalDisplay(inPosition, outPosition);
+    }
+
+    /**
      * @brief Convert a position from global coordinates to client (window-relative) coordinates.
      *
      * @param inPosition The position in global coordinates.
@@ -1319,6 +1350,21 @@ public:
     virtual WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Convert a position from global coordinates to client (window-relative) coordinates with error message.
+     *
+     * @param inPosition The position in global coordinates.
+     * @param outPosition [out] The corresponding position relative to the window.
+     * @param errMsg [out] The error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const
+    {
+        errMsg.clear();
+        return GlobalDisplayToClient(inPosition, outPosition);
     }
 
     /**
@@ -1500,6 +1546,19 @@ public:
     virtual WMError SetWindowMode(WindowMode mode) { return WMError::WM_OK; }
 
     /**
+     * @brief Set the Window Mode with error message
+     *
+     * @param mode window mode
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError SetWindowMode(WindowMode mode, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetWindowMode(mode);
+    }
+
+    /**
      * @brief Set whether the window is topmost
      *
      * @param topmost whether window is topmost
@@ -1535,6 +1594,20 @@ public:
     }
 
     /**
+     * @brief Set static Image resource for recent with error message.
+     *
+     * @param imgResourceId resourceId of static image.
+     * @param imageFit imageFit of static image.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetImageForRecent(imgResourceId, imageFit);
+    }
+
+    /**
      * @brief Set static Image resource for recent.
      *
      * @param pixelMap recent image.
@@ -1547,6 +1620,21 @@ public:
     }
 
     /**
+     * @brief Set static Image resource for recent with error message.
+     *
+     * @param pixelMap recent image.
+     * @param imageFit imageFit of static image.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetImageForRecentPixelMap(pixelMap, imageFit);
+    }
+
+    /**
      * @brief Remove static Image resource for recent.
      *
      * @return WM_OK means set success, others means failed.
@@ -1554,6 +1642,18 @@ public:
     virtual WMError RemoveImageForRecent()
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Remove static Image resource for recent with error message.
+     *
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError RemoveImageForRecent(std::string& errMsg)
+    {
+        errMsg.clear();
+        return RemoveImageForRecent();
     }
 
     /**
@@ -1828,6 +1928,18 @@ public:
     virtual WMError NotifyRemoveStartingWindow() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief notify window remove starting window with error message.
+     *
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError
+     */
+    virtual WMError NotifyRemoveStartingWindow(std::string& errMsg)
+    {
+        errMsg.clear();
+        return NotifyRemoveStartingWindow();
+    }
+
+    /**
      * @brief move the window to (x, y)
      *
      * @param x
@@ -1838,6 +1950,23 @@ public:
      */
     virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) { return WMError::WM_OK; }
+
+    /**
+     * @brief move the window to (x, y) with error message
+     *
+     * @param x
+     * @param y
+     * @param isMoveToGlobal
+     * @param moveConfiguration Indicates the optional move configuration
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+        MoveConfiguration moveConfiguration, std::string& errMsg)
+    {
+        errMsg.clear();
+        return MoveTo(x, y, isMoveToGlobal, moveConfiguration);
+    }
 
     /**
      * @brief move the window to (x, y)
@@ -1851,6 +1980,22 @@ public:
         MoveConfiguration moveConfiguration = {}) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief move the window to (x, y) asynchronously with error message
+     *
+     * @param x
+     * @param y
+     * @param moveConfiguration Indicates the optional move configuration
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError MoveToAsync(int32_t x, int32_t y,
+        MoveConfiguration moveConfiguration, std::string& errMsg)
+    {
+        errMsg.clear();
+        return MoveToAsync(x, y, moveConfiguration);
+    }
+
+    /**
      * @brief move the window to global (x, y)
      *
      * @param x
@@ -1860,6 +2005,22 @@ public:
      */
     virtual WMError MoveWindowToGlobal(int32_t x, int32_t y,
         MoveConfiguration moveConfiguration) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief move the window to global (x, y) with error message
+     *
+     * @param x
+     * @param y
+     * @param moveConfiguration Indicates the optional move configuration
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError MoveWindowToGlobal(int32_t x, int32_t y,
+        MoveConfiguration moveConfiguration, std::string& errMsg)
+    {
+        errMsg.clear();
+        return MoveWindowToGlobal(x, y, moveConfiguration);
+    }
 
     /**
      * @brief Move the window to the specified position in global coordinates.
@@ -1875,6 +2036,22 @@ public:
     }
 
     /**
+     * @brief Move the window to the specified position in global coordinates with error message.
+     *
+     * @param x The target X-coordinate in global coordinates.
+     * @param y The target Y-coordinate in global coordinates.
+     * @param moveConfiguration Optional move configuration parameters.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError WM_OK if the move operation succeeds; otherwise, an error code is returned.
+     */
+    virtual WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y,
+        MoveConfiguration moveConfiguration, std::string& errMsg)
+    {
+        errMsg.clear();
+        return MoveWindowToGlobalDisplay(x, y, moveConfiguration);
+    }
+
+    /**
      * @brief Get window global scaled rect.
      *
      * @param Rect
@@ -1883,6 +2060,19 @@ public:
     virtual WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Get window global scaled rect with error message.
+     *
+     * @param Rect
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize, std::string& errMsg)
+    {
+        errMsg.clear();
+        return GetGlobalScaledRect(globalScaledRect, useHookedSize);
     }
 
     /**
@@ -1895,6 +2085,20 @@ public:
     virtual WMError Resize(uint32_t width, uint32_t height) { return WMError::WM_OK; }
 
     /**
+     * @brief resize the window instance (w,h) with error message
+     *
+     * @param width
+     * @param height
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError Resize(uint32_t width, uint32_t height, std::string& errMsg)
+    {
+        errMsg.clear();
+        return Resize(width, height);
+    }
+
+    /**
      * @brief resize the window instance (w,h)
      *
      * @param width
@@ -1902,6 +2106,20 @@ public:
      * @return WMError
      */
     virtual WMError ResizeAsync(uint32_t width, uint32_t height) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief resize the window instance (w,h) with error message
+     *
+     * @param width
+     * @param height
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError ResizeAsync(uint32_t width, uint32_t height, std::string& errMsg)
+    {
+        errMsg.clear();
+        return ResizeAsync(width, height);
+    }
 
     /**
      * @brief set the window gravity
@@ -2945,6 +3163,18 @@ public:
     virtual WMError Maximize() { return WMError::WM_OK; }
 
     /**
+     * @brief maximize the main window with error message.
+     *
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError Maximize(std::string& errMsg)
+    {
+        errMsg.clear();
+        return Maximize();
+    }
+
+    /**
      * @brief maximize window with presentation enum.
      *
      * @param presentation the value means use presentation enum to layout when maximize window
@@ -2953,6 +3183,19 @@ public:
     virtual WMError Maximize(MaximizePresentation presentation)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief maximize window with presentation enum and error message.
+     *
+     * @param presentation the value means use presentation enum to layout when maximize window
+     * @param errMsg Indicates the error message output parameter
+     * @return WM_OK means maximize window ok, others means failed.
+     */
+    virtual WMError Maximize(MaximizePresentation presentation, std::string& errMsg)
+    {
+        errMsg.clear();
+        return Maximize(presentation);
     }
 
     /**
@@ -2965,6 +3208,21 @@ public:
     virtual WMError Maximize(MaximizePresentation presentation, WaterfallResidentState waterfallState)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Maximize the window with the specified presentation mode and waterfall resident state with error message.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param waterfallState The waterfall resident state to apply when maximizing.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError Maximize(MaximizePresentation presentation, WaterfallResidentState waterfallState,
+        std::string& errMsg)
+    {
+        errMsg.clear();
+        return Maximize(presentation, waterfallState);
     }
 
     /**
@@ -2982,6 +3240,24 @@ public:
     }
 
     /**
+     * @brief Maximize window with presentation, across-display presentation,
+     * and snapshot animation config with error message.
+     *
+     * @param presentation The presentation mode used for window layout when maximizing.
+     * @param acrossDisplayPresentation The across-display presentation to apply when maximizing.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError MaximizeWithOptions(MaximizePresentation presentation,
+        AcrossDisplayPresentation acrossDisplayPresentation, const SnapshotAnimationConfig& snapshotAnimationConfig,
+        std::string& errMsg)
+    {
+        errMsg.clear();
+        return MaximizeWithOptions(presentation, acrossDisplayPresentation, snapshotAnimationConfig);
+    }
+
+    /**
      * @brief maximize the main window according to MaximizeMode. called by ACE when maximize button is clicked.
      *
      * @return WMError
@@ -2996,11 +3272,31 @@ public:
     virtual WMError Minimize() { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief minimize the main window. It is called by ACE when minimize button is clicked.
+     *
+     * @param errMsg error message when minimize failed.
+     * @return WMError
+     */
+    virtual WMError Minimize(std::string& errMsg) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
      * @brief recovery the main window. It is called by ACE when recovery button is clicked.
      *
      * @return WMError
      */
     virtual WMError Recover() { return WMError::WM_OK; }
+
+    /**
+     * @brief recovery the main window with error message.
+     *
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError Recover(std::string& errMsg)
+    {
+        errMsg.clear();
+        return Recover();
+    }
 
     /**
      * @brief After the app main window is minimized, if the Ability is not in the backgroud state,
@@ -3068,6 +3364,18 @@ public:
     virtual WmErrorCode StartMoveWindow() { return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Start moving window with error message.
+     *
+     * @param errMsg Indicates the error message output parameter.
+     * @return Errorcode of window.
+     */
+    virtual WmErrorCode StartMoveWindow(std::string& errMsg)
+    {
+        errMsg.clear();
+        return StartMoveWindow();
+    }
+
+    /**
      * @brief Start moving window with options.
      *
      * @param options Options to control focus request and avoid region during this movement.
@@ -3076,6 +3384,19 @@ public:
     virtual WMError StartMovingWithOptions(const StartMovingOptions& options)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Start moving window with options and error message.
+     *
+     * @param options Options to control focus request and avoid region during this movement.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError StartMovingWithOptions(const StartMovingOptions& options, std::string& errMsg)
+    {
+        errMsg.clear();
+        return StartMovingWithOptions(options);
     }
 
     /**
@@ -3089,11 +3410,37 @@ public:
         int32_t offsetY) { return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Start moving window with error message.
+     *
+     * @param offsetX expected pointer position x-axis offset in window when start moving.
+     * @param offsetY expected pointer position y-axis offset in window when start moving.
+     * @param errMsg Indicates the error message output parameter.
+     * @return Error code of window.
+     */
+    virtual WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY, std::string& errMsg)
+    {
+        errMsg.clear();
+        return StartMoveWindowWithCoordinate(offsetX, offsetY);
+    }
+
+    /**
      * @brief Stop moving window. It is called by application. Support pc window and pad free multi-window.
      *
      * @return Error code of window.
      */
     virtual WmErrorCode StopMoveWindow() { return WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Stop moving window with error message.
+     *
+     * @param errMsg Indicates the error message output parameter.
+     * @return Error code of window.
+     */
+    virtual WmErrorCode StopMoveWindow(std::string& errMsg)
+    {
+        errMsg.clear();
+        return StopMoveWindow();
+    }
 
     /**
      * @brief Set flag that need remove window input channel.
@@ -3190,6 +3537,19 @@ public:
     virtual WMError SetAspectRatio(float ratio) { return WMError::WM_OK; }
 
     /**
+     * @brief Set aspect ratio of this window with error message
+     *
+     * @param ratio the aspect ratio of window except decoration
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError SetAspectRatio(float ratio, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetAspectRatio(ratio);
+    }
+
+    /**
      * @brief Set content aspect ratio of the window.
      *
      * @param ratio The aspect ratio of window content (width divided by height).
@@ -3201,10 +3561,37 @@ public:
         float ratio, bool isPersistent, bool needUpdateRect) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Set content aspect ratio of the window with error message.
+     *
+     * @param ratio The aspect ratio of window content (width divided by height).
+     * @param isPersistent Whether to persist the aspect ratio setting.
+     * @param needUpdateRect Whether to update the window rect after setting aspect ratio.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError::WM_OK on success, or appropriate error code on failure.
+     */
+    virtual WMError SetContentAspectRatio(
+        float ratio, bool isPersistent, bool needUpdateRect, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetContentAspectRatio(ratio, isPersistent, needUpdateRect);
+    }
+
+    /**
      * @brief Unset aspect ratio
      * @return WMError
      */
     virtual WMError ResetAspectRatio() { return WMError::WM_OK; }
+
+    /**
+     * @brief Unset aspect ratio with error message
+     * @param errMsg Indicates the error message output parameter
+     * @return WMError
+     */
+    virtual WMError ResetAspectRatio(std::string& errMsg)
+    {
+        errMsg.clear();
+        return ResetAspectRatio();
+    }
 
     /**
      * @brief Get keyboard animation config
@@ -3257,6 +3644,19 @@ public:
      * @return Errorcode of window.
      */
     virtual WMError SetResizeByDragEnabled(bool dragEnabled) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Set the drag enabled flag of a window with error message.
+     *
+     * @param dragEnabled true means the window can be resized by dragging, otherwise means the opposite.
+     * @param errMsg Indicates the error message output parameter.
+     * @return Errorcode of window.
+     */
+    virtual WMError SetResizeByDragEnabled(bool dragEnabled, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetResizeByDragEnabled(dragEnabled);
+    }
 
     /**
      * @brief Set the raise enabled flag of a window.
@@ -3579,6 +3979,20 @@ public:
     }
 
     /**
+     * @brief Get the window limits of current window with error message.
+     *
+     * @param windowLimits.
+     * @param getVirtualPixel Returns windowLimits in virtual pixels if the param is true, otherwise in physical pixels.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError.
+     */
+    virtual WMError GetWindowLimits(WindowLimits& windowLimits, bool getVirtualPixel, std::string& errMsg)
+    {
+        errMsg.clear();
+        return GetWindowLimits(windowLimits, getVirtualPixel);
+    }
+
+    /**
      * @brief Set the window limits of current window.
      *
      * @param windowLimits.
@@ -3587,6 +4001,19 @@ public:
     virtual WMError SetWindowLimits(WindowLimits& windowLimits, bool isForcible = false)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Set the window limits of current window with error message.
+     *
+     * @param windowLimits.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError.
+     */
+    virtual WMError SetWindowLimits(WindowLimits& windowLimits, bool isForcible, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetWindowLimits(windowLimits, isForcible);
     }
 
     /**
@@ -3868,6 +4295,19 @@ public:
     virtual WMError EnableDrag(bool enableDrag) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Enable drag window with error message.
+     *
+     * @param enableDrag The value true means to enable window dragging, and false means the opposite.
+     * @param errMsg Indicates the error message output parameter.
+     * @return Errorcode of window.
+     */
+    virtual WMError EnableDrag(bool enableDrag, std::string& errMsg)
+    {
+        errMsg.clear();
+        return EnableDrag(enableDrag);
+    }
+
+    /**
      * @brief Set window container color.
      *
      * @param activeColor Background active color.
@@ -4123,6 +4563,34 @@ public:
     }
 
     /**
+     * @brief Recovery the main window with error message.
+     *
+     * @param reason Reason of update.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, std::string& errMsg)
+    {
+        errMsg.clear();
+        return Recover(reason);
+    }
+
+    /**
+     * @brief Recovery the main window with snapshot animation config and error message.
+     *
+     * @param reason Reason of update.
+     * @param snapshotAnimationConfig The snapshot animation configuration.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError
+     */
+    virtual WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+        std::string& errMsg)
+    {
+        errMsg.clear();
+        return Recover(reason, snapshotAnimationConfig);
+    }
+
+    /**
      * @brief Set to automatically save the window rect.
      *
      * @param enabled Enable the window rect auto-save if true, otherwise means the opposite.
@@ -4144,7 +4612,7 @@ public:
      *
      * @param supportedWindowModes Supported window modes of the window.
      * @param grayOutMaximizeButton Whether to gray out the window maximize button.
-                                    The value true means to gray out the button, and false means the opposite.
+                                     The value true means to gray out the button, and false means the opposite.
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
@@ -4154,7 +4622,23 @@ public:
     }
 
     /**
-     * @brief Set whether the sub window supports simultaneous display on multiple screens
+     * @brief Sets the supported window modes with error message.
+     *
+     * @param supportedWindowModes Supported window modes of the window.
+     * @param grayOutMaximizeButton Whether to gray out the window maximize button.
+                                     The value true means to gray out the button, and false means the opposite.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
+        bool grayOutMaximizeButton, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetSupportedWindowModes(supportedWindowModes, grayOutMaximizeButton);
+    }
+
+/**
+     * @brief Set whether sub window supports simultaneous display on multiple screens
      *        when the parent window is dragged to move or dragged to zoom.
      *
      * @param enabled The value true means sub window supports simultaneous display on multiple screens
@@ -4162,6 +4646,20 @@ public:
      * @return WM_OK means set success, others means failed.
      */
     virtual WMError SetFollowParentMultiScreenPolicy(bool enabled) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;}
+
+    /**
+     * @brief Set whether sub window supports simultaneous display on multiple screens with error message.
+     *
+     * @param enabled The value true means sub window supports simultaneous display on multiple screens
+     *                when the parent window is dragged to move or dragged to zoom, and false means the opposite.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success, others means failed.
+     */
+    virtual WMError SetFollowParentMultiScreenPolicy(bool enabled, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetFollowParentMultiScreenPolicy(enabled);
+    }
 
     /**
      * @brief Get the rect of host window.
@@ -4220,19 +4718,27 @@ public:
      * @brief Register window close async process listener.
      *
      * @param listener IWindowWillCloseListener.
+     * @param errMsg error message when register failed.
      * @return WM_OK means register success, others means register failed.
      */
     virtual WMError RegisterWindowWillCloseListeners(
-        const sptr<IWindowWillCloseListener>& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Unregister window close async process listener.
      *
      * @param listener IWindowWillCloseListener.
+     * @param errMsg error message when unregister failed.
      * @return WM_OK means unregister success, others means unregister failed.
      */
     virtual WMError UnRegisterWindowWillCloseListeners(
-        const sptr<IWindowWillCloseListener>& listener) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+        const sptr<IWindowWillCloseListener>& listener, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Register switch free multi-window listener.
@@ -4678,6 +5184,19 @@ public:
     virtual WMError GetWindowStatus(WindowStatus& windowStatus) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
 
     /**
+     * @brief Get the window status of current window with error message.
+     *
+     * @param windowStatus
+     * @param errMsg Indicates the error message output parameter.
+     * @return WMError.
+     */
+    virtual WMError GetWindowStatus(WindowStatus& windowStatus, std::string& errMsg)
+    {
+        errMsg.clear();
+        return GetWindowStatus(windowStatus);
+    }
+
+    /**
      * @brief Notify host that UIExtension timeout
      *
      * @param errorCode error code when UIExtension timeout
@@ -5050,17 +5569,25 @@ public:
      * @brief Set the parent window of a sub window.
      *
      * @param newParentWindowId new parent window id.
+     * @param errMsg error message when set parent window failed.
      * @return WM_OK means set parent window success, others means failed.
      */
-    virtual WMError SetParentWindow(int32_t newParentWindowId) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetParentWindow(int32_t newParentWindowId, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Get the parent window of a sub window.
      *
      * @param parentWindow parent window.
+     * @param errMsg error message when get parent window failed.
      * @return WM_OK means get parent window success, others means failed.
      */
-    virtual WMError GetParentWindow(sptr<Window>& parentWindow) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 
     /**
      * @brief Set window anchor info.
@@ -5074,12 +5601,38 @@ public:
     }
 
     /**
+     * @brief Set window anchor info with error message.
+     *
+     * @param windowAnchorInfo the windowAnchorInfo of subWindow.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success.
+     */
+    virtual WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetWindowAnchorInfo(windowAnchorInfo);
+    }
+
+    /**
      * @brief Set the feature of subwindow follow the layout of the parent window.
      *
      * @param isFollow true - follow, false - not follow.
      * @return WM_OK means set success.
      */
     virtual WMError SetFollowParentWindowLayoutEnabled(bool isFollow) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+
+    /**
+     * @brief Set the feature of subwindow follow the layout of the parent window with error message.
+     *
+     * @param isFollow true - follow, false - not follow.
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means set success.
+     */
+    virtual WMError SetFollowParentWindowLayoutEnabled(bool isFollow, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetFollowParentWindowLayoutEnabled(isFollow);
+    }
 
     /**
      * @brief Enable or disable window shadow.
@@ -5260,6 +5813,19 @@ public:
     virtual WMError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief Set drag key frame policy with error message.
+     *
+     * @param keyFramePolicy param of key frame
+     * @param errMsg Indicates the error message output parameter.
+     * @return WM_OK means get success, others means failed.
+     */
+    virtual WMError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy, std::string& errMsg)
+    {
+        errMsg.clear();
+        return SetDragKeyFramePolicy(keyFramePolicy);
     }
 
     /**

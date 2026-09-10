@@ -560,4 +560,10 @@ WMError SceneSessionManagerLite::GetAppWindowShowingInfosByBundleName(const Appl
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
 }
+
+WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& windowConfig)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+}
 } // namespace OHOS::Rosen

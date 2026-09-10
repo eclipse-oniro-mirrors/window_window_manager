@@ -38,6 +38,9 @@ public:
     WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession, const std::string& identityToken = "",
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
+    WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+        const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken = "",
+        bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
     WMError Show(uint32_t reason = 0, bool withAnimation = false, bool withFocus = true,
         int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Show(uint32_t reason, bool withAnimation, bool withFocus, bool waitAttach,
@@ -50,11 +53,13 @@ public:
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
     WMError NotifyRemoveStartingWindow() override;
+    WMError NotifyRemoveStartingWindow(std::string& errMsg) override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
     void UpdateAnimationSpeedIfEnabled();
     void PreProcessCreate();
     void SetDefaultProperty();
     WMError Minimize() override;
+    WMError Minimize(std::string& errMsg) override;
     void NotifyWindowStageCreateFinished() override;
     void StartMove() override;
     WindowMode GetWindowMode() const override;
@@ -73,16 +78,27 @@ public:
      */
     WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
+    WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+        MoveConfiguration moveConfiguration, std::string& errMsg) override;
     WMError MoveToAsync(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
+    WMError MoveToAsync(int32_t x, int32_t y, MoveConfiguration moveConfiguration, std::string& errMsg) override;
     WMError MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
+    WMError MoveWindowToGlobal(int32_t x, int32_t y, MoveConfiguration moveConfiguration, std::string& errMsg) override;
     WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y, MoveConfiguration moveConfiguration = {}) override;
+    WMError MoveWindowToGlobalDisplay(int32_t x, int32_t y, MoveConfiguration moveConfiguration,
+        std::string& errMsg) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = true) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize, std::string& errMsg) override;
     WMError GetEventOriginalPosition(const EventPositionInfo& eventPositionInfo,
         EventPositionInfo& originalEventPositionInfo) const override;
     WMError Resize(uint32_t width, uint32_t height) override;
+    WMError Resize(uint32_t width, uint32_t height, std::string& errMsg) override;
     WMError ResizeAsync(uint32_t width, uint32_t height) override;
+    WMError ResizeAsync(uint32_t width, uint32_t height, std::string& errMsg) override;
     WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo) override;
+    WMError SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo, std::string& errMsg) override;
     WMError SetFollowParentWindowLayoutEnabled(bool isFollow) override;
+    WMError SetFollowParentWindowLayoutEnabled(bool isFollow, std::string& errMsg) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
     WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
     WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
@@ -111,15 +127,20 @@ public:
 
     void PerformBack() override;
     WMError SetAspectRatio(float ratio) override;
+    WMError SetAspectRatio(float ratio, std::string& errMsg) override;
     WMError SetContentAspectRatio(float ratio, bool isPersistent, bool needUpdateRect) override;
+    WMError SetContentAspectRatio(float ratio, bool isPersistent, bool needUpdateRect, std::string& errMsg) override;
     WMError ResetAspectRatio() override;
+    WMError ResetAspectRatio(std::string& errMsg) override;
     WMError SetGlobalMaximizeMode(MaximizeMode mode) override;
     MaximizeMode GetGlobalMaximizeMode() const override;
 
     WMError BindDialogTarget(sptr<IRemoteObject> targetToken) override;
     WMError SetDialogBackGestureEnabled(bool isEnabled) override;
     WMError GetWindowLimits(WindowLimits& windowLimits, bool getVirtualPixel = false) override;
+    WMError GetWindowLimits(WindowLimits& windowLimits, bool getVirtualPixel, std::string& errMsg) override;
     WMError SetWindowLimits(WindowLimits& windowLimits, bool isForce) override;
+    WMError SetWindowLimits(WindowLimits& windowLimits, bool isForce, std::string& errMsg) override;
     static void UpdateConfigurationForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration,
         const std::vector<std::shared_ptr<AbilityRuntime::Context>>& ignoreWindowContexts = {});
     static sptr<Window> GetTopWindowWithContext(const std::shared_ptr<AbilityRuntime::Context>& context = nullptr);
@@ -207,8 +228,8 @@ public:
     /*
      * Sub Window
      */
-    WMError SetParentWindow(int32_t newParentWindowId) override;
-    WMError GetParentWindow(sptr<Window>& parentWindow) override;
+    WMError SetParentWindow(int32_t newParentWindowId, std::string& errMsg) override;
+    WMError GetParentWindow(sptr<Window>& parentWindow, std::string& errMsg) override;
 
     /*
      * Sub Window zLevel above parent loosened
@@ -224,6 +245,7 @@ public:
     WMError SetWindowMaskWithAlpha(const uint8_t* windowMask, uint32_t maskWidth, uint32_t maskHeight) override;
     WMError ClearWindowMask() override;
     WMError SetFollowParentMultiScreenPolicy(bool enabled) override;
+    WMError SetFollowParentMultiScreenPolicy(bool enabled, std::string& errMsg) override;
     WMError UseImplicitAnimation(bool useImplicit) override;
     bool IsHitHotAreas(std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
     WSError AddSidebarBlur() override;
@@ -242,20 +264,35 @@ public:
     WMError SwitchCompatibleMode(CompatibleStyleMode styleMode);
     WMError RecoverForCompatibleMode();
     WMError Maximize() override;
+    WMError Maximize(std::string& errMsg) override;
     WMError Maximize(MaximizePresentation presentation) override;
+    WMError Maximize(MaximizePresentation presentation, std::string& errMsg) override;
     WMError Maximize(MaximizePresentation presentation, WaterfallResidentState state) override;
+    WMError Maximize(MaximizePresentation presentation, WaterfallResidentState state, std::string& errMsg) override;
     WMError MaximizeWithOptions(MaximizePresentation presentation, AcrossDisplayPresentation state,
         const SnapshotAnimationConfig& snapshotAnimationConfig) override;
+    WMError MaximizeWithOptions(MaximizePresentation presentation, AcrossDisplayPresentation state,
+        const SnapshotAnimationConfig& snapshotAnimationConfig, std::string& errMsg) override;
     WMError Recover() override;
+    WMError Recover(std::string& errMsg) override;
     WMError Recover(uint32_t reason) override;
+    WMError Recover(uint32_t reason, std::string& errMsg) override;
     WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig) override;
+    WMError Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+        std::string& errMsg) override;
     WSError UpdateMaximizeMode(MaximizeMode mode) override;
     WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
         bool grayOutMaximizeButton = false) override;
+    WMError SetSupportedWindowModes(const std::vector<AppExecFwk::SupportWindowMode>& supportedWindowModes,
+        bool grayOutMaximizeButton, std::string& errMsg) override;
     WmErrorCode StartMoveWindow() override;
+    WmErrorCode StartMoveWindow(std::string& errMsg) override;
     WMError StartMovingWithOptions(const StartMovingOptions& options) override;
+    WMError StartMovingWithOptions(const StartMovingOptions& options, std::string& errMsg) override;
     WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY) override;
+    WmErrorCode StartMoveWindowWithCoordinate(int32_t offsetX, int32_t offsetY, std::string& errMsg) override;
     WmErrorCode StopMoveWindow() override;
+    WmErrorCode StopMoveWindow(std::string& errMsg) override;
     void MaximizeEvent(const sptr<ISession> &hostSession);
     void UpdateWindowModeWhenSupportTypeChange(uint32_t windowModeSupportType);
 
@@ -286,6 +323,7 @@ public:
     WMError IsImmersiveLayout(bool& isImmersiveLayout) const override;
     void NotifySessionFullScreen(bool fullScreen) override;
     WMError GetWindowStatus(WindowStatus& windowStatus) override;
+    WMError GetWindowStatus(WindowStatus& windowStatus, std::string& errMsg) override;
     bool GetIsUIExtFirstSubWindow() const override;
     bool GetIsUIExtAnySubWindow() const override;
     bool IsInFreeWindowMode() const override;
@@ -311,6 +349,7 @@ public:
     WMError SetBackdropBlur(float radius) override;
     WMError SetBackdropBlurStyle(WindowBlurStyle blurStyle) override;
     WMError SetWindowMode(WindowMode mode) override;
+    WMError SetWindowMode(WindowMode mode, std::string& errMsg) override;
     WMError SetGrayScale(float grayScale) override;
     WMError SetWindowShadowRadius(float radius) override;
     static void UpdateConfigurationSyncForAll(const std::shared_ptr<AppExecFwk::Configuration>& configuration);
@@ -377,8 +416,12 @@ public:
      * Window Pattern
      */
     WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit) override;
+    WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit, std::string& errMsg) override;
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit) override;
+    WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        std::string& errMsg) override;
     WMError RemoveImageForRecent() override;
+    WMError RemoveImageForRecent(std::string& errMsg) override;
 
     /**
      * Window Transition Animation For PC
@@ -465,6 +508,38 @@ protected:
      *      other cases remain constrained by system limits.
      */
     void UpdateWindowSizeLimits(bool needNotifySession = false);
+
+    /**
+     * @brief Cap min size limits by ratio of display work area.
+     *
+     * Gate: returns immediately (no work area query, no capping) when
+     * `isMinLimitOfWorkAreaEnabled` is false or the ratio is not in (0, 1).
+     * Trigger: resulting min width or height exceeds ratio x work area size.
+     * Aspect ratio: `setAspectRatio`/`setContentAspectRatio` value first,
+     * built-in limits minRatio_ as fallback.
+     *
+     * @param newLimits Reference to WindowLimits (PX unit) to be capped.
+     * @param newLimitsVP Reference to WindowLimits (VP unit), recalculated after capping.
+     * @param vpr Virtual pixel ratio for unit conversion.
+     * @return Returns true if the min limits were actually capped.
+     */
+    bool AdjustMinLimitsByWorkArea(WindowLimits& newLimits, WindowLimits& newLimitsVP, float vpr);
+
+    /**
+     * @brief Cap min limits by work area caps, respecting the aspect ratio rules.
+     * Rule 1/2/3: cap width and height independently when no ratio;
+     * Rule 4/4.1/4.2: cap height, derive width by ratio, cap takes priority.
+     * @param newLimits Reference to WindowLimits (PX unit) to be capped.
+     * @param capWidth Cap of min width (workAreaWidth * ratio).
+     * @param capHeight Cap of min height (workAreaHeight * ratio).
+     */
+    void CapMinLimitsByAspectRatio(WindowLimits& newLimits, uint32_t capWidth, uint32_t capHeight);
+
+    /**
+     * @brief Get the effective aspect ratio for work area capping.
+     * @return aspect ratio set via set interfaces, or limits minRatio_ as fallback.
+     */
+    float GetEffectiveAspectRatio(const WindowLimits& limits) const;
 
     /**
      * @brief Calculate window limits intersection with attached windows.
@@ -605,7 +680,7 @@ private:
      */
     WMError CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
-    void UpdateSubWindowDragEnabledByDecorVisible() override;
+    void UpdateSubWindowDragEnabledByDecorVisible(bool decorVisible) override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
@@ -654,6 +729,8 @@ private:
     void UpdateDefaultStatusBarColor() override;
     std::atomic<bool> userLimitsSet_ = false;
     std::atomic<bool> forceLimits_ = false;
+    // True when the last UpdateWindowSizeLimits call capped min limits by work area rule
+    std::atomic<bool> isMinLimitsAdjusted_ = false;
     uint32_t setSameSystembarPropertyCnt_ = 0;
     std::atomic<uint32_t> getAvoidAreaCnt_ = 0;
     std::atomic<bool> enableImmersiveMode_ = false;

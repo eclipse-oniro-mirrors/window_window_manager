@@ -87,6 +87,16 @@ public:
     sptr<Window> CreateWindow(const std::string& windowName, sptr<WindowOption>& option) const;
 
     /**
+     * Create a window instance based on the parameters windowName and option.
+     *
+     * @param windowName the id of this window
+     * @param option the settings for window, such as WindowType, width, height, etc.
+     * @param errMsg error message of create window
+     * @return the shared pointer of window
+     */
+    sptr<Window> CreateWindow(const std::string& windowName, sptr<WindowOption>& option, std::string& errMsg) const;
+
+    /**
      * Get shared pointer of main window.
      * Locks mainWindowMutex_
      *

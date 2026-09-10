@@ -1393,7 +1393,8 @@ HWTEST_F(WindowSessionImplTest2, WindowSessionCreateCheck, TestSize.Level1)
     displayWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_FREEZE_DISPLAY);
     window->windowSessionMap_.insert(std::make_pair<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>(
         "displayWindow", std::pair<int32_t, sptr<WindowSessionImpl>>(displayId, displayWindow)));
-    ASSERT_EQ(window->WindowSessionCreateCheck(), WMError::WM_OK);
+    std::string errMsg;
+    ASSERT_EQ(window->WindowSessionCreateCheck(errMsg), WMError::WM_OK);
 
     window->windowSessionMap_.clear();
     auto cameraWindow = GetTestWindowImpl("cameraWindow");
@@ -1401,7 +1402,7 @@ HWTEST_F(WindowSessionImplTest2, WindowSessionCreateCheck, TestSize.Level1)
     cameraWindow->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT_CAMERA);
     window->windowSessionMap_.insert(std::make_pair<std::string, std::pair<int32_t, sptr<WindowSessionImpl>>>(
         "cameraWindow", std::pair<int32_t, sptr<WindowSessionImpl>>(cameraId, cameraWindow)));
-    ASSERT_EQ(window->WindowSessionCreateCheck(), WMError::WM_ERROR_REPEAT_OPERATION);
+    ASSERT_EQ(window->WindowSessionCreateCheck(errMsg), WMError::WM_ERROR_REPEAT_OPERATION);
     window->Destroy();
     displayWindow->Destroy();
     cameraWindow->Destroy();

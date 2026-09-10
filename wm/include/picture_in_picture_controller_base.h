@@ -72,7 +72,7 @@ public:
     static napi_value CallJsFunction(napi_env env, napi_value method, napi_value const * argv, size_t argc);
 
     WMError StopPictureInPicture(bool destroyWindow, StopPipType stopPipType, bool withAnim = true);
-    WMError StopPictureInPictureFromClient();
+    WMErrorResult StopPictureInPictureFromClient();
     WMError DestroyPictureInPictureWindow();
     sptr<Window> GetPipWindow() const;
     uint32_t GetMainWindowId() const;
@@ -116,7 +116,7 @@ public:
     uint64_t GetSurfaceId() const;
     bool GetPipSettingSwitchStatusEnabled();
     bool GetPiPSettingSwitchStatus();
-    WMError IsPiPActive(bool& status);
+    WMErrorResult IsPiPActive(bool& status);
     bool isWeb_ = false;
     void SetStateChangeReason(PiPStateChangeReason reason);
     PiPStateChangeReason GetStateChangeReason() const;
@@ -151,7 +151,7 @@ public:
     inline sptr<Window> GetMainWindow() const { return mainWindow_; }
 
     // diffrent between normal and web
-    virtual WMError StartPictureInPicture(StartPipType startType) = 0;
+    virtual WMErrorResult StartPictureInPicture(StartPipType startType) = 0;
     virtual void UpdateContentSize(int32_t width, int32_t height) = 0;
     virtual WMError SetXComponentController(std::shared_ptr<XComponentController> xComponentController) = 0;
     virtual void RestorePictureInPictureWindow() = 0;
@@ -190,8 +190,8 @@ protected:
     };
 
     void NotifyOpretationError(WMError errCode, StartPipType startType);
-    WMError ShowPictureInPictureWindow(StartPipType startType);
-    WMError StartPictureInPictureInner(StartPipType startType);
+    WMErrorResult ShowPictureInPictureWindow(StartPipType startType);
+    WMErrorResult StartPictureInPictureInner(StartPipType startType);
     WMError StopPictureInPictureInner(StopPipType stopType, bool withAnim);
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
     template<typename T> WMError UnregisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -224,7 +224,7 @@ protected:
     int64_t startTimestamp_ = 0;
 
     // diffrent between normal and web
-    virtual WMError CreatePictureInPictureWindow(StartPipType startType) = 0;
+    virtual WMErrorResult CreatePictureInPictureWindow(StartPipType startType) = 0;
     virtual void UpdateWinRectByComponent() = 0;
     virtual void SetUIContent() const = 0;
     virtual void UpdatePiPSourceRect() const = 0;

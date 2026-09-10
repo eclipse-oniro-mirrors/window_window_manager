@@ -38,6 +38,7 @@ namespace OHOS::Rosen {
 using ISessionListener = AAFwk::IMissionListener;
 using SessionInfoBean = AAFwk::MissionInfo;
 using SessionSnapshot = AAFwk::MissionSnapshot;
+
 class ISceneSessionManagerLite : public OHOS::Rosen::IWindowManagerLite {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ISceneSessionManagerLite");
@@ -135,6 +136,7 @@ public:
         TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY,
         TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY,
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
+        TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
     };
 
     /*
@@ -481,6 +483,19 @@ public:
 
     virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) = 0;
+
+    /**
+     * @brief Update custom window config for specific apps
+     *
+     * This function is used to update custom window config for 720p apps
+     *
+     * @caller SA
+     * @permission SA permission
+     *
+     * @param windowConfig The window config including width, height, dpi, scale and xhdpiAppList
+     * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
+     */
+    virtual WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H

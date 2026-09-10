@@ -32,13 +32,10 @@
 #include "window_manager_hilog.h"
 #include "window_scene.h"
 #include "window_helper.h"
-#include "window_manager.h"
 #include "window_option.h"
-#include "permission.h"
 #include "scene_board_judgement.h"
-#include "singleton_container.h"
-#include "pixel_map.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 #include "../../../../../../wm/include/get_snapshot_callback.h"
 
 namespace OHOS {
@@ -48,6 +45,12 @@ constexpr int32_t MAIN_WINDOW_SNAPSGOT_TIMEOUT = 5000;
 const std::string PIP_WINDOW = "pip_window";
 constexpr int32_t INVALID_COORDINATE = -1;
 constexpr uint32_t API_VERSION_18 = 18;
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 }
 
 AniWindowManager::AniWindowManager() : registerManager_(std::make_unique<AniWindowRegisterManager>())
@@ -156,7 +159,7 @@ ani_ref AniWindowManager::OnGetLastWindow(ani_env* env, ani_object aniContext)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-            "[window][getLastWindow]msg: Get top window failed");
+            "[window][getLastWindow]msg: Top window or main window is not created or destroyed.");
     }
     return CreateAniWindowObject(env, window);
 }
@@ -176,12 +179,12 @@ void AniWindowManager::OnShiftAppWindowFocus(ani_env* env, ani_int sourceWindowI
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "[ANI] sourceWindowId: %{public}d targetWindowId: %{public}d",
         static_cast<int32_t>(sourceWindowId), static_cast<int32_t>(targetWindowId));
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId));
-    if (ret != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][shiftAppWindowFocus]msg:ShiftAppWindowFocus failed");
+    WMError ret = SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, ret));
     }
     return ;
 }
@@ -419,14 +422,16 @@ void AniWindowManager::OnSetStartWindowBackgroundColor(ani_env* env, ani_string 
         return;
     }
     uint32_t colorValue = static_cast<uint32_t>(color);
+    std::string errMsg;
     auto retCode = SingletonContainer::Get<WindowManager>().SetStartWindowBackgroundColor(
-        moduleNameStr, abilityNameStr, colorValue);
+        moduleNameStr, abilityNameStr, colorValue, errMsg);
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] module=%{public}s, ability=%{public}s, color=%{public}u, ret=%{public}d",
             moduleNameStr.c_str(), abilityNameStr.c_str(), colorValue, static_cast<int32_t>(retCode));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
-        AniWindowUtils::AniThrowError(env, ret, "setStartWindowBackgroundColorSync failed.");
+        AniWindowUtils::AniThrowError(env, ret,
+            ConcatErrorMsg("setStartWindowBackgroundColorSync", errMsg));
         return;
     }
 }
@@ -485,12 +490,14 @@ ani_ref CreateAniSystemWindow(ani_env* env, void* contextPtr, sptr<WindowOption>
         }
     }
     WMError wmError = WMError::WM_OK;
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, context->lock(), wmError);
+    std::string errMsg;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg, context->lock(), wmError);
     WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
     if (window != nullptr && wmErrorCode == WmErrorCode::WM_OK) {
         return CreateAniWindowObject(env, window);
     } else {
-        return AniWindowUtils::AniThrowError(env, wmErrorCode, "Create window failed");
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, wmErrorCode, msg);
     }
 }
 
@@ -505,9 +512,11 @@ ani_ref CreateAniSubWindow(ani_env* env, sptr<WindowOption> windowOption)
             "[ANI] Parent window missed");
     }
 
-    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption);
+    std::string errMsg;
+    sptr<Window> window = Window::Create(windowOption->GetWindowName(), windowOption, errMsg);
     if (window == nullptr) {
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        std::string msg = "[window][createWindow]msg: " + (errMsg.empty() ? "Create window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg);
     } else {
         return CreateAniWindowObject(env, window);
     }
@@ -814,11 +823,13 @@ void AniWindowManager::OnRegisterWindowManagerCallback(ani_env* env, ani_string 
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
+    std::string errMsg;
     WmErrorCode ret = registerManager_->RegisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER,
-        env, callback, ani_double(0));
+        env, callback, ani_double(0), errMsg);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
-        AniWindowUtils::AniThrowError(env, ret);
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Register listener failed." : errMsg));
     }
 }
 
@@ -839,11 +850,14 @@ void AniWindowManager::OnUnregisterWindowManagerCallback(ani_env* env, ani_strin
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
+    std::string errMsg;
     WmErrorCode ret = registerManager_->UnregisterListener(nullptr, cbType, CaseType::CASE_WINDOW_MANAGER,
-        env, callback);
+        env, callback, errMsg);
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.off", ret);
-        AniWindowUtils::AniThrowError(env, ret);
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret,
+            errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
     }
 }
 
@@ -1085,10 +1099,12 @@ ani_ref AniWindowManager::OnCreateSubWindowAndBindParent(ani_env* env, ani_strin
         TLOGE(WmsLogTag::WMS_LIFE, "[ANI] SubWindow create error");
         return AniWindowUtils::AniThrowError(env, WM_JS_TO_ERROR_CODE_MAP.at(wmError), "SubWindow create error");
     }
+    std::string errMsg;
     WmErrorCode ret = registerManager_->RegisterListener(subWindow, "parentLifecycleEvent", CaseType::CASE_WINDOW,
-        env, callback, ani_double(0));
+        env, callback, ani_double(0), errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        return AniWindowUtils::AniThrowError(env, ret, "Register listener error");
+        return AniWindowUtils::AniThrowError(env, ret,
+            "[window][CreateSubWindowAndBindParent]msg: " + (errMsg.empty() ? "Create window failed" : errMsg));
     }
     return CreateAniWindowObject(env, subWindow);
 }

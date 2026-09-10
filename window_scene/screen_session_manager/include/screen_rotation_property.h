@@ -52,10 +52,8 @@ public:
     static void HandleSensorEventInput(DeviceRotation deviceRotation);
     static void HandleHoverStatusEventInput(DeviceHoverStatus hoverStatus, bool needRotate = true);
 
-    static bool isDeviceHorizontal();
+    static bool IsDeviceHorizontal();
 
-    // Get the live device orientation via the screen session's GetDeviceRotation
-    static bool IsDeviceHorizontalByScreenSession();
 private:
     static float ConvertDeviceToFloat(DeviceRotation deviceRotation);
     

@@ -24,6 +24,8 @@
 #include "display_manager_adapter.h"
 #include "display_manager_agent_default.h"
 #include "dm_common.h"
+#include "fold_screen_state_internel.h"
+#include "permission.h"
 #include "screen_manager.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
@@ -37,6 +39,7 @@ const static uint32_t SCB_GET_DISPLAY_INTERVAL_US = 5000;
 const static uint32_t APP_GET_DISPLAY_INTERVAL_US = 25000;
 const static float INVALID_DEFAULT_DENSITY = 1.0f;
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
+constexpr ScreenId SCREEN_ID_MAIN = 5;
 std::atomic<bool> g_dmIsDestroyed = false;
 std::mutex snapBypickerMutex;
 
@@ -535,22 +538,13 @@ private:
 
 bool DisplayManager::Impl::CheckRectValid(const Media::Rect& rect, int32_t oriHeight, int32_t oriWidth) const
 {
-    if (rect.left < 0) {
+    if (rect.left < 0 || rect.top < 0 || rect.width < 0 || rect.height < 0) {
         return false;
     }
-    if (rect.top < 0) {
+    if (rect.left > oriWidth - rect.width) {
         return false;
     }
-    if (rect.width < 0) {
-        return false;
-    }
-    if (rect.height < 0) {
-        return false;
-    }
-    if (rect.width + rect.left > oriWidth) {
-        return false;
-    }
-    if (rect.height + rect.top > oriHeight) {
+    if (rect.top > oriHeight - rect.height) {
         return false;
     }
     return true;
@@ -1252,6 +1246,12 @@ std::vector<sptr<Display>> DisplayManager::GetAllDisplays(int32_t userId)
     for (auto displayId : displayIds) {
         const sptr<Display> display = GetDisplayById(displayId);
         if (display != nullptr) {
+            if (!Permission::IsSystemCalling() &&
+                FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                display->GetScreenId() == SCREEN_ID_MAIN) {
+                TLOGI(WmsLogTag::DMS, "GetAllDisplays filter SPN outer screen, displayId: %{public}" PRIu64, displayId);
+                continue;
+            }
             res.emplace_back(display);
         } else {
             TLOGE(WmsLogTag::DMS, "display %" PRIu64" nullptr!", displayId);

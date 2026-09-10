@@ -114,13 +114,11 @@ ohos_shared_library("extensionwindow_napi") {
     "ability_runtime:ability_manager",
     "ability_runtime:runtime",
     "ace_engine:ace_uicontent",
-    "bundle_framework:appexecfwk_base",
     "c_utils:utils",
     "eventhandler:libeventhandler",
     "hilog:libhilog",
     "hitrace:hitrace_meter",
     "image_framework:image",
-    "image_framework:image_native",
     "ipc:ipc_single",
     "napi:ace_napi",
     "node:node_header_notice",
@@ -139,4 +137,5 @@ ohos_shared_library("extensionwindow_napi") {
   if (build_variant == "user") {
     defines += [ "IS_RELEASE_VERSION" ]
   }
+  ldflags = [ "-Wl,-Bsymbolic-functions" ]
 }

@@ -915,6 +915,8 @@ config("wm_unittest_common_public_config") {
     "${window_base_path}/window_scene/session/host/include/zidl",
     "${window_base_path}/window_scene/session_manager/include",
     "${window_base_path}/window_scene/screen_session_manager/include",
+    "${window_base_path}/window_scene/screen_session_manager/include/zidl",
+    "${window_base_path}/window_scene/screen_session_manager_client/include",
     "${dmserver_gen_path}",
   ]
 }

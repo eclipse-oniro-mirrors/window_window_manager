@@ -62,6 +62,7 @@ enum class ListenerFunctionType : uint32_t {
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
     GET_FLOAT_VIEW_LIMIT_CB,
+    UPDATE_ROG_WINDOW_CONFIG_CB,
 };
 
 class JsSceneSessionManager final {
@@ -518,6 +519,9 @@ private:
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
     void OnGetFloatViewLimitCallback();
+    
+    void RegisterUpdateRogWindowConfigCallback();
+    void OnUpdateRogWindowConfigCallback(const RogWindowConfig& windowConfig);
 
     /**
      * Config

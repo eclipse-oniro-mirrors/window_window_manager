@@ -721,7 +721,7 @@ bool JsWindowRegisterManager::IsWindowPostureCallbackRegistered(napi_env env, Wi
 }
 
 WmErrorCode JsWindowRegisterManager::RegisterListener(sptr<Window> window, std::string type,
-    CaseType caseType, napi_env env, napi_value callback, napi_value parameter)
+    CaseType caseType, napi_env env, napi_value callback, std::string& errMsg, napi_value parameter)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (IsCallbackRegistered(env, type, callback)) {
@@ -748,7 +748,7 @@ WmErrorCode JsWindowRegisterManager::RegisterListener(sptr<Window> window, std::
     }
     windowManagerListener->SetMainEventHandler();
     WmErrorCode ret = ProcessListener(listenerType, caseType, windowManagerListener, window, true,
-        env, parameter);
+        env, errMsg, parameter);
     if (ret != WmErrorCode::WM_OK) {
         WLOGFE("Register type %{public}s failed", type.c_str());
         return ret;
@@ -760,7 +760,7 @@ WmErrorCode JsWindowRegisterManager::RegisterListener(sptr<Window> window, std::
 
 WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType registerListenerType, CaseType caseType,
     const sptr<JsWindowListener>& windowManagerListener, const sptr<Window>& window, bool isRegister,
-    napi_env env, napi_value parameter)
+    napi_env env, std::string& errMsg, napi_value parameter)
 {
     if (caseType == CaseType::CASE_WINDOW_MANAGER) {
         switch (static_cast<uint32_t>(registerListenerType)) {
@@ -848,7 +848,8 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
             case static_cast<uint32_t>(RegisterListenerType::SUB_WINDOW_CLOSE_CB):
                 return ProcessSubWindowCloseRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_WILL_CLOSE_CB):
-                return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env, parameter);
+                return ProcessWindowWillCloseRegister(windowManagerListener, window, isRegister, env, errMsg,
+                    parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_HIGHLIGHT_CHANGE_CB):
                 return ProcessWindowHighlightChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::WINDOW_ROTATION_CHANGE_CB):
@@ -883,7 +884,7 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
 }
 
 WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std::string type,
-    CaseType caseType, napi_env env, napi_value value)
+    CaseType caseType, napi_env env, napi_value value, std::string& errMsg)
 {
     std::lock_guard<std::mutex> lock(mtx_);
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
@@ -907,7 +908,7 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
                 return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             }
             WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window,
-                false, env, nullptr);
+                false, env, errMsg, nullptr);
             if (ret != WmErrorCode::WM_OK) {
                 WLOGFE("Unregister type %{public}s failed, no value", type.c_str());
                 return ret;
@@ -927,7 +928,7 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
             }
             findFlag = true;
             WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window,
-                false, env, nullptr);
+                false, env, errMsg, nullptr);
             if (ret != WmErrorCode::WM_OK) {
                 WLOGFE("Unregister type %{public}s failed", type.c_str());
                 return ret;
@@ -1232,7 +1233,7 @@ WmErrorCode JsWindowRegisterManager::ProcessMainWindowCloseRegister(const sptr<J
 }
 
 WmErrorCode JsWindowRegisterManager::ProcessWindowWillCloseRegister(const sptr<JsWindowListener>& listener,
-    const sptr<Window>& window, bool isRegister, napi_env env, napi_value parameter)
+    const sptr<Window>& window, bool isRegister, napi_env env, std::string& errMsg, napi_value parameter)
 {
     HISTOGRAM_BOOLEAN(
         isRegister ? "ArkUI.window.onWindowWillClose" : "ArkUI.window.offWindowWillClose",
@@ -1245,8 +1246,8 @@ WmErrorCode JsWindowRegisterManager::ProcessWindowWillCloseRegister(const sptr<J
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     WmErrorCode ret = isRegister ?
-        MappingWmErrorCodeSafely(window->RegisterWindowWillCloseListeners(listener)) :
-        MappingWmErrorCodeSafely(window->UnRegisterWindowWillCloseListeners(listener));
+        MappingWmErrorCodeSafely(window->RegisterWindowWillCloseListeners(listener, errMsg)) :
+        MappingWmErrorCodeSafely(window->UnRegisterWindowWillCloseListeners(listener, errMsg));
     HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on", ret);
     HISTOGRAM_ENUMERATION_ERROR_CODE(
         isRegister ? "ArkUI.window.onWindowWillClose.error" : "ArkUI.window.offWindowWillClose.error", ret);

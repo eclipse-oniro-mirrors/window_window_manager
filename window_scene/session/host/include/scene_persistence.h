@@ -111,7 +111,6 @@ private:
     float snapshotScaleLow_ = 0.5;
     bool enablePersistentScaledSnapshot_ = false;
 
-    static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper_;
     mutable std::mutex savingSnapshotMutex_;
     mutable std::mutex hasSnapshotMutex_;
     mutable std::mutex snapshotSizeMutex_;

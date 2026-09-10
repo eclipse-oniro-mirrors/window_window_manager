@@ -27,6 +27,7 @@
 #include "window_histogram_management.h"
 #include "window_manager_hilog.h"
 #include "window_scene.h"
+#include "window_focus_error_msg_helper.h"
 #include "interop_js/arkts_esvalue.h"
 #include "interop_js/arkts_interop_js_api.h"
 #include "interop_js/hybridgref_ani.h"
@@ -45,6 +46,12 @@ static std::map<ani_object, AniWindowStage*> localObjs;
 const uint32_t MIN_RESOURCE_ID = 0x1000000;
 const uint32_t MAX_RESOURCE_ID = 0xffffffff;
 constexpr int32_t HISTOGRAM_BOOLEAN_COUNTS = 1;
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 } // namespace
 
 AniWindowStage::AniWindowStage(const std::shared_ptr<Rosen::WindowScene>& windowScene)
@@ -315,12 +322,14 @@ ani_object AniWindowStage::OnCreateSubWindowWithOptions(ani_env* env, ani_string
     windowOption->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     windowOption->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     windowOption->SetOnlySupportSceneBoard(true);
-    auto window = windowScene->CreateWindow(windowName, windowOption);
+    std::string errMsg;
+    auto window = windowScene->CreateWindow(windowName, windowOption, errMsg);
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_SUB, "create window failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.windowStage.createSubWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "get window failed");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            errMsg.empty() ? "get window failed" : errMsg);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     TLOGI(WmsLogTag::WMS_SUB, "Create sub window %{public}s end", windowName.c_str());
@@ -333,7 +342,8 @@ ani_ref AniWindowStage::GetMainWindow(ani_env* env)
     std::shared_ptr<WindowScene> weakScene = windowScene_.lock();
     if (weakScene == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] WindowScene_ is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY);
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
+            "The window stage is not created or destroyed");
         return AniWindowUtils::CreateAniUndefined(env);
     }
 
@@ -612,7 +622,7 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][setWindowModal]msg: windowScene is nullptr");
+            "[window][setWindowModal]msg: The window is not created or destroyed.");
         return;
     }
     auto window = windowScene->GetMainWindow();
@@ -629,15 +639,16 @@ void AniWindowStage::OnSetWindowModal(ani_env* env, ani_boolean isModal)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal",
             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][setWindowModal]msg: device not support");
+            "[window][setWindowModal]msg: Device not support.");
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowModal(isModal));
-    if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "failed, ret is %{public}d", ret);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "window][setWindowModal]msg: Set main window modal failed");
+    WMError ret = window->SetWindowModal(isModal);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "failed, ret is %{public}d", wmErrorCode);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowModal", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SET_WINDOW_MODAL, ret));
         return;
     }
     TLOGI(WmsLogTag::WMS_HIERARCHY, "id:%{public}u, name:%{public}s, isModal:%{public}d",
@@ -711,13 +722,14 @@ void AniWindowStage::OnSetImageForRecent(ani_env* env, ani_object imageResource,
     ConvertImageFit(imageFit, arkImageFit);
     TLOGI(WmsLogTag::WMS_PATTERN, "value: %{public}d, imageFit: %{public}d", value, imageFit);
     WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsg;
     if (pixelMap) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecentPixelMap(pixelMap, imageFit));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecentPixelMap(pixelMap, imageFit, errMsg));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecent(imageResourceId, imageFit));
+        ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->SetImageForRecent(imageResourceId, imageFit, errMsg));
     }
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, ConcatErrorMsg("SetImageForRecent", errMsg));
         return;
     }
 }
@@ -770,9 +782,10 @@ void AniWindowStage::OnRemoveImageForRecent(ani_env* env)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->RemoveImageForRecent());
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(mainWindow->RemoveImageForRecent(errMsg));
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, ConcatErrorMsg("RemoveImageForRecent", errMsg));
         return;
     }
 }
@@ -892,10 +905,11 @@ void AniWindowStage::OnRemoveStartingWindow(ani_env* env)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->NotifyRemoveStartingWindow());
+    std::string errMsg;
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->NotifyRemoveStartingWindow(errMsg));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "[ANI] Notify remove starting window failed");
-        AniWindowUtils::AniThrowError(env, ret);
+        AniWindowUtils::AniThrowError(env, ret, ConcatErrorMsg("NotifyRemoveStartingWindow", errMsg));
     }
 }
 
@@ -1009,10 +1023,15 @@ ani_ref AniWindowStage::OnCreateSubWindow(ani_env* env, ani_string name)
     sptr<Rosen::WindowOption> windowOption = new Rosen::WindowOption();
     windowOption->SetWindowType(Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     windowOption->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
-    auto window = weakScene->CreateWindow(windowName, windowOption);
+    std::string errMsg;
+    auto window = weakScene->CreateWindow(windowName, windowOption, errMsg);
     if (window == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] Create window failed");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        std::string aniErrMsg = "[window][createSubWindow]msg: Failed to create window, name='" + windowName + "'. ";
+            if (!errMsg.empty()) {
+                aniErrMsg += errMsg;
+            }
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, aniErrMsg);
         return AniWindowUtils::CreateAniUndefined(env);
     }
     return CreateAniWindowObject(env, window);
@@ -1047,9 +1066,12 @@ void AniWindowStage::OnRegisterWindowCallback(ani_env* env, ani_string type, ani
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
-    WmErrorCode ret = registerManager_->RegisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback, 0);
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->RegisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback, 0,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
+        std::string errMsgPrefix = "[window][on('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret, errMsgPrefix + (errMsg.empty()? "Register listener failed." : errMsg));
     }
 }
 
@@ -1082,10 +1104,13 @@ void AniWindowStage::OnUnregisterWindowCallback(ani_env* env, ani_string type, a
     std::string cbType;
     AniWindowUtils::GetStdString(env, type, cbType);
     TLOGI(WmsLogTag::DEFAULT, "[ANI] type:%{public}s", cbType.c_str());
-    WmErrorCode ret = registerManager_->UnregisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback);
+    std::string errMsg;
+    WmErrorCode ret = registerManager_->UnregisterListener(mainWindow, cbType, CaseType::CASE_STAGE, env, callback,
+        errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        AniWindowUtils::AniThrowError(env, ret);
-        return;
+        std::string errMsgPrefix = "[window][off('" + cbType + "')]msg: ";
+        AniWindowUtils::AniThrowError(env, ret,
+            errMsgPrefix + (errMsg.empty()? "Unregister listener failed." : errMsg));
     }
 }
 }  // namespace Rosen

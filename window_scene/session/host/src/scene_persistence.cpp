@@ -46,7 +46,6 @@ std::string ScenePersistence::snapshotDirectory_;
 std::string ScenePersistence::updatedIconDirectory_;
 std::string ScenePersistence::abilityIconDirectory_;
 std::string ScenePersistence::startWindowDirectory_;
-std::shared_ptr<WSFFRTHelper> ScenePersistence::snapshotFfrtHelper_;
 bool ScenePersistence::isAstcEnabled_ = false;
 
 bool ScenePersistence::CreateSnapshotDir(const std::string& directory)
@@ -130,7 +129,7 @@ void ScenePersistence::SaveStartWindow(const std::shared_ptr<Media::PixelMap>& p
         TLOGNI(WmsLogTag::WMS_PATTERN, "SaveStartWindow success, size: %{public}" PRIu64,
             packedSize);
     };
-    snapshotFfrtHelper_->SubmitTask(std::move(task), startWindowPath);
+    GetSnapshotFfrtHelper()->SubmitTask(std::move(task), startWindowPath);
 }
 
 void ScenePersistence::SetSnapshotCapacity(SnapshotStatus capacity)
@@ -154,9 +153,6 @@ ScenePersistence::ScenePersistence(const std::string& bundleName, int32_t persis
     updatedIconPath_ = updatedIconDirectory_ + bundleName + IMAGE_SUFFIX;
     abilityIconPath_ = abilityIconDirectory_ + bundleName + UNDERLINE_SEPARATOR +
         std::to_string(persistentId) + IMAGE_SUFFIX;
-    if (snapshotFfrtHelper_ == nullptr) {
-        snapshotFfrtHelper_ = std::make_shared<WSFFRTHelper>();
-    }
     const std::string multiWindowUIType = system::GetParameter("const.window.multiWindowUIType", "HandsetSmartWindow");
     isPcWindow_ = (multiWindowUIType == "FreeFormMultiWindow");
 }
@@ -179,7 +175,7 @@ void ScenePersistence::ClearSnapshotPath()
         remove(snapshotScaledPath.c_str());
         remove(snapshotFreeMultiWindowPath.c_str());
     };
-    snapshotFfrtHelper_->SubmitTask(std::move(task), "ClearSnapshotPath" + std::to_string(persistentId_));
+    GetSnapshotFfrtHelper()->SubmitTask(std::move(task), "ClearSnapshotPath" + std::to_string(persistentId_));
 }
 
 void ScenePersistence::ClearAbilityIconPath()
@@ -190,7 +186,8 @@ void ScenePersistence::ClearAbilityIconPath()
 
 std::shared_ptr<WSFFRTHelper> ScenePersistence::GetSnapshotFfrtHelper() const
 {
-    return snapshotFfrtHelper_;
+    static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper = std::make_shared<WSFFRTHelper>();
+    return snapshotFfrtHelper;
 }
 
 void ScenePersistence::InitAstcEnabled()
@@ -251,7 +248,7 @@ void ScenePersistence::SaveSnapshot(const std::shared_ptr<Media::PixelMap>& pixe
             resetSnapshotCallback();
         }
     };
-    snapshotFfrtHelper_->SubmitTask(std::move(task), "SaveSnapshot" + path);
+    GetSnapshotFfrtHelper()->SubmitTask(std::move(task), "SaveSnapshot" + path);
 }
 
 bool ScenePersistence::PersistSnapshot(std::string path, const std::shared_ptr<Media::PixelMap>& pixelMap)
@@ -337,7 +334,7 @@ void ScenePersistence::RenameSnapshotFromOldPersistentId(const int32_t& oldPersi
                 oldSnapshotScaledPath.c_str(), snapshotScaledPath.c_str());
         }
     };
-    snapshotFfrtHelper_->SubmitTask(std::move(task), "RenameSnapshotFromOldPersistentId"
+    GetSnapshotFfrtHelper()->SubmitTask(std::move(task), "RenameSnapshotFromOldPersistentId"
         + std::to_string(oldPersistentId));
 }
 

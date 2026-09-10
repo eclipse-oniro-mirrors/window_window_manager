@@ -139,6 +139,8 @@ public:
     WMError UnregisterPipChgListenerByScreenId(int32_t screenId) override;
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    
+    WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
 };
 } // namespace OHOS::Rosen
 

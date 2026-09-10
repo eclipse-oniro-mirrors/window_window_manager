@@ -1690,11 +1690,12 @@ HWTEST_F(WindowSessionImplTest4, NotifyWindowWillClose, TestSize.Level1)
     sptr<IWindowWillCloseListener> listener = sptr<MockIWindowWillCloseListener>::MakeSptr();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    res = window->RegisterWindowWillCloseListeners(listener);
+    std::string errMsg;
+    res = window->RegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(res, WMError::WM_OK);
     res = window->NotifyWindowWillClose(window);
     EXPECT_EQ(res, WMError::WM_OK);
-    res = window->UnRegisterWindowWillCloseListeners(listener);
+    res = window->UnRegisterWindowWillCloseListeners(listener, errMsg);
     EXPECT_EQ(res, WMError::WM_OK);
     res = window->NotifyWindowWillClose(window);
     EXPECT_EQ(res, WMError::WM_ERROR_NULLPTR);
@@ -2254,7 +2255,8 @@ HWTEST_F(WindowSessionImplTest4, ClearListenersById_windowWillCloseListeners, Te
 
     sptr<IWindowWillCloseListener> listener_ = sptr<MockIWindowWillCloseListener>::MakeSptr();
     window_->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    ASSERT_EQ(WMError::WM_OK, window_->RegisterWindowWillCloseListeners(listener_));
+    std::string errMsg;
+    ASSERT_EQ(WMError::WM_OK, window_->RegisterWindowWillCloseListeners(listener_, errMsg));
     ASSERT_NE(window_->windowWillCloseListeners_.find(persistentId), window_->windowWillCloseListeners_.end());
 
     window_->ClearListenersById(persistentId);

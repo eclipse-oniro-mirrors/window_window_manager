@@ -84,6 +84,18 @@ public:
         return WMError::WM_OK;
     }
 
+    WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid,
+        std::string& errMsg) override
+    {
+        lastModuleName_ = moduleName;
+        lastAbilityName_ = abilityName;
+        lastColor_ = color;
+        lastUid_ = uid;
+        errMsg.clear();
+        return WMError::WM_OK;
+    }
+
     WMError GetSnapshotByWindowId(int32_t windowId, std::shared_ptr<Media::PixelMap>& pixelMap) override
     {
         pixelMap = nullptr;

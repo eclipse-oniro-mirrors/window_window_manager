@@ -1523,6 +1523,18 @@ bool ScreenSettingHelper::SetCustomResolution(uint32_t width, uint32_t height, c
     TLOGI(WmsLogTag::DMS, "set width:%{public}u, height:%{public}u", width, height);
     return true;
 }
+
+bool ScreenSettingHelper::SaveScreenCapability(const std::string& value)
+{
+    SettingProvider& provider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
+    ErrCode ret = provider.PutStringValue(SETTING_SCREEN_CAPABILITY_KEY, value, false);
+    if (ret != ERR_OK) {
+        TLOGE(WmsLogTag::DMS, "SaveScreenCapability failed, ret:%{public}d", ret);
+        return false;
+    }
+    TLOGI(WmsLogTag::DMS, "SaveScreenCapability success");
+    return true;
+}
 // LCOV_EXCL_STOP
 } // namespace Rosen
 } // namespace OHOS

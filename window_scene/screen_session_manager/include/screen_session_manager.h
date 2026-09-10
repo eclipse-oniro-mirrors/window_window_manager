@@ -169,6 +169,7 @@ public:
         DMRect mainScreenRegion, ScreenId& screenGroupId) override;
     virtual DMError SetMultiScreenMode(ScreenId mainScreenId, ScreenId secondaryScreenId,
         MultiScreenMode screenMode) override;
+    DMError CheckMultiScreen(ScreenId mainScreenId, ScreenId secondaryScreenId, MultiScreenMode screenMode);
     virtual DMError SetMultiScreenRelativePosition(MultiScreenPositionOptions mainScreenOptions,
         MultiScreenPositionOptions secondScreenOption) override;
     virtual DMError StopMirror(const std::vector<ScreenId>& mirrorScreenIds) override;
@@ -653,6 +654,7 @@ public:
     void RemoveUserByPid(int32_t pid);
     bool CheckPidInDeathPidVector(int32_t pid) const;
     void NotifyRSCoordination(bool isEnterCoordination) const;
+    void NotifyRSCoordination(ScreenId id, bool isEnterCoordination) const;
     void CalculateStartWhenTransferState(sptr<ScreenSession> staticSession, sptr<ScreenSession> dynamicSession,
         uint32_t borderingAreaPercent);
     void AdjustTheBorderingAreaPercent(uint32_t adjacentPercent, uint32_t length, uint32_t& adjacentStart);
@@ -744,6 +746,7 @@ protected:
     int32_t connectScreenNumber_ = 0;
 
 private:
+    void SaveScreenCapabilityToDB();
     void UpdateSessionByActiveModeChange(sptr<ScreenSession> screenSession, RSScreenModeInfo screenMode);
     int32_t GetActiveIdxInModes(const std::vector<sptr<SupportedScreenModes>>& modes,
                           const SupportedScreenModes& edidInfo);
@@ -802,6 +805,7 @@ private:
     void UpdateSuperFoldRefreshRate(sptr<ScreenSession> screenSession, uint32_t refreshRate);
     void GetInternalWidth();
     bool HasExtendVirtualScreen();
+    bool IsExtendVirtualScreenExist();
     void InitExtendScreenProperty(ScreenId screenId, sptr<ScreenSession> session, ScreenProperty property);
     sptr<ScreenSession> CreatePhysicalMirrorSessionInner(ScreenId screenId, ScreenId defaultScreenId,
         ScreenProperty property, sptr<IRemoteObject> connectToRenderToken = nullptr);
@@ -1227,6 +1231,10 @@ private:
     bool dozeNotifyFinish_ = false;
     bool pictureFrameReady_ = false;
     bool pictureFrameBreak_ = false;
+    // Set when a wake-up power event could not be dispatched because screenSessionMap_
+    // was empty (race with screen hot-plug on PC). Checked by OneScreenConnect so the
+    // dropped event can be replayed after the physical screen takes over SCREEN_ID_DEFAULT.
+    std::atomic<bool> wakeupPowerEventDropped_ {false};
 
     std::mutex scbBufferAvailableMutex_;
     std::condition_variable scbBufferAvailableCV_;

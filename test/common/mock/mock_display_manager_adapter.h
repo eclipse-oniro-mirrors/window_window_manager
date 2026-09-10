@@ -43,6 +43,7 @@ public:
     MOCK_METHOD1(GetDisplayState, DisplayState(DisplayId displayId));
     MOCK_METHOD1(NotifyDisplayEvent, void(DisplayEvent event));
     MOCK_METHOD1(GetDisplayInfo, sptr<DisplayInfo>(DisplayId displayId));
+    MOCK_METHOD2(GetDisplayInfo, sptr<DisplayInfo>(DisplayId displayId, bool isGetActualInfo));
     MOCK_METHOD4(GetCutoutInfo, sptr<CutoutInfo>(DisplayId displayId, int32_t width, int32_t height,
         Rotation rotation));
     MOCK_METHOD2(GetAvailableArea, DMError(DisplayId displayId, DMRect& area));

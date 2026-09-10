@@ -55,6 +55,7 @@ constexpr int64_t DISPATCH_KEY_EVENT_TIMEOUT_TIME_MS = 1000;
 constexpr int32_t UIEXTENTION_ROTATION_ANIMATION_TIME = 400;
 constexpr const char* TRANSPARENT_BACKGROUND_COLOR_HEX = "#00000000";
 constexpr uint64_t INVALID_NODE_ID = 0;
+constexpr const char* UIEXTENSION_CONFIG_WINDOW_MODE = "ohos.system.window.mode";
 }
 
 #define CHECK_HOST_SESSION_RETURN_IF_NULL(hostSession)                         \
@@ -112,6 +113,14 @@ std::shared_ptr<IDataHandler> WindowExtensionSessionImpl::GetExtensionDataHandle
 WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
     const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
     bool isBlockSubwindow)
+{
+    std::string errMsg;
+    return Create(context, iSession, errMsg, identityToken, isModuleAbilityHookEnd, isBlockSubwindow);
+}
+
+WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
+    const sptr<Rosen::ISession>& iSession, std::string& errMsg, const std::string& identityToken,
+    bool isModuleAbilityHookEnd, bool isBlockSubwindow)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "Called.");
     if (!context || !iSession) {
@@ -359,11 +368,20 @@ WMError WindowExtensionSessionImpl::Destroy(bool needNotifyServer, bool needClea
 WMError WindowExtensionSessionImpl::MoveTo(int32_t x, int32_t y,
     bool isMoveToGlobal, MoveConfiguration moveConfiguration)
 {
+    std::string errMsg;
+    return MoveTo(x, y, isMoveToGlobal, moveConfiguration, errMsg);
+}
+
+WMError WindowExtensionSessionImpl::MoveTo(int32_t x, int32_t y,
+    bool isMoveToGlobal, MoveConfiguration moveConfiguration, std::string& errMsg)
+{
+    errMsg.clear();
     TLOGD(WmsLogTag::WMS_UIEXT, "Id:%{public}d xy %{public}d %{public}d isMoveToGlobal %{public}d "
         "moveConfiguration %{public}s", property_->GetPersistentId(), x, y, isMoveToGlobal,
         moveConfiguration.ToString().c_str());
     if (IsWindowSessionInvalid()) {
         WLOGFE("Window session invalid.");
+        errMsg = "Window session invalid";
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     const auto& rect = property_->GetWindowRect();
@@ -374,14 +392,24 @@ WMError WindowExtensionSessionImpl::MoveTo(int32_t x, int32_t y,
 
 WMError WindowExtensionSessionImpl::Resize(uint32_t width, uint32_t height)
 {
+    std::string errMsg;
+    return Resize(width, height, errMsg);
+}
+
+WMError WindowExtensionSessionImpl::Resize(uint32_t width, uint32_t height, std::string& errMsg)
+{
     WLOGFD("Id:%{public}d wh %{public}u %{public}u", property_->GetPersistentId(), width, height);
     if (IsWindowSessionInvalid()) {
+        errMsg = "Window session is invalid";
         WLOGFE("Window session invalid.");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     const auto& rect = property_->GetWindowRect();
     WSRect wsRect = { rect.posX_, rect.posY_, width, height };
     WSError error = UpdateRect(wsRect, SizeChangeReason::RESIZE);
+    if (error != WSError::WS_OK) {
+        errMsg = "UpdateRect failed with error: " + std::to_string(static_cast<int32_t>(error));
+    }
     return static_cast<WMError>(error);
 }
 
@@ -1329,7 +1357,8 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
     if (!NearEqual(oldDensity, config.density_)) {
         NotifyWindowDensityChange(config.density_);
     }
-    uiContent->UpdateViewportConfig(viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, lastAvoidAreaMap_);
+    uiContent->UpdateViewportConfig(
+        viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, GetLastAvoidAreaMapCopy());
     return WSError::WS_OK;
 }
 
@@ -1732,8 +1761,19 @@ Rect WindowExtensionSessionImpl::GetHostWindowRect(int32_t hostWindowId, bool us
 
 WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize)
 {
-    return SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(
+    std::string errMsg;
+    return GetGlobalScaledRect(globalScaledRect, useHookedSize, errMsg);
+}
+
+WMError WindowExtensionSessionImpl::GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize,
+    std::string& errMsg)
+{
+    auto ret = SingletonContainer::Get<WindowAdapter>().GetHostGlobalScaledRect(
         property_->GetParentId(), globalScaledRect, useHookedSize);
+    if (ret != WMError::WM_OK) {
+        errMsg = "GetHostGlobalScaledRect failed with error: " + std::to_string(static_cast<int32_t>(ret));
+    }
+    return ret;
 }
 
 WMError WindowExtensionSessionImpl::GetGestureBackEnabled(bool& enable) const
@@ -2221,6 +2261,11 @@ void WindowExtensionSessionImpl::UpdateExtensionConfig(const std::shared_ptr<AAF
     auto hostWindowStatus = static_cast<WindowStatus>(configParam.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
         static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
     hostWindowStatus_ = hostWindowStatus;
+    auto windowMode = static_cast<WindowMode>(configParam.GetIntParam(UIEXTENSION_CONFIG_WINDOW_MODE,
+        static_cast<int32_t>(WindowMode::WINDOW_MODE_UNDEFINED)));
+    if (windowMode != WindowMode::WINDOW_MODE_UNDEFINED) {
+        SetWindowMode(windowMode);
+    }
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "CrossAxisState: %{public}d, waterfall: %{public}d, "
         "rootHostWindowType: %{public}u, isHostWindowDelayRaiseEnabled: %{public}d, "
         "hostWindowStatus: %{public}u, winId: %{public}u",
@@ -2400,6 +2445,12 @@ WMError WindowExtensionSessionImpl::HandleUIExtUnregisterTouchOutsideListener(ui
 }
 
 WMError WindowExtensionSessionImpl::SetWindowMode(WindowMode mode)
+{
+    std::string errMsg;
+    return SetWindowMode(mode, errMsg);
+}
+
+WMError WindowExtensionSessionImpl::SetWindowMode(WindowMode mode, std::string& errMsg)
 {
     property_->SetWindowMode(mode);
     if (auto uiContet = GetUIContentSharedPtr()) {
@@ -2865,6 +2916,12 @@ WMError WindowExtensionSessionImpl::OnHostWindowStatusChange(AAFwk::Want&& data,
 }
 
 WMError WindowExtensionSessionImpl::GetWindowStatus(WindowStatus& windowStatus)
+{
+    std::string errMsg;
+    return GetWindowStatus(windowStatus, errMsg);
+}
+
+WMError WindowExtensionSessionImpl::GetWindowStatus(WindowStatus& windowStatus, std::string& errMsg)
 {
     windowStatus = hostWindowStatus_;
     TLOGD(WmsLogTag::WMS_UIEXT, "windowStatus: %{public}u", windowStatus);
