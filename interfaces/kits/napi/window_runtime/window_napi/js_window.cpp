@@ -12282,10 +12282,13 @@ napi_value JsWindow::OnRegisterWindowFocusStateChange(napi_env env, napi_callbac
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
                               "[window][onWindowFocusStateChange]msg: Callback is not callable.");
     }
-    WmErrorCode ret = registerManager_->RegisterListener(windowToken, WINDOW_FOCUS_STATE_CHANGE_CB,
-        CaseType::CASE_WINDOW, env, callback);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsgPrefix = "[window][onWindowFocusStateChange]msg: ";
+    std::string errMsg;
+    ret = registerManager_->RegisterListener(windowToken, WINDOW_FOCUS_STATE_CHANGE_CB,
+        CaseType::CASE_WINDOW, env, callback, errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        return NapiThrowError(env, ret, "[window][onWindowFocusStateChange]msg: Register listener failed.");
+        return NapiThrowError(env, ret, errMsgPrefix + (errMsg.empty() ? "Register listener failed." : errMsg));
     }
     TLOGI(WmsLogTag::WMS_FOCUS, "Id=%{public}u", windowToken->GetWindowId());
     return NapiGetUndefined(env);
@@ -12315,10 +12318,13 @@ napi_value JsWindow::OnUnregisterWindowFocusStateChange(napi_env env, napi_callb
             callback = nullptr;
         }
     }
-    WmErrorCode ret = registerManager_->UnregisterListener(windowToken, WINDOW_FOCUS_STATE_CHANGE_CB,
-        CaseType::CASE_WINDOW, env, callback);
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsgPrefix = "[window][offWindowFocusStateChange]msg: ";
+    std::string errMsg;
+    ret = registerManager_->UnregisterListener(windowToken, WINDOW_FOCUS_STATE_CHANGE_CB,
+        CaseType::CASE_WINDOW, env, callback, errMsg);
     if (ret != WmErrorCode::WM_OK) {
-        return NapiThrowError(env, ret, "[window][offWindowFocusStateChange]msg: Unregister listener failed.");
+        return NapiThrowError(env, ret, errMsgPrefix + (errMsg.empty() ? "Unregister listener failed." : errMsg));
     }
     TLOGI(WmsLogTag::WMS_FOCUS, "Id=%{public}u", windowToken->GetWindowId());
     return NapiGetUndefined(env);
