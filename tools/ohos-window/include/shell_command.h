@@ -28,11 +28,9 @@
 namespace OHOS {
 namespace Rosen {
 
-struct WmToolErrorInfo;
-
 class ShellCommand {
 public:
-    ShellCommand(int argc, char* argv[], std::string name);
+    ShellCommand(int argc, char* argv[], const std::string& name);
     virtual ~ShellCommand();
 
     int32_t OnCommand();

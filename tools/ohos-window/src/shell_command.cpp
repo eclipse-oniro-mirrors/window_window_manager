@@ -19,7 +19,7 @@
 
 namespace OHOS {
 namespace Rosen {
-ShellCommand::ShellCommand(int argc, char* argv[], std::string name)
+ShellCommand::ShellCommand(int argc, char* argv[], const std::string& name)
 {
     opterr = 0;
     argc_ = argc;
