@@ -137,6 +137,7 @@ public:
         TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY,
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
         TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
+        TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
     };
 
     /*
@@ -363,6 +364,22 @@ public:
      */
     virtual WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
         bool shouldBackToCaller = true) { return WSError::WS_OK; }
+
+    /**
+     * @brief restore session to foreground
+     *
+     * This function is used to request session to foreground by persistentId
+     *
+     * @caller SA or the caller with CONTROL_DEVICE permission
+     * @permission application requires ohos.permission.CONTROL_DEVICE permission and SA permission
+     *
+     * @param persistentId the session of persistentId
+     * @return Successful call returns WSError: WS-OK, otherwise it indicates failure
+     */
+    virtual WSErrorResult RestoreSessionToForeground(int32_t persistentId)
+    {
+        return WSErrorResult{WSError::WS_OK, ""};
+    }
 
     /**
      * @brief Create a new instanceKey of a specific bundle

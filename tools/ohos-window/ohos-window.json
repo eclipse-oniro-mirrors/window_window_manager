@@ -1,0 +1,103 @@
+{
+    "name": "ohos-window",
+    "version": "1.0.0",
+    "description": "ohos-window - Window management utility for manipulating windows and querying window information on the system.",
+    "executablePath": "/system/bin/cli_tool/executable/ohos-window",
+    "requirePermissions": [],
+    "inputSchema": {
+        "type": "object",
+        "description": "Sub-options of the ohos-window command.",
+        "properties": {
+            "help": {
+                "type": "boolean",
+                "default": false
+            }
+        }
+    },
+    "outputSchema": {
+        "type": "object",
+        "description": "Execution result of the ohos-window command.",
+        "properties": {
+            "type": {
+                "type": "string",
+                "enum": ["result"]
+            },
+            "status": {
+                "type": "string",
+                "enum": ["success", "failed"]
+            },
+            "data": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "errCode": {
+                "type": "string"
+            },
+            "errMsg": {
+                "type": "string"
+            },
+            "suggestion": {
+                "type": "string"
+            }
+        }
+    },
+    "hasSubCommand": true,
+    "subcommands": {
+        "restore-window": {
+            "description": "ohos-window restore-window - Restore a main window to foreground on the system.",
+            "requirePermissions": [
+                "ohos.permission.CONTROL_DEVICE"
+            ],
+            "inputSchema": {
+                "type": "object",
+                "description": "Sub-options of the ohos-window restore-window command.",
+                "properties": {
+                    "help": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "windowId": {
+                        "type": "integer",
+                        "description": "windowId of the session to be restored to foreground"
+                    }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "description": "Execution result of the ohos-window restore-window command.",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["result"]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["success", "failed"]
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "errCode": {
+                        "type": "string"
+                    },
+                    "errMsg": {
+                        "type": "string"
+                    },
+                    "suggestion": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    },
+    "eventSchemas": {}
+}

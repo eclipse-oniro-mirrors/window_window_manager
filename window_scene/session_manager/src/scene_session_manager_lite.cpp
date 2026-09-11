@@ -469,6 +469,11 @@ WSError SceneSessionManagerLite::PendingSessionToBackgroundByPersistentId(const 
         shouldBackToCaller);
 }
 
+WSErrorResult SceneSessionManagerLite::RestoreSessionToForeground(int32_t persistentId)
+{
+    return SceneSessionManager::GetInstance().RestoreSessionToForeground(persistentId);
+}
+
 WMError SceneSessionManagerLite::CreateNewInstanceKey(const std::string& bundleName, std::string& instanceKey)
 {
     return SceneSessionManager::GetInstance().CreateNewInstanceKey(bundleName, instanceKey);

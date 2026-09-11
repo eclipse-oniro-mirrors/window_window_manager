@@ -1333,6 +1333,48 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateRogWindowConfig_ReadRetFailed, 
     EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateRogWindowConfig(windowConfig), WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetReadInt32ErrorFlag(false);
 }
+
+/**
+ * @tc.name: RestoreSessionToForeground
+ * @tc.desc: test function : RestoreSessionToForeground
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, RestoreSessionToForeground, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> iRemoteObjectMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy =
+        sptr<SceneSessionManagerLiteProxy>::MakeSptr(iRemoteObjectMocker);
+    int32_t persistentId = 100;
+    MockMessageParcel::ClearAllErrorFlag();
+    WSErrorResult result = sceneSessionManagerLiteProxy->RestoreSessionToForeground(persistentId);
+    EXPECT_EQ(result.errCode, WSError::WS_OK);
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    result = sceneSessionManagerLiteProxy->RestoreSessionToForeground(persistentId);
+    EXPECT_EQ(result.errCode, WSError::WS_ERROR_INVALID_PARAM);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    result = sceneSessionManagerLiteProxy->RestoreSessionToForeground(persistentId);
+    EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    sptr<SceneSessionManagerLiteProxy> sceneSessionManagerLiteProxy2 =
+        sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    result = sceneSessionManagerLiteProxy2->RestoreSessionToForeground(persistentId);
+    EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
+
+    iRemoteObjectMocker->SetRequestResult(1);
+    result = sceneSessionManagerLiteProxy->RestoreSessionToForeground(persistentId);
+    EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
+    iRemoteObjectMocker->SetRequestResult(0);
+
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    result = sceneSessionManagerLiteProxy->RestoreSessionToForeground(persistentId);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+    EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::ClearAllErrorFlag();
+}
 }
 }
 }

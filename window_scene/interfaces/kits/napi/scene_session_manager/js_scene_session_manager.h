@@ -63,6 +63,7 @@ enum class ListenerFunctionType : uint32_t {
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
     GET_FLOAT_VIEW_LIMIT_CB,
     UPDATE_ROG_WINDOW_CONFIG_CB,
+    RESTORE_SESSION_TO_FOREGROUND_CB,
 };
 
 class JsSceneSessionManager final {
@@ -408,6 +409,8 @@ private:
     napi_value OnGetBatchAbilityInfos(napi_env env, napi_callback_info info);
     void OnRecoverSceneSession(const sptr<SceneSession>& sceneSession, const SessionInfo& sessionInfo);
     void ProcessRecoverSceneSessionRegister();
+    void OnRestoreSessionToForeground(int32_t persistentId, DisplayId screenId);
+    void ProcessRestoreSessionToForegroundRegister();
 
     /*
      * PiP Window

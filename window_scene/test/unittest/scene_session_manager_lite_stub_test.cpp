@@ -2078,6 +2078,33 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateRogWindowConfig03, TestSiz
     int32_t ret = 0;
     EXPECT_TRUE(reply.ReadInt32(ret));
 }
+
+/**
+ * @tc.name: HandleRestoreSessionToForeground
+ * @tc.desc: test function : HandleRestoreSessionToForeground
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRestoreSessionToForeground, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100);
+    int res = sceneSessionManagerLiteStub_->HandleRestoreSessionToForeground(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleRestoreSessionToForeground_ReadFailed
+ * @tc.desc: test function : HandleRestoreSessionToForeground when read persistentId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRestoreSessionToForeground_ReadFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->HandleRestoreSessionToForeground(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
