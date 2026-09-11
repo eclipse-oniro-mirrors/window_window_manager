@@ -125,6 +125,43 @@ HWTEST_F(WindowManagerServiceDumpTest, GetSessionDumpInfo02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetSessionDumpInfo03
+ * @tc.desc: GetSessionDumpInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceDumpTest, GetSessionDumpInfo03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    std::string dumpInfo = "testDumpInfo";
+    std::vector<std::string> params = { "testDumpInfo" };
+    MockAccesstokenKit::MockIsSACalling(true);
+
+    params.clear();
+    params.push_back("-motion");
+    params.push_back("1");
+    WSError result = ssm_->GetSessionDumpInfo(params, dumpInfo);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    params.clear();
+    params.push_back("-motion");
+    params.push_back("a");
+    result = ssm_->GetSessionDumpInfo(params, dumpInfo);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+
+    params.clear();
+    params.push_back("-smartmotion");
+    params.push_back("1");
+    result = ssm_->GetSessionDumpInfo(params, dumpInfo);
+    EXPECT_EQ(result, WSError::WS_OK);
+
+    params.clear();
+    params.push_back("-smartmotion");
+    params.push_back("a");
+    result = ssm_->GetSessionDumpInfo(params, dumpInfo);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PARAM);
+}
+
+/**
  * @tc.name: DumpSessionInfo
  * @tc.desc: SceneSesionManager dump session info
  * @tc.type: FUNC

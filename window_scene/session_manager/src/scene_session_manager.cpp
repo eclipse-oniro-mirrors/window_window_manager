@@ -164,6 +164,8 @@ const std::string ARG_DUMP_PIPLINE = "-p";
 const std::string ARG_DUMP_SCB = "-b";
 const std::string ARG_DUMP_DETAIL = "-c";
 const std::string ARG_DUMP_RECORD = "-v";
+const std::string ARG_MOTION = "-motion";
+const std::string ARG_SMART_MOTION = "-smartmotion";
 constexpr uint64_t NANO_SECOND_PER_SEC = 1000000000; // ns
 const int32_t LOGICAL_DISPLACEMENT_32 = 32;
 constexpr int32_t GET_TOP_WINDOW_DELAY = 100;
@@ -9178,6 +9180,12 @@ WSError SceneSessionManager::GetSessionDumpInfo(const std::vector<std::string>& 
         resetParams.assign(params.begin() + 1, params.end());
         SessionChangeRecorder::GetInstance().GetSceneSessionNeedDumpInfo(resetParams, dumpInfo);
         return WSError::WS_OK;
+    }
+    if (params.size() >= 2 && params[0] == ARG_MOTION) { // 2: params num
+        return MotionManager::GetInstance().SetMotionValueByDump(params, dumpInfo);
+    }
+    if (params.size() >= 2 && params[0] == ARG_SMART_MOTION) { // 2: params num
+        return MotionManager::GetInstance().SetSmartMotionValueByDump(params, dumpInfo);
     }
     return WSError::WS_ERROR_INVALID_OPERATION;
 }

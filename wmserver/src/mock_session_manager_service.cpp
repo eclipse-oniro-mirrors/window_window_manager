@@ -687,6 +687,10 @@ void MockSessionManagerService::ShowHelpInfo(std::string& dumpInfo)
         .append("|dump all window information in the system\n")
         .append(" -w {window id} [ArkUI Option]  ")
         .append("|dump specified window information\n")
+        .append(" -motion {0|1|2|3}              ")
+        .append("|enable motion with rotation angle, 0:0°, 1:90°, 2:180°, 3:270°\n")
+        .append(" -smartmotion {0|1|2|3}         ")
+        .append("|enable smart motion with rotation angle, 0:0°, 1:90°, 2:180°, 3:270°\n")
         .append(" ------------------------------------[ArkUI Option]------------------------------------ \n");
     ShowAceDumpHelp(dumpInfo);
 }

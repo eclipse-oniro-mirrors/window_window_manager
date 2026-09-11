@@ -183,6 +183,20 @@ float MotionManager::ConvertDeviceMotionToFloat(DeviceRotation deviceRotation)
     }
 }
 
+bool MotionManager::IsValidDigitString(const std::string& str)
+{
+    if (str.empty()) {
+        return false;
+    }
+    for (char ch : str) {
+        if ((ch >= '0' && ch <= '9')) {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
 void MotionManager::RotationMotionEventCallback(const MotionSensorEvent& motionData)
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Rotation motion callback, status: %{public}d", motionData.status);
@@ -271,6 +285,40 @@ void MotionManager::Reset()
 void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation)
 {
     HandleMotionEvent(motionType, rotation);
+}
+
+WSError MotionManager::SetMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo)
+{
+    if (!this->IsValidDigitString(args[1]) || args[1].size() > 1) { // 1:string size
+        TLOGE(WmsLogTag::WMS_ROTATION, "motion value must be digit and length can't above 1");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    int value = std::stoi(args[1]);
+    if (value < MotionAction::MOTION_PORTRAIT || value > MotionAction::MOTION_LANDSCAPE_INVERTED) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "motion invalid value: %{public}d", value);
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    float rotation = static_cast<float>(value * 90);
+    this->TestHandleMotionEvent(MotionType::DEVICE_MOTION_TYPE, rotation);
+    dumpInfo.append("motion stub, rotation: ").append(args[1]).append("\n");
+    return WSError::WS_OK;
+}
+ 
+WSError MotionManager::SetSmartMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo)
+{
+    if (!this->IsValidDigitString(args[1]) || args[1].size() > 1) { // 1:string size
+        TLOGE(WmsLogTag::WMS_ROTATION, "smartmotion value must be digit and length can't above 1");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    int value = std::stoi(args[1]);
+    if (value < MotionAction::MOTION_PORTRAIT || value > MotionAction::MOTION_LANDSCAPE_INVERTED) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "smartmotion invalid value: %{public}d", value);
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    float rotation = static_cast<float>(value * 90);
+    this->TestHandleMotionEvent(MotionType::SMART_MOTION_TYPE, rotation);
+    dumpInfo.append("smartmotion stub, rotation: ").append(args[1]).append("\n");
+    return WSError::WS_OK;
 }
 
 bool MotionSubscriberWrapper::SubscribeMotionSensor(MotionType motionType)
