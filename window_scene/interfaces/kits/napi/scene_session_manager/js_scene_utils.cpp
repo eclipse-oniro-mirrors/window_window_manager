@@ -3203,6 +3203,28 @@ napi_value SceneTypeInit(napi_env env)
     return objValue;
 }
 
+napi_value WindowPositionInit(napi_env env)
+{
+    WLOGFD("in");
+
+    if (env == nullptr) {
+        WLOGFE("Env is nullptr");
+        return nullptr;
+    }
+
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        WLOGFE("Failed to get object");
+        return nullptr;
+    }
+    napi_set_named_property(env, objValue, "NOT_TOPMOST", CreateJsValue(env, -3));
+    napi_set_named_property(env, objValue, "TOPMOST", CreateJsValue(env, -2));
+    napi_set_named_property(env, objValue, "BOTTOM", CreateJsValue(env, -1));
+    napi_set_named_property(env, objValue, "TOP", CreateJsValue(env, 0));
+    return objValue;
+}
+
 napi_value CreateRotationChangeType(napi_env env)
 {
     napi_value objValue = nullptr;

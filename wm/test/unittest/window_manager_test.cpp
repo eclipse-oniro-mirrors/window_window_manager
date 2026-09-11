@@ -74,6 +74,11 @@ public:
         return WMError::WM_OK;
     }
 
+    WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override
+    {
+        return WMError::WM_OK;
+    }
+
     WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid) override
     {
@@ -3307,6 +3312,32 @@ HWTEST_F(WindowManagerTest, MoveMainWindowToTargetDisplay, TestSize.Level1)
     EXPECT_NE(WMError::WM_OK, ret);
 
     ret = mockInstance_->MoveMainWindowToTargetDisplay(0, 1);
+    EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SetWindowPosition
+ * @tc.desc: SetWindowPosition
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, SetWindowPosition, TestSize.Level1)
+{
+    // 1. Set up the test environment
+    WindowPositionParams position;
+    position.windowId = 1;
+    position.insertAfter = 0;
+    WindowPositionInfo windowPositionInfo;
+    windowPositionInfo.windowPositions.push_back(position);
+
+    WMError ret;
+    windowAdapter_->isProxyValid_ = true; // skip InitSSMProxy, proxy remains null
+    windowAdapter_->windowManagerServiceProxy_ = nullptr;
+    // 2. Call the function to be tested
+    ret = instance_->SetWindowPosition(windowPositionInfo);
+    // 3. Verify the result
+    EXPECT_NE(WMError::WM_OK, ret);
+
+    ret = mockInstance_->SetWindowPosition(windowPositionInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
 }
 

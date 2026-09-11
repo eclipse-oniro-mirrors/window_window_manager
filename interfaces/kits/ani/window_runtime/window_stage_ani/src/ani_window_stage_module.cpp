@@ -129,6 +129,8 @@ std::array g_functions = {
     ani_native_function {"getLastWindowSync", nullptr, reinterpret_cast<void *>(AniWindowManager::GetLastWindow)},
     ani_native_function {"shiftAppWindowFocusSync", "lii:",
         reinterpret_cast<void *>(AniWindowManager::ShiftAppWindowFocus)},
+    ani_native_function {"setWindowPositionSync", "lC{std.core.Array}:",
+        reinterpret_cast<void *>(AniWindowManager::SetWindowPosition)},
     ani_native_function {"getAllMainWindowInfo", "l:C{std.core.Array}",
         reinterpret_cast<void *>(AniWindowManager::GetAllMainWindowInfo)},
     ani_native_function {"getMainWindowSnapshot",

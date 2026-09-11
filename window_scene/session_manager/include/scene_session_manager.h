@@ -189,6 +189,7 @@ using NotifySetSpecificWindowZIndexFunc = std::function<void(WindowType windowTy
     SetSpecificZIndexReason reason)>;
 using NotifyMoveMainWindowToTargetDisplayFunc = std::function<void(DisplayId displayId, int32_t windowId,
     bool isFromScreenVirtual, bool isToScreenVirtual)>;
+using NotifySetWindowPositionFunc = std::function<void(const WindowPositionInfo& windowPositionInfo)>;
 using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 using PageEnableFunc = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
@@ -378,8 +379,10 @@ public:
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override;
     WSError ResetSpecificWindowZIndex(int32_t pid) override;
     WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override;
+    WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override;
     void SetSpecificWindowZIndexListener(const NotifySetSpecificWindowZIndexFunc& func);
     void SetMoveMainWindowToTargetDisplayListener(NotifyMoveMainWindowToTargetDisplayFunc&& func);
+    void SetWindowPositionListener(NotifySetWindowPositionFunc&& listener);
 
     WSError UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo);
     WSError SendTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, uint32_t zIndex);
@@ -1624,10 +1627,20 @@ private:
     bool needBlockNotifyUnfocusStatus_ { false };
 
     /*
+     * Set Window Position Validation
+     */
+    WSError CheckSetWindowPositionPermission(const std::vector<WindowPositionParams>& windowPositions,
+        const uint32_t callingTokenId);
+    WSError CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
+        const int32_t callingPid, const uint32_t callingTokenId);
+    void UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions);
+
+    /*
      * Window Hierarchy
      */
     NotifySetSpecificWindowZIndexFunc setSpecificWindowZIndexFunc_;
     NotifyMoveMainWindowToTargetDisplayFunc moveMainWindowToTargetDisplayFunc_;
+    NotifySetWindowPositionFunc setWindowPositionFunc_;
     std::unordered_map<WindowType, int32_t> specificZIndexByPidMap_;
     std::mutex specificZIndexByPidMapMutex_;
 

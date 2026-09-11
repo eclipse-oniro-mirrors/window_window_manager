@@ -39,6 +39,7 @@ namespace {
         "[window][getTopWindow]msg: ",
         "[window][isFocused]msg: ",
         "[window][isWindowHighlighted]msg: ",
+        "[window][setWindowPosition]msg: ",
     };
 
     constexpr size_t FOCUS_API_COUNT = sizeof(FOCUS_API_NAMES) / sizeof(FOCUS_API_NAMES[0]);
@@ -62,6 +63,13 @@ namespace {
     constexpr const char* const ERROR_SUB_OR_TARGET_NOT_SHOWN = "The window or target window is not shown.";
     constexpr const char* const ERROR_SCREEN_NOT_ALLOW_FOCUSED =
         "The screen of the window is not allowed to be focused.";
+    constexpr const char* const ERROR_POSITION_WINDOW_ABNORMAL =
+        "The window to be adjusted or the target main window specified by insertAfter cannot be found: "
+        "it is not created, has been destroyed, or does not belong to the current process.";
+    constexpr const char* const ERROR_POSITION_PARAM_INVALID =
+        "The windowPositions list is empty or exceeds the maximum size, "
+        "the windowId is invalid, or the insertAfter value is invalid.";
+    constexpr const char* const ERROR_SERVICE_ABNORMAL = "The IPC to the window manager service failed.";
 }
 
 std::string WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType apiType, WMError error,
@@ -282,6 +290,23 @@ const char* WindowFocusErrorMsgHelper::GetFocusQueryErrorMsg(WMError error)
     return "";
 }
 
+const char* WindowFocusErrorMsgHelper::GetWindowPositionErrorMsg(WMError error)
+{
+    if (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_INVALID_SESSION) {
+        return ERROR_POSITION_WINDOW_ABNORMAL;
+    }
+    if (error == WMError::WM_ERROR_INVALID_CALLING) {
+        return ERROR_ONLY_MAIN;
+    }
+    if (error == WMError::WM_ERROR_INVALID_PARAM) {
+        return ERROR_POSITION_PARAM_INVALID;
+    }
+    if (error == WMError::WM_ERROR_IPC_FAILED) {
+        return ERROR_SERVICE_ABNORMAL;
+    }
+    return "";
+}
+
 const char* WindowFocusErrorMsgHelper::GetSpecificErrorMsg(WindowFocusApiType apiType, WMError error)
 {
     if (IsFixedGeneralError(error)) {
@@ -289,7 +314,9 @@ const char* WindowFocusErrorMsgHelper::GetSpecificErrorMsg(WindowFocusApiType ap
     }
 
     if (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_INVALID_SESSION) {
-        return ERROR_NOT_CREATED;
+        // setWindowPosition describes the missing window in terms of the z-order adjustment.
+        return apiType == WindowFocusApiType::SET_WINDOW_POSITION ? GetWindowPositionErrorMsg(error)
+                                                                  : ERROR_NOT_CREATED;
     }
 
     switch (apiType) {
@@ -328,6 +355,8 @@ const char* WindowFocusErrorMsgHelper::GetSpecificErrorMsg(WindowFocusApiType ap
         case WindowFocusApiType::IS_FOCUSED:
         case WindowFocusApiType::IS_WINDOW_HIGHLIGHTED:
             return GetFocusQueryErrorMsg(error);
+        case WindowFocusApiType::SET_WINDOW_POSITION:
+            return GetWindowPositionErrorMsg(error);
     }
 
     return "";

@@ -43,6 +43,7 @@ enum class WindowFocusApiType : uint32_t {
     GET_TOP_WINDOW,
     IS_FOCUSED,
     IS_WINDOW_HIGHLIGHTED,
+    SET_WINDOW_POSITION,
 };
 
 class WindowFocusErrorMsgHelper {
@@ -75,6 +76,7 @@ private:
     static const char* GetShiftAppWindowFocusErrorMsg(WMError error);
     static const char* GetTopWindowErrorMsg(WMError error);
     static const char* GetFocusQueryErrorMsg(WMError error);
+    static const char* GetWindowPositionErrorMsg(WMError error);
 };
 
 } // namespace Rosen

@@ -147,6 +147,7 @@ public:
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override;
     WSError ResetSpecificWindowZIndex(int32_t pid) override;
     WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override;
+    WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override;
     void AddExtensionWindowStageToSCB(const sptr<ISessionStage>& sessionStage,
         const sptr<IRemoteObject>& token, uint64_t surfaceNodeId, int64_t startModalExtensionTimeStamp,
         bool isConstrainedModal = false) override;
