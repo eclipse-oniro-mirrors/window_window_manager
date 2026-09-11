@@ -20,6 +20,7 @@
 #include <viewport_config.h>
 
 #include "app_mgr_client.h"
+#include "configuration.h"
 
 #include "dm_common.h"
 #include "display_manager.h"
