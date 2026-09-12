@@ -7,7 +7,7 @@
 - `wm/`、`dm/`、`dm_lite/`：窗口与显示管理客户端、IPC 适配和 Lite 接口实现。
 - `wmserver/`、`dmserver/`：分离架构下的窗口管理服务与显示管理服务。
 - `window_scene/`：合一架构下的 SceneSession、ScreenSession 及对应服务。
-- `interfaces/innerkits/`、`interfaces/kits/`：Native、NAPI、ANI、CJ、NDK 和 JS 声明接口。
+- `interfaces/innerkits/`、`interfaces/kits/`：Native、NAPI、ANI、CJ 和 JS 声明接口。
 - `extension/`：WindowExtension 的连接、生命周期和窗口集成。
 - `utils/`：窗口/显示公共数据结构、权限、日志、持久化和图形适配工具。
 - `etc/`、`sa_profile/`、`resources/`、`product/`：系统能力、参数、资源和产品配置。
@@ -36,7 +36,7 @@
 | 修改分离架构显示服务 | `dmserver/` | `display_manager_service.cpp`, `display_manager_ipc_service.cpp`, `abstract_screen_controller.cpp` |
 | 修改合一架构屏幕、旋转、折叠或多屏 | `window_scene/screen_session_manager/`、`window_scene/session/screen/` | `screen_session_manager.cpp`, `screen_session.cpp`, `multi_screen_*`, `fold_screen_controller/` |
 | 修改 Native 公共接口或错误码 | `interfaces/innerkits/`、`window_scene/interfaces/` | `window.h`, `window_manager.h`, `wm_common.h`, `display_manager.h`, `dm_common.h`, `ws_common.h` |
-| 修改 NAPI/ANI/CJ/NDK 接口 | `interfaces/kits/` | `napi/`, `ani/`, `cj/`, `ndk/`, `dmndk/` 对应模块 |
+| 修改 NAPI/ANI/CJ 接口 | `interfaces/kits/` | `napi/`, `ani/`, `cj/`对应模块 |
 | 修改 SceneSession/ScreenSession 的系统接口 | `window_scene/interfaces/kits/` | `napi/scene_session_manager/`, `napi/screen_session_manager/`, `ani/scene_session_manager/` |
 | 修改 IPC 接口 | 各模块 `include/zidl/`、`src/zidl/` 及模块根目录 IDL | `IDisplayManager.idl`, `IDisplayManagerLite.idl`, 对应 interface/proxy/stub |
 | 修改画中画、悬浮球或浮窗 | `wm/` | `picture_in_picture_*`, `floating_ball_*`, `float_view_*`, `float_window_manager.cpp` |
@@ -102,7 +102,7 @@
 | --- | --- | --- |
 | 子系统职责、Client-Server 分层、双架构 | `wm/`, `dm/`, `wmserver/`, `dmserver/`, `window_scene/` | `README_zh.md`, `scene_board_enable.gni` |
 | 编译特性、可选依赖、产品差异 | 任意 `BUILD.gn` 或条件编译代码 | `windowmanager_aafwk.gni`, `bundle.json`, 目标目录 `BUILD.gn` |
-| 代码格式、命名、日志、错误处理 | 所有 C++ 改动 | `docs/CodeStyle.md`, `.clang-format`, 相邻实现 |
+| 代码格式、命名、日志、错误处理 | 所有 C++ 改动 | `docs/CodeStyle.md`, 相邻实现 |
 | 单元测试、测试目标和断言风格 | 各模块 `test/` | `docs/Testing.md`, 对应 `test/**/BUILD.gn` |
 | 窗口/显示公共 API 与错误码 | `interfaces/innerkits/`, `interfaces/kits/` | `wm_common.h`, `dm_common.h`, 对应 API 头文件和绑定实现 |
 | 合一架构 Session/Screen 协议 | `window_scene/` | `window_scene/interfaces/include/ws_common.h`, 对应 `include/zidl/` 与 `src/zidl/` |
@@ -119,7 +119,7 @@
 2. 确认是否同时影响分离架构与合一架构，并定位两套实现
 3. 根据上表阅读资料和相邻测试，确认实际 GN 条件与产品特性
 4. 根据“项目约束”确认不违反 API、IPC、权限、线程或设备边界
-5. 声明：“我将修改 X，已检查 Y 架构和 Z 接口/测试，遵循对应兼容性约束”
+5. 声明：“Agent将修改 X，已检查 Y 架构和 Z 接口/测试，遵循对应兼容性约束”
 
 ## 项目约束
 
@@ -140,7 +140,7 @@
 
 ### 编码约定
 
-- C++ 代码遵循 `.clang-format`：4 空格缩进、120 列、指针左对齐，并保持 `OHOS::Rosen` 命名空间。
+- C++ 代码遵循：4 空格缩进、120 列、指针左对齐，并保持 `OHOS::Rosen` 命名空间。
 - 优先沿用相邻代码的命名；当前 Native C++ 类和函数通常使用 PascalCase，成员变量使用 lowerCamelCase 加尾随 `_`，文件使用 snake_case。
 - 复用所在模块的 `TLOG*`、`WLOG*`、`WLOGF*` 和 `WmsLogTag`，不要在高频路径新增无节流日志。
 - 窗口接口返回 `WMError`/`WmErrorCode`，显示接口返回 `DMError`/`DmErrorCode`，Session 接口返回 `WSError`/`WSErrorCode`；不要混用错误域或吞掉原始错误。
@@ -150,7 +150,7 @@
 
 **Do not（禁止）：**
 
-- 修改已发布 Native、NAPI、ANI、CJ、NDK API 的签名、参数/返回类型或同步异步语义
+- 修改已发布 Native、NAPI、ANI、CJ、API 的签名、参数/返回类型或同步异步语义
 - 删除、重命名或改变已有 `WindowType`、`WindowMode`、`WMError`、`DMError`、`WSError` 等枚举值的数值
 - 在没有兼容性方案时改变已有错误码映射、默认值、事件名称或回调触发顺序
 - 从 `libwm.map`、`libdm.map`、`libscene_session_manager.map` 等导出表移除已有符号
@@ -167,7 +167,7 @@
 
 - 绕过 `Permission`、`SessionPermission`、AccessToken、系统应用或调用者 PID/UID/用户校验
 - 信任客户端传入的窗口/屏幕/session ID、token、Surface、文件描述符或 PixelMap 而不做现有校验
-- 在日志中输出截图内容、窗口内容、未脱敏的应用身份、token 或其他敏感信息
+- 在日志中输出截图内容、窗口内容、未脱敏的应用身份、token 或其它敏感信息
 - 让普通调用者获得系统窗口、截屏、虚拟屏、多用户或跨应用窗口控制能力
 
 **Ask before（修改前必须确认）：**
