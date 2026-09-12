@@ -55,7 +55,8 @@ public:
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") { return WSError::WS_OK; }
     virtual WSError Foreground(
-        sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "") = 0;
+        sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "",
+        bool isAlreadyShown = false) = 0;
     virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) = 0;
     virtual WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",

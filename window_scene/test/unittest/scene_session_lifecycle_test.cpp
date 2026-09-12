@@ -274,6 +274,68 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground07, TestSize.Level0)
 }
 
 /**
+ * @tc.name: Foreground08
+ * @tc.desc: Foreground with isAlreadyShown true and session state is STATE_FOREGROUND
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground08";
+    info.bundleName_ = "Foreground08";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+    session->isActive_ = true;
+    auto result = session->Foreground(property, false, "", true);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: Foreground09
+ * @tc.desc: Foreground with isAlreadyShown true and session state is STATE_CONNECT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground09, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground09";
+    info.bundleName_ = "Foreground09";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->Session::SetSessionState(SessionState::STATE_CONNECT);
+    session->isActive_ = true;
+    auto result = session->Foreground(property, false, "", true);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: Foreground10
+ * @tc.desc: Foreground with isAlreadyShown false and session state is STATE_FOREGROUND
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground10";
+    info.bundleName_ = "Foreground10";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+    auto result = session->Foreground(property, false, "", false);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
  * @tc.name: Background01
  * @tc.desc: normal function
  * @tc.type: FUNC

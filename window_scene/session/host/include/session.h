@@ -224,7 +224,7 @@ public:
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") REQUIRES(SCENE_GUARD);
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
-        const std::string& identityToken = "") override;
+        const std::string& identityToken = "", bool isAlreadyShown = false) override;
     WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) override;
     WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
@@ -695,6 +695,7 @@ public:
     bool IsSystemSession() const;
     bool IsTerminated() const;
     bool IsLifecycleForeground() const;
+    bool IsForegroundPreState() const;
     bool IsSessionNotBackground() const;
     virtual bool IsAnco() const { return false; }
     virtual void SetBlank(bool isAddBlank) {}

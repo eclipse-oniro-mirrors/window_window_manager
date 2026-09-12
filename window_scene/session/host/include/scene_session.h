@@ -260,7 +260,7 @@ public:
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
-        const std::string& identityToken = "") override;
+        const std::string& identityToken = "", bool isAlreadyShown = false) override;
     WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) override;
     WSError BackgroundTask(const bool isSaveSnapshot = true,
@@ -1422,7 +1422,7 @@ private:
     StartWindowType startWindowType_ = StartWindowType::DEFAULT;
 
     // session lifecycle funcs
-    WSError ForegroundTask(const sptr<WindowSessionProperty>& property);
+    WSError ForegroundTask(const sptr<WindowSessionProperty>& property, bool isAlreadyShown = false);
 
     /*
      * Move Drag

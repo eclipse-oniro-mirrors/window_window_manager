@@ -28,7 +28,7 @@ public:
     virtual ~SessionProxy() = default;
 
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
-        const std::string& identityToken = "") override;
+        const std::string& identityToken = "", bool isAlreadyShown = false) override;
     WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) override;
     WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",

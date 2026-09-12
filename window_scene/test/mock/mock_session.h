@@ -35,8 +35,9 @@ public:
         SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
         std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token));
 
-    MOCK_METHOD3(
-        Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));
+    MOCK_METHOD4(
+        Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken,
+        bool isAlreadyShown));
     MOCK_METHOD3(Background, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
     MOCK_METHOD3(Disconnect, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
 

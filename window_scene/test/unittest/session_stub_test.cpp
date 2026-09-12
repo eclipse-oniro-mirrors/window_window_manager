@@ -111,6 +111,7 @@ HWTEST_F(SessionStubTest, ProcessRemoteRequestTest01, TestSize.Level1)
     data.WriteBool(false);
     data.WriteBool(true);
     data.WriteString("");
+    data.WriteBool(false);
     res = session_->ProcessRemoteRequest(
         static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_FOREGROUND), data, reply, option);
     ASSERT_EQ(ERR_NONE, res);
@@ -1580,10 +1581,18 @@ HWTEST_F(SessionStubTest, HandleForeground, Function | SmallTest | Level2)
     data.WriteBool(true);
     data.WriteString("HandleForegroundTest");
     result = session_->HandleForeground(data, reply);
+    ASSERT_EQ(result, ERR_INVALID_DATA);
+    data.WriteBool(true);
+    data.WriteParcelable(propertyTest);
+    data.WriteBool(true);
+    data.WriteString("HandleForegroundTest");
+    data.WriteBool(false);
+    result = session_->HandleForeground(data, reply);
     ASSERT_EQ(result, ERR_NONE);
     data.WriteBool(false);
     data.WriteBool(true);
     data.WriteString("HandleForegroundTest");
+    data.WriteBool(false);
     result = session_->HandleForeground(data, reply);
     ASSERT_EQ(result, ERR_NONE);
 }

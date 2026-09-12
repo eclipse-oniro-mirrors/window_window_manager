@@ -34,7 +34,7 @@ namespace Rosen {
 class SessionStubLifecycleMocker : public SessionStub {
 public:
     MOCK_METHOD3(Background, WSError(bool, const std::string&, bool));
-    MOCK_METHOD3(Foreground, WSError(sptr<WindowSessionProperty>, bool, const std::string&));
+    MOCK_METHOD4(Foreground, WSError(sptr<WindowSessionProperty>, bool, const std::string&, bool));
     MOCK_METHOD3(Disconnect, WSError(bool, const std::string&, bool));
     MOCK_METHOD1(Show, WSError(sptr<WindowSessionProperty>));
     MOCK_METHOD0(Hide, WSError());

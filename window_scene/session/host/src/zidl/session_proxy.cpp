@@ -91,7 +91,7 @@ bool WriteRect(MessageParcel& data, const Rect& rect)
 } // namespace
 
 WSError SessionProxy::Foreground(
-    sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken)
+    sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken, bool isAlreadyShown)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -118,6 +118,10 @@ WSError SessionProxy::Foreground(
     }
     if (!data.WriteString(identityToken)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write identityToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isAlreadyShown)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write isAlreadyShown failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();

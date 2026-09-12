@@ -2269,6 +2269,13 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
     if (state_ == WindowState::STATE_SHOWN) {
         TLOGI(WmsLogTag::WMS_LIFE, "window is already shown [name:%{public}s, id:%{public}d, type: %{public}u]",
             property_->GetWindowName().c_str(), property_->GetPersistentId(), type);
+        if (WindowHelper::IsMainWindow(type)) {
+            auto ret = static_cast<WMError>(hostSession->Foreground(property_, true, identityToken_, true));
+            if (ret != WMError::WM_OK) {
+                TLOGW(WmsLogTag::WMS_LIFE, "already shown foreground failed, id:%{public}d, ret:%{public}d",
+                    GetPersistentId(), static_cast<int32_t>(ret));
+            }
+        }
         if (WindowHelper::IsMainWindow(type) ||
             (WindowHelper::IsSubWindow(type) && IsLoosenedWithPcOrFreeMultiMode())) {
             hostSession->RaiseAppMainWindowToTop();
