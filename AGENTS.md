@@ -24,7 +24,7 @@
 
 ### 按任务类型定位代码
 
-| 任务类型 | 首选目录 | 关键文件 |
+| 任务类型 | 优先访问目录 | 关键文件 |
 | --- | --- | --- |
 | 修改窗口客户端生命周期/属性 | `wm/` | `window.cpp`, `window_impl.cpp`, `window_session_impl.cpp`, `window_adapter.cpp` |
 | 修改窗口管理监听与全局查询 | `wm/` | `window_manager.cpp`, `window_manager_agent.cpp`, `window_adapter.cpp` |
