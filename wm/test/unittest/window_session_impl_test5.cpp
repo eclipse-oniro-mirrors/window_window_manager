@@ -249,6 +249,31 @@ HWTEST_F(WindowSessionImplTest5, IsMainWindowTopmost, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateMainWindowTopmostProperty
+ * @tc.desc: UpdateMainWindowTopmostProperty
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, UpdateMainWindowTopmostProperty, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateMainWindowTopmostProperty");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    // The session is not created yet, the property must not be touched.
+    window->UpdateMainWindowTopmostProperty(true);
+    EXPECT_FALSE(window->IsMainWindowTopmost());
+
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->UpdateMainWindowTopmostProperty(true);
+    EXPECT_TRUE(window->IsMainWindowTopmost());
+    window->UpdateMainWindowTopmostProperty(false);
+    EXPECT_FALSE(window->IsMainWindowTopmost());
+}
+
+/**
  * @tc.name: GetSubWindows
  * @tc.desc: GetSubWindows
  * @tc.type: FUNC
