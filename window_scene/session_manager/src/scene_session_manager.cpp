@@ -10198,7 +10198,7 @@ void SceneSessionManager::SetAbilityManagerCollaboratorRegisteredFunc(
 }
 
 sptr<FocusNotifyInfo> SceneSessionManager::GetFocusNotifyInfo(DisplayId displayId,
-    const sptr<SceneSession>& nextSession)
+    const sptr<SceneSession>& nextSession, FocusChangeReason reason)
 {
     auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
     if (focusGroup == nullptr) {
@@ -10218,13 +10218,22 @@ sptr<FocusNotifyInfo> SceneSessionManager::GetFocusNotifyInfo(DisplayId displayI
         focusNotifyInfo->isSyncNotify_ = focusNotifyInfo->isSameCallingPid_ &&
             !focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
     }
+    int32_t reasonVal = static_cast<int32_t>(reason);
+    if (reasonVal < static_cast<int32_t>(WindowFocusChangeReason::DEFAULT) ||
+        reasonVal >= static_cast<int32_t>(WindowFocusChangeReason::MAX)) {
+        // FocusChangeReason (server) has 5 more values (21-25) than WindowFocusChangeReason (client),
+        // which the client enum cannot represent; fall back to DEFAULT.
+        focusNotifyInfo->reason_ = WindowFocusChangeReason::DEFAULT;
+    } else {
+        focusNotifyInfo->reason_ = static_cast<WindowFocusChangeReason>(reasonVal);
+    }
     return focusNotifyInfo;
 }
 
 WSError SceneSessionManager::ShiftFocus(DisplayId displayId, const sptr<SceneSession>& nextSession,
     bool isProactiveUnfocus, FocusChangeReason reason)
 {
-    auto focusNotifyInfo = GetFocusNotifyInfo(displayId, nextSession);
+    auto focusNotifyInfo = GetFocusNotifyInfo(displayId, nextSession, reason);
     if (focusNotifyInfo == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is nullptr");
         return WSError::WS_OK;

@@ -74,6 +74,7 @@ extern const std::string FREE_WINDOW_MODE_CHANGE_CB;
 extern const std::string APPLICATION_FOCUS_STATE_CHANGE_CB;
 extern const std::string PARENT_LIFECYCLE_EVENT_CB;
 extern const std::string WINDOW_POSTURE_CHANGE_CB;
+extern const std::string WINDOW_FOCUS_STATE_CHANGE_CB;
 
 class JsWindowListener : public IWindowChangeListener,
                          public ISystemBarChangedListener,
@@ -115,7 +116,8 @@ class JsWindowListener : public IWindowChangeListener,
                          public IKeyboardDidShowListener,
                          public IKeyboardDidHideListener,
                          public IFreeWindowModeChangeListener,
-                         public IParentLifecycleEventListener {
+                         public IParentLifecycleEventListener,
+                         public IFocusStateChangedListener {
 public:
     JsWindowListener(napi_env env, std::shared_ptr<NativeReference> callback, CaseType caseType)
         : env_(env), jsCallBack_(callback), caseType_(caseType), weakRef_(wptr<JsWindowListener> (this)) {}
@@ -153,6 +155,8 @@ public:
     void OnGestureNavigationEnabledUpdate(bool enable) override;
     void OnWaterMarkFlagUpdate(bool showWaterMark) override;
     void OnApplicationFocusUpdate(bool isFocused) override;
+    void OnFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId) override;
     napi_value CallJsMethod(const char* methodName, napi_value const * argv = nullptr, size_t argc = 0);
     void SetMainEventHandler();
     void OnWindowVisibilityChangedCallback(const bool isVisible) override;

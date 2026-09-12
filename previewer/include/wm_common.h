@@ -2025,6 +2025,121 @@ enum class WindowInfoKey : int32_t {
     WINDOW_GLOBAL_RECT = 1 << 10,
 };
 
+/**
+ * @brief Enumerates window focus change reason
+ */
+enum class WindowFocusChangeReason : int32_t {
+    /**
+     * default focus change reason
+     */
+    DEFAULT = 0,
+
+    /**
+     * focus change for move up
+     */
+    MOVE_UP,
+
+    /**
+     * focus change for click
+     */
+    CLICK,
+
+    /**
+     * focus change for foreground
+     */
+    FOREGROUND,
+
+    /**
+     * focus change for background
+     */
+    BACKGROUND,
+
+    /**
+     * focus change for split screen.5
+     */
+    SPLIT_SCREEN,
+
+    /**
+     * focus change for full screen
+     */
+    FULL_SCREEN,
+
+    /**
+     * focus change for global search
+     */
+    SCB_SESSION_REQUEST,
+
+    /**
+     * focus change for floating scene
+     */
+    FLOATING_SCENE,
+
+    /**
+     * focus change for losing focus
+     */
+    SCB_SESSION_REQUEST_UNFOCUS,
+
+    /**
+     * focus change for client requerst.10
+     */
+    CLIENT_REQUEST,
+
+    /**
+     * focus change for wind
+     */
+    WIND,
+
+    /**
+     * focus change for app foreground
+     */
+    APP_FOREGROUND,
+
+    /**
+     * focus change for app background
+     */
+    APP_BACKGROUND,
+
+    /**
+     * focus change for recent,Multitasking
+     */
+    RECENT,
+
+    /**
+     * focus change for inner app.
+     */
+    SCB_START_APP,
+
+    /**
+     * focus for setting focuable.
+     */
+    FOCUSABLE,
+
+    /**
+     * select last focused app when requestSessionUnFocus.
+     */
+    LAST_FOCUSED_APP,
+
+    /**
+     * focus for zOrder pass through VOICE_INTERACTION.
+     */
+    VOICE_INTERACTION,
+
+    /**
+     * focus change for SA requerst.19
+     */
+    SA_REQUEST,
+
+    /**
+     * focus on previous window for system keyboard
+     */
+    SYSTEM_KEYBOARD,
+
+    /**
+     * focus change max.
+     */
+    MAX,
+};
+
 /*
  * @brief Enumerates rotation change type.
  */

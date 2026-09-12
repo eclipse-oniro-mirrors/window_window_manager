@@ -72,6 +72,18 @@ declare namespace window {
     WINDOW_DESTROYED = 7
   }
 
+  enum FocusChangeReason {
+    DEFAULT = 0,
+    CLICK = 1
+  }
+
+  interface WindowFocusState {
+    focused: boolean;
+    focusChangeReason: FocusChangeReason;
+    nextFocusedWindowId?: number;
+    prevFocusedWindowId?: number;
+  }
+
   interface WindowDensityInfo {
     systemDensity: number;
     defaultDensity: number;
@@ -96,6 +108,8 @@ declare namespace window {
     off(type: 'avoidAreaChange', callback?: Callback<AvoidAreaOptions>): void;
     on(type: 'windowEvent', callback: Callback<WindowEventType>): void;
     off(type: 'windowEvent', callback?: Callback<WindowEventType>): void;
+    onWindowFocusStateChange(callback: Callback<WindowFocusState>): void;
+    offWindowFocusStateChange(callback?: Callback<WindowFocusState>): void;
     on(type: 'windowHighlightChange', callback: Callback<boolean>): void;
     off(type: 'windowHighlightChange', callback?: Callback<boolean>): void;
     on(type: 'systemDensityChange', callback: Callback<number>): void;

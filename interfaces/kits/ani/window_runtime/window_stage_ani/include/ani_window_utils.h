@@ -214,6 +214,8 @@ public:
     static ani_object CreateAniFrameMetrics(ani_env* env, const FrameMetrics& metrics);
     static ani_object CreateAniSystemBarTintState(ani_env* env, DisplayId displayId, const SystemBarRegionTints& tints);
     static ani_object CreateAniSystemBarRegionTint(ani_env* env, const SystemBarRegionTint& tint);
+    static ani_object CreateAniWindowFocusState(ani_env* env, bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId);
     static ani_object CreateAniRotationChangeInfo(ani_env* env, const RotationChangeInfo& info);
     static void ParseRotationChangeResult(ani_env* env, ani_object obj, RotationChangeResult& rotationChangeResult);
     static ani_object CreateAniKeyboardInfo(ani_env* env, const KeyboardPanelInfo& keyboardPanelInfo);

@@ -12098,6 +12098,20 @@ napi_value JsWindow::OffWindowPostureModeChange(napi_env env, napi_callback_info
     return (me != nullptr) ? me->OnUnregisterWindowPostureModeChange(env, info) : nullptr;
 }
 
+napi_value JsWindow::OnWindowFocusStateChange(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "OnWindowFocusStateChange");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnRegisterWindowFocusStateChange(env, info) : nullptr;
+}
+
+napi_value JsWindow::OffWindowFocusStateChange(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "OffWindowFocusStateChange");
+    JsWindow* me = CheckParamsAndGetThis<JsWindow>(env, info);
+    return (me != nullptr) ? me->OnUnregisterWindowFocusStateChange(env, info) : nullptr;
+}
+
 napi_value JsWindow::OnIsInWindowPostureMode(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
@@ -12240,8 +12254,79 @@ napi_value JsWindow::OnUnregisterWindowPostureModeChange(napi_env env, napi_call
     if (ret != WmErrorCode::WM_OK) {
         return NapiThrowError(env, ret, "[window][offWindowPostureModeChange]msg: Unregister listener failed.");
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Id=%{public}u, mode=%{public}u", windowToken->GetWindowId(), 
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Id=%{public}u, mode=%{public}u", windowToken->GetWindowId(),
         static_cast<uint32_t>(postureMode));
+    return NapiGetUndefined(env);
+}
+
+napi_value JsWindow::OnRegisterWindowFocusStateChange(napi_env env, napi_callback_info info)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][onWindowFocusStateChange]msg: The window is not created or destroyed.");
+    }
+    sptr<Window> windowToken = windowToken_;
+    constexpr size_t argcSize = 1;
+    size_t argc = 2;
+    napi_value argv[2] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != argcSize) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][onWindowFocusStateChange]msg: Incorrect number of parameters.");
+    }
+    napi_value callback = argv[0];
+    if (!NapiIsCallable(env, callback)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Callback(argv[0]) is not callable");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][onWindowFocusStateChange]msg: Callback is not callable.");
+    }
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsgPrefix = "[window][onWindowFocusStateChange]msg: ";
+    std::string errMsg;
+    ret = registerManager_->RegisterListener(windowToken, WINDOW_FOCUS_STATE_CHANGE_CB,
+        CaseType::CASE_WINDOW, env, callback, errMsg);
+    if (ret != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, ret, errMsgPrefix + (errMsg.empty() ? "Register listener failed." : errMsg));
+    }
+    TLOGI(WmsLogTag::WMS_FOCUS, "Id=%{public}u", windowToken->GetWindowId());
+    return NapiGetUndefined(env);
+}
+
+napi_value JsWindow::OnUnregisterWindowFocusStateChange(napi_env env, napi_callback_info info)
+{
+    if (windowToken_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Window is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                              "[window][offWindowFocusStateChange]msg: The window is not created or destroyed.");
+    }
+    sptr<Window> windowToken = windowToken_;
+    constexpr size_t argcMax = 1;
+    size_t argc = 2;
+    napi_value argv[2] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc > argcMax) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                              "[window][offWindowFocusStateChange]msg: Incorrect number of parameters.");
+    }
+    napi_value callback = nullptr;
+    if (argc > 0) {
+        callback = argv[0];
+        if (!NapiIsCallable(env, callback)) {
+            callback = nullptr;
+        }
+    }
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    std::string errMsgPrefix = "[window][offWindowFocusStateChange]msg: ";
+    std::string errMsg;
+    ret = registerManager_->UnregisterListener(windowToken, WINDOW_FOCUS_STATE_CHANGE_CB,
+        CaseType::CASE_WINDOW, env, callback, errMsg);
+    if (ret != WmErrorCode::WM_OK) {
+        return NapiThrowError(env, ret, errMsgPrefix + (errMsg.empty() ? "Unregister listener failed." : errMsg));
+    }
+    TLOGI(WmsLogTag::WMS_FOCUS, "Id=%{public}u", windowToken->GetWindowId());
     return NapiGetUndefined(env);
 }
 
@@ -12451,6 +12536,8 @@ void BindFunctions(napi_env env, napi_value object, const char* moduleName)
     BindNativeFunction(env, object, "isInWindowPostureMode", moduleName, JsWindow::IsInWindowPostureMode);
     BindNativeFunction(env, object, "onWindowPostureModeChange", moduleName, JsWindow::OnWindowPostureModeChange);
     BindNativeFunction(env, object, "offWindowPostureModeChange", moduleName, JsWindow::OffWindowPostureModeChange);
+    BindNativeFunction(env, object, "onWindowFocusStateChange", moduleName, JsWindow::OnWindowFocusStateChange);
+    BindNativeFunction(env, object, "offWindowFocusStateChange", moduleName, JsWindow::OffWindowFocusStateChange);
 }
 }  // namespace Rosen
 }  // namespace OHOS

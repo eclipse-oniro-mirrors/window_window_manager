@@ -39,6 +39,8 @@ constexpr size_t ARG_COUNT_ZERO = 0;
 constexpr size_t ARG_COUNT_TWO = 2;
 constexpr size_t ARG_COUNT_THREE = 3;
 constexpr int32_t MAX_TOUCHABLE_AREAS = 10;
+constexpr int32_t FOCUS_CHANGE_REASON_DEFAULT = 0;
+constexpr int32_t FOCUS_CHANGE_REASON_CLICK = 1;
 constexpr uint32_t CURVE_TYPE_SPRING = 1;
 constexpr uint32_t ANIMATION_FOUR_PARAMS_SIZE = 4;
 const std::string RESOLVED_CALLBACK = "resolvedCallback";
@@ -1962,6 +1964,21 @@ napi_value WindowAnimationCurveInit(napi_env env)
         CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::INTERPOLATION_SPRING)));
     napi_set_named_property(env, objValue, "CUBIC_BEZIER",
         CreateJsValue(env, static_cast<uint32_t>(WindowAnimationCurve::CUBIC_BEZIER)));
+    return objValue;
+}
+
+int32_t ConvertWindowFocusChangeReasonToJsValue(WindowFocusChangeReason reason)
+{
+    return reason == WindowFocusChangeReason::CLICK ? FOCUS_CHANGE_REASON_CLICK : FOCUS_CHANGE_REASON_DEFAULT;
+}
+
+napi_value FocusChangeReasonInit(napi_env env)
+{
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+    napi_set_named_property(env, objValue, "DEFAULT", CreateJsValue(env, FOCUS_CHANGE_REASON_DEFAULT));
+    napi_set_named_property(env, objValue, "CLICK", CreateJsValue(env, FOCUS_CHANGE_REASON_CLICK));
     return objValue;
 }
 

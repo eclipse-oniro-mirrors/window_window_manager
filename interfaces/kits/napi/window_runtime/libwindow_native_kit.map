@@ -383,6 +383,7 @@
             OHOS::Rosen::WindowErrorCodeInit*;
             OHOS::Rosen::WindowErrorInit*;
             OHOS::Rosen::WindowEventTypeInit*;
+            OHOS::Rosen::FocusChangeReasonInit*;
             OHOS::Rosen::WindowLayoutModeInit*;
             OHOS::Rosen::WindowModeInit*;
             OHOS::Rosen::SplitRatioPreferenceInit*;
@@ -432,6 +433,7 @@
             OHOS::Rosen::APPLICATION_FOCUS_STATE_CHANGE_CB;
             OHOS::Rosen::WINDOW_DISPLAYID_CHANGE_CB;
             OHOS::Rosen::WINDOW_EVENT_CB;
+            OHOS::Rosen::WINDOW_FOCUS_STATE_CHANGE_CB;
             OHOS::Rosen::WINDOW_HIGHLIGHT_CHANGE_CB;
             OHOS::Rosen::WINDOW_NO_INTERACTION_DETECT_CB;
             OHOS::Rosen::WINDOW_RECT_CHANGE_CB;
