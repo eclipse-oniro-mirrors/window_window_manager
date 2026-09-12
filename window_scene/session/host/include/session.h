@@ -718,6 +718,7 @@ public:
     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
     void SetSceneLastUsedPosition(const std::string& position);
     const std::string GetSceneLastUsedPosition() const;
+    void UpdateCallerPersistentId(int32_t callerPersistentId);
 
     /*
      * Window ZOrder

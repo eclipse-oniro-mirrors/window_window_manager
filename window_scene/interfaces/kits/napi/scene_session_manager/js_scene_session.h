@@ -300,6 +300,7 @@ private:
     static napi_value NotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
     static napi_value SetDragDisabledAreas(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
+    static napi_value UpdateCallerPersistentId(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
@@ -418,6 +419,7 @@ private:
     napi_value OnNotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
     napi_value OnSetDragDisabledAreas(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
+    napi_value OnUpdateCallerPersistentId(napi_env env, napi_callback_info info);
 
     /*
      * PC Window

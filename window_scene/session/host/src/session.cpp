@@ -367,6 +367,20 @@ void Session::SetSessionInfoCallerPersistentId(int32_t callerPersistentId)
     sessionInfo_.callerPersistentId_ = callerPersistentId;
 }
 
+void Session::UpdateCallerPersistentId(int32_t callerPersistentId)
+{
+    PostTask([weakThis = wptr(this), callerPersistentId, where = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s: session is null", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id:%{public}d, callerPersistentId:%{public}d",
+            where, session->GetPersistentId(), callerPersistentId);
+        session->SetSessionInfoCallerPersistentId(callerPersistentId);
+    }, __func__);
+}
+
 void Session::SetSessionInfoContinueState(ContinueState state)
 {
     std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
