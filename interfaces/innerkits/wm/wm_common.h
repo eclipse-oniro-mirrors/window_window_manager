@@ -3261,10 +3261,10 @@ struct SubWindowOptions {
  *        value of insertAfter when not targeting a concrete windowId.
  */
 enum class WindowPosition : int32_t {
-    NOT_TOPMOST = -3,   // 非置顶 普通模式（独立动作）
-    TOPMOST = -2,       // 全局置顶，需 ohos.permission.WINDOW_TOPMOST
-    BOTTOM = -1,        // 放置在所有应用窗口的最底部
-    TOP = 0,            // 放置在所有应用窗口的顶部，单次调整
+    NOT_TOPMOST = -3,   // Not topmost, normal mode. Cancels the global topmost state as an independent action.
+    TOPMOST = -2,       // Global topmost. Requires the ohos.permission.WINDOW_TOPMOST permission.
+    BOTTOM = -1,        // Places the main window at the bottom of all application main windows, one adjustment.
+    TOP = 0,            // Places the main window at the top of all application main windows, one adjustment.
 };
 
 /**
@@ -3274,7 +3274,7 @@ enum class WindowPosition : int32_t {
  */
 struct WindowPositionParams {
     int32_t windowId = 0;
-    int32_t insertAfter = 0;   // >0 表示 windowId；否则为 WindowPosition 哨兵值（-3..0）
+    int32_t insertAfter = 0;   // Greater than 0: another main window's ID. Otherwise: a WindowPosition sentinel.
 
     bool Marshalling(Parcel& parcel) const
     {

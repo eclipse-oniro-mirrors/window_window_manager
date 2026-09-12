@@ -17157,54 +17157,73 @@ WSError SceneSessionManager::CheckSetWindowPositionPermission(
     return WSError::WS_OK;
 }
 
+WSError SceneSessionManager::CheckSetWindowPositionWindowId(const WindowPositionParams& position,
+    const int32_t callingPid, bool& needTopmostOnRemove)
+{
+    auto sceneSession = GetSceneSession(position.windowId);
+    if (sceneSession == nullptr || sceneSession->IsTerminated()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "session is null or terminated, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "window is not main window, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    if (callingPid != sceneSession->GetCallingPid()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, not call by the same process, windowId: %{public}d",
+            position.windowId);
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    if (sceneSession->IsSuperMultiFoldOuterScreen()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "window on super multi fold outer screen, windowId: %{public}d",
+            position.windowId);
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(sceneSession->GetDisplayId());
+    if (screenSession == nullptr ||
+        screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "window on virtual screen, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (sceneSession->GetSessionProperty()->IsMainWindowTopmost() &&
+        position.insertAfter == static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+        needTopmostOnRemove = true;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionInsertAfter(const WindowPositionParams& position)
+{
+    if (position.insertAfter <= 0) {
+        return WSError::WS_OK;
+    }
+    auto insertAfterSession = GetSceneSession(position.insertAfter);
+    if (insertAfterSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target not found, insertAfter: %{public}d",
+            position.insertAfter);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!SessionHelper::IsMainWindow(insertAfterSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target is not main window, insertAfter: %{public}d",
+            position.insertAfter);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    return WSError::WS_OK;
+}
+
 WSError SceneSessionManager::CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
     const int32_t callingPid, const uint32_t callingTokenId)
 {
     const auto& windowPositions = windowPositionInfo.windowPositions;
     bool needTopmostOnRemove = false;
     for (const auto& position : windowPositions) {
-        auto sceneSession = GetSceneSession(position.windowId);
-        if (sceneSession == nullptr || sceneSession->IsTerminated()) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "session is null or terminated, windowId: %{public}d",
-                position.windowId);
-            return WSError::WS_ERROR_INVALID_SESSION;
+        WSError err = CheckSetWindowPositionWindowId(position, callingPid, needTopmostOnRemove);
+        if (err != WSError::WS_OK) {
+            return err;
         }
-        if (!SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "window is not main window, windowId: %{public}d", position.windowId);
-            return WSError::WS_ERROR_INVALID_CALLING;
-        }
-        if (callingPid != sceneSession->GetCallingPid()) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, not call by the same process, windowId: %{public}d",
-                position.windowId);
-            return WSError::WS_ERROR_INVALID_WINDOW;
-        }
-        if (sceneSession->IsSuperMultiFoldOuterScreen()) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "window on super multi fold outer screen, windowId: %{public}d",
-                position.windowId);
-            return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
-        }
-        auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(sceneSession->GetDisplayId());
-        if (screenSession == nullptr ||
-            screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "window on virtual screen, windowId: %{public}d", position.windowId);
-            return WSError::WS_ERROR_INVALID_SESSION;
-        }
-        if (position.insertAfter > 0) {
-            auto insertAfterSession = GetSceneSession(position.insertAfter);
-            if (insertAfterSession == nullptr) {
-                TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target not found, insertAfter: %{public}d",
-                    position.insertAfter);
-                return WSError::WS_ERROR_INVALID_SESSION;
-            }
-            if (!SessionHelper::IsMainWindow(insertAfterSession->GetWindowType())) {
-                TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target is not main window, insertAfter: %{public}d",
-                    position.insertAfter);
-                return WSError::WS_ERROR_INVALID_CALLING;
-            }
-        }
-        if (sceneSession->GetSessionProperty()->IsMainWindowTopmost() &&
-            position.insertAfter != static_cast<int32_t>(WindowPosition::TOPMOST)) {
-            needTopmostOnRemove = true;
+        err = CheckSetWindowPositionInsertAfter(position);
+        if (err != WSError::WS_OK) {
+            return err;
         }
     }
     if (needTopmostOnRemove &&
@@ -17219,6 +17238,12 @@ WSError SceneSessionManager::CheckSetWindowPositionSessions(const WindowPosition
 void SceneSessionManager::UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions)
 {
     for (const auto& position : windowPositions) {
+        // Only these two sentinels change the topmost state. Any other value places the window at a
+        // concrete z-order once and leaves the global topmost state untouched.
+        if (position.insertAfter != static_cast<int32_t>(WindowPosition::TOPMOST) &&
+            position.insertAfter != static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            continue;
+        }
         auto sceneSession = GetSceneSession(position.windowId);
         if (sceneSession == nullptr) {
             continue;
@@ -17235,6 +17260,10 @@ void SceneSessionManager::UpdateMainWindowTopmostState(const std::vector<WindowP
 
 WSError SceneSessionManager::SetWindowPosition(const WindowPositionInfo& windowPositionInfo)
 {
+    if (!systemConfig_.IsPcWindow()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "device not support");
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
     const auto& windowPositions = windowPositionInfo.windowPositions;
     if (windowPositions.empty()) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions is empty");

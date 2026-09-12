@@ -2018,6 +2018,27 @@ HWTEST_F(SceneSessionManagerTest11, MoveMainWindowToTargetDisplay, TestSize.Leve
 }
 
 /**
+ * @tc.name: SetWindowPositionNotPcWindow
+ * @tc.desc: test function : SetWindowPosition on a non-PC device
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetWindowPositionNotPcWindow, TestSize.Level1)
+{
+    // 1. Set up the test environment
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    WindowPositionParams position;
+    position.windowId = 1;
+    position.insertAfter = 0;
+    WindowPositionInfo windowPositionInfo;
+    windowPositionInfo.windowPositions.push_back(position);
+    // 2. Call the function to be tested
+    WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
+    // 3. Verify the result
+    EXPECT_EQ(ret, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+}
+
+/**
  * @tc.name: SetWindowPositionEmptyList
  * @tc.desc: test function : SetWindowPosition with empty list
  * @tc.type: FUNC
@@ -2349,6 +2370,36 @@ HWTEST_F(SceneSessionManagerTest11, SetWindowPositionRemoveMainWindowTopmost, Te
     // 3. Verify the result
     EXPECT_EQ(ret, WSError::WS_OK);
     EXPECT_FALSE(sceneSession->GetSessionProperty()->IsMainWindowTopmost());
+    ssm_->sceneSessionMap_.clear();
+    ClearScreenSessions();
+}
+
+/**
+ * @tc.name: SetWindowPositionSingleAdjustKeepsMainWindowTopmost
+ * @tc.desc: test function : a single z-order adjustment does not change the topmost property nor need permission
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest11, SetWindowPositionSingleAdjustKeepsMainWindowTopmost, TestSize.Level1)
+{
+    // 1. Set up the test environment
+    MockAccesstokenKit::MockAccessTokenKitRet(-1); // PERMISSION_DENIED
+    sptr<SceneSession> sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->SetCallingPid(IPCSkeleton::GetCallingPid());
+    sceneSession->GetSessionProperty()->SetMainWindowTopmost(true);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+    InsertDefaultPhysicalScreen();
+    WindowPositionParams position;
+    position.windowId = 1;
+    position.insertAfter = static_cast<int32_t>(WindowPosition::TOP);
+    WindowPositionInfo windowPositionInfo;
+    windowPositionInfo.windowPositions.push_back(position);
+    // 2. Call the function to be tested
+    WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
+    // 3. Verify the result
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_TRUE(sceneSession->GetSessionProperty()->IsMainWindowTopmost());
     ssm_->sceneSessionMap_.clear();
     ClearScreenSessions();
 }

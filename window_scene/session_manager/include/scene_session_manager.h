@@ -1631,6 +1631,9 @@ private:
      */
     WSError CheckSetWindowPositionPermission(const std::vector<WindowPositionParams>& windowPositions,
         const uint32_t callingTokenId);
+    WSError CheckSetWindowPositionWindowId(const WindowPositionParams& position, const int32_t callingPid,
+        bool& needTopmostOnRemove);
+    WSError CheckSetWindowPositionInsertAfter(const WindowPositionParams& position);
     WSError CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
         const int32_t callingPid, const uint32_t callingTokenId);
     void UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions);
