@@ -658,7 +658,7 @@ void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReas
         }
         napi_value objValue = nullptr;
         napi_create_object(env, &objValue);
-        napi_set_named_property(env, objValue, "focused", CreateJsValue(env, isFocused));
+        napi_set_named_property(env, objValue, "isFocused", CreateJsValue(env, isFocused));
         napi_set_named_property(env, objValue, "focusChangeReason",
             CreateJsValue(env, ConvertWindowFocusChangeReasonToJsValue(reason)));
         if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {

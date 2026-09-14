@@ -493,7 +493,7 @@ namespace window {
   }
 
   export interface WindowFocusState {
-    focused: boolean;
+    isFocused: boolean;
     focusChangeReason: FocusChangeReason;
     nextFocusedWindowId?: number;
     prevFocusedWindowId?: number;
@@ -505,7 +505,7 @@ namespace window {
   }
 
   export class WindowFocusStateInternal implements WindowFocusState {
-    focused: boolean = false;
+    isFocused: boolean = false;
     focusChangeReason: FocusChangeReason = FocusChangeReason.DEFAULT;
     nextFocusedWindowId?: number;
     prevFocusedWindowId?: number;
