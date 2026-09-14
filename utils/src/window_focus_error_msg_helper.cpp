@@ -15,6 +15,8 @@
 
 #include "window_focus_error_msg_helper.h"
 
+#include <utility>
+
 namespace OHOS {
 namespace Rosen {
 
@@ -70,6 +72,8 @@ namespace {
         "The windowPositions list is empty or exceeds the maximum size, "
         "the windowId is invalid, or the insertAfter value is invalid.";
     constexpr const char* const ERROR_SERVICE_ABNORMAL = "The IPC to the window manager service failed.";
+
+    using ErrorMsgFunc = const char* (*)(WMError);
 }
 
 std::string WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType apiType, WMError error,
@@ -313,52 +317,41 @@ const char* WindowFocusErrorMsgHelper::GetSpecificErrorMsg(WindowFocusApiType ap
         return "";
     }
 
-    if (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_INVALID_SESSION) {
-        // setWindowPosition describes the missing window in terms of the z-order adjustment.
-        return apiType == WindowFocusApiType::SET_WINDOW_POSITION ? GetWindowPositionErrorMsg(error)
-                                                                  : ERROR_NOT_CREATED;
+    // Every api but setWindowPosition reports a missing window or session as "not created".
+    // setWindowPosition describes it in terms of the z-order adjustment instead, which is what
+    // GetWindowPositionErrorMsg does in the table below.
+    if (apiType != WindowFocusApiType::SET_WINDOW_POSITION &&
+        (error == WMError::WM_ERROR_INVALID_WINDOW || error == WMError::WM_ERROR_INVALID_SESSION)) {
+        return ERROR_NOT_CREATED;
     }
 
-    switch (apiType) {
-        case WindowFocusApiType::SET_FOCUSABLE:
-        case WindowFocusApiType::SET_WINDOW_FOCUSABLE:
-            return GetFocusableErrorMsg(error);
-        case WindowFocusApiType::SET_SUB_WINDOW_MODAL:
-            return GetSubWindowModalErrorMsg(error);
-        case WindowFocusApiType::SET_TOPMOST:
-        case WindowFocusApiType::SET_WINDOW_TOPMOST:
-            return GetTopmostErrorMsg(error);
-        case WindowFocusApiType::RAISE_TO_APP_TOP:
-            return GetRaiseToAppTopErrorMsg(error);
-        case WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL:
-            return GetSubWindowZLevelErrorMsg(error);
-        case WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL:
-            return GetSubWindowZLevelQueryErrorMsg(error);
-        case WindowFocusApiType::SET_WINDOW_MODAL:
-            return GetWindowModalErrorMsg(error);
-        case WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED:
-            return GetRaiseByClickErrorMsg(error);
-        case WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED:
-            return GetMainWindowRaiseByClickErrorMsg(error);
-        case WindowFocusApiType::RAISE_ABOVE_TARGET:
-            return GetRaiseAboveTargetErrorMsg(error);
-        case WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET:
-            return GetRaiseMainWindowAboveTargetErrorMsg(error);
-        case WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED:
-            return GetExclusivelyHighlightedErrorMsg(error);
-        case WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED:
-            return GetWindowDelayRaiseErrorMsg(error);
-        case WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS:
-            return GetShiftAppWindowFocusErrorMsg(error);
-        case WindowFocusApiType::GET_TOP_WINDOW:
-            return GetTopWindowErrorMsg(error);
-        case WindowFocusApiType::IS_FOCUSED:
-        case WindowFocusApiType::IS_WINDOW_HIGHLIGHTED:
-            return GetFocusQueryErrorMsg(error);
-        case WindowFocusApiType::SET_WINDOW_POSITION:
-            return GetWindowPositionErrorMsg(error);
+    static const std::pair<WindowFocusApiType, ErrorMsgFunc> API_ERROR_MSG_FUNCS[] = {
+        { WindowFocusApiType::SET_FOCUSABLE,                          GetFocusableErrorMsg },
+        { WindowFocusApiType::SET_WINDOW_FOCUSABLE,                   GetFocusableErrorMsg },
+        { WindowFocusApiType::SET_SUB_WINDOW_MODAL,                   GetSubWindowModalErrorMsg },
+        { WindowFocusApiType::SET_TOPMOST,                            GetTopmostErrorMsg },
+        { WindowFocusApiType::SET_WINDOW_TOPMOST,                     GetTopmostErrorMsg },
+        { WindowFocusApiType::RAISE_TO_APP_TOP,                       GetRaiseToAppTopErrorMsg },
+        { WindowFocusApiType::SET_SUB_WINDOW_Z_LEVEL,                 GetSubWindowZLevelErrorMsg },
+        { WindowFocusApiType::GET_SUB_WINDOW_Z_LEVEL,                 GetSubWindowZLevelQueryErrorMsg },
+        { WindowFocusApiType::SET_WINDOW_MODAL,                       GetWindowModalErrorMsg },
+        { WindowFocusApiType::SET_RAISE_BY_CLICK_ENABLED,             GetRaiseByClickErrorMsg },
+        { WindowFocusApiType::SET_MAIN_WINDOW_RAISE_BY_CLICK_ENABLED, GetMainWindowRaiseByClickErrorMsg },
+        { WindowFocusApiType::RAISE_ABOVE_TARGET,                     GetRaiseAboveTargetErrorMsg },
+        { WindowFocusApiType::RAISE_MAIN_WINDOW_ABOVE_TARGET,         GetRaiseMainWindowAboveTargetErrorMsg },
+        { WindowFocusApiType::SET_EXCLUSIVELY_HIGHLIGHTED,            GetExclusivelyHighlightedErrorMsg },
+        { WindowFocusApiType::SET_WINDOW_DELAY_RAISE_ENABLED,         GetWindowDelayRaiseErrorMsg },
+        { WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS,                 GetShiftAppWindowFocusErrorMsg },
+        { WindowFocusApiType::GET_TOP_WINDOW,                         GetTopWindowErrorMsg },
+        { WindowFocusApiType::IS_FOCUSED,                             GetFocusQueryErrorMsg },
+        { WindowFocusApiType::IS_WINDOW_HIGHLIGHTED,                  GetFocusQueryErrorMsg },
+        { WindowFocusApiType::SET_WINDOW_POSITION,                    GetWindowPositionErrorMsg },
+    };
+    for (const auto& entry : API_ERROR_MSG_FUNCS) {
+        if (entry.first == apiType) {
+            return entry.second(error);
+        }
     }
-
     return "";
 }
 
