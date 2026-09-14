@@ -17238,8 +17238,8 @@ WSError SceneSessionManager::CheckSetWindowPositionSessions(const WindowPosition
 void SceneSessionManager::UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions)
 {
     for (const auto& position : windowPositions) {
-        // Only these two sentinels change the topmost state. Any other value places the window at a
-        // concrete z-order once and leaves the global topmost state untouched.
+        // Only these two sentinels change the topmost state. The other values are one-shot z-order
+        // adjustments and leave the global topmost state untouched.
         if (position.insertAfter != static_cast<int32_t>(WindowPosition::TOPMOST) &&
             position.insertAfter != static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
             continue;

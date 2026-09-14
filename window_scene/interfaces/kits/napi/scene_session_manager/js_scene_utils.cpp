@@ -3218,10 +3218,14 @@ napi_value WindowPositionInit(napi_env env)
         WLOGFE("Failed to get object");
         return nullptr;
     }
-    napi_set_named_property(env, objValue, "NOT_TOPMOST", CreateJsValue(env, -3));
-    napi_set_named_property(env, objValue, "TOPMOST", CreateJsValue(env, -2));
-    napi_set_named_property(env, objValue, "BOTTOM", CreateJsValue(env, -1));
-    napi_set_named_property(env, objValue, "TOP", CreateJsValue(env, 0));
+    napi_set_named_property(env, objValue, "NOT_TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::NOT_TOPMOST)));
+    napi_set_named_property(env, objValue, "TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOPMOST)));
+    napi_set_named_property(env, objValue, "BOTTOM",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::BOTTOM)));
+    napi_set_named_property(env, objValue, "TOP",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOP)));
     return objValue;
 }
 
