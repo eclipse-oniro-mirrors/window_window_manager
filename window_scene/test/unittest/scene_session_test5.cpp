@@ -3624,6 +3624,29 @@ HWTEST_F(SceneSessionTest5, UpdateCrossAxis, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateCrossAxis02
+ * @tc.desc: UpdateCrossAxis when session display differs from fold screen display
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateCrossAxis02, TestSize.Level1)
+{
+    const SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = sessionStageMocker;
+    sceneSession->isCrossAxisOfLayout_ = true;
+    // fold screen valid, but session on a different display
+    PcFoldScreenManager::GetInstance().displayId_ = 0;
+    sceneSession->GetSessionProperty()->displayId_ = 1;
+    sceneSession->crossAxisState_ = 100;
+    EXPECT_CALL(*sessionStageMocker, NotifyWindowCrossAxisChange(CrossAxisState::STATE_NO_CROSS)).Times(1);
+    sceneSession->UpdateCrossAxis();
+    // state unchanged, no notification
+    EXPECT_CALL(*sessionStageMocker, NotifyWindowCrossAxisChange(_)).Times(0);
+    sceneSession->UpdateCrossAxis();
+}
+
+/**
  * @tc.name: GetCrossAxisState
  * @tc.desc: GetCrossAxisState
  * @tc.type: FUNC
