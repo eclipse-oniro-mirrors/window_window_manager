@@ -403,6 +403,84 @@ HWTEST_F(SceneSessionManagerTest14, SetWindowPositionInsertAfterNotMainWindow, T
 }
 
 /**
+ * @tc.name: SetWindowPositionInsertAfterVirtualScreen
+ * @tc.desc: test function : SetWindowPosition with insertAfter target on a virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest14, SetWindowPositionInsertAfterVirtualScreen, TestSize.Level1)
+{
+    // 1. Set up the test environment
+    constexpr DisplayId VIRTUAL_DISPLAY_ID = 100;
+    sptr<SceneSession> sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->SetCallingPid(IPCSkeleton::GetCallingPid());
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+    sptr<SceneSession> targetSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(targetSession, nullptr);
+    targetSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    targetSession->SetCallingPid(IPCSkeleton::GetCallingPid());
+    targetSession->GetSessionProperty()->SetDisplayId(VIRTUAL_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ 2, targetSession });
+    // The window itself stays on a physical screen, only the insertAfter target is on a virtual one.
+    InsertDefaultPhysicalScreen();
+    ScreenSessionConfig config;
+    sptr<ScreenSession> virtualScreenSession =
+        sptr<ScreenSession>::MakeSptr(config, ScreenSessionReason::CREATE_SESSION_FOR_CLIENT);
+    virtualScreenSession->SetScreenType(ScreenType::VIRTUAL);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(
+        std::make_pair(VIRTUAL_DISPLAY_ID, virtualScreenSession));
+    WindowPositionParams position;
+    position.windowId = 1;
+    position.insertAfter = 2; // target is on a virtual screen
+    WindowPositionInfo windowPositionInfo;
+    windowPositionInfo.windowPositions.push_back(position);
+    // 2. Call the function to be tested
+    WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
+    // 3. Verify the result
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    ssm_->sceneSessionMap_.clear();
+    ClearScreenSessions();
+}
+
+/**
+ * @tc.name: SetWindowPositionInsertAfterOuterScreen
+ * @tc.desc: test function : SetWindowPosition with insertAfter target on super multi fold outer screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest14, SetWindowPositionInsertAfterOuterScreen, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "Not SPN device, skipping test.";
+    }
+    // 1. Set up the test environment
+    sptr<SceneSession> sceneSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    sceneSession->SetCallingPid(IPCSkeleton::GetCallingPid());
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+    sptr<SceneSession> targetSession = CreateSceneSession("test", WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    ASSERT_NE(targetSession, nullptr);
+    targetSession->SetSessionState(SessionState::STATE_FOREGROUND);
+    targetSession->SetCallingPid(IPCSkeleton::GetCallingPid());
+    targetSession->GetSessionProperty()->SetDisplayId(Session::SCREEN_ID_MAIN);
+    ssm_->sceneSessionMap_.insert({ 2, targetSession });
+    // The window itself stays on a normal screen, only the insertAfter target is on the outer screen.
+    InsertDefaultPhysicalScreen();
+    WindowPositionParams position;
+    position.windowId = 1;
+    position.insertAfter = 2; // target is on the super multi fold outer screen
+    WindowPositionInfo windowPositionInfo;
+    windowPositionInfo.windowPositions.push_back(position);
+    // 2. Call the function to be tested
+    WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
+    // 3. Verify the result
+    EXPECT_EQ(ret, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+    ssm_->sceneSessionMap_.clear();
+    ClearScreenSessions();
+}
+
+/**
  * @tc.name: SetWindowPositionSetMainWindowTopmost
  * @tc.desc: test function : SetWindowPosition sets the main window topmost property
  * @tc.type: FUNC

@@ -17174,20 +17174,31 @@ WSError SceneSessionManager::CheckSetWindowPositionWindowId(const WindowPosition
             position.windowId);
         return WSError::WS_ERROR_INVALID_WINDOW;
     }
+    WSError err = CheckSetWindowPositionDisplaySupport(sceneSession, "window", position.windowId);
+    if (err != WSError::WS_OK) {
+        return err;
+    }
+    if (sceneSession->GetSessionProperty()->IsMainWindowTopmost() &&
+        position.insertAfter == static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+        needTopmostOnRemove = true;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionDisplaySupport(const sptr<SceneSession>& sceneSession,
+    const std::string& targetName, const int32_t targetId)
+{
     if (sceneSession->IsSuperMultiFoldOuterScreen()) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "window on super multi fold outer screen, windowId: %{public}d",
-            position.windowId);
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on super multi fold outer screen, id: %{public}d",
+            targetName.c_str(), targetId);
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(sceneSession->GetDisplayId());
     if (screenSession == nullptr ||
         screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
-        TLOGE(WmsLogTag::WMS_HIERARCHY, "window on virtual screen, windowId: %{public}d", position.windowId);
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on virtual screen, id: %{public}d",
+            targetName.c_str(), targetId);
         return WSError::WS_ERROR_INVALID_SESSION;
-    }
-    if (sceneSession->GetSessionProperty()->IsMainWindowTopmost() &&
-        position.insertAfter == static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
-        needTopmostOnRemove = true;
     }
     return WSError::WS_OK;
 }
@@ -17208,7 +17219,7 @@ WSError SceneSessionManager::CheckSetWindowPositionInsertAfter(const WindowPosit
             position.insertAfter);
         return WSError::WS_ERROR_INVALID_CALLING;
     }
-    return WSError::WS_OK;
+    return CheckSetWindowPositionDisplaySupport(insertAfterSession, "insertAfter target", position.insertAfter);
 }
 
 WSError SceneSessionManager::CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
