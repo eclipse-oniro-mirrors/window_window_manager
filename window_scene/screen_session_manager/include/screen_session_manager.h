@@ -946,6 +946,7 @@ private:
      */
     void SetGotScreenOffAndWakeUpBlock();
     void WakeUpPictureFrameBlock(DisplayEvent event);
+    void ScreenDisconnectSetTpFeatureForSuperFold();
 
     /**
      * multi user concurrency

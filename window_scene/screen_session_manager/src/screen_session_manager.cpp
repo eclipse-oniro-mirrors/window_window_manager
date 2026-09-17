@@ -315,6 +315,10 @@ static const std::unordered_map<std::string, GraphicCM_ColorSpaceType> GRAPHIC_C
     {"p3", GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL}
 };
 
+#ifdef TP_FEATURE_ENABLE
+    const int32_t TP_TYPE_EXTENDED_SCREEN = 32;
+#endif
+
 // based on the bundle_util
 // LCOV_EXCL_START
 inline int32_t GetUserIdByCallingUid()
@@ -2577,6 +2581,10 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
         auto displayMode = GetFoldDisplayMode();
         if (displayMode == FoldDisplayMode::MAIN) {
             PowerMgr::PowerMgrClient::GetInstance().SuspendDevice();
+#ifdef TP_FEATURE_ENABLE
+            std::string connectExtendedScreen_Tp = "1";
+            rsInterface_.SetTpFeatureConfig(TP_TYPE_EXTENDED_SCREEN, connectExtendedScreen_Tp.c_str());
+#endif
         }
     }
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
@@ -2788,11 +2796,26 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
         return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
     };
     ScreenDisconnectWakeUpDevice();
+    ScreenDisconnectSetTpFeatureForSuperFold();
     if (g_setLocalResolution && isExternalRealScreen(screenSession)) {
         TLOGNFI(WmsLogTag::DMS, "External screen disconnected, check if need restore custom resolution");
         RestoreCustomResolution();
     }
     TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
+}
+
+void ScreenSessionManager::ScreenDisconnectSetTpFeatureForSuperFold()
+{
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && CountRealPhysicalScreensNotInternal() <= 0) {
+        auto displayMode = GetFoldDisplayMode();
+        if (displayMode == FoldDisplayMode::MAIN) {
+#ifdef TP_FEATURE_ENABLE
+            std::string disconnectExtendedScreen_Tp = "0";
+            TLOGNFI(WmsLogTag::DMS, "Set Tp Feature Config");
+            rsInterface_.SetTpFeatureConfig(TP_TYPE_EXTENDED_SCREEN, disconnectExtendedScreen_Tp.c_str());
+#endif
+        }
+    }
 }
 
 void ScreenSessionManager::ScreenDisconnectWakeUpDevice()
