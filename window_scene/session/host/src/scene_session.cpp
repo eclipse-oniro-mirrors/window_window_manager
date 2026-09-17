@@ -7155,6 +7155,12 @@ WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
             return WMError::WM_ERROR_INVALID_PERMISSION;
         }
     }
+    if (action == WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION) {
+        if (!SessionPermission::IsSystemCalling() &&
+            !SessionPermission::VerifyCallingPermission("ohos.permission.SET_WINDOW_TOUCH_AREAS")) {
+            return WMError::WM_ERROR_INVALID_PERMISSION;
+        }
+    }
     if (action == WSPropertyChangeAction::ACTION_UPDATE_MAIN_WINDOW_TOPMOST) {
         uint32_t accessTokenId = property->GetAccessTokenId();
         if (!SessionPermission::VerifyPermissionByCallerToken(accessTokenId,
@@ -7482,6 +7488,8 @@ WMError SceneSession::ProcessUpdatePropertyByAction(const sptr<WindowSessionProp
         case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG):
             return HandleActionUpdateAnimationFlag(property, action);
         case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA):
+            return HandleActionUpdateTouchHotArea(property, action);
+        case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION):
             return HandleActionUpdateTouchHotArea(property, action);
         case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_KEYBOARD_TOUCH_HOT_AREA):
             return HandleActionUpdateKeyboardTouchHotArea(property, action);

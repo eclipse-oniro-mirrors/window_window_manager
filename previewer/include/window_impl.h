@@ -212,6 +212,7 @@ public:
     virtual Orientation GetRequestedOrientation() override;
     virtual void SetNeedRemoveWindowInputChannel(bool needRemoveWindowInputChannel) override;
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) override;
+    virtual WMError SetTouchableAreas(const std::vector<Rect>& rects) override;
     virtual void GetRequestedTouchHotAreas(std::vector<Rect>& rects) const override;
     virtual WMError SetAPPWindowLabel(const std::string& label) override;
     virtual WMError SetAPPWindowIcon(const std::shared_ptr<Media::PixelMap>& icon) override;

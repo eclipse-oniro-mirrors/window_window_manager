@@ -5971,14 +5971,7 @@ napi_value JsWindow::OnSetTouchableAreas(napi_env env, napi_callback_info info)
                 "[window][setTouchableAreas]msg:window is null"));
             return;
         }
-        if (!Permission::IsSystemCalling() &&
-            !Permission::CheckSelfPermission("ohos.permission.SET_WINDOW_TOUCH_AREAS")) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "OnSetTouchableAreas permission denied!");
-            task->Reject(
-                env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NO_PERMISSION, "OnSetTouchableAreas failed"));
-            return;
-        }
-        WMError ret = weakWindow->SetTouchHotAreas(touchableAreas);
+        WMError ret = weakWindow->SetTouchableAreas(touchableAreas);
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {

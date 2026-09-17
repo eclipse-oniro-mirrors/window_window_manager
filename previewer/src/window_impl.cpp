@@ -1142,6 +1142,12 @@ WMError WindowImpl::SetTouchHotAreas(const std::vector<Rect>& rects)
 {
     return WMError::WM_OK;
 }
+
+WMError WindowImpl::SetTouchableAreas(const std::vector<Rect>& rects)
+{
+    return WMError::WM_OK;
+}
+
 void WindowImpl::GetRequestedTouchHotAreas(std::vector<Rect>& rects) const
 {
 }

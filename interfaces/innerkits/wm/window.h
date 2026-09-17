@@ -3105,6 +3105,14 @@ public:
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) { return WMError::WM_OK; }
 
     /**
+     * @brief Set touchable areas, permission check is required on the server side.
+     *
+     * @param rects Touchable areas of touching.
+     * @return WM_OK means set success, others means set failed.
+     */
+    virtual WMError SetTouchableAreas(const std::vector<Rect>& rects) { return WMError::WM_OK; }
+
+    /**
      * @brief Set keyboard touch hot areas.
      *
      * @param hotAreas keyboard hot areas of touching.

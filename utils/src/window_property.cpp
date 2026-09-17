@@ -861,6 +861,9 @@ bool WindowProperty::Write(Parcel& parcel, PropertyChangeAction action)
         case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA:
             ret = ret && MarshallingTouchHotAreas(parcel);
             break;
+        case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION:
+            ret = ret && MarshallingTouchHotAreas(parcel);
+            break;
         case PropertyChangeAction::ACTION_UPDATE_TRANSFORM_PROPERTY:
             ret = ret && MarshallingTransform(parcel);
             break;
@@ -940,6 +943,9 @@ void WindowProperty::Read(Parcel& parcel, PropertyChangeAction action)
             SetWindowModeSupportType(parcel.ReadUint32());
             break;
         case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA:
+            UnmarshallingTouchHotAreas(parcel, this);
+            break;
+        case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION:
             UnmarshallingTouchHotAreas(parcel, this);
             break;
         case PropertyChangeAction::ACTION_UPDATE_TRANSFORM_PROPERTY:
