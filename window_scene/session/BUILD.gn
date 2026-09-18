@@ -357,6 +357,7 @@ ohos_shared_library("scene_session") {
     "init:libbegetutil",
     "input:libmmi-client",
     "ipc:ipc_single",
+    "samgr:samgr_proxy",
     "zlib:shared_libz",
     "egl:libEGL",
     "opengles:libGLES",
