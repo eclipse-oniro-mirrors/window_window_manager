@@ -87,6 +87,7 @@ group("unittest") {
       ":ws_move_drag_controller_test",
       ":ws_multi_instance_manager_test",
       ":ws_pc_fold_screen_controller_test",
+      ":ws_persistent_id_allocator_test",
       ":ws_scene_screen_change_listener_test",
       ":ws_scene_session_lifecycle_test",
       ":ws_scene_session_manager_kiosk_test",
@@ -343,6 +344,21 @@ ohos_unittest("ws_session_permission_test") {
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
+}
+
+ohos_unittest("ws_persistent_id_allocator_test") {
+  module_out_path = module_out_path
+
+  sources = [ "persistent_id_allocator_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "init:libbegetutil",
+    "preferences:native_preferences",
+    "samgr:samgr_proxy",
+  ]
 }
 
 ohos_unittest("ws_session_listener_controller_test") {

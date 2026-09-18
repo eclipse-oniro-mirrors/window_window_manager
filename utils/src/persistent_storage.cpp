@@ -29,6 +29,7 @@ template void PersistentStorage::Get(const std::string&, float&, PersistentStora
 std::map<PersistentStorageType, std::string> PersistentStorage::storagePath_ = {
     { PersistentStorageType::ASPECT_RATIO, "/data/service/el1/public/window/window_aspect_ratio.xml" },
     { PersistentStorageType::MAXIMIZE_STATE, "/data/service/el1/public/window/window_maximize_state.xml" },
+    { PersistentStorageType::KEY_ID, "/data/service/el1/public/window/window_key_id.xml" },
 };
 
 bool PersistentStorage::HasKey(const std::string& key, PersistentStorageType storageType)
@@ -91,6 +92,12 @@ void PersistentStorage::Insert(const std::string& key, const T& value, Persisten
                 key.c_str(), static_cast<int>(value));
             break;
         }
+        case PersistentStorageType::KEY_ID: {
+            pref->PutInt(key, value);
+            WLOGFD("[PersistentStorage] Insert key id, key %{public}s, value %{public}d",
+                key.c_str(), static_cast<int>(value));
+            break;
+        }
         default:
             WLOGFW("[PersistentStorage] Unknown storage type!");
     }
@@ -115,6 +122,12 @@ void PersistentStorage::Get(const std::string& key, T& value, PersistentStorageT
         case PersistentStorageType::MAXIMIZE_STATE: {
             value = pref->GetInt(key);
             WLOGFD("[PersistentStorage] Get Maximize state, key: %{public}s, value:%{public}d",
+                key.c_str(), static_cast<int>(value));
+            break;
+        }
+        case PersistentStorageType::KEY_ID: {
+            value = pref->GetInt(key);
+            WLOGFD("[PersistentStorage] Get key id, key: %{public}s, value:%{public}d",
                 key.c_str(), static_cast<int>(value));
             break;
         }

@@ -152,6 +152,7 @@ ohos_static_library("scene_session_static") {
     "host/src/zidl/session_stub.cpp",
     "host/src/zidl/scene_node_count_callback_proxy.cpp",
     "host/src/zidl/scene_node_count_callback_stub.cpp",
+    "persistent_id/src/persistent_id_allocator.cpp",
   ]
 
   if (window_manager_feature_asbng_path_enable) {
@@ -159,6 +160,8 @@ ohos_static_library("scene_session_static") {
   }
 
   public_configs = [ ":session_public_config" ]
+
+  configs = [ "${window_base_path}/wmserver:libidl_config" ]
 
   deps = [
     "${window_base_path}/dm:libdm",
@@ -169,6 +172,7 @@ ohos_static_library("scene_session_static") {
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
     "${window_base_path}/window_scene/session:screen_session",
+    "${window_base_path}/wmserver:mock_session_manager_service_proxy",
   ]
 
   external_deps = [
@@ -302,6 +306,7 @@ ohos_shared_library("scene_session") {
     "host/src/zidl/session_stub.cpp",
     "host/src/zidl/scene_node_count_callback_proxy.cpp",
     "host/src/zidl/scene_node_count_callback_stub.cpp",
+    "persistent_id/src/persistent_id_allocator.cpp",
   ]
 
   if (window_manager_feature_asbng_path_enable) {
@@ -312,6 +317,8 @@ ohos_shared_library("scene_session") {
 
   public_configs = [ ":session_public_config" ]
 
+  configs = [ "${window_base_path}/wmserver:libidl_config" ]
+
   deps = [
     "${window_base_path}/dm:libdm",
     "${window_base_path}/utils:libwmutil",
@@ -321,6 +328,7 @@ ohos_shared_library("scene_session") {
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
     "${window_base_path}/window_scene/screen_session_manager_client:screen_session_manager_client",
     "${window_base_path}/window_scene/session:screen_session",
+    "${window_base_path}/wmserver:mock_session_manager_service_proxy",
   ]
 
   external_deps = [

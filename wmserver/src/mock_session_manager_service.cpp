@@ -35,6 +35,7 @@
 #include "window_manager_hilog.h"
 #include "unique_fd.h"
 #include "parameters.h"
+#include "persistent_id_manager.h"
 #include "root_scene.h"
 #include "string_ex.h"
 #include "wm_common.h"
@@ -1436,6 +1437,21 @@ ErrCode MockSessionManagerService::GetActiveUserIds(std::vector<int32_t>& active
     TLOGD(WmsLogTag::WMS_MULTI_USER,
         "GetActiveUserIds returns %{public}zu active users",
         activeUserIds.size());
+    return ERR_OK;
+}
+
+ErrCode MockSessionManagerService::AcquireKeyId(int32_t userId, int32_t& keyId)
+{
+    keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
+    if (keyId == INVALID_KEY_ID) {
+        TLOGW(WmsLogTag::WMS_LIFE, "acquire keyId failed, userId: %{public}d", userId);
+    }
+    return ERR_OK;
+}
+
+ErrCode MockSessionManagerService::SyncKeyId(int32_t userId, int32_t keyId, bool& isSuccess)
+{
+    isSuccess = PersistentIdManager::GetInstance().SyncKeyId(userId, keyId);
     return ERR_OK;
 }
 

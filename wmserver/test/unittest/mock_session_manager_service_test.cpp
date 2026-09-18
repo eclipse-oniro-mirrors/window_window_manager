@@ -15,8 +15,10 @@
 
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <errors.h>
 #include "mock_session_manager_service.h"
 #include "display_manager.h"
+#include "persistent_id_manager.h"
 #include "string_ex.h"
 #include "window_agent.h"
 #include "window_impl.h"
@@ -261,5 +263,131 @@ HWTEST_F(MockSessionManagerServiceTest, GetProcessSurfaceNodeIdByPersistentId, T
     ASSERT_EQ(0, surfaceNodeIds.size());
 }
 }
+
+/**
+ * @tc.name: AcquireKeyId01
+ * @tc.desc: The IPC entry returns ERR_OK and hands out a valid keyId; syncing the
+ *           same keyId for the same userId succeeds.
+ * @tc.type: FUNC
+ */
+HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId01, TestSize.Level1)
+{
+    int32_t keyId = INVALID_KEY_ID;
+    ErrCode ret = MockSessionManagerService::GetInstance().AcquireKeyId(5001, keyId);
+    EXPECT_EQ(ret, ERR_OK);
+    EXPECT_GT(keyId, INVALID_KEY_ID);
+    bool isSuccess = false;
+    ret = MockSessionManagerService::GetInstance().SyncKeyId(5001, keyId, isSuccess);
+    EXPECT_EQ(ret, ERR_OK);
+    EXPECT_TRUE(isSuccess);
 }
+
+/*
+ * Tests for PersistentIdManager. The manager is a singleton, so its occupation map
+ * grows across the cases below (they run in declaration order, like the rest of
+ * this suite). The cases avoid depending on the concrete keyId space size, which
+ * follows the product device type (4 by default, 16 on car/pc products).
+ */
+class PersistentIdManagerTest : public testing::Test {
+public:
+    static void SetUpTestCase() {}
+    static void TearDownTestCase() {}
+    void SetUp() override {}
+    void TearDown() override {}
+
+    static constexpr int32_t USER_A = 3001;
+    static constexpr int32_t USER_B = 3002;
+};
+
+/**
+ * @tc.name: AcquireKeyId01
+ * @tc.desc: Two different sceneboard users get two different valid keyIds.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PersistentIdManagerTest, AcquireKeyId01, TestSize.Level1)
+{
+    int32_t keyIdA = PersistentIdManager::GetInstance().AcquireKeyId(USER_A);
+    EXPECT_GT(keyIdA, INVALID_KEY_ID);
+    int32_t keyIdB = PersistentIdManager::GetInstance().AcquireKeyId(USER_B);
+    EXPECT_GT(keyIdB, INVALID_KEY_ID);
+    EXPECT_NE(keyIdA, keyIdB);
 }
+
+/**
+ * @tc.name: AcquireKeyId02
+ * @tc.desc: Acquiring is idempotent for the same userId.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PersistentIdManagerTest, AcquireKeyId02, TestSize.Level1)
+{
+    int32_t keyId = PersistentIdManager::GetInstance().AcquireKeyId(USER_A);
+    EXPECT_GT(keyId, INVALID_KEY_ID);
+    EXPECT_EQ(keyId, PersistentIdManager::GetInstance().AcquireKeyId(USER_A));
+}
+
+/**
+ * @tc.name: AcquireKeyId03
+ * @tc.desc: Illegal user ids are rejected.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PersistentIdManagerTest, AcquireKeyId03, TestSize.Level1)
+{
+    EXPECT_EQ(PersistentIdManager::GetInstance().AcquireKeyId(0), INVALID_KEY_ID);
+    EXPECT_EQ(PersistentIdManager::GetInstance().AcquireKeyId(-1), INVALID_KEY_ID);
+}
+
+/**
+ * @tc.name: SyncKeyId01
+ * @tc.desc: Syncing a keyId occupied by the same userId is idempotent; a keyId
+ *           occupied by another userId is rejected.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PersistentIdManagerTest, SyncKeyId01, TestSize.Level1)
+{
+    int32_t occupied = PersistentIdManager::GetInstance().AcquireKeyId(3003);
+    ASSERT_GT(occupied, INVALID_KEY_ID);
+    EXPECT_TRUE(PersistentIdManager::GetInstance().SyncKeyId(3003, occupied));
+    EXPECT_TRUE(PersistentIdManager::GetInstance().SyncKeyId(3003, occupied));
+    EXPECT_FALSE(PersistentIdManager::GetInstance().SyncKeyId(3004, occupied));
+}
+
+/**
+ * @tc.name: SyncKeyId02
+ * @tc.desc: Illegal arguments are rejected.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PersistentIdManagerTest, SyncKeyId02, TestSize.Level1)
+{
+    EXPECT_FALSE(PersistentIdManager::GetInstance().SyncKeyId(3005, 0));
+    EXPECT_FALSE(PersistentIdManager::GetInstance().SyncKeyId(3005, -1));
+    EXPECT_FALSE(PersistentIdManager::GetInstance().SyncKeyId(3005, 17)); // above the largest keyId space
+    EXPECT_FALSE(PersistentIdManager::GetInstance().SyncKeyId(0, 1));
+    EXPECT_FALSE(PersistentIdManager::GetInstance().SyncKeyId(-1, 1));
+}
+
+/**
+ * @tc.name: ReuseWhenExhausted01
+ * @tc.desc: When the keyId space is exhausted, a new sceneboard still gets a usable
+ *           (already occupied, round-robin reused) keyId instead of an invalid one.
+ *           Runs late because it fills the singleton map.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PersistentIdManagerTest, ReuseWhenExhausted01, TestSize.Level1)
+{
+    int32_t userId = 4000;
+    int32_t allocated = 0;
+    int32_t keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
+    while (allocated < 20 && keyId > INVALID_KEY_ID) {
+        EXPECT_GT(keyId, INVALID_KEY_ID);
+        EXPECT_LE(keyId, 16); // the largest keyId space has 16 slots
+        ++allocated;
+        ++userId;
+        keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
+    }
+    EXPECT_GT(allocated, 0);
+    // Even past exhaustion the answer stays a usable keyId inside the space.
+    EXPECT_GT(keyId, INVALID_KEY_ID);
+    EXPECT_LE(keyId, 16);
+}
+} // namespace Rosen
+} // namespace OHOS
