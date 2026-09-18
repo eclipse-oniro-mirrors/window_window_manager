@@ -2794,7 +2794,6 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
     };
     ScreenDisconnectWakeUpDevice();
     SetTpFeatureWhenScreenDisconnect();
-    ScreenDisconnectSetTpFeatureForSuperFold();
     if (g_setLocalResolution && isExternalRealScreen(screenSession)) {
         TLOGNFI(WmsLogTag::DMS, "External screen disconnected, check if need restore custom resolution");
         RestoreCustomResolution();
