@@ -44,12 +44,12 @@ private:
         AVAILABLE,
     };
 
-    bool EnsureKeyIdLocked();
+    bool EnsureKeyId();
     int32_t GenerateSessionIdLocked();
     int32_t GenerateExtensionLocalLocked();
     int32_t GenerateLocalFallbackLocked();
     void MarkUsedLocked(int32_t persistentId);
-    int32_t GetUserIdLocked() const;
+    int32_t GetUserId() const;
 
     std::mutex mutex_;
     KeyIdState keyIdState_ = KeyIdState::NOT_READY;

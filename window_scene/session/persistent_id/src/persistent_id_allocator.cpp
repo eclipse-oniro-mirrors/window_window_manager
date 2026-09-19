@@ -25,7 +25,7 @@
 #include <system_ability_definition.h>
 
 #include "parameters.h"
-#include "persistent_storage.h"
+#include "session/host/include/scene_persistent_storage.h"
 #include "imock_session_manager_interface.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
@@ -45,15 +45,12 @@ constexpr uint32_t LOCAL_FALLBACK_ID_LIMIT = 2000000;
 constexpr uint32_t LOCAL_ID_STRIDE = 1000; 
 constexpr int32_t FIRST_RECORD_ID = 2;
 const std::string DEVICE_TYPE_CAR = "car";
-const std::string DEVICE_TYPE_PC = "pc";
-const std::string DEVICE_TYPE_2IN1 = "2in1";
 
 uint32_t GetSessionIdStride()
 {
     static const uint32_t stride = [] {
         const std::string deviceType = system::GetParameter("const.product.devicetype", "");
-        if (deviceType == DEVICE_TYPE_CAR || deviceType == DEVICE_TYPE_PC ||
-            deviceType == DEVICE_TYPE_2IN1) {
+        if (deviceType == DEVICE_TYPE_CAR) {
             return STRIDE_LARGE_SCENE;
         }
         return STRIDE_DEFAULT;
@@ -65,8 +62,7 @@ int32_t GetMaxKeyId()
 {
     static const int32_t maxKeyId = [] {
         const std::string deviceType = system::GetParameter("const.product.devicetype", "");
-        if (deviceType == DEVICE_TYPE_CAR || deviceType == DEVICE_TYPE_PC ||
-            deviceType == DEVICE_TYPE_2IN1) {
+        if (deviceType == DEVICE_TYPE_CAR) {
             return KEY_ID_MAX_LARGE_SCENE;
         }
         return KEY_ID_MAX_DEFAULT;
@@ -152,7 +148,7 @@ int32_t PersistentIdAllocator::ComposeLocalSessionId(uint32_t recordId, uint32_t
     return static_cast<int32_t>(LOCAL_FALLBACK_ID_BASE + uid % LOCAL_ID_STRIDE * LOCAL_ID_STRIDE + recordId);
 }
 
-int32_t PersistentIdAllocator::GetUserIdLocked() const
+int32_t PersistentIdAllocator::GetUserId() const
 {
     return GetUserIdByUid(static_cast<int32_t>(getuid()));
 }
@@ -162,39 +158,59 @@ void PersistentIdAllocator::MarkUsedLocked(int32_t persistentId)
     usedIds_.insert(persistentId);
 }
 
-bool PersistentIdAllocator::EnsureKeyIdLocked()
+bool PersistentIdAllocator::EnsureKeyId()
 {
-    if (keyIdState_ == KeyIdState::AVAILABLE) {
-        return true;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (keyIdState_ == KeyIdState::AVAILABLE) {
+            return true;
+        }
     }
 
-    const int32_t userId = GetUserIdLocked();
+    const int32_t userId = GetUserId();
     const int32_t maxKeyId = GetMaxKeyId();
     int32_t persistedKeyId = INVALID_KEY_ID;
-    PersistentStorage::Get(GetStorageKey(userId), persistedKeyId, PersistentStorageType::KEY_ID);
+    ScenePersistentStorage::Get(GetStorageKey(userId), persistedKeyId, ScenePersistentStorageType::KEY_ID);
+    int32_t grantedKeyId = INVALID_KEY_ID;
     if (persistedKeyId > INVALID_KEY_ID && persistedKeyId <= maxKeyId) {
         bool isOccupied = false;
         if (SyncKeyIdWithRetry(userId, persistedKeyId, isOccupied) && isOccupied) {
-            keyId_ = persistedKeyId;
-            keyIdState_ = KeyIdState::AVAILABLE;
+            grantedKeyId = persistedKeyId;
             TLOGI(WmsLogTag::WMS_LIFE, "restore keyId: %{public}d from storage, userId: %{public}d",
-                keyId_, userId);
-            return true;
+                grantedKeyId, userId);
+        } else {
+            TLOGW(WmsLogTag::WMS_LIFE, "sync persisted keyId: %{public}d failed, try allocating a new one",
+                persistedKeyId);
         }
-        TLOGW(WmsLogTag::WMS_LIFE, "sync persisted keyId: %{public}d failed, try allocating a new one",
-            persistedKeyId);
     }
-    int32_t keyId = INVALID_KEY_ID;
-    if (AcquireKeyIdWithRetry(userId, keyId) && keyId > INVALID_KEY_ID && keyId <= maxKeyId) {
-        keyId_ = keyId;
+    if (grantedKeyId == INVALID_KEY_ID) {
+        int32_t keyId = INVALID_KEY_ID;
+        if (AcquireKeyIdWithRetry(userId, keyId) && keyId > INVALID_KEY_ID && keyId <= maxKeyId) {
+            ScenePersistentStorage::Insert(GetStorageKey(userId), keyId, ScenePersistentStorageType::KEY_ID);
+            int32_t persistedCheck = INVALID_KEY_ID;
+            ScenePersistentStorage::Get(GetStorageKey(userId), persistedCheck,
+                ScenePersistentStorageType::KEY_ID);
+            if (persistedCheck != keyId) {
+                TLOGW(WmsLogTag::WMS_LIFE,
+                    "persist keyId: %{public}d failed, retry on next acquire, userId: %{public}d",
+                    keyId, userId);
+                return false;
+            }
+            grantedKeyId = keyId;
+            TLOGI(WmsLogTag::WMS_LIFE, "acquire keyId: %{public}d from foundation, userId: %{public}d",
+                grantedKeyId, userId);
+        }
+    }
+    if (grantedKeyId == INVALID_KEY_ID) {
+        TLOGW(WmsLogTag::WMS_LIFE, "acquire keyId failed, use local fallback, userId: %{public}d", userId);
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (keyIdState_ != KeyIdState::AVAILABLE) {
+        keyId_ = grantedKeyId;
         keyIdState_ = KeyIdState::AVAILABLE;
-        PersistentStorage::Insert(GetStorageKey(userId), keyId_, PersistentStorageType::KEY_ID);
-        TLOGI(WmsLogTag::WMS_LIFE, "acquire keyId: %{public}d from foundation, userId: %{public}d",
-            keyId_, userId);
-        return true;
     }
-    TLOGW(WmsLogTag::WMS_LIFE, "acquire keyId failed, use local fallback, userId: %{public}d", userId);
-    return false;
+    return true;
 }
 
 int32_t PersistentIdAllocator::GenerateSessionIdLocked()
@@ -253,18 +269,25 @@ int32_t PersistentIdAllocator::GenerateLocalFallbackLocked()
 
 int32_t PersistentIdAllocator::Acquire(bool isExtension, int32_t specifiedId)
 {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (specifiedId != INVALID_SESSION_ID && usedIds_.count(specifiedId) == 0) {
+            MarkUsedLocked(specifiedId);
+            return specifiedId;
+        }
+        if (isExtension) {
+            return GenerateExtensionLocalLocked();
+        }
+        if (keyIdState_ == KeyIdState::AVAILABLE) {
+            return GenerateSessionIdLocked();
+        }
+    }
+    if (!EnsureKeyId()) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return GenerateLocalFallbackLocked();
+    }
     std::lock_guard<std::mutex> lock(mutex_);
-    if (specifiedId != INVALID_SESSION_ID && usedIds_.count(specifiedId) == 0) {
-        MarkUsedLocked(specifiedId);
-        return specifiedId;
-    }
-    if (isExtension) {
-        return GenerateExtensionLocalLocked();
-    }
-    if (EnsureKeyIdLocked()) {
-        return GenerateSessionIdLocked();
-    }
-    return GenerateLocalFallbackLocked();
+    return GenerateSessionIdLocked();
 }
 } // namespace Rosen
 } // namespace OHOS

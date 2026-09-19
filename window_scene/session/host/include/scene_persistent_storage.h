@@ -30,6 +30,7 @@ enum class ScenePersistentStorageType : uint32_t {
     UKNOWN = 0,
     ASPECT_RATIO,
     MAXIMIZE_STATE,
+    KEY_ID,
 };
 
 class ScenePersistentStorage {
@@ -61,6 +62,12 @@ public:
                     key.c_str(), static_cast<int>(value));
                 break;
             }
+            case ScenePersistentStorageType::KEY_ID: {
+                pref->PutInt(key, value);
+                WLOGD("[ScenePersistentStorage] Insert key id, key %{public}s, value %{public}d",
+                    key.c_str(), static_cast<int>(value));
+                break;
+            }
             default:
                 WLOGW("[ScenePersistentStorage] Unknown storage type!");
         }
@@ -86,6 +93,12 @@ public:
             case ScenePersistentStorageType::MAXIMIZE_STATE: {
                 value = pref->GetInt(key);
                 WLOGD("[ScenePersistentStorage] Get Maximize state, key: %{public}s, value:%{public}d",
+                    key.c_str(), static_cast<int>(value));
+                break;
+            }
+            case ScenePersistentStorageType::KEY_ID: {
+                value = pref->GetInt(key);
+                WLOGD("[ScenePersistentStorage] Get key id, key: %{public}s, value:%{public}d",
                     key.c_str(), static_cast<int>(value));
                 break;
             }

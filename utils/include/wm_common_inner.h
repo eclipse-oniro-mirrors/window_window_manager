@@ -209,7 +209,6 @@ enum class PersistentStorageType : uint32_t {
     UKNOWN = 0,
     ASPECT_RATIO,
     MAXIMIZE_STATE,
-    KEY_ID,
 };
 
 struct MoveDragProperty : public Parcelable {

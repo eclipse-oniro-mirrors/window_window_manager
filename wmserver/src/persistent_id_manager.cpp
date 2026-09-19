@@ -23,14 +23,9 @@
 namespace OHOS {
 namespace Rosen {
 namespace {
-// Keep consistent with the stride the sceneboard uses to compose session ids
-// (PersistentIdAllocator in window_scene/session/persistent_id): car/pc/2in1
-// products use a 16-slot keyId space with stride 16, others use 4 with stride 4.
 constexpr int32_t DEFAULT_MAX_KEY_ID = 4;
 constexpr int32_t LARGE_SCENE_MAX_KEY_ID = 16;
 const std::string DEVICE_TYPE_CAR = "car";
-const std::string DEVICE_TYPE_PC = "pc";
-const std::string DEVICE_TYPE_2IN1 = "2in1";
 } // namespace
 
 WM_IMPLEMENT_SINGLE_INSTANCE(PersistentIdManager)
@@ -39,8 +34,7 @@ int32_t PersistentIdManager::MaxKeyId()
 {
     static const int32_t maxKeyId = [] {
         const std::string deviceType = system::GetParameter("const.product.devicetype", "");
-        if (deviceType == DEVICE_TYPE_CAR || deviceType == DEVICE_TYPE_PC ||
-            deviceType == DEVICE_TYPE_2IN1) {
+        if (deviceType == DEVICE_TYPE_CAR) {
             return LARGE_SCENE_MAX_KEY_ID;
         }
         return DEFAULT_MAX_KEY_ID;
