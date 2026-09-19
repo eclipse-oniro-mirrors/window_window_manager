@@ -167,6 +167,10 @@ bool PersistentIdAllocator::EnsureKeyId()
         }
     }
 
+    if (!ScenePersistentStorage::IsStorageReady(ScenePersistentStorageType::KEY_ID)) {
+        return false;
+    }
+
     const int32_t userId = GetUserId();
     const int32_t maxKeyId = GetMaxKeyId();
     int32_t persistedKeyId = INVALID_KEY_ID;

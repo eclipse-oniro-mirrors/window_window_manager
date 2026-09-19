@@ -81,6 +81,12 @@ void ScenePersistentStorage::InitDir(std::string dir)
     };
 }
 
+bool ScenePersistentStorage::IsStorageReady(ScenePersistentStorageType storageType)
+{
+    std::shared_lock<std::shared_mutex> lock(storageMutex_);
+    return storagePath_.find(storageType) != storagePath_.end();
+}
+
 void ScenePersistentStorage::RenameKeys(const std::map<std::string, std::string>& renameMap,
     ScenePersistentStorageType storageType)
 {

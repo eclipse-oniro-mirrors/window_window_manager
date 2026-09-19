@@ -113,6 +113,12 @@ public:
     static void Delete(const std::string& key, ScenePersistentStorageType storageType);
     static void InitDir(std::string dir);
 
+    // Returns true once InitDir has registered the file of the storage type, i.e.
+    // reads and writes can actually reach the file. Callers that must not miss a
+    // stored value (the keyId plan) wait for this instead of guessing between
+    // "no record yet" and "storage not set up yet".
+    static bool IsStorageReady(ScenePersistentStorageType storageType);
+
 private:
     static constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "ScenePersistentStorage"};
     static std::string saveDir_;
