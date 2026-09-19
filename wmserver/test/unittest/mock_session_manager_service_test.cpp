@@ -266,20 +266,23 @@ HWTEST_F(MockSessionManagerServiceTest, GetProcessSurfaceNodeIdByPersistentId, T
 
 /**
  * @tc.name: AcquireKeyId01
- * @tc.desc: The IPC entry returns ERR_OK and hands out a valid keyId; syncing the
- *           same keyId for the same userId succeeds.
+ * @tc.desc: The IPC entry must not trust the caller-supplied userId: a caller may
+ *           only touch the keyId of its own user (derived from the calling uid).
+ *           On the host the calling uid derives a different userId, so the call
+ *           is rejected before reaching the allocator. The granted path itself
+ *           is covered by PersistentIdManagerTest below.
  * @tc.type: FUNC
  */
 HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId01, TestSize.Level1)
 {
     int32_t keyId = INVALID_KEY_ID;
     ErrCode ret = MockSessionManagerService::GetInstance().AcquireKeyId(5001, keyId);
-    EXPECT_EQ(ret, ERR_OK);
-    EXPECT_GT(keyId, INVALID_KEY_ID);
-    bool isSuccess = false;
-    ret = MockSessionManagerService::GetInstance().SyncKeyId(5001, keyId, isSuccess);
-    EXPECT_EQ(ret, ERR_OK);
-    EXPECT_TRUE(isSuccess);
+    EXPECT_EQ(ret, ERR_INVALID_VALUE);
+    EXPECT_EQ(keyId, INVALID_KEY_ID);
+    bool isSuccess = true;
+    ret = MockSessionManagerService::GetInstance().SyncKeyId(5001, 1, isSuccess);
+    EXPECT_EQ(ret, ERR_INVALID_VALUE);
+    EXPECT_FALSE(isSuccess);
 }
 
 /*

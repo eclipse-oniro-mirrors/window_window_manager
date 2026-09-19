@@ -1442,6 +1442,17 @@ ErrCode MockSessionManagerService::GetActiveUserIds(std::vector<int32_t>& active
 
 ErrCode MockSessionManagerService::AcquireKeyId(int32_t userId, int32_t& keyId)
 {
+    keyId = INVALID_KEY_ID;
+    const int32_t callingUserId = GetUserIdByCallingUid();
+    if (callingUserId <= INVALID_USER_ID || callingUserId != userId) {
+        TLOGE(WmsLogTag::WMS_LIFE, "calling user does not match, userId: %{public}d, calling: %{public}d",
+            userId, callingUserId);
+        return ERR_INVALID_VALUE;
+    }
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "permission denied");
+        return ERR_PERMISSION_DENIED;
+    }
     keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
     if (keyId == INVALID_KEY_ID) {
         TLOGW(WmsLogTag::WMS_LIFE, "acquire keyId failed, userId: %{public}d", userId);
@@ -1451,6 +1462,17 @@ ErrCode MockSessionManagerService::AcquireKeyId(int32_t userId, int32_t& keyId)
 
 ErrCode MockSessionManagerService::SyncKeyId(int32_t userId, int32_t keyId, bool& isSuccess)
 {
+    isSuccess = false;
+    const int32_t callingUserId = GetUserIdByCallingUid();
+    if (callingUserId <= INVALID_USER_ID || callingUserId != userId) {
+        TLOGE(WmsLogTag::WMS_LIFE, "calling user does not match, userId: %{public}d, calling: %{public}d",
+            userId, callingUserId);
+        return ERR_INVALID_VALUE;
+    }
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "permission denied");
+        return ERR_PERMISSION_DENIED;
+    }
     isSuccess = PersistentIdManager::GetInstance().SyncKeyId(userId, keyId);
     return ERR_OK;
 }
