@@ -5281,7 +5281,9 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
         if (parentSession->GetSessionInfo().isSystem_ && property->GetIsUIExtFirstSubWindow() &&
             systemConfig_.supportUIExtensionSubWindow_) {
             property->SetWindowType(WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
-            ReportScbSystemSceneSubWindowCreate();
+            AAFwk::UIExtensionSessionInfo info;
+            AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);
+            ReportScbSystemSceneSubWindowCreate(info);
         }
     }
     auto initClientDisplayId = UpdateSpecificSessionClientDisplayId(property);
@@ -5492,17 +5494,17 @@ void SceneSessionManager::ReportSubWindowCreationFailure(int32_t pid, const std:
     }, __func__);
 }
 
-void SceneSessionManager::ReportScbSystemSceneSubWindowCreate()
+void SceneSessionManager::ReportScbSystemSceneSubWindowCreate(AAFwk::UIExtensionSessionInfo& info)
 {
     auto pid = IPCSkeleton::GetCallingRealPid();
-    taskScheduler_->PostAsyncTask([pid]() {
-        AAFwk::UIExtensionSessionInfo info;
-        AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);
+    auto bundleName = info.GetElementName().GetBundleName();
+    auto abilityNName = info.GetElementName().GetBundleName();
+    taskScheduler_->PostAsyncTask([pid, bundleName, abilityNName]() {
         std::ostringstream oss;
         oss << "" << parentBundleName;
         oss << "A subwindow is being created by a UIExtension, which is started by ScbSystemScene, "
-            "UIExtension bundleName: "<< info.GetElementName().GetBundleName();
-        oss << ", abilityName: " << info.GetElementName().GetAbilityName();
+            "UIExtension bundleName: "<< bundleName;
+        oss << ", abilityName: " << abilityNName;
         SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
             static_cast<int32_t>(WindowDFXHelperType::WINDOW_SCB_SYSTEM_SCENE_CREATE_SUBWINDOW), pid, oss.str());
     }, __func__);

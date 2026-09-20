@@ -1489,7 +1489,7 @@ private:
         const sptr<ISessionStage>& sessionStage);
     void ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName);
-    void ReportScbSystemSceneSubWindowCreate();
+    void ReportScbSystemSceneSubWindowCreate(AAFwk::UIExtensionSessionInfo& info);
 
     /*
      * Multi User
