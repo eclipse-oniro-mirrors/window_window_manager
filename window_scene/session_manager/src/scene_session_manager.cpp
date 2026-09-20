@@ -5281,6 +5281,7 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
         if (parentSession->GetSessionInfo().isSystem_ && property->GetIsUIExtFirstSubWindow() &&
             systemConfig_.supportUIExtensionSubWindow_) {
             property->SetWindowType(WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
+            ReportScbSystemSceneSubWindowCreate();
         }
     }
     auto initClientDisplayId = UpdateSpecificSessionClientDisplayId(property);
@@ -5488,6 +5489,22 @@ void SceneSessionManager::ReportSubWindowCreationFailure(int32_t pid, const std:
         oss << ", abilityName: " << abilityName;
         SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
             static_cast<int32_t>(WindowDFXHelperType::WINDOW_CREATE_SUB_WINDOW_FAILED), pid, oss.str());
+    }, __func__);
+}
+
+void SceneSessionManager::ReportScbSystemSceneSubWindowCreate()
+{
+    auto pid = IPCSkeleton::GetCallingRealPid();
+    taskScheduler_->PostAsyncTask([pid]() {
+        AAFwk::UIExtensionSessionInfo info;
+        AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);
+        std::ostringstream oss;
+        oss << "" << parentBundleName;
+        oss << "A subwindow is being created by a UIExtension, which is started by ScbSystemScene, "
+            "UIExtension bundleName: "<< info.GetElementName().GetBundleName();
+        oss << ", abilityName: " << info.GetElementName().GetAbilityName();
+        SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
+            static_cast<int32_t>(WindowDFXHelperType::WINDOW_SCB_SYSTEM_SCENE_CREATE_SUBWINDOW), pid, oss.str());
     }, __func__);
 }
 
