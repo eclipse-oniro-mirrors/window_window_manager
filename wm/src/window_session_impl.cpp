@@ -8920,6 +8920,8 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
             TLOGNE(WmsLogTag::WMS_KEYBOARD, "window is nullptr, notify occupied area change info failed");
             return;
         }
+        auto rect = window->GetRect();
+        TLOGNI(WmsLogTag::WMS_KEYBOARD, "current window rect: %{public}s", rect.ToString().c_str());
         if (rsTransaction) {
             RSTransactionAdapter::FlushImplicitTransaction(window->GetRSUIContext());
             if (auto rsUIContext = window->GetRSUIContext()) {
@@ -8929,7 +8931,7 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         }
         window->NotifyOccupiedAreaChangeInfoInner(info);
         window->occupiedAreaInfo_ = info;
-        window->UpdateViewportConfig(callingWindowRect, WindowSizeChangeReason::OCCUPIED_AREA_CHANGE,
+        window->UpdateViewportConfig(rect, WindowSizeChangeReason::OCCUPIED_AREA_CHANGE,
             nullptr, nullptr, avoidAreas);
         if (rsTransaction) {
             rsTransaction->Commit();
