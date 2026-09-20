@@ -5501,7 +5501,6 @@ void SceneSessionManager::ReportScbSystemSceneSubWindowCreate(AAFwk::UIExtension
     auto abilityNName = info.GetElementName().GetBundleName();
     taskScheduler_->PostAsyncTask([pid, bundleName, abilityNName]() {
         std::ostringstream oss;
-        oss << "" << parentBundleName;
         oss << "A subwindow is being created by a UIExtension, which is started by ScbSystemScene, "
             "UIExtension bundleName: "<< bundleName;
         oss << ", abilityName: " << abilityNName;
