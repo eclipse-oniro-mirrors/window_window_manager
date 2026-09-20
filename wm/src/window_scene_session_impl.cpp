@@ -6866,7 +6866,7 @@ WMError WindowSceneSessionImpl::SetTouchHotAreasImpl(const std::vector<Rect>& re
     WMError result = UpdateProperty(action);
     if (result != WMError::WM_OK) {
         property_->SetTouchHotAreas(lastTouchHotAreas);
-        WLOGFE("errCode:%{public}d", static_cast<int32_t>(result));
+        TLOGE(WmsLogTag::WMS_EVENT, "errCode:%{public}d", static_cast<int32_t>(result));
         return result;
     }
     for (uint32_t i = 0; i < rects.size(); i++) {
