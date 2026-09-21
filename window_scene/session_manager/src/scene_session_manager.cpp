@@ -5283,8 +5283,8 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
             property->SetWindowType(WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
             AAFwk::UIExtensionSessionInfo info;
             AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);
-            auto bundleName = info.GetElementName().GetBundleName();
-            auto abilityNName = info.GetElementName().GetBundleName();
+            auto bundleName = info.elementName.GetBundleName();
+            auto abilityNName = info.elementName.getAbilityName();
             ReportScbSystemSceneSubWindowCreate(bundleName, abilityNName);
         }
     }
