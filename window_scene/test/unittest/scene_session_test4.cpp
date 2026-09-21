@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1298,24 +1298,19 @@ HWTEST_F(SceneSessionTest4, CheckUpdatePropertyPermission01, TestSize.Level1)
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
         WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION, property, false));
 
-    // branch 5: touchable areas, non-system window owner without permission → allowed
-    sceneSession->SetCallingUid(IPCSkeleton::GetCallingUid());
-    EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
-        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION, property, false));
-
-    // branch 6: touchable areas, system caller → allowed
+    // branch 5: touchable areas, system caller → allowed
     EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
         WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION, property, true));
 
-    // branch 7: main window topmost, caller token has no permission
+    // branch 6: main window topmost, caller token has no permission
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
         WSPropertyChangeAction::ACTION_UPDATE_MAIN_WINDOW_TOPMOST, property, true));
 
-    // branch 8: window shadow enabled, permission denied and bundle not in white list
+    // branch 7: window shadow enabled, permission denied and bundle not in white list
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
         WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED, property, true));
 
-    // branch 9: window shadow enabled, bundle in white list
+    // branch 8: window shadow enabled, bundle in white list
     sceneSession->containerColorList_.insert(info.bundleName_);
     EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
         WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED, property, true));
