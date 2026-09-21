@@ -1437,6 +1437,7 @@ WMError WindowManagerService::UpdateProperty(sptr<WindowProperty>& windowPropert
 
     if (action == PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION &&
         !Permission::IsSystemCalling() &&
+        !accessTokenIdMaps_.isExist(windowProperty->GetWindowId(), IPCSkeleton::GetCallingTokenID()) &&
         !Permission::CheckCallingPermission("ohos.permission.SET_WINDOW_TOUCH_AREAS")) {
         WLOGFE("Set touch hot areas permission denied!");
         return WMError::WM_ERROR_INVALID_PERMISSION;
