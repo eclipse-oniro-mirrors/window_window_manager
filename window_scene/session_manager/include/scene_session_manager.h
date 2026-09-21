@@ -67,6 +67,7 @@
 
 namespace OHOS::AAFwk {
 class SessionInfo;
+class UIExtensionSessionInfo;
 } // namespace OHOS::AAFwk
 
 namespace OHOS::AppExecFwk {
