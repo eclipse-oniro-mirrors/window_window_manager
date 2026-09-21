@@ -10668,8 +10668,8 @@ void WindowSessionImpl::SwitchSubWindow(bool freeMultiWindowEnable, int32_t pare
             subWindowSession->SetFreeMultiWindowMode(freeMultiWindowEnable);
             subWindowSession->UpdateSupportWindowModesWhenSwitchFreeMultiWindow();
             subWindowSession->UpdateTitleButtonVisibility();
-            bool decorVisible = subWindowSession->UpdateDecorEnable(true);
-            subWindowSession->UpdateSubWindowDragEnabledByDecorVisible(decorVisible);
+            subWindowSession->UpdateDecorEnable(true);
+            subWindowSession->UpdateSubWindowDragEnabled(freeMultiWindowEnable);
             subWindowSession->NotifyFreeWindowModeChange(freeMultiWindowEnable);
             subWindowSession->SwitchSubWindow(freeMultiWindowEnable, subWindowSession->GetPersistentId());
             if (!freeMultiWindowEnable && subWindowSession->IsZLevelAboveParentLoosened() &&

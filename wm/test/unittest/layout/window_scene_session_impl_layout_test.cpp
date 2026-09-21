@@ -1003,59 +1003,61 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, RemoveAttachedWindowLimits01, Functio
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible01
- * @tc.desc: Sub-window with decor visible, drag should be enabled
+ * @tc.name: UpdateSubWindowDragEnabled01
+ * @tc.desc: Sub-window with decor enabled should be draggable in free multi-window mode
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible01,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled01,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible01");
+    option->SetWindowName("UpdateSubWindowDragEnabled01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
     window->property_->SetPersistentId(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     window->property_->SetDragEnabled(false);
-    window->UpdateSubWindowDragEnabledByDecorVisible(true);
+    window->UpdateSubWindowDragEnabled(true);
     EXPECT_TRUE(window->property_->GetDragEnabled());
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible02
- * @tc.desc: Sub-window with decor not visible, drag should be disabled
+ * @tc.name: UpdateSubWindowDragEnabled02
+ * @tc.desc: Sub-window with decor disabled should not be draggable in free multi-window mode
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible02,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled02,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible02");
+    option->SetWindowName("UpdateSubWindowDragEnabled02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(false);
     window->property_->SetPersistentId(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     window->property_->SetDragEnabled(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible(false);
+    window->UpdateSubWindowDragEnabled(true);
     EXPECT_FALSE(window->property_->GetDragEnabled());
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible03
+ * @tc.name: UpdateSubWindowDragEnabled03
  * @tc.desc: Main window should skip update
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible03,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled03,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible03");
+    option->SetWindowName("UpdateSubWindowDragEnabled03");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->property_->SetPersistentId(1);
@@ -1064,21 +1066,21 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     window->property_->SetDragEnabled(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible(false);
+    window->UpdateSubWindowDragEnabled(false);
     // Main window should not be affected, drag remains true
     EXPECT_TRUE(window->property_->GetDragEnabled());
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible04
+ * @tc.name: UpdateSubWindowDragEnabled04
  * @tc.desc: hasSetEnableDrag_ is true, should skip update
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible04,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled04,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible04");
+    option->SetWindowName("UpdateSubWindowDragEnabled04");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     window->property_->SetPersistentId(1);
@@ -1088,41 +1090,60 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
 
     window->property_->SetDragEnabled(false);
     window->hasSetEnableDrag_.store(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible(true);
+    window->UpdateSubWindowDragEnabled(true);
     // Should skip, drag remains false
     EXPECT_FALSE(window->property_->GetDragEnabled());
     window->hasSetEnableDrag_.store(false);
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible05
- * @tc.desc: Use target decor state instead of querying the previous UIContent state
+ * @tc.name: UpdateSubWindowDragEnabled05
+ * @tc.desc: Hidden decor should not disable dragging when the sub-window property enables decor
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible05,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled05,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible05");
+    option->SetWindowName("UpdateSubWindowDragEnabled05");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
-    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetIsLayoutFullScreen(true);
     window->property_->SetDecorEnable(true);
     window->property_->SetIsShowDecorInFreeMultiWindow(true);
+    window->property_->SetDragEnabled(false);
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.isSystemDecorEnable_ = true;
     auto uiContent = std::make_unique<Ace::UIContentMocker>();
     EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).Times(0);
     window->uiContent_ = std::move(uiContent);
 
-    bool targetDecorVisible = window->UpdateDecorEnable(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible(targetDecorVisible);
-
-    EXPECT_TRUE(targetDecorVisible);
-    EXPECT_TRUE(window->property_->GetDragEnabled());
-
-    window->property_->SetDecorEnable(false);
     EXPECT_FALSE(window->UpdateDecorEnable(true));
+    window->UpdateSubWindowDragEnabled(true);
+
+    EXPECT_TRUE(window->property_->GetDragEnabled());
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabled06
+ * @tc.desc: Sub-window drag should be disabled after exiting free multi-window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled06,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabled06");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetDragEnabled(true);
+
+    window->UpdateSubWindowDragEnabled(false);
+
+    EXPECT_FALSE(window->property_->GetDragEnabled());
 }
 
 /**

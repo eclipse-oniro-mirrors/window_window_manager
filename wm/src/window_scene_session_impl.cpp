@@ -7275,7 +7275,7 @@ void WindowSceneSessionImpl::UpdateEnableDragWhenSwitchMultiWindow(bool enable)
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
 }
 
-void WindowSceneSessionImpl::UpdateSubWindowDragEnabledByDecorVisible(bool decorVisible)
+void WindowSceneSessionImpl::UpdateSubWindowDragEnabled(bool freeMultiWindowEnable)
 {
     if (hasSetEnableDrag_.load() || property_->IsDragResizeDisabled()) {
         return;
@@ -7283,9 +7283,13 @@ void WindowSceneSessionImpl::UpdateSubWindowDragEnabledByDecorVisible(bool decor
     if (!WindowHelper::IsSubWindow(GetType())) {
         return;
     }
-    property_->SetDragEnabled(decorVisible);
+    const bool decorEnabled = property_->IsDecorEnable();
+    const bool dragEnabled = decorEnabled && freeMultiWindowEnable;
+    property_->SetDragEnabled(dragEnabled);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, decorVisible: %{public}d", GetPersistentId(), decorVisible);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+          "id: %{public}d, dragEnabled: %{public}d, decorEnabled: %{public}d, freeMultiWindowEnable: %{public}d",
+          GetPersistentId(), dragEnabled, decorEnabled, freeMultiWindowEnable);
 }
 
 WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
