@@ -1,0 +1,29 @@
+[1mdiff --git a/window_scene/session_manager/src/scene_session_manager.cpp b/window_scene/session_manager/src/scene_session_manager.cpp[m
+[1mindex db72c082ca..780743146c 100644[m
+[1m--- a/window_scene/session_manager/src/scene_session_manager.cpp[m
+[1m+++ b/window_scene/session_manager/src/scene_session_manager.cpp[m
+[36m@@ -5284,8 +5284,8 @@[m [mWSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS[m
+             AAFwk::UIExtensionSessionInfo info;[m
+             AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);[m
+             auto bundleName = info.elementName.GetBundleName();[m
+[31m-            auto abilityNName = info.elementName.getAbilityName();[m
+[31m-            ReportScbSystemSceneSubWindowCreate(bundleName, abilityNName);[m
+[32m+[m[32m            auto abilityName = info.elementName.getAbilityName();[m
+[32m+[m[32m            ReportScbSystemSceneSubWindowCreate(bundleName, abilityName);[m
+         }[m
+     }[m
+     auto initClientDisplayId = UpdateSpecificSessionClientDisplayId(property);[m
+[36m@@ -5500,11 +5500,11 @@[m [mvoid SceneSessionManager::ReportScbSystemSceneSubWindowCreate(const std::string&[m
+     const std::string& abilityName)[m
+ {[m
+     auto pid = IPCSkeleton::GetCallingRealPid();[m
+[31m-    taskScheduler_->PostAsyncTask([pid, bundleName, abilityNName]() {[m
+[32m+[m[32m    taskScheduler_->PostAsyncTask([pid, bundleName, abilityName]() {[m
+         std::ostringstream oss;[m
+         oss << "A subwindow is being created by a UIExtension, which is started by ScbSystemScene, "[m
+             "UIExtension bundleName: "<< bundleName;[m
+[31m-        oss << ", abilityName: " << abilityNName;[m
+[32m+[m[32m        oss << ", abilityName: " << abilityName;[m
+         SingletonContainer::Get<WindowInfoReporter>().ReportWindowException([m
+             static_cast<int32_t>(WindowDFXHelperType::WINDOW_SCB_SYSTEM_SCENE_CREATE_SUBWINDOW), pid, oss.str());[m
+     }, __func__);[m
