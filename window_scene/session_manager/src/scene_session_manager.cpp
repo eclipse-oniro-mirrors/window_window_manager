@@ -21714,23 +21714,20 @@ WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t pers
 void SceneSessionManager::NotifyWindowPropertyChangeByWindowInfoKey(
     const sptr<SceneSession>& sceneSession, WindowInfoKey windowInfoKey)
 {
-    const char* const where = __func__;
-    taskScheduler_->PostAsyncTask([this, weakSession = wptr(sceneSession), winInfoKey = windowInfoKey, where]() {
-        sptr<SceneSession> session = weakSession.promote();
-        if (session == nullptr) {
-            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
-            return;
-        }
-        uint32_t propertyDirtyFlags = session->GetPropertyDirtyFlags() | static_cast<uint32_t>(winInfoKey);
-        TLOGND(WmsLogTag::WMS_ATTRIBUTE,
-            "%{public}s: win=[%{public}d, %{public}s], dirtyFlags=%{public}u, interestedFlags=%{public}u",
-            where, session->GetWindowId(), session->GetWindowName().c_str(), propertyDirtyFlags, interestedFlags_);
-        WindowInfoList windowInfoList;
-        std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
-        PackWindowPropertyChangeInfo(session, windowPropertyChangeInfo);
-        windowInfoList.push_back(windowPropertyChangeInfo);
-        SessionManagerAgentController::GetInstance().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
-    }, where);
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession is null, infoKey=%{public}u",
+            static_cast<uint32_t>(windowInfoKey));
+        return;
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], infoKey: %{public}u, interestedFlags=%{public}u",
+        sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), static_cast<uint32_t>(windowInfoKey),
+        interestedFlags_);
+    WindowInfoList windowInfoList;
+    std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
+    PackWindowPropertyChangeInfo(sceneSession, windowPropertyChangeInfo);
+    windowInfoList.push_back(windowPropertyChangeInfo);
+    SessionManagerAgentController::GetInstance().NotifyWindowPropertyChange(
+        static_cast<uint32_t>(windowInfoKey), windowInfoList);
 }
 
 void SceneSessionManager::NotifyWindowPropertyChange(ScreenId screenId)
