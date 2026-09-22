@@ -547,8 +547,8 @@ bool WindowSessionImpl::IsAdaptToSubWindow() const
 
 void WindowSessionImpl::MakeSubOrDialogWindowDragableAndMoveble()
 {
-    if (windowSystemConfig_.freeMultiWindowSupport_ && windowOption_ != nullptr &&
-        WindowHelper::IsSubWindow(property_->GetWindowType())) {
+    if ((IsPcOrFreeMultiWindowCapabilityEnabled() || windowSystemConfig_.freeMultiWindowSupport_) &&
+        windowOption_ != nullptr && WindowHelper::IsSubWindow(property_->GetWindowType())) {
         subWindowTitle_ = windowOption_->GetSubWindowTitle();
     }
     if (IsPcOrFreeMultiWindowCapabilityEnabled() && windowOption_ != nullptr) {

@@ -16,7 +16,7 @@ tools/ohos-window/
 ├── src/
 │   ├── main.cpp                          # 入口函数，包含命令超时管理
 │   ├── shell_command.cpp                 # 命令分发框架基类实现
-│   └── ohos_window_command.cpp               # 核心命令实现（restore-window、help）
+│   └── ohos_window_command.cpp               # 核心命令实现（restore-window、list-windows、help）
 └── tests/
     ├── BUILD.gn                          # 单元测试构建配置
     └── ohos_window_command_util_test.cpp     # 纯逻辑与代理注入点单元测试
@@ -27,6 +27,7 @@ tools/ohos-window/
 | 子命令 | 作用 | 可选参数 | 所需权限 |
 |--------|------|----------|----------|
 | `restore-window` | 将指定主窗口恢复到前台 | `--windowId`、`--help` | `ohos.permission.CONTROL_DEVICE` |
+| `list-windows` | 查询窗口信息 | `--windowId`、`--displayId`、`--filter`、`--type`、`--help` | `ohos.permission.CONTROL_DEVICE` |
 | `--help` / `help` | 显示帮助信息 | 无 | 无 |
 
 ### restore-window 子命令参数说明
@@ -37,6 +38,18 @@ tools/ohos-window/
 | `--help` | flag | 显示 restore-window 子命令帮助信息 |
 
 > **注意**：`--windowId` 为必填参数，且必须是非负整数。
+
+### list-windows 子命令参数说明
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `--windowId <id>` | integer | 仅查询指定 windowId 的窗口 |
+| `--displayId <id>` | integer | 仅查询指定 displayId 的窗口 |
+| `--filter <visible\|excludeSystem\|foreground>` | string（可多次） | 窗口过滤条件 |
+| `--type <ui\|display\|layout\|meta>` | string（可多次） | 返回的窗口信息类别 |
+| `--help` | flag | 显示 list-windows 子命令帮助信息 |
+
+> **注意**：`--filter` 与 `--type` 均可多次指定，以累加过滤条件与返回信息类别。
 
 ## Claw 规范遵循情况
 
@@ -110,4 +123,43 @@ ohos-window restore-window --help
 ```bash
 # 恢复指定主窗口到前台
 ohos-window restore-window --windowId 100
+```
+
+### 查询窗口信息
+
+```bash
+# 查询所有可见窗口
+ohos-window list-windows --filter visible
+
+# 查询指定窗口的元信息
+ohos-window list-windows --type meta --windowId 100
+
+# 查询指定显示设备上的窗口布局与元信息
+ohos-window list-windows --displayId 0 --type layout --type meta
+```
+
+**list-windows 成功响应示例：**
+
+```json
+{
+  "type": "result",
+  "status": "success",
+  "data": {
+    "windows": [
+      {
+        "displayInfo": {
+          "displayId": 0,
+          "displayName": "mainDisplay"
+        },
+        "metaInfo": {
+          "windowId": 100,
+          "windowName": "mainWindow",
+          "bundleName": "com.example.app",
+          "windowType": 1,
+          "isFocused": true
+        }
+      }
+    ]
+  }
+}
 ```

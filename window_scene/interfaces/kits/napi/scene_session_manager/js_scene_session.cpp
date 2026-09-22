@@ -85,6 +85,7 @@ const std::string RAISE_MAIN_WINDOW_ABOVE_TARGET_CB = "raiseMainWindowAboveTarge
 const std::string FORCE_HIDE_CHANGE_CB = "sessionForceHideChange";
 const std::string WINDOW_DRAG_HOT_AREA_CB = "windowDragHotArea";
 const std::string TOUCH_OUTSIDE_CB = "touchOutside";
+const std::string TOUCH_HOT_AREAS_CHANGE_CB = "touchHotAreasChange";
 const std::string SESSIONINFO_LOCKEDSTATE_CHANGE_CB = "sessionInfoLockedStateChange";
 const std::string PREPARE_CLOSE_PIP_SESSION = "prepareClosePiPSession";
 const std::string LANDSCAPE_MULTI_WINDOW_CB = "landscapeMultiWindow";
@@ -192,6 +193,7 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {FORCE_HIDE_CHANGE_CB,                  ListenerFuncType::FORCE_HIDE_CHANGE_CB},
     {WINDOW_DRAG_HOT_AREA_CB,               ListenerFuncType::WINDOW_DRAG_HOT_AREA_CB},
     {TOUCH_OUTSIDE_CB,                      ListenerFuncType::TOUCH_OUTSIDE_CB},
+    {TOUCH_HOT_AREAS_CHANGE_CB,             ListenerFuncType::TOUCH_HOT_AREAS_CHANGE_CB},
     {SESSIONINFO_LOCKEDSTATE_CHANGE_CB,     ListenerFuncType::SESSIONINFO_LOCKEDSTATE_CHANGE_CB},
     {PREPARE_CLOSE_PIP_SESSION,             ListenerFuncType::PREPARE_CLOSE_PIP_SESSION},
     {LANDSCAPE_MULTI_WINDOW_CB,             ListenerFuncType::LANDSCAPE_MULTI_WINDOW_CB},
@@ -628,6 +630,7 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "getZOrder", moduleName, JsSceneSession::GetZOrder);
     BindNativeFunction(env, objValue, "getUid", moduleName, JsSceneSession::GetUid);
     BindNativeFunction(env, objValue, "setTouchable", moduleName, JsSceneSession::SetTouchable);
+    BindNativeFunction(env, objValue, "getTouchHotAreas", moduleName, JsSceneSession::GetTouchHotAreas);
     BindNativeFunction(env, objValue, "setWindowInputType", moduleName, JsSceneSession::SetWindowInputType);
     BindNativeFunction(env, objValue, "setExpandInputFlag", moduleName, JsSceneSession::SetExpandInputFlag);
     BindNativeFunction(env, objValue, "setSystemActive", moduleName, JsSceneSession::SetSystemActive);
@@ -2534,6 +2537,48 @@ void JsSceneSession::OnTouchOutside()
     taskScheduler_->PostMainThreadTask(task);
 }
 
+void JsSceneSession::ProcessTouchHotAreasChangeRegister()
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "session is null");
+        return;
+    }
+    session->RegisterTouchHotAreasChangeCallback([weakThis = wptr(this)](const std::vector<Rect>& touchHotAreas) {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession) {
+            TLOGNE(WmsLogTag::WMS_EVENT, "jsSceneSession is null");
+            return;
+        }
+        jsSceneSession->OnTouchHotAreasChange(touchHotAreas);
+    });
+}
+
+void JsSceneSession::OnTouchHotAreasChange(const std::vector<Rect>& touchHotAreas)
+{
+    TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
+    auto task = [weakThis = wptr(this), persistentId = persistentId_, env = env_, touchHotAreas] {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
+            TLOGNE(WmsLogTag::WMS_EVENT, "jsSceneSession id:%{public}d has been destroyed", persistentId);
+            return;
+        }
+        auto jsCallBack = jsSceneSession->GetJSCallback(TOUCH_HOT_AREAS_CHANGE_CB);
+        if (!jsCallBack) {
+            TLOGNE(WmsLogTag::WMS_EVENT, "jsCallBack is null");
+            return;
+        }
+        napi_value array = nullptr;
+        napi_create_array_with_length(env, touchHotAreas.size(), &array);
+        for (size_t i = 0; i < touchHotAreas.size(); ++i) {
+            napi_set_element(env, array, i, CreateJsSessionRect(env, touchHotAreas[i]));
+        }
+        napi_value argv[] = { array };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), 1, argv, nullptr);
+    };
+    taskScheduler_->PostMainThreadTask(task);
+}
+
 void JsSceneSession::ProcessFrameLayoutFinishRegister()
 {
     NotifyFrameLayoutFinishFunc func = [weakThis = wptr(this)]() {
@@ -2856,6 +2901,13 @@ napi_value JsSceneSession::SetTouchable(napi_env env, napi_callback_info info)
 {
     JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
     return (me != nullptr) ? me->OnSetTouchable(env, info): nullptr;
+}
+
+napi_value JsSceneSession::GetTouchHotAreas(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_EVENT, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnGetTouchHotAreas(env, info) : nullptr;
 }
 
 napi_value JsSceneSession::SetWindowInputType(napi_env env, napi_callback_info info)
@@ -3565,6 +3617,9 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
             break;
         case static_cast<uint32_t>(ListenerFuncType::TOUCH_OUTSIDE_CB):
             ProcessTouchOutsideRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::TOUCH_HOT_AREAS_CHANGE_CB):
+            ProcessTouchHotAreasChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::SESSIONINFO_LOCKEDSTATE_CHANGE_CB):
             ProcessSessionInfoLockedStateChangeRegister();
@@ -6537,6 +6592,22 @@ napi_value JsSceneSession::OnSetTouchable(napi_env env, napi_callback_info info)
 
     session->SetSystemTouchable(touchable);
     return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnGetTouchHotAreas(napi_env env, napi_callback_info info)
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "session is null, id=%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    std::vector<Rect> touchHotAreas = session->GetTouchHotAreas();
+    napi_value array = nullptr;
+    napi_create_array_with_length(env, touchHotAreas.size(), &array);
+    for (size_t i = 0; i < touchHotAreas.size(); ++i) {
+        napi_set_element(env, array, i, CreateJsSessionRect(env, touchHotAreas[i]));
+    }
+    return array;
 }
 
 napi_value JsSceneSession::OnSetWindowInputType(napi_env env, napi_callback_info info)

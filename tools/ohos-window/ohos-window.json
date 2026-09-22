@@ -97,6 +97,140 @@
                     }
                 }
             }
+        },
+        "list-windows": {
+            "description": "ohos-window list-windows - Query window information.",
+            "requirePermissions": [
+                "ohos.permission.CONTROL_DEVICE"
+            ],
+            "inputSchema": {
+                "type": "object",
+                "description": "Sub-options of the ohos-window list-windows command.",
+                "properties": {
+                    "help": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "windowId": {
+                        "type": "integer",
+                        "description": "windowId of the only session to query"
+                    },
+                    "displayId": {
+                        "type": "integer",
+                        "description": "displayId of the display to query"
+                    },
+                    "filter": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["visible", "excludeSystem", "foreground"]
+                        },
+                        "description": "window filter to query, can specify multiple filters"
+                    },
+                    "type": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["ui", "display", "layout", "meta"]
+                        },
+                        "description": "window information to return, can specify multiple types"
+                    }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "description": "Execution result of the ohos-window list-windows command.",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["result"]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["success", "failed"]
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "windows": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "uiInfo": {
+                                            "type": "object",
+                                            "properties": {
+                                                "visibilityState": { "type": "integer" }
+                                            }
+                                        },
+                                        "displayInfo": {
+                                            "type": "object",
+                                            "properties": {
+                                                "displayId": { "type": "integer" }
+                                            }
+                                        },
+                                        "layoutInfo": {
+                                            "type": "object",
+                                            "properties": {
+                                                "rect": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "posX": { "type": "integer" },
+                                                        "posY": { "type": "integer" },
+                                                        "width": { "type": "integer" },
+                                                        "height": { "type": "integer" }
+                                                    }
+                                                },
+                                                "zOrder": { "type": "integer" },
+                                                "windowAlpha": { "type": "number" }
+                                            }
+                                        },
+                                        "metaInfo": {
+                                            "type": "object",
+                                            "properties": {
+                                                "windowId": { "type": "integer" },
+                                                "windowName": { "type": "string" },
+                                                "bundleName": { "type": "string" },
+                                                "abilityName": { "type": "string" },
+                                                "appIndex": { "type": "integer" },
+                                                "pid": { "type": "integer" },
+                                                "windowType": { "type": "integer" },
+                                                "parentWindowId": { "type": "integer" },
+                                                "surfaceNodeId": { "type": "integer" },
+                                                "leashWinSurfaceNodeId": { "type": "integer" },
+                                                "isPrivacyMode": { "type": "boolean" },
+                                                "windowMode": { "type": "integer" },
+                                                "windowModeInfo": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "windowMode": { "type": "integer" },
+                                                        "splitStyle": { "type": "integer" },
+                                                        "splitIndex": { "type": "integer" }
+                                                    }
+                                                },
+                                                "isMidScene": { "type": "boolean" },
+                                                "isFocused": { "type": "boolean" },
+                                                "isTouchable": { "type": "boolean" },
+                                                "mainWindowPersistentId": { "type": "integer" },
+                                                "controlAppType": { "type": "integer" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "errCode": {
+                        "type": "string"
+                    },
+                    "errMsg": {
+                        "type": "string"
+                    },
+                    "suggestion": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     },
     "eventSchemas": {}

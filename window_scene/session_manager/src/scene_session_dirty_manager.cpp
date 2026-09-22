@@ -1053,8 +1053,9 @@ void SceneSessionDirtyManager::CheckIfUpdatePointAreas(WindowType windowType, co
         !WindowHelper::IsDialogWindow(windowType) && sceneSession->IsDragAccessible();
     bool isDecorEnabledSubWindow = WindowHelper::IsSubWindow(windowType) && windowSessionProperty->IsDecorEnable();
     bool isDragAccessibleSubWindow = WindowHelper::IsSubWindow(windowType) && sceneSession->IsDragAccessible();
+    bool isDragAccessibleDialogWindow = WindowHelper::IsDialogWindow(windowType) && sceneSession->IsDragAccessible();
     bool isUpdatePointerAreasNeeded = isMainWindow || isDecorEnabledDialog || isDecorEnabledSubWindow ||
-        isDragAccessibleSubWindow || isDragAccessibleSystemWindowButNotDialog;
+        isDragAccessibleSubWindow || isDragAccessibleSystemWindowButNotDialog || isDragAccessibleDialogWindow;
     auto windowMode = windowSessionProperty->GetWindowMode();
     auto maximizeMode = windowSessionProperty->GetMaximizeMode();
     if ((windowMode == WindowMode::WINDOW_MODE_FLOATING && maximizeMode != MaximizeMode::MODE_AVOID_SYSTEM_BAR &&

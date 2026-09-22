@@ -22,7 +22,9 @@
 #include <napi_common_want.h>
 
 #include "js_window_animation_utils.h"
+#include "pixel_map_napi.h"
 #include "process_options.h"
+#include "start_window_option.h"
 #include "property/rs_properties_def.h"
 #include "root_scene.h"
 #include "session/host/include/pc_fold_screen_manager.h"
@@ -2022,6 +2024,79 @@ napi_value CreateJsSessionPendingConfigs(napi_env env, const PendingSessionActiv
     return objValue;
 }
 
+napi_value CreateJsWindowCreateParamsObj(napi_env env,
+    const std::shared_ptr<WindowCreateParams>& windowCreateParams)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (!objValue) {
+        return nullptr;
+    }
+
+    napi_set_named_property(env, objValue, "minimizeOnStart",
+        CreateJsValue(env, windowCreateParams->minimizeOnStart));
+
+    if (windowCreateParams->excludeFromDock) {
+        napi_set_named_property(env, objValue, "excludeFromDock",
+            CreateJsValue(env, *(windowCreateParams->excludeFromDock)));
+    }
+
+    if (windowCreateParams->excludeFromRecent) {
+        napi_set_named_property(env, objValue, "excludeFromRecent",
+            CreateJsValue(env, *(windowCreateParams->excludeFromRecent)));
+    }
+    return objValue;
+}
+
+void SetJsSessionWindowAnimationProperties(napi_env env, napi_value objValue,
+    const std::shared_ptr<WindowCreateParams>& windowCreateParams)
+{
+    if (windowCreateParams->animationParams) {
+        napi_status status = napi_set_named_property(env, objValue, "startAnimationOptions",
+            ConvertStartAnimationOptionsToJsValue(env, windowCreateParams->animationParams));
+        if (status != napi_ok) {
+            TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationOptions");
+        }
+    }
+
+    if (windowCreateParams->animationSystemParams) {
+        napi_status status = napi_set_named_property(env, objValue, "startAnimationSystemOptions",
+            ConvertStartAnimationSystemOptionsToJsValue(env, windowCreateParams->animationSystemParams));
+        if (status != napi_ok) {
+            TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationSystemOptions");
+        }
+    }
+
+    if (windowCreateParams->needAnimation) {
+        napi_set_named_property(env, objValue, "needAnimation",
+            CreateJsValue(env, *(windowCreateParams->needAnimation)));
+    }
+
+    napi_set_named_property(env, objValue, "isWindowLimitsForcible",
+        CreateJsValue(env, windowCreateParams->isWindowLimitsForcible));
+}
+
+napi_value CreateJsStartWindowOptionObj(napi_env env,
+    const std::shared_ptr<AAFwk::StartWindowOption>& startWindowOption)
+{
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (!objValue) {
+        return nullptr;
+    }
+
+    napi_set_named_property(env, objValue, "startWindowBackgroundColor",
+        CreateJsValue(env, startWindowOption->startWindowBackgroundColor));
+
+    if (startWindowOption->startWindowIcon) {
+        napi_value jsIcon = Media::PixelMapNapi::CreatePixelMap(env, startWindowOption->startWindowIcon);
+        if (jsIcon) {
+            napi_set_named_property(env, objValue, "startWindowIcon", jsIcon);
+        }
+    }
+    return objValue;
+}
+
 napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     const std::shared_ptr<PendingSessionActivationConfig>& config)
 {
@@ -2092,42 +2167,17 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     if (sessionInfo.want != nullptr) {
         napi_set_named_property(env, objValue, "want", AppExecFwk::WrapWant(env, sessionInfo.GetWantSafely()));
     }
-    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->animationParams) {
-        napi_status status = napi_set_named_property(env, objValue, "startAnimationOptions",
-            ConvertStartAnimationOptionsToJsValue(env, sessionInfo.windowCreateParams->animationParams));
-        if (status != napi_ok) {
-            TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationOptions");
-        }
-    }
-    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->animationSystemParams) {
-        napi_status status = napi_set_named_property(env, objValue, "startAnimationSystemOptions",
-            ConvertStartAnimationSystemOptionsToJsValue(env, sessionInfo.windowCreateParams->animationSystemParams));
-        if (status != napi_ok) {
-            TLOGE(WmsLogTag::WMS_ANIMATION, "Failed to set startAnimationSystemOptions");
-        }
-    }
-    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->needAnimation) {
-        napi_set_named_property(env, objValue, "needAnimation",
-            CreateJsValue(env, *(sessionInfo.windowCreateParams->needAnimation)));
-    }
-    bool isWindowLimitsForcible = sessionInfo.windowCreateParams ?
-        sessionInfo.windowCreateParams->isWindowLimitsForcible : false;
-    napi_set_named_property(env, objValue, "isWindowLimitsForcible",
-        CreateJsValue(env, isWindowLimitsForcible));
 
-    bool minimizeOnStart = sessionInfo.windowCreateParams ?
-        sessionInfo.windowCreateParams->minimizeOnStart : false;
-    napi_set_named_property(env, objValue, "minimizeOnStart",
-        CreateJsValue(env, minimizeOnStart));
+    if (sessionInfo.windowCreateParams) {
+        SetJsSessionWindowAnimationProperties(env, objValue, sessionInfo.windowCreateParams);
 
-    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->excludeFromDock) {
-        napi_set_named_property(env, objValue, "excludeFromDock",
-            CreateJsValue(env, *(sessionInfo.windowCreateParams->excludeFromDock)));
+        napi_value windowCreateParamsObj = CreateJsWindowCreateParamsObj(env, sessionInfo.windowCreateParams);
+        napi_set_named_property(env, objValue, "windowCreateParams", windowCreateParamsObj);
     }
 
-    if (sessionInfo.windowCreateParams && sessionInfo.windowCreateParams->excludeFromRecent) {
-        napi_set_named_property(env, objValue, "excludeFromRecent",
-            CreateJsValue(env, *(sessionInfo.windowCreateParams->excludeFromRecent)));
+    if (sessionInfo.startWindowOption) {
+        napi_value startWindowObj = CreateJsStartWindowOptionObj(env, sessionInfo.startWindowOption);
+        napi_set_named_property(env, objValue, "startWindowOption", startWindowObj);
     }
 
     napi_set_named_property(env, objValue, "atomicServiceInfo",

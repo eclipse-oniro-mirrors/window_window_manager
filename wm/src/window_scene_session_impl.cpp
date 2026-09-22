@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7307,6 +7307,9 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
     // Switch process finish, update system config
     SetFreeMultiWindowMode(enable);
     NotifySwitchFreeMultiWindow(enable);
+    if (!IsAnco()) {
+        UpdateImmersiveBySwitchMode(enable);
+    }
     NotifyFreeWindowModeChange(enable);
     if (IsAnco() && windowSystemConfig_.IsPadWindow()) {
         if (!IsAncoSupportFreeWindow()) {
@@ -7326,9 +7329,6 @@ WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
     if (!enable && !WindowHelper::IsWindowModeSupported(property_->GetWindowModeSupportType(),
         WindowMode::WINDOW_MODE_FULLSCREEN)) {
         UpdateDecorEnable(true);
-    }
-    if (!IsAnco()) {
-        UpdateImmersiveBySwitchMode(enable);
     }
     SwitchSubWindow(enable, GetPersistentId());
     SwitchSystemWindow(enable, GetPersistentId());

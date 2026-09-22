@@ -93,6 +93,7 @@ using NotifyReqOrientationChangeFunc =
 using NotifyRaiseAboveTargetFunc = std::function<void(int32_t subWindowId)>;
 using NotifyForceHideChangeFunc = std::function<void(bool hide)>;
 using NotifyTouchOutsideFunc = std::function<void()>;
+using NotifyTouchHotAreasChangeFunc = std::function<void(const std::vector<Rect>&)>;
 using ClearCallbackMapFunc = std::function<void(bool needRemove)>;
 using NotifyPrepareClosePiPSessionFunc = std::function<void()>;
 using OnOutsideDownEvent = std::function<void(int32_t x, int32_t y)>;
@@ -729,6 +730,7 @@ public:
      * Window Input Event
      */
     void RegisterTouchOutsideCallback(NotifyTouchOutsideFunc&& callback);
+    void RegisterTouchHotAreasChangeCallback(NotifyTouchHotAreasChangeFunc&& callback);
     void SetMousePointerDownEventStatus(bool mousePointerDownEventStatus);
     bool GetMousePointerDownEventStatus() const;
     void SetFingerPointerDownStatus(int32_t fingerId);
@@ -1765,6 +1767,7 @@ private:
      * Window Input Event
      */
     NotifyTouchOutsideFunc onTouchOutside_;
+    NotifyTouchHotAreasChangeFunc onTouchHotAreasChange_;
     bool isMousePointerDownEventStatus_ { false };
     std::unordered_set<int32_t> fingerPointerDownStatusList_;
 

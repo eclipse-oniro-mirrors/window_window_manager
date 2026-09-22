@@ -1662,6 +1662,67 @@ HWTEST_F(SceneSessionDirtyManagerTest, UpdateDragDisabledAreas05, TestSize.Level
 
     EXPECT_EQ(dragDisabledAreas.size(), maxCount);
 }
+
+/**
+ * @tc.name: CheckIfUpdatePointAreas
+ * @tc.desc: CheckIfUpdatePointAreas with isDragAccessibleDialogWindow flag
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest, CheckIfUpdatePointAreas, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<WindowSessionProperty> property = sceneSession->property_;
+    ASSERT_NE(property, nullptr);
+
+    property->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    property->SetMaximizeMode(MaximizeMode::MODE_FULL_FILL);
+    property->SetDisplayId(100);
+    property->SetDecorEnable(false);
+
+    // Case 1: dialog window is drag accessible, floating mode, maximizeMode not AVOID_SYSTEM_BAR
+    // pointerChangeAreas should be updated
+    property->SetDragEnabled(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
+    WindowLimits limits;
+    limits.maxHeight_ = 1;
+    limits.minHeight_ = 0;
+    limits.maxWidth_ = 0;
+    limits.minWidth_ = 0;
+    property->SetWindowLimits(limits);
+    std::vector<int32_t> pointerChangeAreas;
+    manager_->CheckIfUpdatePointAreas(WindowType::WINDOW_TYPE_DIALOG, sceneSession, property, pointerChangeAreas);
+    float vpr = 1.5f;
+    int32_t pointerAreaFivePx = static_cast<int32_t>(POINTER_CHANGE_AREA_FIVE * vpr);
+    std::vector<int32_t> expectedAreas = {POINTER_CHANGE_AREA_DEFAULT, pointerAreaFivePx,
+        POINTER_CHANGE_AREA_DEFAULT, POINTER_CHANGE_AREA_DEFAULT, POINTER_CHANGE_AREA_DEFAULT,
+        pointerAreaFivePx, POINTER_CHANGE_AREA_DEFAULT, POINTER_CHANGE_AREA_DEFAULT};
+    ASSERT_EQ(expectedAreas, pointerChangeAreas);
+
+    // Case 2: dialog window is NOT drag accessible → pointerChangeAreas should NOT be updated
+    property->SetDragEnabled(false);
+    sceneSession->dragActivatedBitmap_ = 0;
+    std::vector<int32_t> pointerChangeAreas2;
+    manager_->CheckIfUpdatePointAreas(WindowType::WINDOW_TYPE_DIALOG, sceneSession, property, pointerChangeAreas2);
+    ASSERT_EQ(0, pointerChangeAreas2.size());
+
+    // Case 3: maximizeMode is MODE_AVOID_SYSTEM_BAR → pointerChangeAreas should NOT be updated
+    property->SetDragEnabled(true);
+    sceneSession->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
+    property->SetMaximizeMode(MaximizeMode::MODE_AVOID_SYSTEM_BAR);
+    std::vector<int32_t> pointerChangeAreas3;
+    manager_->CheckIfUpdatePointAreas(WindowType::WINDOW_TYPE_DIALOG, sceneSession, property, pointerChangeAreas3);
+    ASSERT_EQ(0, pointerChangeAreas3.size());
+
+    // Case 4: windowMode is not WINDOW_MODE_FLOATING → pointerChangeAreas should NOT be updated
+    property->SetMaximizeMode(MaximizeMode::MODE_FULL_FILL);
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    std::vector<int32_t> pointerChangeAreas4;
+    manager_->CheckIfUpdatePointAreas(WindowType::WINDOW_TYPE_DIALOG, sceneSession, property, pointerChangeAreas4);
+    ASSERT_EQ(0, pointerChangeAreas4.size());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

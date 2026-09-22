@@ -34,6 +34,7 @@ constexpr const char* PERMISSION_FLOATING_BALL = "ohos.permission.USE_FLOAT_BALL
 constexpr const char* PERMISSION_FLOATING_BALL_AUTO_RESTORE = "ohos.permission.AUTO_RESTORE_MAIN_WINDOW";
 constexpr const char* PERMISSION_MANAGE_RECENT_SNAPSHOT = "ohos.permission.MANAGE_RECENT_SNAPSHOT";
 constexpr const char* PERMISSION_FLOAT_VIEW = "ohos.permission.FLOAT_VIEW";
+constexpr const char* PERMISSION_CONTROL_DEVICE = "ohos.permission.CONTROL_DEVICE";
 }
 class SessionPermission {
 public:

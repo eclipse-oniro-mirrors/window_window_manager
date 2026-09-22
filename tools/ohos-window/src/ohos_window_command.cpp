@@ -18,6 +18,7 @@
 #include <charconv>
 #include <cstdlib>
 #include <iostream>
+#include <unordered_set>
 #include <nlohmann/json.hpp>
 
 #include "session_manager_lite.h"
@@ -45,6 +46,16 @@ const size_t RESTORE_WINDOW_PARAM_COUNT = 2;
 const size_t HELP_PARAM_COUNT = 1;
 const std::string OPTION_WINDOW_ID = "--windowId";
 const std::string OPTION_HELP = "--help";
+const std::string OPTION_DISPLAY_ID = "--displayId";
+const std::string OPTION_FILTER = "--filter";
+const std::string OPTION_TYPE = "--type";
+const std::string OPTION_VAL_VISIBLE = "visible";
+const std::string OPTION_VAL_EXCLUDE_SYSTEM = "excludeSystem";
+const std::string OPTION_VAL_FOREGROUND = "foreground";
+const std::string OPTION_VAL_UI = "ui";
+const std::string OPTION_VAL_DISPLAY = "display";
+const std::string OPTION_VAL_LAYOUT = "layout";
+const std::string OPTION_VAL_META = "meta";
 }  // namespace
 
 void PrintSuccess(const std::string& message)
@@ -80,6 +91,7 @@ int32_t ClawWindowShellCommand::CreateCommandMap()
         {"--help", [this]() { return this->RunAsHelpCommand(); }},
         {"help", [this]() { return this->RunAsHelpCommand(); }},
         {"restore-window", [this]() { return this->RunAsRestoreWindow(); }},
+        {"list-windows", [this]() { return this->RunAsListWindowInfo(); }},
     };
     return ERR_OK;
 }
@@ -105,6 +117,14 @@ int32_t ClawWindowShellCommand::CreateErrorInfoMap()
     errorInfoMap_[static_cast<int32_t>(WSError::WS_ERROR_INVALID_OPERATION)] = {
         "ERR_INVALID_OPERATION", "Operation failed.",
         "The operation is not allowed in the current state.", {INVALID_OPERATION_SOLUTION}};
+
+    errorInfoMap_[static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED)] = {
+        "ERR_IPC_FAILED", "IPC communication failed.",
+        "IPC request failed.", { IPC_FAILED_SOLUTION } };
+
+    errorInfoMap_[static_cast<int32_t>(WMError::WM_ERROR_INVALID_PERMISSION)] = {
+        "ERR_NO_PERMISSION", "Operation failed.",
+        "Permission verification failed.", { NO_PERMISSION_SOLUTION } };
 
     return ERR_OK;
 }
@@ -180,6 +200,206 @@ int32_t ClawWindowShellCommand::DoRestoreWindow(int32_t persistentId)
     }
     PrintError(errorInfo);
     return ERR_INVALID_VALUE;
+}
+
+int32_t ClawWindowShellCommand::RunAsListWindowInfo()
+{
+    WindowInfoOption infoOption;
+    if (!ParseListWindowInfoOption(infoOption)) {
+        return ERR_INVALID_VALUE;
+    }
+    auto proxy = GetSceneSessionManagerLiteProxy();
+    if (proxy == nullptr) {
+        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED));
+        PrintError(errorInfo);
+        return ERR_INVALID_VALUE;
+    }
+    std::vector<sptr<WindowInfo>> infos;
+    auto ret = proxy->ListWindowInfo(infoOption, infos);
+    if (ret != WMError::WM_OK) {
+        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
+        PrintError(errorInfo);
+        return ERR_INVALID_VALUE;
+    }
+    BuildListWindowInfoResultJson(infos, infoOption.windowInfoTypeOption);
+    return ERR_OK;
+}
+
+bool ClawWindowShellCommand::ParseListWindowInfoOption(WindowInfoOption& infoOption)
+{
+    size_t i = 0;
+    const size_t nextOptStep = 2;
+    std::unordered_set<std::string> expectValueOptions {
+        OPTION_WINDOW_ID, OPTION_DISPLAY_ID, OPTION_FILTER, OPTION_TYPE };
+    bool needResetTypeOptValue = true;
+    while (i < argList_.size()) {
+        const auto& opt = argList_[i];
+        if (opt == OPTION_HELP) {
+            std::cout << HELP_MSG_LIST_WINDOWS << std::endl;
+            return false;
+        }
+        if (expectValueOptions.find(opt) == expectValueOptions.end()) {
+            WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+                "Unsupported option: " + opt, { INVALID_PARAM_SOLUTION, HELP_MSG_LIST_WINDOWS } };
+            PrintError(errorInfo);
+            return false;
+        }
+        if (i >= argList_.size() - 1) {
+            WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+                "Missing value for option: " + opt, { INVALID_PARAM_SOLUTION, HELP_MSG_LIST_WINDOWS } };
+            PrintError(errorInfo);
+            return false;
+        }
+        if (opt == OPTION_WINDOW_ID) {
+            if (!ParseWindowIdOption(argList_[i + 1], infoOption.windowId)) {
+                return false;
+            }
+        } else if (opt == OPTION_DISPLAY_ID) {
+            if (!ParseDisplayIdOption(argList_[i + 1], infoOption.displayId)) {
+                return false;
+            }
+        } else if (opt == OPTION_FILTER) {
+            if (!ParseWindowInfoFilterOption(argList_[i + 1], infoOption.windowInfoFilterOption)) {
+                return false;
+            }
+        } else if (opt == OPTION_TYPE) {
+            if (needResetTypeOptValue) {
+                infoOption.windowInfoTypeOption = static_cast<WindowInfoTypeOption>(0);
+                needResetTypeOptValue = false;
+            }
+            if (!ParseWindowInfoTypeOption(argList_[i + 1], infoOption.windowInfoTypeOption)) {
+                return false;
+            }
+        }
+        i += nextOptStep;
+    }
+    return true;
+}
+
+bool ClawWindowShellCommand::ParseWindowIdOption(const std::string& idStr, int32_t& windowId)
+{
+    auto res = std::from_chars(idStr.c_str(), idStr.c_str() + idStr.size(), windowId);
+    if (res.ec == std::errc() && res.ptr == idStr.c_str() + idStr.size()) {
+        return true;
+    }
+    WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+        "Invalid value for " + OPTION_WINDOW_ID + " option: " + idStr, { INVALID_PARAM_SOLUTION } };
+    PrintError(errorInfo);
+    return false;
+}
+
+bool ClawWindowShellCommand::ParseDisplayIdOption(const std::string& idStr, DisplayId& displayId)
+{
+    auto res = std::from_chars(idStr.c_str(), idStr.c_str() + idStr.size(), displayId);
+    if (res.ec == std::errc() && res.ptr == idStr.c_str() + idStr.size()) {
+        return true;
+    }
+    WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+        "Invalid value for " + OPTION_DISPLAY_ID + " option: " + idStr, { INVALID_PARAM_SOLUTION } };
+    PrintError(errorInfo);
+    return false;
+}
+
+bool ClawWindowShellCommand::ParseWindowInfoFilterOption(const std::string& valStr,
+    WindowInfoFilterOption& filterOption)
+{
+    if (valStr == OPTION_VAL_VISIBLE) {
+        filterOption = filterOption | WindowInfoFilterOption::VISIBLE;
+    } else if (valStr == OPTION_VAL_EXCLUDE_SYSTEM) {
+        filterOption = filterOption | WindowInfoFilterOption::EXCLUDE_SYSTEM;
+    } else if (valStr == OPTION_VAL_FOREGROUND) {
+        filterOption = filterOption | WindowInfoFilterOption::FOREGROUND;
+    } else {
+        WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+            "Invalid value for " + OPTION_FILTER + " option: " + valStr, { INVALID_PARAM_SOLUTION } };
+        PrintError(errorInfo);
+        return false;
+    }
+    return true;
+}
+
+bool ClawWindowShellCommand::ParseWindowInfoTypeOption(const std::string& valStr, WindowInfoTypeOption& typeOption)
+{
+    if (valStr == OPTION_VAL_UI) {
+        typeOption = typeOption | WindowInfoTypeOption::WINDOW_UI_INFO;
+    } else if (valStr == OPTION_VAL_DISPLAY) {
+        typeOption = typeOption | WindowInfoTypeOption::WINDOW_DISPLAY_INFO;
+    } else if (valStr == OPTION_VAL_LAYOUT) {
+        typeOption = typeOption | WindowInfoTypeOption::WINDOW_LAYOUT_INFO;
+    } else if (valStr == OPTION_VAL_META) {
+        typeOption = typeOption | WindowInfoTypeOption::WINDOW_META_INFO;
+    } else {
+        WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+            "Invalid value for " + OPTION_TYPE + " option: " + valStr, { INVALID_PARAM_SOLUTION } };
+        PrintError(errorInfo);
+        return false;
+    }
+    return true;
+}
+
+void ClawWindowShellCommand::BuildListWindowInfoResultJson(const std::vector<sptr<WindowInfo>>& infos,
+    const WindowInfoTypeOption& typeOption)
+{
+    json response;
+    response["type"] = "result";
+    response["status"] = "success";
+    json windows = json::array();
+    for (const auto& info : infos) {
+        if (info == nullptr) {
+            continue;
+        }
+        json window;
+        if (IsChosenWindowOption(typeOption, WindowInfoTypeOption::WINDOW_UI_INFO)) {
+            window["uiInfo"]["visibilityState"] = static_cast<uint32_t>(info->windowUIInfo.visibilityState);
+        }
+        if (IsChosenWindowOption(typeOption, WindowInfoTypeOption::WINDOW_DISPLAY_INFO)) {
+            window["displayInfo"]["displayId"] = info->windowDisplayInfo.displayId;
+        }
+        if (IsChosenWindowOption(typeOption, WindowInfoTypeOption::WINDOW_LAYOUT_INFO)) {
+            window["layoutInfo"]["rect"] = {
+                {"posX", info->windowLayoutInfo.rect.posX_},
+                {"posY", info->windowLayoutInfo.rect.posY_},
+                {"width", info->windowLayoutInfo.rect.width_},
+                {"height", info->windowLayoutInfo.rect.height_},
+            };
+            window["layoutInfo"]["zOrder"] = info->windowLayoutInfo.zOrder;
+            window["layoutInfo"]["windowAlpha"] = info->windowLayoutInfo.windowAlpha;
+        }
+        if (IsChosenWindowOption(typeOption, WindowInfoTypeOption::WINDOW_META_INFO)) {
+            FillWindowMetaInfoJson(info->windowMetaInfo, window);
+        }
+        windows.push_back(window);
+    }
+    response["data"]["windows"] = windows;
+    std::cout << response.dump() << std::endl;
+}
+
+void ClawWindowShellCommand::FillWindowMetaInfoJson(const WindowMetaInfo& metaInfo, nlohmann::json& windowJson)
+{
+    windowJson["metaInfo"] = {
+        {"windowId", metaInfo.windowId},
+        {"windowName", metaInfo.windowName},
+        {"bundleName", metaInfo.bundleName},
+        {"abilityName", metaInfo.abilityName},
+        {"appIndex", metaInfo.appIndex},
+        {"pid", metaInfo.pid},
+        {"windowType", static_cast<uint32_t>(metaInfo.windowType)},
+        {"parentWindowId", metaInfo.parentWindowId},
+        {"surfaceNodeId", metaInfo.surfaceNodeId},
+        {"leashWinSurfaceNodeId", metaInfo.leashWinSurfaceNodeId},
+        {"isPrivacyMode", metaInfo.isPrivacyMode},
+        {"windowMode", static_cast<uint32_t>(metaInfo.windowMode)},
+        {"windowModeInfo", {
+            {"windowMode", static_cast<uint32_t>(metaInfo.windowModeInfo.windowMode)},
+            {"splitStyle", static_cast<uint32_t>(metaInfo.windowModeInfo.splitStyle)},
+            {"splitIndex", metaInfo.windowModeInfo.splitIndex},
+        }},
+        {"isMidScene", metaInfo.isMidScene},
+        {"isFocused", metaInfo.isFocused},
+        {"isTouchable", metaInfo.isTouchable},
+        {"mainWindowPersistentId", metaInfo.mainWindowPersistentId},
+        {"controlAppType", static_cast<uint32_t>(metaInfo.controlAppType)},
+    };
 }
 
 sptr<ISceneSessionManagerLite> ClawWindowShellCommand::GetSceneSessionManagerLiteProxy()

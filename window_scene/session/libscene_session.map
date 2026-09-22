@@ -146,6 +146,7 @@
             OHOS::Rosen::SceneSession::AddOrUpdateWindowDragHotArea*;
             OHOS::Rosen::SceneSession::RegisterSessionEventCallback*;
             OHOS::Rosen::SceneSession::RegisterTouchOutsideCallback*;
+            OHOS::Rosen::SceneSession::RegisterTouchHotAreasChangeCallback*;
             OHOS::Rosen::SceneSession::RemoveNormalModalUIExtension*;
             OHOS::Rosen::SceneSession::ResetSizeChangeReasonIfDirty*;
             OHOS::Rosen::SceneSession::SetHighlightChangeNotifyFunc*;

@@ -19,7 +19,9 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
 
+#include "wm_common.h"
 #include "shell_command.h"
 #include "zidl/scene_session_manager_lite_interface.h"
 
@@ -35,10 +37,13 @@ const std::string HELP_MSG =
     "Parameters:\n"
     "  --help                    Display this help message\n\n"
     "SubCommands:\n"
-    "  restore-window            restore a main window to foreground\n\n"
-    "Examples:\n"
+    "  restore-window            restore a main window to foreground\n"
+    "  list-windows              query window information\n"
+    "\nExamples:\n"
     "  # Restore a main window to foreground\n"
-    "  ohos-window restore-window --windowId 100\n";
+    "  ohos-window restore-window --windowId 100\n\n"
+    "  # List all visible windows\n"
+    "  ohos-window list-windows --filter visible\n\n";
 
 const std::string VERSION_MSG = "1.0.0\n";
 
@@ -55,6 +60,20 @@ const std::string HELP_MSG_RESTORE_WINDOW =
 
 const std::string STRING_RESTORE_WINDOW_OK = "restore main window to foreground successfully.";
 const std::string STRING_RESTORE_WINDOW_NG = "error: failed to restore main window to foreground.";
+
+const std::string HELP_MSG_LIST_WINDOWS =
+    "ohos-window list-windows - Query window information\n\n"
+    "Usage:\n"
+    "  ohos-window list-windows [options]\n\n"
+    "Parameters:\n"
+    "  --help                                           display this help message\n"
+    "  --windowId <windowId>                            windowId of the only session to query\n"
+    "  --displayId <displayId>                          displayId of the display to query\n"
+    "  --filter <visible|excludeSystem|foreground>      window filter to query, can specify multiple filters\n"
+    "  --type <ui|display|layout|meta>                  window information to return, can specify multiple filters\n"
+    "\nExamples:\n"
+    "  # List all visible windows\n"
+    "  ohos-window list-windows --filter visible\n";
 
 }  // namespace
 
@@ -77,6 +96,16 @@ private:
     int32_t RunAsHelpCommand();
     int32_t RunAsRestoreWindow();
     int32_t DoRestoreWindow(int32_t persistentId);
+
+    int32_t RunAsListWindowInfo();
+    bool ParseListWindowInfoOption(WindowInfoOption& infoOption);
+    bool ParseWindowIdOption(const std::string& idStr, int32_t& windowId);
+    bool ParseDisplayIdOption(const std::string& idStr, DisplayId& displayId);
+    bool ParseWindowInfoFilterOption(const std::string& valStr, WindowInfoFilterOption& filterOption);
+    bool ParseWindowInfoTypeOption(const std::string& valStr, WindowInfoTypeOption& typeOption);
+    void BuildListWindowInfoResultJson(const std::vector<sptr<WindowInfo>>& infos,
+        const WindowInfoTypeOption& typeOption);
+    void FillWindowMetaInfoJson(const WindowMetaInfo& metaInfo, nlohmann::json& windowJson);
 
     std::map<int32_t, WmToolErrorInfo> errorInfoMap_;
 };
