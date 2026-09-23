@@ -4679,10 +4679,10 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
         TLOGNFW(WmsLogTag::DMS, "not support");
         return false;
     }
-    if (!IsResolutionEffectActive()) {
-        TLOGNFI(WmsLogTag::DMS, "resolution effect is not active, no need recovery");
-        return true;
-    }
+    // No inactive guard here on purpose: before the owner-keyed state machine this function
+    // ran unconditionally, and its SetInternalScreenResolutionEffect call doubled as the
+    // de-facto initializer of the internal screen's mirror region. Gating it left non-PC
+    // devices with a never-initialized mirrorWidth (0,0), tripping the MMI cursor fallback.
     TLOGNFI(WmsLogTag::DMS, "recovery inner and external screen resolution");
     // Only the internal screen is needed here; the external one is resolved through the owner
     // below. Deliberately not gated on "current in use": the internal screen must be restorable
