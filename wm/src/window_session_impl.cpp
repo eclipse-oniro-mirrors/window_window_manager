@@ -2274,17 +2274,14 @@ WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo
 
 WSError WindowSessionImpl::NotifyDpiHookScale(float scale)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, oldScale=%{public}f, scale=%{public}f",
-        GetPersistentId(), dpiHookScale_, scale);
+    auto uiContent = GetUIContentSharedPtr();
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, oldScale=%{public}f, scale=%{public}f, hasUIContent=%{public}d",
+        GetPersistentId(), dpiHookScale_, scale, uiContent != nullptr);
     if (!MathHelper::NearZero(dpiHookScale_ - scale)) {
         dpiHookScale_ = scale;
-        bool hasUiContent = false;
-        if (auto uiContent = GetUIContentSharedPtr()) {
-            hasUiContent = true;
-            uiContent->SetUIExtensionDensityFollowHost(scale > 0.0f);
+        if (scale > 0.0f && uiContent != nullptr) {
+            uiContent->MarkUIExtensionDensityFollowHost();
         }
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "notify ace: wid=%{public}d, hasUIContent=%{public}d",
-            GetPersistentId(), hasUiContent);
         UpdateDensity();
     }
     return WSError::WS_OK;
@@ -3037,7 +3034,9 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
               singleHandTransform_.posX, singleHandTransform_.posY,
               singleHandTransform_.scaleX, singleHandTransform_.scaleY, dpiHookScale_);
         uiContent->UpdateSingleHandTransform(singleHandTransform_);
-        uiContent->SetUIExtensionDensityFollowHost(dpiHookScale_ > 0.0f);
+        if (dpiHookScale_ > 0.0f) {
+            uiContent->MarkUIExtensionDensityFollowHost();
+        }
     }
     WindowType winType = GetType();
     bool isSubWindow = WindowHelper::IsSubWindow(winType);
