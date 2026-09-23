@@ -7156,9 +7156,7 @@ WMError SceneSession::CheckUpdatePropertyPermission(WSPropertyChangeAction actio
             break;
         }
         case WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION: {
-            int32_t callerUid = IPCSkeleton::GetCallingUid();
-            bool isWindowOwner = callerUid == GetCallingUid();
-            if (!isSystemCalling && !isWindowOwner &&
+            if (!isSystemCalling &&
                 !SessionPermission::VerifyCallingPermission(
                     PermissionConstants::PERMISSION_SET_WINDOW_TOUCH_AREAS)) {
                 TLOGE(WmsLogTag::WMS_EVENT, "touchable areas permission denied");
