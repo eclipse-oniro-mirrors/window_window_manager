@@ -343,7 +343,7 @@ WSError SessionStageProxy::UpdateSessionViewportConfig(const SessionViewportConf
         TLOGE(WmsLogTag::WMS_UIEXT, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!(data.WriteBool(config.isDensityFollowHost_) && data.WriteFloat(config.density_) &&
+    if (!(data.WriteUint32(static_cast<uint32_t>(config.dpiFollowStrategy_)) && data.WriteFloat(config.density_) &&
             data.WriteUint64(config.displayId_) && data.WriteInt32(config.orientation_) &&
             data.WriteUint32(config.transform_))) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Write config failed");
@@ -1511,7 +1511,7 @@ void SessionStageProxy::NotifyGlobalScaledRectChange(const Rect& globalScaledRec
     }
 }
 
-WSError SessionStageProxy::NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+WSError SessionStageProxy::NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -1521,8 +1521,8 @@ WSError SessionStageProxy::NotifyDensityFollowHost(bool isFollowHost, float dens
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteBool(isFollowHost)) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Write isFollowHost failed");
+    if (!data.WriteUint32(static_cast<uint32_t>(dpiFollowStrategy))) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write dpiFollowStrategy failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 

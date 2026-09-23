@@ -7899,6 +7899,12 @@ float WindowSceneSessionImpl::GetVirtualPixelRatio(const sptr<DisplayInfo>& disp
         return virtualPixelRatio_;
     }
     auto vpr = GetMainWindowCustomDensity();
+    if (MathHelper::NearZero(vpr - UNDEFINED_DENSITY) && (GetIsUIExtAnySubWindow() || GetIsUIExtFirstSubWindow())) {
+        vpr = GetExtensionWindowCustomDensity();
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u, type=%{public}u, isUecAnySubWin=%{public}d, "
+            "isUecFirstSubWin=%{public}d, uecDpi=%{public}f, displayId=%{public}" PRIu64, GetWindowId(), GetType(),
+            GetIsUIExtAnySubWindow(), GetIsUIExtFirstSubWindow(), vpr, displayInfo->GetDisplayId());
+    }
     auto hookedDpi = (vpr >= MINIMUM_CUSTOM_DENSITY && vpr <= MAXIMUM_CUSTOM_DENSITY ?
         vpr : AdaptToHookedDensity(displayInfo->GetVirtualPixelRatio()));
     TLOGD(WmsLogTag::WMS_ATTRIBUTE,
@@ -9003,6 +9009,12 @@ float WindowSceneSessionImpl::GetMainWindowCustomDensity()
     }
     auto mainWindow = FindMainWindowWithContext();
     return mainWindow ? mainWindow->GetCustomDensity() : UNDEFINED_DENSITY;
+}
+
+float WindowSceneSessionImpl::GetExtensionWindowCustomDensity()
+{
+    auto extWindow = FindExtensionWindowWithContext();
+    return extWindow ? extWindow->GetExtensionCustomDensity() : UNDEFINED_DENSITY;
 }
 
 float WindowSceneSessionImpl::GetCustomDensity() const

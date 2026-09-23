@@ -24,5 +24,11 @@ namespace Rosen {
     using WindowInfoFilterOptionDataType = uint8_t;
     using WindowInfoTypeOptionDataType = uint8_t;
 }
+
+enum class DpiFollowStrategy : uint32_t {
+    NONE,                   // 跟随系统扩展能力
+    FOLLOW_HOST_DPI_UEA,    // 仅是UEA跟随宿主
+    FOLLOW_HOST_DPI_ALL,    // UEA及其内部所有子窗、嵌套的UEC都跟随宿主
+};
 }
 #endif // OHOS_ROSEN_WM_TYPE_H

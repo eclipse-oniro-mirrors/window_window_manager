@@ -273,6 +273,12 @@ public:
         return r.width_ > r.height_;
     }
 
+    static inline bool IsDpiFollowHost(DpiFollowStrategy dpiFollowStrategy)
+    {
+        return (dpiFollowStrategy == DpiFollowStrategy::FOLLOW_HOST_DPI_UEA ||
+            dpiFollowStrategy == DpiFollowStrategy::FOLLOW_HOST_DPI_ALL);
+    }
+
     static inline bool IsShowWhenLocked(uint32_t flags)
     {
         return flags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED);

@@ -443,12 +443,14 @@ int SessionStageStub::HandleUpdateSessionViewportConfig(MessageParcel& data, Mes
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "HandleUpdateSessionViewportConfig!");
     SessionViewportConfig config;
-    if (!data.ReadBool(config.isDensityFollowHost_) || !data.ReadFloat(config.density_) ||
+    uint32_t dpiFollowStrategyValue = 0;
+    if (!data.ReadUint32(dpiFollowStrategyValue) || !data.ReadFloat(config.density_) ||
         !data.ReadUint64(config.displayId_) || !data.ReadInt32(config.orientation_) ||
         !data.ReadUint32(config.transform_)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Read HandleUpdateSessionViewportConfig data failed!");
         return ERR_INVALID_DATA;
     };
+    config.dpiFollowStrategy_ = static_cast<DpiFollowStrategy>(dpiFollowStrategyValue);
     UpdateSessionViewportConfig(config);
     return ERR_NONE;
 }
@@ -1042,9 +1044,9 @@ int SessionStageStub::HandleNotifyRebindAttachAfterParentChange(MessageParcel& d
 int SessionStageStub::HandleNotifyDensityFollowHost(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "HandleNotifyDensityFollowHost");
-    bool isFollowHost = data.ReadBool();
+    auto dpiFollowStrategy = static_cast<DpiFollowStrategy>(data.ReadUint32());
     float densityValue = data.ReadFloat();
-    NotifyDensityFollowHost(isFollowHost, densityValue);
+    NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
     return ERR_NONE;
 }
 

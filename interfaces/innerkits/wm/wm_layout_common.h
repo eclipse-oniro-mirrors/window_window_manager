@@ -31,6 +31,12 @@ struct SnapshotAnimationConfig {
     int64_t delay = UNSET;     // Animation delay in ms
 };
 
+enum class DpiFollowStrategy : uint32_t {
+    NONE,                   // 跟随系统扩展能力
+    FOLLOW_HOST_DPI_UEA,    // 仅是UEA跟随宿主
+    FOLLOW_HOST_DPI_ALL,    // UEA及其内部所有子窗、嵌套的UEC都跟随宿主
+};
+
 /**
  * Enum for across-display policy used when maximizing in the half-folded state of a foldable 2-in-1 device.
  */
