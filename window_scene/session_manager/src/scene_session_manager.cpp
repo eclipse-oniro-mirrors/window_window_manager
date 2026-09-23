@@ -5499,14 +5499,13 @@ void SceneSessionManager::ReportSubWindowCreationFailure(int32_t pid, const std:
 void SceneSessionManager::ReportScbSystemSceneSubWindowCreate(const std::string& bundleName,
     const std::string& abilityName)
 {
-    auto pid = IPCSkeleton::GetCallingRealPid();
-    taskScheduler_->PostAsyncTask([pid, bundleName, abilityName]() {
+    taskScheduler_->PostAsyncTask([bundleName, abilityName]() {
         std::ostringstream oss;
         oss << "A subwindow is being created by a UIExtension, which is started by ScbSystemScene, "
             "UIExtension bundleName: "<< bundleName;
         oss << ", abilityName: " << abilityName;
         SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
-            static_cast<int32_t>(WindowDFXHelperType::WINDOW_SCB_SYSTEM_SCENE_CREATE_SUBWINDOW), pid, oss.str());
+            static_cast<int32_t>(WindowDFXHelperType::WINDOW_SCB_SYSTEM_SCENE_CREATE_SUBWINDOW), getpid(), oss.str());
     }, __func__);
 }
 
