@@ -59,6 +59,7 @@ public:
      * used by powermgr
      */
     bool SetDisplayState(DisplayState state, DisplayStateCallback callback);
+    bool SetDisplayState(DisplayId displayId, DisplayState state, DisplayStateCallback callback);
 private:
     void NotifyDisplayCreate(sptr<DisplayInfo> info);
     void NotifyDisplayDestroy(DisplayId);
@@ -70,7 +71,9 @@ private:
      * used by powermgr
      */
     void NotifyDisplayStateChanged(DisplayId id, DisplayState state);
+    void NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state);
     void ClearDisplayStateCallback();
+    void ClearDisplayStateCallback(DisplayId id);
     void ClearFoldStatusCallback();
     void ClearDisplayModeCallback();
     void Clear();
@@ -93,6 +96,7 @@ private:
      */
     class DisplayManagerAgent;
     sptr<DisplayManagerAgent> displayStateAgent_;
+    std::map<DisplayId, std::pair<DisplayStateCallback, sptr<DisplayManagerAgent>>> displayStateMap_;
     void NotifyScreenMagneticStateChanged(bool isMagneticState);
     std::set<sptr<IScreenMagneticStateListener>> screenMagneticStateListeners_;
     class DisplayManagerScreenMagneticStateAgent;
@@ -266,6 +270,11 @@ public:
     virtual void NotifyDisplayStateChanged(DisplayId id, DisplayState state) override
     {
         pImpl_->NotifyDisplayStateChanged(id, state);
+    }
+    
+    virtual void NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state) override
+    {
+        pImpl_->NotifyDisplayStateChangedById(displayId, state);
     }
 private:
     sptr<Impl> pImpl_;
@@ -754,6 +763,31 @@ bool DisplayManagerLite::SuspendEnd()
     return SingletonContainer::Get<DisplayManagerAdapterLite>().SuspendEnd();
 }
 
+bool DisplayManagerLite::WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason)
+{
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpBegin start, reason:%{public}u", reason);
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().WakeUpBegin(displayId, reason);
+}
+
+bool DisplayManagerLite::WakeUpEnd(DisplayId displayId)
+{
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpEnd start");
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().WakeUpEnd(displayId);
+}
+
+bool DisplayManagerLite::SuspendBegin(DisplayId displayId, PowerStateChangeReason reason)
+{
+    // dms->wms notify other windows to hide
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendBegin start, reason:%{public}u", reason);
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().SuspendBegin(displayId, reason);
+}
+
+bool DisplayManagerLite::SuspendEnd(DisplayId displayId)
+{
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendEnd start");
+    return SingletonContainer::Get<DisplayManagerAdapterLite>().SuspendEnd(displayId);
+}
+
 DMError DisplayManagerLite::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
 {
     TLOGI(WmsLogTag::DMS, "[UL_POWER] start");
@@ -775,6 +809,13 @@ bool DisplayManagerLite::SetScreenPowerById(ScreenId screenId, ScreenPowerState 
 bool DisplayManagerLite::SetDisplayState(DisplayState state, DisplayStateCallback callback)
 {
     return pImpl_->SetDisplayState(state, callback);
+}
+
+bool DisplayManagerLite::SetDisplayState(DisplayId displayId, DisplayState state, DisplayStateCallback callback)
+{
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI]SetDisplayState start with screenId:%{public}" PRIu64 ",state:%{public}u",
+        displayId, static_cast<uint32_t>(state));
+    return pImpl_->SetDisplayState(displayId, state, callback);
 }
 
 DisplayState DisplayManagerLite::GetDisplayState(DisplayId displayId)
@@ -840,6 +881,79 @@ void DisplayManagerLite::Impl::ClearDisplayStateCallback()
             DisplayManagerAgentType::DISPLAY_STATE_LISTENER);
         displayStateAgent_ = nullptr;
     }
+}
+
+bool DisplayManagerLite::Impl::SetDisplayState(DisplayId displayId, DisplayState state, DisplayStateCallback callback)
+{
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI]screenId:%{public}" PRIu64",state:%{public}u", displayId, state);
+    if (callback == nullptr) {
+        TLOGI(WmsLogTag::DMS, "[UL_POWER_IVI]Invalid callback received");
+        return false;
+    }
+    
+    bool ret = true;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        auto it = displayStateMap_.find(displayId);
+        if (it != displayStateMap_.end()) {
+            TLOGI(WmsLogTag::DMS, "[UL_POWER_IVI]Clear previous agent for displayId:%{public}" PRIu64, displayId);
+            SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayManagerAgent(
+                it->second.second, DisplayManagerAgentType::DISPLAY_STATE_LISTENER);
+            displayStateMap_.erase(it);
+        }
+        auto agent = new DisplayManagerAgent(this);
+        displayStateMap_[displayId] = { callback, agent };
+        ret = SingletonContainer::Get<DisplayManagerAdapterLite>().RegisterDisplayManagerAgent(
+            agent, DisplayManagerAgentType::DISPLAY_STATE_LISTENER) == DMError::DM_OK;
+    }
+    
+    if (!ret) {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        displayStateMap_.erase(displayId);
+        return false;
+    }
+    ret = ret && SingletonContainer::Get<DisplayManagerAdapterLite>().SetDisplayState(displayId, state);
+    if (!ret) {
+        ClearDisplayStateCallback(displayId);
+    }
+    return ret;
+}
+
+void DisplayManagerLite::Impl::NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state)
+{
+    TLOGD(WmsLogTag::DMS, "state:%{public}u", state);
+    DisplayStateCallback callback = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        auto it = displayStateMap_.find(displayId);
+        if (it == displayStateMap_.end()) {
+            TLOGW(WmsLogTag::DMS, "screenId:%{public}" PRIu64" not exist!", displayId);
+            return;
+        }
+        callback = it->second.first;
+    }
+    
+    if (callback) {
+        callback(state);
+        ClearDisplayStateCallback(displayId);
+        return;
+    }
+    TLOGW(WmsLogTag::DMS, "callback_ target is not set!");
+}
+
+void DisplayManagerLite::Impl::ClearDisplayStateCallback(DisplayId id)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    TLOGD(WmsLogTag::DMS, "[UL_POWER_IVI] Clear display state agent enter, displayId:%{public}" PRIu64, id);
+    
+    auto it = displayStateMap_.find(id);
+    if (it == displayStateMap_.end()) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI] No display state agent for displayId:%{public}" PRIu64, id);
+        return;
+    }
+    SingletonContainer::Get<DisplayManagerAdapterLite>().UnregisterDisplayManagerAgent(
+        it->second.second, DisplayManagerAgentType::DISPLAY_STATE_LISTENER);
+    displayStateMap_.erase(it);
 }
 
 extern "C" __attribute__((destructor)) void DisplayManagerLite::Impl::DlcloseClearResource()

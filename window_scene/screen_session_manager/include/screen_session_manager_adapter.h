@@ -41,12 +41,14 @@ public:
     void OnDisplayDestroy(DisplayId);
     void OnDisplayCreate(sptr<DisplayInfo>);
     bool NotifyDisplayStateChanged(DisplayId id, DisplayState state);
+    bool NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state);
     void OnScreenChange(sptr<ScreenInfo>, ScreenChangeEvent);
     void OnDisplayChange(sptr<DisplayInfo>, DisplayChangeEvent event, int32_t uid);
     void OnDisplayChange(sptr<DisplayInfo>, DisplayChangeEvent event);
     void NotifyScreenModeChange(const std::vector<sptr<ScreenInfo>> screenInfos);
     void NotifyScreenChanged(sptr<ScreenInfo> screenInfo, ScreenChangeEvent event);
     bool NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status);
+    bool NotifySpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status);
     void NotifyPrivateWindowStateChanged(bool hasPrivate);
     void NotifyPrivateStateWindowListChanged(DisplayId id, std::vector<std::string> privacyWindowList);
     void OnScreenConnect(const sptr<ScreenInfo> screenInfo);
