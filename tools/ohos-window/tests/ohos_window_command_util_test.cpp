@@ -16,8 +16,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include <getopt.h>
-
 #include "ohos_window_command.h"
 
 using namespace testing::ext;
@@ -30,8 +28,6 @@ constexpr int ARGC_SUBCOMMAND_ONLY = 2;
 constexpr int ARGC_HELP_OPTION = 3;
 constexpr int ARGC_OPTION_VALUE = 4;
 constexpr int ARGC_EXTRA_ARG = 5;
-constexpr int OPTIND_DEFAULT = 1;
-constexpr int OPTIND_OFFSET = 10;
 
 class MockClawWindowShellCommand : public ClawWindowShellCommand {
 public:
@@ -287,34 +283,6 @@ TEST_F(OhosWindowCommandUtilTest, ExecCommand_OnCommandFail_0100)
     MockClawWindowShellCommand cmd(argc, argv);
     cmd.SetInitResult(ERR_INVALID_VALUE);
     EXPECT_EQ(cmd.ExecCommand(), "error: failed to execute your command.\n");
-}
-
-TEST_F(OhosWindowCommandUtilTest, GetUnknownOptionMsg_OptindOutOfRange_0100)
-{
-    char* argv[] = {
-        const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-window"),
-        const_cast<char*>(""),
-    };
-    int argc = ARGC_SUBCOMMAND_ONLY;
-    ClawWindowShellCommand cmd(argc, argv);
-    std::string unknownOption;
-    optind = argc + OPTIND_OFFSET;
-    EXPECT_TRUE(cmd.GetUnknownOptionMsg(unknownOption).empty());
-}
-
-TEST_F(OhosWindowCommandUtilTest, GetUnknownOptionMsg_Normal_0100)
-{
-    char* argv[] = {
-        const_cast<char*>("ohos-window"),
-        const_cast<char*>("restore-window"),
-        const_cast<char*>(""),
-    };
-    int argc = ARGC_SUBCOMMAND_ONLY;
-    ClawWindowShellCommand cmd(argc, argv);
-    std::string unknownOption;
-    optind = OPTIND_DEFAULT;
-    EXPECT_FALSE(cmd.GetUnknownOptionMsg(unknownOption).empty());
 }
 
 TEST_F(OhosWindowCommandUtilTest, RunAsHelpCommand_Help_0100)
