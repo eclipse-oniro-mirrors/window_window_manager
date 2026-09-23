@@ -7057,7 +7057,7 @@ void ScreenSessionManager::TriggerDisplayModeUpdate(FoldDisplayMode targetDispla
     auto updateDisplayModeTask = [=] {
 #ifdef FOLD_ABILITY_ENABLE
         if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
-            SuperFoldPolicy::GetInstance().ChangeScreenDisplayMode(targetDisplayMode);
+            SuperFoldPolicy::GetInstance().UpdateToLastDisplayMode();
             return;
         }
 #endif

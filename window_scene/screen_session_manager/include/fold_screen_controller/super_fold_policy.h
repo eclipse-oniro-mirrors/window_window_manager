@@ -60,6 +60,7 @@ public:
     FoldStatus GetPhyFoldStatus();
     void LockDisplayMode(bool isLock);
     FoldStatus GetFoldStatus();
+    void UpdateToLastDisplayMode();
  
 private:
     void NotifyFoldStatus(ScreenClosedState screenClosedState);
@@ -71,6 +72,8 @@ private:
     void OnScreenPropertyChangeNotifyClient();
     void NotifyRefreshRateEvent(bool isEventStatus);
     void CloseCoordination();
+    bool CheckAndSetRunningStatus(FoldDisplayMode displayMode, bool isInnerUpdate = false);
+
     std::atomic<ScreenClosedState> screenClosedState_ = ScreenClosedState::UNKNOWN;
     std::mutex currentScreenIdMutex_;
     ScreenId currentScreenId_ = { SCREEN_ID_INVALID };
@@ -85,6 +88,7 @@ private:
     FoldStatus phyFoldStatus_ = FoldStatus::UNKNOWN;
     FoldStatus lastFoldStatus_ = FoldStatus::UNKNOWN;
     std::atomic<bool> isLockDisplayMode_ = false;
+    std::mutex runningStatusMutex_;
 };
 }
 #endif // OHOS_ROSEN_WINDOW_SUPER_FOLD_POLICY_H
