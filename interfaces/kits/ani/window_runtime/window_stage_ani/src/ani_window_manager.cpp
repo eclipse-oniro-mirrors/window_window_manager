@@ -212,8 +212,8 @@ void AniWindowManager::OnSetWindowPosition(ani_env* env, ani_object list)
     if (elements.size() > MAX_SIZE_WINDOW_POSITION) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowPositions size exceeds max, size: %{public}zu",
             elements.size());
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][setWindowPosition]msg: windowPositions size exceeds max");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][setWindowPosition]msg: The windowPositions list exceeds the maximum size of 50.");
         return;
     }
     WindowPositionInfo windowPositionInfo;

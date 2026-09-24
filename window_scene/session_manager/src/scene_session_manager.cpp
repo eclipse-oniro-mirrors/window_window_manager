@@ -17194,11 +17194,15 @@ WSError SceneSessionManager::CheckSetWindowPositionDisplaySupport(const sptr<Sce
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
     auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(sceneSession->GetDisplayId());
-    if (screenSession == nullptr ||
-        screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s display session not found, id: %{public}d",
+            targetName.c_str(), targetId);
+        return WSError::WS_ERROR_INVALID_DISPLAY;
+    }
+    if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on virtual screen, id: %{public}d",
             targetName.c_str(), targetId);
-        return WSError::WS_ERROR_INVALID_SESSION;
+        return WSError::WS_ERROR_INVALID_DISPLAY;
     }
     return WSError::WS_OK;
 }

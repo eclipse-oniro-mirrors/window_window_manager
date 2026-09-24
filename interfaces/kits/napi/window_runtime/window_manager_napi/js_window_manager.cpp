@@ -613,8 +613,9 @@ bool JsWindowManager::ParseWindowInfoOptions(napi_env env, napi_value jsObject, 
 }
 
 bool JsWindowManager::ParseWindowPositionInfo(napi_env env, napi_value jsObject,
-    WindowPositionInfo& windowPositionInfo)
+    WindowPositionInfo& windowPositionInfo, WmErrorCode& errorCode)
 {
+    errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
     uint32_t size = 0;
     if (GetType(env, jsObject) != napi_object || napi_get_array_length(env, jsObject, &size) != napi_ok) {
         TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert parameter to windowPositions");
@@ -627,6 +628,7 @@ bool JsWindowManager::ParseWindowPositionInfo(napi_env env, napi_value jsObject,
     for (uint32_t i = 0; i < size; i++) {
         if (i >= MAX_SIZE_WINDOW_POSITION) {
             TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions size exceeds max, size: %{public}u", size);
+            errorCode = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
             return false;
         }
         napi_value element = nullptr;
@@ -2653,10 +2655,15 @@ napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info
             "[window][setWindowPosition]msg: Mandatory parameters are left unspecified");
     }
     WindowPositionInfo windowPositionInfo;
-    if (!ParseWindowPositionInfo(env, argv[INDEX_ZERO], windowPositionInfo)) {
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][setWindowPosition]msg: The windowPositions list is empty or exceeds the maximum size, "
-            "the windowId is invalid, or the insertAfter value is invalid.");
+    WmErrorCode errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+    if (!ParseWindowPositionInfo(env, argv[INDEX_ZERO], windowPositionInfo, errorCode)) {
+        if (errorCode == WmErrorCode::WM_ERROR_ILLEGAL_PARAM) {
+            return NapiThrowError(env, errorCode,
+                "[window][setWindowPosition]msg: The windowPositions list exceeds the maximum size of 50.");
+        }
+        return NapiThrowError(env, errorCode,
+            "[window][setWindowPosition]msg: The windowPositions list is empty, the windowId is invalid, "
+            "or the insertAfter value is invalid.");
     }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
