@@ -5284,7 +5284,7 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
             AAFwk::UIExtensionSessionInfo info;
             AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);
             auto bundleName = info.elementName.GetBundleName();
-            auto abilityName = info.elementName.getAbilityName();
+            auto abilityName = info.elementName.GetAbilityName();
             ReportScbSystemSceneSubWindowCreate(bundleName, abilityName);
         }
     }
