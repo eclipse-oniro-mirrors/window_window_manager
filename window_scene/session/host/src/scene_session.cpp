@@ -7196,6 +7196,7 @@ WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
     bool isSystemCalling = SessionPermission::IsSystemCalling();
     WMError permErr = CheckUpdatePropertyPermission(action, property, isSystemCalling);
     if (permErr != WMError::WM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "check permission failed");
         return permErr;
     }
 
