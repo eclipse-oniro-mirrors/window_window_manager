@@ -2576,7 +2576,15 @@ struct WindowLimits {
         return minWidth_ <= maxWidth_ && minHeight_ <= maxHeight_;
     }
 
-    static const WindowLimits DEFAULT_VP_LIMITS()
+    /**
+     * @brief Default window limits in VP.
+     *
+     * @param forAttachedWindows True for default limits shared to attached windows: vpRatio is the
+     *                           invalid marker (0.0f), meaning a window that has never computed its
+     *                           limits carries no density snapshot, so receivers fall back to their
+     *                           own density when converting these limits between units.
+     */
+    static const WindowLimits DEFAULT_VP_LIMITS(bool forAttachedWindows = false)
     {
         return {
             static_cast<uint32_t>(INT32_MAX),  // maxWidth
@@ -2585,7 +2593,7 @@ struct WindowLimits {
             1,                                 // minHeight
             FLT_MAX,                           // maxRatio
             0.0f,                              // minRatio
-            1.0f,                              // vpRatio
+            forAttachedWindows ? 0.0f : 1.0f,  // vpRatio: 0.0f means no density snapshot
             PixelUnit::VP                      // pixelUnit
         };
     }

@@ -27,6 +27,22 @@
 
 namespace OHOS {
 namespace Rosen {
+/**
+ * @brief Density basis for intersecting attached window limits.
+ *
+ * effectiveVpr is the receiver's effective density (independent-density aware, result of
+ * GetVirtualPixelRatio) used to derive its VP view; displayVpr is the raw density of the
+ * current display, used as the conversion basis for snapshot-invalid (0.0f) attached limits:
+ * a provider without an independent density follows the display, and all collaborating
+ * windows sit on the same display, so the receiver's display density equals the density the
+ * provider used for its own base. It must NOT be replaced with the receiver's effective
+ * density, which may come from an independent density.
+ */
+struct AttachDensityBasis {
+    float effectiveVpr = 0.0f;
+    float displayVpr = 0.0f;
+};
+
 class WindowHelper {
 public:
     static inline bool IsMainWindow(WindowType type)

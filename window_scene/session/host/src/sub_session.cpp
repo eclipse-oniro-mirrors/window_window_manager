@@ -407,8 +407,12 @@ WSError SubSession::RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId
     }
 
     // Sub window: only update own limits
-    TLOGD(WmsLogTag::WMS_LAYOUT, "Sub window id=%{public}d updating limits from source id=%{public}d",
-        GetPersistentId(), sourcePersistentId);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Sub window id=%{public}d updating limits from source id=%{public}d: "
+        "maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, pixelUnit=%{public}u, "
+        "densitySnapshot=%{public}f", GetPersistentId(), sourcePersistentId,
+        attachedWindowLimits.maxWidth_, attachedWindowLimits.maxHeight_, attachedWindowLimits.minWidth_,
+        attachedWindowLimits.minHeight_, static_cast<uint32_t>(attachedWindowLimits.pixelUnit_),
+        attachedWindowLimits.vpRatio_);
     const auto& property = GetSessionProperty();
     property->SetAttachedWindowLimits(sourcePersistentId, attachedWindowLimits);
     AttachLimitOptions limitOptions;

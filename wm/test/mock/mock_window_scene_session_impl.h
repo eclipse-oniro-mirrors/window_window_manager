@@ -29,7 +29,14 @@ public:
     ~MockWindowSceneSessionImpl() {}
 
     MOCK_METHOD(float, GetVirtualPixelRatio, (const sptr<DisplayInfo>& displayInfo), (override));
-    MOCK_METHOD(WMError, GetVirtualPixelRatio, (float& vpr), (override));
+    MOCK_METHOD(WMError, GetVirtualPixelRatio, (float& vpr, sptr<DisplayInfo>* displayInfo), (override));
+
+    // Forward to the real base implementation (bypassing the mock) for branch tests of the
+    // optional displayInfo out-parameter.
+    WMError CallRealGetVirtualPixelRatio(float& vpr, sptr<DisplayInfo>* displayInfo = nullptr)
+    {
+        return this->WindowSessionImpl::GetVirtualPixelRatio(vpr, displayInfo);
+    }
 };
 } // Rosen
 } // OHOS

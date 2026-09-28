@@ -2337,19 +2337,28 @@ WSError WindowSessionImpl::SetIsStartMoving(bool isStartMoving)
     return WSError::WS_OK;
 }
 
-WMError WindowSessionImpl::GetVirtualPixelRatio(float& vpr)
+WMError WindowSessionImpl::GetVirtualPixelRatio(float& vpr, sptr<DisplayInfo>* displayInfo)
 {
-    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
-    if (display == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "get display failed displayId: %{public}" PRIu64, property_->GetDisplayId());
-        return WMError::WM_ERROR_NULLPTR;
+    // Use the caller-provided display info directly; fetch it only when not available.
+    sptr<DisplayInfo> resolved = (displayInfo != nullptr) ? *displayInfo : nullptr;
+    if (resolved == nullptr) {
+        auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
+        if (display == nullptr) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "get display failed displayId: %{public}" PRIu64,
+                property_->GetDisplayId());
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        resolved = display->GetDisplayInfo();
+        if (resolved == nullptr) {
+            TLOGE(WmsLogTag::WMS_LAYOUT, "get display info failed displayId: %{public}" PRIu64,
+                property_->GetDisplayId());
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        if (displayInfo != nullptr) {
+            *displayInfo = resolved;
+        }
     }
-    auto displayInfo = display->GetDisplayInfo();
-    if (displayInfo == nullptr) {
-        TLOGE(WmsLogTag::WMS_LAYOUT, "get display info failed displayId: %{public}" PRIu64, property_->GetDisplayId());
-        return WMError::WM_ERROR_NULLPTR;
-    }
-    vpr = GetVirtualPixelRatio(displayInfo);
+    vpr = GetVirtualPixelRatio(resolved);
     if (MathHelper::NearZero(vpr)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "get decor height failed, because of wrong vpr: %{public}f", vpr);
         return WMError::WM_ERROR_INVALID_WINDOW;

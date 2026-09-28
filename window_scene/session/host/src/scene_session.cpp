@@ -9492,9 +9492,11 @@ WSError SceneSession::NotifyAttachedWindowsLimitsChanged(const WindowLimits& new
         }
 
         TLOGNI(WmsLogTag::WMS_LAYOUT, "%{public}s id=%{public}d, newLimits: "
-            "maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, pixelUnit=%{public}u",
+            "maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, pixelUnit=%{public}u, "
+            "densitySnapshot=%{public}f",
             where, session->GetPersistentId(), newLimits.maxWidth_, newLimits.maxHeight_,
-            newLimits.minWidth_, newLimits.minHeight_, static_cast<uint32_t>(newLimits.pixelUnit_));
+            newLimits.minWidth_, newLimits.minHeight_, static_cast<uint32_t>(newLimits.pixelUnit_),
+            newLimits.vpRatio_);
 
         // Save the limits that are notified to attached windows
         session->GetSessionProperty()->SetLimitsForAttachedWindows(newLimits);
