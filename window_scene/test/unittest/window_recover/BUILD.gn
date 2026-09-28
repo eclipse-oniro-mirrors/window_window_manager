@@ -19,6 +19,12 @@ ws_unittest_common = "../:ws_unittest_common"
 
 ohos_unittest("ws_window_recover_session_test") {
   module_out_path = module_out_path
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
   sources = [ "window_recover_session_test.cpp" ]
   cflags_cc = [ "-Wno-thread-safety" ]
   include_dirs = [ "${window_base_path}/window_scene/session/host/include" ]

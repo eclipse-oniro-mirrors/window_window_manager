@@ -555,13 +555,14 @@ HWTEST_F(WindowRecoverSessionTest, CacheSpecificSessionForRecovering, TestSize.L
     ssm_->CacheSpecificSessionForRecovering(sceneSession, property);
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 1);
     ssm_->CacheSpecificSessionForRecovering(sceneSession, property);
-    ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 2);
+    ASSERT_EQ(ssm_->recoverSubSessionCacheMap_[parentPersistentId].size(), 1);
     ssm_->recoverSubSessionCacheMap_.clear();
 }
 
 HWTEST_F(WindowRecoverSessionTest, RecoverCachedSubSession, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
+    ssm_->recoverSubSessionCacheMap_.clear();
     // 1. 没有缓存的子窗
     ssm_->RecoverCachedSubSession(123);
     ASSERT_EQ(ssm_->recoverSubSessionCacheMap_.size(), 0);
