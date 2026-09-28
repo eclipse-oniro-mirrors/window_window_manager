@@ -187,6 +187,7 @@ public:
     bool IsPhonePadOrPcWindow() const override;
     bool IsPcOrFreeMultiWindowCapabilityEnabled() const override;
     bool IsPcOrPadFreeMultiWindowMode() const override;
+    bool IsDisplayInFreeMultiWindow() const;
     bool IsPadAndNotFreeMultiWindowCompatibleMode() const override;
     bool IsSceneBoardEnabled() const override;
     bool GetCompatibleModeInPc() const override;

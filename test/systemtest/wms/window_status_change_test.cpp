@@ -72,6 +72,7 @@ HWTEST_F(WindowStatusChangeTest, ChangeWindowStatus01, TestSize.Level1)
     window->hostSession_ = session;
     window->state_ = WindowState::STATE_CREATED;
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(WindowState::STATE_CREATED, window->GetWindowState());
 
     ASSERT_EQ(WMError::WM_OK, window->Show());

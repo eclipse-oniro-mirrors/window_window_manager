@@ -4861,7 +4861,7 @@ WMError WindowSceneSessionImpl::MaximizeWithOptions(MaximizePresentation present
         return checkRet;
     }
 
-    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
+    if (!IsDisplayInFreeMultiWindow() || property_->IsFullScreenDisabled()) {
         TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         RETURN_ERR(errMsg, "Device not supported in compatible mode", WMError::WM_OK);
     }

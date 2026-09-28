@@ -2235,6 +2235,7 @@ HWTEST_F(WindowSceneSessionImplTest2, Maximize03, TestSize.Level1)
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
 
     // case1: only set maximize()
     MaximizePresentation presentation = MaximizePresentation::ENTER_IMMERSIVE;

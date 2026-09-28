@@ -316,6 +316,7 @@ HWTEST_F(WindowSceneSessionImplTest5, Maximize02, TestSize.Level1)
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetWindowModeSupportType(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
 
     presentation = MaximizePresentation::ENTER_IMMERSIVE;
     auto ret = window->Maximize(presentation);
@@ -1119,6 +1120,7 @@ HWTEST_F(WindowSceneSessionImplTest5, MobileAppInPadLayoutFullScreenChange, Test
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
 
     window->property_->SetMobileAppInPadLayoutFullScreen(true);
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
