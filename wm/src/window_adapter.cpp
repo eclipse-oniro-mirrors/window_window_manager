@@ -19,6 +19,7 @@
 #include <rs_window_animation_target.h>
 #include <system_ability_definition.h>
 #include <unistd.h>
+#include "display_manager.h"
 #include "focus_change_info.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
@@ -1149,6 +1150,12 @@ void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
     if (Rosen::SceneBoardJudgement::IsSceneBoardEnabled()) {
+        if (displayId == DISPLAY_ID_INVALID) {
+            auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);
+            displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+            TLOGD(WmsLogTag::WMS_FOCUS,
+                "get focus window info on resolved default display: %{public}" PRIu64, displayId);
+        }
         wmsProxy->GetFocusWindowInfo(focusInfo, displayId);
     } else {
         wmsProxy->GetFocusWindowInfo(focusInfo);

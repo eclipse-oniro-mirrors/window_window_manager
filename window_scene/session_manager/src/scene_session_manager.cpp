@@ -8454,6 +8454,13 @@ void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Display
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return;
     }
+    if (displayId == DISPLAY_ID_INVALID) {
+        int32_t userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
+        auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
+        displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+        TLOGD(WmsLogTag::WMS_FOCUS,
+            "get focus window info on resolved default display: %{public}" PRIu64, displayId);
+    }
     taskScheduler_->PostSyncTask([this, &focusInfo, displayId] {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
