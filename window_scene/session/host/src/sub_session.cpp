@@ -164,6 +164,40 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
     SceneSession::UpdateSessionRectInner(rect, reason, moveConfiguration);
 }
 
+WSRect SubSession::ConvertToScreenCoordinates(const WSRect& rect)
+{
+    const bool needConvertToScreenCoordinates =
+        (systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) && !IsFreeMultiWindowMode();
+    if (!needConvertToScreenCoordinates) {
+        return rect;
+    }
+
+    auto mainSession = GetMainSession();
+    if (!mainSession) {
+        return rect;
+    }
+
+    const float floatingScale = mainSession->GetFloatingScale();
+    if (floatingScale == 0.0f) {
+        return rect;
+    }
+
+    // In this mode, the subwindow rect uses the top-left corner of the main window as its origin.
+    // Convert its position to the screen coordinate system.
+    Rect mainGlobalRect;
+    const WMError ret = mainSession->GetGlobalScaledRect(mainGlobalRect);
+    if (ret != WMError::WM_OK) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Failed to get main window global scaled rect, id: %{public}d, ret: %{public}d",
+              GetPersistentId(), ret);
+        return rect;
+    }
+
+    WSRect convertedRect = rect;
+    convertedRect.posX_ = static_cast<int32_t>((rect.posX_ - mainGlobalRect.posX_) / floatingScale);
+    convertedRect.posY_ = static_cast<int32_t>((rect.posY_ - mainGlobalRect.posY_) / floatingScale);
+    return convertedRect;
+}
+
 WSError SubSession::Hide()
 {
     return Hide(false);  // async mode

@@ -1304,6 +1304,16 @@ protected:
         SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID) {}
     virtual void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
         const MoveConfiguration& moveConfiguration);
+
+    /**
+     * @brief Converts a rectangle to screen coordinates for move-to-global
+     *        requests when required by the session layout.
+     *
+     * @param rect The rectangle to convert.
+     * @return The converted rectangle, or the original rectangle when no conversion is required.
+     */
+    virtual WSRect ConvertToScreenCoordinates(const WSRect& rect) { return rect; }
+
     void NotifySessionDisplayIdChange(uint64_t displayId);
     virtual void CheckAndMoveDisplayIdRecursively(uint64_t displayId);
     void SetShouldFollowParentWhenShow(bool shouldFollow) { shouldFollowParentWhenShow_ = shouldFollow; }

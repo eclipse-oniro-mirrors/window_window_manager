@@ -2601,9 +2601,10 @@ WSError SceneSession::UpdateGlobalDisplayRectFromClient(const WSRect& rect, Size
         };
         const auto& [screenId, screenRelativeRect] =
             WindowCoordinateHelper::ConvertToScreenRelativeRect(session->GetScreenId(), rect, filter);
+        const WSRect convertedRect = session->ConvertToScreenCoordinates(screenRelativeRect);
         MoveConfiguration moveConfig = { screenId };
         session->SetRequestMoveConfiguration(moveConfig);
-        session->UpdateSessionRectInner(screenRelativeRect, reason, moveConfig);
+        session->UpdateSessionRectInner(convertedRect, reason, moveConfig);
     }, __func__ + GetRectInfo(rect));
     return WSError::WS_OK;
 }
