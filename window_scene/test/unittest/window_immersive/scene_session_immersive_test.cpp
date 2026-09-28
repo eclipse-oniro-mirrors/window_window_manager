@@ -565,6 +565,49 @@ HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreas, TestSize.Level1)
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
 }
 
+/**
+ * @tc.name: GetAllAvoidAreasFilterTitleButton
+ * @tc.desc: GetAllAvoidAreas should not include TYPE_TITLE_BUTTON
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreasFilterTitleButton, TestSize.Level1)
+{
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    SessionInfo info;
+    info.abilityName_ = "GetAllAvoidAreasFilterTitleButton";
+    info.bundleName_ = "GetAllAvoidAreasFilterTitleButton";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
+    sceneSession->Session::SetIgnoreRotateScale(1, 1);
+    EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
+    EXPECT_EQ(avoidAreas.find(AvoidAreaType::TYPE_TITLE_BUTTON), avoidAreas.end());
+}
+
+/**
+ * @tc.name: UpdateAvoidAreaFilterTitleButton
+ * @tc.desc: UpdateAvoidArea with TYPE_TITLE_BUTTON returns WS_DO_NOTHING
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateAvoidAreaFilterTitleButton, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateAvoidAreaFilterTitleButton";
+    info.bundleName_ = "UpdateAvoidAreaFilterTitleButton";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    WSError ret = sceneSession->UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+
+    sceneSession->foregroundInteractiveStatus_ = true;
+    ret = sceneSession->UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(ret, WSError::WS_DO_NOTHING);
+}
+
 /*
  * @tc.name: NotifyClientToUpdateRectTask
  * @tc.desc: NotifyClientToUpdateRectTask

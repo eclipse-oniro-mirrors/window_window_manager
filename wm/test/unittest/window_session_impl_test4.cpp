@@ -168,6 +168,118 @@ HWTEST_F(WindowSessionImplTest4, SetDecorVisible, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetDecorVisibleWithTitleButton
+ * @tc.desc: SetDecorVisible triggers title button avoid area update
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, SetDecorVisibleWithTitleButton, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetDecorVisibleWithTitleButton start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetDecorVisibleWithTitleButton");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window->property_, nullptr);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_NE(nullptr, session);
+    window->hostSession_ = session;
+
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalButtonsRect(_, _))
+        .WillOnce(DoAll(SetArgReferee<0>(Rect{0, 0, 100, 30}),
+            SetArgReferee<1>(Rect{0, 0, 60, 30}), Return(true)));
+    window->uiContent_ = std::move(uiContent);
+    WMError res = window->SetDecorVisible(true);
+    ASSERT_EQ(res, WMError::WM_OK);
+
+    auto uiContent2 = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent2, GetContainerModalButtonsRect(_, _))
+        .WillOnce(DoAll(SetArgReferee<0>(Rect{0, 0, 100, 30}),
+            SetArgReferee<1>(Rect{0, 0, 60, 30}), Return(true)));
+    window->uiContent_ = std::move(uiContent2);
+    res = window->SetDecorVisible(false);
+    ASSERT_EQ(res, WMError::WM_OK);
+
+    auto uiContent3 = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent3, GetContainerModalButtonsRect(_, _))
+        .WillOnce(Return(false));
+    window->uiContent_ = std::move(uiContent3);
+    res = window->SetDecorVisible(true);
+    ASSERT_EQ(res, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: SetDecorVisibleWithTitleButton end";
+}
+
+/**
+ * @tc.name: NotifyAvoidAreaChangeSkipTitleButton
+ * @tc.desc: NotifyAvoidAreaChange skips TYPE_TITLE_BUTTON
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, NotifyAvoidAreaChangeSkipTitleButton, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: NotifyAvoidAreaChangeSkipTitleButton start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("NotifyAvoidAreaChangeSkipTitleButton");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    avoidArea->topRect_ = { 0, 0, 60, 30 };
+    window->NotifyAvoidAreaChange(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(window->lastAvoidAreaMap_.find(AvoidAreaType::TYPE_TITLE_BUTTON),
+        window->lastAvoidAreaMap_.end());
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: NotifyAvoidAreaChangeSkipTitleButton end";
+}
+
+/**
+ * @tc.name: SubscribeTitleButtonsRectChange
+ * @tc.desc: SubscribeTitleButtonsRectChange with null uiContent
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, SubscribeTitleButtonsRectChange, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: SubscribeTitleButtonsRectChange start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SubscribeTitleButtonsRectChange");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    WMError res = window->SubscribeTitleButtonsRectChange();
+    ASSERT_EQ(res, WMError::WM_ERROR_NULLPTR);
+
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*static_cast<Ace::UIContentMocker*>(window->uiContent_.get()),
+        SubscribeContainerModalButtonsRectChange(_)).Times(1);
+    res = window->SubscribeTitleButtonsRectChange();
+    ASSERT_EQ(res, WMError::WM_OK);
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: SubscribeTitleButtonsRectChange end";
+}
+
+/**
+ * @tc.name: UpdateAvoidAreaForTitleButton
+ * @tc.desc: UpdateAvoidAreaForTitleButton sets topRect based on decor visibility
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest4, UpdateAvoidAreaForTitleButton, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: UpdateAvoidAreaForTitleButton start";
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateAvoidAreaForTitleButton");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(1);
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    ASSERT_NE(nullptr, session);
+    window->hostSession_ = session;
+
+    Rect titleButtonRect = { 10, 5, 60, 30 };
+    window->UpdateAvoidAreaForTitleButton(titleButtonRect);
+    ASSERT_EQ(window->lastAvoidAreaMap_.find(AvoidAreaType::TYPE_TITLE_BUTTON),
+        window->lastAvoidAreaMap_.end());
+    GTEST_LOG_(INFO) << "WindowSessionImplTest4: UpdateAvoidAreaForTitleButton end";
+}
+
+/**
  * @tc.name: GetDecorVisible
  * @tc.desc: GetDecorVisible and check the retCode
  * @tc.type: FUNC
