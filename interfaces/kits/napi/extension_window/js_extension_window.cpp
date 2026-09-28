@@ -1690,12 +1690,14 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
         windowOption->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
         windowOption->SetOnlySupportSceneBoard(true);
         windowOption->SetIsUIExtFirstSubWindow(true);
-        auto window = Window::Create(windowName, windowOption, extWindow->GetContext());
+        std::string errMsg;
+        auto window = Window::Create(windowName, windowOption, errMsg, extWindow->GetContext());
         if (window == nullptr) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][createSubWindowWithOptions]msg: Create sub window failed."));
+            std::string jsErrMsg = "[window][createSubWindowWithOptions]msg: " +
+                (errMsg.empty() ? "Create sub window failed." : errMsg);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, jsErrMsg));
             return;
         }
         if (!window->IsTopmost()) {
