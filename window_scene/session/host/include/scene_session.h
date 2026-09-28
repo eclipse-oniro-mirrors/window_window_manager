@@ -1415,7 +1415,7 @@ private:
     template<typename T>
     Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
     WSError GetScale(float& scaleX, float& scaleY) const;
-    bool CheckAndGetRogScale(float& scale) const;
+    bool CheckAndGetRogScale(float& scale) const override;
     WSError GetScaleInRog(float& scaleX, float& scaleY) const;
 
     /*

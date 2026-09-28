@@ -25,6 +25,7 @@
 #include "session_info.h"
 #include "session/host/include/scene_persistence.h"
 #include "session/host/include/scene_persistent_storage.h"
+#include "session/screen/include/screen_session.h"
 #include "session_manager/include/rdb/starting_window_rdb_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -908,6 +909,7 @@ HWTEST_F(WindowPatternStartingWindowTest, PreLoadStartingWindow, TestSize.Level1
 HWTEST_F(WindowPatternStartingWindowTest, GetCropInfoByDisplaySize, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
     Media::ImageInfo imageInfo;
     imageInfo.size.width = 2200;
     imageInfo.size.height = 3200;
@@ -915,33 +917,28 @@ HWTEST_F(WindowPatternStartingWindowTest, GetCropInfoByDisplaySize, TestSize.Lev
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.top, 0);
 
-    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    ASSERT_NE(displayInfo, nullptr);
-    ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
-    displayInfo->SetDisplayId(defaultScreenId);
-    displayInfo->SetWidth(5000);
-    displayInfo->SetHeight(5000);
-    ssm_->UpdateDisplayRegion(displayInfo);
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(0, screenSession));
+
+    screenSession->SetBounds(RRect({ 0, 0, 5000, 5000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.top, 0);
 
-    displayInfo->SetWidth(3000);
-    displayInfo->SetHeight(3000);
-    ssm_->UpdateDisplayRegion(displayInfo);
+    screenSession->SetBounds(RRect({ 0, 0, 3000, 3000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.top, 100);
 
     imageInfo.size.width = 3200;
     imageInfo.size.height = 2200;
-    ssm_->UpdateDisplayRegion(displayInfo);
+    screenSession->SetBounds(RRect({ 0, 0, 3000, 3000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.left, 100);
 
-    displayInfo->SetWidth(2000);
-    displayInfo->SetHeight(2000);
-    ssm_->UpdateDisplayRegion(displayInfo);
+    screenSession->SetBounds(RRect({ 0, 0, 2000, 2000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.left, 600);
+
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
 }
 
 /**

@@ -20690,6 +20690,7 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
     }
 
     Media::SourceOptions opts;
+    opts.svgResourceLimitLevel = Media::SVGResourceLimitLevel::SVG_RESOURCE_LIMIT_MEDIUM;
     uint32_t errorCode = 0;
     std::unique_ptr<Media::ImageSource> imageSource;
     if (!abilityInfo->hapPath.empty()) {
@@ -20755,8 +20756,16 @@ bool SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& image
     int32_t displayHeight = 0;
     bool isCropped = false;
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
-    if (!GetDisplaySizeById(defaultScreenId, displayWidth, displayHeight)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "get display size failed");
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(defaultScreenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "get screen session failed, screenId:%{public}" PRIu64, defaultScreenId);
+        return isCropped;
+    }
+    auto bounds = screenSession->GetScreenProperty().GetBounds().rect_;
+    displayWidth = bounds.width_;
+    displayHeight = bounds.height_;
+    if (displayWidth == 0 || displayHeight == 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "invalid display size, w:%{public}d, h:%{public}d", displayWidth, displayHeight);
         return isCropped;
     }
     int32_t cropSize = std::max(displayWidth, displayHeight);

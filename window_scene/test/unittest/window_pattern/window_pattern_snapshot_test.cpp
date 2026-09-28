@@ -851,6 +851,24 @@ HWTEST_F(WindowPatternSnapshotTest, SetSnapshotCapacity, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetIsPcWindow
+ * @tc.desc: SetIsPcWindow Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SetIsPcWindow, TestSize.Level1)
+{
+    std::string bundleName = "testBundleName";
+    int32_t persistentId = 1423;
+    sptr<ScenePersistence> scenePersistence = sptr<ScenePersistence>::MakeSptr(bundleName, persistentId);
+
+    scenePersistence->SetIsPcWindow(true);
+    EXPECT_EQ(scenePersistence->isPcWindow_, true);
+
+    scenePersistence->SetIsPcWindow(false);
+    EXPECT_EQ(scenePersistence->isPcWindow_, false);
+}
+
+/**
  * @tc.name: InitSnapshotCapacity
  * @tc.desc: InitSnapshotCapacity Test
  * @tc.type: FUNC
@@ -2032,6 +2050,110 @@ HWTEST_F(WindowPatternSnapshotTest, SnapshotWithOptions, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SnapshotBlurBackgroundColorWithExitSplit01
+ * @tc.desc: Verify blur snapshot uses blurBackgroundColor when IsExitSplitOnBackground is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SnapshotBlurBackgroundColorWithExitSplit01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.screenId_ = 0;
+    info.bundleName_ = "SnapshotBlurBackgroundColorWithExitSplit01";
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    uint32_t blurColor = 0x12345678;
+    mainSession->blurBackgroundColor_ = blurColor;
+    ASSERT_NE(mainSession->blurBackgroundColor_, std::numeric_limits<uint32_t>::max());
+    EXPECT_EQ(mainSession->IsExitSplitOnBackground(), false);
+
+    uint32_t expectedColor = (mainSession->blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ||
+        mainSession->IsExitSplitOnBackground()) ? mainSession->GetBackgroundColor() :
+        mainSession->blurBackgroundColor_;
+    EXPECT_EQ(expectedColor, blurColor);
+}
+
+/**
+ * @tc.name: SnapshotBlurBackgroundColorWithExitSplit02
+ * @tc.desc: Verify blur snapshot uses GetBackgroundColor when IsExitSplitOnBackground is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SnapshotBlurBackgroundColorWithExitSplit02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.screenId_ = 0;
+    info.bundleName_ = "SnapshotBlurBackgroundColorWithExitSplit02";
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    uint32_t blurColor = 0x12345678;
+    mainSession->blurBackgroundColor_ = blurColor;
+    ASSERT_NE(mainSession->blurBackgroundColor_, std::numeric_limits<uint32_t>::max());
+    mainSession->SetExitSplitOnBackground(true);
+    EXPECT_EQ(mainSession->IsExitSplitOnBackground(), true);
+
+    uint32_t expectedColor = (mainSession->blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ||
+        mainSession->IsExitSplitOnBackground()) ? mainSession->GetBackgroundColor() :
+        mainSession->blurBackgroundColor_;
+    EXPECT_EQ(expectedColor, mainSession->GetBackgroundColor());
+    EXPECT_NE(expectedColor, blurColor);
+}
+
+/**
+ * @tc.name: SnapshotBlurBackgroundColorWithExitSplit03
+ * @tc.desc: Verify blur snapshot uses GetBackgroundColor when blurBackgroundColor is unset
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SnapshotBlurBackgroundColorWithExitSplit03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.screenId_ = 0;
+    info.bundleName_ = "SnapshotBlurBackgroundColorWithExitSplit03";
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    mainSession->blurBackgroundColor_ = std::numeric_limits<uint32_t>::max();
+    EXPECT_EQ(mainSession->IsExitSplitOnBackground(), false);
+
+    uint32_t expectedColor = (mainSession->blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ||
+        mainSession->IsExitSplitOnBackground()) ? mainSession->GetBackgroundColor() :
+        mainSession->blurBackgroundColor_;
+    EXPECT_EQ(expectedColor, mainSession->GetBackgroundColor());
+}
+
+/**
+ * @tc.name: SnapshotWithBlurAndExitSplitOnBackground
+ * @tc.desc: Verify Snapshot with blur and exit split enabled does not crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, SnapshotWithBlurAndExitSplitOnBackground, TestSize.Level1)
+{
+    SessionInfo info;
+    info.screenId_ = 0;
+    info.bundleName_ = "SnapshotWithBlurAndExitSplitOnBackground";
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+
+    ASSERT_NE(mainSession->scenePersistence_, nullptr);
+    struct RSSurfaceNodeConfig config;
+    mainSession->surfaceNode_ = RSSurfaceNode::Create(config);
+    ASSERT_NE(mainSession->surfaceNode_, nullptr);
+    mainSession->bufferAvailable_ = true;
+    mainSession->surfaceNode_->bufferAvailable_ = true;
+    mainSession->SetSnapshotPrivacyMode(true);
+    EXPECT_EQ(mainSession->GetNeedUseBlurSnapshot(), true);
+
+    mainSession->blurBackgroundColor_ = 0x12345678;
+    mainSession->SetExitSplitOnBackground(true);
+    EXPECT_EQ(mainSession->IsExitSplitOnBackground(), true);
+
+    Session::SnapshotOptions options;
+    options.scaleParam = 1.0f;
+    auto result = mainSession->Snapshot(options);
+    ASSERT_EQ(result, nullptr);
+}
+
+/**
  * @tc.name: NotifyRemoveSnapshotWithForceRemove
  * @tc.desc: NotifyRemoveSnapshot with forceRemove parameter Test
  * @tc.type: FUNC
@@ -2202,6 +2324,52 @@ HWTEST_F(WindowPatternSnapshotTest, UpdateVisibilityInnerWithSnapshotControl, Te
     ASSERT_EQ(sceneSession->GetScenePersistence()->HasSnapshot(), false);
 
     sceneSession->UnregisterLifecycleListener(listener);
+}
+
+/**
+ * @tc.name: StartWithSnapshot01
+ * @tc.desc: StartWithSnapshot with system app permission
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, StartWithSnapshot01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    MockAccesstokenKit::MockIsSystemApp(true);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), false);
+    auto result = session_->StartWithSnapshot();
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), true);
+}
+
+/**
+ * @tc.name: StartWithSnapshot02
+ * @tc.desc: StartWithSnapshot without system app permission
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, StartWithSnapshot02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), false);
+    auto result = session_->StartWithSnapshot();
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), false);
+    MockAccesstokenKit::MockIsSystemApp(true);
+}
+
+/**
+ * @tc.name: StartWithSnapshot03
+ * @tc.desc: SetStartWithSnapshot and GetStartWithSnapshot Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, StartWithSnapshot03, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), false);
+    session_->SetStartWithSnapshot(true);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), true);
+    session_->SetStartWithSnapshot(false);
+    EXPECT_EQ(session_->GetStartWithSnapshot(), false);
 }
 } // namespace
 } // namespace Rosen

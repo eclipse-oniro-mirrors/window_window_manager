@@ -2106,6 +2106,17 @@ WSError Session::DrawingCompleted()
     return WSError::WS_OK;
 }
 
+WSError Session::StartWithSnapshot()
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d", GetPersistentId());
+    if (!SessionPermission::IsSystemAppCall()) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "permission denied!");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    SetStartWithSnapshot(true);
+    return WSError::WS_OK;
+}
+
 WSError Session::RemoveStartingWindow()
 {
     std::string errMsg;
@@ -3287,6 +3298,10 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     auto callback = std::make_shared<SurfaceCaptureFuture>();
     auto scaleValue = (options.scaleParam < 0.0f || std::fabs(options.scaleParam) < std::numeric_limits<float>::min()) ?
         snapshotScale_ : options.scaleParam;
+    float rogScale = 0.0f;
+    if (CheckAndGetRogScale(rogScale)) {
+        scaleValue = 1.0f;
+    }
     scaleValue = needBlurSnapshot ? scaleValue * BLUR_SNAPSHOT_SCALE : scaleValue;
     RSSurfaceCaptureConfig config = {
         .scaleX = scaleValue,
@@ -3305,7 +3320,8 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     bool ret = false;
     if (needBlurSnapshot) {
-        config.backGroundColor = blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ?
+        config.backGroundColor =
+            (blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() || IsExitSplitOnBackground()) ?
             GetBackgroundColor() : blurBackgroundColor_;
         ret = rsUICtx->GetRSRenderInterface()->TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
@@ -3936,6 +3952,7 @@ void Session::InitSnapshotCapacity()
     }
     if (scenePersistence_) {
         scenePersistence_->SetSnapshotCapacity(capacity_);
+        scenePersistence_->SetIsPcWindow(systemConfig_.IsPcWindow());
     }
 }
 

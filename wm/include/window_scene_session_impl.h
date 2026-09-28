@@ -52,6 +52,7 @@ public:
         bool isFromInnerkits = false) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
+    WMError NotifyStartWithSnapshot() override;
     WMError NotifyRemoveStartingWindow() override;
     WMError NotifyRemoveStartingWindow(std::string& errMsg) override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
