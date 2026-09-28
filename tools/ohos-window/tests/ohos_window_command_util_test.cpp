@@ -309,6 +309,32 @@ TEST_F(OhosWindowCommandUtilTest, RunAsHelpCommand_InvalidCommand_0100)
     EXPECT_EQ(cmd.RunAsHelpCommand(), ERR_OK);
 }
 
+TEST_F(OhosWindowCommandUtilTest, RunAsHelpCommand_UnexpectedArg_0100)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("help"),
+        const_cast<char*>("1"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_HELP_OPTION;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsHelpCommand(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsHelpCommand_UnexpectedArg_0200)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("--help"),
+        const_cast<char*>("1"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_HELP_OPTION;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsHelpCommand(), ERR_INVALID_VALUE);
+}
+
 TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_NegativeId_0100)
 {
     char* argv[] = {
