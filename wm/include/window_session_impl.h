@@ -1116,6 +1116,8 @@ protected:
      */
     virtual void UpdateDefaultStatusBarColor() { return; }
     WMError UpdateStatusBarColorByColorMode(uint32_t& contentColor);
+    WMError SubscribeTitleButtonsRectChange();
+    void UpdateAvoidAreaForTitleButton(Rect& titleButtonRect);
     std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMap_;
     mutable std::mutex lastAvoidAreaMapMutex_;
     uint32_t GetStatusBarHeight() const override;

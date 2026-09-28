@@ -1562,6 +1562,7 @@ enum class AvoidAreaType : uint32_t {
     TYPE_KEYBOARD,                      // area for soft input keyboard
     TYPE_NAVIGATION_INDICATOR,          // area for navigation indicator
     TYPE_FLOAT_NAVIGATION,              // area for float navigation
+    TYPE_TITLE_BUTTON,                  // area for title button
     TYPE_END,
 };
 
