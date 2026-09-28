@@ -530,6 +530,7 @@ public:
     virtual void SetRequestWindowModeSupportType(uint32_t windowModeSupportType) = 0;
     virtual uint32_t GetRequestWindowModeSupportType() const = 0;
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) = 0;
+    virtual WMError SetTouchableAreas(const std::vector<Rect>& rects) = 0;
     virtual void GetRequestedTouchHotAreas(std::vector<Rect>& rects) const = 0;
     virtual bool IsMainHandlerAvailable() const = 0;
     virtual WMError SetAPPWindowLabel(const std::string& label) = 0;

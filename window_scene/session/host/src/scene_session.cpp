@@ -7152,11 +7152,60 @@ static bool IsNeedSystemPermissionByAction(WSPropertyChangeAction action,
     return false;
 }
 
+WMError SceneSession::CheckUpdatePropertyPermission(WSPropertyChangeAction action,
+    const sptr<WindowSessionProperty>& property, bool isSystemCalling)
+{
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "property is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    switch (action) {
+        case WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED: {
+            if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_WINDOW_TRANSPARENT) &&
+                containerColorList_.count(GetSessionInfo().bundleName_) == 0) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "window shadow enabled permission denied");
+                return WMError::WM_ERROR_INVALID_PERMISSION;
+            }
+            break;
+        }
+        case WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE: {
+            if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_PRIVACY_WINDOW)) {
+                TLOGE(WmsLogTag::WMS_ATTRIBUTE, "privacy mode permission denied");
+                return WMError::WM_ERROR_INVALID_PERMISSION;
+            }
+            break;
+        }
+        case WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION: {
+            if (!isSystemCalling &&
+                !SessionPermission::VerifyCallingPermission(
+                    PermissionConstants::PERMISSION_SET_WINDOW_TOUCH_AREAS)) {
+                TLOGE(WmsLogTag::WMS_EVENT, "touchable areas permission denied");
+                return WMError::WM_ERROR_INVALID_PERMISSION;
+            }
+            break;
+        }
+        case WSPropertyChangeAction::ACTION_UPDATE_MAIN_WINDOW_TOPMOST: {
+            uint32_t accessTokenId = property->GetAccessTokenId();
+            if (!SessionPermission::VerifyPermissionByCallerToken(accessTokenId,
+                PermissionConstants::PERMISSION_MAIN_WINDOW_TOPMOST)) {
+                TLOGE(WmsLogTag::WMS_HIERARCHY, "The caller has no permission granted.");
+                return WMError::WM_ERROR_INVALID_PERMISSION;
+            }
+            break;
+        }
+        default:
+            TLOGD(WmsLogTag::DEFAULT, "no permission check, action: %{public}" PRIu64, action);
+            return WMError::WM_OK;
+    }
+    TLOGD(WmsLogTag::DEFAULT, "check permission pass, action: %{public}" PRIu64, action);
+    return WMError::WM_OK;
+}
+
 WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProperty>& property,
     WSPropertyChangeAction action)
 {
     if (property == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "property is nullptr");
+        TLOGE(WmsLogTag::DEFAULT, "property is null");
         return WMError::WM_ERROR_NULLPTR;
     }
     auto sessionProperty = GetSessionProperty();
@@ -7164,28 +7213,14 @@ WMError SceneSession::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
         TLOGE(WmsLogTag::DEFAULT, "get session property failed");
         return WMError::WM_ERROR_NULLPTR;
     }
-    if (action == WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED) {
-        if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_WINDOW_TRANSPARENT) &&
-            containerColorList_.count(GetSessionInfo().bundleName_) == 0) {
-            return WMError::WM_ERROR_INVALID_PERMISSION;
-        }
-    }
-    if (action == WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE) {
-        if (!SessionPermission::VerifyCallingPermission("ohos.permission.PRIVACY_WINDOW")) {
-            return WMError::WM_ERROR_INVALID_PERMISSION;
-        }
-    }
-    if (action == WSPropertyChangeAction::ACTION_UPDATE_MAIN_WINDOW_TOPMOST) {
-        uint32_t accessTokenId = property->GetAccessTokenId();
-        if (!SessionPermission::VerifyPermissionByCallerToken(accessTokenId,
-            PermissionConstants::PERMISSION_MAIN_WINDOW_TOPMOST)) {
-            TLOGE(WmsLogTag::WMS_HIERARCHY, "The caller has no permission granted.");
-            return WMError::WM_ERROR_INVALID_PERMISSION;
-        }
+    bool isSystemCalling = SessionPermission::IsSystemCalling();
+    WMError permErr = CheckUpdatePropertyPermission(action, property, isSystemCalling);
+    if (permErr != WMError::WM_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "check permission failed");
+        return permErr;
     }
 
-    bool isSystemCalling = SessionPermission::IsSystemCalling() || SessionPermission::IsStartByHdcd();
-    property->SetSystemCalling(isSystemCalling);
+    property->SetSystemCalling(isSystemCalling || SessionPermission::IsStartByHdcd());
     auto task = [weak = wptr(this), property, action, where = __func__]() -> WMError {
         auto sceneSession = weak.promote();
         if (sceneSession == nullptr) {
@@ -7502,6 +7537,8 @@ WMError SceneSession::ProcessUpdatePropertyByAction(const sptr<WindowSessionProp
         case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG):
             return HandleActionUpdateAnimationFlag(property, action);
         case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA):
+            return HandleActionUpdateTouchHotArea(property, action);
+        case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION):
             return HandleActionUpdateTouchHotArea(property, action);
         case static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_KEYBOARD_TOUCH_HOT_AREA):
             return HandleActionUpdateKeyboardTouchHotArea(property, action);

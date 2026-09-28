@@ -4820,11 +4820,21 @@ Orientation WindowImpl::GetRequestedOrientation()
 
 WMError WindowImpl::SetTouchHotAreas(const std::vector<Rect>& rects)
 {
+    return SetTouchHotAreasImpl(rects, PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+}
+
+WMError WindowImpl::SetTouchableAreas(const std::vector<Rect>& rects)
+{
+    return SetTouchHotAreasImpl(rects, PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
+}
+
+WMError WindowImpl::SetTouchHotAreasImpl(const std::vector<Rect>& rects, PropertyChangeAction action)
+{
     std::vector<Rect> lastTouchHotAreas;
     property_->GetTouchHotAreas(lastTouchHotAreas);
 
     property_->SetTouchHotAreas(rects);
-    WMError result = UpdateProperty(PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    WMError result = UpdateProperty(action);
     if (result != WMError::WM_OK) {
         property_->SetTouchHotAreas(lastTouchHotAreas);
     }

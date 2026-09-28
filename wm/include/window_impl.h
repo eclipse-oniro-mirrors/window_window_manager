@@ -337,6 +337,7 @@ public:
     virtual Orientation GetRequestedOrientation() override;
     virtual void SetNeedRemoveWindowInputChannel(bool needRemoveWindowInputChannel) override;
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) override;
+    virtual WMError SetTouchableAreas(const std::vector<Rect>& rects) override;
     virtual void GetRequestedTouchHotAreas(std::vector<Rect>& rects) const override;
     virtual WMError SetAPPWindowLabel(const std::string& label) override;
     virtual WMError SetAPPWindowIcon(const std::shared_ptr<Media::PixelMap>& icon) override;
@@ -469,6 +470,7 @@ private:
     void MapFloatingWindowToAppIfNeeded();
     void MapDialogWindowToAppIfNeeded();
     WMError UpdateProperty(PropertyChangeAction action);
+    WMError SetTouchHotAreasImpl(const std::vector<Rect>& rects, PropertyChangeAction action);
     WMError Destroy(bool needNotifyServer, bool needClearListener = true, uint32_t reason = 0);
     WMError SetBackgroundColor(uint32_t color);
     uint32_t GetBackgroundColor() const;

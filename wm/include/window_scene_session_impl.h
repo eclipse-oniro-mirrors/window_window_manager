@@ -171,6 +171,7 @@ public:
     virtual void SetSystemPrivacyMode(bool isSystemPrivacyMode) override;
     virtual WMError SetSnapshotSkip(bool isSkip) override;
     WMError SetTouchHotAreas(const std::vector<Rect>& rects) override;
+    WMError SetTouchableAreas(const std::vector<Rect>& rects) override;
     WMError SetKeyboardTouchHotAreas(const KeyboardTouchHotAreas& hotAreas) override;
     virtual WmErrorCode KeepKeyboardOnFocus(bool keepKeyboardFlag) override;
     WMError ChangeCallingWindowId(uint32_t callingWindowId) override;
@@ -660,6 +661,7 @@ protected:
     void RegisterWindowRecoverStateChangeListener();
 
 private:
+    WMError SetTouchHotAreasImpl(const std::vector<Rect>& rects, WSPropertyChangeAction action);
     WMError DestroyInner(bool needNotifyServer, bool isFromInnerkits = false);
     WMError MainWindowCloseInner();
     WMError SyncDestroyAndDisconnectSpecificSession(int32_t persistentId);

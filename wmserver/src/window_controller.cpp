@@ -1573,6 +1573,12 @@ WMError WindowController::UpdateProperty(sptr<WindowProperty>& property, Propert
             ret = UpdateTouchHotAreas(node, rects);
             break;
         }
+        case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION: {
+            std::vector<Rect> rects;
+            property->GetTouchHotAreas(rects);
+            ret = UpdateTouchHotAreas(node, rects);
+            break;
+        }
         case PropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG: {
             node->GetWindowProperty()->SetAnimationFlag(property->GetAnimationFlag());
             UpdateWindowAnimation(node);

@@ -6943,13 +6943,23 @@ WMError WindowSceneSessionImpl::SetDialogBackGestureEnabled(bool isEnabled)
 
 WMError WindowSceneSessionImpl::SetTouchHotAreas(const std::vector<Rect>& rects)
 {
+    return SetTouchHotAreasImpl(rects, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+}
+
+WMError WindowSceneSessionImpl::SetTouchableAreas(const std::vector<Rect>& rects)
+{
+    return SetTouchHotAreasImpl(rects, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
+}
+
+WMError WindowSceneSessionImpl::SetTouchHotAreasImpl(const std::vector<Rect>& rects, WSPropertyChangeAction action)
+{
     std::vector<Rect> lastTouchHotAreas;
     property_->GetTouchHotAreas(lastTouchHotAreas);
     property_->SetTouchHotAreas(rects);
-    WMError result = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    WMError result = UpdateProperty(action);
     if (result != WMError::WM_OK) {
         property_->SetTouchHotAreas(lastTouchHotAreas);
-        WLOGFE("errCode:%{public}d", static_cast<int32_t>(result));
+        TLOGE(WmsLogTag::WMS_EVENT, "errCode:%{public}d", static_cast<int32_t>(result));
         return result;
     }
     for (uint32_t i = 0; i < rects.size(); i++) {

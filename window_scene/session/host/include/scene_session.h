@@ -1514,6 +1514,8 @@ private:
     bool IsFullScreenMovable() const;
     bool IsSplitMovable() const;
     void HandleCastScreenConnection(SessionInfo& info, sptr<SceneSession> session);
+    WMError CheckUpdatePropertyPermission(WSPropertyChangeAction action,
+        const sptr<WindowSessionProperty>& property, bool isSystemCalling);
     WMError HandleUpdatePropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action);
     WMError HandleActionUpdateTurnScreenOn(const sptr<WindowSessionProperty>& property,

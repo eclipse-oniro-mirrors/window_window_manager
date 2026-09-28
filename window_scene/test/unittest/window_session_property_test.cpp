@@ -1323,6 +1323,7 @@ HWTEST_F(WindowSessionPropertyTest, Read, TestSize.Level1)
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_MODE);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_DECOR_ENABLE);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
@@ -1367,6 +1368,7 @@ HWTEST_F(WindowSessionPropertyTest, Write, TestSize.Level1)
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_MODE);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_DECOR_ENABLE);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);

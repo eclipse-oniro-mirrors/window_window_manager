@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <ipc_skeleton.h>
 
 #include "display_manager.h"
 #include "input_event.h"
@@ -22,6 +23,8 @@
 #include "mock/mock_parameters.h"
 #include "mock/mock_session_stage.h"
 #include "pointer_event.h"
+
+#include "common/include/session_permission.h"
 
 #include "session/host/include/main_session.h"
 #include "session/host/include/move_drag_bounds_applier.h"
@@ -585,6 +588,9 @@ HWTEST_F(SceneSessionTest4, ProcessUpdatePropertyByAction2, TestSize.Level1)
 
     EXPECT_EQ(WMError::WM_OK, sceneSession->ProcessUpdatePropertyByAction(property,
         WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA));
+
+    EXPECT_EQ(WMError::WM_OK, sceneSession->ProcessUpdatePropertyByAction(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION));
 
     property->SetSystemCalling(false);
     EXPECT_EQ(WMError::WM_ERROR_NOT_SYSTEM_APP, sceneSession->ProcessUpdatePropertyByAction(property,
@@ -1200,6 +1206,122 @@ HWTEST_F(SceneSessionTest4, UpdateSessionPropertyByAction02, TestSize.Level1)
     sceneSession->SetSessionProperty(property);
     WSPropertyChangeAction action = WSPropertyChangeAction::ACTION_UPDATE_MAIN_WINDOW_TOPMOST;
     ASSERT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->UpdateSessionPropertyByAction(property, action));
+}
+
+/**
+ * @tc.name: UpdateSessionPropertyByAction03
+ * @tc.desc: UpdateSessionPropertyByAction with SET_WINDOW_TOUCH_AREAS permission check
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, UpdateSessionPropertyByAction03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateSessionPropertyByAction03";
+    info.bundleName_ = "UpdateSessionPropertyByAction03";
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    std::vector<Rect> touchableAreas = { { 10, 20, 30, 40 } }; // 10: posX, 20: posY, 30: width, 40: height
+    property->SetTouchHotAreas(touchableAreas);
+
+    // save ambient mock state and restore it before test ends
+    bool isSACalling = SessionPermission::IsSACalling();
+    bool isSystemApp = SessionPermission::IsSystemAppCall();
+    bool permGranted = SessionPermission::VerifyCallingPermission("ohos.permission.SET_WINDOW_TOUCH_AREAS");
+
+    // branch 1: non-system caller without SET_WINDOW_TOUCH_AREAS permission and not window owner
+    sceneSession->SetCallingUid(-1);
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockIsSystemApp(false);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->UpdateSessionPropertyByAction(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION));
+    std::vector<Rect> sessionAreas;
+    sceneSession->GetSessionProperty()->GetTouchHotAreas(sessionAreas);
+    EXPECT_EQ(true, sessionAreas.empty());
+
+    // branch 2: non-system caller with SET_WINDOW_TOUCH_AREAS permission
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    EXPECT_EQ(WMError::WM_OK, sceneSession->UpdateSessionPropertyByAction(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION));
+    sceneSession->GetSessionProperty()->GetTouchHotAreas(sessionAreas);
+    ASSERT_EQ(1u, sessionAreas.size());
+    EXPECT_EQ(true, touchableAreas[0] == sessionAreas[0]);
+
+    // branch 3: system caller
+    MockAccesstokenKit::MockIsSACalling(true);
+    EXPECT_EQ(WMError::WM_OK, sceneSession->UpdateSessionPropertyByAction(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION));
+
+    // restore ambient mock state
+    MockAccesstokenKit::MockIsSACalling(isSACalling);
+    MockAccesstokenKit::MockIsSystemApp(isSystemApp);
+    MockAccesstokenKit::MockAccessTokenKitRet(permGranted ? 0 : -1);
+}
+
+/**
+ * @tc.name: CheckUpdatePropertyPermission01
+ * @tc.desc: CheckUpdatePropertyPermission covers all permission-gated actions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, CheckUpdatePropertyPermission01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "CheckUpdatePropertyPermission01";
+    info.bundleName_ = "CheckUpdatePropertyPermission01";
+    auto sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+
+    // save ambient mock state and restore it before test ends
+    bool permGranted = SessionPermission::VerifyCallingPermission("ohos.permission.PRIVACY_WINDOW");
+
+    // branch 1: action without permission requirement
+    EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA, property, true));
+
+    // branch 2: privacy mode, permission denied
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE, property, false));
+
+    // branch 3: privacy mode, permission granted
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_PRIVACY_MODE, property, false));
+
+    // branch 4: touchable areas, non-system, non-owner without permission → denied
+    sceneSession->SetCallingUid(-1);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION, property, false));
+
+    // branch 5: touchable areas, non-system window owner without permission → allowed
+    sceneSession->SetCallingUid(IPCSkeleton::GetCallingUid());
+    EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION, property, false));
+
+    // branch 6: touchable areas, system caller → allowed
+    EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION, property, true));
+
+    // branch 7: main window topmost, caller token has no permission
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_MAIN_WINDOW_TOPMOST, property, true));
+
+    // branch 8: window shadow enabled, permission denied and bundle not in white list
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED, property, true));
+
+    // branch 9: window shadow enabled, bundle in white list
+    sceneSession->containerColorList_.insert(info.bundleName_);
+    EXPECT_EQ(WMError::WM_OK, sceneSession->CheckUpdatePropertyPermission(
+        WSPropertyChangeAction::ACTION_UPDATE_WINDOW_SHADOW_ENABLED, property, true));
+
+    // restore ambient mock state
+    MockAccesstokenKit::MockAccessTokenKitRet(permGranted ? 0 : -1);
 }
 
 /**
