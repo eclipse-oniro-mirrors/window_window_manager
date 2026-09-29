@@ -301,6 +301,9 @@ public:
     /**
      * On/Off screen
      */
+    bool WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason) override;
+    bool DoWakeUpBegin(DisplayId displayId, PowerStateChangeReason reason);
+    bool WakeUpEnd(DisplayId displayId) override;
     bool WakeUpBegin(PowerStateChangeReason reason) override;
     bool DoWakeUpBegin(PowerStateChangeReason reason);
     bool WakeUpEnd() override;
@@ -308,6 +311,9 @@ public:
     bool SuspendBegin(PowerStateChangeReason reason) override;
     bool DoSuspendBegin(PowerStateChangeReason reason);
     bool SuspendEnd() override;
+    bool SuspendBegin(DisplayId displayId, PowerStateChangeReason reason) override;
+    bool DoSuspendBegin(DisplayId displayId, PowerStateChangeReason reason);
+    bool SuspendEnd(DisplayId displayId) override;
     bool IsPreBright(PowerStateChangeReason reason);
     void BlockScreenOnByCV(void);
     void BlockScreenOffByCV(void);
@@ -320,9 +326,15 @@ public:
     bool DoSetDisplayState(DisplayState state);
     bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason) override;
     bool DoSetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason, bool isApAod = false);
+    bool SetScreenPowerForSpecifiedId(DisplayId displayId, ScreenPowerState state,
+        PowerStateChangeReason reason) override;
+    bool SetDisplayState(DisplayId displayId, DisplayState state) override;
+    bool DoSetDisplayState(DisplayId displayId, DisplayState state);
     ScreenPowerState GetScreenPower(ScreenId screenId) override;
     void NotifyDisplayEvent(DisplayEvent event) override;
     bool NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status, PowerStateChangeReason reason);
+    bool NotifySpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status,
+        PowerStateChangeReason reason);
     bool TryToCancelScreenOff() override;
 
     void DisablePowerOffRenderControl(ScreenId screenId) override;
@@ -385,6 +397,7 @@ public:
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
     void CallRsSetScreenPowerStatusSyncWithFallback(ScreenId screenId, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
+    void CallRsSetScreenPowerStatusForConcurrent(ScreenId screenId, ScreenPowerStatus status);
     void CallRsSetScreenPowerStatusSyncForFold(ScreenPowerStatus status, bool isApAod = false);
     void TryToRecoverFoldDisplayMode(ScreenPowerStatus status);
     bool GetScreenLcdStatus(ScreenId screenId, PanelPowerStatus& status);

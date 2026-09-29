@@ -706,5 +706,669 @@ HWTEST_F(DisplayManagerLiteProxyMockTest, NotifyBootAnimationFinished, TestSize.
     logMsg.clear();
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId_RemoteNullptr
+ * @tc.desc: WakeUpBegin with screenId when remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpBeginWithScreenId_RemoteNullptr, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->WakeUpBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId_WriteInterfaceTokenFailed
+ * @tc.desc: WakeUpBegin with screenId when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpBeginWithScreenId_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->WakeUpBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId_WriteScreenIdFailed
+ * @tc.desc: WakeUpBegin with screenId when WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpBeginWithScreenId_WriteScreenIdFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->WakeUpBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId_WriteReasonFailed
+ * @tc.desc: WakeUpBegin with screenId when WriteUint32 reason failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpBeginWithScreenId_WriteReasonFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->WakeUpBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write PowerStateChangeReason failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId_SendRequestFailed
+ * @tc.desc: WakeUpBegin with screenId when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpBeginWithScreenId_SendRequestFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->WakeUpBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId_Success
+ * @tc.desc: WakeUpBegin with screenId success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpBeginWithScreenId_Success, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    proxy->WakeUpBegin(displayId, reason);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId_RemoteNullptr
+ * @tc.desc: WakeUpEnd with screenId when remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpEndWithScreenId_RemoteNullptr, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    DisplayId displayId = 0;
+    bool ret = proxy->WakeUpEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId_WriteInterfaceTokenFailed
+ * @tc.desc: WakeUpEnd with screenId when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpEndWithScreenId_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    DisplayId displayId = 0;
+    bool ret = proxy->WakeUpEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId_WriteScreenIdFailed
+ * @tc.desc: WakeUpEnd with screenId when WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpEndWithScreenId_WriteScreenIdFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    DisplayId displayId = 0;
+    bool ret = proxy->WakeUpEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+/**
+ * @tc.name: WakeUpEndWithScreenId_SendRequestFailed
+ * @tc.desc: WakeUpEnd with screenId when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpEndWithScreenId_SendRequestFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    DisplayId displayId = 0;
+    bool ret = proxy->WakeUpEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId_Success
+ * @tc.desc: WakeUpEnd with screenId success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, WakeUpEndWithScreenId_Success, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    DisplayId displayId = 0;
+    proxy->WakeUpEnd(displayId);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId_RemoteNullptr
+ * @tc.desc: SuspendBegin with screenId when remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendBeginWithScreenId_RemoteNullptr, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId_WriteInterfaceTokenFailed
+ * @tc.desc: SuspendBegin with screenId when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendBeginWithScreenId_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId_WriteScreenIdFailed
+ * @tc.desc: SuspendBegin with screenId when WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendBeginWithScreenId_WriteScreenIdFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId_WriteReasonFailed
+ * @tc.desc: SuspendBegin with screenId when WriteUint32 reason failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendBeginWithScreenId_WriteReasonFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write PowerStateChangeReason failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId_SendRequestFailed
+ * @tc.desc: SuspendBegin with screenId when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendBeginWithScreenId_SendRequestFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId_Success
+ * @tc.desc: SuspendBegin with screenId success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendBeginWithScreenId_Success, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    proxy->SuspendBegin(displayId, reason);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId_RemoteNullptr
+ * @tc.desc: SuspendEnd with screenId when remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendEndWithScreenId_RemoteNullptr, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    DisplayId displayId = 0;
+    bool ret = proxy->SuspendEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId_WriteInterfaceTokenFailed
+ * @tc.desc: SuspendEnd with screenId when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendEndWithScreenId_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    DisplayId displayId = 0;
+    bool ret = proxy->SuspendEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId_WriteScreenIdFailed
+ * @tc.desc: SuspendEnd with screenId when WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendEndWithScreenId_WriteScreenIdFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    DisplayId displayId = 0;
+    bool ret = proxy->SuspendEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId_SendRequestFailed
+ * @tc.desc: SuspendEnd with screenId when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendEndWithScreenId_SendRequestFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    DisplayId displayId = 0;
+    bool ret = proxy->SuspendEnd(displayId);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId_Success
+ * @tc.desc: SuspendEnd with screenId success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SuspendEndWithScreenId_Success, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    DisplayId displayId = 0;
+    proxy->SuspendEnd(displayId);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_RemoteNullptr
+ * @tc.desc: SetScreenPowerForSpecifiedId when remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_RemoteNullptr, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(nullptr);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("remote is nullptr") != std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_WriteInterfaceTokenFailed
+ * @tc.desc: SetScreenPowerForSpecifiedId when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_WriteScreenIdFailed
+ * @tc.desc: SetScreenPowerForSpecifiedId when WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_WriteScreenIdFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write ScreenId failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_WriteStateFailed
+ * @tc.desc: SetScreenPowerForSpecifiedId when WriteUint32 state failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_WriteStateFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("Write ScreenPowerState failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_WriteReasonFailed
+ * @tc.desc: SetScreenPowerForSpecifiedId when WriteUint32 reason failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_WriteReasonFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(logMsg.find("Write PowerStateChangeReason failed") != std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_SendRequestFailed
+ * @tc.desc: SetScreenPowerForSpecifiedId when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_SendRequestFailed, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_Success
+ * @tc.desc: SetScreenPowerForSpecifiedId success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerLiteProxyMockTest, SetScreenPowerForSpecifiedId_Success, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<DisplayManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_NONE);
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    proxy->SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+    logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 } // namespace
 } // namespace OHOS::Rosen

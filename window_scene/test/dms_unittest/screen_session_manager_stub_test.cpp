@@ -4086,6 +4086,136 @@ HWTEST_F(ScreenSessionManagerStubTest, RemoveVirtualScreenSurface03, TestSize.Le
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, ERR_NONE);
 }
+
+/**
+ * @tc.name: OnRemoteRequestWakeUpBeginWithScreenId
+ * @tc.desc: normal function, TRANS_ID_WAKE_UP_BEGIN_WITH_DISPLAY_ID test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestWakeUpBeginWithScreenId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 1;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    data.WriteUint64(static_cast<uint64_t>(displayId));
+    data.WriteUint32(static_cast<uint32_t>(reason));
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_WAKE_UP_BEGIN_WITH_DISPLAY_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequestWakeUpEndWithScreenId
+ * @tc.desc: normal function, TRANS_ID_WAKE_UP_END_WITH_DISPLAY_ID test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestWakeUpEndWithScreenId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 1002;
+    data.WriteUint64(static_cast<uint64_t>(displayId));
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_WAKE_UP_END_WITH_DISPLAY_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequestSuspendBeginWithScreenId
+ * @tc.desc: normal function, TRANS_ID_SUSPEND_BEGIN_WITH_DISPLAY_ID test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSuspendBeginWithScreenId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 1003;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    data.WriteUint64(static_cast<uint64_t>(displayId));
+    data.WriteUint32(static_cast<uint32_t>(reason));
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SUSPEND_BEGIN_WITH_DISPLAY_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequestSuspendEndWithScreenId
+ * @tc.desc: normal function, TRANS_ID_SUSPEND_END_WITH_DISPLAY_ID test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSuspendEndWithScreenId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 1004;
+    data.WriteUint64(static_cast<uint64_t>(displayId));
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SUSPEND_END_WITH_DISPLAY_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequestSetDisplayStateWithScreenId
+ * @tc.desc: normal function, TRANS_ID_SET_DISPLAY_STATE_WITH_DISPLAY_ID test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetDisplayStateWithScreenId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 1005;
+    DisplayState state = DisplayState::ON;
+    data.WriteUint64(static_cast<uint64_t>(displayId));
+    data.WriteUint32(static_cast<uint32_t>(state));
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SET_DISPLAY_STATE_WITH_DISPLAY_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequestSetScreenPowerForSpecifiedId
+ * @tc.desc: normal function, TRANS_ID_SET_SCREEN_POWER_FOR_SPECIFIED_ID test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetScreenPowerForSpecifiedId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    DisplayId displayId = 1006;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    data.WriteUint64(static_cast<uint64_t>(displayId));
+    data.WriteUint32(static_cast<uint32_t>(state));
+    data.WriteUint32(static_cast<uint32_t>(reason));
+    uint32_t code = static_cast<uint32_t>(
+        DisplayManagerMessage::TRANS_ID_SET_SCREEN_POWER_FOR_SPECIFIED_ID);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

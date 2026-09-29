@@ -106,6 +106,11 @@ public:
     virtual DMError UnregisterDisplayAttribute(const std::vector<std::string>& attributes,
         const sptr<IDisplayManagerAgent>& displayManagerAgent);
     virtual sptr<FoldCreaseRegion> GetCurrentFoldCreaseRegion();
+    virtual bool WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason);
+    virtual bool WakeUpEnd(DisplayId displayId);
+    virtual bool SuspendBegin(DisplayId displayId, PowerStateChangeReason reason);
+    virtual bool SuspendEnd(DisplayId displayId);
+    virtual bool SetDisplayState(DisplayId displayId, DisplayState state);
 private:
     static inline SingletonDelegator<DisplayManagerAdapterLite> delegator;
 protected:
@@ -121,6 +126,8 @@ public:
     virtual DMError GetPhysicalScreenIds(std::vector<ScreenId>& screenIds);
     virtual bool SetSpecifiedScreenPower(ScreenId screenId, ScreenPowerState state, PowerStateChangeReason reason);
     virtual bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason);
+    virtual bool SetScreenPowerForSpecifiedId(DisplayId displayId,
+        ScreenPowerState state, PowerStateChangeReason reason);
     virtual ScreenPowerState GetScreenPower(ScreenId dmsScreenId);
     virtual ScreenPowerState GetScreenPower();
     virtual void SyncScreenPowerState(ScreenPowerState state);

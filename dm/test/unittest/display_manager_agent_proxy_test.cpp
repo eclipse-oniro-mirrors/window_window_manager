@@ -704,4 +704,251 @@ HWTEST_F(DisplayManagerAgentProxyTest, NotifyFoldStatusChanged01, TestSize.Level
     displayManagerAgentProxy->NotifyFoldStatusChanged(FoldStatus::EXPAND);
     EXPECT_TRUE(g_logMsg.find("Write foldStatus failed") != std::string::npos);
 }
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_RemoteNullptr
+ * @tc.desc: NotifyDisplayStateChangedById when remote is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyDisplayStateChangedById_RemoteNullptr, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto proxy = sptr<DisplayManagerAgentProxy>::MakeSptr(nullptr);
+    DisplayId id = 0;
+    DisplayState state = DisplayState::OFF;
+    proxy->NotifyDisplayStateChangedById(id, state);
+    EXPECT_TRUE(g_logMsg.find("remote is nullptr") != std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_WriteInterfaceTokenFailed
+ * @tc.desc: NotifyDisplayStateChangedById when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyDisplayStateChangedById_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    DisplayId id = 0;
+    DisplayState state = DisplayState::OFF;
+    displayManagerAgentProxy->NotifyDisplayStateChangedById(id, state);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_WriteScreenIdFailed
+ * @tc.desc: NotifyDisplayStateChangedById when WriteUint64 screenId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyDisplayStateChangedById_WriteScreenIdFailed, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    DisplayId id = 0;
+    DisplayState state = DisplayState::OFF;
+    displayManagerAgentProxy->NotifyDisplayStateChangedById(id, state);
+    EXPECT_TRUE(g_logMsg.find("Write screenId failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_WriteStateFailed
+ * @tc.desc: NotifyDisplayStateChangedById when WriteUint32 state failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyDisplayStateChangedById_WriteStateFailed, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    DisplayId id = 0;
+    DisplayState state = DisplayState::OFF;
+    displayManagerAgentProxy->NotifyDisplayStateChangedById(id, state);
+    EXPECT_TRUE(g_logMsg.find("Write DisplayState failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_SendRequestFailed
+ * @tc.desc: NotifyDisplayStateChangedById when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyDisplayStateChangedById_SendRequestFailed, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    auto proxy = sptr<DisplayManagerAgentProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    DisplayId id = 0;
+    DisplayState state = DisplayState::OFF;
+    proxy->NotifyDisplayStateChangedById(id, state);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") != std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_Success
+ * @tc.desc: NotifyDisplayStateChangedById success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifyDisplayStateChangedById_Success, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    auto proxy = sptr<DisplayManagerAgentProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    DisplayId id = 0;
+    DisplayState state = DisplayState::OFF;
+    proxy->NotifyDisplayStateChangedById(id, state);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") == std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_Proxy
+ * @tc.desc: NotifySpecifiedDisplayPowerEvent proxy error cases
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifySpecifiedDisplayPowerEvent_Proxy, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    DisplayId displayId = 0;
+    DisplayPowerEvent event = DisplayPowerEvent::WAKE_UP;
+    EventStatus status = EventStatus::BEGIN;
+
+    auto proxy = sptr<DisplayManagerAgentProxy>::MakeSptr(nullptr);
+    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("remote is nullptr") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("Write screenId failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("Write event failed") != std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_WriteStatusFailed
+ * @tc.desc: NotifySpecifiedDisplayPowerEvent when Write status failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifySpecifiedDisplayPowerEvent_WriteStatusFailed, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    DisplayId displayId = 0;
+    DisplayPowerEvent event = DisplayPowerEvent::WAKE_UP;
+    EventStatus status = EventStatus::BEGIN;
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint32ErrorCount(2);
+    displayManagerAgentProxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("Write status failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_SendRequestFailed
+ * @tc.desc: NotifySpecifiedDisplayPowerEvent when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifySpecifiedDisplayPowerEvent_SendRequestFailed, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    auto proxy = sptr<DisplayManagerAgentProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    DisplayId displayId = 0;
+    DisplayPowerEvent event = DisplayPowerEvent::WAKE_UP;
+    EventStatus status = EventStatus::BEGIN;
+    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") != std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_Success
+ * @tc.desc: NotifySpecifiedDisplayPowerEvent success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAgentProxyTest, NotifySpecifiedDisplayPowerEvent_Success, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    MockMessageParcel::ClearAllErrorFlag();
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    auto proxy = sptr<DisplayManagerAgentProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    DisplayId displayId = 0;
+    DisplayPowerEvent event = DisplayPowerEvent::WAKE_UP;
+    EventStatus status = EventStatus::BEGIN;
+    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    EXPECT_TRUE(g_logMsg.find("SendRequest failed") == std::string::npos);
+
+    g_logMsg.clear();
+    LOG_SetCallback(nullptr);
+}
 }

@@ -205,6 +205,22 @@ bool ScreenSessionManagerAdapter::NotifyDisplayPowerEvent(DisplayPowerEvent even
     return true;
 }
 
+bool ScreenSessionManagerAdapter::NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+    DisplayPowerEvent event, EventStatus status)
+{
+    INIT_PROXY_CHECK_RETURN();
+    auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER);
+    if (agents.empty()) {
+        TLOGE(WmsLogTag::DMS, "agent is null");
+        return false;
+    }
+    TLOGD(WmsLogTag::DMS, "Received Display Power Event: %{public}d", static_cast<int>(event));
+    for (auto& agent : agents) {
+        agent->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    }
+    return true;
+}
+
 bool ScreenSessionManagerAdapter::NotifyDisplayStateChanged(DisplayId id, DisplayState state)
 {
     INIT_PROXY_CHECK_RETURN();
@@ -218,6 +234,23 @@ bool ScreenSessionManagerAdapter::NotifyDisplayStateChanged(DisplayId id, Displa
         static_cast<uint32_t>(id), static_cast<uint32_t>(state));
     for (auto& agent : agents) {
         agent->NotifyDisplayStateChanged(id, state);
+    }
+    return true;
+}
+
+bool ScreenSessionManagerAdapter::NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state)
+{
+    INIT_PROXY_CHECK_RETURN();
+    auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::DISPLAY_STATE_LISTENER);
+    if (agents.empty()) {
+        TLOGE(WmsLogTag::DMS, "agent is null");
+        return false;
+    }
+    TLOGNFI(WmsLogTag::DMS,
+        "Display State Changed: ID=%{public}d State=%{public}d",
+        static_cast<uint32_t>(displayId), static_cast<uint32_t>(state));
+    for (auto& agent : agents) {
+        agent->NotifyDisplayStateChangedById(displayId, state);
     }
     return true;
 }

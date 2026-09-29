@@ -467,6 +467,12 @@ public:
     virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName) { return DMError::DM_OK; }
     virtual sptr<IRemoteObject> GetRenderSession(ScreenId screenId) { return nullptr; }
     virtual void SetHoverBlockList(const std::vector<std::string>& hoverBlockList) {}
+    virtual bool WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason) { return false; }
+    virtual bool WakeUpEnd(DisplayId displayId) { return false; }
+    virtual bool SuspendBegin(DisplayId displayId, PowerStateChangeReason reason) { return false; }
+    virtual bool SuspendEnd(DisplayId displayId) { return false; }
+    virtual bool SetScreenPowerForSpecifiedId(DisplayId, ScreenPowerState, PowerStateChangeReason) { return false; }
+    virtual bool SetDisplayState(DisplayId displayId, DisplayState state) { return false; }
 };
 } // namespace Rosen
 } // namespace OHOS

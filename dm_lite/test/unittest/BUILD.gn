@@ -141,7 +141,10 @@ ohos_unittest("dm_screen_manager_lite_test") {
 
   deps = [ ":dm_unittest_common_lite" ]
   deps += dm_unittest_common_lite_deps
-  external_deps = [ "hilog:libhilog" ]
+  external_deps = [
+    "hilog:libhilog",
+    "googletest:gmock",
+  ]
 }
 
 ## Build dm_unittest_common_lite.a {{{

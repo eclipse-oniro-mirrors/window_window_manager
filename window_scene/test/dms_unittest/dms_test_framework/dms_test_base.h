@@ -97,7 +97,10 @@ public:
 class DisplayManagerAgentMock : public IRemoteStub<IDisplayManagerAgent> {
 public:
     MOCK_METHOD(void, NotifyDisplayPowerEvent, (DisplayPowerEvent event, EventStatus status), (override));
+    MOCK_METHOD(void, NotifySpecifiedDisplayPowerEvent,
+        (DisplayId displayId, DisplayPowerEvent event, EventStatus status), (override));
     MOCK_METHOD(void, NotifyDisplayStateChanged, (DisplayId id, DisplayState state), (override));
+    MOCK_METHOD(void, NotifyDisplayStateChangedById, (DisplayId displayId, DisplayState state), (override));
     MOCK_METHOD(void, OnScreenConnect, (sptr<ScreenInfo> screenInfo), (override));
     MOCK_METHOD(void, OnScreenDisconnect, (ScreenId screenId), (override));
     MOCK_METHOD(void, OnScreenChange, (const sptr<ScreenInfo>& screenInfo, ScreenChangeEvent event), (override));
