@@ -959,6 +959,8 @@ private:
      */
     void SetGotScreenOffAndWakeUpBlock();
     void WakeUpPictureFrameBlock(DisplayEvent event);
+    void SetTpFeatureWhenScreenConnect(sptr<ScreenSession> screenSession);
+    void SetTpFeatureWhenScreenDisconnect();
 
     /**
      * multi user concurrency

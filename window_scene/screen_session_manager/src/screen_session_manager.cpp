@@ -315,6 +315,10 @@ static const std::unordered_map<std::string, GraphicCM_ColorSpaceType> GRAPHIC_C
     {"p3", GraphicCM_ColorSpaceType::GRAPHIC_CM_P3_FULL}
 };
 
+#ifdef TP_FEATURE_ENABLE
+constexpr int32_t TP_TYPE_EXTENDED_SCREEN = 32;
+#endif
+
 // based on the bundle_util
 // LCOV_EXCL_START
 inline int32_t GetUserIdByCallingUid()
@@ -2578,6 +2582,7 @@ void ScreenSessionManager::HandleScreenConnectEvent(sptr<ScreenSession> screenSe
         if (displayMode == FoldDisplayMode::MAIN) {
             PowerMgr::PowerMgrClient::GetInstance().SuspendDevice();
         }
+        SetTpFeatureWhenScreenConnect(screenSession);
     }
     const auto isExternalRealScreen = [](sptr<ScreenSession> s) {
         return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
@@ -2788,11 +2793,38 @@ void ScreenSessionManager::HandleScreenDisconnectEvent(sptr<ScreenSession> scree
         return s && s->GetScreenProperty().GetScreenType() == ScreenType::REAL && !s->isInternal_;
     };
     ScreenDisconnectWakeUpDevice();
+    SetTpFeatureWhenScreenDisconnect();
     if (g_setLocalResolution && isExternalRealScreen(screenSession)) {
         TLOGNFI(WmsLogTag::DMS, "External screen disconnected, check if need restore custom resolution");
         RestoreCustomResolution();
     }
     TLOGNFW(WmsLogTag::DMS, "disconnect success. ScreenId: %{public}" PRIu64 "", screenId);
+}
+
+void ScreenSessionManager::SetTpFeatureWhenScreenConnect(sptr<ScreenSession> screenSession)
+{
+    if (!screenSession) {
+       TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr");
+       return;
+    }
+#ifdef TP_FEATURE_ENABLE
+    if (screenSession->GetScreenProperty().GetScreenTypeInfo() == ScreenTypeInfo::EXTERNAL) {
+        std::string connectExtendedScreen_Tp = "1";
+        TLOGNFI(WmsLogTag::DMS, "Set Tp Feature When Screen Connect");
+        rsInterface_.SetTpFeatureConfig(TP_TYPE_EXTENDED_SCREEN, connectExtendedScreen_Tp.c_str());
+    }
+#endif
+}
+
+void ScreenSessionManager::SetTpFeatureWhenScreenDisconnect()
+{
+#ifdef TP_FEATURE_ENABLE
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() && CountRealPhysicalScreensNotInternal() <= 0) {
+        std::string disconnectExtendedScreen_Tp = "0";
+        TLOGNFI(WmsLogTag::DMS, "Set Tp Feature When Screen Disconnect");
+        rsInterface_.SetTpFeatureConfig(TP_TYPE_EXTENDED_SCREEN, disconnectExtendedScreen_Tp.c_str());
+    }
+#endif
 }
 
 void ScreenSessionManager::ScreenDisconnectWakeUpDevice()
