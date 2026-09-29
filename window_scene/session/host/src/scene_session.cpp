@@ -2097,14 +2097,14 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
     }
 
     std::map<AvoidAreaType, AvoidArea> avoidAreas;
-    if (GetForegroundInteractiveStatus()) {
+    if (IsVisibleForeground()) {
         if (IsImmersiveType() && updateReason == BOUNDS_CHANGED) {
             MarkAvoidAreaAsDirty();
         } else {
             GetAllAvoidAreas(avoidAreas);
         }
     } else {
-        TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}d] avoid area update rejected by recent", persistentId);
+        TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}d] avoid area update rejected by !IsVisibleForeground", persistentId);
     }
 
     if (winRect.IsInvalid()) {
