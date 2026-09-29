@@ -953,8 +953,10 @@ private:
     std::shared_ptr<Rosen::RSAnimatableProperty<float>> blurBrightnessValue_;
     std::shared_ptr<Rosen::RSAnimatableProperty<Rosen::RSColor>> blurMaskColorValue_;
     void AddRSNodeModifier(bool isDark, const std::shared_ptr<RSBaseNode>& rsNode);
-    void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type);
+    void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type, const bool needTransition = true);
     void UpdateSidebarBlurStyleWhenColorModeChange();
+    void SetSidebarBlurValues(bool isDark, SidebarBlurType type);
+    void ApplySidebarBlurWithAnimation(bool isDark, SidebarBlurType type);
 
     bool CheckCreaseRegionCanInHoverState(const Rect& windowRect);
 };
