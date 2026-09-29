@@ -26,8 +26,6 @@
 #include "singleton_container.h"
 #include "window_manager_hilog.h"
 #include "pixel_map_napi.h"
-#include "ani.h"
-#include "concurrency_helpers.h"
 #include <event_handler.h>
 #include <event_runner.h>
 namespace OHOS::Rosen {
