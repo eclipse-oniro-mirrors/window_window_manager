@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2022,11 +2022,13 @@ sptr<WindowSessionImpl> WindowSessionImpl::FindExtensionWindowWithContext() cons
 {
     auto context = GetContext();
     if (context == nullptr) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "ctx is null: id=%{public}u", GetWindowId());
         return nullptr;
     }
     std::shared_lock<std::shared_mutex> lock(windowExtensionSessionMutex_);
     for (const auto& window : GetWindowExtensionSessionSet()) {
         if (window && context.get() == window->GetContext().get()) {
+            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u, uecId=%{public}u", GetWindowId(), window->GetWindowId());
             return window;
         }
     }
@@ -2272,10 +2274,14 @@ WSError WindowSessionImpl::UpdateWindowMode(const WindowModeInfo& windowModeInfo
 
 WSError WindowSessionImpl::NotifyDpiHookScale(float scale)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, oldScale=%{public}f, scale=%{public}f",
-        GetPersistentId(), dpiHookScale_, scale);
+    auto uiContent = GetUIContentSharedPtr();
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid=%{public}d, oldScale=%{public}f, scale=%{public}f, hasUIContent=%{public}d",
+        GetPersistentId(), dpiHookScale_, scale, uiContent != nullptr);
     if (!MathHelper::NearZero(dpiHookScale_ - scale)) {
         dpiHookScale_ = scale;
+        if (scale > 0.0f && uiContent != nullptr) {
+            uiContent->MarkUIExtensionDensityFollowHost();
+        }
         UpdateDensity();
     }
     return WSError::WS_OK;
@@ -3033,10 +3039,13 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
             uiContent->SetAppWindowIcon(std::move(iconCache_));
         }
         TLOGI(WmsLogTag::WMS_LAYOUT, "single hand, id:%{public}d, posX:%{public}d, posY:%{public}d, "
-              "scaleX:%{public}f, scaleY:%{public}f", GetPersistentId(),
+              "scaleX:%{public}f, scaleY:%{public}f, dpiHookScale=%{public}f", GetPersistentId(),
               singleHandTransform_.posX, singleHandTransform_.posY,
-              singleHandTransform_.scaleX, singleHandTransform_.scaleY);
+              singleHandTransform_.scaleX, singleHandTransform_.scaleY, dpiHookScale_);
         uiContent->UpdateSingleHandTransform(singleHandTransform_);
+        if (dpiHookScale_ > 0.0f) {
+            uiContent->MarkUIExtensionDensityFollowHost();
+        }
     }
     WindowType winType = GetType();
     bool isSubWindow = WindowHelper::IsSubWindow(winType);

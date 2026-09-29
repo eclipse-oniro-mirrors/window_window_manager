@@ -83,11 +83,12 @@ WindowExtensionSessionImpl::WindowExtensionSessionImpl(
         startModalExtensionTimeStamp_ = option->GetStartModalExtensionTimeStamp();
         extensionWindowFlags_.hideNonSecureWindowsFlag = true;
     }
-    if ((isDensityFollowHost_ = option->GetIsDensityFollowHost())) {
+    dpiFollowStrategy_.store(option->GetDpiFollowStrategy());
+    if (WindowHelper::IsDpiFollowHost(dpiFollowStrategy_.load())) {
         hostDensityValue_ = option->GetDensity();
     }
-    TLOGNI(WmsLogTag::WMS_UIEXT, "Uiext usage=%{public}u, timeStamp=%{public}" PRId64,
-        property_->GetUIExtensionUsage(), startModalExtensionTimeStamp_);
+    TLOGNI(WmsLogTag::WMS_UIEXT, "Uiext usage=%{public}u, dpiFollowStrategy=%{public}u, timeStamp=%{public}" PRId64,
+        property_->GetUIExtensionUsage(), dpiFollowStrategy_.load(), startModalExtensionTimeStamp_);
     dataHandler_ = std::make_shared<Extension::ProviderDataHandler>();
     RegisterDataConsumer();
 }
@@ -1185,7 +1186,7 @@ void WindowExtensionSessionImpl::UpdateSystemViewportConfig()
             TLOGNI(WmsLogTag::WMS_UIEXT, "UpdateSystemViewportConfig: Density is customized");
             return;
         }
-        if (window->isDensityFollowHost_) {
+        if (WindowHelper::IsDpiFollowHost(window->dpiFollowStrategy_.load())) {
             TLOGNW(WmsLogTag::WMS_UIEXT, "UpdateSystemViewportConfig: Density is follow host");
             return;
         }
@@ -1204,7 +1205,7 @@ void WindowExtensionSessionImpl::UpdateSystemViewportConfig()
 
 WSError WindowExtensionSessionImpl::UpdateSessionViewportConfig(const SessionViewportConfig& config)
 {
-    if (config.isDensityFollowHost_ && std::islessequal(config.density_, 0.0f)) {
+    if (WindowHelper::IsDpiFollowHost(config.dpiFollowStrategy_) && std::islessequal(config.density_, 0.0f)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "invalid density_: %{public}f", config.density_);
         return WSError::WS_ERROR_INVALID_PARAM;
     }
@@ -1220,11 +1221,11 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfig(const SessionVie
         auto viewportConfig = config;
         window->UpdateExtensionDensity(viewportConfig);
 
-        TLOGNI(WmsLogTag::WMS_UIEXT, "UpdateSessionViewportConfig: Id:%{public}d, isDensityFollowHost_:%{public}d, "
+        TLOGNI(WmsLogTag::WMS_UIEXT, "UpdateSessionViewportConfig: Id:%{public}d, dpiFollowStrategy:%{public}u, "
             "displayId:%{public}" PRIu64", density:%{public}f, lastDensity:%{public}f, orientation:%{public}d, "
-            "lastOrientation:%{public}d, isDensityCustomized:%{public}d",
-            window->GetPersistentId(), viewportConfig.isDensityFollowHost_, viewportConfig.displayId_,
-            viewportConfig.density_, window->lastDensity_, viewportConfig.orientation_, window->lastOrientation_,
+            "lastOrientation:%{public}d, isDensityCustomized:%{public}d", window->GetPersistentId(),
+            viewportConfig.dpiFollowStrategy_, viewportConfig.displayId_, viewportConfig.density_,
+            window->lastDensity_, viewportConfig.orientation_, window->lastOrientation_,
             window->isDensityCustomized_);
 
         window->NotifyDisplayInfoChange(viewportConfig);
@@ -1263,7 +1264,7 @@ WMError WindowExtensionSessionImpl::SetUIExtCustomDensity(const float density)
         window->isDensityCustomized_ = true;
 
         SessionViewportConfig config;
-        config.isDensityFollowHost_ = false;
+        config.dpiFollowStrategy_ = window->dpiFollowStrategy_;
         config.density_ = density;
         config.orientation_ = window->lastOrientation_;
         config.displayId_ = window->lastDisplayId_;
@@ -1276,18 +1277,19 @@ WMError WindowExtensionSessionImpl::SetUIExtCustomDensity(const float density)
 
 void WindowExtensionSessionImpl::UpdateExtensionDensity(SessionViewportConfig& config)
 {
-    TLOGD(WmsLogTag::WMS_UIEXT, "isFollowHost:%{public}d, densityValue:%{public}f,isDensityCustomized_:%{public}d, "
-        "customizedDensity:%{public}f", config.isDensityFollowHost_, config.density_, isDensityCustomized_,
-        customizedDensity_);
+    TLOGD(WmsLogTag::WMS_UIEXT, "dpiFollowStrategy:%{public}u, densityValue:%{public}f, "
+        "isDensityCustomized_:%{public}d, customizedDensity:%{public}f",
+        config.dpiFollowStrategy_, config.density_, isDensityCustomized_, customizedDensity_);
+    bool isFollowHost = WindowHelper::IsDpiFollowHost(config.dpiFollowStrategy_);
     if (isDensityCustomized_) {
-        if (config.isDensityFollowHost_) {
+        if (isFollowHost) {
             hostDensityValue_ = config.density_;
         }
         config.density_ = customizedDensity_;
         return;
     }
-    isDensityFollowHost_ = config.isDensityFollowHost_;
-    if (config.isDensityFollowHost_) {
+    dpiFollowStrategy_.store(config.dpiFollowStrategy_);
+    if (isFollowHost) {
         hostDensityValue_ = config.density_;
         return;
     }
@@ -1524,11 +1526,12 @@ WMError WindowExtensionSessionImpl::Hide(uint32_t reason, bool withAnimation, bo
     return WMError::WM_OK;
 }
 
-WSError WindowExtensionSessionImpl::NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+WSError WindowExtensionSessionImpl::NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
 {
-    TLOGI(WmsLogTag::WMS_UIEXT, "isFollowHost:%{public}d densityValue:%{public}f", isFollowHost, densityValue);
-
-    if (!isFollowHost && !isDensityFollowHost_) {
+    TLOGI(WmsLogTag::WMS_UIEXT, "dpiFollowStrategy:%{public}u densityValue:%{public}f",
+        dpiFollowStrategy, densityValue);
+    bool isFollowHost = WindowHelper::IsDpiFollowHost(dpiFollowStrategy);
+    if (!isFollowHost && dpiFollowStrategy == dpiFollowStrategy_.load()) {
         TLOGI(WmsLogTag::WMS_UIEXT, "isFollowHost is false and not change");
         return WSError::WS_OK;
     }
@@ -1546,8 +1549,7 @@ WSError WindowExtensionSessionImpl::NotifyDensityFollowHost(bool isFollowHost, f
         hostDensityValue_ = densityValue;
     }
 
-    isDensityFollowHost_ = isFollowHost;
-
+    dpiFollowStrategy_.store(dpiFollowStrategy);
     UpdateViewportConfig(GetRect(), WindowSizeChangeReason::UNDEFINED);
     return WSError::WS_OK;
 }
@@ -1557,7 +1559,7 @@ float WindowExtensionSessionImpl::GetVirtualPixelRatio(const sptr<DisplayInfo>& 
     if (isDensityCustomized_) {
         return customizedDensity_;
     }
-    if (isDensityFollowHost_ && hostDensityValue_ != std::nullopt) {
+    if (WindowHelper::IsDpiFollowHost(dpiFollowStrategy_.load()) && hostDensityValue_ != std::nullopt) {
         return hostDensityValue_->load();
     }
     return GetDefaultDensity(displayInfo);
@@ -1889,6 +1891,22 @@ WMError WindowExtensionSessionImpl::ExtensionSetBrightness(float brightness)
         return WMError::WM_ERROR_IPC_FAILED;
     }
     return WMError::WM_OK;
+}
+
+float WindowExtensionSessionImpl::GetExtensionCustomDensity()
+{
+    float vpr = UNDEFINED_DENSITY;
+    auto dpiFollowStrategy = dpiFollowStrategy_.load();
+    if (dpiFollowStrategy == DpiFollowStrategy::FOLLOW_HOST_DPI_ALL) {
+        auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(lastDisplayId_);
+        if (display != nullptr) {
+            auto displayInfo = display->GetDisplayInfo();
+            vpr = GetVirtualPixelRatio(displayInfo);
+        }
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "vpr=%{public}f, dpiFollowStrategy=%{public}u, displayId=%{public}" PRIu64,
+        vpr, static_cast<uint32_t>(dpiFollowStrategy), lastDisplayId_);
+    return vpr;
 }
 
 WMError WindowExtensionSessionImpl::GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr)

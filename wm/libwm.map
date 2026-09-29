@@ -404,7 +404,7 @@
             OHOS::Rosen::WindowOption::GetDisplayId*;
             OHOS::Rosen::WindowOption::GetFocusable*;
             OHOS::Rosen::WindowOption::GetHitOffset*;
-            OHOS::Rosen::WindowOption::GetIsDensityFollowHost*;
+            OHOS::Rosen::WindowOption::GetDpiFollowStrategy*;
             OHOS::Rosen::WindowOption::GetIsUIExtAnySubWindow*;
             OHOS::Rosen::WindowOption::GetIsUIExtFirstSubWindow*;
             OHOS::Rosen::WindowOption::GetMainHandlerAvailable*;
@@ -452,7 +452,7 @@
             OHOS::Rosen::WindowOption::SetFocusable*;
             OHOS::Rosen::WindowOption::SetFollowCreatorLifecycle*;
             OHOS::Rosen::WindowOption::SetHitOffset*;
-            OHOS::Rosen::WindowOption::SetIsDensityFollowHost*;
+            OHOS::Rosen::WindowOption::SetDpiFollowStrategy*;
             OHOS::Rosen::WindowOption::SetIsSystemKeyboard*;
             OHOS::Rosen::WindowOption::SetIsUIExtAnySubWindow*;
             OHOS::Rosen::WindowOption::SetIsUIExtFirstSubWindow*;

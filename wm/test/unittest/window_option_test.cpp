@@ -543,22 +543,22 @@ HWTEST_F(WindowOptionTest, SetDensity, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetIsDensityFollowHost
- * @tc.desc: test SetIsDensityFollowHost and GetIsDensityFollowHost
+ * @tc.name: SetDpiFollowStrategy
+ * @tc.desc: test SetDpiFollowStrategy and GetDpiFollowStrategy
  * @tc.type: FUNC
  */
-HWTEST_F(WindowOptionTest, SetIsDensityFollowHost, TestSize.Level1)
+HWTEST_F(WindowOptionTest, SetDpiFollowStrategy, TestSize.Level1)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
     ASSERT_NE(nullptr, option);
-    ASSERT_EQ(false, option->GetIsDensityFollowHost());
-    option->SetIsDensityFollowHost(true);
-    ASSERT_EQ(true, option->GetIsDensityFollowHost());
+    EXPECT_EQ(option->GetDpiFollowStrategy(), DpiFollowStrategy::NONE);
+    option->SetDpiFollowStrategy(DpiFollowStrategy::FOLLOW_HOST_DPI_UEA);
+    EXPECT_EQ(option->GetDpiFollowStrategy(), DpiFollowStrategy::FOLLOW_HOST_DPI_UEA);
 }
 
 /**
  * @tc.name: SetDefaultDensityEnabled
- * @tc.desc: test SetIsDensityFollowHost and IsDefaultDensityEnabled
+ * @tc.desc: test SetDefaultDensityEnabled and IsDefaultDensityEnabled
  * @tc.type: FUNC
  */
 HWTEST_F(WindowOptionTest, SetDefaultDensityEnabled, TestSize.Level1)
@@ -608,7 +608,7 @@ HWTEST_F(WindowOptionTest, SetZIndex, TestSize.Level1)
 
 /**
  * @tc.name: SetConstrainedModal
- * @tc.desc: test SetConstrainedModal and GetIsDensityFollowHost
+ * @tc.desc: test SetConstrainedModal and IsConstrainedModal
  * @tc.type: FUNC
  */
 HWTEST_F(WindowOptionTest, SetConstrainedModal, TestSize.Level1)

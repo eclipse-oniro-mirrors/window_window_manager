@@ -149,7 +149,7 @@ public:
         int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
-    WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue) override;
+    WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue) override;
     WMError SetUIExtCustomDensity(const float density) override;
     float GetVirtualPixelRatio(const sptr<DisplayInfo>& displayInfo) override;
     float GetDefaultDensity(const sptr<DisplayInfo>& displayInfo);
@@ -231,6 +231,7 @@ public:
     WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
     uint32_t GetHostStatusBarContentColor() const override;
+    float GetExtensionCustomDensity() override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetStatusBarColorForExtension(uint32_t color) override;
     WMError SetStatusBarColorForExtensionInner(uint32_t color);
@@ -295,7 +296,7 @@ private:
     std::shared_ptr<Extension::DataHandler> dataHandler_;
     std::unordered_map<uint32_t, DataConsumeCallback> dataConsumers_;  // Read only after init
     sptr<IRemoteObject> abilityToken_ { nullptr };
-    std::atomic<bool> isDensityFollowHost_ { false };
+    std::atomic<DpiFollowStrategy> dpiFollowStrategy_ { DpiFollowStrategy::NONE };
     std::optional<std::atomic<float>> hostDensityValue_ = std::nullopt;
     std::optional<std::atomic<bool>> focusState_ = std::nullopt;
     std::optional<AccessibilityChildTreeInfo> accessibilityChildTreeInfo_ = std::nullopt;

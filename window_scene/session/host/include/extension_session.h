@@ -116,7 +116,7 @@ public:
     WSError TransferAccessibilityDumpChildInfo(const std::vector<std::string>& params, std::vector<std::string>& info);
     void NotifySyncOn() override;
     void NotifyAsyncOn() override;
-    WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue = 1.0f);
+    WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue = 1.0f);
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config);
     void TriggerBindModalUIExtension() override;
     void RegisterExtensionSessionEventCallback(const sptr<ExtensionSessionEventCallback>& extSessionEventCallback);

@@ -650,6 +650,7 @@ public:
     WMError SetWindowDefaultDensityEnabled(bool enabled) override;
     void SetDefaultDensityEnabledValue(bool enabled);
     bool IsStageDefaultDensityEnabled();
+    virtual float GetExtensionCustomDensity() { return UNDEFINED_DENSITY; }
     WSError NotifyDisplayIdChange(DisplayId displayId);
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type) override;
     bool IsDeviceFeatureCapableFor(const std::string& feature) const override;

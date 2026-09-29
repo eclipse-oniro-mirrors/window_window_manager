@@ -413,16 +413,6 @@ float WindowOption::GetDensity() const
     return density_;
 }
 
-void WindowOption::SetIsDensityFollowHost(bool isDensityFollowHost)
-{
-    isDensityFollowHost_ = isDensityFollowHost;
-}
-
-bool WindowOption::GetIsDensityFollowHost() const
-{
-    return isDensityFollowHost_;
-}
-
 void WindowOption::SetDefaultDensityEnabled(bool defaultDensityEnabled)
 {
     defaultDensityEnabled_ = defaultDensityEnabled;

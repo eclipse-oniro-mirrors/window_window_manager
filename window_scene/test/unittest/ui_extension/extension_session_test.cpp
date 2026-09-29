@@ -395,10 +395,10 @@ HWTEST_F(ExtensionSessionTest, NotifyDensityFollowHost01, TestSize.Level1)
     extensionSession_->state_ = SessionState::STATE_CONNECT;
     extensionSession_->sessionStage_ = mockSessionStage_;
 
-    bool isFollowHost = true;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     float densityValue = 1.0f;
-    EXPECT_CALL(*mockSessionStage_, NotifyDensityFollowHost(isFollowHost, densityValue));
-    WSError res = extensionSession_->NotifyDensityFollowHost(isFollowHost, densityValue);
+    EXPECT_CALL(*mockSessionStage_, NotifyDensityFollowHost(dpiFollowStrategy, densityValue));
+    WSError res = extensionSession_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
     ASSERT_EQ(WSError::WS_OK, res);
 }
 
@@ -409,9 +409,9 @@ HWTEST_F(ExtensionSessionTest, NotifyDensityFollowHost01, TestSize.Level1)
  */
 HWTEST_F(ExtensionSessionTest, NotifyDensityFollowHost02, TestSize.Level1)
 {
-    bool isFollowHost = true;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     float densityValue = 1.0f;
-    WSError res = extensionSession_->NotifyDensityFollowHost(isFollowHost, densityValue);
+    WSError res = extensionSession_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
     ASSERT_EQ(WSError::WS_ERROR_INVALID_SESSION, res);
 }
 
@@ -425,9 +425,9 @@ HWTEST_F(ExtensionSessionTest, NotifyDensityFollowHost03, TestSize.Level1)
     extensionSession_->state_ = SessionState::STATE_CONNECT;
     extensionSession_->sessionStage_ = nullptr;
 
-    bool isFollowHost = true;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     float densityValue = 1.0f;
-    WSError res = extensionSession_->NotifyDensityFollowHost(isFollowHost, densityValue);
+    WSError res = extensionSession_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
     ASSERT_EQ(WSError::WS_ERROR_NULLPTR, res);
 }
 

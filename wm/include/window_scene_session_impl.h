@@ -824,6 +824,7 @@ private:
     bool IsSystemDensityChanged(const sptr<DisplayInfo>& displayInfo);
     bool IsDefaultDensityEnabled();
     float GetMainWindowCustomDensity();
+    float GetExtensionWindowCustomDensity();
     float customDensity_ = UNDEFINED_DENSITY;
     bool isEnableDefaultDensityWhenCreate_ = false;
     float rsCornerRadius_ = 0.0f;
