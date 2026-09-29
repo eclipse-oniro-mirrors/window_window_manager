@@ -14839,27 +14839,26 @@ WSErrorResult SceneSessionManager::RestoreSessionToForeground(int32_t persistent
             "Permission denied for restoring session to foreground!"};
     }
     if (!systemConfig_.IsSupportPCMode()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "device not support");
-        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "device not support"};
+        TLOGE(WmsLogTag::WMS_LIFE, "Device not support");
+        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "Device not support"};
     }
     if (IsScreenLocked()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "screen is locked, cannot restore session to foreground");
+        TLOGE(WmsLogTag::WMS_LIFE, "Screen is locked, cannot restore session to foreground");
         return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION,
-            "screen is locked, cannot restore session to foreground"};
+            "Screen is locked, cannot restore session to foreground"};
     }
     auto session = GetMainSessionByPersistentId(persistentId);
-    if (session == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "fail to find main window"};
+    if (session == nullptr || session->GetSessionState() == SessionState::STATE_DISCONNECT) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Session not found or disconnected");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "Session not found or disconnected"};
     }
     if (!restoreSessionToForegroundFunc_) {
-        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "listener is null"};
+        TLOGE(WmsLogTag::WMS_LIFE, "Listener is null");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "Listener is null"};
     }
     auto func = restoreSessionToForegroundFunc_;
-    auto screenId = session->GetScreenId();
-    taskScheduler_->PostTask([func = std::move(func), persistentId, screenId]() {
-        func(persistentId, screenId);
+    taskScheduler_->PostTask([func = std::move(func), persistentId]() {
+        func(persistentId);
     }, __func__);
     return WSErrorResult{WSError::WS_OK, ""};
 }

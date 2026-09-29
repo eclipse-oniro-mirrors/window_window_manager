@@ -409,7 +409,7 @@ private:
     napi_value OnGetBatchAbilityInfos(napi_env env, napi_callback_info info);
     void OnRecoverSceneSession(const sptr<SceneSession>& sceneSession, const SessionInfo& sessionInfo);
     void ProcessRecoverSceneSessionRegister();
-    void OnRestoreSessionToForeground(int32_t persistentId, DisplayId screenId);
+    void OnRestoreSessionToForeground(int32_t persistentId);
     void ProcessRestoreSessionToForegroundRegister();
 
     /*

@@ -131,7 +131,7 @@ using NotifyCreateSubSessionFunc = std::function<void(const sptr<SceneSession>& 
 using NotifyRecoverSceneSessionFunc =
     std::function<void(const sptr<SceneSession>& session, const SessionInfo& sessionInfo)>;
 using NotifyRestoreSessionToForegroundFunc =
-    std::function<void(int32_t persistentId, DisplayId screenId)>;
+    std::function<void(int32_t persistentId)>;
 using ProcessStatusBarEnabledChangeFunc = std::function<void(bool enable, const std::string& bundleName)>;
 using ProcessGestureNavigationEnabledChangeFunc = std::function<void(bool enable, const std::string& bundleName,
     GestureBackType type)>;

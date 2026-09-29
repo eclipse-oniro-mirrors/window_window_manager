@@ -818,24 +818,22 @@ void JsSceneSessionManager::ProcessRecoverSceneSessionRegister()
 
 void JsSceneSessionManager::ProcessRestoreSessionToForegroundRegister()
 {
-    NotifyRestoreSessionToForegroundFunc func = [this](int32_t persistentId, DisplayId screenId) {
-        this->OnRestoreSessionToForeground(persistentId, screenId);
+    NotifyRestoreSessionToForegroundFunc func = [this](int32_t persistentId) {
+        this->OnRestoreSessionToForeground(persistentId);
     };
     SceneSessionManager::GetInstance().SetRestoreSessionToForegroundListener(func);
 }
 
-void JsSceneSessionManager::OnRestoreSessionToForeground(int32_t persistentId, DisplayId screenId)
+void JsSceneSessionManager::OnRestoreSessionToForeground(int32_t persistentId)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "persistentId: %{public}d, screenId: %{public}" PRIu64,
-        persistentId, screenId);
-    auto task = [persistentId, screenId,
+    TLOGI(WmsLogTag::WMS_LIFE, "persistentId: %{public}d", persistentId);
+    auto task = [persistentId,
         jsCallBack = GetJSCallback(RESTORE_SESSION_TO_FOREGROUND_CB), env = env_]() {
         if (jsCallBack == nullptr) {
             TLOGNE(WmsLogTag::WMS_LIFE, "restoreSessionToForeground jsCallBack is nullptr");
             return;
         }
-        napi_value argv[] = { CreateJsValue(env, persistentId),
-                              CreateJsValue(env, static_cast<int64_t>(screenId)) };
+        napi_value argv[] = { CreateJsValue(env, persistentId) };
         napi_status ret = napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(),
             ArraySize(argv), argv, nullptr);
         if (ret != napi_ok) {
