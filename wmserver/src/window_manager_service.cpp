@@ -998,6 +998,20 @@ WMError WindowManagerService::AddWindow(sptr<WindowProperty>& property)
         WLOGFE("property is nullptr");
         return WMError::WM_ERROR_NULLPTR;
     }
+    if (!accessTokenIdMaps_.isExist(property->GetWindowId(), IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGI("AddWindow operation rejected, windowId: %{public}u", property->GetWindowId());
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    return AddWindowInner(property);
+}
+
+WMError WindowManagerService::AddWindowInner(sptr<WindowProperty>& property)
+{
+    if (property == nullptr) {
+        WLOGFE("property is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     if (!CheckSystemWindowPermission(property) || !CheckAnimationPermission(property)) {
         WLOGFE("add window permission denied!");
         return WMError::WM_ERROR_NOT_SYSTEM_APP;

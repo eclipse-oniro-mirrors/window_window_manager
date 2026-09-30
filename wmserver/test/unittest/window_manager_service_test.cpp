@@ -1191,6 +1191,29 @@ HWTEST_F(WindowManagerServiceTest, AddWindow02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: AddWindowInner01
+ * @tc.desc: AddWindowInner nullptr property test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceTest, AddWindowInner01, TestSize.Level1)
+{
+    sptr<WindowProperty> property = nullptr;
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, wms->AddWindowInner(property));
+}
+
+/**
+ * @tc.name: AddWindowInner02
+ * @tc.desc: AddWindowInner internal trusted path test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceTest, AddWindowInner02, TestSize.Level1)
+{
+    sptr<WindowProperty> property = new WindowProperty();
+    property->SetWindowType(WindowType::WINDOW_TYPE_WALLPAPER);
+    ASSERT_EQ(WMError::WM_OK, wms->AddWindowInner(property));
+}
+
+/**
  * @tc.name: RemoveWindow
  * @tc.desc: RemoveWindow test
  * @tc.type: FUNC
