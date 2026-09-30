@@ -11032,8 +11032,17 @@ void SceneSession::SetSidebarBlur(bool isDefaultSidebarBlur, bool isNeedAnimatio
         TLOGE(WmsLogTag::WMS_PC, "sessionStage is null");
         return;
     }
-    SidebarBlurType type = isDefaultSidebarBlur ?
-        (isNeedAnimation ? SidebarBlurType::DEFAULT_FLOAT : SidebarBlurType::INITIAL) : SidebarBlurType::NONE;
+    bool isFullScreen = GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
+    SidebarBlurType type = SidebarBlurType::NONE;
+    if (isDefaultSidebarBlur) {
+      if (isNeedAnimation) {
+        type = isFullScreen ? SidebarBlurType::DEFAULT_MAXIMIZE
+                            : SidebarBlurType::DEFAULT_FLOAT;
+      } else {
+        type = isFullScreen ? SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE
+                            : SidebarBlurType::INITIAL;
+      }
+    }
     sessionStage_->SetSidebarBlurStyleWithType(type);
 }
 

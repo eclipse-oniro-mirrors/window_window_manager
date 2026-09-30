@@ -1743,6 +1743,7 @@ enum class SidebarBlurType : uint32_t {
     INITIAL,
     DEFAULT_FLOAT,
     DEFAULT_MAXIMIZE,
+    DEFAULT_MAXIMIZE_NOANIMATE,
     END,
 };
 

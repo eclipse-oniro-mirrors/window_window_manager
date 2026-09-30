@@ -406,6 +406,50 @@ HWTEST_F(WindowSceneSessionImplTest6, AddRSNodeModifier7, TestSize.Level1)
 }
 
 /**
+ * @tc.name: AddRSNodeModifier8
+ * @tc.desc: AddRSNodeModifier in fullscreen + light mode -> MAXIMIZE constants
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, AddRSNodeModifier8, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("AddRSNodeModifier8");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    EXPECT_NE(window->surfaceNode_, nullptr);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    EXPECT_FALSE(window->blurRadiusValue_);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: AddRSNodeModifier9
+ * @tc.desc: AddRSNodeModifier in fullscreen + dark mode -> MAXIMIZE constants
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, AddRSNodeModifier9, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("AddRSNodeModifier9");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    EXPECT_NE(window->surfaceNode_, nullptr);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    EXPECT_FALSE(window->blurRadiusValue_);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->AddRSNodeModifier(true, rsNodeTemp);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_DARK, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_DARK, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_DARK, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_DARK, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
  * @tc.name: SetSidebarBlurStyleWithType1
  * @tc.desc: SetSidebarBlurStyleWithType
  * @tc.type: FUNC
@@ -951,6 +995,69 @@ HWTEST_F(WindowSceneSessionImplTest6, ModifySidebarBlurProperty10, TestSize.Leve
 }
 
 /**
+ * @tc.name: ModifySidebarBlurProperty11
+ * @tc.desc: ModifySidebarBlurProperty with DEFAULT_MAXIMIZE_NOANIMATE, light mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, ModifySidebarBlurProperty11, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ModifySidebarBlurProperty11");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->ModifySidebarBlurProperty(false, SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: ModifySidebarBlurProperty12
+ * @tc.desc: ModifySidebarBlurProperty with DEFAULT_MAXIMIZE_NOANIMATE, dark mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, ModifySidebarBlurProperty12, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ModifySidebarBlurProperty12");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->ModifySidebarBlurProperty(true, SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_DARK, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_DARK, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_DARK, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_DARK, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: ModifySidebarBlurProperty13
+ * @tc.desc: ModifySidebarBlurProperty with DEFAULT_MAXIMIZE_NOANIMATE, needTransition=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, ModifySidebarBlurProperty13, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ModifySidebarBlurProperty13");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->ModifySidebarBlurProperty(false, SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE, false);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
  * @tc.name: maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen
  * @tc.desc: maximizeWhenSwitchMultiWindowIfOnlySupportFullScreen
  * @tc.type: FUNC
@@ -1369,6 +1476,175 @@ HWTEST_F(WindowSceneSessionImplTest6, ConfigDockAutoHide, TestSize.Level1)
 
     WSError res = window->ConfigDockAutoHide(true);
     EXPECT_EQ(res, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: SetSidebarBlurValues1
+ * @tc.desc: SetSidebarBlurValues with NONE type, light mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, SetSidebarBlurValues1, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSidebarBlurValues1");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->SetSidebarBlurValues(false, SidebarBlurType::NONE);
+    EXPECT_NEAR(SIDEBAR_BLUR_NUMBER_ZERO, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_BLUR_NUMBER_ZERO, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_BLUR_NUMBER_ZERO, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_SNAPSHOT_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: SetSidebarBlurValues2
+ * @tc.desc: SetSidebarBlurValues with INITIAL type, light mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, SetSidebarBlurValues2, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSidebarBlurValues2");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->SetSidebarBlurValues(false, SidebarBlurType::INITIAL);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_DEFAULT_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: SetSidebarBlurValues3
+ * @tc.desc: SetSidebarBlurValues with DEFAULT_FLOAT type, light mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, SetSidebarBlurValues3, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSidebarBlurValues3");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->SetSidebarBlurValues(false, SidebarBlurType::DEFAULT_FLOAT);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_DEFAULT_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: SetSidebarBlurValues4
+ * @tc.desc: SetSidebarBlurValues with DEFAULT_MAXIMIZE type, light mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, SetSidebarBlurValues4, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSidebarBlurValues4");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->SetSidebarBlurValues(false, SidebarBlurType::DEFAULT_MAXIMIZE);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: SetSidebarBlurValues5
+ * @tc.desc: SetSidebarBlurValues with DEFAULT_MAXIMIZE_NOANIMATE type, light mode
+ *           (falls through to DEFAULT_MAXIMIZE case)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, SetSidebarBlurValues5, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSidebarBlurValues5");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->SetSidebarBlurValues(false, SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: SetSidebarBlurValues6
+ * @tc.desc: SetSidebarBlurValues with DEFAULT_MAXIMIZE_NOANIMATE type, dark mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, SetSidebarBlurValues6, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetSidebarBlurValues6");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->SetSidebarBlurValues(true, SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_DARK, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_DARK, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_DARK, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_DARK, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: ApplySidebarBlurWithAnimation1
+ * @tc.desc: ApplySidebarBlurWithAnimation with DEFAULT_FLOAT, light mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, ApplySidebarBlurWithAnimation1, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ApplySidebarBlurWithAnimation1");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->ApplySidebarBlurWithAnimation(false, SidebarBlurType::DEFAULT_FLOAT);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_DEFAULT_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
+}
+
+/**
+ * @tc.name: ApplySidebarBlurWithAnimation2
+ * @tc.desc: ApplySidebarBlurWithAnimation with DEFAULT_MAXIMIZE_NOANIMATE (no animation path)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest6, ApplySidebarBlurWithAnimation2, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ApplySidebarBlurWithAnimation2");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    auto rsNodeTemp = RSAdapterUtil::GetRSNode(window->GetRSUIContext(), window->surfaceNode_->GetId());
+    EXPECT_NE(rsNodeTemp, nullptr);
+    window->AddRSNodeModifier(false, rsNodeTemp);
+    EXPECT_TRUE(window->blurRadiusValue_);
+    window->ApplySidebarBlurWithAnimation(false, SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_RADIUS_LIGHT, window->blurRadiusValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_SATURATION_LIGHT, window->blurSaturationValue_->Get(), 0.00001f);
+    EXPECT_NEAR(SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT, window->blurBrightnessValue_->Get(), 0.00001f);
+    EXPECT_EQ(SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT, window->blurMaskColorValue_->Get().AsArgbInt());
 }
 } // namespace
 } // namespace Rosen

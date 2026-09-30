@@ -10066,14 +10066,23 @@ void WindowSceneSessionImpl::AddRSNodeModifier(bool isDark, const std::shared_pt
         TLOGE(WmsLogTag::WMS_PC, "rsNode is nullptr");
         return;
     }
+    bool isFullScreen = GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
+    float darkRadius = isFullScreen ? SIDEBAR_MAXIMIZE_RADIUS_DARK : SIDEBAR_DEFAULT_RADIUS_DARK;
+    float lightRadius = isFullScreen ? SIDEBAR_MAXIMIZE_RADIUS_LIGHT : SIDEBAR_DEFAULT_RADIUS_LIGHT;
+    float darkSaturation = isFullScreen ? SIDEBAR_MAXIMIZE_SATURATION_DARK : SIDEBAR_DEFAULT_SATURATION_DARK;
+    float lightSaturation = isFullScreen ? SIDEBAR_MAXIMIZE_SATURATION_LIGHT : SIDEBAR_DEFAULT_SATURATION_LIGHT;
+    float darkBrightness = isFullScreen ? SIDEBAR_MAXIMIZE_BRIGHTNESS_DARK : SIDEBAR_DEFAULT_BRIGHTNESS_DARK;
+    float lightBrightness = isFullScreen ? SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT : SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT;
+    uint32_t darkMaskColor = isFullScreen ? SIDEBAR_MAXIMIZE_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_DARK;
+    uint32_t lightMaskColor = isFullScreen ? SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT;
     blurRadiusValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
-        isDark ? SIDEBAR_DEFAULT_RADIUS_DARK : SIDEBAR_DEFAULT_RADIUS_LIGHT);
+        isDark ? darkRadius : lightRadius);
     blurSaturationValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
-        isDark ? SIDEBAR_DEFAULT_SATURATION_DARK : SIDEBAR_DEFAULT_SATURATION_LIGHT);
+        isDark ? darkSaturation : lightSaturation);
     blurBrightnessValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
-        isDark ? SIDEBAR_DEFAULT_BRIGHTNESS_DARK : SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT);
+        isDark ? darkBrightness : lightBrightness);
     blurMaskColorValue_ = std::make_shared<RSAnimatableProperty<Rosen::RSColor>>(
-        Rosen::RSColor::FromArgbInt(isDark ? SIDEBAR_DEFAULT_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT));
+        Rosen::RSColor::FromArgbInt(isDark ? darkMaskColor : lightMaskColor));
     auto modifier = std::make_shared<Rosen::ModifierNG::RSBehindWindowFilterModifier>();
     modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_RADIUS, blurRadiusValue_);
     modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_SATURATION, blurSaturationValue_);
@@ -10118,23 +10127,11 @@ void WindowSceneSessionImpl::UpdateSidebarBlurStyleWhenColorModeChange()
     bool isDark = (colorMode_ == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
     SidebarBlurType type = (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) ?
         SidebarBlurType::DEFAULT_MAXIMIZE : SidebarBlurType::DEFAULT_FLOAT;
-    ModifySidebarBlurProperty(isDark, type);
+    ModifySidebarBlurProperty(isDark, type, false);
 }
 
-void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurType type)
+void WindowSceneSessionImpl::SetSidebarBlurValues(bool isDark, SidebarBlurType type)
 {
-    TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(),
-        isDark, static_cast<uint32_t>(type));
-    auto rsUIContext = GetRSUIContext();
-    AutoRSTransaction trans(rsUIContext);
-    if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
-        Rosen::RSAnimationTimingProtocol timingProtocol;
-        timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
-        timingProtocol.SetDirection(true);
-        timingProtocol.SetFillMode(Rosen::FillMode::FORWARDS);
-        timingProtocol.SetFinishCallbackType(Rosen::FinishCallbackType::LOGICALLY);
-        RSNode::OpenImplicitAnimation(rsUIContext, timingProtocol, Rosen::RSAnimationTimingCurve::LINEAR, nullptr);
-    }
     switch (type) {
         case SidebarBlurType::NONE:
             blurRadiusValue_->Set(SIDEBAR_BLUR_NUMBER_ZERO);
@@ -10152,6 +10149,7 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
                 isDark ? SIDEBAR_DEFAULT_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT));
             break;
         }
+        case SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE:
         case SidebarBlurType::DEFAULT_MAXIMIZE: {
             blurRadiusValue_->Set(isDark ? SIDEBAR_MAXIMIZE_RADIUS_DARK : SIDEBAR_MAXIMIZE_RADIUS_LIGHT);
             blurSaturationValue_->Set(isDark ? SIDEBAR_MAXIMIZE_SATURATION_DARK : SIDEBAR_MAXIMIZE_SATURATION_LIGHT);
@@ -10163,8 +10161,36 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
         default:
             break;
     }
-    if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
+}
+ 
+void WindowSceneSessionImpl::ApplySidebarBlurWithAnimation(bool isDark, SidebarBlurType type)
+{
+    auto rsUIContext = GetRSUIContext();
+    bool needAnimate = (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE);
+    if (needAnimate) {
+        Rosen::RSAnimationTimingProtocol timingProtocol;
+        timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
+        timingProtocol.SetDirection(true);
+        timingProtocol.SetFillMode(Rosen::FillMode::FORWARDS);
+        timingProtocol.SetFinishCallbackType(Rosen::FinishCallbackType::LOGICALLY);
+        RSNode::OpenImplicitAnimation(rsUIContext, timingProtocol, Rosen::RSAnimationTimingCurve::LINEAR, nullptr);
+    }
+    SetSidebarBlurValues(isDark, type);
+    if (needAnimate) {
         RSNode::CloseImplicitAnimation(rsUIContext);
+    }
+}
+ 
+void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurType type, const bool needTransition)
+{
+    TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(), isDark,
+        static_cast<uint32_t>(type));
+    auto rsUIContext = GetRSUIContext();
+    if (needTransition) {
+        AutoRSTransaction trans(rsUIContext);
+        ApplySidebarBlurWithAnimation(isDark, type);
+    } else {
+        ApplySidebarBlurWithAnimation(isDark, type);
     }
 }
 
