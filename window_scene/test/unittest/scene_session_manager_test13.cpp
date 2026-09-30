@@ -669,6 +669,7 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground03, TestSize.Level
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
     int32_t persistentId = sceneSession->GetPersistentId();
     ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
     ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_ERROR_INVALID_OPERATION);
