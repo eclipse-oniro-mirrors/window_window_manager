@@ -1270,6 +1270,35 @@ HWTEST_F(MoveDragControllerTest, GetFullScreenToFloatingRect, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetFullScreenToFloatingRectWithLimits
+ * @tc.desc: test function : GetFullScreenToFloatingRect clamps rect by windowLimits
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, GetFullScreenToFloatingRectWithLimits, TestSize.Level1)
+{
+    WSRect originalRect = { 1, 2, 3, 4 };
+    WSRect windowRect = { 5, 6, 7, 8 };
+    auto preMoveTempProperty = moveDragController->moveTempProperty_;
+    auto preLimits = moveDragController->limits_;
+    moveDragController->moveTempProperty_ = { 1, 1, 1, 1, 1, 1, 1, 1 };
+
+    // windowRect width/height exceed limits max, clamp down to max
+    moveDragController->limits_ = WindowLimits(5, 6, 1, 1, FLT_MAX, 0.0f);
+    WSRect rect = moveDragController->GetFullScreenToFloatingRect(originalRect, windowRect);
+    EXPECT_EQ(5, rect.width_);
+    EXPECT_EQ(6, rect.height_);
+
+    // windowRect width/height below limits min, clamp up to min
+    moveDragController->limits_ = WindowLimits(10, 10, 9, 9, FLT_MAX, 0.0f);
+    rect = moveDragController->GetFullScreenToFloatingRect(originalRect, windowRect);
+    EXPECT_EQ(9, rect.width_);
+    EXPECT_EQ(9, rect.height_);
+
+    moveDragController->moveTempProperty_ = preMoveTempProperty;
+    moveDragController->limits_ = preLimits;
+}
+
+/**
  * @tc.name: IsValidDragEvent
  * @tc.desc: test function : IsValidDragEvent
  * @tc.type: FUNC

@@ -405,7 +405,8 @@ ScreenSessionManager::ScreenSessionManager()
     } else {
         ScreenStateMachine::GetInstance().InitStateMachine(SCREEN_STATE_MACHINE_REF_COUNT);
     }
-    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
+    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() ||
+        FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) {
         InitSecondaryDisplayPhysicalParams();
     }
     SetFirstSCBConnect(true);
@@ -11055,7 +11056,8 @@ DMRect ScreenSessionManager::CalcRectsWithRotation(DisplayId displayId, const DM
     ScreenProperty property = screenSession->GetScreenProperty();
     FoldDisplayMode displayMode = GetFoldDisplayMode();
     int32_t boundaryOffset = 0;
-    if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() && displayMode == FoldDisplayMode::FULL) {
+    if ((FoldScreenStateInternel::IsSecondaryDisplayFoldDevice() ||
+        FoldScreenStateInternel::IsSecondaryDisplaySuperFoldDevice()) && displayMode == FoldDisplayMode::FULL) {
         boundaryOffset = static_cast<int32_t>(screenParams_[FULL_STATUS_OFFSET_X]);
     }
     Rotation rotation = CalcPhysicalRotation(property.GetDeviceRotation(), displayMode);

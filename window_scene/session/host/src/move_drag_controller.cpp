@@ -633,7 +633,12 @@ WSRect MoveDragController::GetFullScreenToFloatingRect(const WSRect& originalRec
         windowRect.width_,
         windowRect.height_,
     };
-    TLOGI(WmsLogTag::WMS_LAYOUT, "target rect:%{public}s", targetRect.ToString().c_str());
+    TLOGI(WmsLogTag::WMS_LAYOUT, "before target rect:%{public}s", targetRect.ToString().c_str());
+    targetRect.width_ = std::clamp(targetRect.width_,
+        static_cast<int32_t>(limits_.minWidth_), static_cast<int32_t>(limits_.maxWidth_));
+    targetRect.height_ = std::clamp(targetRect.height_,
+        static_cast<int32_t>(limits_.minHeight_), static_cast<int32_t>(limits_.maxHeight_));
+    TLOGI(WmsLogTag::WMS_LAYOUT, "after target rect:%{public}s", targetRect.ToString().c_str());
     return targetRect;
 }
 
