@@ -669,7 +669,6 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground03, TestSize.Level
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
     int32_t persistentId = sceneSession->GetPersistentId();
     ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
     ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_ERROR_INVALID_OPERATION);
@@ -711,7 +710,6 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground05, TestSize.Level
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
     ASSERT_NE(sceneSession, nullptr);
     sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
     int32_t persistentId = sceneSession->GetPersistentId();
     ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
     ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_OK);
@@ -733,31 +731,6 @@ HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground06, TestSize.Level
     ssm_->isScreenLocked_ = true;
     ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_OPERATION);
     ssm_->isScreenLocked_ = false;
-    ssm_->systemConfig_.windowUIType_ = oldUIType;
-}
-
-/**
- * @tc.name: RestoreSessionToForeground07
- * @tc.desc: RestoreSessionToForeground session disconnected
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground07, TestSize.Level1)
-{
-    ASSERT_NE(nullptr, ssm_);
-    MockAccesstokenKit::MockIsSACalling(true);
-    auto oldUIType = ssm_->systemConfig_.windowUIType_;
-    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    ssm_->SetRestoreSessionToForegroundListener([](int32_t) {});
-    SessionInfo sessionInfo;
-    sessionInfo.persistentId_ = 301;
-    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ASSERT_NE(sceneSession, nullptr);
-    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
-    int32_t persistentId = sceneSession->GetPersistentId();
-    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
-    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_ERROR_INVALID_PARAM);
-    ssm_->sceneSessionMap_.erase(persistentId);
     ssm_->systemConfig_.windowUIType_ = oldUIType;
 }
 } // namespace Rosen

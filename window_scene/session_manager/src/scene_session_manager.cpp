@@ -14848,9 +14848,9 @@ WSErrorResult SceneSessionManager::RestoreSessionToForeground(int32_t persistent
             "Screen is locked, cannot restore session to foreground"};
     }
     auto session = GetMainSessionByPersistentId(persistentId);
-    if (session == nullptr || session->GetSessionState() == SessionState::STATE_DISCONNECT) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Session not found or disconnected");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "Session not found or disconnected"};
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Fail to find main window");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "Fail to find main window"};
     }
     if (!restoreSessionToForegroundFunc_) {
         TLOGE(WmsLogTag::WMS_LIFE, "Listener is null");
