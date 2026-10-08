@@ -668,7 +668,7 @@ public:
         int32_t pid;
     };
     const std::map<DisplayId, std::map<int32_t, UserInfo>> GetDisplayConcurrentUserMap() const;
-    int32_t GetForegroundConcurrentUser(DisplayId displayId) const;
+    int32_t GetForegroundConcurrentUser(DisplayId displayId);
     void GetForegroundConcurrentUser(int32_t uid, std::shared_ptr<UserInfo>& uInfo) const;
     void SetDisplayConcurrentUserMap(DisplayId displayId, int32_t userId, bool isForeground, int32_t pid);
     void RemoveUserByPid(int32_t pid);
@@ -963,6 +963,7 @@ private:
      */
     bool ActiveUser(int32_t newUserId, int32_t& oldUserId, int32_t newScbPid);
     DisplayId GetUserDisplayId(int32_t targetUserId) const;
+    std::vector<DisplayId> GetUserDisplayIds(int32_t targetUserId) const;
 
     void GetRotationCorrectionWhiteListFromDatabase();
     bool GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
@@ -1478,6 +1479,8 @@ private:
     bool CanWakeUpDevice();
     void ScreenDisconnectWakeUpDevice();
     DMError SetFoldDisplayModeForSuperMultiDevice(const FoldDisplayMode displayMode, std::string& reason);
+
+    void NotifyWMSScreenConnected(int32_t userId, DisplayId defaultId, bool isColdStart);
 
     // custom resolution
     void RegisterSettingCustomResolutionObserver();
