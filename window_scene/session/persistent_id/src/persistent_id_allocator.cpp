@@ -75,6 +75,12 @@ std::string GetStorageKey(int32_t userId)
     return "key_id_" + std::to_string(userId);
 }
 
+bool IsReservedLocalId(int32_t persistentId)
+{
+    return persistentId >= static_cast<int32_t>(LOCAL_FALLBACK_ID_BASE) &&
+        persistentId < static_cast<int32_t>(LOCAL_FALLBACK_ID_LIMIT);
+}
+
 sptr<IMockSessionManagerInterface> GetMockSmsProxy()
 {
     auto systemAbilityManager = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
@@ -229,19 +235,18 @@ int32_t PersistentIdAllocator::GenerateSessionIdLocked()
     if (sessionRecordId_ < FIRST_RECORD_ID) {
         sessionRecordId_ = FIRST_RECORD_ID - 1;
     }
-    while (true) {
-        sessionRecordId_++;
-        int32_t persistentId = ComposeSessionId(sessionRecordId_, keyId_, stride);
-        if (persistentId >= static_cast<int32_t>(LOCAL_FALLBACK_ID_BASE) &&
-            persistentId < static_cast<int32_t>(LOCAL_FALLBACK_ID_LIMIT)) {
-            sessionRecordId_ = (LOCAL_FALLBACK_ID_LIMIT - keyId_) / stride;
-            continue;
+    sessionRecordId_++;
+    int32_t persistentId = ComposeSessionId(sessionRecordId_, keyId_, stride);
+    while (usedIds_.count(persistentId) != 0 || IsReservedLocalId(persistentId)) {
+        if (IsReservedLocalId(persistentId)) {
+            sessionRecordId_ = (LOCAL_FALLBACK_ID_LIMIT - keyId_) / stride + 1;
+        } else {
+            sessionRecordId_++;
         }
-        if (usedIds_.count(persistentId) == 0) {
-            MarkUsedLocked(persistentId);
-            return persistentId;
-        }
+        persistentId = ComposeSessionId(sessionRecordId_, keyId_, stride);
     }
+    MarkUsedLocked(persistentId);
+    return persistentId;
 }
 
 int32_t PersistentIdAllocator::GenerateExtensionLocalLocked()
@@ -266,15 +271,13 @@ int32_t PersistentIdAllocator::GenerateExtensionLocalLocked()
 int32_t PersistentIdAllocator::GenerateLocalFallbackLocked()
 {
     const uint32_t uid = static_cast<uint32_t>(getuid());
-    while (true) {
-        int32_t persistentId = ComposeLocalSessionId(fallbackRecordId_, uid);
-        if (usedIds_.count(persistentId) == 0) {
-            MarkUsedLocked(persistentId);
-            fallbackRecordId_++;
-            return persistentId;
-        }
+    while (usedIds_.count(ComposeLocalSessionId(fallbackRecordId_, uid)) != 0) {
         fallbackRecordId_++;
     }
+    int32_t persistentId = ComposeLocalSessionId(fallbackRecordId_, uid);
+    MarkUsedLocked(persistentId);
+    fallbackRecordId_++;
+    return persistentId;
 }
 
 int32_t PersistentIdAllocator::Acquire(bool isExtension, int32_t specifiedId)
