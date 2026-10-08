@@ -1428,6 +1428,22 @@ struct WindowLimits {
         return minWidth_ <= maxWidth_ && minHeight_ <= maxHeight_;
     }
 
+    template<typename RectT>
+    RectT ClampRect(const RectT& rect) const
+    {
+        if (!IsValid()) {
+            return rect;
+        }
+        RectT result = rect;
+        result.width_ = std::clamp(rect.width_,
+            static_cast<decltype(rect.width_)>(minWidth_),
+            static_cast<decltype(rect.width_)>(maxWidth_));
+        result.height_ = std::clamp(rect.height_,
+            static_cast<decltype(rect.height_)>(minHeight_),
+            static_cast<decltype(rect.height_)>(maxHeight_));
+        return result;
+    }
+
     /**
      * @brief Default window limits in VP.
      *
