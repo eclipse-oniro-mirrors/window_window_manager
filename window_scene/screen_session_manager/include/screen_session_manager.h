@@ -942,10 +942,6 @@ private:
 #endif // DEVICE_STATUS_ENABLE
     void NotifyUnfreezed(const std::set<int32_t>& unfreezedPidList, const sptr<ScreenSession>& screenSession);
     void SubmitUnfreezeBatch();
-    void NotifyUnfreezedAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
-        const std::set<DisplayManagerAgentType>& pidAgentTypes, const sptr<ScreenSession>& screenSession);
-    void NotifyUnfreezedAttributeAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
-        const sptr<ScreenSession>& screenSession);
     int NotifyPowerEventForDualDisplay(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason);
     bool IsExtendMode();
