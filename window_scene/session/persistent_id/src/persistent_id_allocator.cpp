@@ -42,7 +42,7 @@ constexpr int32_t KEY_ID_MAX_DEFAULT = 4;
 constexpr int32_t KEY_ID_MAX_LARGE_SCENE = 16;
 constexpr uint32_t LOCAL_FALLBACK_ID_BASE = 1000000;
 constexpr uint32_t LOCAL_FALLBACK_ID_LIMIT = 2000000;
-constexpr uint32_t LOCAL_ID_STRIDE = 1000; 
+constexpr uint32_t LOCAL_ID_STRIDE = 1000;
 constexpr int32_t FIRST_RECORD_ID = 2;
 const std::string DEVICE_TYPE_CAR = "car";
 
@@ -134,6 +134,45 @@ bool SyncKeyIdWithRetry(int32_t userId, int32_t keyId, bool& isOccupied)
     }
     return false;
 }
+
+bool TryRestoreKeyId(int32_t userId, int32_t maxKeyId, int32_t& grantedKeyId)
+{
+    int32_t persistedKeyId = INVALID_KEY_ID;
+    ScenePersistentStorage::Get(GetStorageKey(userId), persistedKeyId, ScenePersistentStorageType::KEY_ID);
+    if (persistedKeyId <= INVALID_KEY_ID || persistedKeyId > maxKeyId) {
+        return false;
+    }
+    bool isOccupied = false;
+    if (!SyncKeyIdWithRetry(userId, persistedKeyId, isOccupied) || !isOccupied) {
+        TLOGW(WmsLogTag::WMS_LIFE, "sync persisted keyId: %{public}d failed, try allocating a new one",
+            persistedKeyId);
+        return false;
+    }
+    grantedKeyId = persistedKeyId;
+    TLOGI(WmsLogTag::WMS_LIFE, "restore keyId: %{public}d from storage, userId: %{public}d",
+        grantedKeyId, userId);
+    return true;
+}
+
+bool TryAcquireNewKeyId(int32_t userId, int32_t maxKeyId, int32_t& grantedKeyId)
+{
+    int32_t keyId = INVALID_KEY_ID;
+    if (!AcquireKeyIdWithRetry(userId, keyId) || keyId <= INVALID_KEY_ID || keyId > maxKeyId) {
+        return false;
+    }
+    ScenePersistentStorage::Insert(GetStorageKey(userId), keyId, ScenePersistentStorageType::KEY_ID);
+    int32_t persistedCheck = INVALID_KEY_ID;
+    ScenePersistentStorage::Get(GetStorageKey(userId), persistedCheck, ScenePersistentStorageType::KEY_ID);
+    if (persistedCheck != keyId) {
+        TLOGW(WmsLogTag::WMS_LIFE, "persist keyId: %{public}d failed, retry on next acquire, userId: %{public}d",
+            keyId, userId);
+        return false;
+    }
+    grantedKeyId = keyId;
+    TLOGI(WmsLogTag::WMS_LIFE, "acquire keyId: %{public}d from foundation, userId: %{public}d",
+        grantedKeyId, userId);
+    return true;
+}
 } // namespace
 
 WM_IMPLEMENT_SINGLE_INSTANCE(PersistentIdAllocator)
@@ -166,46 +205,13 @@ bool PersistentIdAllocator::EnsureKeyId()
             return true;
         }
     }
-
     if (!ScenePersistentStorage::IsStorageReady(ScenePersistentStorageType::KEY_ID)) {
         return false;
     }
-
     const int32_t userId = GetUserId();
     const int32_t maxKeyId = GetMaxKeyId();
-    int32_t persistedKeyId = INVALID_KEY_ID;
-    ScenePersistentStorage::Get(GetStorageKey(userId), persistedKeyId, ScenePersistentStorageType::KEY_ID);
     int32_t grantedKeyId = INVALID_KEY_ID;
-    if (persistedKeyId > INVALID_KEY_ID && persistedKeyId <= maxKeyId) {
-        bool isOccupied = false;
-        if (SyncKeyIdWithRetry(userId, persistedKeyId, isOccupied) && isOccupied) {
-            grantedKeyId = persistedKeyId;
-            TLOGI(WmsLogTag::WMS_LIFE, "restore keyId: %{public}d from storage, userId: %{public}d",
-                grantedKeyId, userId);
-        } else {
-            TLOGW(WmsLogTag::WMS_LIFE, "sync persisted keyId: %{public}d failed, try allocating a new one",
-                persistedKeyId);
-        }
-    }
-    if (grantedKeyId == INVALID_KEY_ID) {
-        int32_t keyId = INVALID_KEY_ID;
-        if (AcquireKeyIdWithRetry(userId, keyId) && keyId > INVALID_KEY_ID && keyId <= maxKeyId) {
-            ScenePersistentStorage::Insert(GetStorageKey(userId), keyId, ScenePersistentStorageType::KEY_ID);
-            int32_t persistedCheck = INVALID_KEY_ID;
-            ScenePersistentStorage::Get(GetStorageKey(userId), persistedCheck,
-                ScenePersistentStorageType::KEY_ID);
-            if (persistedCheck != keyId) {
-                TLOGW(WmsLogTag::WMS_LIFE,
-                    "persist keyId: %{public}d failed, retry on next acquire, userId: %{public}d",
-                    keyId, userId);
-                return false;
-            }
-            grantedKeyId = keyId;
-            TLOGI(WmsLogTag::WMS_LIFE, "acquire keyId: %{public}d from foundation, userId: %{public}d",
-                grantedKeyId, userId);
-        }
-    }
-    if (grantedKeyId == INVALID_KEY_ID) {
+    if (!TryRestoreKeyId(userId, maxKeyId, grantedKeyId) && !TryAcquireNewKeyId(userId, maxKeyId, grantedKeyId)) {
         TLOGW(WmsLogTag::WMS_LIFE, "acquire keyId failed, use local fallback, userId: %{public}d", userId);
         return false;
     }

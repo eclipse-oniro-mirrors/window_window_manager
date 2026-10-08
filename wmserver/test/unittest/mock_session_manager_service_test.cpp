@@ -298,8 +298,8 @@ public:
     void SetUp() override {}
     void TearDown() override {}
 
-    static constexpr int32_t USER_A = 3001;
-    static constexpr int32_t USER_B = 3002;
+    static constexpr int32_t userA = 3001;
+    static constexpr int32_t userB = 3002;
 };
 
 /**
@@ -309,9 +309,9 @@ public:
  */
 HWTEST_F(PersistentIdManagerTest, AcquireKeyId01, TestSize.Level1)
 {
-    int32_t keyIdA = PersistentIdManager::GetInstance().AcquireKeyId(USER_A);
+    int32_t keyIdA = PersistentIdManager::GetInstance().AcquireKeyId(userA);
     EXPECT_GT(keyIdA, INVALID_KEY_ID);
-    int32_t keyIdB = PersistentIdManager::GetInstance().AcquireKeyId(USER_B);
+    int32_t keyIdB = PersistentIdManager::GetInstance().AcquireKeyId(userB);
     EXPECT_GT(keyIdB, INVALID_KEY_ID);
     EXPECT_NE(keyIdA, keyIdB);
 }
@@ -323,9 +323,9 @@ HWTEST_F(PersistentIdManagerTest, AcquireKeyId01, TestSize.Level1)
  */
 HWTEST_F(PersistentIdManagerTest, AcquireKeyId02, TestSize.Level1)
 {
-    int32_t keyId = PersistentIdManager::GetInstance().AcquireKeyId(USER_A);
+    int32_t keyId = PersistentIdManager::GetInstance().AcquireKeyId(userA);
     EXPECT_GT(keyId, INVALID_KEY_ID);
-    EXPECT_EQ(keyId, PersistentIdManager::GetInstance().AcquireKeyId(USER_A));
+    EXPECT_EQ(keyId, PersistentIdManager::GetInstance().AcquireKeyId(userA));
 }
 
 /**
