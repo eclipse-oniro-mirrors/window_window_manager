@@ -493,6 +493,11 @@ bool WindowSessionImpl::IsPcOrPadFreeMultiWindowMode() const
     return windowSystemConfig_.IsPcWindow() || IsFreeMultiWindowMode();
 }
 
+bool WindowSessionImpl::IsDisplayInFreeMultiWindow() const
+{
+    return windowSystemConfig_.IsDisplayInFreeMultiWindow(property_->GetDisplayId());
+}
+
 bool WindowSessionImpl::IsPadAndNotFreeMultiWindowCompatibleMode() const
 {
     return property_->GetPcAppInpadCompatibleMode() &&
