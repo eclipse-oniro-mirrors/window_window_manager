@@ -13208,17 +13208,23 @@ void ScreenSessionManager::SwitchUser()
         } else {
             TLOGNFI(WmsLogTag::DMS, "use curreentUserId_: %{public}d", oldUserId);
         }
-        DisplayId id = GetUserDisplayId(userId);
-        if (id != DISPLAY_ID_INVALID) {
-            defaultId = id;
-        } else {
-            TLOGNFE(WmsLogTag::DMS, "get invalid display id, user: %{public}d", userId);
-        }
     }
     SwitchScbNodeHandle(userId, oldUserId, newScbPid, false);
-    MockSessionManagerService::GetInstance().NotifyWMSConnected(userId, defaultId, false);
+    NotifyWMSScreenConnected(userId, defaultId, false);
     ReportUserSwitch(userId);
 #endif
+}
+
+void ScreenSessionManager::NotifyWMSScreenConnected(int32_t userId, DisplayId defaultId, bool isColdStart)
+{
+    if (IsConcurrentUser()) {
+        std::vector<DisplayId> displayIds = GetUserDisplayIds(userId);
+        for (const auto& displayId : displayIds) {
+            MockSessionManagerService::GetInstance().NotifyWMSConnected(userId, displayId, isColdStart);
+        }
+    } else {
+        MockSessionManagerService::GetInstance().NotifyWMSConnected(userId, defaultId, isColdStart);
+    }
 }
 
 void ScreenSessionManager::SetDefaultMultiScreenModeWhenSwitchUser()
@@ -13615,29 +13621,32 @@ bool ScreenSessionManager::IsConcurrentUser()
 
 bool ScreenSessionManager::ActiveUser(int32_t newUserId, int32_t& oldUserId, int32_t newScbPid)
 {
-    DisplayId displayId = DISPLAY_ID_INVALID;
-    ErrCode err = AccountSA::OsAccountManager::GetForegroundOsAccountDisplayId(newUserId, displayId);
+    std::vector<DisplayId> displayIds;
+    ErrCode err = AccountSA::OsAccountManager::GetForegroundOsAccountDisplayIds(newUserId, displayIds);
     if (err != ERR_OK) {
         TLOGNFE(WmsLogTag::DMS, "active user failed, get user display failed, errorCode: %{public}d, user: %{public}d",
             err, newUserId);
         return false;
     }
+    if (displayIds.empty()) {
+        TLOGNFE(WmsLogTag::DMS, "active user failed, user displayIds not found");
+        return false;
+    }
     std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
     oldUserId = INVALID_USER_ID;
-    displayConcurrentUserMap_[displayId][newUserId] = {true, newScbPid};
-    TLOGNFI(WmsLogTag::DMS, "Get user display success, add or update user info in displayConcurrentUserMap,"
+    for (const auto& displayId : displayIds) {
+        TLOGNFI(WmsLogTag::DMS, "add or update user info in displayConcurrentUserMap,"
           "newuserId: %{public}d, displayId: %{public}" PRIu64", newScbPid: %{public}d",
           newUserId, displayId, newScbPid);
-    for (auto& [userId, UserInfo] : displayConcurrentUserMap_[displayId]) {
-        if (userId == newUserId) {
-            continue;
-        } else {
+        for (auto& [userId, UserInfo] : displayConcurrentUserMap_[displayId]) {
             if (UserInfo.isForeground) {
                 oldUserId = userId;
                 UserInfo.isForeground = false;
-                TLOGNFI(WmsLogTag::DMS, "deactive user: %{public}d on screenId: %{public}" PRIu64"",userId, displayId);
+                TLOGNFI(WmsLogTag::DMS, "deactivate user, userId: %{public}d, displayId: %{public}" PRIu64,
+                    userId, displayId);
             }
         }
+        displayConcurrentUserMap_[displayId][newUserId] = { true, newScbPid };
     }
     return true;
 }
@@ -13658,6 +13667,24 @@ DisplayId ScreenSessionManager::GetUserDisplayId(int32_t targetUserId) const
     }
     TLOGNFI(WmsLogTag::DMS, "find no displayId with userId: %{public}d", targetUserId);
     return DISPLAY_ID_INVALID;
+}
+
+std::vector<DisplayId> ScreenSessionManager::GetUserDisplayIds(int32_t targetUserId) const
+{
+    std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
+    std::vector<DisplayId> userDisplayIds;
+    for (const auto& [displayId, userMap] : displayConcurrentUserMap_) {
+        auto it = userMap.find(targetUserId);
+        if (it != userMap.end()) {
+            // If the pid in deathPidVector, it means the user already been deactivated
+            if (!CheckPidInDeathPidVector(it->second.pid)) {
+                TLOGNFI(WmsLogTag::DMS, "find displayId: %{public}" PRIu64" with userId: %{public}d",
+                    displayId, targetUserId);
+                userDisplayIds.emplace_back(displayId);
+            }
+        }
+    }
+    return userDisplayIds;
 }
 
 void ScreenSessionManager::SetClient(const sptr<IScreenSessionManagerClient>& client)
@@ -13707,16 +13734,10 @@ void ScreenSessionManager::SetClient(const sptr<IScreenSessionManagerClient>& cl
         } else {
             TLOGNFI(WmsLogTag::DMS, "use curreentUserId_: %{public}d", oldUserId);
         }
-        DisplayId id = GetUserDisplayId(userId);
-        if (id != DISPLAY_ID_INVALID) {
-            defaultId = id;
-        } else {
-            TLOGNFE(WmsLogTag::DMS, "get invalid display id, user:%{public}d", userId);
-        }
     }
     SwitchUserDealUserDisplayNode(userId, oldUserId);
     SwitchModeHandleExternalScreen(isPcMode);
-    MockSessionManagerService::GetInstance().NotifyWMSConnected(userId, defaultId, true);
+    NotifyWMSScreenConnected(userId, defaultId, true);
     NotifyClientProxyUpdateFoldDisplayMode(GetFoldDisplayMode());
     SetClientInner(userId, oldUserId, client);
     SwitchScbNodeHandle(userId, oldUserId, newScbPid, true);
@@ -13910,7 +13931,7 @@ void ScreenSessionManager::SetClientInner(int32_t newUserId, int32_t oldUserId,
         return;
     }
     bool isSuperFoldDeviceBootUp = FoldScreenStateInternel::IsSuperFoldDisplayDevice() && IsFirstSCBConnect();
-    DisplayId targetDisplay = GetUserDisplayId(newUserId);
+    std::vector<DisplayId> targetDisplays = GetUserDisplayIds(newUserId);
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMap;
     {
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
@@ -13930,7 +13951,7 @@ void ScreenSessionManager::SetClientInner(int32_t newUserId, int32_t oldUserId,
 #endif
         }
         if (IsConcurrentUser()) {
-            if (targetDisplay != DISPLAY_ID_INVALID && targetDisplay != iter.first) {
+            if (std::find(targetDisplays.begin(), targetDisplays.end(), iter.first) == targetDisplays.end()) {
                 continue;
             }
         }
@@ -17360,7 +17381,7 @@ void ScreenSessionManager::SwitchUserDealUserDisplayNode(int32_t newUserId, int3
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
         screenSessionMapCopy = screenSessionMap_;
     }
-    DisplayId targetDisplay = GetUserDisplayId(newUserId);
+    std::vector<DisplayId> targetDisplays = GetUserDisplayIds(newUserId);
     for (auto sessionIt : screenSessionMapCopy) {
         auto screenSession = sessionIt.second;
         if (screenSession == nullptr) {
@@ -17371,7 +17392,7 @@ void ScreenSessionManager::SwitchUserDealUserDisplayNode(int32_t newUserId, int3
             continue;
         }
         if (IsConcurrentUser()) {
-            if (targetDisplay != DISPLAY_ID_INVALID && targetDisplay != sessionIt.first) {
+            if (std::find(targetDisplays.begin(), targetDisplays.end(), sessionIt.first) == targetDisplays.end()) {
                 continue;
             }
         }
@@ -17937,7 +17958,7 @@ void ScreenSessionManager::GetForegroundConcurrentUser(int32_t uid, std::shared_
     }
 }
 
-int32_t ScreenSessionManager::GetForegroundConcurrentUser(DisplayId displayId) const
+int32_t ScreenSessionManager::GetForegroundConcurrentUser(DisplayId displayId)
 {
     std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
     auto displayIt = displayConcurrentUserMap_.find(displayId);
@@ -17945,6 +17966,24 @@ int32_t ScreenSessionManager::GetForegroundConcurrentUser(DisplayId displayId) c
     if (displayIt == displayConcurrentUserMap_.end()) {
         TLOGNFI(WmsLogTag::DMS, "Can't find screen in screenConcurrentUsersMap,"
               "invalid displayId: %{public}" PRIu64, displayId);
+        ErrCode err = AccountSA::OsAccountManager::GetForegroundOsAccountLocalId(displayId, foregroundUserId);
+        if (err != ERR_OK) {
+            TLOGNFE(WmsLogTag::DMS, "errorCode: %{public}d, user: %{public}d", err, foregroundUserId);
+        } else {
+            int32_t pid = INVALID_PID;
+            auto pidIter = userPidMap_.find(foregroundUserId);
+            if (pidIter != userPidMap_.end()) {
+                pid = pidIter->second;
+            } else {
+                return foregroundUserId;
+            }
+            TLOGNFI(WmsLogTag::DMS, "Insert foreground userId: %{public}d for displayId: %{public}" PRIu64
+                  " into displayConcurrentUserMap", foregroundUserId, displayId);
+            if (displayId != DISPLAY_ID_INVALID) {
+                TLOGD(WmsLogTag::DMS, "Update display concurrent user");
+                displayConcurrentUserMap_[displayId][foregroundUserId] = {true, pid};
+            }
+        }
         return foregroundUserId;
     }
 
