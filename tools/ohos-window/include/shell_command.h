@@ -36,7 +36,6 @@ public:
     int32_t OnCommand();
     std::string ExecCommand();
     std::string GetCommandErrorMsg() const;
-    std::string GetUnknownOptionMsg(std::string& unknownOption) const;
 
     virtual int32_t CreateCommandMap() = 0;
     virtual int32_t init() = 0;
