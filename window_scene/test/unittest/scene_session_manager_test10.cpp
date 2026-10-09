@@ -1202,15 +1202,21 @@ HWTEST_F(SceneSessionManagerTest10, RegisterSessionPropertyChangeNotifyManagerFu
     EXPECT_EQ(WSError::WS_OK, ssm_->RegisterSessionPropertyChangeNotifyManagerFunc(sceneSession));
     windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
 
     ssm_->sceneSessionMap_.emplace(sceneSession->GetPersistentId(), sceneSession);
     windowManagerAgent->propertyDirtyFlags_ = 0;
     windowManagerAgent->windowInfoListSize_ = 0;
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
     windowManagerAgent->propertyDirtyFlags_ = 0;
     windowManagerAgent->windowInfoListSize_ = 0;
     sceneSession->NotifySessionPropertyChange(WindowInfoKey::WINDOW_MODE_INFO);
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
 
     EXPECT_EQ(WMError::WM_OK,
         SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
@@ -1246,14 +1252,77 @@ HWTEST_F(SceneSessionManagerTest10, NotifySessionPropertyChangeFromSession01, Te
     windowManagerAgent->propertyDirtyFlags_ = 0;
     windowManagerAgent->windowInfoListSize_ = 0;
     EXPECT_EQ(WSError::WS_OK, ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE));
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
     windowManagerAgent->propertyDirtyFlags_ = 0;
     windowManagerAgent->windowInfoListSize_ = 0;
     EXPECT_EQ(WSError::WS_OK,
         ssm_->NotifySessionPropertyChangeFromSession(persistentId, WindowInfoKey::WINDOW_MODE_INFO));
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE_INFO), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
 
     EXPECT_EQ(WMError::WM_OK,
         SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
     ssm_->sceneSessionMap_.erase(persistentId);
+}
+
+/**
+ * @tc.name: NotifyWindowPropertyChangeByWindowInfoKey01
+ * @tc.desc: test NotifyWindowPropertyChangeByWindowInfoKey with null session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, NotifyWindowPropertyChangeByWindowInfoKey01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    windowManagerAgent->propertyDirtyFlags_ = 0xFFFFFFFFu;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    ssm_->NotifyWindowPropertyChangeByWindowInfoKey(nullptr, WindowInfoKey::WINDOW_MODE);
+
+    EXPECT_EQ(0xFFFFFFFFu, windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(0), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
+}
+
+/**
+ * @tc.name: NotifyWindowPropertyChangeByWindowInfoKey02
+ * @tc.desc: test NotifyWindowPropertyChangeByWindowInfoKey with valid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest10, NotifyWindowPropertyChangeByWindowInfoKey02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<WindowPropertyChangeAgentTest> windowManagerAgent = sptr<WindowPropertyChangeAgentTest>::MakeSptr();
+    WindowManagerAgentType type = WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY;
+    int32_t pid = 65535;
+    ASSERT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().RegisterWindowManagerAgent(windowManagerAgent, type, pid));
+
+    SessionInfo info;
+    info.persistentId_ = 300;
+    info.bundleName_ = "NotifyWindowPropertyChangeByWindowInfoKey02";
+    info.abilityName_ = "NotifyWindowPropertyChangeByWindowInfoKey02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+
+    windowManagerAgent->propertyDirtyFlags_ = 0;
+    windowManagerAgent->windowInfoListSize_ = 0;
+    ssm_->NotifyWindowPropertyChangeByWindowInfoKey(sceneSession, WindowInfoKey::WINDOW_MODE);
+
+    EXPECT_EQ(static_cast<uint32_t>(WindowInfoKey::WINDOW_MODE), windowManagerAgent->propertyDirtyFlags_);
+    EXPECT_EQ(static_cast<size_t>(1), windowManagerAgent->windowInfoListSize_);
+
+    EXPECT_EQ(WMError::WM_OK,
+        SessionManagerAgentController::GetInstance().UnregisterWindowManagerAgent(windowManagerAgent, type, pid));
 }
 
 /**
