@@ -3982,6 +3982,9 @@ WSError SceneSession::GetAllAvoidAreas(std::map<AvoidAreaType, AvoidArea>& avoid
                     continue;
                 }
             }
+            if (type == AvoidAreaType::TYPE_TITLE_BUTTON) {
+                continue;
+            }
             avoidAreas[type] = area;
         }
         return WSError::WS_OK;
@@ -4117,6 +4120,9 @@ WSError SceneSession::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAre
     }
     if (!GetForegroundInteractiveStatus()) {
         TLOGD(WmsLogTag::WMS_IMMS, "win [%{public}d] avoid area update rejected by recent", GetPersistentId());
+        return WSError::WS_DO_NOTHING;
+    }
+    if (type == AvoidAreaType::TYPE_TITLE_BUTTON) {
         return WSError::WS_DO_NOTHING;
     }
     return sessionStage_->UpdateAvoidArea(avoidArea, type);

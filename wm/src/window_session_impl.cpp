@@ -3140,6 +3140,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
         return WMError::WM_ERROR_INVALID_PARAM;
     }
     NotifyAfterUIContentReady();
+    SubscribeTitleButtonsRectChange();
     TLOGD(WmsLogTag::WMS_LIFE, "end");
 
     return WMError::WM_OK;
@@ -4797,6 +4798,15 @@ WMError WindowSessionImpl::SetDecorVisible(bool isVisible)
             hostSession->SetDecorVisible(isVisible);
         }
     }, __func__);
+
+    // update title button avoid Area
+    Rect decorRect = { 0, 0, 0, 0 };
+    Rect titleButtonRect = { 0, 0, 0, 0 };
+    if (!uiContent->GetContainerModalButtonsRect(decorRect, titleButtonRect)) {
+        TLOGE(WmsLogTag::WMS_DECOR, "GetContainerModalButtonsRect failed");
+        return WMError::WM_OK;
+    }
+    UpdateAvoidAreaForTitleButton(titleButtonRect);
     TLOGD(WmsLogTag::WMS_DECOR, "end");
     return WMError::WM_OK;
 }
@@ -7416,6 +7426,9 @@ EnableIfSame<T, IAvoidAreaChangedListener,
 
 void WindowSessionImpl::NotifyAvoidAreaChange(const sptr<AvoidArea>& avoidArea, AvoidAreaType type)
 {
+    if (type == AvoidAreaType::TYPE_TITLE_BUTTON) {
+        return;
+    }
     std::lock_guard<std::recursive_mutex> lockListener(avoidAreaChangeListenerMutex_);
     auto avoidAreaChangeListeners = GetListeners<IAvoidAreaChangedListener>();
     bool isUIExtensionWithSystemHost =
@@ -7490,6 +7503,40 @@ WSError WindowSessionImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, Avo
     };
     handler_->PostTask(std::move(task), __func__);
     return WSError::WS_OK;
+}
+
+void WindowSessionImpl::UpdateAvoidAreaForTitleButton(Rect& titleButtonRect)
+{
+    bool isVisible = true;
+    if (GetDecorVisible(isVisible) != WMError::WM_OK) {
+        return;
+    }
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    avoidArea->topRect_ = isVisible ? avoidArea->topRect_ : titleButtonRect;
+    TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u isVisible %{public}d, "
+        "titleButtonRect: [%{public}d, %{public}d, %{public}u, %{public}u] avoidArea %{public}s",
+        GetWindowId(), isVisible, titleButtonRect.posX_, titleButtonRect.posY_,
+        titleButtonRect.width_, titleButtonRect.height_, avoidArea->ToString().c_str());
+    UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+}
+
+WMError WindowSessionImpl::SubscribeTitleButtonsRectChange()
+{
+    auto uiContent = GetUIContentSharedPtr();
+    if (!uiContent) {
+        TLOGI(WmsLogTag::WMS_IMMS, "uiContent is null, win %{public}u", GetWindowId());
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    uiContent->SubscribeContainerModalButtonsRectChange(
+        [where = __func__, weakThis = wptr(this)](Rect& decorRect, Rect& titleButtonRect) {
+        auto window = weakThis.promote();
+        if (!window) {
+            TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is null", where);
+            return;
+        }
+        window->UpdateAvoidAreaForTitleButton(titleButtonRect);
+    });
+    return WMError::WM_OK;
 }
 
 WMError WindowSessionImpl::SetFloatNavigationAvoidAreaEnabled(bool enable)
