@@ -29,11 +29,18 @@ public:
     void SetKey(const std::string& key);
     const std::string& GetKey();
 
+    // The exact uri this observer was registered on datashare with. Multi-user keys
+    // register on a per-user table; unregistering needs the same uri, not whatever the
+    // current user would resolve to.
+    void SetRegisteredUri(const std::string& uri);
+    const std::string& GetRegisteredUri();
+
     using UpdateFunc = std::function<void(const std::string&)>;
     void SetUpdateFunc(UpdateFunc& func);
-    
+
 private:
     std::string key_ {};
+    std::string registeredUri_ {};
     UpdateFunc update_ = nullptr;
 };
 } // OHOS
