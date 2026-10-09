@@ -58,6 +58,11 @@ public:
     sptr<ISceneSessionManager> GetSceneSessionManagerBySA(int32_t userId);
     ErrCode GetActiveUserIds(std::vector<int32_t>& activeUserIds) override;
     /*
+     * PersistentId
+     */
+    ErrCode AcquireKeyId(int32_t userId, int32_t& keyId) override;
+    ErrCode SyncKeyId(int32_t userId, int32_t keyId, bool& isSuccess) override;
+    /*
      * Window Recover
      */
     ErrCode NotifySceneBoardAvailable() override;

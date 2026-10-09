@@ -30,6 +30,7 @@ enum class ScenePersistentStorageType : uint32_t {
     UKNOWN = 0,
     ASPECT_RATIO,
     MAXIMIZE_STATE,
+    KEY_ID,
 };
 
 class ScenePersistentStorage {
@@ -61,6 +62,12 @@ public:
                     key.c_str(), static_cast<int>(value));
                 break;
             }
+            case ScenePersistentStorageType::KEY_ID: {
+                pref->PutInt(key, value);
+                WLOGD("[ScenePersistentStorage] Insert key id, key %{public}s, value %{public}d",
+                    key.c_str(), static_cast<int>(value));
+                break;
+            }
             default:
                 WLOGW("[ScenePersistentStorage] Unknown storage type!");
         }
@@ -89,6 +96,12 @@ public:
                     key.c_str(), static_cast<int>(value));
                 break;
             }
+            case ScenePersistentStorageType::KEY_ID: {
+                value = pref->GetInt(key);
+                WLOGD("[ScenePersistentStorage] Get key id, key: %{public}s, value:%{public}d",
+                    key.c_str(), static_cast<int>(value));
+                break;
+            }
             default:
                 WLOGW("[ScenePersistentStorage] Unknown storage type!");
         }
@@ -99,6 +112,7 @@ public:
     static bool HasKey(const std::string& key, ScenePersistentStorageType storageType);
     static void Delete(const std::string& key, ScenePersistentStorageType storageType);
     static void InitDir(std::string dir);
+    static bool IsStorageReady(ScenePersistentStorageType storageType);
 
 private:
     static constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "ScenePersistentStorage"};

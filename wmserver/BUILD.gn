@@ -136,6 +136,7 @@ ohos_source_set("mock_session_manager_service_proxy") {
     "${window_base_path}/window_scene/screen_session_manager/src/zidl/screen_session_manager_lite_stub.cpp",
     "${window_base_path}/window_scene/session_manager/src/zidl/scene_session_manager_proxy.cpp",
     "src/mock_session_manager_service.cpp",
+    "src/persistent_id_manager.cpp",
     "src/zidl/session_manager_service_recover_proxy.cpp",
   ]
 

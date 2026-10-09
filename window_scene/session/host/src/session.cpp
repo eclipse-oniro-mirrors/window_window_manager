@@ -34,6 +34,7 @@
 #include "image_source.h"
 #include "rs_adapter.h"
 #include "session_helper.h"
+#include "session/persistent_id/include/persistent_id_allocator.h"
 #include "surface_capture_future.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
@@ -50,9 +51,6 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "Session" };
-std::atomic<int32_t> g_persistentId = INVALID_SESSION_ID;
-std::set<int32_t> g_persistentIdSet;
-std::mutex g_persistentIdSetMutex;
 constexpr float INNER_BORDER_VP = 5.0f;
 constexpr float OUTSIDE_BORDER_VP = 4.0f;
 constexpr float INNER_ANGLE_VP = 16.0f;
@@ -5215,33 +5213,7 @@ WSError Session::ProcessBackEvent()
 
 void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
 {
-    std::lock_guard lock(g_persistentIdSetMutex);
-    if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
-        g_persistentIdSet.insert(persistentId);
-        persistentId_ = persistentId;
-        return;
-    }
-
-    if (g_persistentId == INVALID_SESSION_ID) {
-        g_persistentId++; // init non system session id from 2
-    }
-
-    g_persistentId++;
-    while (g_persistentIdSet.count(g_persistentId)) {
-        g_persistentId++;
-    }
-    if (isExtension) {
-        constexpr uint32_t pidLength = 18;
-        constexpr uint32_t pidMask = (1 << pidLength) - 1;
-        constexpr uint32_t persistentIdLength = 12;
-        constexpr uint32_t persistentIdMask = (1 << persistentIdLength) - 1;
-        uint32_t assembledPersistentId = ((static_cast<uint32_t>(getpid()) & pidMask) << persistentIdLength) |
-            (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
-        persistentId_ = assembledPersistentId | 0x40000000;
-    } else {
-        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
-    }
-    g_persistentIdSet.insert(g_persistentId);
+    persistentId_ = PersistentIdAllocator::GetInstance().Acquire(isExtension, persistentId);
     TLOGI(WmsLogTag::WMS_LIFE,
           "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
