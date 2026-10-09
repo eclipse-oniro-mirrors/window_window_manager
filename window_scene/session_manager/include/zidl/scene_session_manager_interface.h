@@ -196,7 +196,7 @@ public:
         bool shouldBackToCaller = true, int32_t reason = 0) = 0;
     virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
     virtual WSError GetFocusSessionElement(AppExecFwk::ElementName& element,
-        DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+        DisplayId displayId = DISPLAY_ID_INVALID) = 0;
 
     virtual WSError RegisterSessionListener(const sptr<ISessionListener>& listener) = 0;
     virtual WSError UnRegisterSessionListener(const sptr<ISessionListener>& listener) = 0;
