@@ -290,6 +290,7 @@ private:
     /*
      * Multi user and multi screen
      */
+    DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     void OnUserSwitch();
     const int32_t userId_;
     static std::unordered_map<int32_t, sptr<WindowAdapter>> windowAdapterMap_;

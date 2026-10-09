@@ -1143,6 +1143,18 @@ MaximizeMode WindowAdapter::GetMaximizeMode()
     return wmsProxy->GetMaximizeMode();
 }
 
+DisplayId WindowAdapter::ResolveDefaultDisplayId(DisplayId displayId)
+{
+    if (displayId != DISPLAY_ID_INVALID) {
+        return displayId;
+    }
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);
+    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    TLOGD(WmsLogTag::WMS_FOCUS,
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId_, displayId);
+    return displayId;
+}
+
 void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     INIT_PROXY_CHECK_RETURN();
@@ -1150,12 +1162,7 @@ void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
     if (Rosen::SceneBoardJudgement::IsSceneBoardEnabled()) {
-        if (displayId == DISPLAY_ID_INVALID) {
-            auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);
-            displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
-            TLOGD(WmsLogTag::WMS_FOCUS,
-                "get focus window info on resolved default display: %{public}" PRIu64, displayId);
-        }
+        displayId = ResolveDefaultDisplayId(displayId);
         wmsProxy->GetFocusWindowInfo(focusInfo, displayId);
     } else {
         wmsProxy->GetFocusWindowInfo(focusInfo);
