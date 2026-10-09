@@ -8455,7 +8455,10 @@ void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Display
         return;
     }
     if (displayId == DISPLAY_ID_INVALID) {
-        int32_t userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
+        int32_t userId = currentUserId_;
+        if (userId == DEFAULT_USERID) {
+            userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
+        }
         auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
         displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
         TLOGD(WmsLogTag::WMS_FOCUS,
