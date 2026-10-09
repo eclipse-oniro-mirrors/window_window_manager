@@ -8453,6 +8453,13 @@ DisplayId SceneSessionManager::ResolveDefaultDisplayId(DisplayId displayId)
     if (displayId != DISPLAY_ID_INVALID) {
         return displayId;
     }
+    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
+    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
+    static const bool g_defaultDisplayResolve =
+        system::GetBoolParameter("persist.window.default_display_resolve", false);
+    if (!g_defaultDisplayResolve) {
+        return DEFAULT_DISPLAY_ID;
+    }
     int32_t userId = currentUserId_;
     if (userId == DEFAULT_USERID) {
         userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;

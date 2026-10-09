@@ -16,6 +16,7 @@
 #include "window_adapter.h"
 #include <iservice_registry.h>
 #include <key_event.h>
+#include <parameters.h>
 #include <rs_window_animation_target.h>
 #include <system_ability_definition.h>
 #include <unistd.h>
@@ -1147,6 +1148,13 @@ DisplayId WindowAdapter::ResolveDefaultDisplayId(DisplayId displayId)
 {
     if (displayId != DISPLAY_ID_INVALID) {
         return displayId;
+    }
+    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
+    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
+    static const bool g_defaultDisplayResolve =
+        system::GetBoolParameter("persist.window.default_display_resolve", false);
+    if (!g_defaultDisplayResolve) {
+        return DEFAULT_DISPLAY_ID;
     }
     auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);
     displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
