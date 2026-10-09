@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7489,7 +7489,7 @@ void WindowSessionImpl::UpdateAvoidAreaForTitleButton(Rect& titleButtonRect)
         return;
     }
     sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
-    avoidArea->topRect_ = !isVisible ? titleButtonRect : avoidArea->topRect_;
+    avoidArea->topRect_ = isVisible ? avoidArea->topRect_ : titleButtonRect;
     TLOGI(WmsLogTag::WMS_IMMS, "win %{public}u isVisible %{public}d, "
         "titleButtonRect: [%{public}d, %{public}d, %{public}u, %{public}u] avoidArea %{public}s",
         GetWindowId(), isVisible, titleButtonRect.posX_, titleButtonRect.posY_,
