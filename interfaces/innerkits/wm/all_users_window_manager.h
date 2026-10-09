@@ -29,6 +29,7 @@ class WindowVisibilityInfo;
 class AccessibilityWindowInfo;
 class IFocusChangedListener;
 class IVisibilityChangedListener;
+class IWindowPidVisibilityChangedListener;
 
 /**
  * @brief AllUsersWindowManager is a singleton class that aggregates window information
@@ -66,6 +67,9 @@ public:
     
     WMError RegisterVisibilityChangedListener(const sptr<IVisibilityChangedListener>& listener);
     WMError UnregisterVisibilityChangedListener(const sptr<IVisibilityChangedListener>& listener);
+
+    WMError RegisterWindowPidVisibilityChangedListener(const sptr<IWindowPidVisibilityChangedListener>& listener);
+    WMError UnregisterWindowPidVisibilityChangedListener(const sptr<IWindowPidVisibilityChangedListener>& listener);
 
 private:
     explicit AllUsersWindowManager();

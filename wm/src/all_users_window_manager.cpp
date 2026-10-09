@@ -32,6 +32,9 @@ public:
     
     ListenerSet<IVisibilityChangedListener> visibilityListeners_;
     std::mutex visibilityListenersMutex_;
+
+    ListenerSet<IWindowPidVisibilityChangedListener> windowPidVisibilityListeners_;
+    std::mutex windowPidVisibilityListenersMutex_;
     
     std::mutex userChangeMutex_;
     bool userChangeListenersRegistered_ = false;
@@ -233,6 +236,67 @@ WMError AllUsersWindowManager::UnregisterVisibilityChangedListener(const sptr<IV
     return ret;
 }
 
+WMError AllUsersWindowManager::RegisterWindowPidVisibilityChangedListener(
+    const sptr<IWindowPidVisibilityChangedListener>& listener)
+{
+    if (!IsMultiInstanceEnabled()) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "RegisterWindowPidVisibilityChangedListener: single instance mode");
+        return WindowManager::GetInstance().RegisterWindowPidVisibilityChangedListener(listener);
+    }
+    RegisterUserChangeListeners();
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "RegisterWindowPidVisibilityChangedListener listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    auto activeUserIds = GetActiveUserIds();
+    {
+        std::lock_guard<std::mutex> lock(pImpl_->windowPidVisibilityListenersMutex_);
+        pImpl_->windowPidVisibilityListeners_.insert(listener);
+    }
+    WMError ret = WMError::WM_OK;
+    for (int32_t userId : activeUserIds) {
+        WMError userRet = WindowManager::GetInstance(userId).RegisterWindowPidVisibilityChangedListener(listener);
+        if (userRet != WMError::WM_OK) {
+            TLOGW(WmsLogTag::WMS_MULTI_USER,
+                "RegisterWindowPidVisibilityChangedListener failed for userId %{public}d, error %{public}d",
+                userId, static_cast<int32_t>(userRet));
+            ret = userRet;
+        }
+    }
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "RegisterWindowPidVisibilityChangedListener users: %{public}zu",
+        activeUserIds.size());
+    return ret;
+}
+
+WMError AllUsersWindowManager::UnregisterWindowPidVisibilityChangedListener(
+    const sptr<IWindowPidVisibilityChangedListener>& listener)
+{
+    if (!IsMultiInstanceEnabled()) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "UnregisterWindowPidVisibilityChangedListener: single instance mode");
+        return WindowManager::GetInstance().UnregisterWindowPidVisibilityChangedListener(listener);
+    }
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "UnregisterWindowPidVisibilityChangedListener listener is null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    {
+        std::lock_guard<std::mutex> lock(pImpl_->windowPidVisibilityListenersMutex_);
+        pImpl_->windowPidVisibilityListeners_.erase(listener);
+    }
+    auto activeUserIds = GetActiveUserIds();
+    WMError ret = WMError::WM_OK;
+    for (int32_t userId : activeUserIds) {
+        WMError userRet = WindowManager::GetInstance(userId).UnregisterWindowPidVisibilityChangedListener(listener);
+        if (userRet != WMError::WM_OK) {
+            TLOGW(WmsLogTag::WMS_MULTI_USER,
+                "UnregisterWindowPidVisibilityChangedListener failed for userId %{public}d, error %{public}d",
+                userId, static_cast<int32_t>(userRet));
+            ret = userRet;
+        }
+    }
+    return ret;
+}
+
 void AllUsersWindowManager::RegisterUserChangeListeners()
 {
     if (!IsMultiInstanceEnabled()) {
@@ -275,6 +339,20 @@ void AllUsersWindowManager::OnUserAdded(int32_t userId)
         if (ret != WMError::WM_OK) {
             TLOGE(WmsLogTag::WMS_MULTI_USER,
                 "Register global visibility listener failed for user %{public}d, error %{public}d",
+                userId, static_cast<int32_t>(ret));
+        }
+    }
+    
+    Impl::ListenerSet<IWindowPidVisibilityChangedListener> windowPidVisibilityListeners;
+    {
+        std::lock_guard<std::mutex> lock(pImpl_->windowPidVisibilityListenersMutex_);
+        windowPidVisibilityListeners = pImpl_->windowPidVisibilityListeners_;
+    }
+    for (const auto& listener : windowPidVisibilityListeners) {
+        auto ret = WindowManager::GetInstance(userId).RegisterWindowPidVisibilityChangedListener(listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_MULTI_USER,
+                "Register global windowPidVisibility listener failed for user %{public}d, error %{public}d",
                 userId, static_cast<int32_t>(ret));
         }
     }

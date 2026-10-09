@@ -237,6 +237,8 @@
             OHOS::Rosen::AllUsersWindowManager::UnregisterFocusChangedListener*;
             OHOS::Rosen::AllUsersWindowManager::RegisterVisibilityChangedListener*;
             OHOS::Rosen::AllUsersWindowManager::UnregisterVisibilityChangedListener*;
+            OHOS::Rosen::AllUsersWindowManager::RegisterWindowPidVisibilityChangedListener*;
+            OHOS::Rosen::AllUsersWindowManager::UnregisterWindowPidVisibilityChangedListener*;
             OHOS::Rosen::AllUsersWindowManager::RegisterWindowUpdateListener*;
             OHOS::Rosen::AllUsersWindowManager::UnregisterWindowUpdateListener*;
             OHOS::Rosen::WindowAgent::WindowAgent*;
