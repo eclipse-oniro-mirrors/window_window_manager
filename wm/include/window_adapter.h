@@ -290,6 +290,8 @@ private:
     /*
      * Multi user and multi screen
      */
+    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this adapter instance's
+    // user; explicit displayId (0 or non-zero) passes through unchanged.
     DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     void OnUserSwitch();
     const int32_t userId_;
