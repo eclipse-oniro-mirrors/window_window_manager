@@ -60,6 +60,7 @@ enum class ListenerFunctionType : uint32_t {
     SMART_SENSOR_ROTATION_CHANGE_CB,
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
+    SET_WINDOW_POSITION_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
     GET_FLOAT_VIEW_LIMIT_CB,
     UPDATE_ROG_WINDOW_CONFIG_CB,
@@ -479,6 +480,8 @@ private:
     void RegisterMoveMainWindowToTargetDisplayCallback();
     void OnMoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId,
         bool isFromScreenVirtual, bool isToScreenVirtual);
+    void RegisterSetWindowPositionCallback();
+    void OnSetWindowPosition(const WindowPositionInfo& windowPositionInfo);
 
     napi_env env_;
     std::mutex jsCbMapMutex_;

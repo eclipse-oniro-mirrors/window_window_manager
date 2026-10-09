@@ -66,6 +66,7 @@ constexpr uint32_t MAX_BUTTON_BACKGROUND_CORNER_RADIUS = 8;
 constexpr int32_t API_VERSION_INVALID = -1;
 constexpr uint32_t MAX_SIZE_PIP_CONTROL_GROUP = 8;
 constexpr uint32_t MAX_SIZE_PIP_CONTROL = 9;
+constexpr uint32_t MAX_SIZE_WINDOW_POSITION = 50;
 constexpr int32_t SPECIFIC_ZINDEX_INVALID = -1;
 constexpr double POS_ZERO = 0.001f;
 constexpr uint32_t SUPPORT_ROTATION_SIZE = 4;
@@ -3260,6 +3261,90 @@ struct SubWindowOptions {
     int32_t zLevel = 0;
     bool maximizeSupported = false;
     ModalityType modalityType = ModalityType::WINDOW_MODALITY;
+};
+
+/**
+ * @enum WindowPosition
+ *
+ * @brief Sentinel values of WindowPositionParams::insertAfter, used to adjust the z-order of an
+ *        application main window without naming another window as the anchor. Together with the
+ *        positive windowId form, this enum is the whole domain of insertAfter.
+ *
+ *        TOPMOST and NOT_TOPMOST set and cancel a global topmost state that lasts beyond the call,
+ *        while TOP and BOTTOM only reorder the window for the current call and leave that state
+ *        untouched.
+ */
+enum class WindowPosition : int32_t {
+    // Cancels the global topmost state.
+    NOT_TOPMOST = -3,
+    // Sets the global topmost state, which persists until it is cancelled.
+    // Requires the ohos.permission.WINDOW_TOPMOST permission.
+    TOPMOST = -2,
+    // One-shot reorder: moves the main window below the other application main windows,
+    // without changing the global topmost state.
+    BOTTOM = -1,
+    // One-shot reorder: moves the main window above the other application main windows,
+    // without changing the global topmost state.
+    TOP = 0,
+};
+
+/**
+ * @struct WindowPositionParams
+ *
+ * @brief Position of a main window to adjust its z-order.
+ */
+struct WindowPositionParams {
+    int32_t windowId = 0;
+    int32_t insertAfter = 0;   // Greater than 0: another main window's ID. Otherwise: a WindowPosition sentinel.
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        return parcel.WriteInt32(windowId) && parcel.WriteInt32(insertAfter);
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        return parcel.ReadInt32(windowId) && parcel.ReadInt32(insertAfter);
+    }
+};
+
+/**
+ * @struct WindowPositionInfo
+ *
+ * @brief List of WindowPositionParams, the payload of setWindowPosition over IPC.
+ */
+struct WindowPositionInfo {
+    std::vector<WindowPositionParams> windowPositions;
+
+    bool Marshalling(Parcel& parcel) const
+    {
+        if (!parcel.WriteUint32(static_cast<uint32_t>(windowPositions.size()))) {
+            return false;
+        }
+        for (const auto& windowPosition : windowPositions) {
+            if (!windowPosition.Marshalling(parcel)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool Unmarshalling(Parcel& parcel)
+    {
+        uint32_t size = 0;
+        windowPositions.clear();
+        if (!parcel.ReadUint32(size) || size > MAX_SIZE_WINDOW_POSITION) {
+            return false;
+        }
+        for (uint32_t i = 0; i < size; i++) {
+            WindowPositionParams windowPosition;
+            if (!windowPosition.Unmarshalling(parcel)) {
+                return false;
+            }
+            windowPositions.emplace_back(windowPosition);
+        }
+        return true;
+    }
 };
 
 struct DecorButtonStyle {

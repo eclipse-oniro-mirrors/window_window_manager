@@ -185,6 +185,7 @@ public:
         TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
+        TRANS_ID_SET_WINDOW_POSITION,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -416,6 +417,7 @@ public:
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override { return WSError::WS_OK; }
     WSError ResetSpecificWindowZIndex(int32_t pid) override { return WSError::WS_OK; }
     WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override { return WSError::WS_OK; }
+    WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override { return WSError::WS_OK; }
     void AddExtensionWindowStageToSCB(const sptr<ISessionStage>& sessionStage, const sptr<IRemoteObject>& token,
         uint64_t surfaceNodeId, int64_t startModalExtensionTimeStamp, bool isConstrainedModal) override {}
     void RemoveExtensionWindowStageFromSCB(const sptr<ISessionStage>& sessionStage,

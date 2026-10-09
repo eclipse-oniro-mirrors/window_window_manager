@@ -730,6 +730,24 @@ napi_value WindowErrorCodeInit(napi_env env)
     return objValue;
 }
 
+napi_value WindowPositionInit(napi_env env)
+{
+    WLOGFD("WindowPositionInit");
+    CHECK_NAPI_ENV_RETURN_IF_NULL(env);
+
+    napi_value objValue = nullptr;
+    CHECK_NAPI_CREATE_OBJECT_RETURN_IF_NULL(env, objValue);
+    napi_set_named_property(env, objValue, "NOT_TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::NOT_TOPMOST)));
+    napi_set_named_property(env, objValue, "TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOPMOST)));
+    napi_set_named_property(env, objValue, "BOTTOM",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::BOTTOM)));
+    napi_set_named_property(env, objValue, "TOP",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOP)));
+    return objValue;
+}
+
 napi_value WindowStatusTypeInit(napi_env env)
 {
     WLOGFD("WindowStatusTypeInit");

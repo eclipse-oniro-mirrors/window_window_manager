@@ -3743,6 +3743,17 @@ bool WindowSessionImpl::IsMainWindowTopmost() const
     return property_->IsMainWindowTopmost();
 }
 
+/** @note @window.hierarchy */
+void WindowSessionImpl::UpdateMainWindowTopmostProperty(bool isTopmost)
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "session is invalid");
+        return;
+    }
+    property_->SetMainWindowTopmost(isTopmost);
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "id: %{public}u, isTopmost: %{public}d", GetWindowId(), isTopmost);
+}
+
 WMError WindowSessionImpl::SetWindowDelayRaiseEnabled(bool isEnabled)
 {
     if (IsWindowSessionInvalid()) {

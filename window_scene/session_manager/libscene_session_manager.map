@@ -199,6 +199,7 @@
             OHOS::Rosen::SceneSessionManager::SetUpdateDisplayDpiChangeCallback*;
             OHOS::Rosen::SceneSessionManager::SetVmaCacheStatus*;
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
+            OHOS::Rosen::SceneSessionManager::SetWindowPositionListener*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;
             OHOS::Rosen::SceneSessionManager::StartUIAbilityBySCB*;
             OHOS::Rosen::SceneSessionManager::NotifyStartWindowsAbility*;

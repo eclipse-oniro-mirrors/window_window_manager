@@ -318,6 +318,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetFloatViewLimits(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_POSITION):
+            return HandleSetWindowPosition(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -3147,6 +3149,23 @@ int SceneSessionManagerStub::HandleMoveMainWindowToTargetDisplay(MessageParcel& 
     WSError ret = MoveMainWindowToTargetDisplay(displayId, windowId);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleSetWindowPosition(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "in");
+    WindowPositionInfo windowPositionInfo;
+    if (!windowPositionInfo.Unmarshalling(data)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "Failed to unmarshalling windowPositionInfo!");
+        reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+        return ERR_INVALID_DATA;
+    }
+    WSError ret = SetWindowPosition(windowPositionInfo);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "Write errCode fail");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

@@ -1347,7 +1347,7 @@ ani_object AniWindowUtils::CreateAniWindowFocusState(ani_env* env, bool isFocuse
         return AniWindowUtils::CreateAniUndefined(env);
     }
     int32_t focusChangeReason = reason == WindowFocusChangeReason::CLICK ? 1 : 0;
-    CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("focused").c_str(), nullptr,
+    CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("isFocused").c_str(), nullptr,
         static_cast<ani_boolean>(isFocused));
     CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("focusChangeReason").c_str(), nullptr,
         static_cast<ani_long>(focusChangeReason));

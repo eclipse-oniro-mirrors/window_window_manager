@@ -360,6 +360,7 @@
             OHOS::Rosen::WindowManager::SetScreenWatermarkImage*;
             OHOS::Rosen::WindowManager::CleanScreenWatermarkImage*;
             OHOS::Rosen::WindowManager::SetWindowLayoutMode*;
+            OHOS::Rosen::WindowManager::SetWindowPosition*;
             OHOS::Rosen::WindowManager::SetWindowSnapshotSkip*;
             OHOS::Rosen::WindowManager::ShiftAppWindowFocus*;
             OHOS::Rosen::WindowManager::ShiftAppWindowPointerEvent*;

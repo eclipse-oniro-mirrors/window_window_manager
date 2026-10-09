@@ -178,6 +178,7 @@ private:
     int HandleGetCrossProcessWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetFloatViewLimits(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
+    int HandleSetWindowPosition(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_STUB_H

@@ -78,7 +78,7 @@ declare namespace window {
   }
 
   interface WindowFocusState {
-    focused: boolean;
+    isFocused: boolean;
     focusChangeReason: FocusChangeReason;
     nextFocusedWindowId?: number;
     prevFocusedWindowId?: number;

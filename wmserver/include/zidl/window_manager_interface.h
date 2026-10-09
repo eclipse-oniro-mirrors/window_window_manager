@@ -274,6 +274,10 @@ public:
     {
         return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
     }
+    virtual WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo)
+    {
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WSErrorResult CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,

@@ -132,6 +132,7 @@ public:
     virtual WMError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId);
     virtual WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, bool updateMap = true);
     virtual WMError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId);
+    virtual WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo);
     virtual WMErrorResult CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,

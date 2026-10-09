@@ -1249,6 +1249,14 @@ public:
     WMError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId);
 
     /**
+     * @brief Set z-order of main windows in the current process.
+     *
+     * @param windowPositionInfo List of window positions to adjust.
+     * @return WM_OK means set window position success, others means failed.
+     */
+    WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo);
+
+    /**
      * @brief Set start window background color.
      *
      * @param moduleName Module name that needs to be set

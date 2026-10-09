@@ -70,6 +70,7 @@ const std::string RES_PARAM_RECLAIM_TAG = "reclaimTag";
 const std::string CREATE_SYSTEM_SESSION_CB = "createSpecificSession";
 const std::string SET_SPECIFIC_SESSION_ZINDEX_CB = "setSpecificWindowZIndex";
 const std::string MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB = "moveMainWindowToTargetDisplay";
+const std::string SET_WINDOW_POSITION_CB = "setWindowPosition";
 const std::string CREATE_KEYBOARD_SESSION_CB = "createKeyboardSession";
 const std::string RECOVER_SCENE_SESSION_CB = "recoverSceneSession";
 const std::string RESTORE_SESSION_TO_FOREGROUND_CB = "restoreSessionToForeground";
@@ -134,6 +135,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {SET_SPECIFIC_SESSION_ZINDEX_CB,     ListenerFunctionType::SET_SPECIFIC_SESSION_ZINDEX_CB},
     {MINIMIZE_ALL_CB,     ListenerFunctionType::MINIMIZE_ALL_CB},
     {MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,     ListenerFunctionType::MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB},
+    {SET_WINDOW_POSITION_CB,     ListenerFunctionType::SET_WINDOW_POSITION_CB},
     {NOTIFY_PAGE_ENABLE_REGISTERED_CB, ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB},
     {GET_FLOAT_VIEW_LIMIT_CB, ListenerFunctionType::GET_FLOAT_VIEW_LIMIT_CB},
     {UPDATE_ROG_WINDOW_CONFIG_CB, ListenerFunctionType::UPDATE_ROG_WINDOW_CONFIG_CB},
@@ -183,6 +185,7 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "FloatingBallTextUpdateAnimationType",
         CreateJsSessionFbTextUpdateAnimationType(env));
     napi_set_named_property(env, exportObj, "FloatViewTemplateType", CreateJsSessionFloatViewTemplateType(env));
+    napi_set_named_property(env, exportObj, "WindowPosition", WindowPositionInit(env));
 
     const char* moduleName = "JsSceneSessionManager";
     BindNativeFunction(env, exportObj, "setBehindWindowFilterEnabled",
@@ -508,6 +511,44 @@ void JsSceneSessionManager::OnMoveMainWindowToTargetDisplay(DisplayId displayId,
         std::to_string(windowId));
 }
 
+void JsSceneSessionManager::OnSetWindowPosition(const WindowPositionInfo& windowPositionInfo)
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "count: %{public}zu", windowPositionInfo.windowPositions.size());
+    auto task = [this, windowPositionInfo, jsCallBack = GetJSCallback(SET_WINDOW_POSITION_CB),
+        env = env_]() {
+        if (jsCallBack == nullptr) {
+            TLOGNE(WmsLogTag::WMS_HIERARCHY, "jsCallBack is nullptr");
+            return;
+        }
+        napi_value arrayValue = nullptr;
+        napi_create_array_with_length(env, windowPositionInfo.windowPositions.size(), &arrayValue);
+        if (arrayValue == nullptr) {
+            TLOGNE(WmsLogTag::WMS_HIERARCHY, "failed to create napi array");
+            return;
+        }
+        uint32_t index = 0;
+        for (const auto& position : windowPositionInfo.windowPositions) {
+            napi_value objValue = nullptr;
+            napi_create_object(env, &objValue);
+            if (objValue == nullptr) {
+                continue;
+            }
+            napi_set_named_property(env, objValue, "windowId", CreateJsValue(env, position.windowId));
+            napi_set_named_property(env, objValue, "insertAfter", CreateJsValue(env, position.insertAfter));
+            napi_set_element(env, arrayValue, index++, objValue);
+        }
+        napi_value argv[] = { arrayValue };
+        napi_status ret = napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(),
+            ArraySize(argv), argv, nullptr);
+        if (ret != napi_ok) {
+            TLOGNE(WmsLogTag::WMS_HIERARCHY, "OnSetWindowPosition:napi call exception ret: %{public}d", ret);
+            return;
+        }
+    };
+    taskScheduler_->PostMainThreadTask(task, "OnSetWindowPosition, count:" +
+        std::to_string(windowPositionInfo.windowPositions.size()));
+}
+
 void JsSceneSessionManager::OnCreateKeyboardSession(const sptr<SceneSession>& keyboardSession,
     const sptr<SceneSession>& panelSession)
 {
@@ -787,6 +828,16 @@ void JsSceneSessionManager::RegisterMoveMainWindowToTargetDisplayCallback()
         this->OnMoveMainWindowToTargetDisplay(displayId, windowId, isFromScreenVirtual, isToScreenVirtual);
     };
     SceneSessionManager::GetInstance().SetMoveMainWindowToTargetDisplayListener(std::move(func));
+}
+
+/** @note @window.hierarchy */
+void JsSceneSessionManager::RegisterSetWindowPositionCallback()
+{
+    NotifySetWindowPositionFunc func = [this](const WindowPositionInfo& windowPositionInfo) {
+        TLOGNI(WmsLogTag::WMS_HIERARCHY, "set window position callback");
+        this->OnSetWindowPosition(windowPositionInfo);
+    };
+    SceneSessionManager::GetInstance().SetWindowPositionListener(std::move(func));
 }
 
 void JsSceneSessionManager::ProcessCreateKeyboardSessionRegister()
@@ -2045,6 +2096,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             break;
         case ListenerFunctionType::MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB:
             RegisterMoveMainWindowToTargetDisplayCallback();
+            break;
+        case ListenerFunctionType::SET_WINDOW_POSITION_CB:
+            RegisterSetWindowPositionCallback();
             break;
         case ListenerFunctionType::NOTIFY_PAGE_ENABLE_REGISTERED_CB:
             RegisterPageEnableCallback();
