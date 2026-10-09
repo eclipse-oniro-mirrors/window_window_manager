@@ -1664,6 +1664,10 @@ private:
     /*
      * Multi User
      */
+    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
+    // explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
+    // thread (GetCallingUid() only reliable there), before PostSyncTask.
+    DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     static constexpr int32_t DEFAULT_USERID = -1;
     std::atomic<int32_t> currentUserId_ { DEFAULT_USERID };
     std::atomic<bool> isUserBackground_ { false };
