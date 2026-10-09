@@ -44,6 +44,19 @@ public:
     ~FocusChangeInfo() = default;
 
     /**
+     * @brief Set other window info involved in focus change
+     * @param otherWindowId Window id of the other window
+     * @param otherUid UID of the other window
+     * @param otherPid PID of the other window
+     */
+    void SetOtherWindowInfo(int32_t otherWindowId, int32_t otherUid, int32_t otherPid)
+    {
+        otherWindowId_ = otherWindowId;
+        otherUid_ = otherUid;
+        otherPid_ = otherPid;
+    }
+
+    /**
      * @brief Marshalling FocusChangeInfo.
      *
      * @param parcel Package of FocusChangeInfo.
@@ -80,15 +93,23 @@ public:
         if (parcel.ReadBool()) {
             focusChangeInfo->abilityToken_ = (static_cast<MessageParcel*>(&parcel))->ReadRemoteObject();
         }
+        if (!parcel.ReadInt32(focusChangeInfo->otherWindowId_) || !parcel.ReadInt32(focusChangeInfo->otherUid_) ||
+            !parcel.ReadInt32(focusChangeInfo->otherPid_)) {
+            delete focusChangeInfo;
+            return nullptr;
+        }
         return focusChangeInfo;
     }
 
     int32_t windowId_ = INVALID_WINDOW_ID;
+    int32_t otherWindowId_ = INVALID_WINDOW_ID;
     DisplayId displayId_ = 0;
     DisplayId realDisplayId_ = 0;
     DisplayGroupId displayGroupId_ = 0;
     int32_t pid_ = -1;
+    int32_t otherPid_ = -1;
     int32_t uid_ = -1;
+    int32_t otherUid_ = -1;
     WindowType windowType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     sptr<IRemoteObject> abilityToken_;
 };

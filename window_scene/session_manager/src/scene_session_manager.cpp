@@ -10370,37 +10370,21 @@ sptr<FocusNotifyInfo> SceneSessionManager::GetFocusNotifyInfo(DisplayId displayI
     return focusNotifyInfo;
 }
 
-WSError SceneSessionManager::ShiftFocus(DisplayId displayId, const sptr<SceneSession>& nextSession,
-    bool isProactiveUnfocus, FocusChangeReason reason)
+static void GetSessionExtras(const sptr<SceneSession>& session,
+    int32_t& outWindowId, int32_t& outUid, int32_t& outPid)
 {
-    auto focusNotifyInfo = GetFocusNotifyInfo(displayId, nextSession, reason);
-    if (focusNotifyInfo == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is nullptr");
-        return WSError::WS_OK;
-    }
-    // unfocus
-    auto focusedSessionId = windowFocusController_->GetFocusedSessionId(displayId);
-    int32_t focusedId = focusedSessionId;
-    auto focusedSession = GetSceneSession(focusedSessionId);
-    UpdateFocusStatus(displayId, focusedSession, false, focusNotifyInfo);
-    // focus
-    int32_t nextId = INVALID_SESSION_ID;
-    if (nextSession == nullptr) {
-        std::string sessionLog(GetAllSessionFocusInfo());
-        TLOGW(WmsLogTag::WMS_FOCUS, "next session nullptr! id: %{public}d, info: %{public}s",
-            focusedSessionId, sessionLog.c_str());
-    } else {
-        nextId = nextSession->GetPersistentId();
-    }
-    UpdateFocusStatus(displayId, nextSession, true, focusNotifyInfo);
-    UpdateGestureBackEnabled(focusedId, nextId);
-    UpdateHighlightStatus(displayId, focusedSession, nextSession, isProactiveUnfocus);
-    if (shiftFocusFunc_ != nullptr) {
-        auto displayGroupId = windowFocusController_->GetDisplayGroupId(displayId);
-        shiftFocusFunc_(nextId, displayGroupId);
-    }
+    outWindowId = session ? session->GetWindowId() : INVALID_WINDOW_ID;
+    outUid      = session ? session->GetCallingUid() : -1;
+    outPid      = session ? session->GetCallingPid() : -1;
+}
+
+void SceneSessionManager::HandleSCBFocusChange(
+    const sptr<SceneSession>& focusedSession,
+    const sptr<SceneSession>& nextSession)
+{
     bool scbPrevFocus = focusedSession && focusedSession->GetSessionInfo().isSystem_;
     bool scbCurrFocus = nextSession && nextSession->GetSessionInfo().isSystem_;
+
     if (!scbPrevFocus && scbCurrFocus) {
         if (notifySCBAfterFocusedFunc_ != nullptr) {
             notifySCBAfterFocusedFunc_(nextSession->GetSessionProperty()->GetDisplayId());
@@ -10416,14 +10400,62 @@ WSError SceneSessionManager::ShiftFocus(DisplayId displayId, const sptr<SceneSes
             notifyDiffSCBAfterUnfocusedFunc_(focusedSessionDisplayId, nextSessionDisplayId);
         }
     }
+}
+
+WSError SceneSessionManager::ShiftFocus(DisplayId displayId, const sptr<SceneSession>& nextSession,
+    bool isProactiveUnfocus, FocusChangeReason reason)
+{
+    auto focusNotifyInfo = GetFocusNotifyInfo(displayId, nextSession, reason);
+    if (focusNotifyInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "focusNotifyInfo is nullptr");
+        return WSError::WS_OK;
+    }
+
+    auto focusedSessionId = windowFocusController_->GetFocusedSessionId(displayId);
+    int32_t focusedId = focusedSessionId;
+    auto focusedSession = GetSceneSession(focusedSessionId);
+
+    // unfocus
+    int32_t otherWindowId, otherUid, otherPid;
+    GetSessionExtras(nextSession, otherWindowId, otherUid, otherPid);
+    UpdateFocusStatus(displayId, focusedSession, false, focusNotifyInfo,
+        otherWindowId, otherUid, otherPid);
+
+    // focus
+    int32_t nextId = INVALID_SESSION_ID;
+    if (nextSession == nullptr) {
+        std::string sessionLog(GetAllSessionFocusInfo());
+        TLOGW(WmsLogTag::WMS_FOCUS, "next session nullptr! id: %{public}d, info: %{public}s",
+            focusedSessionId, sessionLog.c_str());
+    } else {
+        nextId = nextSession->GetPersistentId();
+    }
+
+    int32_t focusedWindowId, focusedUid, focusedPid;
+    GetSessionExtras(focusedSession, focusedWindowId, focusedUid, focusedPid);
+    UpdateFocusStatus(displayId, nextSession, true, focusNotifyInfo,
+        focusedWindowId, focusedUid, focusedPid);
+
+    UpdateGestureBackEnabled(focusedId, nextId);
+    UpdateHighlightStatus(displayId, focusedSession, nextSession, isProactiveUnfocus);
+
+    if (shiftFocusFunc_ != nullptr) {
+        shiftFocusFunc_(nextId, windowFocusController_->GetDisplayGroupId(displayId));
+    }
+
+    HandleSCBFocusChange(focusedSession, nextSession);
     FlushWindowInfoToMMI(true);
+
     TLOGI(WmsLogTag::WMS_FOCUS, "displayId: %{public}" PRIu64
-        ", focusedId: %{public}d, nextId: %{public}d, reason: %{public}d", displayId, focusedId, nextId, reason);
+        ", focusedId: %{public}d, nextId: %{public}d, reason: %{public}d",
+        displayId, focusedId, nextId, reason);
+
     return WSError::WS_OK;
 }
 
 void SceneSessionManager::UpdateFocusStatus(DisplayId displayId, const sptr<SceneSession>& sceneSession,
-    bool isFocused, const sptr<FocusNotifyInfo>& focusNotifyInfo)
+    bool isFocused, const sptr<FocusNotifyInfo>& focusNotifyInfo, int32_t otherWindowId,
+    int32_t otherUid, int32_t otherPid)
 {
     auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
     if (focusGroup == nullptr) {
@@ -10462,13 +10494,13 @@ void SceneSessionManager::UpdateFocusStatus(DisplayId displayId, const sptr<Scen
         NotifyUnFocusedByMission(prevSession);
     }
     if ((isFocused && !needBlockNotifyFocusStatusUntilForeground) || (!isFocused && !needBlockNotifyUnfocusStatus)) {
-        NotifyFocusStatus(sceneSession, isFocused, focusGroup, focusNotifyInfo);
+        NotifyFocusStatus(sceneSession, isFocused, focusGroup, focusNotifyInfo, otherWindowId, otherUid, otherPid);
     }
 }
 
 void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSession, bool isFocused,
-    const sptr<FocusGroup>& focusGroup, const sptr<FocusNotifyInfo>& focusNotifyInfo)
-{
+    const sptr<FocusGroup>& focusGroup, const sptr<FocusNotifyInfo>& focusNotifyInfo,
+    int32_t otherWindowId, int32_t otherUid, int32_t otherPid)
     if (focusGroup == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr");
         return;
@@ -11471,7 +11503,13 @@ void SceneSessionManager::ProcessFocusWhenForeground(sptr<SceneSession>& sceneSe
             if (lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr) {
                 focusNotifyInfo->isSameCallingPid_ = lastFocusedSession->GetCallingPid() == sceneSession->GetCallingPid();
             }
-            NotifyFocusStatus(sceneSession, true, focusGroup, focusNotifyInfo);
+            NotifyFocusStatus(sceneSession, true, focusGroup, focusNotifyInfo,
+                lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
+                    lastFocusedSession->GetWindowId() : INVALID_WINDOW_ID,
+                lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
+                    lastFocusedSession->GetCallingUid() : -1,
+                lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
+                    lastFocusedSession->GetCallingPid() : -1);
             auto highlightNotifyInfo = sptr<HighlightNotifyInfo>::MakeSptr(focusGroup->GetUpdateFocusTimeStamp(),
                 std::vector<int32_t>(), sceneSession->GetPersistentId(), false);
             sceneSession->NotifyHighlightChange(highlightNotifyInfo, true);
@@ -11615,6 +11653,38 @@ void SceneSessionManager::NotifyRSSWindowModeTypeUpdate()
     SessionManagerAgentController::GetInstance().UpdateWindowModeTypeInfo(type);
 }
 
+void SceneSessionManager::ProcessModalFocusNotify(
+    const sptr<SceneSession>& sceneSession,
+    const sptr<Session>& modal,
+    const sptr<SceneSession>& modalSession)
+{
+    auto displayId = sceneSession->GetSessionProperty()->GetDisplayId();
+    auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
+    if (focusGroup == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, displayId);
+        return;
+    }
+    auto focusedSessionId = focusGroup->GetFocusedSessionId();
+    bool needBlock = focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
+    if (modal->GetPersistentId() != focusedSessionId || !needBlock) {
+        return;
+    }
+    focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(false);
+    focusGroup->SetNeedBlockNotifyUnfocusStatus(false);
+    auto lastFocusedSessionId = focusGroup->GetLastFocusedSessionId();
+    auto focusNotifyInfo = sptr<FocusNotifyInfo>::MakeSptr(focusGroup->GetUpdateFocusTimeStamp(),
+        lastFocusedSessionId, modalSession->GetPersistentId(), false);
+    sptr<SceneSession> lastFocusedSession = GetSceneSession(lastFocusedSessionId);
+    bool isValidLast = lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr;
+    if (isValidLast) {
+        focusNotifyInfo->isSameCallingPid_ = lastFocusedSession->GetCallingPid() == modalSession->GetCallingPid();
+    }
+    int32_t lastWindowId  = isValidLast ? lastFocusedSession->GetWindowId()  : INVALID_WINDOW_ID;
+    int32_t lastUid       = isValidLast ? lastFocusedSession->GetCallingUid() : -1;
+    int32_t lastPid       = isValidLast ? lastFocusedSession->GetCallingPid() : -1;
+    NotifyFocusStatus(modalSession, true, focusGroup, focusNotifyInfo, lastWindowId, lastUid, lastPid);
+}
+
 void SceneSessionManager::ProcessSubSessionForeground(sptr<SceneSession>& sceneSession)
 {
     if (sceneSession == nullptr) {
@@ -11668,26 +11738,7 @@ void SceneSessionManager::ProcessSubSessionForeground(sptr<SceneSession>& sceneS
             continue;
         }
         NotifyWindowInfoChange(modal->GetPersistentId(), WindowUpdateType::WINDOW_UPDATE_ADDED);
-        auto displayId = sceneSession->GetSessionProperty()->GetDisplayId();
-        auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
-        if (focusGroup == nullptr) {
-            TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, displayId);
-            return;
-        }
-        auto focusedSessionId = focusGroup->GetFocusedSessionId();
-        bool needBlockNotifyFocusStatusUntilForeground = focusGroup->GetNeedBlockNotifyFocusStatusUntilForeground();
-        if (modal->GetPersistentId() == focusedSessionId && needBlockNotifyFocusStatusUntilForeground) {
-            focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(false);
-            focusGroup->SetNeedBlockNotifyUnfocusStatus(false);
-            auto lastFocusedSessionId = focusGroup->GetLastFocusedSessionId();
-            auto focusNotifyInfo = sptr<FocusNotifyInfo>::MakeSptr(focusGroup->GetUpdateFocusTimeStamp(),
-                lastFocusedSessionId, modalSession->GetPersistentId(), false);
-            sptr<SceneSession> lastFocusedSession = GetSceneSession(lastFocusedSessionId);
-            if (lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr) {
-                focusNotifyInfo->isSameCallingPid_ = lastFocusedSession->GetCallingPid() == modalSession->GetCallingPid();
-            }
-            NotifyFocusStatus(modalSession, true, focusGroup, focusNotifyInfo);
-        }
+        ProcessModalFocusNotify(sceneSession, modal, modalSession);
         HandleKeepScreenOn(modalSession, modalSession->IsKeepScreenOn(), WINDOW_SCREEN_LOCK_PREFIX,
                            modalSession->keepScreenLock_);
         HandleKeepScreenOn(modalSession, modalSession->IsViewKeepScreenOn(), VIEW_SCREEN_LOCK_PREFIX,
