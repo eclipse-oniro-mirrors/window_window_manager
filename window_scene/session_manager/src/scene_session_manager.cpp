@@ -1873,9 +1873,13 @@ bool SceneSessionManager::ConfigWindowLayout(const WindowSceneConfig::ConfigItem
         TLOGW(WmsLogTag::WMS_LAYOUT, "The windowLayoutConfig is invalid (not a map).");
         return false;
     }
-    ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
-    ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
-    ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
+    // system::SetParameter may block the main thread under heavy CPU load.
+    // Execute the configuration methods asynchronously in order on the OS_SceneSessionManager thread.
+    taskScheduler_->PostAsyncTask([this, windowLayoutConfig] {
+        ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
+        ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
+        ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
+    }, __func__);
     return true;
 }
 
