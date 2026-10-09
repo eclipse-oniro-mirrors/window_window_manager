@@ -6307,7 +6307,12 @@ void ScreenSessionManager::GetInternalAndExternalSession(sptr<ScreenSession>& in
         }
         if (screenSession->isInternal_) {
             TLOGNFI(WmsLogTag::DMS, "internal screenId = %{public}" PRIu64, sessionIt.first);
-            internalSession = screenSession;
+            // First-wins, same tie-break as GetInternalScreenSession: the default/full display
+            // is always assigned the smallest screen id, so on dual-internal devices (super-
+            // fold dual display, where the sub screen is REAL+internal too) the full screen
+            // every internal-screen consumer keys on (mirror region, cast, resolution effect)
+            // wins. The old last-wins resolved the sub screen instead.
+            internalSession = internalSession == nullptr ? screenSession : internalSession;
         } else {
             TLOGNFI(WmsLogTag::DMS, "external screenId = %{public}" PRIu64, sessionIt.first);
             externalSession = screenSession;
@@ -13748,14 +13753,18 @@ void ScreenSessionManager::HandleResolutionEffectAfterSwitchUser() {
         return;
     }
     RecoveryResolutionEffect();
-    if (!IS_SUPPORT_PC_MODE) {
-        // After switching users, the listener will become invalid and needs to be re-registered. 
-        ScreenSettingHelper::UnregisterSettingResolutionEffectObserver();
-        RegisterSettingResolutionEffectObserver();
-        if (g_setLocalResolution) {
-            ScreenSettingHelper::UnregisterSettingCustomResolutionObserver();
-            RegisterSettingCustomResolutionObserver();
-        }
+    // Re-register on every product: the observer binds to the settings table of the user
+    // current at registration time, so after a switch it keeps watching the OLD user's
+    // table and toggles made in the new user never fire (they only take effect on the next
+    // rotation-triggered re-read, e.g. screen off/on). The historical IS_SUPPORT_PC_MODE
+    // skip guarded the fresh registration's initial callback from racing the pc-mode flag;
+    // both switch paths settle that flag (HandleSwitchPcMode in SetClient / HotSwitch)
+    // before reaching here, so the re-register is safe.
+    ScreenSettingHelper::UnregisterSettingResolutionEffectObserver();
+    RegisterSettingResolutionEffectObserver();
+    if (g_setLocalResolution) {
+        ScreenSettingHelper::UnregisterSettingCustomResolutionObserver();
+        RegisterSettingCustomResolutionObserver();
     }
     //ensure updateavilibearea success after switch user
     auto internalSession = GetInternalScreenSession();
@@ -17601,7 +17610,7 @@ void ScreenSessionManager::MakeMirrorAfterSwitchUser()
                 continue;
             }
             if (screenSession->GetScreenCombination() == ScreenCombination::SCREEN_MAIN) {
-                mainSession = screenSession;
+                mainSession = (mainSession == nullptr ? screenSession : mainSession);
             }
         }
         if (mirrorScreenSessions.empty()) {

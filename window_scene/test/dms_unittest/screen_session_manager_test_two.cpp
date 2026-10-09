@@ -4657,6 +4657,127 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectAfterSwitchUser02, Test
     ssm_->screenSessionMap_.erase(51);
     LOG_SetCallback(nullptr);
 }
+
+
+
+namespace {
+// Dual-internal topology (super-fold dual display): the full screen (51, rs id 0 — on the
+// real device the default display always gets the smallest screen id) and the sub screen
+// (54, rs id 5) are both REAL internal in-use, plus a CAST-flagged mirror virtual screen
+// (52). This is the topology where the old last-wins internal slot resolved the sub screen.
+// All three are registered into the session map; erase ids 51/52/54 when done.
+void InitDualInternalEffectTopology(sptr<ScreenSession>& fullScreen, sptr<ScreenSession>& subScreen,
+    sptr<ScreenSession>& castScreen)
+{
+    fullScreen = new ScreenSession(51, 0, "full", ScreenProperty(), nullptr);
+    fullScreen->SetIsCurrentInUse(true);
+    fullScreen->SetScreenType(ScreenType::REAL);
+    fullScreen->isInternal_ = true;
+    fullScreen->SetRealWidth(CAST_EFFECT_REAL_WIDTH);
+    fullScreen->SetRealHeight(CAST_EFFECT_REAL_HEIGHT);
+    fullScreen->SetScreenAreaWidth(CAST_EFFECT_REAL_WIDTH);
+    fullScreen->SetScreenAreaHeight(CAST_EFFECT_REAL_HEIGHT);
+    fullScreen->UpdateMirrorWidth(CAST_EFFECT_REAL_WIDTH);
+    fullScreen->UpdateMirrorHeight(CAST_EFFECT_REAL_HEIGHT);
+
+    subScreen = new ScreenSession(54, 5, "sub", ScreenProperty(), nullptr);
+    subScreen->SetIsCurrentInUse(true);
+    subScreen->SetScreenType(ScreenType::REAL);
+    subScreen->isInternal_ = true;
+    subScreen->SetRealWidth(980);
+    subScreen->SetRealHeight(980);
+    subScreen->SetScreenAreaWidth(980);
+    subScreen->SetScreenAreaHeight(980);
+    subScreen->UpdateMirrorWidth(980);
+    subScreen->UpdateMirrorHeight(980);
+
+    castScreen = new ScreenSession(52, 52, "cast", ScreenProperty(), nullptr);
+    castScreen->SetScreenType(ScreenType::VIRTUAL);
+    castScreen->SetVirtualScreenFlag(VirtualScreenFlag::CAST);
+    castScreen->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    castScreen->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[51] = fullScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[52] = castScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[54] = subScreen;
+}
+}
+
+/*
+ * @tc.name: InternalSlotOfScanMatchesFirstInternalScan
+ * @tc.desc: GetInternalAndExternalSession's internal slot and GetInternalScreenSession share
+ *           the same first-wins tie-break, so apply, recovery and the switch-user paths can
+ *           never diverge on which screen is "the internal screen" (regression lock for the
+ *           first/last-wins incident behind 0c0a7bc277)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, InternalSlotOfScanMatchesFirstInternalScan, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<ScreenSession> fullScreen = nullptr;
+    sptr<ScreenSession> subScreen = nullptr;
+    sptr<ScreenSession> castScreen = nullptr;
+    InitDualInternalEffectTopology(fullScreen, subScreen, castScreen);
+    ASSERT_NE(nullptr, fullScreen);
+
+    sptr<ScreenSession> internalSlot = nullptr;
+    sptr<ScreenSession> externalSlot = nullptr;
+    ssm_->GetInternalAndExternalSession(internalSlot, externalSlot);
+    ASSERT_NE(nullptr, internalSlot);
+    ASSERT_NE(nullptr, ssm_->GetInternalScreenSession());
+    EXPECT_EQ(internalSlot->GetScreenId(), ssm_->GetInternalScreenSession()->GetScreenId());
+    EXPECT_EQ(internalSlot->GetScreenId(), static_cast<ScreenId>(51));
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    ssm_->screenSessionMap_.erase(54);
+}
+
+/*
+ * @tc.name: SetResolutionEffectPinsFullScreenOnDualInternal
+ * @tc.desc: On dual-internal devices the effect must crop and restore the full/default screen
+ *           (rs id 0), not the sub screen the last-wins topology scan resolves
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectPinsFullScreenOnDualInternal, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    bool isPcNow = ssm_->GetPcStatus();
+    ssm_->SetPcStatus(true);
+
+    sptr<ScreenSession> fullScreen = nullptr;
+    sptr<ScreenSession> subScreen = nullptr;
+    sptr<ScreenSession> castScreen = nullptr;
+    InitDualInternalEffectTopology(fullScreen, subScreen, castScreen);
+    ASSERT_NE(nullptr, fullScreen);
+
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    // The full screen carries the crop (and its cursor region follows it)...
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorWidth(), 3120u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorHeight(), 1755u);
+    // ...while the sub screen the raw scan would have picked stays untouched.
+    EXPECT_EQ(subScreen->GetScreenProperty().GetScreenAreaHeight(), 980u);
+    EXPECT_EQ(subScreen->GetScreenProperty().GetMirrorWidth(), 980u);
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 52u);
+
+    EXPECT_TRUE(ssm_->RecoveryResolutionEffect());
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorWidth(), 3120u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorHeight(), 2080u);
+    EXPECT_EQ(subScreen->GetScreenProperty().GetScreenAreaHeight(), 980u);
+    EXPECT_EQ(subScreen->GetScreenProperty().GetMirrorWidth(), 980u);
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+
+    ssm_->MarkResolutionEffectIdle();
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    ssm_->screenSessionMap_.erase(54);
+    ssm_->SetPcStatus(isPcNow);
+}
 }
 }
 }
