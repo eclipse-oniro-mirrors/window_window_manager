@@ -10017,7 +10017,6 @@ void SceneSession::CheckRemoveSnapshotForUseControl(bool visibility)
     }
     ControlInfo controlInfo;
     bool isAppControl = GetAppControlInfo(ControlAppType::APP_LOCK, controlInfo);
-    bool isAppUseControl = controlInfo.isNeedControl && !controlInfo.isControlRecentOnly;
     TLOGD(WmsLogTag::WMS_PATTERN, "id: %{public}d, [%{public}d,%{public}d,%{public}d]", GetPersistentId(),
         isAppControl, controlInfo.isNeedControl, controlInfo.isControlRecentOnly);
     if (controlInfo.isControlRecentOnly) {

@@ -1921,6 +1921,13 @@ public:
     virtual WMError NotifyDrawingCompleted() { return WMError::WM_OK; }
 
     /**
+     * @brief notify window start with snapshot.
+     *
+     * @return WMError
+     */
+    virtual WMError NotifyStartWithSnapshot() { return WMError::WM_OK; }
+
+    /**
      * @brief notify window remove starting window.
      *
      * @return WMError
