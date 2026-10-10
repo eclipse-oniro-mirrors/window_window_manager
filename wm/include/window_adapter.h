@@ -118,7 +118,7 @@ public:
         std::vector<sptr<RSWindowAnimationTarget>>& targets);
     virtual void SetMaximizeMode(MaximizeMode maximizeMode);
     virtual MaximizeMode GetMaximizeMode();
-    virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+    virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
     virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo, const sptr<IRemoteObject>& abilityToken);
     virtual WMError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener);
@@ -291,6 +291,9 @@ private:
     /*
      * Multi user and multi screen
      */
+    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this adapter instance's
+    // user; explicit displayId (0 or non-zero) passes through unchanged.
+    DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     void OnUserSwitch();
     const int32_t userId_;
     static std::unordered_map<int32_t, sptr<WindowAdapter>> windowAdapterMap_;

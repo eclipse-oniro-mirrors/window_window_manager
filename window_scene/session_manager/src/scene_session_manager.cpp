@@ -8491,12 +8491,36 @@ std::vector<std::pair<DisplayId, int32_t>> SceneSessionManager::GetAllFocusedSes
     return windowFocusController_->GetAllFocusedSessionList();
 }
 
+DisplayId SceneSessionManager::ResolveDefaultDisplayId(DisplayId displayId)
+{
+    if (displayId != DISPLAY_ID_INVALID) {
+        return displayId;
+    }
+    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
+    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
+    static const bool g_defaultDisplayResolve =
+        system::GetBoolParameter("persist.window.default_display_resolve", false);
+    if (!g_defaultDisplayResolve) {
+        return DEFAULT_DISPLAY_ID;
+    }
+    int32_t userId = currentUserId_;
+    if (userId == DEFAULT_USERID) {
+        userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
+    }
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
+    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    TLOGD(WmsLogTag::WMS_FOCUS,
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, displayId);
+    return displayId;
+}
+
 void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     if (!SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     taskScheduler_->PostSyncTask([this, &focusInfo, displayId] {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -14979,6 +15003,7 @@ WSError SceneSessionManager::GetFocusSessionElement(AppExecFwk::ElementName& ele
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     return taskScheduler_->PostSyncTask([this, &element, where = __func__, displayId]() {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -19725,7 +19750,7 @@ WMError SceneSessionManager::MakeScreenFoldData(const std::vector<std::string>& 
         return WMError::WM_DO_NOTHING;
     }
     AppExecFwk::ElementName element = {};
-    WSError ret = GetFocusSessionElement(element);
+    WSError ret = GetFocusSessionElement(element, DEFAULT_DISPLAY_ID);
     auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID));
     if (sceneSession == nullptr || ret != WSError::WS_OK) {
         TLOGI(WmsLogTag::DMS, "Error: fail to get focused package name.");

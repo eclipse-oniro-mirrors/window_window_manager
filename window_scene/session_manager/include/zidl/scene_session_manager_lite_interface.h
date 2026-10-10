@@ -181,7 +181,7 @@ public:
     virtual WSError IsValidSessionIds(const std::vector<int32_t>& sessionIds, std::vector<bool>& results) = 0;
     virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
     virtual WSError GetFocusSessionElement(AppExecFwk::ElementName& element,
-        DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+        DisplayId displayId = DISPLAY_ID_INVALID) = 0;
     virtual WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent) { return WSError::WS_OK; }
     virtual WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,
                                        SessionSnapshot& snapshot, bool isLowResolution) = 0;

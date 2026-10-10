@@ -361,13 +361,13 @@ public:
         bool byForeground = true, FocusChangeReason reason = FocusChangeReason::SA_REQUEST) override;
     void RequestAllAppSessionUnfocus();
     WSError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId) override;
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
-    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent);
     WSError AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
     WSError RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
@@ -1686,6 +1686,10 @@ private:
     /*
      * Multi User
      */
+    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
+    // explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
+    // thread (GetCallingUid() only reliable there), before PostSyncTask.
+    DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     static constexpr int32_t DEFAULT_USERID = -1;
     std::atomic<int32_t> currentUserId_ { DEFAULT_USERID };
     std::atomic<bool> isUserBackground_ { false };

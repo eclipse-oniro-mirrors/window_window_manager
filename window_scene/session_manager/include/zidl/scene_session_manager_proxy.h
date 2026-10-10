@@ -60,7 +60,7 @@ public:
     WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
     WMError SetGestureNavigationEnabled(bool enable) override;
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
@@ -78,7 +78,7 @@ public:
     WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot) override;
     WMError GetSnapshotByWindowId(int32_t persistentId, std::shared_ptr<Media::PixelMap>& pixelMap) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
-    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
 
     WSError RegisterSessionListener(const sptr<ISessionListener>& listener) override;

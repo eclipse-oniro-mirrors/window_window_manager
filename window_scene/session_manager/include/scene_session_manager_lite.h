@@ -35,7 +35,7 @@ public:
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
-    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent) override;
     WSError RegisterSessionListener(const sptr<ISessionListener>& listener, bool isRecover = false) override;
     WSError UnRegisterSessionListener(const sptr<ISessionListener>& listener) override;
@@ -60,7 +60,7 @@ public:
     WSError MoveSessionsToBackground(const std::vector<int32_t>& sessionIds, std::vector<int32_t>& result) override;
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
 
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,

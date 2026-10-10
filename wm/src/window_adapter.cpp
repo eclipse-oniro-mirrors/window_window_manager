@@ -16,9 +16,11 @@
 #include "window_adapter.h"
 #include <iservice_registry.h>
 #include <key_event.h>
+#include <parameters.h>
 #include <rs_window_animation_target.h>
 #include <system_ability_definition.h>
 #include <unistd.h>
+#include "display_manager.h"
 #include "focus_change_info.h"
 #include "scene_board_judgement.h"
 #include "session_manager.h"
@@ -1142,6 +1144,25 @@ MaximizeMode WindowAdapter::GetMaximizeMode()
     return wmsProxy->GetMaximizeMode();
 }
 
+DisplayId WindowAdapter::ResolveDefaultDisplayId(DisplayId displayId)
+{
+    if (displayId != DISPLAY_ID_INVALID) {
+        return displayId;
+    }
+    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
+    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
+    static const bool g_defaultDisplayResolve =
+        system::GetBoolParameter("persist.window.default_display_resolve", false);
+    if (!g_defaultDisplayResolve) {
+        return DEFAULT_DISPLAY_ID;
+    }
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);
+    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    TLOGD(WmsLogTag::WMS_FOCUS,
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId_, displayId);
+    return displayId;
+}
+
 void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     INIT_PROXY_CHECK_RETURN();
@@ -1149,6 +1170,7 @@ void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
     if (Rosen::SceneBoardJudgement::IsSceneBoardEnabled()) {
+        displayId = ResolveDefaultDisplayId(displayId);
         wmsProxy->GetFocusWindowInfo(focusInfo, displayId);
     } else {
         wmsProxy->GetFocusWindowInfo(focusInfo);
