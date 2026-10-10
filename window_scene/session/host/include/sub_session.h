@@ -88,6 +88,18 @@ protected:
     void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
         const MoveConfiguration& moveConfiguration) override;
 
+    /**
+     * @brief Converts a main-window-relative subwindow rectangle to screen coordinates
+     *        for moveToGlobal and moveToGlobalDisplay requests.
+     *
+     * The subwindow is a child node of the main window in this layout, so its
+     * position is relative to the top-left corner of the main window.
+     *
+     * @param rect The main-window-relative subwindow rectangle to convert.
+     * @return The converted rectangle, or the original rectangle when conversion cannot be performed.
+     */
+    WSRect ConvertToScreenCoordinates(const WSRect& rect) override;
+
     /*
      * Window Hierarchy
      */
