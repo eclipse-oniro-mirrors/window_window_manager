@@ -4658,18 +4658,23 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectAfterSwitchUser02, Test
     LOG_SetCallback(nullptr);
 }
 
-
-
 namespace {
 // Dual-internal topology (super-fold dual display): the full screen (51, rs id 0 — on the
 // real device the default display always gets the smallest screen id) and the sub screen
 // (54, rs id 5) are both REAL internal in-use, plus a CAST-flagged mirror virtual screen
 // (52). This is the topology where the old last-wins internal slot resolved the sub screen.
-// All three are registered into the session map; erase ids 51/52/54 when done.
+// All three are registered into the session map; erase the three ids when done.
+constexpr ScreenId DUAL_INTERNAL_FULL_ID = 51;
+constexpr ScreenId DUAL_INTERNAL_FULL_RS_ID = 0;
+constexpr ScreenId DUAL_INTERNAL_SUB_ID = 54;
+constexpr ScreenId DUAL_INTERNAL_SUB_RS_ID = 5;
+constexpr ScreenId DUAL_INTERNAL_CAST_ID = 52;
+constexpr uint32_t DUAL_INTERNAL_SUB_DIM = 980;
 void InitDualInternalEffectTopology(sptr<ScreenSession>& fullScreen, sptr<ScreenSession>& subScreen,
     sptr<ScreenSession>& castScreen)
 {
-    fullScreen = new ScreenSession(51, 0, "full", ScreenProperty(), nullptr);
+    fullScreen = new ScreenSession(DUAL_INTERNAL_FULL_ID, DUAL_INTERNAL_FULL_RS_ID, "full",
+        ScreenProperty(), nullptr);
     fullScreen->SetIsCurrentInUse(true);
     fullScreen->SetScreenType(ScreenType::REAL);
     fullScreen->isInternal_ = true;
@@ -4680,26 +4685,28 @@ void InitDualInternalEffectTopology(sptr<ScreenSession>& fullScreen, sptr<Screen
     fullScreen->UpdateMirrorWidth(CAST_EFFECT_REAL_WIDTH);
     fullScreen->UpdateMirrorHeight(CAST_EFFECT_REAL_HEIGHT);
 
-    subScreen = new ScreenSession(54, 5, "sub", ScreenProperty(), nullptr);
+    subScreen = new ScreenSession(DUAL_INTERNAL_SUB_ID, DUAL_INTERNAL_SUB_RS_ID, "sub",
+        ScreenProperty(), nullptr);
     subScreen->SetIsCurrentInUse(true);
     subScreen->SetScreenType(ScreenType::REAL);
     subScreen->isInternal_ = true;
-    subScreen->SetRealWidth(980);
-    subScreen->SetRealHeight(980);
-    subScreen->SetScreenAreaWidth(980);
-    subScreen->SetScreenAreaHeight(980);
-    subScreen->UpdateMirrorWidth(980);
-    subScreen->UpdateMirrorHeight(980);
+    subScreen->SetRealWidth(DUAL_INTERNAL_SUB_DIM);
+    subScreen->SetRealHeight(DUAL_INTERNAL_SUB_DIM);
+    subScreen->SetScreenAreaWidth(DUAL_INTERNAL_SUB_DIM);
+    subScreen->SetScreenAreaHeight(DUAL_INTERNAL_SUB_DIM);
+    subScreen->UpdateMirrorWidth(DUAL_INTERNAL_SUB_DIM);
+    subScreen->UpdateMirrorHeight(DUAL_INTERNAL_SUB_DIM);
 
-    castScreen = new ScreenSession(52, 52, "cast", ScreenProperty(), nullptr);
+    castScreen = new ScreenSession(DUAL_INTERNAL_CAST_ID, DUAL_INTERNAL_CAST_ID, "cast",
+        ScreenProperty(), nullptr);
     castScreen->SetScreenType(ScreenType::VIRTUAL);
     castScreen->SetVirtualScreenFlag(VirtualScreenFlag::CAST);
     castScreen->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
     castScreen->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
 
-    ScreenSessionManagerTest::ssm_->screenSessionMap_[51] = fullScreen;
-    ScreenSessionManagerTest::ssm_->screenSessionMap_[52] = castScreen;
-    ScreenSessionManagerTest::ssm_->screenSessionMap_[54] = subScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[DUAL_INTERNAL_FULL_ID] = fullScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[DUAL_INTERNAL_CAST_ID] = castScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[DUAL_INTERNAL_SUB_ID] = subScreen;
 }
 }
 
