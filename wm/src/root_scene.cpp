@@ -418,9 +418,9 @@ void RootScene::SetFrameLayoutFinishCallback(std::function<void()>&& callback)
     TLOGI(WmsLogTag::WMS_LAYOUT, "end");
 }
 
-void RootScene::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void RootScene::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
-    vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom);
+    vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom, disableReason);
 }
 
 void RootScene::SetTouchEvent(int32_t touchType)

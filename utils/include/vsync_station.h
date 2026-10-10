@@ -105,7 +105,8 @@ public:
         int32_t animatorExpectedFrameRate, uint32_t rateType = 0);
     void SetFrameRateLinkerEnable(const std::shared_ptr<RSUIContext>& rsUIContext, bool enabled);
     void SetDisplaySoloistFrameRateLinkerEnable(bool enabled);
-    void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM);
+    void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM,
+        DvsyncDisableReason disableReason = DEFAULT_DVSYNCDISABLEREASON);
     void SetTouchEvent(int32_t touchType);
 
     void DecreaseRequestVsyncTimes();

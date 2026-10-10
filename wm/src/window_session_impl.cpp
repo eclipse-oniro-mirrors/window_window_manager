@@ -2153,6 +2153,7 @@ void WindowSessionImpl::UpdateFocusState(bool isFocused, const sptr<FocusNotifyI
         NotifyAfterFocused();
     } else {
         NotifyAfterUnfocused();
+        DisableUiDvsyncSwitchApiIfNeeded(DvsyncDisableReason::UNFOCUS_DISABLE);
     }
 
     WindowFocusChangeReason reason = WindowFocusChangeReason::DEFAULT;
@@ -6525,6 +6526,7 @@ void WindowSessionImpl::NotifyAfterBackground(bool needNotifyListeners, bool nee
         TLOGW(WmsLogTag::WMS_MAIN, "vsyncStation is null");
     }
 
+    DisableUiDvsyncSwitchApiIfNeeded(DvsyncDisableReason::BACKGROUND_DISABLE);
     waterfallModeWhenEnterBackground_ = isFullScreenWaterfallMode_.load();
 }
 
@@ -9906,15 +9908,47 @@ WMError WindowSessionImpl::GetCallingWindowRect(uint32_t callingWindowId, Rect& 
     return SingletonContainer::Get<WindowAdapter>().GetCallingWindowRect(callingWindowId, rect);
 }
 
-void WindowSessionImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void WindowSessionImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
-    TLOGI(WmsLogTag::WMS_MAIN, "SetUiDvsyncSwitch id: %{public}u, dvsyncSwitch: %{public}d, fromWhom: %{public}u", 
-        GetPersistentId(), dvsyncSwitch, static_cast<uint8_t>(fromWhom));
+    TLOGD(WmsLogTag::WMS_MAIN, "SetUiDvsyncSwitch id: %{public}u, dvsyncSwitch: %{public}d, fromWhom: %{public}u,"
+        " reason: %{public}u", GetPersistentId(), dvsyncSwitch, static_cast<uint8_t>(fromWhom),
+        static_cast<uint8_t>(disableReason));
     if (vsyncStation_ == nullptr) {
         TLOGW(WmsLogTag::WMS_MAIN, "vsyncStation is null");
         return;
     }
-    vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom);
+    if (fromWhom == FromWhom::INNER) {
+        vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom, disableReason);
+        return;
+    }
+    if (dvsyncSwitch) {
+        bool isForeground = (GetWindowState() == WindowState::STATE_SHOWN);
+        if (!isForeground || !IsFocused()) {
+            TLOGD(WmsLogTag::WMS_MAIN, "ignore, id: %{public}u, isForeground: %{public}d",
+                GetPersistentId(), isForeground);
+            return;
+        }
+        isUiDvsyncSwitchApiEnabled_.store(true);
+    } else {
+        isUiDvsyncSwitchApiEnabled_.store(false);
+    }
+    vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom, disableReason);
+}
+
+void WindowSessionImpl::DisableUiDvsyncSwitchApiIfNeeded(DvsyncDisableReason reason)
+{
+    if (!isUiDvsyncSwitchApiEnabled_.exchange(false)) {
+        TLOGD(WmsLogTag::WMS_MAIN, "ignore, id: %{public}u, reason: %{public}u",
+            GetPersistentId(), static_cast<uint8_t>(reason));
+        return;
+    }
+    if (vsyncStation_ == nullptr) {
+        TLOGW(WmsLogTag::WMS_MAIN, "vsyncStation is null");
+        return;
+    }
+    TLOGD(WmsLogTag::WMS_MAIN, "disable, id: %{public}u, reason: %{public}u",
+        GetPersistentId(), static_cast<uint8_t>(reason));
+    vsyncStation_->SetUiDvsyncSwitch(false, FromWhom::API, reason);
 }
 
 void WindowSessionImpl::SetTouchEvent(int32_t touchType)
