@@ -42,6 +42,7 @@ constexpr float ZORDER_UIEXTENSION_INDEX = 0.1;
 constexpr int WINDOW_NAME_TYPE_UNKNOWN = 0;
 constexpr int WINDOW_NAME_TYPE_THUMBNAIL = 1;
 constexpr int WINDOW_NAME_TYPE_VOICEINPUT = 2;
+constexpr int WINDOW_INFO_LIST_SIZE_PRE_ALLOC = 2;
 const std::string SCREENSHOT_WINDOW_NAME_PREFIX = "ScreenShotWindow";
 const std::string PREVIEW_WINDOW_NAME_PREFIX = "PreviewWindow";
 const std::string VOICEINPUT_WINDOW_NAME_PREFIX = "__VoiceHardwareInput";
@@ -716,54 +717,72 @@ void SceneSessionDirtyManager::GetModalUIExtensionInfo(std::vector<MMI::WindowIn
     }
 }
 
+sptr<SceneSession> SceneSessionDirtyManager::FindCoverDialog(const sptr<SceneSession>& sceneSession,
+    const std::map<int32_t, sptr<SceneSession>>& dialogMap) const
+{
+    // Find the modal/dialog window that covers the given session in z-order from dialogMap.
+    auto parentSessionId = sceneSession->GetMainSessionOrLoosenedSessionId();
+    auto targetId = (parentSessionId != INVALID_SESSION_ID) ? parentSessionId : sceneSession->GetPersistentId();
+    auto iter = dialogMap.find(targetId);
+    if (iter != dialogMap.end() && iter->second && iter->second->GetZOrder() > sceneSession->GetZOrder()) {
+        TLOGD(WmsLogTag::WMS_EVENT, "find cover dialog, windowId=%{public}d, dialogId=%{public}d",
+            sceneSession->GetWindowId(), iter->second->GetWindowId());
+        return iter->second;
+    }
+    TLOGD(WmsLogTag::WMS_EVENT, "cannot find cover dialog, windowId=%{public}d", sceneSession->GetWindowId());
+    return nullptr;
+}
+
 auto SceneSessionDirtyManager::GetFullWindowInfoList() -> FullInfoForMMI
 {
+    uint32_t maxHotAreasNum = 0;
     std::vector<MMI::WindowInfo> windowInfoList;
     std::vector<std::shared_ptr<Media::PixelMap>> pixelMapList;
-    const auto sceneSessionMap = SceneSessionManager::GetInstance().GetSceneSessionMap();
-    // all input event should trans to dialog window if dialog exists
-    const auto dialogMap = GetDialogSessionMap(sceneSessionMap);
-    uint32_t maxHotAreasNum = 0;
     std::vector<MMI::UIExtensionInfo> uiExtensionInfoList;
-    for (const auto& sceneSessionValuePair : sceneSessionMap) {
-        const auto& sceneSessionValue = sceneSessionValuePair.second;
-        if (sceneSessionValue == nullptr) {
+
+    const auto sceneSessionMap = SceneSessionManager::GetInstance().GetSceneSessionMap();
+    const auto dialogMap = GetDialogSessionMap(sceneSessionMap);
+    // Each session may append at most one extra modal UIExtension window info.
+    windowInfoList.reserve(sceneSessionMap.size() * WINDOW_INFO_LIST_SIZE_PRE_ALLOC);
+    pixelMapList.reserve(sceneSessionMap.size());
+    for (const auto& [_, sceneSession] : sceneSessionMap) {
+        if (sceneSession == nullptr) {
             continue;
         }
         TLOGD(WmsLogTag::WMS_EVENT,
             "[EventDispatch] windowName=%{public}s bundleName=%{public}s"
-            " windowId=%{public}d activeStatus=%{public}d", sceneSessionValue->GetWindowName().c_str(),
-            sceneSessionValue->GetSessionInfo().bundleName_.c_str(), sceneSessionValue->GetWindowId(),
-            sceneSessionValue->GetForegroundInteractiveStatus());
-        auto [windowInfo, pixelMap] = GetWindowInfo(sceneSessionValue, WindowAction::WINDOW_ADD);
-        auto iter = (sceneSessionValue->GetMainSessionOrLoosenedSessionId() == INVALID_SESSION_ID) ?
-            dialogMap.find(sceneSessionValue->GetPersistentId()) :
-            dialogMap.find(sceneSessionValue->GetMainSessionOrLoosenedSessionId());
-        if (iter != dialogMap.end() && iter->second != nullptr &&
-            sceneSessionValue->GetPersistentId() != iter->second->GetPersistentId() &&
-            iter->second->GetZOrder() > sceneSessionValue->GetZOrder()) {
-            windowInfo.agentWindowId = static_cast<int32_t>(iter->second->GetPersistentId());
-            windowInfo.pid = static_cast<int32_t>(iter->second->GetCallingPid());
-            windowInfo.agentPid = static_cast<int32_t>(iter->second->GetCallingPid());
+            " windowId=%{public}d activeStatus=%{public}d", sceneSession->GetWindowName().c_str(),
+            sceneSession->GetSessionInfo().bundleName_.c_str(), sceneSession->GetWindowId(),
+            sceneSession->GetForegroundInteractiveStatus());
+
+        auto [windowInfo, pixelMap] = GetWindowInfo(sceneSession, WindowAction::WINDOW_ADD);
+        // All input events should be transferred to the overlying dialog window when it exists.
+        auto dialog = FindCoverDialog(sceneSession, dialogMap);
+        if (dialog != nullptr) {
+            windowInfo.agentWindowId = static_cast<int32_t>(dialog->GetPersistentId());
+            windowInfo.pid = static_cast<int32_t>(dialog->GetCallingPid());
+            windowInfo.agentPid = static_cast<int32_t>(dialog->GetCallingPid());
         } else {
-            GetModalUIExtensionInfo(windowInfoList, sceneSessionValue, windowInfo);
+            GetModalUIExtensionInfo(windowInfoList, sceneSession, windowInfo);
         }
         TLOGD(WmsLogTag::WMS_EVENT, "windowId=%{public}d, agentWindowId=%{public}d, zOrder=%{public}f",
             windowInfo.id, windowInfo.agentWindowId, windowInfo.zOrder);
-        windowInfoList.emplace_back(windowInfo);
-        pixelMapList.emplace_back(pixelMap);
-        // set the number of hot areas to the maximum number of hot areas when it exceeds the maximum number
-        // to avoid exceeding socket buff limits
-        if (windowInfo.defaultHotAreas.size() > maxHotAreasNum) {
-            maxHotAreasNum = windowInfo.defaultHotAreas.size();
+
+        auto hotAreasSize = windowInfo.defaultHotAreas.size();
+        // Set the number of hot areas to the maximum number of hot areas when it
+        // exceeds the maximum number to avoid exceeding socket buff limits.
+        if (hotAreasSize > maxHotAreasNum) {
+            maxHotAreasNum = hotAreasSize;
         }
-        sceneSessionValue->GetAllUIExtensionTokenInfo(uiExtensionInfoList);
+        windowInfoList.emplace_back(std::move(windowInfo));
+        pixelMapList.emplace_back(std::move(pixelMap));
+        sceneSession->GetAllUIExtensionTokenInfo(uiExtensionInfoList);
     }
     if (maxHotAreasNum > MMI::WindowInfo::DEFAULT_HOTAREA_COUNT) {
         std::sort(windowInfoList.begin(), windowInfoList.end(), CmpMMIWindowInfo);
     }
     TLOGD(WmsLogTag::WMS_EVENT, "uiExtensionInfo size=%{public}d", static_cast<int>(uiExtensionInfoList.size()));
-    return {windowInfoList, pixelMapList, uiExtensionInfoList};
+    return { std::move(windowInfoList), std::move(pixelMapList), std::move(uiExtensionInfoList) };
 }
 
 void SceneSessionDirtyManager::UpdatePointerAreas(sptr<SceneSession> sceneSession,

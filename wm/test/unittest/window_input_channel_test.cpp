@@ -35,6 +35,8 @@ public:
     MOCK_METHOD(bool, IsHitTitleBar, (std::shared_ptr<MMI::PointerEvent>& pointerEvent), (const, override));
     MOCK_METHOD(void, NotifyTouchDialogTarget, (int32_t posX, int32_t posY), (override));
     MOCK_METHOD(WindowType, GetType, (), (const, override));
+    MOCK_METHOD(void, ConsumeKeyEvent, (std::shared_ptr<MMI::KeyEvent>& inputEvent), (override));
+    MOCK_METHOD(bool, PreNotifyKeyEvent, (const std::shared_ptr<MMI::KeyEvent>& keyEvent), (override));
 };
 
 using WindowMocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
@@ -228,6 +230,94 @@ HWTEST_F(WindowInputChannelTest, HandleKeyEvent, TestSize.Level1)
     inputChannel->HandleKeyEvent(keyEvent);
     keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_FN);
     inputChannel->HandleKeyEvent(keyEvent);
+}
+
+/**
+ * @tc.name: HandleKeyEventNullParam
+ * @tc.desc: HandleKeyEvent with null keyEvent or null window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowInputChannelTest, HandleKeyEventNullParam, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto keyEvent = MMI::KeyEvent::Create();
+    ASSERT_NE(keyEvent, nullptr);
+    sptr<WindowInputChannel> inputChannel = new WindowInputChannel(window_);
+    ASSERT_NE(inputChannel, nullptr);
+
+    std::shared_ptr<MMI::KeyEvent> nullKeyEvent = nullptr;
+    inputChannel->HandleKeyEvent(nullKeyEvent);
+    EXPECT_TRUE(g_logMsg.find("keyEvent is null") != std::string::npos);
+
+    g_logMsg.clear();
+    inputChannel->window_ = nullptr;
+    inputChannel->HandleKeyEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("window_ is null") != std::string::npos);
+    inputChannel->window_ = window_;
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: HandleKeyEventPreNotifyConsumed
+ * @tc.desc: HandleKeyEvent when PreNotifyKeyEvent consumed and non-keyboard event dispatch to ACE
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowInputChannelTest, HandleKeyEventPreNotifyConsumed, TestSize.Level1)
+{
+    auto keyEvent = MMI::KeyEvent::Create();
+    ASSERT_NE(keyEvent, nullptr);
+    keyEvent->SetAgentWindowId(0);
+    keyEvent->SetTargetWindowId(0);
+    auto window = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(window, nullptr);
+    sptr<WindowInputChannel> inputChannel = sptr<WindowInputChannel>::MakeSptr(window);
+    ASSERT_NE(inputChannel, nullptr);
+
+    EXPECT_CALL(*window, GetType()).WillRepeatedly(Return(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW));
+    EXPECT_CALL(*window, PreNotifyKeyEvent(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*window, ConsumeKeyEvent(_)).Times(0);
+    inputChannel->HandleKeyEvent(keyEvent);
+    testing::Mock::VerifyAndClearExpectations(window);
+
+    EXPECT_CALL(*window, GetType()).WillRepeatedly(Return(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW));
+    EXPECT_CALL(*window, PreNotifyKeyEvent(_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(*window, ConsumeKeyEvent(_)).Times(1);
+    keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_UNKNOWN);
+    inputChannel->HandleKeyEvent(keyEvent);
+    testing::Mock::VerifyAndClearExpectations(window);
+}
+
+/**
+ * @tc.name: HandleKeyEventDispatchToIMF
+ * @tc.desc: HandleKeyEvent with keyboard event goes to input method branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowInputChannelTest, HandleKeyEventDispatchToIMF, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    auto keyEvent = MMI::KeyEvent::Create();
+    ASSERT_NE(keyEvent, nullptr);
+    keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_BACK);
+    keyEvent->SetAgentWindowId(0);
+    keyEvent->SetTargetWindowId(0);
+    auto window = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(window, nullptr);
+    sptr<WindowInputChannel> inputChannel = sptr<WindowInputChannel>::MakeSptr(window);
+    ASSERT_NE(inputChannel, nullptr);
+
+    EXPECT_CALL(*window, GetType()).WillRepeatedly(Return(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW));
+    EXPECT_CALL(*window, PreNotifyKeyEvent(_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(*window, ConsumeKeyEvent(_)).Times(AnyNumber());
+    inputChannel->HandleKeyEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("send to IMF") != std::string::npos ||
+        g_logMsg.find("controller is null") != std::string::npos ||
+        g_logMsg.find("dispatch") != std::string::npos);
+    testing::Mock::VerifyAndClearExpectations(window);
+    LOG_SetCallback(nullptr);
 }
 
 /**
