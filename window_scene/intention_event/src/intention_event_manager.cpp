@@ -321,7 +321,8 @@ void IntentionEventManager::InputEventListener::OnInputEvent(std::shared_ptr<MMI
             return;
         }
         TLOGI(WmsLogTag::WMS_INPUT_KEY_FLOW,
-            "send to IMF, id=%{public}d, focusedSessionId=%{public}d", keyEvent->GetId(), focusedSessionId);
+            "send to IMF, id=%{public}d, focusedSessionId=%{public}d",
+            keyEvent->GetId(), focusedSessionId);
         auto callback = [this, focusedSessionId] (std::shared_ptr<MMI::KeyEvent>& keyEvent, bool consumed) {
             this->DispatchKeyEventCallback(focusedSessionId, keyEvent, consumed);
         };
