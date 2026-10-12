@@ -24,6 +24,7 @@
 #include "wm_common.h"
 #include "wm_common_inner.h"
 #include "wm_math.h"
+#include "wm_type.h"
 
 namespace OHOS {
 namespace Rosen {
