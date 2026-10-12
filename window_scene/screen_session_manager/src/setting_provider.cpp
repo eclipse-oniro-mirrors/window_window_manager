@@ -154,6 +154,7 @@ ErrCode SettingProvider::RegisterObserver(const sptr<SettingObserver>& observer)
         observer->GetKey() == SETTING_SCREEN_BORDERING_AREA_PERCENT_KEY ||
         observer->GetKey() == SETTING_DISPLY_WIRED_SCREEN_GAMUT_KEY)) ?
         AssembleUriMultiUser(observer->GetKey()) : AssembleUri(observer->GetKey());
+    observer->SetRegisteredUri(uri.ToString());
     auto helper = CreateDataShareHelper();
     if (helper == nullptr) {
         IPCSkeleton::SetCallingIdentity(callingIdentity);
@@ -175,7 +176,12 @@ ErrCode SettingProvider::UnregisterObserver(const sptr<SettingObserver>& observe
         return ERR_NO_INIT;
     }
     std::string callingIdentity = IPCSkeleton::ResetCallingIdentity();
-    auto uri = AssembleUri(observer->GetKey());
+    // Unregister through the uri the observer was actually registered on. Multi-user keys
+    // (resolution effect / custom resolution / ...) live on a per-user table; resolving the
+    // uri from the CURRENT user (or the plain proxy uri) misses them, leaving a live
+    // observer on the previous user's table after a user switch.
+    const std::string& registeredUri = observer->GetRegisteredUri();
+    Uri uri = registeredUri.empty() ? AssembleUri(observer->GetKey()) : Uri(registeredUri);
     auto helper = CreateDataShareHelper();
     if (helper == nullptr) {
         IPCSkeleton::SetCallingIdentity(callingIdentity);
