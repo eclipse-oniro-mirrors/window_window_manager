@@ -813,6 +813,7 @@ WmErrorCode JsPipController::UnRegisterListenerWithType(napi_env env, const std:
     }
 
     if (value == nullptr) {
+        TLOGI(WmsLogTag::WMS_PIP, "SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto& listener : jsCbMap_[type]) {
             WmErrorCode ret = UnRegisterListener(type, listener);
             HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ret);

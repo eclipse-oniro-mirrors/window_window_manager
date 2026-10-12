@@ -666,7 +666,7 @@ napi_value JsFloatViewController::UnregisterCallbackWithType(
     napi_value argv[ONE_PARAMS_SIZE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < ARG_COUNT_ONE) {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "no callback specific, unregister all");
+        TLOGI(WmsLogTag::WMS_SYSTEM, "[FV]SubEvent op=off_all kit=ArkUIKit event=%{public}d", callbackType);
         for (auto& callback : jsCallbackMap_[callbackType]) {
             WMError ret = DoUnregisterCallbackWithType(callbackType, callback);
             if (ret != WMError::WM_OK) {
