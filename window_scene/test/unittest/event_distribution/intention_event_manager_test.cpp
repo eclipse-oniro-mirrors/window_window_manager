@@ -19,7 +19,6 @@
 #include "mock_uicontent.h"
 #include "session/host/include/scene_session.h"
 #include "session_manager/include/scene_session_manager.h"
-#include "window_manager_hilog.h"
 
 using namespace testing;
 using namespace testing::ext;
