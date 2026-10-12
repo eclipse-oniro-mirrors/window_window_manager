@@ -419,10 +419,13 @@ ani_object AniExtensionWindow::OnCreateSubWindowWithOptions(ani_env* env, ani_st
     option->SetOnlySupportSceneBoard(true);
     option->SetIsUIExtFirstSubWindow(true);
     option->SetFollowCreatorLifecycle(static_cast<bool>(followCreatorLifecycle));
-    auto window = Window::Create(windowName, option, extensionWindow_->GetWindow()->GetContext());
+    std::string errMsg;
+    auto window = Window::Create(windowName, option, errMsg, extensionWindow_->GetWindow()->GetContext());
     if (window == nullptr) {
         TLOGI(WmsLogTag::WMS_UIEXT, "create sub window failed");
-        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        std::string msg = "[window][createSubWindowWithOptions]msg: " +
+            (errMsg.empty() ? "Create sub window failed." : errMsg);
+        return AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, msg);
     }
     if (!window->IsTopmost()) {
         extensionWindow_->GetWindow()->NotifyModalUIExtensionMayBeCovered(false);
