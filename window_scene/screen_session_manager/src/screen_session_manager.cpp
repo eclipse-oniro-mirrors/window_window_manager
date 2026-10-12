@@ -13772,7 +13772,7 @@ void ScreenSessionManager::HandleResolutionEffectAfterSwitchUser() {
         TLOGE(WmsLogTag::DMS, "Internal Session null");
         return;
     }
-    if (!FoldScreenStateInternel::IsSuperFoldDisplayDevice() && g_isPcDevice) {
+    if (g_isPcDevice) {
         internalSession->PropertyChange(internalSession->GetScreenProperty(), ScreenPropertyChangeReason::CHANGE_MODE);
     }
 }
