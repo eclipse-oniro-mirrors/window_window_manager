@@ -2285,7 +2285,7 @@ WSError WindowSessionImpl::NotifyDpiHookScale(float scale)
     if (!MathHelper::NearZero(dpiHookScale_ - scale)) {
         dpiHookScale_ = scale;
         if (scale > 0.0f && uiContent != nullptr) {
-            uiContent->MarkUIExtensionDensityFollowHost();
+            uiContent->SetUIExtensionDensityFollowHost(DpiFollowStrategy::FOLLOW_HOST_DPI_ALL);
         }
         UpdateDensity();
     }
@@ -3049,7 +3049,7 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
               singleHandTransform_.scaleX, singleHandTransform_.scaleY, dpiHookScale_);
         uiContent->UpdateSingleHandTransform(singleHandTransform_);
         if (dpiHookScale_ > 0.0f) {
-            uiContent->MarkUIExtensionDensityFollowHost();
+            uiContent->SetUIExtensionDensityFollowHost(DpiFollowStrategy::FOLLOW_HOST_DPI_ALL);
         }
     }
     WindowType winType = GetType();

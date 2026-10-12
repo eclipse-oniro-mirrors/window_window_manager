@@ -973,6 +973,7 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         } else if (usage == UIExtensionUsage::PREVIEW_EMBEDDED) {
             uiContent->SetUIContentType(Ace::UIContentType::PREVIEW_UI_EXTENSION);
         }
+        uiContent->SetUIExtensionDensityFollowHost(dpiFollowStrategy_.load());
         uiContent->SetHostParams(extensionConfig_);
         if (initByName) {
             if (envType == EnvironmentType::ANI) {
@@ -1365,6 +1366,7 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
     if (!NearEqual(oldDensity, config.density_)) {
         NotifyWindowDensityChange(config.density_);
     }
+    uiContent->SetUIExtensionDensityFollowHost(dpiFollowStrategy_.load());
     uiContent->UpdateViewportConfig(
         viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, GetLastAvoidAreaMapCopy());
     return WSError::WS_OK;
