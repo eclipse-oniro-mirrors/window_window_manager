@@ -71,6 +71,7 @@ public:
     WSError ClearAllSessions() override;
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;

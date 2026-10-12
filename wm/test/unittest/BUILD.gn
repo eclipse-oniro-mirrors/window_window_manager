@@ -82,6 +82,8 @@ group("unittest") {
       "rotation:wm_window_scene_session_impl_rotation_test",
       ":wm_window_scene_test",
       ":wm_window_session_impl_compatible_mode_test",
+      ":wm_window_session_impl_adaptive_test",
+      ":wm_game_adaptive_agent_test",
       ":wm_window_session_impl_test",
       ":wm_window_session_impl_test2",
       ":wm_window_session_impl_test3",
@@ -286,6 +288,37 @@ ohos_unittest("wm_vsync_station_test") {
   sources = [ "vsync_station_test.cpp" ]
 
   deps = [ ":wm_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_session_impl_adaptive_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "${window_base_path}/wm/src" ]
+  sources = [ "adaptive_resolution_window_session_impl_test.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_game_adaptive_agent_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [ "${window_base_path}/wm/src" ]
+  sources = [
+    "game_adaptive_agent_lite_test.cpp",
+    "game_adaptive_agent_test.cpp",
+  ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
 
   external_deps = test_external_deps
 }

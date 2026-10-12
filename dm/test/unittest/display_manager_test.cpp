@@ -3895,5 +3895,31 @@ HWTEST_F(DisplayManagerTest, on_specified_display_power_event_001, TestSize.Leve
     testListener->OnSpecifiedDisplayPowerEvent(0, DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN);
     ASSERT_EQ(isNotified, true);
 }
+
+/**
+ * @tc.name: GetDisplayByIdSkipCache001
+ * @tc.desc: skipCache bypasses a fresh cached entry; the two-arg form still hits it
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetDisplayByIdSkipCache001, TestSize.Level1)
+{
+    DisplayId displayId = 500;
+    sptr<DisplayInfo> displayInfo = new DisplayInfo();
+    sptr<Display> display = new Display("displayMock", displayInfo);
+    DisplayManager::GetInstance().pImpl_->displayMap_.insert(std::make_pair(displayId, display));
+    uint64_t tag = DisplayManager::GetInstance().pImpl_->GetCurrentTimeTagNs();
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_[displayId] = tag;
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_[displayId] = tag;
+
+    // control: the two-arg form returns the fresh cached entry without the display service
+    EXPECT_EQ(DisplayManager::GetInstance().GetDisplayById(displayId, false), display);
+    // skipCache bypasses the fresh entry and degrades to nullptr without the display service
+    EXPECT_EQ(DisplayManager::GetInstance().GetDisplayById(displayId, false, true), nullptr);
+
+    DisplayManager::GetInstance().pImpl_->displayMap_.erase(displayId);
+    DisplayManager::GetInstance().pImpl_->globalDisplayTagMap_.erase(displayId);
+    DisplayManager::GetInstance().pImpl_->currentDisplayTagMap_.erase(displayId);
+}
+}
 } // namespace Rosen
 } // namespace OHOS

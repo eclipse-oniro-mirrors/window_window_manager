@@ -122,5 +122,17 @@ void WindowManagerAgent::NotifySessionSaveSnapShotComplete(int32_t persistentId)
     TLOGD(WmsLogTag::WMS_PATTERN, "userId_=%{public}d, persistentId=%{public}d", userId_, persistentId);
     WindowManager::GetInstance(userId_).NotifySessionSaveSnapShotComplete(persistentId);
 }
+
+void WindowManagerAgent::OnGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "userId_=%{public}d, windowId=%{public}d", userId_, windowId);
+    WindowManager::GetInstance(userId_).NotifyGameAdaptiveResolutionCancelled(windowId);
+}
+
+void WindowManagerAgent::OnGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "userId_=%{public}d, windowId=%{public}d", userId_, windowId);
+    WindowManager::GetInstance(userId_).NotifyGameAdaptiveResolutionAvailable(windowId);
+}
 } // namespace Rosen
 } // namespace OHOS

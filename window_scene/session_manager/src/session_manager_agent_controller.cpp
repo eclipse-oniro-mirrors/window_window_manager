@@ -378,5 +378,35 @@ void SessionManagerAgentController::NotifySessionSaveSnapShotComplete(int32_t pe
         }
     }
 }
+
+void SessionManagerAgentController::NotifyGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    auto agents = smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyGameAdaptiveResolutionCancelled] windowId: %{public}d, "
+        "agents: %{public}zu", windowId, agents.size());
+    for (const auto& agent : agents) {
+        if (agent != nullptr) {
+            agent->OnGameAdaptiveResolutionCancelled(windowId);
+        } else {
+            TLOGE(WmsLogTag::WMS_COMPAT, "agent is nullptr");
+        }
+    }
+}
+
+void SessionManagerAgentController::NotifyGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    auto agents = smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyGameAdaptiveResolutionAvailable] windowId: %{public}d, "
+        "agents: %{public}zu", windowId, agents.size());
+    for (const auto& agent : agents) {
+        if (agent != nullptr) {
+            agent->OnGameAdaptiveResolutionAvailable(windowId);
+        } else {
+            TLOGE(WmsLogTag::WMS_COMPAT, "agent is nullptr");
+        }
+    }
+}
 } // namespace Rosen
 } // namespace OHOS

@@ -187,10 +187,12 @@ public:
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
         TRANS_ID_SET_WINDOW_POSITION,
         TRANS_ID_GET_ALL_GROUP_INFO,
+        TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
     virtual WSError SetSessionIcon(const sptr<IRemoteObject>& token, const std::shared_ptr<Media::PixelMap>& icon) = 0;
+
     virtual WSError IsValidSessionIds(const std::vector<int32_t>& sessionIds, std::vector<bool>& results) = 0;
     virtual WSError PendingSessionToForeground(const sptr<IRemoteObject>& token,
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) = 0;

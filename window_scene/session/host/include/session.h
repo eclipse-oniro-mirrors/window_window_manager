@@ -131,6 +131,10 @@ using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
 using UpdateAppHookDisplayInfoFunc = std::function<WMError(int32_t uid, const HookInfo& hookInfo, bool enable)>;
+using AdaptiveResolutionConfigFunc =
+    std::function<WMError(int32_t persistentId, int32_t callingUid, const GameAdaptiveResolutionConfig& config)>;
+using AdaptiveResolutionModeChangeFunc = std::function<void(WindowMode newMode)>;
+using AdaptiveResolutionHookWindowChangeFunc = std::function<void(bool enableHookWindow)>;
 using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
 using SaveStartWindowFunc = std::function<void(std::string, std::string)>;
 
@@ -904,9 +908,17 @@ public:
     const sptr<LayoutController>& GetLayoutController() const { return layoutController_; }
     virtual WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
     virtual WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
+    virtual WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) { return WSError::WS_OK; }
     void NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason reason);
     void SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func);
     void SetUpdateAppHookDisplayInfoFunc(const UpdateAppHookDisplayInfoFunc& func);
+    void SetAdaptiveResolutionConfigFunc(const AdaptiveResolutionConfigFunc& func);
+    void SetAdaptiveResolutionModeChangeFunc(const AdaptiveResolutionModeChangeFunc& func);
+    void NotifyAdaptiveResolutionModeChange(WindowMode newMode);
+    void SetAdaptiveResolutionHookWindowChangeFunc(
+        const AdaptiveResolutionHookWindowChangeFunc& func);
+    void NotifyAdaptiveResolutionHookWindowChange(bool enableHookWindow);
     WSError UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
                                  const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
                                  const std::shared_ptr<RSTransaction>& rsTransaction);
@@ -1200,6 +1212,9 @@ protected:
     NotifyRestoreFloatingBallMainWindowFunc restoreFloatingBallMainWindowFunc_;
     GetRsCmdBlockingCountFunc getRsCmdBlockingCountFunc_;
     UpdateAppHookDisplayInfoFunc updateAppHookDisplayInfoFunc_;
+    AdaptiveResolutionConfigFunc adaptiveResolutionConfigFunc_;
+    AdaptiveResolutionModeChangeFunc adaptiveResolutionModeChangeFunc_;
+    AdaptiveResolutionHookWindowChangeFunc adaptiveResolutionHookWindowChangeFunc_;
     NotifyRestoreFloatMainWindowFunc restoreFloatMainWindowFunc_;
     NotifyStopFloatViewFunc stopFloatViewFunc_;
     NotifyUpdateFloatViewFunc updateFloatViewFunc_;

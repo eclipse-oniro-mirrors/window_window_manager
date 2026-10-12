@@ -66,6 +66,7 @@ private:
     int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleCheckWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateWindowModeByIdForUITest(MessageParcel& data, MessageParcel& reply);
+    int HandleSetGameAdaptiveResolutionForWindow(MessageParcel& data, MessageParcel& reply);
     int HandleCheckUIExtensionCreation(MessageParcel& data, MessageParcel& reply);
     int HandleSetGlobalDragResizeType(MessageParcel& data, MessageParcel& reply);
     int HandleGetGlobalDragResizeType(MessageParcel& data, MessageParcel& reply);

@@ -143,6 +143,9 @@ enum class SessionStageInterfaceCode {
     TRANS_ID_NOTIFY_DPI_FORCE_SCALE_CHANGE,
     // set window start density for UEA provider
     TRANS_ID_SET_WINDOW_START_DENSITY,
+
+    // Adaptive resolution
+    TRANS_ID_NOTIFY_ADAPTIVE_RESOLUTION_CHANGED,
 };
 }   // namespace Rosen
 }   // namespace OHOS
