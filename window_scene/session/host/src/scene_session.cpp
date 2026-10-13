@@ -2118,7 +2118,7 @@ WSError SceneSession::NotifyClientToUpdateRectTask(const std::string& updateReas
     bool noNeedTrans = reason == SizeChangeReason::UNDEFINED || reason == SizeChangeReason::RESIZE ||
                        reason == SizeChangeReason::MOVE || reason == SizeChangeReason::DRAG_MOVE;
     auto transaction = noNeedTrans ? nullptr : rsTransaction;
-    WSError ret = Session::UpdateRectWithLayoutInfo(winRect, reason, updateReason, transaction, avoidAreas);
+    WSError ret = Session::UpdateRectWithLayoutInfoInner(winRect, reason, updateReason, transaction, avoidAreas);
 #ifdef DEVICE_STATUS_ENABLE
     // In window rotation scenarios, a transaction will be provided. By reusing this
     // transaction, RS can synchronously apply rotation to both the main window and

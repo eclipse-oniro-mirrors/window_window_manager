@@ -525,9 +525,12 @@ public:
     bool IsDraggingReason(SizeChangeReason reason) const;
     virtual WSError UpdateRect(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr);
-    virtual WSError UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+    WSError UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
+    virtual WSError UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+        const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
+        const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {}, bool onlyUpdateAvoidArea = false);
     void IsNeedNotifySubSessionParentSizeChange(const WSRect& rect);
     virtual void NotifySubSessionParentSizeChange(Rect rect){};
     virtual void NotifySubSessionParentStatusChange(WindowMode mode){};
