@@ -4375,6 +4375,7 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
     }
     sceneSession->NotifyActivation();
     auto sceneSessionInfo = SetAbilitySessionInfo(sceneSession, requestId, true);
+    sceneSessionInfo->requestId = requestId;
     sceneSessionInfo->isNewWant = isNewActive;
     sceneSessionInfo->targetGrantBundleName =
         sceneSession->GetSessionInfo().GetWantSafely().GetStringParam("targetGrantBundleName");
