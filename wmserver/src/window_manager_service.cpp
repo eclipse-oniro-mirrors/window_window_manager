@@ -1380,6 +1380,11 @@ WMError WindowManagerService::ToggleShownStateForAllAppWindows()
 
 WMError WindowManagerService::GetTopWindowId(uint32_t mainWinId, uint32_t& topWinId)
 {
+    if (!accessTokenIdMaps_.isExist(mainWinId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "GetTopWindowId operation rejected");
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
     auto task = [this, &topWinId, mainWinId]() {
         return windowController_->GetTopWindowId(mainWinId, topWinId);
     };
@@ -1527,6 +1532,10 @@ WMError WindowManagerService::GetUnreliableWindowInfo(int32_t windowId,
 WMError WindowManagerService::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos,
     bool useHookedSize)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("get visibility window info permission denied!");
+        return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
     auto task = [this, &infos]() {
         return windowController_->GetVisibilityWindowInfo(infos);
     };
@@ -1660,6 +1669,11 @@ void WindowManagerService::OffWindowZoom()
 
 WMError WindowManagerService::UpdateRsTree(uint32_t windowId, bool isAdd)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "UpdateRsTree operation rejected");
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
     auto task = [this, windowId, isAdd]() {
         return windowRoot_->UpdateRsTree(windowId, isAdd);
     };
@@ -1733,6 +1747,11 @@ MaximizeMode WindowManagerService::GetMaximizeMode()
 
 void WindowManagerService::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
+    focusInfo = FocusChangeInfo();
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "GetFocusWindowInfo permission denied");
+        return;
+    }
     WLOGFD("Get Focus window info in wms");
     windowController_->GetFocusWindowInfo(focusInfo);
 }

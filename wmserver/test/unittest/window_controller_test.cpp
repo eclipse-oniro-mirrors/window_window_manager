@@ -153,7 +153,7 @@ HWTEST_F(WindowControllerTest, NotifyWindowTransition, Function | SmallTest | Le
 {
     sptr<WindowTransitionInfo> srcInfo = nullptr;
     sptr<WindowTransitionInfo> dstInfo = nullptr;
-    ASSERT_EQ(WMError::WM_ERROR_NO_REMOTE_ANIMATION, windowController_->NotifyWindowTransition(srcInfo, dstInfo));
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowController_->NotifyWindowTransition(srcInfo, dstInfo));
 
     srcInfo = new WindowTransitionInfo();
     sptr<IRemoteObject> srcAbilityTokenMocker = new IRemoteObjectMocker();
