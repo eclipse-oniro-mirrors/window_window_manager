@@ -510,7 +510,7 @@ void AniFvController::UnregisterCallbackWithType(ani_env* env, CallbackType call
     env->Reference_IsUndefined(callback, &isUndef);
     env->Reference_IsNull(callback, &isNull);
     if (callback == nullptr || isUndef || isNull) {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "[ANI][FV]SubEvent op=off_all kit=ArkUIKit event=%{public}d",
+        TLOGI(WmsLogTag::WMS_SYSTEM, "[ANI][FV]SubEvent op=off_all kit=ArkUIKit event=%{public}u",
             static_cast<uint32_t>(callbackType));
         for (auto& [ref, listener] : typeCallbackListenerMap_[callbackType]) {
             WMError ret = DoUnRegisterListenerWithType(callbackType, listener);

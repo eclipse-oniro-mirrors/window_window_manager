@@ -911,7 +911,8 @@ void AniFbController::OnUnRegisterCallback(ani_env* env,
     ani_boolean isUndef = ANI_FALSE;
     env->Reference_IsUndefined(callback, &isUndef);
     if (isUndef == ANI_TRUE) {
-        TLOGI(WmsLogTag::DEFAULT, "[ANI][FB]SubEvent op=off_all kit=ArkUIKit event=%{public}u", fbListenerType);
+        TLOGI(WmsLogTag::DEFAULT, "[ANI][FB]SubEvent op=off_all kit=ArkUIKit event=%{public}u",
+            static_cast<uint32_t>(fbListenerType));
         for (auto it = typeCallbackListenerMap_[fbListenerType].begin();
             it != typeCallbackListenerMap_[fbListenerType].end();) {
             WMError ret = aniFbController->UnRegisterListener(fbListenerType, it->second);
