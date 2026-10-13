@@ -232,6 +232,7 @@ public:
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError DrawingCompleted() override;
+    WSError StartWithSnapshot() override;
     void ResetSessionConnectState() REQUIRES(SCENE_GUARD);
     void ResetIsActive();
     void SetIsGamePrelaunch(bool isGamePrelaunch);
@@ -383,6 +384,7 @@ public:
      */
     std::shared_ptr<Media::PixelMap> Snapshot() const;
     std::shared_ptr<Media::PixelMap> Snapshot(const SnapshotOptions& options) const;
+    virtual bool CheckAndGetRogScale(float& scale) const { return false; }
     void ResetSnapshot();
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
@@ -416,6 +418,8 @@ public:
     };
     bool GetAppLockControl() const { return isAppLockControl_.load(); };
     void SetAppLockControl(bool control) { isAppLockControl_.store(control); };
+    bool GetStartWithSnapshot() const { return startWithSnapshot_.load(); }
+    void SetStartWithSnapshot(bool startWithSnapshot) { startWithSnapshot_.store(startWithSnapshot); }
     void SetSaveSnapshotCallback(Task&& task)
     {
         if (task) {
@@ -1486,6 +1490,7 @@ private:
     /*
      * Window Pattern
      */
+    std::atomic<bool> startWithSnapshot_ { false };
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };

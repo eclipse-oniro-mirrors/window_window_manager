@@ -1873,9 +1873,13 @@ bool SceneSessionManager::ConfigWindowLayout(const WindowSceneConfig::ConfigItem
         TLOGW(WmsLogTag::WMS_LAYOUT, "The windowLayoutConfig is invalid (not a map).");
         return false;
     }
-    ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
-    ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
-    ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
+    // system::SetParameter may block the main thread under heavy CPU load.
+    // Execute the configuration methods asynchronously in order on the OS_SceneSessionManager thread.
+    taskScheduler_->PostAsyncTask([this, windowLayoutConfig] {
+        ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
+        ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
+        ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
+    }, __func__);
     return true;
 }
 
@@ -6276,6 +6280,11 @@ void SceneSessionManager::SetMoveMainWindowToTargetDisplayListener(NotifyMoveMai
     moveMainWindowToTargetDisplayFunc_ = std::move(func);
 }
 
+void SceneSessionManager::SetWindowPositionListener(NotifySetWindowPositionFunc&& listener)
+{
+    setWindowPositionFunc_ = std::move(listener);
+}
+
 void SceneSessionManager::SetCreateKeyboardSessionListener(const NotifyCreateKeyboardSessionFunc& func)
 {
     createKeyboardSessionFunc_ = func;
@@ -8486,12 +8495,36 @@ std::vector<std::pair<DisplayId, int32_t>> SceneSessionManager::GetAllFocusedSes
     return windowFocusController_->GetAllFocusedSessionList();
 }
 
+DisplayId SceneSessionManager::ResolveDefaultDisplayId(DisplayId displayId)
+{
+    if (displayId != DISPLAY_ID_INVALID) {
+        return displayId;
+    }
+    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
+    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
+    static const bool g_defaultDisplayResolve =
+        system::GetBoolParameter("persist.window.default_display_resolve", false);
+    if (!g_defaultDisplayResolve) {
+        return DEFAULT_DISPLAY_ID;
+    }
+    int32_t userId = currentUserId_;
+    if (userId == DEFAULT_USERID) {
+        userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
+    }
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
+    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    TLOGD(WmsLogTag::WMS_FOCUS,
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, displayId);
+    return displayId;
+}
+
 void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     if (!SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     taskScheduler_->PostSyncTask([this, &focusInfo, displayId] {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -10501,6 +10534,7 @@ void SceneSessionManager::UpdateFocusStatus(DisplayId displayId, const sptr<Scen
 void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSession, bool isFocused,
     const sptr<FocusGroup>& focusGroup, const sptr<FocusNotifyInfo>& focusNotifyInfo,
     int32_t otherWindowId, int32_t otherUid, int32_t otherPid)
+{
     if (focusGroup == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr");
         return;
@@ -14928,27 +14962,26 @@ WSErrorResult SceneSessionManager::RestoreSessionToForeground(int32_t persistent
             "Permission denied for restoring session to foreground!"};
     }
     if (!systemConfig_.IsSupportPCMode()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "device not support");
-        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "device not support"};
+        TLOGE(WmsLogTag::WMS_LIFE, "Device not support");
+        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "Device not support"};
     }
     if (IsScreenLocked()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "screen is locked, cannot restore session to foreground");
+        TLOGE(WmsLogTag::WMS_LIFE, "Screen is locked, cannot restore session to foreground");
         return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION,
-            "screen is locked, cannot restore session to foreground"};
+            "Screen is locked, cannot restore session to foreground"};
     }
     auto session = GetMainSessionByPersistentId(persistentId);
-    if (session == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "fail to find main window"};
+    if (session == nullptr || session->GetSessionState() == SessionState::STATE_DISCONNECT) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Session not found or disconnected");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "Session not found or disconnected"};
     }
     if (!restoreSessionToForegroundFunc_) {
-        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "listener is null"};
+        TLOGE(WmsLogTag::WMS_LIFE, "Listener is null");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "Listener is null"};
     }
     auto func = restoreSessionToForegroundFunc_;
-    auto screenId = session->GetScreenId();
-    taskScheduler_->PostTask([func = std::move(func), persistentId, screenId]() {
-        func(persistentId, screenId);
+    taskScheduler_->PostTask([func = std::move(func), persistentId]() {
+        func(persistentId);
     }, __func__);
     return WSErrorResult{WSError::WS_OK, ""};
 }
@@ -14997,6 +15030,7 @@ WSError SceneSessionManager::GetFocusSessionToken(sptr<IRemoteObject>& token, Di
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     return taskScheduler_->PostSyncTask([this, &token, where = __func__, displayId]() {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -15026,6 +15060,7 @@ WSError SceneSessionManager::GetFocusSessionElement(AppExecFwk::ElementName& ele
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     return taskScheduler_->PostSyncTask([this, &element, where = __func__, displayId]() {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -17315,6 +17350,179 @@ WSError SceneSessionManager::MoveMainWindowToTargetDisplay(DisplayId displayId, 
 }
 
 /** @note @window.hierarchy */
+WSError SceneSessionManager::CheckSetWindowPositionPermission(
+    const std::vector<WindowPositionParams>& windowPositions, const uint32_t callingTokenId)
+{
+    bool needTopmost = false;
+    for (const auto& position : windowPositions) {
+        if (position.windowId <= 0 ||
+            position.insertAfter < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "invalid param, windowId: %{public}d, insertAfter: %{public}d",
+                position.windowId, position.insertAfter);
+            return WSError::WS_ERROR_INVALID_PARAM;
+        }
+        if (position.insertAfter == static_cast<int32_t>(WindowPosition::TOPMOST)) {
+            needTopmost = true;
+        }
+    }
+    if (needTopmost &&
+        !SessionPermission::VerifyPermissionByCallerToken(callingTokenId,
+            PermissionConstants::PERMISSION_MAIN_WINDOW_TOPMOST)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied for topmost");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionWindowId(const WindowPositionParams& position,
+    const int32_t callingPid, bool& needTopmostOnRemove)
+{
+    auto sceneSession = GetSceneSession(position.windowId);
+    if (sceneSession == nullptr || sceneSession->IsTerminated()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "session is null or terminated, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "window is not main window, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    if (callingPid != sceneSession->GetCallingPid()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, not call by the same process, windowId: %{public}d",
+            position.windowId);
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    WSError err = CheckSetWindowPositionDisplaySupport(sceneSession, "window", position.windowId);
+    if (err != WSError::WS_OK) {
+        return err;
+    }
+    if (sceneSession->GetSessionProperty()->IsMainWindowTopmost() &&
+        position.insertAfter == static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+        needTopmostOnRemove = true;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionDisplaySupport(const sptr<SceneSession>& sceneSession,
+    const std::string& targetName, const int32_t targetId)
+{
+    if (sceneSession->IsSuperMultiFoldOuterScreen()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on super multi fold outer screen, id: %{public}d",
+            targetName.c_str(), targetId);
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(sceneSession->GetDisplayId());
+    if (screenSession == nullptr ||
+        screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on virtual screen, id: %{public}d",
+            targetName.c_str(), targetId);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionInsertAfter(const WindowPositionParams& position)
+{
+    if (position.insertAfter <= 0) {
+        return WSError::WS_OK;
+    }
+    auto insertAfterSession = GetSceneSession(position.insertAfter);
+    if (insertAfterSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target not found, insertAfter: %{public}d",
+            position.insertAfter);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!SessionHelper::IsMainWindow(insertAfterSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target is not main window, insertAfter: %{public}d",
+            position.insertAfter);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    return CheckSetWindowPositionDisplaySupport(insertAfterSession, "insertAfter target", position.insertAfter);
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
+    const int32_t callingPid, const uint32_t callingTokenId)
+{
+    const auto& windowPositions = windowPositionInfo.windowPositions;
+    bool needTopmostOnRemove = false;
+    for (const auto& position : windowPositions) {
+        WSError err = CheckSetWindowPositionWindowId(position, callingPid, needTopmostOnRemove);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+        err = CheckSetWindowPositionInsertAfter(position);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+    }
+    if (needTopmostOnRemove &&
+        !SessionPermission::VerifyPermissionByCallerToken(callingTokenId,
+            PermissionConstants::PERMISSION_MAIN_WINDOW_TOPMOST)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied for removing topmost");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    return WSError::WS_OK;
+}
+
+void SceneSessionManager::UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions)
+{
+    for (const auto& position : windowPositions) {
+        // Only these two sentinels change the topmost state. The other values are one-shot z-order
+        // adjustments and leave the global topmost state untouched.
+        if (position.insertAfter != static_cast<int32_t>(WindowPosition::TOPMOST) &&
+            position.insertAfter != static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            continue;
+        }
+        auto sceneSession = GetSceneSession(position.windowId);
+        if (sceneSession == nullptr) {
+            continue;
+        }
+        // The topmost state is part of the session property. The client only sends the requested
+        // z-order and does not go through the property update flow for this api, so the property
+        // has to be kept in sync here, for both setting and removing topmost.
+        bool isTopmost = position.insertAfter == static_cast<int32_t>(WindowPosition::TOPMOST);
+        sceneSession->GetSessionProperty()->SetMainWindowTopmost(isTopmost);
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "windowId: %{public}d, mainWindowTopmost: %{public}d",
+            position.windowId, isTopmost);
+    }
+}
+
+WSError SceneSessionManager::SetWindowPosition(const WindowPositionInfo& windowPositionInfo)
+{
+    if (!systemConfig_.IsPcWindow()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "device not support");
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    const auto& windowPositions = windowPositionInfo.windowPositions;
+    if (windowPositions.empty()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions is empty");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    // The checks read state confined to the OS_SceneSession thread (session map, session properties,
+    // screen sessions) and must run there. IPCSkeleton reads the calling identity of the current
+    // thread, so the pid and token have to be captured here, on the ipc thread, before posting.
+    const int32_t callingPid = IPCSkeleton::GetCallingPid();
+    const uint32_t callingTokenId = IPCSkeleton::GetCallingTokenID();
+    auto task = [this, windowPositionInfo, callingPid, callingTokenId]() {
+        WSError err = CheckSetWindowPositionPermission(windowPositionInfo.windowPositions, callingTokenId);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+        err = CheckSetWindowPositionSessions(windowPositionInfo, callingPid, callingTokenId);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+        UpdateMainWindowTopmostState(windowPositionInfo.windowPositions);
+        if (setWindowPositionFunc_) {
+            setWindowPositionFunc_(windowPositionInfo);
+        } else {
+            TLOGNE(WmsLogTag::WMS_HIERARCHY, "setWindowPositionFunc_ is nullptr");
+        }
+        return WSError::WS_OK;
+    };
+    return taskScheduler_->PostSyncTask(task, __func__);
+}
+
+/** @note @window.hierarchy */
 WSError SceneSessionManager::ResetSpecificWindowZIndex(int32_t pid)
 {
     bool isFoundationCall = SessionPermission::IsFoundationCall();
@@ -19599,7 +19807,7 @@ WMError SceneSessionManager::MakeScreenFoldData(const std::vector<std::string>& 
         return WMError::WM_DO_NOTHING;
     }
     AppExecFwk::ElementName element = {};
-    WSError ret = GetFocusSessionElement(element);
+    WSError ret = GetFocusSessionElement(element, DEFAULT_DISPLAY_ID);
     auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID));
     if (sceneSession == nullptr || ret != WSError::WS_OK) {
         TLOGI(WmsLogTag::DMS, "Error: fail to get focused package name.");
@@ -20776,6 +20984,7 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
     }
 
     Media::SourceOptions opts;
+    opts.svgResourceLimitLevel = Media::SVGResourceLimitLevel::SVG_RESOURCE_LIMIT_MEDIUM;
     uint32_t errorCode = 0;
     std::unique_ptr<Media::ImageSource> imageSource;
     if (!abilityInfo->hapPath.empty()) {
@@ -20841,8 +21050,16 @@ bool SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& image
     int32_t displayHeight = 0;
     bool isCropped = false;
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
-    if (!GetDisplaySizeById(defaultScreenId, displayWidth, displayHeight)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "get display size failed");
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(defaultScreenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "get screen session failed, screenId:%{public}" PRIu64, defaultScreenId);
+        return isCropped;
+    }
+    auto bounds = screenSession->GetScreenProperty().GetBounds().rect_;
+    displayWidth = bounds.width_;
+    displayHeight = bounds.height_;
+    if (displayWidth == 0 || displayHeight == 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "invalid display size, w:%{public}d, h:%{public}d", displayWidth, displayHeight);
         return isCropped;
     }
     int32_t cropSize = std::max(displayWidth, displayHeight);

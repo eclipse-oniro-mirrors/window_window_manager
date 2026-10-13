@@ -15,13 +15,17 @@
 
 #include "shell_command.h"
 
-#include <getopt.h>
+#include <sstream>
 
 namespace OHOS {
 namespace Rosen {
+namespace {
+const std::string CREATE_MAP_FAILED_MSG = "failed to create command map.\n";
+const std::string EXEC_COMMAND_FAILED_MSG = "error: failed to execute your command.\n";
+}  // namespace
+
 ShellCommand::ShellCommand(int argc, char* argv[], const std::string& name)
 {
-    opterr = 0;
     argc_ = argc;
     argv_ = argv;
     name_ = name;
@@ -63,14 +67,12 @@ int32_t ShellCommand::OnCommand()
 
 std::string ShellCommand::ExecCommand()
 {
-    int32_t result = CreateCommandMap();
-    if (result != ERR_OK) {
-        resultReceiver_.append("failed to create command map.\n");
+    if (CreateCommandMap() != ERR_OK) {
+        resultReceiver_.append(CREATE_MAP_FAILED_MSG);
     }
 
-    result = OnCommand();
-    if (result != ERR_OK) {
-        resultReceiver_ = "error: failed to execute your command.\n";
+    if (OnCommand() != ERR_OK) {
+        resultReceiver_.assign(EXEC_COMMAND_FAILED_MSG);
     }
 
     return resultReceiver_;
@@ -78,24 +80,10 @@ std::string ShellCommand::ExecCommand()
 
 std::string ShellCommand::GetCommandErrorMsg() const
 {
-    std::string commandErrorMsg =
-        name_ + ": '" + cmd_ + "' is not a valid " + name_ + " command. See '" + name_ + " help'.\n";
-
-    return commandErrorMsg;
-}
-
-std::string ShellCommand::GetUnknownOptionMsg(std::string& unknownOption) const
-{
-    std::string result = "";
-
-    if (optind < 0 || optind > argc_) {
-        return result;
-    }
-
-    result.append("fail: unknown option");
-    result.append(".\n");
-
-    return result;
+    std::ostringstream os;
+    os << name_ << ": '" << cmd_ << "' is not a valid "
+       << name_ << " command. See '" << name_ << " help'." << '\n';
+    return os.str();
 }
 
 }  // namespace Rosen

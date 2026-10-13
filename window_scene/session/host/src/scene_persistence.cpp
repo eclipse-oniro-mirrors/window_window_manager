@@ -137,6 +137,12 @@ void ScenePersistence::SetSnapshotCapacity(SnapshotStatus capacity)
     capacity_ = capacity;
 }
 
+void ScenePersistence::SetIsPcWindow(bool isPcWindow)
+{
+    isPcWindow_ = isPcWindow;
+    TLOGI(WmsLogTag::WMS_PATTERN, "%{public}d, id: %{public}d", isPcWindow, persistentId_);
+}
+
 ScenePersistence::ScenePersistence(const std::string& bundleName, int32_t persistentId, SnapshotStatus capacity)
     : bundleName_(bundleName), persistentId_(persistentId), capacity_(capacity)
 {

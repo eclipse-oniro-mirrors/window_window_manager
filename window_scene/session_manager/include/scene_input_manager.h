@@ -35,6 +35,7 @@ enum class RootSessionState {
 };
 
 class SceneSessionDirtyManager;
+class ScreenSession;
 struct SecSurfaceInfo;
 class SceneInputManager : public std::enable_shared_from_this<SceneInputManager> {
 WM_DECLARE_SINGLE_INSTANCE_BASE(SceneInputManager)
@@ -86,9 +87,26 @@ private:
     void FilterWindowInfoList(const std::map<ScreenId, ScreenProperty>& screensProperties,
         std::vector<MMI::WindowInfo>& windowInfoList);
 
+    /**
+     * Construct screen and displayGroup info to MMI.
+     */
     std::vector<MMI::ScreenInfo> ConstructScreenInfos(std::map<ScreenId, ScreenProperty>& screensProperties);
     void ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProperty>& screensProperties,
         std::map<DisplayGroupId, MMI::DisplayGroupInfo>& displayGroupMap);
+    struct SingleHandParams {
+        int32_t screenOneHandX;
+        int32_t screenOneHandY;
+        int32_t scalePercent;
+        int32_t expandHeight;
+    };
+    std::vector<float> ComputeScreenTransformData(const ScreenProperty& screenProperty);
+    SingleHandParams ComputeSingleHandParams(ScreenId screenId, const ScreenProperty& screenProperty);
+    MMI::DisplayInfo BuildDisplayInfo(const sptr<ScreenSession>& screenSession,
+                                      ScreenProperty& screenProperty,
+                                      const std::vector<float>& transformData,
+                                      const SingleHandParams& singleHandParams,
+                                      const FoldDisplayMode& displayMode);
+
     bool CheckNeedUpdate(const std::vector<MMI::ScreenInfo>& screenInfos,
         const std::vector<MMI::DisplayInfo>& displayInfos, const std::vector<MMI::WindowInfo>& windowInfoList);
     void PrintScreenInfo(const std::vector<MMI::ScreenInfo>& screenInfos);

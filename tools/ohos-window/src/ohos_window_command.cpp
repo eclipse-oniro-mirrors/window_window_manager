@@ -145,9 +145,16 @@ int32_t ClawWindowShellCommand::RunAsHelpCommand()
             {HELP_MSG},
         };
         PrintError(errorInfo);
-    } else {
-        std::cout << HELP_MSG << std::endl;
+        return ERR_OK;
     }
+    if (!argList_.empty()) {
+        WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT,
+            "Invalid options or parameters for help command.",
+            "Wrong options or too many parameters.", {INVALID_PARAM_SOLUTION, HELP_MSG}};
+        PrintError(errorInfo);
+        return ERR_INVALID_VALUE;
+    }
+    std::cout << HELP_MSG << std::endl;
     return ERR_OK;
 }
 

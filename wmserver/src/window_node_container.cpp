@@ -951,8 +951,7 @@ sptr<WindowNode> WindowNodeContainer::FindWindowNodeById(uint32_t id) const
     return nullptr;
 }
 
-void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused, int32_t otherWindowId,
-    int32_t otherUid, int32_t otherPid)
+void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused)
 {
     auto node = FindWindowNodeById(id);
     if (node == nullptr) {
@@ -963,6 +962,7 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused, int32_t o
         focusedPid_ = node->GetCallingPid();
     }
     node->isFocused_ = focused;
+    // change focus window shadow
     WMError ret = WindowSystemEffect::SetWindowShadow(node);
     if (ret != WMError::WM_OK) {
         WLOGFW("SetWindowShadow error, ret: %{public}d", ret);
@@ -971,15 +971,18 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused, int32_t o
         WLOGFW("focused window is starting window, no need notify");
         return;
     }
+
     if (focused && node->GetWindowProperty() != nullptr) {
         AbilityInfo info = node->GetWindowProperty()->GetAbilityInfo();
         WLOGFD("current focus window: windowId: %{public}d, windowName: %{public}s, bundleName: %{public}s,"
             " abilityName: %{public}s, pid: %{public}d, uid: %{public}d", id,
             node->GetWindowProperty()->GetWindowName().c_str(), info.bundleName_.c_str(), info.abilityName_.c_str(),
             node->GetCallingPid(), node->GetCallingUid());
-        uint64_t focusNodeId = (node->surfaceNode_ == nullptr) ? 0 : node->surfaceNode_->GetId();
+        uint64_t focusNodeId = 0; // 0 means invalid
         if (node->surfaceNode_ == nullptr) {
             WLOGFW("focused window surfaceNode is null");
+        } else {
+            focusNodeId = node->surfaceNode_->GetId();
         }
         auto rsUICtx = node->GetRSUIContext();
         if (rsUICtx != nullptr && rsUICtx->GetRSRenderInterface() != nullptr) {
@@ -998,8 +1001,8 @@ void WindowNodeContainer::UpdateFocusStatus(uint32_t id, bool focused, int32_t o
     sptr<FocusChangeInfo> focusChangeInfo = new FocusChangeInfo(node->GetWindowId(), node->GetDisplayId(),
         node->GetDisplayId(), DISPLAY_GROUP_ID_DEFAULT, node->GetCallingPid(), node->GetCallingUid(),
         node->GetWindowType(), node->abilityToken_);
-    focusChangeInfo->SetOtherWindowInfo(otherWindowId, otherUid, otherPid);
-    WindowManagerAgentController::GetInstance().UpdateFocusChangeInfo(focusChangeInfo, focused);
+    WindowManagerAgentController::GetInstance().UpdateFocusChangeInfo(
+        focusChangeInfo, focused);
 }
 
 void WindowNodeContainer::UpdateActiveStatus(uint32_t id, bool isActive)
@@ -1094,16 +1097,9 @@ WMError WindowNodeContainer::SetFocusWindow(uint32_t windowId)
         }
         return WMError::WM_DO_NOTHING;
     }
-    uint32_t oldFocusedWindow = focusedWindow_;
+    UpdateFocusStatus(focusedWindow_, false);
     focusedWindow_ = windowId;
-    auto newWindowNode = FindWindowNodeById(windowId);
-    int32_t otherWindowId = newWindowNode ? static_cast<int32_t>(windowId) : INVALID_WINDOW_ID;
-    int32_t otherUid = newWindowNode ? newWindowNode->GetCallingUid() : -1;
-    int32_t otherPid = newWindowNode ? newWindowNode->GetCallingPid() : -1;
-    UpdateFocusStatus(oldFocusedWindow, false, otherWindowId, otherUid, otherPid);
-    auto oldWindowNode = FindWindowNodeById(oldFocusedWindow);
-    UpdateFocusStatus(focusedWindow_, true, oldWindowNode ? static_cast<int32_t>(oldFocusedWindow) : INVALID_WINDOW_ID,
-        oldWindowNode ? oldWindowNode->GetCallingUid() : -1, oldWindowNode ? oldWindowNode->GetCallingPid() : -1);
+    UpdateFocusStatus(focusedWindow_, true);
     return WMError::WM_OK;
 }
 

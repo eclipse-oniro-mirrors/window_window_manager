@@ -1158,7 +1158,7 @@ public:
      * @param focusInfo Focus window info.
      * @return FocusChangeInfo object about focus window.
      */
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
 
     /**
      * @brief Get focus window info.
@@ -1247,6 +1247,14 @@ public:
      * @return WM_OK means move success, others means failed.
      */
     WMError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId);
+
+    /**
+     * @brief Set z-order of main windows in the current process.
+     *
+     * @param windowPositionInfo List of window positions to adjust.
+     * @return WM_OK means set window position success, others means failed.
+     */
+    WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo);
 
     /**
      * @brief Set start window background color.

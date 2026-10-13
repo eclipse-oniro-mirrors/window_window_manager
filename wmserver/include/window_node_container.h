@@ -141,8 +141,7 @@ private:
     void TraverseWindowNode(sptr<WindowNode>& root, std::vector<sptr<WindowNode>>& windowNodes) const;
     sptr<WindowNode> FindRoot(WindowType type) const;
     sptr<WindowNode> FindWindowNodeById(uint32_t id) const;
-    void UpdateFocusStatus(uint32_t id, bool focused, int32_t otherWindowId = INVALID_WINDOW_ID,
-        int32_t otherUid = -1, int32_t otherPid = -1);
+    void UpdateFocusStatus(uint32_t id, bool focused);
     void UpdateActiveStatus(uint32_t id, bool isActive);
     void NotifyIfAvoidAreaChanged(const sptr<WindowNode>& node, const AvoidControlType avoidType) const;
     void NotifyIfSystemBarTintChanged(DisplayId displayId) const;

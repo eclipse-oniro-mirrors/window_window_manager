@@ -23,6 +23,15 @@
 using namespace testing;
 using namespace testing::ext;
 
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+        const char* msg)
+    {
+        g_logMsg += msg;
+    }
+}
+
 namespace OHOS {
 namespace Rosen {
 class IntentionEventManagerTest : public testing::Test {
@@ -398,6 +407,213 @@ HWTEST_F(IntentionEventManagerTest, OnInputEvent4, TestSize.Level1)
     axisEvent = MMI::AxisEvent::Create();
     EXPECT_NE(nullptr, axisEvent);
     inputEventListener->OnInputEvent(axisEvent);
+}
+
+/**
+ * @tc.name: DispatchKeyEventCallbackBranch
+ * @tc.desc: DispatchKeyEventCallback branch coverage test
+ * @tc.type: FUNC
+ */
+HWTEST_F(IntentionEventManagerTest, DispatchKeyEventCallbackBranch, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    std::shared_ptr<MMI::KeyEvent> keyEvent = nullptr;
+    inputEventListener_->DispatchKeyEventCallback(2024, keyEvent, false);
+    EXPECT_TRUE(g_logMsg.find("keyEvent is null") != std::string::npos);
+
+    g_logMsg.clear();
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    inputEventListener_->DispatchKeyEventCallback(2024, keyEvent, true);
+    EXPECT_TRUE(g_logMsg.find("focusedSceneSession is null") == std::string::npos);
+
+    g_logMsg.clear();
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    inputEventListener_->DispatchKeyEventCallback(2024, keyEvent, false);
+    EXPECT_TRUE(g_logMsg.find("focusedSceneSession is null") != std::string::npos);
+
+    g_logMsg.clear();
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    SessionInfo info;
+    info.bundleName_ = "IntentionEventManager";
+    info.moduleName_ = "InputEventListener";
+    sptr<SceneSession::SpecificSessionCallback> callback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    EXPECT_NE(nullptr, callback);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, callback);
+    EXPECT_NE(nullptr, sceneSession);
+    SceneSessionManager::GetInstance().sceneSessionMap_.emplace(std::make_pair(2024, sceneSession));
+    std::shared_ptr<IntentionEventManager::InputEventListener> nullUiContentListener =
+        std::make_shared<IntentionEventManager::InputEventListener>(nullptr, nullptr, nullptr);
+    EXPECT_NE(nullptr, nullUiContentListener);
+    nullUiContentListener->DispatchKeyEventCallback(2024, keyEvent, false);
+    EXPECT_TRUE(g_logMsg.find("uiContent_ is null") != std::string::npos);
+
+    g_logMsg.clear();
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    inputEventListener_->DispatchKeyEventCallback(2024, keyEvent, false);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnInputEventKeyEventBranch
+ * @tc.desc: OnInputEvent key event branch coverage test
+ * @tc.type: FUNC
+ */
+HWTEST_F(IntentionEventManagerTest, OnInputEventKeyEventBranch, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SceneSessionManager::GetInstance().SetEnableInputEvent(true);
+
+    std::shared_ptr<MMI::KeyEvent> keyEvent = nullptr;
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("keyEvent is null") != std::string::npos);
+
+    g_logMsg.clear();
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    SceneSessionManager::GetInstance().SetEnableInputEvent(false);
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("focusedSessionId is invalid") == std::string::npos);
+
+    g_logMsg.clear();
+    SceneSessionManager::GetInstance().SetEnableInputEvent(true);
+    SceneSessionManager::GetInstance().SetFocusedSessionId(INVALID_SESSION_ID, DEFAULT_DISPLAY_ID);
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("focusedSessionId is invalid") != std::string::npos);
+
+    g_logMsg.clear();
+    SceneSessionManager::GetInstance().SetFocusedSessionId(2025, DEFAULT_DISPLAY_ID);
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("focusedSceneSession is null") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnInputEventKeyEventTransfer
+ * @tc.desc: OnInputEvent key event transfer to non-system session branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(IntentionEventManagerTest, OnInputEventKeyEventTransfer, TestSize.Level1)
+{
+    SceneSessionManager::GetInstance().SetEnableInputEvent(true);
+    SceneSessionManager::GetInstance().SetFocusedSessionId(2026, DEFAULT_DISPLAY_ID);
+    SessionInfo info;
+    info.bundleName_ = "IntentionEventManager";
+    info.moduleName_ = "InputEventListener";
+    info.isSystem_ = false;
+    sptr<SceneSession::SpecificSessionCallback> callback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    EXPECT_NE(nullptr, callback);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, callback);
+    EXPECT_NE(nullptr, sceneSession);
+    SceneSessionManager::GetInstance().sceneSessionMap_.emplace(std::make_pair(2026, sceneSession));
+    std::shared_ptr<MMI::KeyEvent> keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    keyEvent->SetTargetWindowId(2026);
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_NE(nullptr, SceneSessionManager::GetInstance().GetSceneSession(2026));
+}
+
+/**
+ * @tc.name: OnInputEventKeyEventSystemSession
+ * @tc.desc: OnInputEvent key event system session branch with keyboard event and IMF
+ * @tc.type: FUNC
+ */
+HWTEST_F(IntentionEventManagerTest, OnInputEventKeyEventSystemSession, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SceneSessionManager::GetInstance().SetEnableInputEvent(true);
+    SceneSessionManager::GetInstance().SetFocusedSessionId(2027, DEFAULT_DISPLAY_ID);
+    SessionInfo info;
+    info.bundleName_ = "IntentionEventManager";
+    info.moduleName_ = "InputEventListener";
+    info.isSystem_ = true;
+    sptr<SceneSession::SpecificSessionCallback> callback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    EXPECT_NE(nullptr, callback);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, callback);
+    EXPECT_NE(nullptr, sceneSession);
+    SceneSessionManager::GetInstance().sceneSessionMap_.emplace(std::make_pair(2027, sceneSession));
+
+    std::shared_ptr<MMI::KeyEvent> keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    keyEvent->SetTargetWindowId(2027);
+    keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_A);
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("send to IMF") != std::string::npos ||
+        g_logMsg.find("controller is null") != std::string::npos ||
+        g_logMsg.find("transfer key event to root scene") != std::string::npos);
+
+    g_logMsg.clear();
+    auto consumedFunc = [](std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent) { return true; };
+    sceneSession->SetNotifySystemSessionKeyEventFunc(consumedFunc);
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    keyEvent->SetTargetWindowId(2027);
+    keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_TAB);
+    keyEvent->SetKeyAction(MMI::KeyEvent::KEY_ACTION_DOWN);
+    inputEventListener_->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("SendToUI") != std::string::npos);
+    sceneSession->SetNotifySystemSessionKeyEventFunc(nullptr);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: OnInputEventKeyEventSystemSessionUiContentNull
+ * @tc.desc: OnInputEvent key event system session branch with non-keyboard event and null uiContent
+ * @tc.type: FUNC
+ */
+HWTEST_F(IntentionEventManagerTest, OnInputEventKeyEventSystemSessionUiContentNull, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    std::shared_ptr<IntentionEventManager::InputEventListener> nullUiContentListener =
+        std::make_shared<IntentionEventManager::InputEventListener>(nullptr, nullptr, nullptr);
+    EXPECT_NE(nullptr, nullUiContentListener);
+    SceneSessionManager::GetInstance().SetEnableInputEvent(true);
+    SceneSessionManager::GetInstance().SetFocusedSessionId(2028, DEFAULT_DISPLAY_ID);
+    SessionInfo info;
+    info.bundleName_ = "IntentionEventManager";
+    info.moduleName_ = "InputEventListener";
+    info.isSystem_ = true;
+    sptr<SceneSession::SpecificSessionCallback> callback = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    EXPECT_NE(nullptr, callback);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, callback);
+    EXPECT_NE(nullptr, sceneSession);
+    SceneSessionManager::GetInstance().sceneSessionMap_.emplace(std::make_pair(2028, sceneSession));
+
+    std::shared_ptr<MMI::KeyEvent> keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    keyEvent->SetTargetWindowId(2028);
+    keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_UNKNOWN);
+    nullUiContentListener->OnInputEvent(keyEvent);
+    EXPECT_TRUE(g_logMsg.find("uiContent_ is null") != std::string::npos);
+
+    // cover the branch that uiContent_ is not null and key event is sent to root scene
+    g_logMsg.clear();
+    auto notConsumedFunc = [](std::shared_ptr<MMI::KeyEvent> keyEvent, bool isPreImeEvent) { return false; };
+    sceneSession->SetNotifySystemSessionKeyEventFunc(notConsumedFunc);
+    keyEvent = MMI::KeyEvent::Create();
+    EXPECT_NE(nullptr, keyEvent);
+    keyEvent->SetTargetDisplayId(static_cast<int32_t>(DEFAULT_DISPLAY_ID));
+    keyEvent->SetTargetWindowId(2028);
+    keyEvent->SetKeyCode(MMI::KeyEvent::KEYCODE_UNKNOWN);
+    inputEventListener_->OnInputEvent(keyEvent);
+    sceneSession->SetNotifySystemSessionKeyEventFunc(nullptr);
+    LOG_SetCallback(nullptr);
 }
 
 /**

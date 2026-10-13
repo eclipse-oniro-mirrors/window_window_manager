@@ -15,6 +15,7 @@
 
 #include "scene_input_manager.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <sys/resource.h>
 #include <sys/syscall.h>
@@ -191,6 +192,14 @@ bool IsEqualUiExtentionWindowInfo(const std::vector<MMI::WindowInfo>& a, const s
     return true;
 }
 
+// std::equal needs an explicit comparator here since the operator== overloads are not
+// visible via ADL; keep this helper below them so the lambda can resolve a == b.
+template <typename T>
+bool IsVectorEqual(const std::vector<T>& curr, const std::vector<T>& last)
+{
+    return std::equal(curr.begin(), curr.end(), last.begin(), [](const T& a, const T& b) { return a == b; });
+}
+
 std::string DumpTransformInDisplayInfo(const std::vector<float>& transform)
 {
     std::stringstream stream("[");
@@ -284,13 +293,15 @@ void SceneInputManager::FilterSyncedScreens(std::map<ScreenId, ScreenProperty>& 
 std::vector<MMI::ScreenInfo> SceneInputManager::ConstructScreenInfos(
     std::map<ScreenId, ScreenProperty>& screensProperties)
 {
-    std::vector<MMI::ScreenInfo> screenInfos;
     if (screensProperties.empty()) {
         TLOGE(WmsLogTag::WMS_EVENT, "screensProperties is empty");
-        return screenInfos;
+        return {};
     }
+
+    std::vector<MMI::ScreenInfo> screenInfos;
+    screenInfos.reserve(screensProperties.size());
     for (auto& [screenId, screenProperty] : screensProperties) {
-        MMI::ScreenInfo screenInfo = {
+        screenInfos.emplace_back(MMI::ScreenInfo {
             .id = screenId,
             .uniqueId = "default" + std::to_string(screenProperty.GetRsId()),
             .screenType = static_cast<MMI::ScreenType>(screenProperty.GetScreenType()),
@@ -302,10 +313,79 @@ std::vector<MMI::ScreenInfo> SceneInputManager::ConstructScreenInfos(
             .dpi = screenProperty.GetScreenRealPPI(),
             .ppi = screenProperty.GetXDpi(),
             .rotation = ConvertToMMIRotation(screenProperty.GetRotation())
-        };
-        screenInfos.emplace_back(screenInfo);
+        });
     }
     return screenInfos;
+}
+
+std::vector<float> SceneInputManager::ComputeScreenTransformData(const ScreenProperty& screenProperty)
+{
+    auto transform = Matrix3f::IDENTITY;
+    Vector2f scale(screenProperty.GetScaleX(), screenProperty.GetScaleY());
+    transform = transform.Scale(scale, screenProperty.GetPivotX() * screenProperty.GetBounds().rect_.GetWidth(),
+        screenProperty.GetPivotY() * screenProperty.GetBounds().rect_.GetHeight()).Inverse();
+    return std::vector<float>(transform.GetData(), transform.GetData() + TRANSFORM_DATA_LEN);
+}
+
+SceneInputManager::SingleHandParams SceneInputManager::ComputeSingleHandParams(ScreenId screenId,
+    const ScreenProperty& screenProperty)
+{
+    // Init single hand mode params.
+    SingleHandParams params = { DEFAULT_SCREEN_POS, DEFAULT_SCREEN_POS, DEFAULT_SCREEN_SCALE, DEFAULT_EXPAND_HEIGHT };
+
+    auto defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
+    const auto& singleHandScreenInfo = SceneSessionManager::GetInstance().GetSingleHandScreenInfo();
+    if (screenId == defaultScreenId && singleHandScreenInfo.mode != SingleHandMode::MIDDLE) {
+        auto singleHandTransform = SceneSessionManager::GetInstance().GetNormalSingleHandTransform();
+        WSRect originRect = SceneSessionManager::GetInstance().GetOriginRect();
+        params.screenOneHandX = singleHandTransform.posX;
+        params.screenOneHandY = singleHandTransform.posY;
+        params.scalePercent = singleHandTransform.scaleX * DEFAULT_SCREEN_SCALE;
+        params.expandHeight = screenProperty.GetBounds().rect_.GetHeight() - originRect.height_;
+    }
+    return params;
+}
+
+MMI::DisplayInfo SceneInputManager::BuildDisplayInfo(const sptr<ScreenSession>& screenSession,
+                                                     ScreenProperty& screenProperty,
+                                                     const std::vector<float>& transformData,
+                                                     const SingleHandParams& singleHandParams,
+                                                     const FoldDisplayMode& displayMode)
+{
+    auto screenId = screenSession->GetScreenId();
+    auto deviceRotation = static_cast<int32_t>(screenProperty.GetDeviceRotation());
+    auto rotationCorrection = static_cast<int32_t>(screenSession->GetRotationCorrection(displayMode));
+    return MMI::DisplayInfo {
+        .id = screenId,
+        .x = screenProperty.GetX(),
+        .y = screenProperty.GetY(),
+        .width = screenProperty.GetValidWidth(),
+        .height = screenProperty.GetValidHeight(),
+        .dpi = screenProperty.GetDensity() * DOT_PER_INCH,
+        .name = "display" + std::to_string(screenId),
+        .direction = ConvertDegreeToMMIRotation(screenProperty.GetPhysicalRotation()),
+        .displayDirection = ConvertDegreeToMMIRotation(screenProperty.GetScreenComponentRotation()),
+        .displayMode = static_cast<MMI::DisplayMode>(displayMode),
+        .transform = transformData,
+        .scalePercent = singleHandParams.scalePercent,
+        .expandHeight = singleHandParams.expandHeight,
+        .isCurrentOffScreenRendering = screenProperty.GetCurrentOffScreenRendering(),
+        .displaySourceMode = static_cast<MMI::DisplaySourceMode>(screenSession->GetScreenCombination()),
+        .oneHandX = singleHandParams.screenOneHandX,
+        .oneHandY = singleHandParams.screenOneHandY,
+        .screenArea = {
+            .id = screenId,
+            .area = {screenProperty.GetScreenAreaOffsetX(), screenProperty.GetScreenAreaOffsetY(),
+                screenProperty.GetScreenAreaWidth(), screenProperty.GetScreenAreaHeight()}
+        },
+        .rsId = screenProperty.GetRsId(),
+        .offsetX = screenProperty.GetInputOffsetX(),
+        .offsetY = screenProperty.GetInputOffsetY(),
+        .pointerActiveWidth = screenProperty.GetPointerActiveWidth(),
+        .pointerActiveHeight = screenProperty.GetPointerActiveHeight(),
+        .deviceRotation = ConvertDegreeToMMIRotation(deviceRotation * DIRECTION90),
+        .rotationCorrection = ConvertDegreeToMMIRotation(rotationCorrection * DIRECTION90)
+    };
 }
 
 void SceneInputManager::ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProperty>& screensProperties,
@@ -322,58 +402,10 @@ void SceneInputManager::ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProp
             TLOGE(WmsLogTag::WMS_EVENT, "screenSession get failed, screenId: %{public}" PRIu64"", screenId);
             continue;
         }
-        auto transform = Matrix3f::IDENTITY;
-        Vector2f scale(screenProperty.GetScaleX(), screenProperty.GetScaleY());
-        transform = transform.Scale(scale, screenProperty.GetPivotX() * screenProperty.GetBounds().rect_.GetWidth(),
-            screenProperty.GetPivotY() * screenProperty.GetBounds().rect_.GetHeight()).Inverse();
-        std::vector<float> transformData(transform.GetData(), transform.GetData() + TRANSFORM_DATA_LEN);
-        int32_t screenOneHandX = DEFAULT_SCREEN_POS;
-        int32_t screenOneHandY = DEFAULT_SCREEN_POS;
-        int32_t scalePercent = DEFAULT_SCREEN_SCALE;
-        int32_t expandHeight = DEFAULT_EXPAND_HEIGHT;
-        const SingleHandScreenInfo& singleHandScreenInfo = SceneSessionManager::GetInstance().GetSingleHandScreenInfo();
-        if (screenId == ScreenSessionManagerClient::GetInstance().GetDefaultScreenId() &&
-            singleHandScreenInfo.mode != SingleHandMode::MIDDLE) {
-            SingleHandTransform singleHandTransform = SceneSessionManager::GetInstance().GetNormalSingleHandTransform();
-            WSRect originRect = SceneSessionManager::GetInstance().GetOriginRect();
-            screenOneHandX = singleHandTransform.posX;
-            screenOneHandY = singleHandTransform.posY;
-            scalePercent = singleHandTransform.scaleX * DEFAULT_SCREEN_SCALE;
-            expandHeight = screenProperty.GetBounds().rect_.GetHeight() - originRect.height_;
-        }
-        int32_t deviceRotation = static_cast<int32_t>(screenProperty.GetDeviceRotation());
-        int32_t rotationCorrection = static_cast<int32_t>(screenSession->GetRotationCorrection(displayMode));
-        MMI::DisplayInfo displayInfo = {
-            .id = screenId,
-            .x = screenProperty.GetX(),
-            .y = screenProperty.GetY(),
-            .width = screenProperty.GetValidWidth(),
-            .height =screenProperty.GetValidHeight(),
-            .dpi = screenProperty.GetDensity() *  DOT_PER_INCH,
-            .name = "display" + std::to_string(screenId),
-            .direction = ConvertDegreeToMMIRotation(screenProperty.GetPhysicalRotation()),
-            .displayDirection = ConvertDegreeToMMIRotation(screenProperty.GetScreenComponentRotation()),
-            .displayMode = static_cast<MMI::DisplayMode>(displayMode),
-            .transform = transformData,
-            .scalePercent = scalePercent,
-            .expandHeight = expandHeight,
-            .isCurrentOffScreenRendering = screenProperty.GetCurrentOffScreenRendering(),
-            .displaySourceMode = static_cast<MMI::DisplaySourceMode>(screenSession->GetScreenCombination()),
-            .oneHandX = screenOneHandX,
-            .oneHandY = screenOneHandY,
-            .screenArea = {
-                .id = screenId,
-                .area = {screenProperty.GetScreenAreaOffsetX(), screenProperty.GetScreenAreaOffsetY(),
-                    screenProperty.GetScreenAreaWidth(), screenProperty.GetScreenAreaHeight()}
-            },
-            .rsId = screenProperty.GetRsId(),
-            .offsetX = screenProperty.GetInputOffsetX(),
-            .offsetY = screenProperty.GetInputOffsetY(),
-            .pointerActiveWidth = screenProperty.GetPointerActiveWidth(),
-            .pointerActiveHeight = screenProperty.GetPointerActiveHeight(),
-            .deviceRotation = ConvertDegreeToMMIRotation(deviceRotation * DIRECTION90),
-            .rotationCorrection = ConvertDegreeToMMIRotation(rotationCorrection * DIRECTION90)
-        };
+        auto transformData = ComputeScreenTransformData(screenProperty);
+        auto singleHandParams = ComputeSingleHandParams(screenId, screenProperty);
+        auto displayInfo = BuildDisplayInfo(screenSession, screenProperty,
+            transformData, singleHandParams, displayMode);
 
         // Get display group type from DMS and map to MMI GroupType.
         MMI::GroupType mmiGroupType;
@@ -388,7 +420,7 @@ void SceneInputManager::ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProp
         TLOGI(WmsLogTag::WMS_EVENT,
               "displayGroupId=%{public}" PRIu64 ", groupType=%{public}" PRIu32 ", mmiGroupType=%{public}d",
               displayGroupId, groupType, mmiGroupType);
- 
+
         if (displayGroupMap.count(displayGroupId) == 0) {
             MMI::DisplayGroupInfo displayGroupInfo = {
                 .id = displayGroupId,
@@ -492,6 +524,11 @@ void SceneInputManager::FlushEmptyInfoToMMI()
         for (auto& [displayGroupId, displayGroup] : displayGroupMap) {
             displayGroupInfos.emplace_back(displayGroup);
         }
+        // Even if displayGroupMap is empty, USER_INACTIVE state must still be sent to MMI
+        // so that MMI stops routing input events for the user switching.
+        if (displayGroupInfos.empty()) {
+            TLOGW(WmsLogTag::WMS_EVENT, "displayGroupInfos is empty, sending USER_INACTIVE");
+        }
         MMI::UserScreenInfo userScreenInfo = {
             .userId = currentUserId_,
             .userState = MMI::USER_INACTIVE,
@@ -552,6 +589,7 @@ void SceneInputManager::FlushChangeInfoToMMI(const std::map<uint64_t, std::vecto
 bool SceneInputManager::CheckNeedUpdate(const std::vector<MMI::ScreenInfo>& screenInfos,
     const std::vector<MMI::DisplayInfo>& displayInfos, const std::vector<MMI::WindowInfo>& windowInfoList)
 {
+    // A focus change must be reported to MMI even if all screen, display and window info stays the same.
     int32_t focusId = SceneSessionManager::GetInstance().GetFocusedSessionId();
     if (focusId != lastFocusId_) {
         lastFocusId_ = focusId;
@@ -561,40 +599,35 @@ bool SceneInputManager::CheckNeedUpdate(const std::vector<MMI::ScreenInfo>& scre
         return true;
     }
 
-    if (screenInfos.size() != lastScreenInfos_.size() || displayInfos.size() != lastDisplayInfos_.size() ||
-        windowInfoList.size() != lastWindowInfoList_.size()) {
+    // A size mismatch already means the info changed, so element-wise comparison is unnecessary.
+    const bool sameSize = screenInfos.size() == lastScreenInfos_.size() &&
+        displayInfos.size() == lastDisplayInfos_.size() &&
+        windowInfoList.size() == lastWindowInfoList_.size();
+    if (!sameSize) {
         lastScreenInfos_ = screenInfos;
         lastDisplayInfos_ = displayInfos;
         lastWindowInfoList_ = windowInfoList;
         return true;
     }
 
-    int sizeOfScreenInfos = static_cast<int>(screenInfos.size());
-    for (int index = 0; index < sizeOfScreenInfos; index++) {
-        if (!(screenInfos[index] == lastScreenInfos_[index])) {
-            lastScreenInfos_ = screenInfos;
-            lastDisplayInfos_ = displayInfos;
-            lastWindowInfoList_ = windowInfoList;
-            return true;
-        }
+    // Sizes are equal here, so the cached vectors are compared element by element safely.
+    // Compare in turn and return on the first difference so unchanged items are not scanned again.
+    if (!IsVectorEqual(screenInfos, lastScreenInfos_)) {
+        lastScreenInfos_ = screenInfos;
+        lastDisplayInfos_ = displayInfos;
+        lastWindowInfoList_ = windowInfoList;
+        return true;
     }
-
-    int sizeOfDisplayInfos = static_cast<int>(displayInfos.size());
-    for (int index = 0; index < sizeOfDisplayInfos; index++) {
-        if (!(displayInfos[index] == lastDisplayInfos_[index])) {
-            lastDisplayInfos_ = displayInfos;
-            lastWindowInfoList_ = windowInfoList;
-            return true;
-        }
+    if (!IsVectorEqual(displayInfos, lastDisplayInfos_)) {
+        lastDisplayInfos_ = displayInfos;
+        lastWindowInfoList_ = windowInfoList;
+        return true;
     }
-
-    int sizeOfWindowInfoList = static_cast<int>(windowInfoList.size());
-    for (int index = 0; index < sizeOfWindowInfoList; index++) {
-        if (!(windowInfoList[index] == lastWindowInfoList_[index])) {
-            lastWindowInfoList_ = windowInfoList;
-            return true;
-        }
+    if (!IsVectorEqual(windowInfoList, lastWindowInfoList_)) {
+        lastWindowInfoList_ = windowInfoList;
+        return true;
     }
+    TLOGD(WmsLogTag::WMS_EVENT, "no need to update info to MMI");
     return false;
 }
 
@@ -859,8 +892,10 @@ void SceneInputManager::FlushDisplayInfoToMMI(std::vector<MMI::WindowInfo>&& win
             HandleEmptyDisplayGroup();
             return;
         }
+
+        // Flatten displayGroupMap into a vector for CheckNeedUpdate and PrintDisplayInfo.
         std::vector<MMI::DisplayInfo> displayInfos;
-        for (auto& [displayGroupId, displayGroup] : displayGroupMap) {
+        for (auto& [_, displayGroup] : displayGroupMap) {
             for (auto& displayInfo : displayGroup.displaysInfo) {
                 displayInfos.emplace_back(displayInfo);
             }

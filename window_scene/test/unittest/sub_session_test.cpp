@@ -19,6 +19,7 @@
 #include "common/include/session_permission.h"
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
+#include "mock_session.h"
 #include "mock_sub_session.h"
 #include "pointer_event.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
@@ -65,6 +66,7 @@ void SubSessionTest::SetUp()
     info.bundleName_ = "testMainSession3";
     subSession_ = sptr<SubSession>::MakeSptr(info, specificCallback);
     EXPECT_NE(nullptr, subSession_);
+    subSession_->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
 }
 
 void SubSessionTest::TearDown()
@@ -371,6 +373,117 @@ HWTEST_F(SubSessionTest, NotifySessionRectChange01, TestSize.Level1)
     ASSERT_EQ(subSession_->shouldFollowParentWhenShow_, true);
     subSession_->NotifySessionRectChange(rect, SizeChangeReason::DRAG_END, DISPLAY_ID_INVALID);
     ASSERT_EQ(subSession_->shouldFollowParentWhenShow_, false);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesForPcWindow
+ * @tc.desc: Verify a PC window keeps its original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesForPcWindow, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
+    subSession_->SetSystemConfig(systemConfig);
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesInFreeMultiWindowMode
+ * @tc.desc: Verify a subwindow in free multi-window mode keeps its original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesInFreeMultiWindowMode, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = true;
+    systemConfig.freeMultiWindowEnable_ = true;
+    subSession_->SetSystemConfig(systemConfig);
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesWithoutMainSession
+ * @tc.desc: Verify a subwindow without a main session keeps its original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesWithoutMainSession, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PAD_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    subSession_->parentSession_ = nullptr;
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesWithZeroFloatingScale
+ * @tc.desc: Verify a zero main-window scale keeps the original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesWithZeroFloatingScale, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    sptr<SessionMocker> mainSession = sptr<SessionMocker>::MakeSptr(info);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->SetFloatingScale(0.0f);
+    subSession_->SetParentSession(mainSession);
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesWhenGlobalRectQueryFails
+ * @tc.desc: Verify a failed main-window rectangle query keeps the original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesWhenGlobalRectQueryFails, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    sptr<SessionMocker> mainSession = sptr<SessionMocker>::MakeSptr(info);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->SetFloatingScale(2.0f);
+    subSession_->SetParentSession(mainSession);
+    EXPECT_CALL(*mainSession, GetGlobalScaledRect(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesForScaledMainWindow
+ * @tc.desc: Verify the position is converted and the size is preserved for a scaled main window.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesForScaledMainWindow, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    sptr<SessionMocker> mainSession = sptr<SessionMocker>::MakeSptr(info);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->SetFloatingScale(2.0f);
+    subSession_->SetParentSession(mainSession);
+    const Rect mainGlobalRect = { 100, 200, 300, 400 };
+    EXPECT_CALL(*mainSession, GetGlobalScaledRect(_))
+        .WillOnce(DoAll(SetArgReferee<0>(mainGlobalRect), Return(WMError::WM_OK)));
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), WSRect({ 20, 30, 50, 60 }));
 }
 
 /**

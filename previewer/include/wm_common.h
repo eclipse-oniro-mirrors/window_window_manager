@@ -2000,6 +2000,31 @@ struct SubWindowOptions {
     ModalityType modalityType = ModalityType::WINDOW_MODALITY;
 };
 
+/**
+ * @enum WindowPosition
+ *
+ * @brief Sentinel values of WindowPositionParams::insertAfter, used to adjust the z-order of an
+ *        application main window without naming another window as the anchor. Together with the
+ *        positive windowId form, this enum is the whole domain of insertAfter.
+ *
+ *        TOPMOST and NOT_TOPMOST set and cancel a global topmost state that lasts beyond the call,
+ *        while TOP and BOTTOM only reorder the window for the current call and leave that state
+ *        untouched.
+ */
+enum class WindowPosition : int32_t {
+    // Cancels the global topmost state.
+    NOT_TOPMOST = -3,
+    // Sets the global topmost state, which persists until it is cancelled.
+    // Requires the ohos.permission.WINDOW_TOPMOST permission.
+    TOPMOST = -2,
+    // One-shot reorder: moves the main window below the other application main windows,
+    // without changing the global topmost state.
+    BOTTOM = -1,
+    // One-shot reorder: moves the main window above the other application main windows,
+    // without changing the global topmost state.
+    TOP = 0,
+};
+
 struct ExtensionWindowConfig {
     std::string windowName;
     ExtensionWindowAttribute windowAttribute = ExtensionWindowAttribute::UNKNOWN;

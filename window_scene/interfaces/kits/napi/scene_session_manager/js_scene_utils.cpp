@@ -3253,6 +3253,32 @@ napi_value SceneTypeInit(napi_env env)
     return objValue;
 }
 
+napi_value WindowPositionInit(napi_env env)
+{
+    WLOGFD("in");
+
+    if (env == nullptr) {
+        WLOGFE("Env is nullptr");
+        return nullptr;
+    }
+
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        WLOGFE("Failed to get object");
+        return nullptr;
+    }
+    napi_set_named_property(env, objValue, "NOT_TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::NOT_TOPMOST)));
+    napi_set_named_property(env, objValue, "TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOPMOST)));
+    napi_set_named_property(env, objValue, "BOTTOM",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::BOTTOM)));
+    napi_set_named_property(env, objValue, "TOP",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOP)));
+    return objValue;
+}
+
 napi_value CreateRotationChangeType(napi_env env)
 {
     napi_value objValue = nullptr;

@@ -513,7 +513,7 @@ bool ScreenSession::GetIsInternal() const
 
 void ScreenSession::SetIsCurrentInUse(bool isInUse)
 {
-    isInUse_ = isInUse;
+    isCurrentInUse_ = isInUse;
 }
 
 bool ScreenSession::GetIsCurrentInUse() const

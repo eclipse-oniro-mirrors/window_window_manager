@@ -208,6 +208,7 @@ napi_value CreateJsKeyboardLayoutParams(napi_env env, const KeyboardLayoutParams
 napi_value CreateJsShadowsInfo(napi_env env, const ShadowsInfo& shadowsInfo);
 napi_value SessionTypeInit(napi_env env);
 napi_value SceneTypeInit(napi_env env);
+napi_value WindowPositionInit(napi_env env);
 napi_value KeyboardGravityInit(napi_env env);
 napi_value KeyboardViewModeInit(napi_env env);
 napi_value KeyboardFlowLightModeInit(napi_env env);

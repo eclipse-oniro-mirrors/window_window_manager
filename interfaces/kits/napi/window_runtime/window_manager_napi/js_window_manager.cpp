@@ -612,6 +612,40 @@ bool JsWindowManager::ParseWindowInfoOptions(napi_env env, napi_value jsObject, 
     return true;
 }
 
+bool JsWindowManager::ParseWindowPositionInfo(napi_env env, napi_value jsObject,
+    WindowPositionInfo& windowPositionInfo)
+{
+    uint32_t size = 0;
+    if (GetType(env, jsObject) != napi_object || napi_get_array_length(env, jsObject, &size) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert parameter to windowPositions");
+        return false;
+    }
+    if (size == 0) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions is empty");
+        return false;
+    }
+    for (uint32_t i = 0; i < size; i++) {
+        if (i >= MAX_SIZE_WINDOW_POSITION) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions size exceeds max, size: %{public}u", size);
+            return false;
+        }
+        napi_value element = nullptr;
+        napi_get_element(env, jsObject, i, &element);
+        WindowPositionParams windowPosition;
+        if (!ParseJsValue(element, env, "windowId", windowPosition.windowId) || windowPosition.windowId <= 0) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert windowId");
+            return false;
+        }
+        if (!ParseJsValue(element, env, "insertAfter", windowPosition.insertAfter) ||
+            windowPosition.insertAfter < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert insertAfter");
+            return false;
+        }
+        windowPositionInfo.windowPositions.emplace_back(windowPosition);
+    }
+    return true;
+}
+
 bool JsWindowManager::ParseRequiredConfigOption(napi_env env, napi_value jsObject,
     WindowOption& option)
 {
@@ -2602,6 +2636,52 @@ napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_c
     return result;
 }
 
+napi_value JsWindowManager::SetWindowPosition(napi_env env, napi_callback_info info)
+{
+    JsWindowManager* me = CheckParamsAndGetThis<JsWindowManager>(env, info);
+    return (me != nullptr) ? me->OnSetWindowPosition(env, info) : nullptr;
+}
+
+napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "argc is invalid");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWindowPosition]msg: Mandatory parameters are left unspecified");
+    }
+    WindowPositionInfo windowPositionInfo;
+    if (!ParseWindowPositionInfo(env, argv[INDEX_ZERO], windowPositionInfo)) {
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWindowPosition]msg: The windowPositions list is empty or exceeds the maximum size, "
+            "the windowId is invalid, or the insertAfter value is invalid.");
+    }
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [windowPositionInfo, env, task = napiAsyncTask] {
+        WMError wmError = SingletonContainer::Get<WindowManager>().SetWindowPosition(windowPositionInfo);
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
+        if (ret == WmErrorCode::WM_OK) {
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowPosition", ret);
+            std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(
+                WindowFocusApiType::SET_WINDOW_POSITION, wmError);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errMsg));
+        }
+    };
+    napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnSetWindowPosition");
+    if (status != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowPosition",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][setWindowPosition]msg: send event failed"));
+    }
+    return result;
+}
+
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
 {
     WLOGFD("JsWindowManagerInit");
@@ -2646,6 +2726,7 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "AnimationType", AnimationTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowTransitionType", WindowTransitionTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowAnimationCurve", WindowAnimationCurveInit(env));
+    napi_set_named_property(env, exportObj, "WindowPosition", WindowPositionInit(env));
 
     const char *moduleName = "JsWindowManager";
     BindNativeFunction(env, exportObj, "create", moduleName, JsWindowManager::Create);
@@ -2697,6 +2778,8 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
         JsWindowManager::CreateSubWindowAndBindParent);
     BindNativeFunction(env, exportObj, "moveMainWindowToTargetDisplay", moduleName,
         JsWindowManager::MoveMainWindowToTargetDisplay);
+    BindNativeFunction(env, exportObj, "setWindowPosition", moduleName,
+        JsWindowManager::SetWindowPosition);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

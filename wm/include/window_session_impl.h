@@ -165,6 +165,9 @@ public:
     bool IsTopmost() const override;
     WMError SetMainWindowTopmost(bool isTopmost) override;
     bool IsMainWindowTopmost() const override;
+    // Keeps the local property in sync when the server changes the topmost state on its own,
+    // for example through setWindowPosition. No ipc is sent.
+    void UpdateMainWindowTopmostProperty(bool isTopmost);
     WMError SetSubWindowModal(bool isModal, ModalityType modalityType = ModalityType::WINDOW_MODALITY) override;
     WMError SetWindowModal(bool isModal) override;
     void SetSubWindowZLevelToProperty();
