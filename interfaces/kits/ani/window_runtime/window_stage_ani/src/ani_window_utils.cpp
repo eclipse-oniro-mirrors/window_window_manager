@@ -1358,11 +1358,11 @@ ani_object AniWindowUtils::CreateAniWindowFocusState(ani_env* env, bool isFocuse
         reasonItem);
     if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {
         CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("nextFocusedWindowId").c_str(),
-            nullptr, CreateDouble(env, static_cast<double>(nextFocusedWindowId)));
+            nullptr, AniWindowUtils::CreateOptionalInt(env, static_cast<ani_int>(nextFocusedWindowId)));
     }
     if (isFocused && prevFocusedWindowId != INVALID_WINDOW_ID) {
         CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("prevFocusedWindowId").c_str(),
-            nullptr, CreateDouble(env, static_cast<double>(prevFocusedWindowId)));
+            nullptr, AniWindowUtils::CreateOptionalInt(env, static_cast<ani_int>(prevFocusedWindowId)));
     }
     return focusState;
 }

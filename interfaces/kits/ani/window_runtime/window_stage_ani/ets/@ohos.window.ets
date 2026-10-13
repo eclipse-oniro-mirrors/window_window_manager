@@ -495,8 +495,8 @@ namespace window {
   export interface WindowFocusState {
     isFocused: boolean;
     focusChangeReason: FocusChangeReason;
-    nextFocusedWindowId?: number;
-    prevFocusedWindowId?: number;
+    nextFocusedWindowId?: int;
+    prevFocusedWindowId?: int;
   }
 
   export enum FocusChangeReason {
@@ -507,8 +507,8 @@ namespace window {
   export class WindowFocusStateInternal implements WindowFocusState {
     isFocused: boolean = false;
     focusChangeReason: FocusChangeReason = FocusChangeReason.DEFAULT;
-    nextFocusedWindowId?: number;
-    prevFocusedWindowId?: number;
+    nextFocusedWindowId?: int;
+    prevFocusedWindowId?: int;
   }
 
   export enum RectChangeReason {
