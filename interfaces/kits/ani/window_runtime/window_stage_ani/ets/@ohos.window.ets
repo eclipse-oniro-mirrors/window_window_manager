@@ -1790,6 +1790,9 @@ export interface WindowCreateParams {
     systemAnimationParams?: StartAnimationSystemParams;
     needAnimation?: boolean;
     isWindowLimitsForcible?: boolean;
+    minimizeOnStart?: boolean;
+    excludeFromDock?: boolean;
+    excludeFromRecent?: boolean;
 }
 
 export class WindowCreateParamsInternal implements WindowCreateParams {
@@ -1797,6 +1800,9 @@ export class WindowCreateParamsInternal implements WindowCreateParams {
     systemAnimationParams?: StartAnimationSystemParams;
     needAnimation?: boolean;
     isWindowLimitsForcible?: boolean;
+    minimizeOnStart?: boolean;
+    excludeFromDock?: boolean;
+    excludeFromRecent?: boolean;
 }
 
 /**
