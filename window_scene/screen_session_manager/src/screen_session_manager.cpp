@@ -3468,6 +3468,33 @@ void ScreenSessionManager::ApplyAdaptiveResolutionHook(const sptr<DisplayInfo>& 
 sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
 {
     TLOGI(WmsLogTag::DMS, "get userId %{public}u", userId);
+    ScreenId screenId = GetDefaultDisplayIdByUserId(userId);
+    TLOGI(WmsLogTag::DMS, "get screenId %{public}" PRIu64" with userId %{public}u", screenId, userId);
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
+    if (screenSession) {
+        sptr<DisplayInfo> displayInfo = screenSession->ConvertToDisplayInfo();
+        if (displayInfo == nullptr) {
+            TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, displayInfo is nullptr.");
+            return nullptr;
+        }
+        HandleRotationCorrectionExemption(displayInfo);
+        displayInfo = HookDisplayInfoByUid(displayInfo, screenSession);
+        return displayInfo;
+    } else {
+        TLOGNFE(WmsLogTag::DMS, "failed");
+        return nullptr;
+    }
+}
+
+// Lightweight per-user default display resolution: returns this user's default display
+// id WITHOUT constructing the full DisplayInfo (rotation correction / hook skipped).
+// Single-user: cached default screen id (O(1)); concurrent users: queries OsAccount for
+// the foreground display id, then lock + O(n) cross-check against displayConcurrentUserMap_
+// (n is the number of screens, usually <= 3) to confirm the user is live on that display.
+// Module-internal resolver, used as the authoritative data source by the window side.
+DisplayId ScreenSessionManager::GetDefaultDisplayIdByUserId(int32_t userId)
+{
     if (IsConcurrentUser()) {
         if (userId == CONCURRENT_USER_ID_DEFAULT) {
             userId = GetUserIdByCallingUid();
@@ -3490,22 +3517,11 @@ sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
         }
     }
 #endif
-    TLOGI(WmsLogTag::DMS, "get screenId %{public}" PRIu64" with userId %{public}u", screenId, userId);
-    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
-    std::lock_guard<std::recursive_mutex> lock_info(displayInfoMutex_);
-    if (screenSession) {
-        sptr<DisplayInfo> displayInfo = screenSession->ConvertToDisplayInfo();
-        if (displayInfo == nullptr) {
-            TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, displayInfo is nullptr.");
-            return nullptr;
-        }
-        HandleRotationCorrectionExemption(displayInfo);
-        displayInfo = HookDisplayInfoByUid(displayInfo, screenSession);
-        return displayInfo;
-    } else {
-        TLOGNFE(WmsLogTag::DMS, "failed");
-        return nullptr;
+    if (screenId == INVALID_SCREEN_ID || screenId == SCREEN_ID_INVALID) {
+        TLOGD(WmsLogTag::DMS, "no default display id for userId %{public}u", userId);
+        return DISPLAY_ID_INVALID;
     }
+    return screenId;
 }
 
 sptr<DisplayInfo> ScreenSessionManager::GetDisplayInfoById(DisplayId displayId)

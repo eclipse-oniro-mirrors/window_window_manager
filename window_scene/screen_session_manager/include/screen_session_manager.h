@@ -779,6 +779,7 @@ protected:
     int32_t connectScreenNumber_ = 0;
 
 private:
+    DisplayId GetDefaultDisplayIdByUserId(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     void SaveScreenCapabilityToDB();
     void UpdateSessionByActiveModeChange(sptr<ScreenSession> screenSession, RSScreenModeInfo screenMode);
     int32_t GetActiveIdxInModes(const std::vector<sptr<SupportedScreenModes>>& modes,
