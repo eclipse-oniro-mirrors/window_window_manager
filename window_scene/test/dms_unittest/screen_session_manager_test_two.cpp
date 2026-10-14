@@ -330,15 +330,16 @@ HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenUser, TestSize.Level1)
     ssm_->displayConcurrentUserMap_.clear();
     sptr<ScreenSession> screenSession = new ScreenSession(1000, ScreenProperty(), 0);
     int32_t userId = 100;
-    ssm_->SetVirtualScreenUser(screenSession, userId);
+    auto screenId = screenSession->GetScreenId();
+    ssm_->SetVirtualScreenUser(screenId, userId);
     EXPECT_TRUE(g_errLog.find("invalid params") != std::string::npos);
     g_errLog.clear();
     ssm_->displayConcurrentUserMap_[1000][userId] = {false, 0};
-    ssm_->SetVirtualScreenUser(screenSession, userId);
+    ssm_->SetVirtualScreenUser(screenId, userId);
     EXPECT_TRUE(g_errLog.find("invalid params") != std::string::npos);
     g_errLog.clear();
     ssm_->displayConcurrentUserMap_[1000][userId] = {true, 0};
-    ssm_->SetVirtualScreenUser(screenSession, userId);
+    ssm_->SetVirtualScreenUser(screenId, userId);
     EXPECT_TRUE(g_errLog.find("invalid params") == std::string::npos);
     g_errLog.clear();
 }

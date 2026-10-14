@@ -17,13 +17,22 @@
 #define SCREEN_SESSION_MANAGER_ADAPTER_H
 
 #include <mutex>
+#include <map>
+#include <set>
 #include "dm_common.h"
+#include "wm_common.h"
 #include "wm_single_instance.h"
 #include "client_agent_container.h"
 #include "zidl/idisplay_manager_agent.h"
 
 namespace OHOS {
 namespace Rosen {
+
+struct AgentDisplayInfo {
+    int32_t userId;
+    std::set<DisplayId> displayIds;
+};
+
 class ScreenSessionManagerAdapter {
 WM_DECLARE_SINGLE_INSTANCE_BASE(ScreenSessionManagerAdapter)
 
@@ -67,9 +76,24 @@ public:
         int32_t uid = INVALID_UID);
     bool IsAgentListenedAttributes(std::set<std::string>& listenedAttributes,
         const std::vector<std::string>& attributes);
+    void OnScreenDisconnectForConcurrentUser(ScreenId screenId, DisplayId displayId);
+    void OnDisplayDestroyForConcurrentUser(DisplayId);
+    void OnDisplayCreateForConcurrentUser(sptr<DisplayInfo>);
+    void OnScreenChangeForConcurrentUser(sptr<ScreenInfo> screenInfo, ScreenChangeEvent event, DisplayId displayId);
+    void OnDisplayChangeForConcurrentUser(sptr<DisplayInfo> displayInfo, DisplayChangeEvent event);
+    void OnScreenConnectForConcurrentUser(const sptr<ScreenInfo> screenInfo, DisplayId displayId);
+    void OnDisplayAttributeChangeForConcurrentUser(sptr<DisplayInfo> displayInfo,
+        const std::vector<std::string>& attributes, DisplayId displayId, int32_t uid = INVALID_UID);
+    void SetAgentDisplayInfo(const sptr<IDisplayManagerAgent>& agent, int32_t userId, DisplayId displayId);
+    AgentDisplayInfo GetAgentDisplayInfo(const sptr<IDisplayManagerAgent>& agent);
+    void RemoveAgentDisplayInfo(const sptr<IDisplayManagerAgent>& agent);
+    std::set<sptr<IDisplayManagerAgent>> GetFilteredAgents(
+        DisplayManagerAgentType type, DisplayId displayId, int32_t foregroundUserId);
 private:
     ScreenSessionManagerAdapter() {}
     virtual ~ScreenSessionManagerAdapter() = default;
+    std::mutex agentDisplayInfoMapMutex_;
+    std::map<sptr<IDisplayManagerAgent>, AgentDisplayInfo> agentDisplayInfoMap_;
 };
 }
 }
