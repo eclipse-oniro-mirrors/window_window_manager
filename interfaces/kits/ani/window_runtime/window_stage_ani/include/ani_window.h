@@ -430,6 +430,7 @@ private:
     ani_vm* vm_ = nullptr;
     ani_ref aniRef_ = nullptr;
     ani_object aniTransControllerObj_ = nullptr;
+    bool isDestroyed_ = false;
 };
 
 /* window obj stored in ANI */
