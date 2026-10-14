@@ -16,11 +16,37 @@
 #include "ffrt_queue_helper.h"
 
 #include <cstdint>
+#include <string>
+#include <unordered_map>
 
 #include "ffrt_inner.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
+namespace {
+constexpr uint32_t FFRT_STAT_MAX_COUNT = 5000;
+constexpr uint64_t FFRT_STAT_INTERVAL_MS = 5 * 60 * 1000;
+constexpr const char* DIGITS = "0123456789";
+
+struct TaskStatAggregation {
+    uint64_t totalTime = 0;
+    uint64_t callCount = 0;
+};
+
+std::string StripGid(std::string label)
+{
+    if (label.rfind("sq_", 0) != 0) {
+        return label;
+    }
+    size_t p = label.rfind('_');
+    if (p != std::string::npos && p + 1 < label.size() &&
+        label.find_first_not_of(DIGITS, p + 1) == std::string::npos) {
+        label.erase(p);
+    }
+    return label;
+}
+} // namespace
+
 constexpr int32_t FFRT_USER_INTERACTIVE_MAX_THREAD_NUM = 5;
 
 FfrtQueueHelper::FfrtQueueHelper()
@@ -31,7 +57,10 @@ FfrtQueueHelper::FfrtQueueHelper()
             .max_concurrency(FFRT_USER_INTERACTIVE_MAX_THREAD_NUM));
 }
 
-FfrtQueueHelper::~FfrtQueueHelper() = default;
+FfrtQueueHelper::~FfrtQueueHelper()
+{
+    StopStatCollection();
+}
 
 // LCOV_EXCL_START
 bool FfrtQueueHelper::SubmitTaskAndWait(std::function<void()>&& task, uint64_t timeout)
@@ -60,4 +89,113 @@ void FfrtQueueHelper::SubmitTaskToHead(std::function<void()>&& task)
     ffrtQueue_->submit_head(task);
 }
 // LCOV_EXCL_STOP
+
+void FfrtQueueHelper::StartStatCollection()
+{
+    if (statEnabled_.exchange(true)) {
+        TLOGNW(WmsLogTag::WMS_LIFE, "StartStatCollection: already started");
+        return;
+    }
+    statBufferSize_ = FFRT_STAT_MAX_COUNT * static_cast<uint32_t>(sizeof(ffrt_stat));
+    statBuffer_ = std::make_unique<char[]>(statBufferSize_);
+    if (statBuffer_ == nullptr) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "StartStatCollection: alloc buffer failed, size=%{public}u", statBufferSize_);
+        statEnabled_ = false;
+        statBufferSize_ = 0;
+        return;
+    }
+    if (ffrt_dump(DUMP_START_STAT, statBuffer_.get(), statBufferSize_) != 0) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "StartStatCollection: ffrt_dump start failed");
+        statBuffer_.reset();
+        statEnabled_ = false;
+        statBufferSize_ = 0;
+        return;
+    }
+    StartStatTimer();
+}
+
+void FfrtQueueHelper::StartStatTimer()
+{
+    statTimer_ = ffrt_timer_start(ffrt_qos_default, FFRT_STAT_INTERVAL_MS, this,
+        &FfrtQueueHelper::OnStatTimer, true);
+    if (statTimer_ == ffrt_error) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "StartStatTimer: ffrt_timer_start failed");
+    }
+}
+
+void FfrtQueueHelper::OnStatTimer(void* data)
+{
+    auto* self = static_cast<FfrtQueueHelper*>(data);
+    if (self != nullptr) {
+        self->ParseAndReportStat();
+    }
+}
+
+void FfrtQueueHelper::ParseAndReportStat()
+{
+    if (!statEnabled_ || statBuffer_ == nullptr || statBufferSize_ == 0) {
+        return;
+    }
+    if (ffrt_dump(DUMP_STOP_STAT, statBuffer_.get(), statBufferSize_) != 0) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: ffrt_dump stop failed");
+    }
+    std::unordered_map<std::string, TaskStatAggregation> aggregated;
+    uint64_t minStartTime = UINT64_MAX;
+    uint64_t maxEndTime = 0;
+    const auto* stats = reinterpret_cast<const ffrt_stat*>(statBuffer_.get());
+    const uint32_t statCount = statBufferSize_ / static_cast<uint32_t>(sizeof(ffrt_stat));
+    for (uint32_t i = 0; i < statCount; ++i) {
+        const auto& s = stats[i];
+        if (s.startTime == 0 || s.endTime == 0 || s.endTime < s.startTime) {
+            continue;
+        }
+        std::string raw(s.taskName);
+        while (!raw.empty() && raw.back() == ' ') {
+            raw.pop_back();
+        }
+        std::string name = StripGid(std::move(raw));
+        auto& entry = aggregated[name];
+        entry.totalTime += (s.endTime - s.startTime);
+        entry.callCount += 1;
+        if (s.startTime < minStartTime) {
+            minStartTime = s.startTime;
+        }
+        if (s.endTime > maxEndTime) {
+            maxEndTime = s.endTime;
+        }
+    }
+    // 上报xpower
+    if (minStartTime != UINT64_MAX) {
+        TLOGNI(WmsLogTag::WMS_LIFE,
+            "ffrt stat window: %{public}u unique tasks, start=%{public}llu end=%{public}llu",
+            static_cast<uint32_t>(aggregated.size()),
+            static_cast<unsigned long long>(minStartTime),
+            static_cast<unsigned long long>(maxEndTime));
+    } else {
+        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt stat window: 0 tasks");
+    }
+    for (const auto& [name, stat] : aggregated) {
+        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt stat: task=%{public}s count=%{public}llu total=%{public}llu",
+            name.c_str(), static_cast<unsigned long long>(stat.callCount),
+            static_cast<unsigned long long>(stat.totalTime));
+    }
+    if (ffrt_dump(DUMP_START_STAT, statBuffer_.get(), statBufferSize_) != 0) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: ffrt_dump restart failed");
+        statEnabled_ = false;
+    }
+}
+
+void FfrtQueueHelper::StopStatCollection()
+{
+    if (statTimer_ != ffrt_error) {
+        ffrt_timer_stop(ffrt_qos_default, statTimer_);
+        statTimer_ = ffrt_error;
+    }
+    if (statEnabled_ && statBuffer_ != nullptr) {
+        ffrt_dump(DUMP_STOP_STAT, statBuffer_.get(), statBufferSize_);
+    }
+    statEnabled_ = false;
+    statBuffer_.reset();
+    statBufferSize_ = 0;
+}
 } // namespace OHOS::Rosen
