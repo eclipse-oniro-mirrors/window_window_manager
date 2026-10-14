@@ -19,7 +19,6 @@
 
 #include "dm_common.h"
 #include "window_manager_hilog.h"
-#include "window_helper.h"
 #include "window_option.h"
 #include "viewport_config.h"
 #include "singleton_container.h"

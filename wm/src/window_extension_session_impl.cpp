@@ -952,7 +952,8 @@ WMError WindowExtensionSessionImpl::AniSetUIContentByName(const std::string& con
 WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& contentInfo, void* env, void* storage,
     sptr<IRemoteObject> token, AppExecFwk::Ability* ability, bool initByName, EnvironmentType envType)
 {
-    WLOGFD("%{public}s state:%{public}u", contentInfo.c_str(), state_);
+    TLOGI(WmsLogTag::WMS_UIEXT, "info=%{public}s, state=%{public}u, dpiFollowStrategy=%{public}u",
+        contentInfo.c_str(), state_, dpiFollowStrategy_.load());
     if (auto uiContent = GetUIContentSharedPtr()) {
         uiContent->Destroy();
     }
@@ -973,6 +974,7 @@ WMError WindowExtensionSessionImpl::SetUIContentInner(const std::string& content
         } else if (usage == UIExtensionUsage::PREVIEW_EMBEDDED) {
             uiContent->SetUIContentType(Ace::UIContentType::PREVIEW_UI_EXTENSION);
         }
+        uiContent->SetUIExtensionDensityFollowHost(dpiFollowStrategy_.load());
         uiContent->SetHostParams(extensionConfig_);
         if (initByName) {
             if (envType == EnvironmentType::ANI) {
@@ -1365,6 +1367,8 @@ WSError WindowExtensionSessionImpl::UpdateSessionViewportConfigInner(const Sessi
     if (!NearEqual(oldDensity, config.density_)) {
         NotifyWindowDensityChange(config.density_);
     }
+    TLOGD(WmsLogTag::WMS_UIEXT, "uec dpiFollowStrategy=%{public}u", dpiFollowStrategy_.load());
+    uiContent->SetUIExtensionDensityFollowHost(dpiFollowStrategy_.load());
     uiContent->UpdateViewportConfig(
         viewportConfig, WindowSizeChangeReason::UNDEFINED, nullptr, GetLastAvoidAreaMapCopy());
     return WSError::WS_OK;
