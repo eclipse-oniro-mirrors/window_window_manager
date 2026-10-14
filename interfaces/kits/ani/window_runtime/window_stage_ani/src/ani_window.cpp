@@ -2815,8 +2815,7 @@ void AniWindow::OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_re
     if (window == nullptr) {
         if (isDestroyed_) {
             TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
-        }
-        else {
+        } else {
             TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         }
