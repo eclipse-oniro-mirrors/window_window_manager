@@ -73,6 +73,7 @@ group("unittest") {
       ":wm_all_users_window_manager_lite_test",
       ":wm_window_manager_agent_lite_test",
       ":wm_window_scene_effect_test",
+      ":wm_window_scene_session_impl_compatible_mode_test",
       ":wm_window_scene_session_impl_test",
       ":wm_window_scene_session_impl_test2",
       ":wm_window_scene_session_impl_test3",
@@ -580,6 +581,21 @@ ohos_unittest("wm_window_scene_session_impl_test5") {
   include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
 
   sources = [ "window_scene_session_impl_test5.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/test/common/utils:libtestutil",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_window_scene_session_impl_compatible_mode_test") {
+  module_out_path = module_out_path
+  include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
+
+  sources = [ "compatible_mode/window_scene_session_impl_compatible_mode_test.cpp" ]
 
   deps = [
     ":wm_unittest_common",

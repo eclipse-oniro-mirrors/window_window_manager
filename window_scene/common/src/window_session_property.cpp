@@ -1743,7 +1743,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(titleHoverShowEnabled_) &&
         parcel.WriteBool(dockHoverShowEnabled_) &&
         MarshallingSupportWindowModes(parcel) &&
-        MarshallingFvTemplateInfo(parcel);
+        MarshallingFvTemplateInfo(parcel) &&
+        parcel.WriteString(GetHookSceneMessage());
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1876,6 +1877,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetTitleAndDockHoverEnabled(parcel.ReadBool(), parcel.ReadBool());
     UnmarshallingSupportWindowModes(parcel, property);
     UnmarshallingFvTemplateInfo(parcel, property);
+    property->SetHookSceneMessage(parcel.ReadString());
     return property;
 }
 
@@ -1999,6 +2001,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     SetSurfaceNodeAlpha(property->GetSurfaceNodeAlpha());
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
+    SetHookSceneMessage(property->GetHookSceneMessage());
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
     SetWidthHookRatio(property->GetHookWindowInfo().widthHookRatio);
     titleHoverShowEnabled_ = property->titleHoverShowEnabled_;
@@ -2825,6 +2828,18 @@ void WindowSessionProperty::SetPageCompatibleMode(CompatibleStyleMode compatible
 CompatibleStyleMode WindowSessionProperty::GetPageCompatibleMode() const
 {
     return pageCompatibleMode_;
+}
+
+void WindowSessionProperty::SetHookSceneMessage(const std::string& hookSceneMessage)
+{
+    std::lock_guard<std::mutex> lock(hookSceneMessageMutex_);
+    hookSceneMessage_ = hookSceneMessage;
+}
+
+std::string WindowSessionProperty::GetHookSceneMessage() const
+{
+    std::lock_guard<std::mutex> lock(hookSceneMessageMutex_);
+    return hookSceneMessage_;
 }
 
 void WindowSessionProperty::SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig)

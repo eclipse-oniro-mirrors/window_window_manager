@@ -409,6 +409,8 @@ public:
     RealTimeSwitchInfo GetRealTimeSwitchInfo() const;
     void SetPageCompatibleMode(CompatibleStyleMode compatibleMode);
     CompatibleStyleMode GetPageCompatibleMode() const;
+    void SetHookSceneMessage(const std::string& hookSceneMessage);
+    std::string GetHookSceneMessage() const;
     void SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig);
     std::vector<std::string> GetCombinedCompatibleConfig() const;
     void SetSelectMode(SelectMode selectMode);
@@ -630,6 +632,8 @@ private:
     mutable std::shared_mutex compatibleModePropertyMutex_;
     bool isFullScreenInForceSplitMode_ = false;
     CompatibleStyleMode pageCompatibleMode_ = CompatibleStyleMode::INVALID_VALUE;
+    std::string hookSceneMessage_ = "";
+    mutable std::mutex hookSceneMessageMutex_;
     std::vector<std::string> combinedCompatibleConfig_;
     mutable std::mutex combinedCompatibleConfigMutex_;
     uint8_t backgroundAlpha_ = 0xff; // default alpha is opaque.

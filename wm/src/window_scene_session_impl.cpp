@@ -125,6 +125,7 @@ const std::string WATERFALL_WINDOW_EVENT = "scb_waterfall_window_event";
 const std::string BACK_WINDOW_EVENT = "scb_back_window_event";
 const std::string COMPATIBLE_MAX_WINDOW_EVENT = "win_compatible_max_event";
 const std::string COMPATIBLE_RECOVER_WINDOW_EVENT = "win_compatible_recover_event";
+const std::string HOOK_SCENE_ACTION = "hookscene";
 const std::string NAME_LANDSCAPE_2_3_CLICK = "win_change_to_2_3_landscape";
 const std::string NAME_LANDSCAPE_1_1_CLICK = "win_change_to_1_1_landscape";
 const std::string NAME_LANDSCAPE_18_9_CLICK = "win_change_to_18_9_landscape";
@@ -7599,6 +7600,9 @@ WMError WindowSceneSessionImpl::NotifyPageEnable(const std::string& action, cons
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_COMPAT, "window session invalid!");
         return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (action == HOOK_SCENE_ACTION) {
+        property_->SetHookSceneMessage(message);
     }
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
