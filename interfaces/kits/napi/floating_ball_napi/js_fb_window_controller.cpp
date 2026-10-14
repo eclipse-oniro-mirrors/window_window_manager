@@ -725,7 +725,7 @@ napi_value JsFbController::UnRegisterListenerWithType(napi_env env, const std::s
     }
 
     if (value == nullptr) {
-        TLOGI(WmsLogTag::WMS_SYSTEM, "methodName %{public}s start unregister all callback", type.c_str());
+        TLOGI(WmsLogTag::WMS_SYSTEM, "[FB]SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto& listener : jsCbMap_[type]) {
             WmErrorCode ret = UnRegisterListener(type, listener);
             if (ret != WmErrorCode::WM_OK) {
