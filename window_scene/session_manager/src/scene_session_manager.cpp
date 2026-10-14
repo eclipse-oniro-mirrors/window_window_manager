@@ -202,6 +202,7 @@ const std::string ENABLE_OPTIONAL_STARTING_WINDOW_KEY = "enable.optional.startin
 constexpr int32_t MAIN_WINDOW_CREATE = 3;
 constexpr int32_t MAIN_WINDOW_DESTORY = 4;
 const bool SUPPORT_DPI_SCALING = system::GetBoolParameter("const.desktop.is_support_scale_with_dpi", false);
+const bool IGNORE_OPTIONAL_START_WINDOW = system::GetBoolParameter("const.window.ignore_optional_start_window", false);
 
 /*
  * sessionexception reason
@@ -7429,7 +7430,7 @@ void SceneSessionManager::PostProcessStartingWindowInfo(
     if (!GetEnableOptionalStartingWindowFromBMS(abilityInfo)) {
         return;
     }
-    if (GetPerformanceClass() == PERFORMANCE_CLASS_LOW_LEVEL) {
+    if (!IGNORE_OPTIONAL_START_WINDOW && GetPerformanceClass() == PERFORMANCE_CLASS_LOW_LEVEL) {
         return;
     }
     TLOGI(WmsLogTag::WMS_PATTERN, "empty %{public}s starting window icon", abilityInfo.bundleName.c_str());
