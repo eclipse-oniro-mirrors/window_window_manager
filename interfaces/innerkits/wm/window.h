@@ -5237,6 +5237,27 @@ public:
     virtual std::shared_ptr<IDataHandler> GetExtensionDataHandler() const { return nullptr; }
 
     /**
+     * @brief UIExtension register data consumer of ability, the SubSystemId is fixed to ABILITY_UIEXT.
+     *
+     * @param callback Data consume callback.
+     * @return WM_OK means register success, others means register failed.
+     */
+    virtual WMError RegisterAbilityDataConsumer(const DataConsumeCallback& callback)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
+     * @brief UIExtension unregister data consumer of ability, the SubSystemId is fixed to ABILITY_UIEXT.
+     *
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    virtual WMError UnregisterAbilityDataConsumer()
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Get the real parent id of UIExtension
      *
      * @return Real parent id of UIExtension

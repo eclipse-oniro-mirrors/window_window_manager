@@ -29,10 +29,12 @@
 #include "extension_data_handler.h"
 #include "extension_data_handler_mock.h"
 #include "iremote_object_mocker.h"
+#include "mock_ability_context_impl.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
 #include "mock_window.h"
 #include "mock_window_adapter.h"
+#include "mock_window_session_impl.h"
 #include "singleton_mocker.h"
 #include "ui_extension/provider_data_handler.h"
 #include "window_extension_session_impl.h"
@@ -315,6 +317,255 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecified02, Test
     window_->UpdateConfigurationForSpecified(configuration, resourceManager);
     configuration = std::make_shared<AppExecFwk::Configuration>();
     window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+}
+
+/**
+ * @tc.name: UpdateConfigurationWithBrandColorFollowUEC
+ * @tc.desc: UpdateConfiguration with brand color strategy FOLLOW_UEC, notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationWithBrandColorFollowUEC, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    auto context = std::make_shared<MockAbilityContextImpl>();
+    ASSERT_NE(nullptr, context);
+    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
+    window_->context_ = context;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(nullptr);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    EXPECT_CALL(*subWindow, UpdateConfiguration(_)).Times(1);
+    window_->UpdateConfiguration(configuration);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationWithBrandColorFollowSystem
+ * @tc.desc: UpdateConfiguration with brand color strategy FOLLOW_SYSTEM, do not notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationWithBrandColorFollowSystem, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    auto context = std::make_shared<MockAbilityContextImpl>();
+    ASSERT_NE(nullptr, context);
+    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
+    window_->context_ = context;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    EXPECT_CALL(*subWindow, UpdateConfiguration(_)).Times(0);
+    window_->UpdateConfiguration(configuration);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationWithNullContext
+ * @tc.desc: UpdateConfiguration with null context, do not notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationWithNullContext, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    ASSERT_EQ(nullptr, window_->context_);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    EXPECT_CALL(*subWindow, UpdateConfiguration(_)).Times(0);
+    window_->UpdateConfiguration(configuration);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationForSpecifiedWithBrandColorFollowUEC
+ * @tc.desc: UpdateConfigurationForSpecified with brand color strategy FOLLOW_UEC, notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecifiedWithBrandColorFollowUEC, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    auto context = std::make_shared<MockAbilityContextImpl>();
+    ASSERT_NE(nullptr, context);
+    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
+    window_->context_ = context;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(nullptr);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    std::shared_ptr<Global::Resource::ResourceManager> resourceManager;
+    EXPECT_CALL(*subWindow, UpdateConfigurationForSpecified(_, _)).Times(1);
+    window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationForSpecifiedWithBrandColorFollowSystem
+ * @tc.desc: UpdateConfigurationForSpecified with brand color strategy FOLLOW_SYSTEM, do not notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecifiedWithBrandColorFollowSystem, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    auto context = std::make_shared<MockAbilityContextImpl>();
+    ASSERT_NE(nullptr, context);
+    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
+    window_->context_ = context;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    std::shared_ptr<Global::Resource::ResourceManager> resourceManager;
+    EXPECT_CALL(*subWindow, UpdateConfigurationForSpecified(_, _)).Times(0);
+    window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationForSpecifiedWithNullContext
+ * @tc.desc: UpdateConfigurationForSpecified with null context, do not notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecifiedWithNullContext, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    ASSERT_EQ(nullptr, window_->context_);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    std::shared_ptr<Global::Resource::ResourceManager> resourceManager;
+    EXPECT_CALL(*subWindow, UpdateConfigurationForSpecified(_, _)).Times(0);
+    window_->UpdateConfigurationForSpecified(configuration, resourceManager);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationSyncWithBrandColorFollowUEC
+ * @tc.desc: UpdateConfigurationSync with brand color strategy FOLLOW_UEC, notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationSyncWithBrandColorFollowUEC, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    auto context = std::make_shared<MockAbilityContextImpl>();
+    ASSERT_NE(nullptr, context);
+    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
+    window_->context_ = context;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(nullptr);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    EXPECT_CALL(*subWindow, UpdateConfigurationSync(_)).Times(1);
+    window_->UpdateConfigurationSync(configuration);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationSyncWithBrandColorFollowSystem
+ * @tc.desc: UpdateConfigurationSync with brand color strategy FOLLOW_SYSTEM, do not notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationSyncWithBrandColorFollowSystem, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    auto context = std::make_shared<MockAbilityContextImpl>();
+    ASSERT_NE(nullptr, context);
+    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
+    window_->context_ = context;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    EXPECT_CALL(*subWindow, UpdateConfigurationSync(_)).Times(0);
+    window_->UpdateConfigurationSync(configuration);
+
+    window_->subWindowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: UpdateConfigurationSyncWithNullContext
+ * @tc.desc: UpdateConfigurationSync with null context, do not notify sub windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationSyncWithNullContext, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    ASSERT_EQ(nullptr, window_->context_);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("BrandColorSubWindow");
+    option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sptr<MockWindowSessionImpl> subWindow = sptr<MockWindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, subWindow);
+    window_->subWindowSessionMap_.clear();
+    window_->subWindowSessionMap_[window_->GetPersistentId()].push_back(subWindow);
+
+    std::shared_ptr<AppExecFwk::Configuration> configuration = std::make_shared<AppExecFwk::Configuration>();
+    EXPECT_CALL(*subWindow, UpdateConfigurationSync(_)).Times(0);
+    window_->UpdateConfigurationSync(configuration);
+
+    window_->subWindowSessionMap_.clear();
 }
 
 /**
@@ -4025,6 +4276,47 @@ HWTEST_F(WindowExtensionSessionImplTest, GetWindowPropertyInfo, TestSize.Level1)
     ASSERT_NE(nullptr, window->hostSession_);
     window->property_->SetPersistentId(1);
     EXPECT_EQ(WMError::WM_OK, window->GetWindowPropertyInfo(windowPropertyInfo, true));
+}
+
+/**
+ * @tc.name: RegisterAbilityDataConsumer01
+ * @tc.desc: RegisterAbilityDataConsumer with valid callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, RegisterAbilityDataConsumer01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    ASSERT_NE(nullptr, window_->dataHandler_);
+    DataConsumeCallback callback = [](SubSystemId id, uint32_t customId, AAFwk::Want&& data,
+        std::optional<AAFwk::Want>& reply) -> int32_t {
+        return static_cast<int32_t>(DataHandlerErr::OK);
+    };
+    EXPECT_EQ(WMError::WM_OK, window_->RegisterAbilityDataConsumer(callback));
+    DataConsumeCallback duplicateCallback = [](SubSystemId id, uint32_t customId, AAFwk::Want&& data,
+        std::optional<AAFwk::Want>& reply) -> int32_t {
+        return static_cast<int32_t>(DataHandlerErr::OK);
+    };
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, window_->RegisterAbilityDataConsumer(duplicateCallback));
+    EXPECT_EQ(WMError::WM_OK, window_->UnregisterAbilityDataConsumer());
+    EXPECT_EQ(WMError::WM_OK, window_->RegisterAbilityDataConsumer(callback));
+    EXPECT_EQ(WMError::WM_OK, window_->UnregisterAbilityDataConsumer());
+}
+
+/**
+ * @tc.name: RegisterAbilityDataConsumer02
+ * @tc.desc: RegisterAbilityDataConsumer with null data handler
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, RegisterAbilityDataConsumer02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, window_);
+    window_->dataHandler_ = nullptr;
+    DataConsumeCallback callback = [](SubSystemId id, uint32_t customId, AAFwk::Want&& data,
+        std::optional<AAFwk::Want>& reply) -> int32_t {
+        return static_cast<int32_t>(DataHandlerErr::OK);
+    };
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window_->RegisterAbilityDataConsumer(callback));
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window_->UnregisterAbilityDataConsumer());
 }
 }
 } // namespace Rosen

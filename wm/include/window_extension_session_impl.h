@@ -76,6 +76,8 @@ public:
     WMError UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
     void TriggerBindModalUIExtension() override;
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const override;
+    WMError RegisterAbilityDataConsumer(const DataConsumeCallback& callback) override;
+    WMError UnregisterAbilityDataConsumer() override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;
