@@ -633,6 +633,10 @@ void SceneSessionManager::Init()
     OHOS::Rosen::TextConfig::SetLocaleTextBreakEnabled(true);
 
     MotionManager::GetInstance().Init();
+
+    if (SessionPermission::IsBetaVersion()) {
+        ffrtQueueHelper_->StartStatCollection();
+    }
 }
 
 void SceneSessionManager::RegisterBrightnessDataChangeListener()
