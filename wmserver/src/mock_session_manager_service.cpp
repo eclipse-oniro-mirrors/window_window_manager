@@ -20,6 +20,7 @@
 #include <securec.h>
 #include <unistd.h>
 
+#include <app_mgr_client.h>
 #include <bundle_mgr_interface.h>
 #include <system_ability_definition.h>
 #include <cinttypes>
@@ -30,6 +31,7 @@
 #include <ipc_skeleton.h>
 #include <iservice_registry.h>
 #include <map>
+#include <singleton.h>
 #include <sstream>
 
 #include "window_manager_hilog.h"
@@ -1449,8 +1451,12 @@ ErrCode MockSessionManagerService::AcquireKeyId(int32_t userId, int32_t& keyId)
             userId, callingUserId);
         return ERR_INVALID_VALUE;
     }
-    if (!SessionPermission::IsSameBundleNameAsCalling(SCENE_BOARD_BUNDLE_NAME)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "caller is not sceneboard, permission denied");
+    auto callingPid = IPCSkeleton::GetCallingRealPid();
+    AppExecFwk::RunningProcessInfo info;
+    DelayedSingleton<AppExecFwk::AppMgrClient>::GetInstance()->GetRunningProcessInfoByPid(callingPid, info);
+    if (SCENE_BOARD_BUNDLE_NAME != info.processName_) {
+        TLOGE(WmsLogTag::WMS_LIFE, "caller is not sceneboard, permission denied, callingPid: %{public}d",
+            callingPid);
         return ERR_PERMISSION_DENIED;
     }
     keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
@@ -1469,8 +1475,12 @@ ErrCode MockSessionManagerService::SyncKeyId(int32_t userId, int32_t keyId, bool
             userId, callingUserId);
         return ERR_INVALID_VALUE;
     }
-    if (!SessionPermission::IsSameBundleNameAsCalling(SCENE_BOARD_BUNDLE_NAME)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "caller is not sceneboard, permission denied");
+    auto callingPid = IPCSkeleton::GetCallingRealPid();
+    AppExecFwk::RunningProcessInfo info;
+    DelayedSingleton<AppExecFwk::AppMgrClient>::GetInstance()->GetRunningProcessInfoByPid(callingPid, info);
+    if (SCENE_BOARD_BUNDLE_NAME != info.processName_) {
+        TLOGE(WmsLogTag::WMS_LIFE, "caller is not sceneboard, permission denied, callingPid: %{public}d",
+            callingPid);
         return ERR_PERMISSION_DENIED;
     }
     isSuccess = PersistentIdManager::GetInstance().SyncKeyId(userId, keyId);

@@ -303,7 +303,7 @@ private:
  * @tc.name: AcquireKeyId02
  * @tc.desc: The IPC entry is restricted to the sceneboard process: even when the
  *           calling user matches, a non-sceneboard caller is denied. On the host
- *           there is no bundle manager, so the sceneboard identity check fails.
+ *           the app manager is unavailable, so the process name check fails.
  * @tc.type: FUNC
  */
 HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId02, TestSize.Level1)
